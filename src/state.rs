@@ -45,10 +45,12 @@ pub(crate) struct SessionState {
 }
 
 pub(crate) struct TunnelState {
+    // TODO: make this Arc<tokio::sync::RwLock<IpAddr>>
     pub(crate) remote_addr: IpAddr,
     pub(crate) handle: l2tp::TunnelHandle,
 
     /// session_id to SessionState
+    // TODO: make this Arc<tokio::sync::RwLock<BTreeMap<u32, SessionState>>>
     pub(crate) sessions: BTreeMap<u32, SessionState>,
 }
 
@@ -56,9 +58,11 @@ pub(crate) struct State {
     pub(crate) handle: l2tp::L2tpHandle,
 
     /// tunnel_id to TunnelState
+    // TODO: make this Arc<tokio::sync::RwLock<BTreeMap<u32, TunnelState>>>
     pub(crate) tunnels: BTreeMap<u32, TunnelState>,
 }
 
+// TODO: make every method that receive &mut self into &self
 impl State {
     pub(crate) async fn new() -> Result<Self> {
         let handle = l2tp::L2tpHandle::new().await.map_err(|e| Error::L2tp(e))?;
