@@ -1,6 +1,7 @@
 use crate::error::{Error, Result};
 
 use futures_util::TryStreamExt;
+use log::warn;
 use rtnetlink::LinkUnspec;
 
 use tokio::sync::RwLock;
@@ -48,7 +49,7 @@ pub(crate) struct SessionState {
     pub(crate) interface_name: Arc<RwLock<String>>,
     // Keep session handle alive for the session lifecycle even when we don't call methods on it.
     #[allow(dead_code)]
-    pub(crate) handle: l2tp::SessionHandle,
+    pub(crate) handle: Arc<l2tp::SessionHandle>,
 }
 
 pub(crate) struct TunnelState {
@@ -246,7 +247,7 @@ impl State {
 
         let session = SessionState {
             interface_name: Arc::new(RwLock::new(if_name.to_string())),
-            handle,
+            handle: Arc::new(handle),
         };
 
         sessions.write().await.insert(session_id, session);
@@ -272,7 +273,7 @@ impl State {
             }
         };
 
-        let interface_name = {
+        let (interface_name, handle) = {
             let sessions = sessions.read().await;
             let session = if let Some(s) = sessions.get(&session_id) {
                 s
@@ -283,11 +284,38 @@ impl State {
                 )));
             };
 
-            Arc::clone(&session.interface_name)
+            (
+                Arc::clone(&session.interface_name),
+                Arc::clone(&session.handle),
+            )
         };
 
-        let old_ifname = interface_name.read().await.clone();
+        let cached_ifname = interface_name.read().await.clone();
+        let old_ifname = match handle.get().await {
+            Ok(info) => {
+                if let Some(ifname) = info.ifname {
+                    ifname.to_string()
+                } else {
+                    warn!(
+                        "kernel returned no interface name for session {} on tunnel {}; using cached name {}",
+                        session_id, tunnel_id, cached_ifname
+                    );
+                    cached_ifname.clone()
+                }
+            }
+            Err(e) => {
+                warn!(
+                    "failed to query kernel session {} on tunnel {}: {}; using cached name {}",
+                    session_id, tunnel_id, e, cached_ifname
+                );
+                cached_ifname.clone()
+            }
+        };
+
         if old_ifname == ifname {
+            if cached_ifname != ifname {
+                *interface_name.write().await = ifname.to_string();
+            }
             return Ok(());
         }
 
