@@ -84,7 +84,7 @@ fn load_config_blocking() -> Result<Config> {
 }
 
 #[cfg(unix)]
-fn install_signal_handlers(control_tx: mpsc::UnboundedSender<ControlEvent>) -> Result<()> {
+fn install_signal_handlers(control_tx: mpsc::Sender<ControlEvent>) -> Result<()> {
     use tokio::signal::unix::{signal, SignalKind};
 
     let mut hup = signal(SignalKind::hangup())
@@ -95,7 +95,7 @@ fn install_signal_handlers(control_tx: mpsc::UnboundedSender<ControlEvent>) -> R
             if hup.recv().await.is_none() {
                 break;
             }
-            if hup_tx.send(ControlEvent::ReloadRequested).is_err() {
+            if hup_tx.send(ControlEvent::ReloadRequested).await.is_err() {
                 break;
             }
         }
@@ -110,14 +110,14 @@ fn install_signal_handlers(control_tx: mpsc::UnboundedSender<ControlEvent>) -> R
             _ = term.recv() => {}
             _ = int.recv() => {}
         }
-        let _ = control_tx.send(ControlEvent::ShutdownRequested);
+        let _ = control_tx.send(ControlEvent::ShutdownRequested).await;
     });
 
     Ok(())
 }
 
 #[cfg(not(unix))]
-fn install_signal_handlers(_control_tx: mpsc::UnboundedSender<ControlEvent>) -> Result<()> {
+fn install_signal_handlers(_control_tx: mpsc::Sender<ControlEvent>) -> Result<()> {
     Err(Error::Other(
         "this daemon requires unix signal support".to_string(),
     ))
@@ -147,7 +147,7 @@ async fn main() -> Result<()> {
 
     let state = Arc::new(state::State::new().await?);
     let config = Arc::new(RwLock::new(initial_config.clone()));
-    let (control_tx, mut control_rx) = mpsc::unbounded_channel();
+    let (control_tx, mut control_rx) = mpsc::channel(256);
 
     install_signal_handlers(control_tx.clone())?;
 

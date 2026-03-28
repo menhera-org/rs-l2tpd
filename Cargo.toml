@@ -10,7 +10,7 @@ repository = "https://github.com/menhera-org/rs-l2tpd"
 homepage = "https://github.com/menhera-org/rs-l2tpd"
 
 [dependencies]
-tokio = { version = "1", features = ["net", "io-util", "sync", "rt", "rt-multi-thread", "macros", "signal"] }
+tokio = { version = "1", features = ["net", "io-util", "sync", "rt", "rt-multi-thread", "macros", "signal", "time"] }
 l2tp = "0.2.1"
 async-trait = "0.1"
 clap = { version = "4", features = ["derive"] }

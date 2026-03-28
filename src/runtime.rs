@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use iphost::{AutoIpHostResolver, IpHost, IpHostResolver};
 use log::{debug, info, warn};
 use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::net::IpAddr;
@@ -22,6 +23,7 @@ type DesiredTunnelMap = BTreeMap<TunnelId, DesiredTunnel>;
 type DesiredSessionMap = BTreeMap<SessionKey, DesiredSession>;
 
 const DNS_REFRESH_INTERVAL_SECS: u64 = 30;
+const DNS_WATCH_POLL_INTERVAL_SECS: u64 = 1;
 const MAX_INTERFACE_NAME_LEN: usize = 15;
 
 #[derive(Debug)]
@@ -137,13 +139,16 @@ struct ResolverRuntime {
     resolver: AutoIpHostResolver,
     ip_version: Arc<StdRwLock<IpVersion>>,
     active: Arc<AtomicBool>,
+    dns_event_pending: Arc<AtomicBool>,
+    last_queued_addr: Arc<StdRwLock<Option<IpAddr>>>,
+    worker: JoinHandle<()>,
 }
 
 impl ResolverRuntime {
     fn new(
         tunnel_id: u32,
         desired: &DesiredTunnel,
-        control_tx: mpsc::UnboundedSender<ControlEvent>,
+        control_tx: mpsc::Sender<ControlEvent>,
     ) -> Self {
         let resolver = AutoIpHostResolver::new(
             desired.remote_addr.clone(),
@@ -151,23 +156,67 @@ impl ResolverRuntime {
         );
         let ip_version = Arc::new(StdRwLock::new(desired.ip_version));
         let active = Arc::new(AtomicBool::new(true));
+        let dns_event_pending = Arc::new(AtomicBool::new(false));
+        let last_queued_addr = Arc::new(StdRwLock::new(Self::current_remote_addr_for(
+            &resolver,
+            desired.ip_version,
+        )));
 
         let watcher_resolver = resolver.clone();
-        let subscriber = watcher_resolver.subscribe_changes();
+        let watcher_ip_version = Arc::clone(&ip_version);
         let watcher_active = Arc::clone(&active);
-        std::thread::spawn(move || loop {
-            let change = subscriber.wait_for_change_blocking();
-            if change.is_none() {
-                break;
-            }
-            if !watcher_active.load(Ordering::Relaxed) {
-                continue;
-            }
-            if control_tx
-                .send(ControlEvent::DnsChanged { tunnel_id })
-                .is_err()
-            {
-                break;
+        let watcher_pending = Arc::clone(&dns_event_pending);
+        let watcher_last_queued = Arc::clone(&last_queued_addr);
+        let worker = tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_secs(DNS_WATCH_POLL_INTERVAL_SECS)).await;
+                if control_tx.is_closed() {
+                    break;
+                }
+                if !watcher_active.load(Ordering::Relaxed) {
+                    continue;
+                }
+
+                let current = if let Ok(version) = watcher_ip_version.read() {
+                    Self::current_remote_addr_for(&watcher_resolver, *version)
+                } else {
+                    None
+                };
+
+                let mut old = None;
+                let should_emit = {
+                    let mut queued = watcher_last_queued
+                        .write()
+                        .expect("resolver watcher queue state poisoned");
+                    if *queued == current {
+                        false
+                    } else if watcher_pending
+                        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
+                        .is_ok()
+                    {
+                        old = Some(*queued);
+                        *queued = current;
+                        true
+                    } else {
+                        false
+                    }
+                };
+
+                if !should_emit {
+                    continue;
+                }
+
+                if control_tx
+                    .try_send(ControlEvent::DnsChanged { tunnel_id })
+                    .is_err()
+                {
+                    watcher_pending.store(false, Ordering::Release);
+                    if let Some(previous) = old {
+                        if let Ok(mut queued) = watcher_last_queued.write() {
+                            *queued = previous;
+                        }
+                    }
+                }
             }
         });
 
@@ -175,6 +224,9 @@ impl ResolverRuntime {
             resolver,
             ip_version,
             active,
+            dns_event_pending,
+            last_queued_addr,
+            worker,
         }
     }
 
@@ -183,6 +235,7 @@ impl ResolverRuntime {
             *version = desired.ip_version;
         }
         self.active.store(true, Ordering::Relaxed);
+        self.dns_event_pending.store(false, Ordering::Relaxed);
 
         if self
             .resolver
@@ -194,22 +247,45 @@ impl ResolverRuntime {
                 desired.tunnel_id
             );
         }
+
+        if let Ok(mut queued) = self.last_queued_addr.write() {
+            *queued = Self::current_remote_addr_for(&self.resolver, desired.ip_version);
+        }
     }
 
     fn deactivate(&self) {
         self.active.store(false, Ordering::Relaxed);
+        self.dns_event_pending.store(false, Ordering::Relaxed);
     }
 
     fn is_active(&self) -> bool {
         self.active.load(Ordering::Relaxed)
     }
 
+    fn clear_dns_event_pending(&self) {
+        self.dns_event_pending.store(false, Ordering::Relaxed);
+    }
+
     fn current_remote_addr(&self) -> Option<IpAddr> {
         let ip_version = self.ip_version.read().ok().map(|v| *v)?;
+        Self::current_remote_addr_for(&self.resolver, ip_version)
+    }
+
+    fn current_remote_addr_for(
+        resolver: &AutoIpHostResolver,
+        ip_version: IpVersion,
+    ) -> Option<IpAddr> {
         match ip_version {
-            IpVersion::V4 => self.resolver.ipv4_addr().map(IpAddr::V4),
-            IpVersion::V6 => self.resolver.ipv6_addr().map(IpAddr::V6),
+            IpVersion::V4 => resolver.ipv4_addr().map(IpAddr::V4),
+            IpVersion::V6 => resolver.ipv6_addr().map(IpAddr::V6),
         }
+    }
+}
+
+impl Drop for ResolverRuntime {
+    fn drop(&mut self) {
+        self.active.store(false, Ordering::Relaxed);
+        self.worker.abort();
     }
 }
 
@@ -218,14 +294,11 @@ pub(crate) struct Runtime {
     tunnel_specs: DesiredTunnelMap,
     session_specs: DesiredSessionMap,
     resolvers: BTreeMap<TunnelId, ResolverRuntime>,
-    control_tx: mpsc::UnboundedSender<ControlEvent>,
+    control_tx: mpsc::Sender<ControlEvent>,
 }
 
 impl Runtime {
-    pub(crate) fn new(
-        state: Arc<state::State>,
-        control_tx: mpsc::UnboundedSender<ControlEvent>,
-    ) -> Self {
+    pub(crate) fn new(state: Arc<state::State>, control_tx: mpsc::Sender<ControlEvent>) -> Self {
         Self {
             state,
             tunnel_specs: BTreeMap::new(),
@@ -238,7 +311,7 @@ impl Runtime {
     #[cfg(test)]
     fn new_with_state_ops(
         state: Arc<dyn StateOps>,
-        control_tx: mpsc::UnboundedSender<ControlEvent>,
+        control_tx: mpsc::Sender<ControlEvent>,
     ) -> Self {
         Self {
             state,
@@ -339,6 +412,10 @@ impl Runtime {
         }
 
         for tunnel_id in &tunnel_plan.to_update {
+            let current = self
+                .tunnel_specs
+                .get(tunnel_id)
+                .expect("tunnel exists in current map");
             let desired = desired_tunnels
                 .get(tunnel_id)
                 .expect("tunnel exists in desired map");
@@ -363,6 +440,8 @@ impl Runtime {
                     Err(e) => {
                         if !had_resolver {
                             self.resolvers.remove(tunnel_id);
+                        } else if let Some(resolver_runtime) = self.resolvers.get(tunnel_id) {
+                            resolver_runtime.apply_tunnel_config(current);
                         }
                         self.tunnel_specs = applied_tunnel_specs;
                         self.session_specs = applied_session_specs;
@@ -382,6 +461,8 @@ impl Runtime {
             {
                 if !had_resolver {
                     self.resolvers.remove(tunnel_id);
+                } else if let Some(resolver_runtime) = self.resolvers.get(tunnel_id) {
+                    resolver_runtime.apply_tunnel_config(current);
                 }
                 self.tunnel_specs = applied_tunnel_specs;
                 self.session_specs = applied_session_specs;
@@ -486,13 +567,14 @@ impl Runtime {
     }
 
     pub(crate) async fn handle_dns_change(&self, tunnel_id: u32) {
-        if !self.tunnel_specs.contains_key(&tunnel_id) {
-            return;
-        }
-
         let Some(resolver_runtime) = self.resolvers.get(&tunnel_id) else {
             return;
         };
+        resolver_runtime.clear_dns_event_pending();
+
+        if !self.tunnel_specs.contains_key(&tunnel_id) {
+            return;
+        }
 
         if !resolver_runtime.is_active() {
             return;
@@ -725,6 +807,13 @@ mod tests {
                 .fail_modify_tunnel_for = Some(tunnel_id);
         }
 
+        fn clear_modify_tunnel_failure(&self) {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .fail_modify_tunnel_for = None;
+        }
+
         fn inject_add_session_failure(&self, key: (u32, u32)) {
             self.inner
                 .lock()
@@ -739,6 +828,15 @@ mod tests {
                 .sessions
                 .get(&(tunnel_id, session_id))
                 .map(|s| s.interface_name.clone())
+        }
+
+        fn tunnel_remote_addr(&self, tunnel_id: u32) -> Option<IpAddr> {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .tunnels
+                .get(&tunnel_id)
+                .map(|t| t.remote_addr)
         }
     }
 
@@ -919,7 +1017,7 @@ mod tests {
     }
 
     fn runtime_with_mock_state(mock: Arc<MockState>) -> Runtime {
-        let (control_tx, _control_rx) = mpsc::unbounded_channel();
+        let (control_tx, _control_rx) = mpsc::channel(32);
         let state: Arc<dyn StateOps> = mock;
         Runtime::new_with_state_ops(state, control_tx)
     }
@@ -1124,6 +1222,52 @@ mod tests {
                 .expect("tunnel spec should rollback")
                 .remote_addr,
             IpHost::V4Addr(Ipv4Addr::new(198, 51, 100, 1))
+        );
+    }
+
+    #[tokio::test]
+    async fn reconcile_update_failure_reverts_existing_resolver_target() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+
+        let initial = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V4,
+                IpHost::V4Addr(Ipv4Addr::new(198, 51, 100, 1)),
+                None,
+            )],
+            vec![],
+        );
+        runtime
+            .reconcile(&initial)
+            .await
+            .expect("initial reconcile should succeed");
+        assert!(runtime.resolvers.contains_key(&10));
+
+        mock.inject_modify_tunnel_failure(10);
+        let updated = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V4,
+                IpHost::V4Addr(Ipv4Addr::new(198, 51, 100, 2)),
+                None,
+            )],
+            vec![],
+        );
+        let result = runtime.reconcile(&updated).await;
+        assert!(result.is_err());
+
+        mock.clear_modify_tunnel_failure();
+        runtime.handle_dns_change(10).await;
+
+        assert_eq!(
+            mock.tunnel_remote_addr(10),
+            Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 1)))
         );
     }
 
