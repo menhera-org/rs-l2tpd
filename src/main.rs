@@ -3,6 +3,7 @@ pub(crate) mod error;
 pub(crate) mod state;
 
 use config::*;
+use clap::{ArgAction, Parser};
 use error::*;
 use iphost::{AutoIpHostResolver, IpHost, IpHostResolver};
 use log::{debug, error, info, warn};
@@ -25,6 +26,18 @@ pub(crate) const CONFIG_FILE_PATH: &str = env!("CONFIG_FILE_PATH");
 pub(crate) const CONFIG_DIR_PATH: &str = env!("CONFIG_DIR_PATH");
 
 const DNS_REFRESH_INTERVAL_SECS: u64 = 30;
+
+#[derive(Debug, Parser)]
+#[command(version, disable_help_flag = false, disable_version_flag = false)]
+struct Args {
+    /// Increase log verbosity.
+    #[arg(short, long, action = ArgAction::SetTrue)]
+    verbose: bool,
+
+    /// Validate and print the merged configuration, then exit.
+    #[arg(short = 'c', long, action = ArgAction::SetTrue)]
+    check: bool,
+}
 
 #[derive(Debug)]
 enum ControlEvent {
@@ -566,13 +579,25 @@ fn install_signal_handlers(_control_tx: mpsc::UnboundedSender<ControlEvent>) -> 
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let level = log::LevelFilter::Info;
+    let args = Args::parse();
+
+    let level = if args.verbose {
+        log::LevelFilter::Debug
+    } else {
+        log::LevelFilter::Info
+    };
     env_logger::Builder::new()
         .filter_level(level)
         .try_init()
         .map_err(|e| Error::Other(e.to_string()))?;
 
     let initial_config = load_config_blocking()?;
+    if args.check {
+        let rendered = toml::to_string_pretty(&initial_config)
+            .map_err(|e| Error::Other(format!("failed to render config as TOML: {e}")))?;
+        println!("{rendered}");
+        return Ok(());
+    }
     let config = Arc::new(RwLock::new(initial_config.clone()));
 
     let state = Arc::new(state::State::new().await?);
