@@ -66,7 +66,7 @@ pub(crate) struct State {
 
 impl State {
     pub(crate) async fn new() -> Result<Self> {
-        let handle = l2tp::L2tpHandle::new().await.map_err(|e| Error::L2tp(e))?;
+        let handle = l2tp::L2tpHandle::new().await.map_err(Error::L2tp)?;
         let tunnels = Arc::new(RwLock::new(BTreeMap::new()));
         Ok(Self { handle, tunnels })
     }
@@ -96,20 +96,20 @@ impl State {
         let remote = l2tp::IpEndpoint::V6(to_ipv6_mapped(remote_addr));
 
         let socket = l2tp::TunnelSocket::ip(&local, &remote, if_name.as_ref(), tunnel_id)
-            .map_err(|e| Error::L2tp(e))?;
+            .map_err(Error::L2tp)?;
 
         let config = l2tp::TunnelConfig::new(
             l2tp::TunnelId(tunnel_id),
             l2tp::TunnelId(peer_tunnel_id),
             l2tp::Encapsulation::Ip { local, remote },
         )
-        .map_err(|e| Error::L2tp(e))?;
+        .map_err(Error::L2tp)?;
 
         let mut handle = self
             .handle
             .create_tunnel(config, socket)
             .await
-            .map_err(|e| Error::L2tp(e))?;
+            .map_err(Error::L2tp)?;
 
         handle.set_auto_delete(false);
 
@@ -140,7 +140,7 @@ impl State {
         tunnel
             .handle
             .reconnect_ip(&new_remote)
-            .map_err(|e| Error::L2tp(e))?;
+            .map_err(Error::L2tp)?;
 
         *tunnel.remote_addr.write().await = remote_addr;
 
@@ -160,7 +160,7 @@ impl State {
         self.handle
             .delete_tunnel(l2tp::TunnelId(tunnel_id))
             .await
-            .map_err(|e| Error::L2tp(e))?;
+            .map_err(Error::L2tp)?;
 
         drop(tunnel);
 
@@ -203,7 +203,7 @@ impl State {
             }
         };
 
-        let ifname = l2tp::IfName::new(if_name).map_err(|e| Error::L2tp(e))?;
+        let ifname = l2tp::IfName::new(if_name).map_err(Error::L2tp)?;
 
         let config = l2tp::SessionConfig {
             tunnel_id: l2tp::TunnelId(tunnel_id),
@@ -224,7 +224,7 @@ impl State {
             .handle
             .create_session(config)
             .await
-            .map_err(|e| Error::L2tp(e))?;
+            .map_err(Error::L2tp)?;
 
         handle.set_auto_delete(false);
 
@@ -313,7 +313,7 @@ impl State {
         self.handle
             .delete_session(l2tp::TunnelId(tunnel_id), l2tp::SessionId(session_id))
             .await
-            .map_err(|e| Error::L2tp(e))?;
+            .map_err(Error::L2tp)?;
 
         drop(session);
 

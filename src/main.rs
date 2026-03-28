@@ -19,10 +19,10 @@ use std::sync::RwLock as StdRwLock;
 use std::time::Duration;
 
 /// This is the path to the main configuration file.
-pub(crate) const CONFIG_FILE_PATH: &'static str = env!("CONFIG_FILE_PATH");
+pub(crate) const CONFIG_FILE_PATH: &str = env!("CONFIG_FILE_PATH");
 
 /// This is where configuration overrides (filenames ending in .toml) live.
-pub(crate) const CONFIG_DIR_PATH: &'static str = env!("CONFIG_DIR_PATH");
+pub(crate) const CONFIG_DIR_PATH: &str = env!("CONFIG_DIR_PATH");
 
 const DNS_REFRESH_INTERVAL_SECS: u64 = 30;
 

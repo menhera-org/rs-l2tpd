@@ -1,8 +1,8 @@
 // NOTE to packagers: patch these lines, or
 // favorably override in environment variables
 // to override configuration paths.
-const DEFAULT_CONFIG_FILE_PATH: &'static str = "/etc/rs-l2tpd.toml";
-const DEFAULT_CONFIG_DIR_PATH: &'static str = "/etc/rs-l2tpd.toml.d";
+const DEFAULT_CONFIG_FILE_PATH: &str = "/etc/rs-l2tpd.toml";
+const DEFAULT_CONFIG_DIR_PATH: &str = "/etc/rs-l2tpd.toml.d";
 
 fn main() {
     println!("cargo:rerun-if-env-changed=CONFIG_FILE_PATH");

@@ -85,7 +85,7 @@ impl PartialTunnelConfig {
         let bind_interface = self.bind_interface;
 
         if let Some(s) = &bind_interface {
-            IfName::new(s).map_err(|e| Error::L2tp(e))?;
+            IfName::new(s).map_err(Error::L2tp)?;
         }
 
         Ok(TunnelConfig {
@@ -136,7 +136,7 @@ impl PartialSessionConfig {
             "interface_name is missing".to_string(),
         ))?;
 
-        IfName::new(&interface_name).map_err(|e| Error::L2tp(e))?;
+        IfName::new(&interface_name).map_err(Error::L2tp)?;
 
         Ok(SessionConfig {
             tunnel_name,
