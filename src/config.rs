@@ -65,7 +65,16 @@ impl PartialTunnelConfig {
     pub(crate) fn into_full(self) -> Result<TunnelConfig> {
         let tunnel_id = self.tunnel_id
             .ok_or(Error::InvalidConfig("tunnel_id is missing".to_string()))?;
+
+        if tunnel_id == 0 {
+            return Err(Error::InvalidConfig("tunnel_id is zero".to_string()));
+        }
+
         let peer_tunnel_id = self.peer_tunnel_id.unwrap_or(tunnel_id);
+        if peer_tunnel_id == 0 {
+            return Err(Error::InvalidConfig("peer_tunnel_id is zero".to_string()));
+        }
+
         let ip_version = self.ip_version
             .ok_or(Error::InvalidConfig("ip_version is missing".to_string()))?;
         let remote_addr = self.remote_addr
@@ -107,7 +116,17 @@ impl PartialSessionConfig {
             .ok_or(Error::InvalidConfig("tunnel_name is missing".to_string()))?;
         let session_id = self.session_id
             .ok_or(Error::InvalidConfig("session_id is missing".to_string()))?;
+
+        if session_id == 0 {
+            return Err(Error::InvalidConfig("session_id is zero".to_string()));
+        }
+
         let peer_session_id = self.peer_session_id.unwrap_or(session_id);
+
+        if peer_session_id == 0 {
+            return Err(Error::InvalidConfig("peer_session_id is zero".to_string()));
+        }
+
         let interface_name = self.interface_name
             .ok_or(Error::InvalidConfig("interface_name is missing".to_string()))?;
 

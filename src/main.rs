@@ -1,6 +1,7 @@
 
 pub(crate) mod error;
 pub(crate) mod config;
+pub(crate) mod state;
 
 use error::*;
 use config::*;
@@ -68,6 +69,6 @@ async fn main() -> Result<()> {
     let config = load_config_blocking()?;
     let config = Arc::new(RwLock::new(config));
 
-    println!("Hello, world!");
+
     Ok(())
 }
