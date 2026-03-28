@@ -12,6 +12,8 @@ use tokio::sync::{mpsc, RwLock};
 
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(feature = "setup")]
+use std::process::Command;
 use std::sync::Arc;
 
 /// This is the path to the main configuration file.
@@ -19,6 +21,11 @@ pub(crate) const CONFIG_FILE_PATH: &str = env!("CONFIG_FILE_PATH");
 
 /// This is where configuration overrides (filenames ending in .toml) live.
 pub(crate) const CONFIG_DIR_PATH: &str = env!("CONFIG_DIR_PATH");
+
+#[cfg(feature = "setup")]
+const INSTALL_BINARY_PATH: &str = "/usr/local/bin/rs-l2tpd";
+#[cfg(feature = "setup")]
+const INSTALL_SYSTEMD_UNIT_PATH: &str = "/usr/local/lib/systemd/system/rs-l2tpd.service";
 
 #[derive(Debug, Parser)]
 #[command(version, disable_help_flag = false, disable_version_flag = false)]
@@ -30,6 +37,11 @@ struct Args {
     /// Validate and print the merged configuration, then exit.
     #[arg(short = 'c', long, action = ArgAction::SetTrue)]
     check: bool,
+
+    /// Install this binary and a systemd unit under /usr/local and enable the service.
+    #[cfg(feature = "setup")]
+    #[arg(long, action = ArgAction::SetTrue)]
+    setup: bool,
 }
 
 fn list_toml_files_at(file: &Path, dir: &Path) -> Result<Vec<PathBuf>> {
@@ -123,6 +135,160 @@ fn install_signal_handlers(_control_tx: mpsc::Sender<ControlEvent>) -> Result<()
     ))
 }
 
+#[cfg(feature = "setup")]
+#[cfg(unix)]
+fn ensure_root_uid() -> Result<()> {
+    // SAFETY: libc::geteuid has no safety preconditions and does not dereference pointers.
+    if unsafe { libc::geteuid() } != 0 {
+        return Err(Error::Other(
+            "--setup requires root privileges (expected effective UID 0)".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(feature = "setup")]
+#[cfg(not(unix))]
+fn ensure_root_uid() -> Result<()> {
+    Err(Error::Other(
+        "--setup is only supported on unix systems".to_string(),
+    ))
+}
+
+#[cfg(feature = "setup")]
+fn create_empty_file(path: &Path) -> Result<()> {
+    if path.is_file() {
+        return Ok(());
+    }
+    if path.exists() {
+        return Err(Error::Other(format!(
+            "expected file path is not a regular file: {}",
+            path.display()
+        )));
+    }
+    std::fs::File::create(path)
+        .map(|_| ())
+        .map_err(|e| Error::Other(format!("failed to create {}: {e}", path.display())))
+}
+
+#[cfg(feature = "setup")]
+fn run_command_checked(cmd: &mut Command, description: &str) -> Result<()> {
+    let status = cmd
+        .status()
+        .map_err(|e| Error::Other(format!("failed to execute {description}: {e}")))?;
+    if !status.success() {
+        return Err(Error::Other(format!(
+            "{description} failed with exit status {status}"
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(feature = "setup")]
+fn systemd_unit_text() -> String {
+    format!(
+        "[Unit]\nDescription=rs-l2tpd daemon\nWants=network-online.target\nAfter=network-online.target\n\n[Service]\nType=simple\nExecStart={INSTALL_BINARY_PATH}\nExecReload=/bin/kill -HUP $MAINPID\nRestart=on-failure\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n"
+    )
+}
+
+#[cfg(feature = "setup")]
+#[cfg(target_os = "linux")]
+fn run_setup() -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    ensure_root_uid()?;
+
+    let current_exe = std::env::current_exe()
+        .map_err(|e| Error::Other(format!("failed to resolve current executable path: {e}")))?;
+
+    let install_binary = Path::new(INSTALL_BINARY_PATH);
+    if let Some(parent) = install_binary.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            Error::Other(format!(
+                "failed to create install directory {}: {e}",
+                parent.display()
+            ))
+        })?;
+    }
+    std::fs::copy(&current_exe, install_binary).map_err(|e| {
+        Error::Other(format!(
+            "failed to copy {} to {}: {e}",
+            current_exe.display(),
+            install_binary.display()
+        ))
+    })?;
+    std::fs::set_permissions(install_binary, std::fs::Permissions::from_mode(0o755)).map_err(
+        |e| {
+            Error::Other(format!(
+                "failed to set executable permissions on {}: {e}",
+                install_binary.display()
+            ))
+        },
+    )?;
+    info!("installed binary at {}", install_binary.display());
+
+    let service_file = Path::new(INSTALL_SYSTEMD_UNIT_PATH);
+    if let Some(parent) = service_file.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            Error::Other(format!(
+                "failed to create systemd directory {}: {e}",
+                parent.display()
+            ))
+        })?;
+    }
+    std::fs::write(service_file, systemd_unit_text()).map_err(|e| {
+        Error::Other(format!(
+            "failed to write systemd service unit {}: {e}",
+            service_file.display()
+        ))
+    })?;
+    info!("installed systemd unit at {}", service_file.display());
+
+    let config_file = Path::new(CONFIG_FILE_PATH);
+    if let Some(parent) = config_file.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            Error::Other(format!(
+                "failed to create config directory {}: {e}",
+                parent.display()
+            ))
+        })?;
+    }
+    create_empty_file(config_file)?;
+    std::fs::create_dir_all(CONFIG_DIR_PATH).map_err(|e| {
+        Error::Other(format!(
+            "failed to create config drop-in directory {}: {e}",
+            CONFIG_DIR_PATH
+        ))
+    })?;
+    info!(
+        "ensured config file {} and drop-in directory {}",
+        CONFIG_FILE_PATH, CONFIG_DIR_PATH
+    );
+
+    run_command_checked(
+        Command::new("systemctl").arg("daemon-reload"),
+        "systemctl daemon-reload",
+    )?;
+    run_command_checked(
+        Command::new("systemctl")
+            .arg("enable")
+            .arg("--now")
+            .arg("rs-l2tpd"),
+        "systemctl enable --now rs-l2tpd",
+    )?;
+    info!("systemd service enabled and started");
+
+    Ok(())
+}
+
+#[cfg(feature = "setup")]
+#[cfg(not(target_os = "linux"))]
+fn run_setup() -> Result<()> {
+    Err(Error::Other(
+        "--setup is currently supported only on Linux systems".to_string(),
+    ))
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
@@ -136,6 +302,12 @@ async fn main() -> Result<()> {
         .filter_level(level)
         .try_init()
         .map_err(|e| Error::Other(e.to_string()))?;
+
+    #[cfg(feature = "setup")]
+    if args.setup {
+        run_setup()?;
+        return Ok(());
+    }
 
     let initial_config = load_config_blocking()?;
     if args.check {
