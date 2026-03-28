@@ -1,0 +1,22 @@
+[package]
+name = "rs-l2tpd"
+version = "0.1.0"
+edition = "2021"
+authors = ["metastable-void"]
+description = "Simple L2TPv3 daemon for Linux-based systems"
+license = "Apache-2.0 OR MPL-2.0"
+readme = "README.md"
+repository = "https://github.com/menhera-org/rs-l2tpd"
+homepage = "https://github.com/menhera-org/rs-l2tpd"
+
+[dependencies]
+tokio = { version = "1", features = ["net", "io-util", "sync", "rt", "rt-multi-thread", "macros"] }
+l2tp = "0.2.1"
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+toml = "1.1.0"
+iphost = { version = "0.3.3", features = ["serde"] }
+
+[features]
+default = ["setup"]
+setup = []
