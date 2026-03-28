@@ -25,3 +25,9 @@ log = "0.4.29"
 [features]
 default = ["setup"]
 setup = []
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+codegen-units = 1
