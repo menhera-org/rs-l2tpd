@@ -16,6 +16,8 @@ clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 toml = "1.1.0"
 iphost = { version = "0.3.3", features = ["serde"] }
+rtnetlink = "0.20.0"
+futures-util = "0.3"
 
 [features]
 default = ["setup"]

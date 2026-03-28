@@ -2,6 +2,34 @@
 use crate::error::{Result, Error};
 
 use std::{collections::BTreeMap, net::{IpAddr, Ipv6Addr}};
+use futures_util::TryStreamExt;
+use rtnetlink::LinkUnspec;
+
+pub(crate) async fn rename_interface(old: &str, new: &str) -> Result<()> {
+    let (connection, handle, _) = rtnetlink::new_connection()
+        .map_err(|e| Error::Other(format!("failed to create netlink connection: {e}")))?;
+    tokio::spawn(connection);
+
+    let mut links = handle.link().get().match_name(old.to_string()).execute();
+    let link = links
+        .try_next()
+        .await
+        .map_err(|e| Error::Other(format!("failed to look up interface {old}: {e}")))?
+        .ok_or_else(|| Error::Other(format!("interface not found: {old}")))?;
+
+    handle
+        .link()
+        .set(
+            LinkUnspec::new_with_index(link.header.index)
+                .name(new.to_string())
+                .build(),
+        )
+        .execute()
+        .await
+        .map_err(|e| Error::Other(format!("failed to rename interface {old} to {new}: {e}")))?;
+
+    Ok(())
+}
 
 pub(crate) fn to_ipv6_mapped(addr: IpAddr) -> Ipv6Addr {
     match addr {
@@ -118,6 +146,87 @@ impl State {
             .map_err(|e| Error::L2tp(e))?;
 
         drop(tunnel);
+
+        Ok(())
+    }
+
+    pub(crate) fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool {
+        self.tunnels.get(&tunnel_id).map(|t| t.sessions.contains_key(&session_id)).unwrap_or(false)
+    }
+
+    pub(crate) async fn add_session(&mut self, tunnel_id: u32, session_id: u32, peer_session_id: u32, if_name: &str) -> Result<()> {
+        if self.has_session(tunnel_id, session_id) {
+            return Err(Error::Other(format!("Session exists: {}, tunnel: {}", session_id, tunnel_id)));
+        }
+
+        let tunnel = if let Some(t) = self.tunnels.get_mut(&tunnel_id) {
+            t
+        } else {
+            return Err(Error::Other(format!("No such tunnel: {}", tunnel_id)));
+        };
+
+        let ifname = l2tp::IfName::new(if_name)
+            .map_err(|e| Error::L2tp(e))?;
+
+        let config = l2tp::SessionConfig {
+            tunnel_id: l2tp::TunnelId(tunnel_id),
+            session_id: l2tp::SessionId(session_id),
+            peer_session_id: l2tp::SessionId(peer_session_id),
+            pseudowire_type: l2tp::PseudowireType::Eth,
+            l2spec_type: l2tp::L2SpecType::None,
+            cookie: l2tp::Cookie::none(),
+            peer_cookie: l2tp::Cookie::none(),
+            recv_seq: false,
+            send_seq: false,
+            lns_mode: false,
+            recv_timeout_ms: None,
+            ifname: Some(ifname),
+        };
+
+        let handle = self.handle.create_session(config).await
+            .map_err(|e| Error::L2tp(e))?;
+
+        let session = SessionState {
+            interface_name: if_name.to_string(),
+            handle,
+        };
+
+        tunnel.sessions.insert(session_id, session);
+
+        Ok(())
+    }
+
+    pub(crate) async fn modify_session(&mut self, tunnel_id: u32, session_id: u32, ifname: &str) -> Result<()> {
+        let session = if let Some(s) = self.tunnels.get_mut(&tunnel_id).map(|t| t.sessions.get_mut(&session_id)).flatten() {
+            s
+        } else {
+            return Err(Error::Other(format!("No such session {} in tunnel {}", session_id, tunnel_id)));
+        };
+
+        let old_ifname = if let Some(n) = session.handle.get().await.map(|i| i.ifname).ok().flatten() {
+            n
+        } else {
+            return Err(Error::Other(format!("Session {} on tunnel {} has no interface name", session_id, tunnel_id)));
+        }.to_string();
+
+        rename_interface(&old_ifname, ifname).await?;
+
+        session.interface_name = ifname.to_string();
+
+        Ok(())
+    }
+
+    pub(crate) async fn delete_session(&mut self, tunnel_id: u32, session_id: u32) -> Result<()> {
+        let session = if let Some(s) = self.tunnels.get_mut(&tunnel_id).map(|t| t.sessions.remove(&session_id)).flatten() {
+            s
+        } else {
+            return Err(Error::Other(format!("No such session {} on tunnel {}", session_id, tunnel_id)));
+        };
+
+        self.handle.delete_session(l2tp::TunnelId(tunnel_id), l2tp::SessionId(session_id)).await
+            .map_err(|e| Error::L2tp(e))?;
+
+        drop(session);
 
         Ok(())
     }
