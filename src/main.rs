@@ -50,6 +50,12 @@ struct DesiredSession {
     interface_name: String,
 }
 
+type TunnelId = u32;
+type SessionId = u32;
+type SessionKey = (TunnelId, SessionId);
+type DesiredTunnelMap = BTreeMap<TunnelId, DesiredTunnel>;
+type DesiredSessionMap = BTreeMap<SessionKey, DesiredSession>;
+
 struct ResolverRuntime {
     resolver: AutoIpHostResolver,
     ip_version: Arc<StdRwLock<IpVersion>>,
@@ -132,9 +138,9 @@ impl ResolverRuntime {
 
 struct Runtime {
     state: Arc<state::State>,
-    tunnel_specs: BTreeMap<u32, DesiredTunnel>,
-    session_specs: BTreeMap<(u32, u32), DesiredSession>,
-    resolvers: BTreeMap<u32, ResolverRuntime>,
+    tunnel_specs: DesiredTunnelMap,
+    session_specs: DesiredSessionMap,
+    resolvers: BTreeMap<TunnelId, ResolverRuntime>,
     control_tx: mpsc::UnboundedSender<ControlEvent>,
 }
 
@@ -473,13 +479,8 @@ fn resolve_ip_host_once(ip_host: &IpHost, ip_version: IpVersion) -> Result<IpAdd
     })
 }
 
-fn build_desired_maps(
-    config: &Config,
-) -> Result<(
-    BTreeMap<u32, DesiredTunnel>,
-    BTreeMap<(u32, u32), DesiredSession>,
-)> {
-    let mut tunnels = BTreeMap::new();
+fn build_desired_maps(config: &Config) -> Result<(DesiredTunnelMap, DesiredSessionMap)> {
+    let mut tunnels: DesiredTunnelMap = BTreeMap::new();
     for tunnel in config.tunnels.values() {
         let desired = DesiredTunnel {
             tunnel_id: tunnel.tunnel_id,
@@ -497,7 +498,7 @@ fn build_desired_maps(
         }
     }
 
-    let mut sessions = BTreeMap::new();
+    let mut sessions: DesiredSessionMap = BTreeMap::new();
     for session in config.sessions.values() {
         let tunnel = config.tunnels.get(&session.tunnel_name).ok_or_else(|| {
             Error::InvalidConfig(format!("tunnel not defined: {}", session.tunnel_name))
