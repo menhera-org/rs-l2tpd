@@ -1,4 +1,3 @@
-
 // NOTE to packagers: patch these lines, or
 // favorably override in environment variables
 // to override configuration paths.

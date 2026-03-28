@@ -1,4 +1,3 @@
-
 use std::fmt::Display;
 
 use l2tp::Error as L2tpError;

@@ -1,12 +1,15 @@
-
-use crate::error::{Result, Error};
+use crate::error::{Error, Result};
 
 use futures_util::TryStreamExt;
 use rtnetlink::LinkUnspec;
 
 use tokio::sync::RwLock;
 
-use std::{collections::BTreeMap, net::{IpAddr, Ipv6Addr}, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    net::{IpAddr, Ipv6Addr},
+    sync::Arc,
+};
 
 pub(crate) async fn rename_interface(old: &str, new: &str) -> Result<()> {
     let (connection, handle, _) = rtnetlink::new_connection()
@@ -65,17 +68,20 @@ impl State {
     pub(crate) async fn new() -> Result<Self> {
         let handle = l2tp::L2tpHandle::new().await.map_err(|e| Error::L2tp(e))?;
         let tunnels = Arc::new(RwLock::new(BTreeMap::new()));
-        Ok(Self {
-            handle,
-            tunnels,
-        })
+        Ok(Self { handle, tunnels })
     }
 
     pub(crate) async fn has_tunnel(&self, tunnel_id: u32) -> bool {
         self.tunnels.read().await.contains_key(&tunnel_id)
     }
 
-    pub(crate) async fn add_tunnel(&self, tunnel_id: u32, peer_tunnel_id: u32, remote_addr: IpAddr, if_name: Option<&str>) -> Result<()> {
+    pub(crate) async fn add_tunnel(
+        &self,
+        tunnel_id: u32,
+        peer_tunnel_id: u32,
+        remote_addr: IpAddr,
+        if_name: Option<&str>,
+    ) -> Result<()> {
         if self.has_tunnel(tunnel_id).await {
             return Err(Error::Other("Duplicate tunnel_id".to_string()));
         }
@@ -89,23 +95,20 @@ impl State {
         let local = l2tp::IpEndpoint::V6(Ipv6Addr::UNSPECIFIED);
         let remote = l2tp::IpEndpoint::V6(to_ipv6_mapped(remote_addr));
 
-        let socket = l2tp::TunnelSocket::ip(
-            &local,
-            &remote,
-            if_name.as_ref(),
-            tunnel_id,
-        ).map_err(|e| Error::L2tp(e))?;
+        let socket = l2tp::TunnelSocket::ip(&local, &remote, if_name.as_ref(), tunnel_id)
+            .map_err(|e| Error::L2tp(e))?;
 
         let config = l2tp::TunnelConfig::new(
             l2tp::TunnelId(tunnel_id),
             l2tp::TunnelId(peer_tunnel_id),
-            l2tp::Encapsulation::Ip {
-                local,
-                remote,
-            },
-        ).map_err(|e| Error::L2tp(e))?;
+            l2tp::Encapsulation::Ip { local, remote },
+        )
+        .map_err(|e| Error::L2tp(e))?;
 
-        let mut handle = self.handle.create_tunnel(config, socket).await
+        let mut handle = self
+            .handle
+            .create_tunnel(config, socket)
+            .await
             .map_err(|e| Error::L2tp(e))?;
 
         handle.set_auto_delete(false);
@@ -134,7 +137,10 @@ impl State {
         }
 
         let new_remote = l2tp::IpEndpoint::V6(to_ipv6_mapped(remote_addr));
-        tunnel.handle.reconnect_ip(&new_remote).map_err(|e| Error::L2tp(e))?;
+        tunnel
+            .handle
+            .reconnect_ip(&new_remote)
+            .map_err(|e| Error::L2tp(e))?;
 
         *tunnel.remote_addr.write().await = remote_addr;
 
@@ -151,7 +157,9 @@ impl State {
             }
         };
 
-        self.handle.delete_tunnel(l2tp::TunnelId(tunnel_id)).await
+        self.handle
+            .delete_tunnel(l2tp::TunnelId(tunnel_id))
+            .await
             .map_err(|e| Error::L2tp(e))?;
 
         drop(tunnel);
@@ -172,9 +180,18 @@ impl State {
         }
     }
 
-    pub(crate) async fn add_session(&self, tunnel_id: u32, session_id: u32, peer_session_id: u32, if_name: &str) -> Result<()> {
+    pub(crate) async fn add_session(
+        &self,
+        tunnel_id: u32,
+        session_id: u32,
+        peer_session_id: u32,
+        if_name: &str,
+    ) -> Result<()> {
         if self.has_session(tunnel_id, session_id).await {
-            return Err(Error::Other(format!("Session exists: {}, tunnel: {}", session_id, tunnel_id)));
+            return Err(Error::Other(format!(
+                "Session exists: {}, tunnel: {}",
+                session_id, tunnel_id
+            )));
         }
 
         let sessions = {
@@ -186,8 +203,7 @@ impl State {
             }
         };
 
-        let ifname = l2tp::IfName::new(if_name)
-            .map_err(|e| Error::L2tp(e))?;
+        let ifname = l2tp::IfName::new(if_name).map_err(|e| Error::L2tp(e))?;
 
         let config = l2tp::SessionConfig {
             tunnel_id: l2tp::TunnelId(tunnel_id),
@@ -204,7 +220,10 @@ impl State {
             ifname: Some(ifname),
         };
 
-        let mut handle = self.handle.create_session(config).await
+        let mut handle = self
+            .handle
+            .create_session(config)
+            .await
             .map_err(|e| Error::L2tp(e))?;
 
         handle.set_auto_delete(false);
@@ -219,13 +238,21 @@ impl State {
         Ok(())
     }
 
-    pub(crate) async fn modify_session(&self, tunnel_id: u32, session_id: u32, ifname: &str) -> Result<()> {
+    pub(crate) async fn modify_session(
+        &self,
+        tunnel_id: u32,
+        session_id: u32,
+        ifname: &str,
+    ) -> Result<()> {
         let sessions = {
             let tunnels = self.tunnels.read().await;
             if let Some(t) = tunnels.get(&tunnel_id) {
                 Arc::clone(&t.sessions)
             } else {
-                return Err(Error::Other(format!("No such session {} in tunnel {}", session_id, tunnel_id)));
+                return Err(Error::Other(format!(
+                    "No such session {} in tunnel {}",
+                    session_id, tunnel_id
+                )));
             }
         };
 
@@ -234,14 +261,22 @@ impl State {
             let session = if let Some(s) = sessions.get(&session_id) {
                 s
             } else {
-                return Err(Error::Other(format!("No such session {} in tunnel {}", session_id, tunnel_id)));
+                return Err(Error::Other(format!(
+                    "No such session {} in tunnel {}",
+                    session_id, tunnel_id
+                )));
             };
 
-            let old_ifname = if let Some(n) = session.handle.get().await.map(|i| i.ifname).ok().flatten() {
-                n
-            } else {
-                return Err(Error::Other(format!("Session {} on tunnel {} has no interface name", session_id, tunnel_id)));
-            }.to_string();
+            let old_ifname =
+                if let Some(n) = session.handle.get().await.map(|i| i.ifname).ok().flatten() {
+                    n
+                } else {
+                    return Err(Error::Other(format!(
+                        "Session {} on tunnel {} has no interface name",
+                        session_id, tunnel_id
+                    )));
+                }
+                .to_string();
 
             (Arc::clone(&session.interface_name), old_ifname)
         };
@@ -259,17 +294,25 @@ impl State {
             if let Some(t) = tunnels.get(&tunnel_id) {
                 Arc::clone(&t.sessions)
             } else {
-                return Err(Error::Other(format!("No such session {} on tunnel {}", session_id, tunnel_id)));
+                return Err(Error::Other(format!(
+                    "No such session {} on tunnel {}",
+                    session_id, tunnel_id
+                )));
             }
         };
 
         let session = if let Some(s) = sessions.write().await.remove(&session_id) {
             s
         } else {
-            return Err(Error::Other(format!("No such session {} on tunnel {}", session_id, tunnel_id)));
+            return Err(Error::Other(format!(
+                "No such session {} on tunnel {}",
+                session_id, tunnel_id
+            )));
         };
 
-        self.handle.delete_session(l2tp::TunnelId(tunnel_id), l2tp::SessionId(session_id)).await
+        self.handle
+            .delete_session(l2tp::TunnelId(tunnel_id), l2tp::SessionId(session_id))
+            .await
             .map_err(|e| Error::L2tp(e))?;
 
         drop(session);

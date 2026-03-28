@@ -1,9 +1,8 @@
-
 use std::{collections::BTreeMap, path::Path};
 
-use l2tp::IfName;
-use iphost::IpHost;
 use crate::error::*;
+use iphost::IpHost;
+use l2tp::IfName;
 
 fn merge_opt<T>(dst: &mut Option<T>, src: Option<T>) {
     if let Some(v) = src {
@@ -11,7 +10,7 @@ fn merge_opt<T>(dst: &mut Option<T>, src: Option<T>) {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename = "lowercase")]
 pub(crate) enum IpVersion {
     V4,
@@ -28,7 +27,8 @@ pub(crate) struct PartialConfig {
 
 impl PartialConfig {
     pub(crate) fn from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let toml = std::fs::read_to_string(path).map_err(|e| Error::InvalidConfig(e.to_string()))?;
+        let toml =
+            std::fs::read_to_string(path).map_err(|e| Error::InvalidConfig(e.to_string()))?;
         toml::from_str(&toml).map_err(|e| Error::InvalidConfig(e.to_string()))
     }
 
@@ -63,7 +63,8 @@ impl PartialTunnelConfig {
     }
 
     pub(crate) fn into_full(self) -> Result<TunnelConfig> {
-        let tunnel_id = self.tunnel_id
+        let tunnel_id = self
+            .tunnel_id
             .ok_or(Error::InvalidConfig("tunnel_id is missing".to_string()))?;
 
         if tunnel_id == 0 {
@@ -75,9 +76,11 @@ impl PartialTunnelConfig {
             return Err(Error::InvalidConfig("peer_tunnel_id is zero".to_string()));
         }
 
-        let ip_version = self.ip_version
+        let ip_version = self
+            .ip_version
             .ok_or(Error::InvalidConfig("ip_version is missing".to_string()))?;
-        let remote_addr = self.remote_addr
+        let remote_addr = self
+            .remote_addr
             .ok_or(Error::InvalidConfig("remote_addr is missing".to_string()))?;
         let bind_interface = self.bind_interface;
 
@@ -112,9 +115,11 @@ impl PartialSessionConfig {
     }
 
     pub(crate) fn into_full(self) -> Result<SessionConfig> {
-        let tunnel_name = self.tunnel_name
+        let tunnel_name = self
+            .tunnel_name
             .ok_or(Error::InvalidConfig("tunnel_name is missing".to_string()))?;
-        let session_id = self.session_id
+        let session_id = self
+            .session_id
             .ok_or(Error::InvalidConfig("session_id is missing".to_string()))?;
 
         if session_id == 0 {
@@ -127,8 +132,9 @@ impl PartialSessionConfig {
             return Err(Error::InvalidConfig("peer_session_id is zero".to_string()));
         }
 
-        let interface_name = self.interface_name
-            .ok_or(Error::InvalidConfig("interface_name is missing".to_string()))?;
+        let interface_name = self.interface_name.ok_or(Error::InvalidConfig(
+            "interface_name is missing".to_string(),
+        ))?;
 
         IfName::new(&interface_name).map_err(|e| Error::L2tp(e))?;
 
@@ -159,7 +165,10 @@ impl Config {
         for (k, v) in partial.sessions {
             let session = v.into_full()?;
             if !full.tunnels.contains_key(&session.tunnel_name) {
-                return Err(Error::InvalidConfig(format!("tunnel not defined: {}", &session.tunnel_name)));
+                return Err(Error::InvalidConfig(format!(
+                    "tunnel not defined: {}",
+                    &session.tunnel_name
+                )));
             }
             full.sessions.insert(k, session);
         }
