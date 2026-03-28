@@ -39,6 +39,7 @@ pub(crate) fn to_ipv6_mapped(addr: IpAddr) -> Ipv6Addr {
 }
 
 pub(crate) struct SessionState {
+    // TODO: make this Arc<tokio::sync::RwLock<String>>
     pub(crate) interface_name: String,
     pub(crate) handle: l2tp::SessionHandle,
 }
@@ -102,8 +103,10 @@ impl State {
             },
         ).map_err(|e| Error::L2tp(e))?;
 
-        let handle = self.handle.create_tunnel(config, socket).await
+        let mut handle = self.handle.create_tunnel(config, socket).await
             .map_err(|e| Error::L2tp(e))?;
+
+        handle.set_auto_delete(false);
 
         let tunnel = TunnelState {
             remote_addr,
@@ -183,8 +186,10 @@ impl State {
             ifname: Some(ifname),
         };
 
-        let handle = self.handle.create_session(config).await
+        let mut handle = self.handle.create_session(config).await
             .map_err(|e| Error::L2tp(e))?;
+
+        handle.set_auto_delete(false);
 
         let session = SessionState {
             interface_name: if_name.to_string(),
