@@ -64,6 +64,15 @@ pub(crate) struct State {
     pub(crate) tunnels: Arc<RwLock<BTreeMap<u32, TunnelState>>>,
 }
 
+fn remove_if_delete_succeeded<K: Ord, V>(
+    map: &mut BTreeMap<K, V>,
+    key: &K,
+    delete_result: Result<()>,
+) -> Result<Option<V>> {
+    delete_result?;
+    Ok(map.remove(key))
+}
+
 impl State {
     pub(crate) async fn new() -> Result<Self> {
         let handle = l2tp::L2tpHandle::new().await.map_err(Error::L2tp)?;
@@ -148,21 +157,23 @@ impl State {
     }
 
     pub(crate) async fn delete_tunnel(&self, tunnel_id: u32) -> Result<()> {
-        let tunnel = {
-            let mut tunnels = self.tunnels.write().await;
-            if let Some(t) = tunnels.remove(&tunnel_id) {
-                t
-            } else {
-                return Err(Error::Other(format!("Tunnel not found: {}", tunnel_id)));
-            }
-        };
+        if !self.has_tunnel(tunnel_id).await {
+            return Err(Error::Other(format!("Tunnel not found: {}", tunnel_id)));
+        }
 
-        self.handle
+        let delete_result = self
+            .handle
             .delete_tunnel(l2tp::TunnelId(tunnel_id))
             .await
-            .map_err(Error::L2tp)?;
+            .map_err(Error::L2tp);
 
-        drop(tunnel);
+        let removed = {
+            let mut tunnels = self.tunnels.write().await;
+            remove_if_delete_succeeded(&mut tunnels, &tunnel_id, delete_result)?
+        };
+        if removed.is_none() {
+            return Err(Error::Other(format!("Tunnel not found: {}", tunnel_id)));
+        }
 
         Ok(())
     }
@@ -301,22 +312,56 @@ impl State {
             }
         };
 
-        let session = if let Some(s) = sessions.write().await.remove(&session_id) {
-            s
-        } else {
+        if !sessions.read().await.contains_key(&session_id) {
             return Err(Error::Other(format!(
                 "No such session {} on tunnel {}",
                 session_id, tunnel_id
             )));
-        };
+        }
 
-        self.handle
+        let delete_result = self
+            .handle
             .delete_session(l2tp::TunnelId(tunnel_id), l2tp::SessionId(session_id))
             .await
-            .map_err(Error::L2tp)?;
+            .map_err(Error::L2tp);
 
-        drop(session);
+        let removed = {
+            let mut sessions = sessions.write().await;
+            remove_if_delete_succeeded(&mut sessions, &session_id, delete_result)?
+        };
+        if removed.is_none() {
+            return Err(Error::Other(format!(
+                "No such session {} on tunnel {}",
+                session_id, tunnel_id
+            )));
+        }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::remove_if_delete_succeeded;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn remove_if_delete_succeeded_keeps_entry_on_error() {
+        let mut map = BTreeMap::from([(1_u32, "tunnel")]);
+        let result = remove_if_delete_succeeded(
+            &mut map,
+            &1_u32,
+            Err(crate::error::Error::Other("delete failed".to_string())),
+        );
+        assert!(result.is_err());
+        assert_eq!(map.get(&1_u32), Some(&"tunnel"));
+    }
+
+    #[test]
+    fn remove_if_delete_succeeded_removes_entry_on_success() {
+        let mut map = BTreeMap::from([(1_u32, "tunnel")]);
+        let removed = remove_if_delete_succeeded(&mut map, &1_u32, Ok(())).unwrap();
+        assert_eq!(removed, Some("tunnel"));
+        assert!(map.is_empty());
     }
 }
