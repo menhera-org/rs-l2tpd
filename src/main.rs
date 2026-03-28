@@ -33,10 +33,7 @@ struct Args {
 }
 
 fn list_toml_files_at(file: &Path, dir: &Path) -> Result<Vec<PathBuf>> {
-    let mut files = Vec::new();
-    if file.is_file() {
-        files.push(file.to_path_buf());
-    }
+    let mut dropins = Vec::new();
 
     match fs::read_dir(dir) {
         Ok(entries) => {
@@ -50,7 +47,7 @@ fn list_toml_files_at(file: &Path, dir: &Path) -> Result<Vec<PathBuf>> {
                     .map(|ext| ext.eq_ignore_ascii_case("toml"))
                     .unwrap_or(false);
                 if path.is_file() && is_toml {
-                    files.push(path);
+                    dropins.push(path);
                 }
             }
         }
@@ -60,7 +57,13 @@ fn list_toml_files_at(file: &Path, dir: &Path) -> Result<Vec<PathBuf>> {
         Err(e) => return Err(Error::Other(e.to_string())),
     }
 
-    files.sort(); // lexicographic order (important for drop-ins)
+    dropins.sort(); // lexicographic order among drop-ins only
+
+    let mut files = Vec::with_capacity(dropins.len() + 1);
+    if file.is_file() {
+        files.push(file.to_path_buf());
+    }
+    files.extend(dropins);
     Ok(files)
 }
 
@@ -259,6 +262,23 @@ mod tests {
             dropin_dir.join("10-base.toml"),
             dropin_dir.join("20-extra.toml"),
         ];
+        assert_eq!(files, expected);
+
+        fs::remove_dir_all(temp_dir).expect("cleanup temp dir");
+    }
+
+    #[test]
+    fn list_toml_files_at_keeps_main_precedence_over_lexicographic_order() {
+        let temp_dir = unique_temp_dir("config-precedence");
+        let main_file = temp_dir.join("zz-main.toml");
+        let dropin_dir = temp_dir.join("aa-dropins");
+
+        fs::create_dir_all(&dropin_dir).expect("create dropin dir");
+        fs::write(&main_file, b"[tunnels]\n").expect("write main config");
+        fs::write(dropin_dir.join("00-first.toml"), b"[tunnels]\n").expect("write dropin");
+
+        let files = list_toml_files_at(&main_file, &dropin_dir).expect("list files");
+        let expected = vec![main_file.clone(), dropin_dir.join("00-first.toml")];
         assert_eq!(files, expected);
 
         fs::remove_dir_all(temp_dir).expect("cleanup temp dir");

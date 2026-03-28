@@ -46,6 +46,8 @@ pub(crate) fn to_ipv6_mapped(addr: IpAddr) -> Ipv6Addr {
 
 pub(crate) struct SessionState {
     pub(crate) interface_name: Arc<RwLock<String>>,
+    // Keep session handle alive for the session lifecycle even when we don't call methods on it.
+    #[allow(dead_code)]
     pub(crate) handle: l2tp::SessionHandle,
 }
 
@@ -62,6 +64,13 @@ pub(crate) struct State {
 
     /// tunnel_id to TunnelState
     pub(crate) tunnels: Arc<RwLock<BTreeMap<u32, TunnelState>>>,
+}
+
+fn parse_if_name(if_name: Option<&str>) -> Result<Option<l2tp::IfName>> {
+    if let Some(name) = if_name {
+        return Ok(Some(l2tp::IfName::new(name).map_err(Error::L2tp)?));
+    }
+    Ok(None)
 }
 
 fn remove_if_delete_succeeded<K: Ord, V>(
@@ -95,11 +104,7 @@ impl State {
             return Err(Error::Other("Duplicate tunnel_id".to_string()));
         }
 
-        let if_name = if let Some(s) = if_name {
-            l2tp::IfName::new(s).ok()
-        } else {
-            None
-        };
+        let if_name = parse_if_name(if_name)?;
 
         let local = l2tp::IpEndpoint::V6(Ipv6Addr::UNSPECIFIED);
         let remote = l2tp::IpEndpoint::V6(to_ipv6_mapped(remote_addr));
@@ -267,7 +272,7 @@ impl State {
             }
         };
 
-        let (interface_name, old_ifname) = {
+        let interface_name = {
             let sessions = sessions.read().await;
             let session = if let Some(s) = sessions.get(&session_id) {
                 s
@@ -278,19 +283,13 @@ impl State {
                 )));
             };
 
-            let old_ifname =
-                if let Some(n) = session.handle.get().await.map(|i| i.ifname).ok().flatten() {
-                    n
-                } else {
-                    return Err(Error::Other(format!(
-                        "Session {} on tunnel {} has no interface name",
-                        session_id, tunnel_id
-                    )));
-                }
-                .to_string();
-
-            (Arc::clone(&session.interface_name), old_ifname)
+            Arc::clone(&session.interface_name)
         };
+
+        let old_ifname = interface_name.read().await.clone();
+        if old_ifname == ifname {
+            return Ok(());
+        }
 
         rename_interface(&old_ifname, ifname).await?;
 
@@ -342,7 +341,7 @@ impl State {
 
 #[cfg(test)]
 mod tests {
-    use super::remove_if_delete_succeeded;
+    use super::{parse_if_name, remove_if_delete_succeeded};
     use std::collections::BTreeMap;
 
     #[test]
@@ -363,5 +362,18 @@ mod tests {
         let removed = remove_if_delete_succeeded(&mut map, &1_u32, Ok(())).unwrap();
         assert_eq!(removed, Some("tunnel"));
         assert!(map.is_empty());
+    }
+
+    #[test]
+    fn parse_if_name_rejects_invalid_interface_name() {
+        let invalid = "this-interface-name-is-way-too-long";
+        let parsed = parse_if_name(Some(invalid));
+        assert!(parsed.is_err());
+    }
+
+    #[test]
+    fn parse_if_name_accepts_none() {
+        let parsed = parse_if_name(None).unwrap();
+        assert!(parsed.is_none());
     }
 }

@@ -263,19 +263,6 @@ impl Runtime {
                 }
             };
         }
-        macro_rules! try_apply_value {
-            ($result:expr) => {
-                match $result {
-                    Ok(value) => value,
-                    Err(e) => {
-                        self.tunnel_specs = applied_tunnel_specs;
-                        self.session_specs = applied_session_specs;
-                        return Err(e);
-                    }
-                }
-            };
-        }
-
         let tunnel_plan = plan_tunnel_changes(&self.tunnel_specs, &desired_tunnels);
 
         for tunnel_id in &tunnel_plan.to_delete {
@@ -317,7 +304,7 @@ impl Runtime {
                 match resolve_ip_host_once(&desired.remote_addr, desired.ip_version) {
                     Ok(addr) => addr,
                     Err(e) => {
-                        if !had_resolver && !applied_tunnel_specs.contains_key(tunnel_id) {
+                        if !applied_tunnel_specs.contains_key(tunnel_id) {
                             self.resolvers.remove(tunnel_id);
                         }
                         self.tunnel_specs = applied_tunnel_specs;
@@ -341,7 +328,7 @@ impl Runtime {
                 )
                 .await
             {
-                if !had_resolver && !applied_tunnel_specs.contains_key(tunnel_id) {
+                if !applied_tunnel_specs.contains_key(tunnel_id) {
                     self.resolvers.remove(tunnel_id);
                 }
                 self.tunnel_specs = applied_tunnel_specs;
@@ -356,7 +343,8 @@ impl Runtime {
                 .get(tunnel_id)
                 .expect("tunnel exists in desired map");
 
-            if !self.resolvers.contains_key(tunnel_id) {
+            let had_resolver = self.resolvers.contains_key(tunnel_id);
+            if !had_resolver {
                 let runtime = ResolverRuntime::new(*tunnel_id, desired, self.control_tx.clone());
                 self.resolvers.insert(*tunnel_id, runtime);
             }
@@ -370,21 +358,35 @@ impl Runtime {
             let remote_addr = if let Some(addr) = resolver_runtime.current_remote_addr() {
                 addr
             } else {
-                try_apply_value!(resolve_ip_host_once(
-                    &desired.remote_addr,
-                    desired.ip_version
-                ))
+                match resolve_ip_host_once(&desired.remote_addr, desired.ip_version) {
+                    Ok(addr) => addr,
+                    Err(e) => {
+                        if !had_resolver {
+                            self.resolvers.remove(tunnel_id);
+                        }
+                        self.tunnel_specs = applied_tunnel_specs;
+                        self.session_specs = applied_session_specs;
+                        return Err(e);
+                    }
+                }
             };
 
             info!(
                 "updating tunnel_id={} remote_addr={}",
                 desired.tunnel_id, remote_addr
             );
-            try_apply!(
-                self.state
-                    .modify_tunnel(desired.tunnel_id, remote_addr)
-                    .await
-            );
+            if let Err(e) = self
+                .state
+                .modify_tunnel(desired.tunnel_id, remote_addr)
+                .await
+            {
+                if !had_resolver {
+                    self.resolvers.remove(tunnel_id);
+                }
+                self.tunnel_specs = applied_tunnel_specs;
+                self.session_specs = applied_session_specs;
+                return Err(e);
+            }
             applied_tunnel_specs.insert(*tunnel_id, desired.clone());
         }
 
@@ -698,6 +700,8 @@ mod tests {
     struct MockStateInner {
         tunnels: BTreeMap<u32, MockTunnel>,
         sessions: BTreeMap<(u32, u32), MockSession>,
+        fail_add_tunnel_for: Option<u32>,
+        fail_modify_tunnel_for: Option<u32>,
         fail_add_session_for: Option<(u32, u32)>,
     }
 
@@ -707,6 +711,20 @@ mod tests {
     }
 
     impl MockState {
+        fn inject_add_tunnel_failure(&self, tunnel_id: u32) {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .fail_add_tunnel_for = Some(tunnel_id);
+        }
+
+        fn inject_modify_tunnel_failure(&self, tunnel_id: u32) {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .fail_modify_tunnel_for = Some(tunnel_id);
+        }
+
         fn inject_add_session_failure(&self, key: (u32, u32)) {
             self.inner
                 .lock()
@@ -742,6 +760,9 @@ mod tests {
             _if_name: Option<&str>,
         ) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
+            if inner.fail_add_tunnel_for == Some(tunnel_id) {
+                return Err(Error::Other("injected add_tunnel failure".to_string()));
+            }
             if inner.tunnels.contains_key(&tunnel_id) {
                 return Err(Error::Other("Duplicate tunnel_id".to_string()));
             }
@@ -751,6 +772,9 @@ mod tests {
 
         async fn modify_tunnel(&self, tunnel_id: u32, remote_addr: IpAddr) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
+            if inner.fail_modify_tunnel_for == Some(tunnel_id) {
+                return Err(Error::Other("injected modify_tunnel failure".to_string()));
+            }
             let tunnel = inner
                 .tunnels
                 .get_mut(&tunnel_id)
@@ -1011,6 +1035,95 @@ mod tests {
                 .expect("session exists")
                 .interface_name,
             "l2tp0"
+        );
+    }
+
+    #[tokio::test]
+    async fn reconcile_recreate_failure_cleans_stale_resolver() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+
+        let initial = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V4,
+                IpHost::V4Addr(Ipv4Addr::new(203, 0, 113, 10)),
+                None,
+            )],
+            vec![],
+        );
+        runtime
+            .reconcile(&initial)
+            .await
+            .expect("initial reconcile should succeed");
+        assert!(runtime.resolvers.contains_key(&10));
+
+        mock.inject_add_tunnel_failure(10);
+        let recreate = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V4,
+                IpHost::V4Addr(Ipv4Addr::new(203, 0, 113, 10)),
+                Some("vrf0"),
+            )],
+            vec![],
+        );
+        let result = runtime.reconcile(&recreate).await;
+        assert!(result.is_err());
+        assert!(!runtime.resolvers.contains_key(&10));
+        assert!(!runtime.tunnel_specs.contains_key(&10));
+        assert!(!mock.has_tunnel(10).await);
+    }
+
+    #[tokio::test]
+    async fn reconcile_update_failure_removes_newly_created_resolver() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+
+        let initial = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V4,
+                IpHost::V4Addr(Ipv4Addr::new(198, 51, 100, 1)),
+                None,
+            )],
+            vec![],
+        );
+        runtime
+            .reconcile(&initial)
+            .await
+            .expect("initial reconcile should succeed");
+
+        runtime.resolvers.clear();
+        mock.inject_modify_tunnel_failure(10);
+
+        let updated = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V4,
+                IpHost::V4Addr(Ipv4Addr::new(198, 51, 100, 2)),
+                None,
+            )],
+            vec![],
+        );
+        let result = runtime.reconcile(&updated).await;
+        assert!(result.is_err());
+        assert!(!runtime.resolvers.contains_key(&10));
+        assert_eq!(
+            runtime
+                .tunnel_specs
+                .get(&10)
+                .expect("tunnel spec should rollback")
+                .remote_addr,
+            IpHost::V4Addr(Ipv4Addr::new(198, 51, 100, 1))
         );
     }
 
