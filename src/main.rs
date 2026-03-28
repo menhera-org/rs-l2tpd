@@ -66,9 +66,22 @@ fn load_config_blocking() -> Result<Config> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let level = log::LevelFilter::Info;
+    env_logger::Builder::new()
+        .filter_level(level)
+        .try_init()
+        .map_err(|e| Error::Other(e.to_string()))?;
+
     let config = load_config_blocking()?;
     let config = Arc::new(RwLock::new(config));
 
-
+    // TODO: build a state::State from config, creating tunnels/sessions as necessary.
+    // and launch a tokio task to catch HUP signals, and then reload config
+    // and change the state according to that.
+    // we should match on tunnel/session IDs to reconsile the state,
+    // adding missing IDs, removing removed IDs, from the new configs.
+    // we should also catch TERM/INT signals, and do a cleanup and exit.
+    // we should also use log::* functions to debug/info/warn logs.
+    
     Ok(())
 }

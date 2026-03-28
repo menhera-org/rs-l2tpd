@@ -18,6 +18,8 @@ toml = "1.1.0"
 iphost = { version = "0.3.3", features = ["serde"] }
 rtnetlink = "0.20.0"
 futures-util = "0.3"
+env_logger = "0.11.10"
+log = "0.4.29"
 
 [features]
 default = ["setup"]
