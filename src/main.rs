@@ -82,6 +82,10 @@ async fn main() -> Result<()> {
     // adding missing IDs, removing removed IDs, from the new configs.
     // we should also catch TERM/INT signals, and do a cleanup and exit.
     // we should also use log::* functions to debug/info/warn logs.
-    
+    // we use iphost::AutoIpHostResolver and its subscribe_changes() method (blocking!)
+    // to get updates of IP addresses with the interval 30 seconds,
+    // and update the states/tunnels as needed.
+    // we should refactor the code as needed, to avoid unmaintainable codes.
+
     Ok(())
 }
