@@ -1,5 +1,7 @@
 /target
 /.codex
+/.agents
+/.claude
 .DS_Store
 ._*
 
