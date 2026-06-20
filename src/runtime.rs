@@ -1,6 +1,10 @@
 use async_trait::async_trait;
+use futures_util::StreamExt;
 use iphost::{AutoIpHostResolver, IpHost, IpHostResolver};
 use log::{debug, info, warn};
+use rtnetlink::packet_core::NetlinkPayload;
+use rtnetlink::packet_route::{link::LinkAttribute, RouteNetlinkMessage};
+use rtnetlink::{new_multicast_connection, MulticastGroup};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 
@@ -24,7 +28,6 @@ type DesiredSessionMap = BTreeMap<SessionKey, DesiredSession>;
 
 const DNS_REFRESH_INTERVAL_SECS: u64 = 30;
 const DNS_WATCH_POLL_INTERVAL_SECS: u64 = 1;
-const INTERFACE_WATCH_POLL_INTERVAL_SECS: u64 = 1;
 const MAX_INTERFACE_NAME_LEN: usize = 15;
 const DISCARD_REMOTE_ADDR: IpAddr = IpAddr::V6(Ipv6Addr::new(0x0100, 0, 0, 0, 0, 0, 0, 0));
 
@@ -33,7 +36,7 @@ pub(crate) enum ControlEvent {
     ReloadRequested,
     ShutdownRequested,
     DnsChanged { tunnel_id: u32 },
-    InterfaceCheck,
+    InterfaceChanged { if_name: Option<String> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,6 +156,7 @@ struct ResolverRuntime {
     ip_version: Arc<StdRwLock<IpVersion>>,
     active: Arc<AtomicBool>,
     dns_event_pending: Arc<AtomicBool>,
+    use_discard_until_dns: Arc<AtomicBool>,
     last_queued_addr: Arc<StdRwLock<Option<IpAddr>>>,
     worker: JoinHandle<()>,
 }
@@ -170,10 +174,16 @@ impl ResolverRuntime {
         let ip_version = Arc::new(StdRwLock::new(desired.ip_version));
         let active = Arc::new(AtomicBool::new(true));
         let dns_event_pending = Arc::new(AtomicBool::new(false));
-        let last_queued_addr = Arc::new(StdRwLock::new(Self::current_remote_addr_for(
-            &resolver,
-            desired.ip_version,
+        let use_discard_until_dns = Arc::new(AtomicBool::new(matches!(
+            desired.remote_addr,
+            IpHost::Fqdn(_)
         )));
+        let initial_addr = if matches!(desired.remote_addr, IpHost::Fqdn(_)) {
+            None
+        } else {
+            Self::current_remote_addr_for(&resolver, desired.ip_version)
+        };
+        let last_queued_addr = Arc::new(StdRwLock::new(initial_addr));
 
         let watcher_resolver = resolver.clone();
         let watcher_ip_version = Arc::clone(&ip_version);
@@ -238,6 +248,7 @@ impl ResolverRuntime {
             ip_version,
             active,
             dns_event_pending,
+            use_discard_until_dns,
             last_queued_addr,
             worker,
         }
@@ -250,19 +261,27 @@ impl ResolverRuntime {
         self.active.store(true, Ordering::Relaxed);
         self.dns_event_pending.store(false, Ordering::Relaxed);
 
-        if self
-            .resolver
-            .replace_ip_host(desired.remote_addr.clone())
-            .is_err()
-        {
-            warn!(
-                "failed to update resolver hostname immediately for tunnel_id={}",
-                desired.tunnel_id
-            );
-        }
+        let replaced = self.resolver.replace_ip_host(desired.remote_addr.clone());
+        let host_changed = match replaced {
+            Ok(old) => old != desired.remote_addr,
+            Err(_) => {
+                warn!(
+                    "failed to update resolver hostname immediately for tunnel_id={}",
+                    desired.tunnel_id
+                );
+                true
+            }
+        };
 
         if let Ok(mut queued) = self.last_queued_addr.write() {
-            *queued = Self::current_remote_addr_for(&self.resolver, desired.ip_version);
+            if matches!(desired.remote_addr, IpHost::Fqdn(_)) && host_changed {
+                self.use_discard_until_dns.store(true, Ordering::Release);
+                *queued = None;
+            } else if self.use_discard_until_dns.load(Ordering::Acquire) {
+                *queued = None;
+            } else {
+                *queued = Self::current_remote_addr_for(&self.resolver, desired.ip_version);
+            }
         }
     }
 
@@ -282,6 +301,17 @@ impl ResolverRuntime {
     fn current_remote_addr(&self) -> Option<IpAddr> {
         let ip_version = self.ip_version.read().ok().map(|v| *v)?;
         Self::current_remote_addr_for(&self.resolver, ip_version)
+    }
+
+    fn current_remote_addr_for_apply(&self) -> Option<IpAddr> {
+        if self.use_discard_until_dns.load(Ordering::Acquire) {
+            return None;
+        }
+        self.current_remote_addr()
+    }
+
+    fn clear_discard_until_dns(&self) {
+        self.use_discard_until_dns.store(false, Ordering::Release);
     }
 
     fn current_remote_addr_for(
@@ -414,6 +444,7 @@ impl Runtime {
             let bind_interface = self
                 .bind_interface_for_tunnel_add(desired.tunnel_id, desired.bind_interface.as_deref())
                 .await;
+            let mut bound_interface = bind_interface.as_deref();
             if let Err(e) = self
                 .state
                 .add_tunnel(
@@ -424,18 +455,40 @@ impl Runtime {
                 )
                 .await
             {
-                if !applied_tunnel_specs.contains_key(tunnel_id) {
-                    self.resolvers.remove(tunnel_id);
+                if bind_interface.is_some() && is_missing_interface_bind_error(&e) {
+                    warn!(
+                        "bind interface vanished for tunnel_id={} if_name={}; creating unbound socket",
+                        desired.tunnel_id,
+                        desired.bind_interface.as_deref().unwrap_or("")
+                    );
+                    if let Err(e) = self
+                        .state
+                        .add_tunnel(desired.tunnel_id, desired.peer_tunnel_id, remote_addr, None)
+                        .await
+                    {
+                        if !applied_tunnel_specs.contains_key(tunnel_id) {
+                            self.resolvers.remove(tunnel_id);
+                        }
+                        self.tunnel_specs = applied_tunnel_specs;
+                        self.session_specs = applied_session_specs;
+                        self.pending_bind_interfaces = applied_pending_bind_interfaces;
+                        return Err(e);
+                    }
+                    bound_interface = None;
+                } else {
+                    if !applied_tunnel_specs.contains_key(tunnel_id) {
+                        self.resolvers.remove(tunnel_id);
+                    }
+                    self.tunnel_specs = applied_tunnel_specs;
+                    self.session_specs = applied_session_specs;
+                    self.pending_bind_interfaces = applied_pending_bind_interfaces;
+                    return Err(e);
                 }
-                self.tunnel_specs = applied_tunnel_specs;
-                self.session_specs = applied_session_specs;
-                self.pending_bind_interfaces = applied_pending_bind_interfaces;
-                return Err(e);
             }
             record_tunnel_bind_interface(
                 &mut applied_pending_bind_interfaces,
                 desired,
-                bind_interface.as_deref(),
+                bound_interface,
             );
             applied_tunnel_specs.insert(*tunnel_id, desired.clone());
         }
@@ -621,10 +674,13 @@ impl Runtime {
         };
 
         match self.state.modify_tunnel(tunnel_id, remote_addr).await {
-            Ok(()) => info!(
-                "dns change applied tunnel_id={} remote_addr={}",
-                tunnel_id, remote_addr
-            ),
+            Ok(()) => {
+                resolver_runtime.clear_discard_until_dns();
+                info!(
+                    "dns change applied tunnel_id={} remote_addr={}",
+                    tunnel_id, remote_addr
+                );
+            }
             Err(e) => warn!(
                 "failed to apply dns change tunnel_id={} remote_addr={} error={}",
                 tunnel_id, remote_addr, e
@@ -632,10 +688,15 @@ impl Runtime {
         }
     }
 
-    pub(crate) async fn handle_interface_check(&mut self) {
+    pub(crate) async fn handle_interface_change(&mut self, changed_if_name: Option<&str>) {
         let pending: Vec<(TunnelId, String)> = self
             .pending_bind_interfaces
             .iter()
+            .filter(|(_, if_name)| {
+                changed_if_name
+                    .map(|changed| changed == if_name.as_str())
+                    .unwrap_or(true)
+            })
             .map(|(tunnel_id, if_name)| (*tunnel_id, if_name.clone()))
             .collect();
 
@@ -685,9 +746,7 @@ impl Runtime {
         tunnel_id: u32,
         if_name: Option<&str>,
     ) -> Option<String> {
-        let Some(if_name) = if_name else {
-            return None;
-        };
+        let if_name = if_name?;
 
         match self.state.has_interface(if_name).await {
             Ok(true) => Some(if_name.to_string()),
@@ -746,14 +805,45 @@ impl Drop for Runtime {
 
 fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle<()> {
     tokio::spawn(async move {
-        loop {
-            tokio::time::sleep(Duration::from_secs(INTERFACE_WATCH_POLL_INTERVAL_SECS)).await;
+        let (connection, _handle, mut messages) =
+            match new_multicast_connection(&[MulticastGroup::Link]) {
+                Ok(parts) => parts,
+                Err(e) => {
+                    warn!("failed to open rtnetlink link monitor: {}", e);
+                    return;
+                }
+            };
+        let connection_task = tokio::spawn(connection);
+
+        while let Some((message, _addr)) = messages.next().await {
             if control_tx.is_closed() {
                 break;
             }
-            let _ = control_tx.try_send(ControlEvent::InterfaceCheck);
+            let Some(if_name) = link_event_if_name(message.payload) else {
+                continue;
+            };
+            if control_tx
+                .try_send(ControlEvent::InterfaceChanged { if_name })
+                .is_err()
+            {
+                continue;
+            }
         }
+
+        connection_task.abort();
     })
+}
+
+fn link_event_if_name(payload: NetlinkPayload<RouteNetlinkMessage>) -> Option<Option<String>> {
+    let link = match payload {
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link)) => link,
+        _ => return None,
+    };
+
+    Some(link.attributes.into_iter().find_map(|attr| match attr {
+        LinkAttribute::IfName(name) => Some(name),
+        _ => None,
+    }))
 }
 
 fn record_tunnel_bind_interface(
@@ -883,7 +973,7 @@ fn tunnel_remote_addr_for_apply(
     desired: &DesiredTunnel,
     resolver_runtime: &ResolverRuntime,
 ) -> Result<IpAddr> {
-    if let Some(addr) = resolver_runtime.current_remote_addr() {
+    if let Some(addr) = resolver_runtime.current_remote_addr_for_apply() {
         return Ok(addr);
     }
 
@@ -892,6 +982,14 @@ fn tunnel_remote_addr_for_apply(
     }
 
     resolve_ip_host_once(&desired.remote_addr, desired.ip_version)
+}
+
+fn is_missing_interface_bind_error(error: &Error) -> bool {
+    match error {
+        Error::L2tp(l2tp::Error::Io(e)) => e.raw_os_error() == Some(libc::ENODEV),
+        Error::L2tp(l2tp::Error::KernelError { code, .. }) => *code == libc::ENODEV,
+        _ => false,
+    }
 }
 
 fn build_desired_maps(config: &Config) -> Result<(DesiredTunnelMap, DesiredSessionMap)> {
@@ -943,6 +1041,7 @@ fn build_desired_maps(config: &Config) -> Result<(DesiredTunnelMap, DesiredSessi
 mod tests {
     use super::*;
 
+    use std::io;
     use std::net::{Ipv4Addr, Ipv6Addr};
     use std::sync::Mutex;
 
@@ -963,6 +1062,7 @@ mod tests {
         sessions: BTreeMap<(u32, u32), MockSession>,
         interfaces: BTreeSet<String>,
         fail_add_tunnel_for: Option<u32>,
+        vanish_bind_interface_for: Option<u32>,
         fail_modify_tunnel_for: Option<u32>,
         fail_add_session_for: Option<(u32, u32)>,
     }
@@ -978,6 +1078,13 @@ mod tests {
                 .lock()
                 .expect("lock poisoned")
                 .fail_add_tunnel_for = Some(tunnel_id);
+        }
+
+        fn inject_bind_interface_vanish(&self, tunnel_id: u32) {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .vanish_bind_interface_for = Some(tunnel_id);
         }
 
         fn inject_modify_tunnel_failure(&self, tunnel_id: u32) {
@@ -1062,6 +1169,13 @@ mod tests {
                 return Err(Error::Other("Duplicate tunnel_id".to_string()));
             }
             if let Some(if_name) = if_name {
+                if inner.vanish_bind_interface_for == Some(tunnel_id) {
+                    inner.vanish_bind_interface_for = None;
+                    inner.interfaces.remove(if_name);
+                    return Err(Error::L2tp(l2tp::Error::Io(io::Error::from_raw_os_error(
+                        libc::ENODEV,
+                    ))));
+                }
                 if !inner.interfaces.contains(if_name) {
                     return Err(Error::Other(format!("interface not found: {}", if_name)));
                 }
@@ -1550,14 +1664,79 @@ mod tests {
             Some("vrf0")
         );
 
-        runtime.handle_interface_check().await;
+        runtime.handle_interface_change(None).await;
         assert_eq!(mock.tunnel_bound_interface(10), None);
 
         mock.add_interface("vrf0");
-        runtime.handle_interface_check().await;
+        runtime.handle_interface_change(Some("vrf0")).await;
 
         assert_eq!(mock.tunnel_bound_interface(10).as_deref(), Some("vrf0"));
         assert!(!runtime.pending_bind_interfaces.contains_key(&10));
+    }
+
+    #[tokio::test]
+    async fn reconcile_retries_unbound_when_bind_interface_vanishes_during_add() {
+        let mock = Arc::new(MockState::default());
+        mock.add_interface("vrf0");
+        mock.inject_bind_interface_vanish(10);
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+
+        let cfg = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V6,
+                IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                Some("vrf0"),
+            )],
+            vec![],
+        );
+
+        runtime.reconcile(&cfg).await.expect("initial reconcile");
+
+        assert_eq!(mock.tunnel_bound_interface(10), None);
+        assert_eq!(
+            runtime.pending_bind_interfaces.get(&10).map(String::as_str),
+            Some("vrf0")
+        );
+    }
+
+    #[tokio::test]
+    async fn reconcile_switches_from_ip_to_fqdn_with_discard_addr_until_dns_resolves() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+
+        let initial = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V6,
+                IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                None,
+            )],
+            vec![],
+        );
+        runtime
+            .reconcile(&initial)
+            .await
+            .expect("initial reconcile");
+
+        let fqdn = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V6,
+                "unresolved.example.invalid".parse::<IpHost>().unwrap(),
+                None,
+            )],
+            vec![],
+        );
+        runtime.reconcile(&fqdn).await.expect("fqdn reconcile");
+
+        assert_eq!(mock.tunnel_remote_addr(10), Some(DISCARD_REMOTE_ADDR));
     }
 
     #[test]

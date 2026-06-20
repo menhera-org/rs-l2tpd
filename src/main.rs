@@ -53,9 +53,8 @@ struct Args {
 mod unix_daemon {
     use crate::error::{Error, Result};
 
-    use std::fs::{self, OpenOptions};
+    use std::fs;
     use std::io;
-    use std::os::fd::AsRawFd;
     use std::path::{Path, PathBuf};
 
     const READY: u8 = b'R';
@@ -150,12 +149,6 @@ mod unix_daemon {
                         unsafe {
                             libc::umask(0);
                         }
-                        if std::env::set_current_dir("/").is_err() {
-                            signal_failure_and_exit(pipe_fds[1]);
-                        }
-                        if redirect_stdio_to_dev_null().is_err() {
-                            signal_failure_and_exit(pipe_fds[1]);
-                        }
                         Ok(ReadinessNotifier::new(pipe_fds[1]))
                     }
                     _pid => {
@@ -219,25 +212,6 @@ mod unix_daemon {
                 return 1;
             }
         }
-    }
-
-    fn redirect_stdio_to_dev_null() -> Result<()> {
-        let dev_null = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open("/dev/null")
-            .map_err(|e| Error::Other(format!("failed to open /dev/null: {e}")))?;
-        let fd = dev_null.as_raw_fd();
-        for target in [libc::STDIN_FILENO, libc::STDOUT_FILENO, libc::STDERR_FILENO] {
-            // SAFETY: fd and target are process file descriptors.
-            if unsafe { libc::dup2(fd, target) } < 0 {
-                return Err(Error::Other(format!(
-                    "failed to redirect fd {target} to /dev/null: {}",
-                    io::Error::last_os_error()
-                )));
-            }
-        }
-        Ok(())
     }
 
     fn signal_failure_and_exit(fd: libc::c_int) -> ! {
@@ -503,6 +477,9 @@ fn run_setup() -> Result<()> {
 }
 
 fn main() -> Result<()> {
+    std::env::set_current_dir("/")
+        .map_err(|e| Error::Other(format!("failed to change directory to /: {e}")))?;
+
     let args = Args::parse();
 
     let level = if args.verbose {
@@ -623,8 +600,8 @@ async fn run_daemon(
             ControlEvent::DnsChanged { tunnel_id } => {
                 runtime.handle_dns_change(tunnel_id).await;
             }
-            ControlEvent::InterfaceCheck => {
-                runtime.handle_interface_check().await;
+            ControlEvent::InterfaceChanged { if_name } => {
+                runtime.handle_interface_change(if_name.as_deref()).await;
             }
         }
     }
