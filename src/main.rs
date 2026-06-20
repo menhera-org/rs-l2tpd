@@ -374,7 +374,7 @@ fn run_command_checked(cmd: &mut Command, description: &str) -> Result<()> {
 #[cfg(feature = "setup")]
 fn systemd_unit_text() -> String {
     format!(
-        "[Unit]\nDescription=rs-l2tpd daemon\n\n[Service]\nType=forking\nPIDFile={DEFAULT_PIDFILE_PATH}\nExecStart={INSTALL_BINARY_PATH}\nExecReload=/bin/kill -HUP $MAINPID\nRestart=on-failure\nRestartSec=3\n\n[Install]\nRequiredBy=network-online.target\n"
+        "[Unit]\nDescription=rs-l2tpd daemon\nBefore=network-online.target\n\n[Service]\nType=forking\nPIDFile={DEFAULT_PIDFILE_PATH}\nExecStart={INSTALL_BINARY_PATH}\nExecReload=/bin/kill -HUP $MAINPID\nRestart=on-failure\nRestartSec=3\n\n[Install]\nRequiredBy=network-online.target\n"
     )
 }
 
@@ -539,6 +539,12 @@ async fn run_daemon(
 
     let mut runtime = Runtime::new(Arc::clone(&state), control_tx.clone());
     if let Err(e) = runtime.reconcile(&initial_config).await {
+        if let Err(cleanup) = runtime.shutdown().await {
+            warn!(
+                "startup cleanup failed after initial apply error: {}",
+                cleanup
+            );
+        }
         #[cfg(unix)]
         readiness.signal_failure();
         return Err(e);
@@ -548,6 +554,9 @@ async fn run_daemon(
     {
         if let Err(e) = unix_daemon::write_pid_file(&pidfile) {
             readiness.signal_failure();
+            if let Err(cleanup) = runtime.shutdown().await {
+                warn!("startup cleanup failed after pidfile error: {}", cleanup);
+            }
             return Err(e);
         }
         if let Err(e) = readiness.signal_ready() {

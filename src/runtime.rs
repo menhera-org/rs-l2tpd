@@ -206,7 +206,6 @@ impl ResolverRuntime {
                     None
                 };
 
-                let mut old = None;
                 let should_emit = {
                     let mut queued = watcher_last_queued
                         .write()
@@ -217,7 +216,6 @@ impl ResolverRuntime {
                         .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
                         .is_ok()
                     {
-                        old = Some(*queued);
                         *queued = current;
                         true
                     } else {
@@ -230,15 +228,11 @@ impl ResolverRuntime {
                 }
 
                 if control_tx
-                    .try_send(ControlEvent::DnsChanged { tunnel_id })
+                    .send(ControlEvent::DnsChanged { tunnel_id })
+                    .await
                     .is_err()
                 {
-                    watcher_pending.store(false, Ordering::Release);
-                    if let Some(previous) = old {
-                        if let Ok(mut queued) = watcher_last_queued.write() {
-                            *queued = previous;
-                        }
-                    }
+                    break;
                 }
             }
         });
