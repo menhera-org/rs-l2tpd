@@ -374,7 +374,7 @@ fn run_command_checked(cmd: &mut Command, description: &str) -> Result<()> {
 #[cfg(feature = "setup")]
 fn systemd_unit_text() -> String {
     format!(
-        "[Unit]\nDescription=rs-l2tpd daemon\n\n[Service]\nType=forking\nPIDFile={DEFAULT_PIDFILE_PATH}\nExecStart={INSTALL_BINARY_PATH}\nExecReload=/bin/kill -HUP $MAINPID\nRestart=on-failure\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n"
+        "[Unit]\nDescription=rs-l2tpd daemon\n\n[Service]\nType=forking\nPIDFile={DEFAULT_PIDFILE_PATH}\nExecStart={INSTALL_BINARY_PATH}\nExecReload=/bin/kill -HUP $MAINPID\nRestart=on-failure\nRestartSec=3\n\n[Install]\nRequiredBy=network-online.target\n"
     )
 }
 
