@@ -30,3 +30,6 @@ is available. The startup always succeeds if the syntax
 of the configs is correct. No failure on network
 unavailability. SystemD integration files are modified
 to match the new style.
+
+This daemon intentionally does not depend on any
+specific init system nor libc.
