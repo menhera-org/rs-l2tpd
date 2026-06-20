@@ -1042,11 +1042,21 @@ fn build_desired_maps(config: &Config) -> Result<(DesiredTunnelMap, DesiredSessi
     }
 
     let mut sessions: DesiredSessionMap = BTreeMap::new();
-    for session in config.sessions.values() {
+    let mut interface_names: BTreeMap<String, String> = BTreeMap::new();
+    for (session_name, session) in &config.sessions {
         let tunnel = config.tunnels.get(&session.tunnel_name).ok_or_else(|| {
             Error::InvalidConfig(format!("tunnel not defined: {}", session.tunnel_name))
         })?;
         let tunnel_id = tunnel.tunnel_id;
+
+        if let Some(existing_tunnel) =
+            interface_names.insert(session.interface_name.clone(), session_name.clone())
+        {
+            return Err(Error::InvalidConfig(format!(
+                "duplicate session interface_name={} used by sessions {} and {}",
+                session.interface_name, existing_tunnel, session_name
+            )));
+        }
 
         let desired = DesiredSession {
             tunnel_id,
@@ -1798,6 +1808,27 @@ mod tests {
         runtime.reconcile(&fqdn).await.expect("fqdn reconcile");
 
         assert_eq!(mock.tunnel_remote_addr(10), Some(DISCARD_REMOTE_ADDR));
+    }
+
+    #[test]
+    fn build_desired_maps_rejects_duplicate_session_interface_names() {
+        let cfg = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V6,
+                IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                None,
+            )],
+            vec![
+                ("sess0", "tun0", 100, 100, "l2tp0"),
+                ("sess1", "tun0", 101, 101, "l2tp0"),
+            ],
+        );
+
+        let result = build_desired_maps(&cfg);
+        assert!(matches!(result, Err(Error::InvalidConfig(_))));
     }
 
     #[test]
