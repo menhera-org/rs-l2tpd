@@ -21,11 +21,11 @@ rtnetlink = "0.20.0"
 futures-util = "0.3"
 env_logger = "0.11.10"
 log = "0.4.29"
-libc = { version = "0.2", optional = true }
+libc = "0.2"
 
 [features]
 default = []
-setup = ["dep:libc"]
+setup = []
 
 [profile.release]
 opt-level = 3

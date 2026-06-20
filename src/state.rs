@@ -38,6 +38,23 @@ pub(crate) async fn rename_interface(old: &str, new: &str) -> Result<()> {
     Ok(())
 }
 
+pub(crate) async fn interface_exists(if_name: &str) -> Result<bool> {
+    let (connection, handle, _) = rtnetlink::new_connection()
+        .map_err(|e| Error::Other(format!("failed to create netlink connection: {e}")))?;
+    tokio::spawn(connection);
+
+    let mut links = handle
+        .link()
+        .get()
+        .match_name(if_name.to_string())
+        .execute();
+    links
+        .try_next()
+        .await
+        .map(|link| link.is_some())
+        .map_err(|e| Error::Other(format!("failed to look up interface {if_name}: {e}")))
+}
+
 pub(crate) fn to_ipv6_mapped(addr: IpAddr) -> Ipv6Addr {
     match addr {
         IpAddr::V4(v4) => v4.to_ipv6_mapped(),
@@ -92,6 +109,10 @@ impl State {
 
     pub(crate) async fn has_tunnel(&self, tunnel_id: u32) -> bool {
         self.tunnels.read().await.contains_key(&tunnel_id)
+    }
+
+    pub(crate) async fn has_interface(if_name: &str) -> Result<bool> {
+        interface_exists(if_name).await
     }
 
     pub(crate) async fn add_tunnel(
@@ -160,6 +181,20 @@ impl State {
         *tunnel.remote_addr.write().await = remote_addr;
 
         Ok(())
+    }
+
+    pub(crate) async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &str) -> Result<()> {
+        let if_name = l2tp::IfName::new(if_name).map_err(Error::L2tp)?;
+        let tunnels = self.tunnels.read().await;
+        let tunnel = tunnels
+            .get(&tunnel_id)
+            .ok_or_else(|| Error::Other("tunnel not found".to_string()))?;
+        let socket = tunnel
+            .handle
+            .socket()
+            .ok_or_else(|| Error::Other("tunnel has no managed socket".to_string()))?;
+
+        socket.bind_to_device(&if_name).map_err(Error::L2tp)
     }
 
     pub(crate) async fn delete_tunnel(&self, tunnel_id: u32) -> Result<()> {

@@ -26,6 +26,7 @@ pub(crate) const CONFIG_DIR_PATH: &str = env!("CONFIG_DIR_PATH");
 const INSTALL_BINARY_PATH: &str = "/usr/local/bin/rs-l2tpd";
 #[cfg(feature = "setup")]
 const INSTALL_SYSTEMD_UNIT_PATH: &str = "/usr/local/lib/systemd/system/rs-l2tpd.service";
+const DEFAULT_PIDFILE_PATH: &str = "/run/rs-l2tpd.pid";
 
 #[derive(Debug, Parser)]
 #[command(version, disable_help_flag = false, disable_version_flag = false)]
@@ -38,10 +39,223 @@ struct Args {
     #[arg(short = 'c', long, action = ArgAction::SetTrue)]
     check: bool,
 
+    /// Write the daemon PID to this file after initial readiness.
+    #[arg(short = 'p', long, default_value = DEFAULT_PIDFILE_PATH)]
+    pidfile: PathBuf,
+
     /// Install this binary and a systemd unit under /usr/local and enable the service.
     #[cfg(feature = "setup")]
     #[arg(long, action = ArgAction::SetTrue)]
     setup: bool,
+}
+
+#[cfg(unix)]
+mod unix_daemon {
+    use crate::error::{Error, Result};
+
+    use std::fs::{self, OpenOptions};
+    use std::io;
+    use std::os::fd::AsRawFd;
+    use std::path::{Path, PathBuf};
+
+    const READY: u8 = b'R';
+    const FAILED: u8 = b'F';
+
+    pub(crate) struct ReadinessNotifier {
+        fd: Option<libc::c_int>,
+    }
+
+    impl ReadinessNotifier {
+        fn new(fd: libc::c_int) -> Self {
+            Self { fd: Some(fd) }
+        }
+
+        pub(crate) fn signal_ready(&mut self) -> Result<()> {
+            self.write_message(READY)
+        }
+
+        pub(crate) fn signal_failure(&mut self) {
+            let _ = self.write_message(FAILED);
+        }
+
+        fn write_message(&mut self, message: u8) -> Result<()> {
+            let Some(fd) = self.fd.take() else {
+                return Ok(());
+            };
+            let buf = [message];
+            let result = loop {
+                // SAFETY: fd is owned by this notifier and buf points to one valid byte.
+                let written = unsafe { libc::write(fd, buf.as_ptr().cast(), buf.len()) };
+                if written == 1 {
+                    break Ok(());
+                }
+                if written < 0 {
+                    let e = io::Error::last_os_error();
+                    if e.kind() == io::ErrorKind::Interrupted {
+                        continue;
+                    }
+                    break Err(Error::Other(format!(
+                        "failed to notify startup parent: {e}"
+                    )));
+                }
+                break Err(Error::Other(
+                    "failed to notify startup parent: short write".to_string(),
+                ));
+            };
+            close_fd(fd);
+            result
+        }
+    }
+
+    impl Drop for ReadinessNotifier {
+        fn drop(&mut self) {
+            if let Some(fd) = self.fd.take() {
+                close_fd(fd);
+            }
+        }
+    }
+
+    pub(crate) fn daemonize() -> Result<ReadinessNotifier> {
+        let mut pipe_fds = [0 as libc::c_int; 2];
+        // SAFETY: pipe_fds points to two valid c_int slots.
+        if unsafe { libc::pipe(pipe_fds.as_mut_ptr()) } != 0 {
+            return Err(Error::Other(format!(
+                "failed to create readiness pipe: {}",
+                io::Error::last_os_error()
+            )));
+        }
+
+        // SAFETY: fork is called before the Tokio runtime is created.
+        match unsafe { libc::fork() } {
+            -1 => {
+                close_fd(pipe_fds[0]);
+                close_fd(pipe_fds[1]);
+                Err(Error::Other(format!(
+                    "first fork failed: {}",
+                    io::Error::last_os_error()
+                )))
+            }
+            0 => {
+                close_fd(pipe_fds[0]);
+                // SAFETY: setsid has no Rust-side invariants.
+                if unsafe { libc::setsid() } < 0 {
+                    signal_failure_and_exit(pipe_fds[1]);
+                }
+
+                // SAFETY: second fork is still before the Tokio runtime is created.
+                match unsafe { libc::fork() } {
+                    -1 => signal_failure_and_exit(pipe_fds[1]),
+                    0 => {
+                        // SAFETY: setting a process umask has no Rust-side invariants.
+                        unsafe {
+                            libc::umask(0);
+                        }
+                        if std::env::set_current_dir("/").is_err() {
+                            signal_failure_and_exit(pipe_fds[1]);
+                        }
+                        if redirect_stdio_to_dev_null().is_err() {
+                            signal_failure_and_exit(pipe_fds[1]);
+                        }
+                        Ok(ReadinessNotifier::new(pipe_fds[1]))
+                    }
+                    _pid => {
+                        // SAFETY: the intermediate child must not continue Rust control flow.
+                        unsafe { libc::_exit(0) };
+                    }
+                }
+            }
+            _pid => {
+                close_fd(pipe_fds[1]);
+                let status = wait_for_readiness(pipe_fds[0]);
+                close_fd(pipe_fds[0]);
+                std::process::exit(status);
+            }
+        }
+    }
+
+    #[cfg(feature = "setup")]
+    pub(crate) fn effective_uid() -> u32 {
+        // SAFETY: geteuid has no safety preconditions.
+        unsafe { libc::geteuid() as u32 }
+    }
+
+    pub(crate) fn write_pid_file(path: &Path) -> Result<()> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| {
+                Error::Other(format!(
+                    "failed to create pidfile directory {}: {e}",
+                    parent.display()
+                ))
+            })?;
+        }
+
+        // SAFETY: getpid has no safety preconditions.
+        let pid = unsafe { libc::getpid() };
+        fs::write(path, format!("{pid}\n"))
+            .map_err(|e| Error::Other(format!("failed to write pidfile {}: {e}", path.display())))
+    }
+
+    pub(crate) fn remove_pid_file(path: PathBuf) {
+        match fs::remove_file(&path) {
+            Ok(()) => {}
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+            Err(e) => log::warn!("failed to remove pidfile {}: {}", path.display(), e),
+        }
+    }
+
+    fn wait_for_readiness(fd: libc::c_int) -> i32 {
+        let mut buf = [0_u8; 1];
+        loop {
+            // SAFETY: fd is a valid read end here and buf points to one writable byte.
+            let n = unsafe { libc::read(fd, buf.as_mut_ptr().cast(), buf.len()) };
+            if n == 1 {
+                return if buf[0] == READY { 0 } else { 1 };
+            }
+            if n == 0 {
+                return 1;
+            }
+            let e = io::Error::last_os_error();
+            if e.kind() != io::ErrorKind::Interrupted {
+                return 1;
+            }
+        }
+    }
+
+    fn redirect_stdio_to_dev_null() -> Result<()> {
+        let dev_null = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open("/dev/null")
+            .map_err(|e| Error::Other(format!("failed to open /dev/null: {e}")))?;
+        let fd = dev_null.as_raw_fd();
+        for target in [libc::STDIN_FILENO, libc::STDOUT_FILENO, libc::STDERR_FILENO] {
+            // SAFETY: fd and target are process file descriptors.
+            if unsafe { libc::dup2(fd, target) } < 0 {
+                return Err(Error::Other(format!(
+                    "failed to redirect fd {target} to /dev/null: {}",
+                    io::Error::last_os_error()
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn signal_failure_and_exit(fd: libc::c_int) -> ! {
+        let buf = [FAILED];
+        // SAFETY: fd is the readiness pipe write end and buf points to one valid byte.
+        unsafe {
+            let _ = libc::write(fd, buf.as_ptr().cast(), buf.len());
+            let _ = libc::close(fd);
+            libc::_exit(1);
+        }
+    }
+
+    fn close_fd(fd: libc::c_int) {
+        // SAFETY: closing an fd is safe; errors are intentionally ignored for cleanup.
+        unsafe {
+            let _ = libc::close(fd);
+        }
+    }
 }
 
 fn list_toml_files_at(file: &Path, dir: &Path) -> Result<Vec<PathBuf>> {
@@ -138,8 +352,7 @@ fn install_signal_handlers(_control_tx: mpsc::Sender<ControlEvent>) -> Result<()
 #[cfg(feature = "setup")]
 #[cfg(unix)]
 fn ensure_root_uid() -> Result<()> {
-    // SAFETY: libc::geteuid has no safety preconditions and does not dereference pointers.
-    if unsafe { libc::geteuid() } != 0 {
+    if unix_daemon::effective_uid() != 0 {
         return Err(Error::Other(
             "--setup requires root privileges (expected effective UID 0)".to_string(),
         ));
@@ -187,7 +400,7 @@ fn run_command_checked(cmd: &mut Command, description: &str) -> Result<()> {
 #[cfg(feature = "setup")]
 fn systemd_unit_text() -> String {
     format!(
-        "[Unit]\nDescription=rs-l2tpd daemon\nWants=network-online.target\nAfter=network-online.target\n\n[Service]\nType=simple\nExecStart={INSTALL_BINARY_PATH}\nExecReload=/bin/kill -HUP $MAINPID\nRestart=on-failure\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n"
+        "[Unit]\nDescription=rs-l2tpd daemon\n\n[Service]\nType=forking\nPIDFile={DEFAULT_PIDFILE_PATH}\nExecStart={INSTALL_BINARY_PATH}\nExecReload=/bin/kill -HUP $MAINPID\nRestart=on-failure\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n"
     )
 }
 
@@ -289,8 +502,7 @@ fn run_setup() -> Result<()> {
     ))
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let args = Args::parse();
 
     let level = if args.verbose {
@@ -317,6 +529,30 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
+    #[cfg(not(unix))]
+    {
+        return Err(Error::Other(
+            "daemonization is only supported on unix systems".to_string(),
+        ));
+    }
+
+    #[cfg(unix)]
+    let readiness = unix_daemon::daemonize()?;
+
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| Error::Other(format!("failed to create Tokio runtime: {e}")))?;
+
+    #[cfg(unix)]
+    runtime.block_on(run_daemon(initial_config, args.pidfile, readiness))
+}
+
+async fn run_daemon(
+    initial_config: Config,
+    pidfile: PathBuf,
+    #[cfg(unix)] mut readiness: unix_daemon::ReadinessNotifier,
+) -> Result<()> {
     let state = Arc::new(state::State::new().await?);
     let config = Arc::new(RwLock::new(initial_config.clone()));
     let (control_tx, mut control_rx) = mpsc::channel(256);
@@ -324,7 +560,25 @@ async fn main() -> Result<()> {
     install_signal_handlers(control_tx.clone())?;
 
     let mut runtime = Runtime::new(Arc::clone(&state), control_tx.clone());
-    runtime.reconcile(&initial_config).await?;
+    if let Err(e) = runtime.reconcile(&initial_config).await {
+        #[cfg(unix)]
+        readiness.signal_failure();
+        return Err(e);
+    }
+
+    #[cfg(unix)]
+    {
+        if let Err(e) = unix_daemon::write_pid_file(&pidfile) {
+            readiness.signal_failure();
+            return Err(e);
+        }
+        if let Err(e) = readiness.signal_ready() {
+            let _ = runtime.shutdown().await;
+            unix_daemon::remove_pid_file(pidfile);
+            return Err(e);
+        }
+    }
+
     info!("initial configuration applied");
 
     loop {
@@ -369,12 +623,18 @@ async fn main() -> Result<()> {
             ControlEvent::DnsChanged { tunnel_id } => {
                 runtime.handle_dns_change(tunnel_id).await;
             }
+            ControlEvent::InterfaceCheck => {
+                runtime.handle_interface_check().await;
+            }
         }
     }
 
     if let Err(e) = runtime.shutdown().await {
         warn!("final cleanup failed: {}", e);
     }
+
+    #[cfg(unix)]
+    unix_daemon::remove_pid_file(pidfile);
 
     Ok(())
 }

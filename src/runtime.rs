@@ -5,7 +5,7 @@ use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv6Addr};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::sync::RwLock as StdRwLock;
@@ -24,13 +24,16 @@ type DesiredSessionMap = BTreeMap<SessionKey, DesiredSession>;
 
 const DNS_REFRESH_INTERVAL_SECS: u64 = 30;
 const DNS_WATCH_POLL_INTERVAL_SECS: u64 = 1;
+const INTERFACE_WATCH_POLL_INTERVAL_SECS: u64 = 1;
 const MAX_INTERFACE_NAME_LEN: usize = 15;
+const DISCARD_REMOTE_ADDR: IpAddr = IpAddr::V6(Ipv6Addr::new(0x0100, 0, 0, 0, 0, 0, 0, 0));
 
 #[derive(Debug)]
 pub(crate) enum ControlEvent {
     ReloadRequested,
     ShutdownRequested,
     DnsChanged { tunnel_id: u32 },
+    InterfaceCheck,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -75,7 +78,9 @@ pub(crate) trait StateOps: Send + Sync {
         if_name: Option<&str>,
     ) -> Result<()>;
     async fn modify_tunnel(&self, tunnel_id: u32, remote_addr: IpAddr) -> Result<()>;
+    async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &str) -> Result<()>;
     async fn delete_tunnel(&self, tunnel_id: u32) -> Result<()>;
+    async fn has_interface(&self, if_name: &str) -> Result<bool>;
     async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool;
     async fn add_session(
         &self,
@@ -108,8 +113,16 @@ impl StateOps for state::State {
         state::State::modify_tunnel(self, tunnel_id, remote_addr).await
     }
 
+    async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &str) -> Result<()> {
+        state::State::bind_tunnel_interface(self, tunnel_id, if_name).await
+    }
+
     async fn delete_tunnel(&self, tunnel_id: u32) -> Result<()> {
         state::State::delete_tunnel(self, tunnel_id).await
+    }
+
+    async fn has_interface(&self, if_name: &str) -> Result<bool> {
+        state::State::has_interface(if_name).await
     }
 
     async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool {
@@ -293,18 +306,23 @@ pub(crate) struct Runtime {
     state: Arc<dyn StateOps>,
     tunnel_specs: DesiredTunnelMap,
     session_specs: DesiredSessionMap,
+    pending_bind_interfaces: BTreeMap<TunnelId, String>,
     resolvers: BTreeMap<TunnelId, ResolverRuntime>,
     control_tx: mpsc::Sender<ControlEvent>,
+    interface_worker: JoinHandle<()>,
 }
 
 impl Runtime {
     pub(crate) fn new(state: Arc<state::State>, control_tx: mpsc::Sender<ControlEvent>) -> Self {
+        let interface_worker = spawn_interface_watcher(control_tx.clone());
         Self {
             state,
             tunnel_specs: BTreeMap::new(),
             session_specs: BTreeMap::new(),
+            pending_bind_interfaces: BTreeMap::new(),
             resolvers: BTreeMap::new(),
             control_tx,
+            interface_worker,
         }
     }
 
@@ -313,12 +331,15 @@ impl Runtime {
         state: Arc<dyn StateOps>,
         control_tx: mpsc::Sender<ControlEvent>,
     ) -> Self {
+        let interface_worker = spawn_interface_watcher(control_tx.clone());
         Self {
             state,
             tunnel_specs: BTreeMap::new(),
             session_specs: BTreeMap::new(),
+            pending_bind_interfaces: BTreeMap::new(),
             resolvers: BTreeMap::new(),
             control_tx,
+            interface_worker,
         }
     }
 
@@ -326,12 +347,14 @@ impl Runtime {
         let (desired_tunnels, desired_sessions) = build_desired_maps(config)?;
         let mut applied_tunnel_specs = self.tunnel_specs.clone();
         let mut applied_session_specs = self.session_specs.clone();
+        let mut applied_pending_bind_interfaces = self.pending_bind_interfaces.clone();
 
         macro_rules! try_apply {
             ($result:expr) => {
                 if let Err(e) = $result {
                     self.tunnel_specs = applied_tunnel_specs;
                     self.session_specs = applied_session_specs;
+                    self.pending_bind_interfaces = applied_pending_bind_interfaces;
                     return Err(e);
                 }
             };
@@ -350,6 +373,7 @@ impl Runtime {
                 try_apply!(self.state.delete_tunnel(*tunnel_id).await);
             }
             self.resolvers.remove(tunnel_id);
+            applied_pending_bind_interfaces.remove(tunnel_id);
             applied_tunnel_specs.remove(tunnel_id);
             applied_session_specs.retain(|(tid, _), _| tid != tunnel_id);
         }
@@ -371,19 +395,15 @@ impl Runtime {
                 .expect("resolver exists for tunnel");
             resolver_runtime.apply_tunnel_config(desired);
 
-            let remote_addr = if let Some(addr) = resolver_runtime.current_remote_addr() {
-                addr
-            } else {
-                match resolve_ip_host_once(&desired.remote_addr, desired.ip_version) {
-                    Ok(addr) => addr,
-                    Err(e) => {
-                        if !applied_tunnel_specs.contains_key(tunnel_id) {
-                            self.resolvers.remove(tunnel_id);
-                        }
-                        self.tunnel_specs = applied_tunnel_specs;
-                        self.session_specs = applied_session_specs;
-                        return Err(e);
+            let remote_addr = match tunnel_remote_addr_for_apply(desired, resolver_runtime) {
+                Ok(addr) => addr,
+                Err(e) => {
+                    if !applied_tunnel_specs.contains_key(tunnel_id) {
+                        self.resolvers.remove(tunnel_id);
                     }
+                    self.tunnel_specs = applied_tunnel_specs;
+                    self.session_specs = applied_session_specs;
+                    return Err(e);
                 }
             };
 
@@ -391,13 +411,16 @@ impl Runtime {
                 "adding tunnel_id={} peer_tunnel_id={} remote_addr={}",
                 desired.tunnel_id, desired.peer_tunnel_id, remote_addr
             );
+            let bind_interface = self
+                .bind_interface_for_tunnel_add(desired.tunnel_id, desired.bind_interface.as_deref())
+                .await;
             if let Err(e) = self
                 .state
                 .add_tunnel(
                     desired.tunnel_id,
                     desired.peer_tunnel_id,
                     remote_addr,
-                    desired.bind_interface.as_deref(),
+                    bind_interface.as_deref(),
                 )
                 .await
             {
@@ -406,8 +429,14 @@ impl Runtime {
                 }
                 self.tunnel_specs = applied_tunnel_specs;
                 self.session_specs = applied_session_specs;
+                self.pending_bind_interfaces = applied_pending_bind_interfaces;
                 return Err(e);
             }
+            record_tunnel_bind_interface(
+                &mut applied_pending_bind_interfaces,
+                desired,
+                bind_interface.as_deref(),
+            );
             applied_tunnel_specs.insert(*tunnel_id, desired.clone());
         }
 
@@ -432,21 +461,17 @@ impl Runtime {
                 .expect("resolver exists for tunnel");
             resolver_runtime.apply_tunnel_config(desired);
 
-            let remote_addr = if let Some(addr) = resolver_runtime.current_remote_addr() {
-                addr
-            } else {
-                match resolve_ip_host_once(&desired.remote_addr, desired.ip_version) {
-                    Ok(addr) => addr,
-                    Err(e) => {
-                        if !had_resolver {
-                            self.resolvers.remove(tunnel_id);
-                        } else if let Some(resolver_runtime) = self.resolvers.get(tunnel_id) {
-                            resolver_runtime.apply_tunnel_config(current);
-                        }
-                        self.tunnel_specs = applied_tunnel_specs;
-                        self.session_specs = applied_session_specs;
-                        return Err(e);
+            let remote_addr = match tunnel_remote_addr_for_apply(desired, resolver_runtime) {
+                Ok(addr) => addr,
+                Err(e) => {
+                    if !had_resolver {
+                        self.resolvers.remove(tunnel_id);
+                    } else if let Some(resolver_runtime) = self.resolvers.get(tunnel_id) {
+                        resolver_runtime.apply_tunnel_config(current);
                     }
+                    self.tunnel_specs = applied_tunnel_specs;
+                    self.session_specs = applied_session_specs;
+                    return Err(e);
                 }
             };
 
@@ -468,19 +493,25 @@ impl Runtime {
                 self.session_specs = applied_session_specs;
                 return Err(e);
             }
+            self.reconcile_tunnel_bind_interface(desired, &mut applied_pending_bind_interfaces)
+                .await;
             applied_tunnel_specs.insert(*tunnel_id, desired.clone());
         }
 
-        for tunnel_id in self
+        let unchanged_tunnel_ids: Vec<TunnelId> = self
             .tunnel_specs
             .keys()
             .filter(|id| !tunnel_plan.to_delete.contains(id) && !tunnel_plan.to_update.contains(id))
-        {
-            if let Some(desired) = desired_tunnels.get(tunnel_id) {
-                if let Some(resolver_runtime) = self.resolvers.get(tunnel_id) {
+            .copied()
+            .collect();
+        for tunnel_id in unchanged_tunnel_ids {
+            if let Some(desired) = desired_tunnels.get(&tunnel_id) {
+                if let Some(resolver_runtime) = self.resolvers.get(&tunnel_id) {
                     resolver_runtime.apply_tunnel_config(desired);
                 }
-                applied_tunnel_specs.insert(*tunnel_id, desired.clone());
+                self.reconcile_tunnel_bind_interface(desired, &mut applied_pending_bind_interfaces)
+                    .await;
+                applied_tunnel_specs.insert(tunnel_id, desired.clone());
             }
         }
 
@@ -563,6 +594,7 @@ impl Runtime {
 
         self.tunnel_specs = desired_tunnels;
         self.session_specs = desired_sessions;
+        self.pending_bind_interfaces = applied_pending_bind_interfaces;
         Ok(())
     }
 
@@ -600,8 +632,139 @@ impl Runtime {
         }
     }
 
+    pub(crate) async fn handle_interface_check(&mut self) {
+        let pending: Vec<(TunnelId, String)> = self
+            .pending_bind_interfaces
+            .iter()
+            .map(|(tunnel_id, if_name)| (*tunnel_id, if_name.clone()))
+            .collect();
+
+        for (tunnel_id, if_name) in pending {
+            if !self.tunnel_specs.contains_key(&tunnel_id) {
+                self.pending_bind_interfaces.remove(&tunnel_id);
+                continue;
+            }
+
+            let exists = match self.state.has_interface(&if_name).await {
+                Ok(exists) => exists,
+                Err(e) => {
+                    warn!(
+                        "failed to check bind interface tunnel_id={} if_name={} error={}",
+                        tunnel_id, if_name, e
+                    );
+                    continue;
+                }
+            };
+
+            if !exists {
+                continue;
+            }
+
+            match self.state.bind_tunnel_interface(tunnel_id, &if_name).await {
+                Ok(()) => {
+                    info!(
+                        "bound tunnel_id={} socket to interface {}",
+                        tunnel_id, if_name
+                    );
+                    self.pending_bind_interfaces.remove(&tunnel_id);
+                }
+                Err(e) => warn!(
+                    "failed to bind tunnel_id={} socket to interface {}: {}",
+                    tunnel_id, if_name, e
+                ),
+            }
+        }
+    }
+
     pub(crate) async fn shutdown(&mut self) -> Result<()> {
         self.reconcile(&Config::default()).await
+    }
+
+    async fn bind_interface_for_tunnel_add(
+        &self,
+        tunnel_id: u32,
+        if_name: Option<&str>,
+    ) -> Option<String> {
+        let Some(if_name) = if_name else {
+            return None;
+        };
+
+        match self.state.has_interface(if_name).await {
+            Ok(true) => Some(if_name.to_string()),
+            Ok(false) => {
+                info!(
+                    "bind interface {} is absent for tunnel_id={}; creating unbound socket",
+                    if_name, tunnel_id
+                );
+                None
+            }
+            Err(e) => {
+                warn!(
+                    "failed to check bind interface tunnel_id={} if_name={}: {}; creating unbound socket",
+                    tunnel_id, if_name, e
+                );
+                None
+            }
+        }
+    }
+
+    async fn reconcile_tunnel_bind_interface(
+        &self,
+        desired: &DesiredTunnel,
+        pending: &mut BTreeMap<TunnelId, String>,
+    ) {
+        let Some(if_name) = desired.bind_interface.as_deref() else {
+            pending.remove(&desired.tunnel_id);
+            return;
+        };
+
+        if pending.contains_key(&desired.tunnel_id) {
+            return;
+        }
+
+        match self.state.has_interface(if_name).await {
+            Ok(true) => {}
+            Ok(false) => {
+                pending.insert(desired.tunnel_id, if_name.to_string());
+            }
+            Err(e) => {
+                warn!(
+                    "failed to check bind interface tunnel_id={} if_name={} error={}",
+                    desired.tunnel_id, if_name, e
+                );
+                pending.insert(desired.tunnel_id, if_name.to_string());
+            }
+        }
+    }
+}
+
+impl Drop for Runtime {
+    fn drop(&mut self) {
+        self.interface_worker.abort();
+    }
+}
+
+fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle<()> {
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(INTERFACE_WATCH_POLL_INTERVAL_SECS)).await;
+            if control_tx.is_closed() {
+                break;
+            }
+            let _ = control_tx.try_send(ControlEvent::InterfaceCheck);
+        }
+    })
+}
+
+fn record_tunnel_bind_interface(
+    pending: &mut BTreeMap<TunnelId, String>,
+    desired: &DesiredTunnel,
+    bound_interface: Option<&str>,
+) {
+    if bound_interface.is_some() || desired.bind_interface.is_none() {
+        pending.remove(&desired.tunnel_id);
+    } else if let Some(if_name) = &desired.bind_interface {
+        pending.insert(desired.tunnel_id, if_name.clone());
     }
 }
 
@@ -716,6 +879,21 @@ fn resolve_ip_host_once(ip_host: &IpHost, ip_version: IpVersion) -> Result<IpAdd
     })
 }
 
+fn tunnel_remote_addr_for_apply(
+    desired: &DesiredTunnel,
+    resolver_runtime: &ResolverRuntime,
+) -> Result<IpAddr> {
+    if let Some(addr) = resolver_runtime.current_remote_addr() {
+        return Ok(addr);
+    }
+
+    if matches!(desired.remote_addr, IpHost::Fqdn(_)) {
+        return Ok(DISCARD_REMOTE_ADDR);
+    }
+
+    resolve_ip_host_once(&desired.remote_addr, desired.ip_version)
+}
+
 fn build_desired_maps(config: &Config) -> Result<(DesiredTunnelMap, DesiredSessionMap)> {
     let mut tunnels: DesiredTunnelMap = BTreeMap::new();
     for tunnel in config.tunnels.values() {
@@ -771,6 +949,7 @@ mod tests {
     #[derive(Debug, Clone)]
     struct MockTunnel {
         remote_addr: IpAddr,
+        bound_interface: Option<String>,
     }
 
     #[derive(Debug, Clone)]
@@ -782,6 +961,7 @@ mod tests {
     struct MockStateInner {
         tunnels: BTreeMap<u32, MockTunnel>,
         sessions: BTreeMap<(u32, u32), MockSession>,
+        interfaces: BTreeSet<String>,
         fail_add_tunnel_for: Option<u32>,
         fail_modify_tunnel_for: Option<u32>,
         fail_add_session_for: Option<(u32, u32)>,
@@ -821,6 +1001,14 @@ mod tests {
                 .fail_add_session_for = Some(key);
         }
 
+        fn add_interface(&self, if_name: &str) {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .interfaces
+                .insert(if_name.to_string());
+        }
+
         fn session_name(&self, tunnel_id: u32, session_id: u32) -> Option<String> {
             self.inner
                 .lock()
@@ -837,6 +1025,15 @@ mod tests {
                 .tunnels
                 .get(&tunnel_id)
                 .map(|t| t.remote_addr)
+        }
+
+        fn tunnel_bound_interface(&self, tunnel_id: u32) -> Option<String> {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .tunnels
+                .get(&tunnel_id)
+                .and_then(|t| t.bound_interface.clone())
         }
     }
 
@@ -855,7 +1052,7 @@ mod tests {
             tunnel_id: u32,
             _peer_tunnel_id: u32,
             remote_addr: IpAddr,
-            _if_name: Option<&str>,
+            if_name: Option<&str>,
         ) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
             if inner.fail_add_tunnel_for == Some(tunnel_id) {
@@ -864,7 +1061,18 @@ mod tests {
             if inner.tunnels.contains_key(&tunnel_id) {
                 return Err(Error::Other("Duplicate tunnel_id".to_string()));
             }
-            inner.tunnels.insert(tunnel_id, MockTunnel { remote_addr });
+            if let Some(if_name) = if_name {
+                if !inner.interfaces.contains(if_name) {
+                    return Err(Error::Other(format!("interface not found: {}", if_name)));
+                }
+            }
+            inner.tunnels.insert(
+                tunnel_id,
+                MockTunnel {
+                    remote_addr,
+                    bound_interface: if_name.map(str::to_string),
+                },
+            );
             Ok(())
         }
 
@@ -881,6 +1089,19 @@ mod tests {
             Ok(())
         }
 
+        async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &str) -> Result<()> {
+            let mut inner = self.inner.lock().expect("lock poisoned");
+            if !inner.interfaces.contains(if_name) {
+                return Err(Error::Other(format!("interface not found: {}", if_name)));
+            }
+            let tunnel = inner
+                .tunnels
+                .get_mut(&tunnel_id)
+                .ok_or_else(|| Error::Other("tunnel not found".to_string()))?;
+            tunnel.bound_interface = Some(if_name.to_string());
+            Ok(())
+        }
+
         async fn delete_tunnel(&self, tunnel_id: u32) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
             inner
@@ -889,6 +1110,15 @@ mod tests {
                 .ok_or_else(|| Error::Other(format!("Tunnel not found: {}", tunnel_id)))?;
             inner.sessions.retain(|(tid, _), _| *tid != tunnel_id);
             Ok(())
+        }
+
+        async fn has_interface(&self, if_name: &str) -> Result<bool> {
+            Ok(self
+                .inner
+                .lock()
+                .expect("lock poisoned")
+                .interfaces
+                .contains(if_name))
         }
 
         async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool {
@@ -1269,6 +1499,65 @@ mod tests {
             mock.tunnel_remote_addr(10),
             Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 1)))
         );
+    }
+
+    #[tokio::test]
+    async fn reconcile_uses_discard_addr_for_unresolved_fqdn() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+
+        let cfg = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V6,
+                "unresolved.example.invalid".parse::<IpHost>().unwrap(),
+                None,
+            )],
+            vec![],
+        );
+
+        runtime
+            .reconcile(&cfg)
+            .await
+            .expect("reconcile should succeed");
+
+        assert_eq!(mock.tunnel_remote_addr(10), Some(DISCARD_REMOTE_ADDR));
+    }
+
+    #[tokio::test]
+    async fn reconcile_defers_missing_bind_interface_until_it_appears() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+
+        let cfg = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V6,
+                IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                Some("vrf0"),
+            )],
+            vec![],
+        );
+
+        runtime.reconcile(&cfg).await.expect("initial reconcile");
+        assert_eq!(mock.tunnel_bound_interface(10), None);
+        assert_eq!(
+            runtime.pending_bind_interfaces.get(&10).map(String::as_str),
+            Some("vrf0")
+        );
+
+        runtime.handle_interface_check().await;
+        assert_eq!(mock.tunnel_bound_interface(10), None);
+
+        mock.add_interface("vrf0");
+        runtime.handle_interface_check().await;
+
+        assert_eq!(mock.tunnel_bound_interface(10).as_deref(), Some("vrf0"));
+        assert!(!runtime.pending_bind_interfaces.contains_key(&10));
     }
 
     #[test]
