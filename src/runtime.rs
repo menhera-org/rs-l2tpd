@@ -314,6 +314,13 @@ impl ResolverRuntime {
         self.use_discard_until_dns.store(false, Ordering::Release);
     }
 
+    fn requeue_dns_change(&self) {
+        self.dns_event_pending.store(false, Ordering::Release);
+        if let Ok(mut queued) = self.last_queued_addr.write() {
+            *queued = None;
+        }
+    }
+
     fn current_remote_addr_for(
         resolver: &AutoIpHostResolver,
         ip_version: IpVersion,
@@ -361,7 +368,7 @@ impl Runtime {
         state: Arc<dyn StateOps>,
         control_tx: mpsc::Sender<ControlEvent>,
     ) -> Self {
-        let interface_worker = spawn_interface_watcher(control_tx.clone());
+        let interface_worker = tokio::spawn(async {});
         Self {
             state,
             tunnel_specs: BTreeMap::new(),
@@ -648,6 +655,7 @@ impl Runtime {
         self.tunnel_specs = desired_tunnels;
         self.session_specs = desired_sessions;
         self.pending_bind_interfaces = applied_pending_bind_interfaces;
+        self.handle_interface_change(None).await;
         Ok(())
     }
 
@@ -681,10 +689,15 @@ impl Runtime {
                     tunnel_id, remote_addr
                 );
             }
-            Err(e) => warn!(
-                "failed to apply dns change tunnel_id={} remote_addr={} error={}",
-                tunnel_id, remote_addr, e
-            ),
+            Err(e) => {
+                warn!(
+                    "failed to apply dns change tunnel_id={} remote_addr={} error={}",
+                    tunnel_id, remote_addr, e
+                );
+                if resolver_runtime.current_remote_addr() == Some(remote_addr) {
+                    resolver_runtime.requeue_dns_change();
+                }
+            }
         }
     }
 
@@ -805,45 +818,68 @@ impl Drop for Runtime {
 
 fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle<()> {
     tokio::spawn(async move {
-        let (connection, _handle, mut messages) =
-            match new_multicast_connection(&[MulticastGroup::Link]) {
-                Ok(parts) => parts,
-                Err(e) => {
-                    warn!("failed to open rtnetlink link monitor: {}", e);
-                    return;
-                }
-            };
-        let connection_task = tokio::spawn(connection);
-
-        while let Some((message, _addr)) = messages.next().await {
+        loop {
             if control_tx.is_closed() {
                 break;
             }
-            let Some(if_name) = link_event_if_name(message.payload) else {
-                continue;
-            };
+
+            let (connection, _handle, mut messages) =
+                match new_multicast_connection(&[MulticastGroup::Link]) {
+                    Ok(parts) => parts,
+                    Err(e) => {
+                        warn!("failed to open rtnetlink link monitor: {}", e);
+                        tokio::time::sleep(Duration::from_secs(1)).await;
+                        continue;
+                    }
+                };
+            let connection_task = tokio::spawn(connection);
+
             if control_tx
-                .try_send(ControlEvent::InterfaceChanged { if_name })
+                .send(ControlEvent::InterfaceChanged { if_name: None })
+                .await
                 .is_err()
             {
-                continue;
+                connection_task.abort();
+                break;
             }
-        }
 
-        connection_task.abort();
+            while let Some((message, _addr)) = messages.next().await {
+                if control_tx.is_closed() {
+                    break;
+                }
+                let Some(if_name) = link_event_if_name(message.payload) else {
+                    continue;
+                };
+                if control_tx
+                    .send(ControlEvent::InterfaceChanged { if_name })
+                    .await
+                    .is_err()
+                {
+                    break;
+                }
+            }
+
+            connection_task.abort();
+            if control_tx.is_closed() {
+                break;
+            }
+            warn!("rtnetlink link monitor stopped; reopening");
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
     })
 }
 
 fn link_event_if_name(payload: NetlinkPayload<RouteNetlinkMessage>) -> Option<Option<String>> {
-    let link = match payload {
-        NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link)) => link,
-        _ => return None,
-    };
-
-    Some(link.attributes.into_iter().find_map(|attr| match attr {
-        LinkAttribute::IfName(name) => Some(name),
+    match payload {
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link)) => {
+            Some(link.attributes.into_iter().find_map(|attr| match attr {
+                LinkAttribute::IfName(name) => Some(name),
+                _ => None,
+            }))
+        }
+        NetlinkPayload::Overrun(_) => Some(None),
         _ => None,
-    }))
+    }
 }
 
 fn record_tunnel_bind_interface(
@@ -1613,6 +1649,37 @@ mod tests {
             mock.tunnel_remote_addr(10),
             Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 1)))
         );
+    }
+
+    #[tokio::test]
+    async fn dns_apply_failure_requeues_current_address() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+
+        let cfg = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V4,
+                IpHost::V4Addr(Ipv4Addr::new(198, 51, 100, 1)),
+                None,
+            )],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.expect("initial reconcile");
+
+        let resolver = runtime.resolvers.get(&10).expect("resolver exists");
+        resolver.dns_event_pending.store(true, Ordering::Release);
+        *resolver.last_queued_addr.write().expect("queue lock") =
+            Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 1)));
+
+        mock.inject_modify_tunnel_failure(10);
+        runtime.handle_dns_change(10).await;
+
+        let resolver = runtime.resolvers.get(&10).expect("resolver exists");
+        assert!(!resolver.dns_event_pending.load(Ordering::Acquire));
+        assert_eq!(*resolver.last_queued_addr.read().expect("queue lock"), None);
     }
 
     #[tokio::test]

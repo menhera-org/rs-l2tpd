@@ -385,7 +385,8 @@ fn run_setup() -> Result<()> {
 
     ensure_root_uid()?;
 
-    let current_exe = std::env::current_exe()
+    let current_exe = std::fs::read_link("/proc/self/exe")
+        .or_else(|_| std::env::current_exe())
         .map_err(|e| Error::Other(format!("failed to resolve current executable path: {e}")))?;
 
     let install_binary = Path::new(INSTALL_BINARY_PATH);
