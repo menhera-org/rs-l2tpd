@@ -29,7 +29,7 @@ type DesiredSessionMap = BTreeMap<SessionKey, DesiredSession>;
 const DNS_REFRESH_INTERVAL_SECS: u64 = 30;
 const DNS_WATCH_POLL_INTERVAL_SECS: u64 = 1;
 const MAX_INTERFACE_NAME_LEN: usize = 15;
-const DISCARD_REMOTE_ADDR: IpAddr = IpAddr::V6(Ipv6Addr::new(0x0100, 0, 0, 0, 0, 0, 0, 0));
+const DISCARD_REMOTE_ADDR: IpAddr = IpAddr::V6(Ipv6Addr::LOCALHOST);
 
 #[derive(Debug)]
 pub(crate) enum ControlEvent {

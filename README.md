@@ -17,7 +17,7 @@ it just creates sockets with no bind interfaces when
 they are absent, and let the sockets bind to interfaces
 when the interfaces appear. This is always possible as
 the bind address is `::`. It also connects its sockets
-to `100::` (a discard address) initially, and then to
+to `::1` (a local discard endpoint) initially, and then to
 the resolved addresses if FQDN was configured. Concrete
 destination addresses are configured upfront always.
 
