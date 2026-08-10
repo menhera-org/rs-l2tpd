@@ -17,19 +17,22 @@ it just creates sockets with no bind interfaces when
 they are absent, and let the sockets bind to interfaces
 when the interfaces appear. This is always possible as
 the bind address is `::`. It also connects its sockets
-to `::1` (a local discard endpoint) initially, and then to
+to `100::` (a discard address) initially, and then to
 the resolved addresses if FQDN was configured. Concrete
 destination addresses are configured upfront always.
 
 To signal the system of `rs-l2tpd`'s readiness (socket/
 L2TPv3 interface existence), it has been modified to do
 a double fork (daemonizing), and the parent only exits
-on readiness of every interface configured.
+on readiness of every interface configured. Transient
+kernel or network failures are retried before readiness.
 `-p|--pidfile` option (defaults to `/run/rs-l2tpd.pid`)
-is available. The startup always succeeds if the syntax
-of the configs is correct. No failure on network
-unavailability. SystemD integration files are modified
-to match the new style.
+is available. The startup waits until kernel operations
+succeed if the syntax of the configs is correct, so
+network unavailability does not fail startup. SystemD
+integration files use an unlimited startup timeout and
+block `network-online.target` until configuration has
+converged.
 
 This daemon intentionally does not depend on any
 specific init system nor libc.

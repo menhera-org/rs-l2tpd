@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 #[cfg(feature = "setup")]
 use std::process::Command;
 use std::sync::Arc;
+use std::time::Duration;
 
 /// This is the path to the main configuration file.
 pub(crate) const CONFIG_FILE_PATH: &str = env!("CONFIG_FILE_PATH");
@@ -374,7 +375,7 @@ fn run_command_checked(cmd: &mut Command, description: &str) -> Result<()> {
 #[cfg(feature = "setup")]
 fn systemd_unit_text() -> String {
     format!(
-        "[Unit]\nDescription=rs-l2tpd daemon\nBefore=network-online.target\n\n[Service]\nType=forking\nPIDFile={DEFAULT_PIDFILE_PATH}\nExecStart={INSTALL_BINARY_PATH}\nExecReload=/bin/kill -HUP $MAINPID\nRestart=on-failure\nRestartSec=3\n\n[Install]\nRequiredBy=network-online.target\n"
+        "[Unit]\nDescription=rs-l2tpd daemon\nBefore=network-online.target\n\n[Service]\nType=forking\nPIDFile={DEFAULT_PIDFILE_PATH}\nExecStart={INSTALL_BINARY_PATH}\nExecReload=/bin/kill -HUP $MAINPID\nTimeoutStartSec=infinity\nRestart=on-failure\nRestartSec=3\n\n[Install]\nRequiredBy=network-online.target\n"
     )
 }
 
@@ -538,17 +539,30 @@ async fn run_daemon(
     install_signal_handlers(control_tx.clone())?;
 
     let mut runtime = Runtime::new(Arc::clone(&state), control_tx.clone());
-    if let Err(e) = runtime.reconcile(&initial_config).await {
-        if let Err(cleanup) = runtime.shutdown().await {
-            warn!(
-                "startup cleanup failed after initial apply error: {}",
-                cleanup
-            );
+    loop {
+        match runtime.reconcile(&initial_config).await {
+            Ok(()) => break,
+            Err(e) => warn!("initial configuration apply failed; will retry: {}", e),
         }
-        #[cfg(unix)]
-        readiness.signal_failure();
-        return Err(e);
+
+        tokio::select! {
+            _ = tokio::time::sleep(Duration::from_secs(1)) => {}
+            event = control_rx.recv() => match event {
+                Some(ControlEvent::ShutdownRequested) | None => {
+                    info!("shutdown requested while waiting for initial configuration");
+                    if let Err(e) = runtime.shutdown().await {
+                        warn!("startup shutdown cleanup failed: {}", e);
+                    }
+                    #[cfg(unix)]
+                    readiness.signal_failure();
+                    return Ok(());
+                }
+                Some(_) => {}
+            }
+        }
     }
+
+    let mut reconcile_pending = false;
 
     #[cfg(unix)]
     {
@@ -568,8 +582,26 @@ async fn run_daemon(
 
     info!("initial configuration applied");
 
+    let mut retry_interval = tokio::time::interval(Duration::from_secs(1));
+    retry_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+
     loop {
-        let Some(event) = control_rx.recv().await else {
+        let event = tokio::select! {
+            _ = retry_interval.tick(), if reconcile_pending => {
+                let desired = config.read().await.clone();
+                match runtime.reconcile(&desired).await {
+                    Ok(()) => {
+                        reconcile_pending = false;
+                        info!("configuration convergence completed");
+                    }
+                    Err(e) => warn!("configuration apply still pending; will retry: {}", e),
+                }
+                continue;
+            }
+            event = control_rx.recv() => event,
+        };
+
+        let Some(event) = event else {
             warn!("control channel closed");
             break;
         };
@@ -590,13 +622,15 @@ async fn run_daemon(
                     }
                 };
 
+                *config.write().await = new_config.clone();
                 match runtime.reconcile(&new_config).await {
                     Ok(()) => {
-                        *config.write().await = new_config;
+                        reconcile_pending = false;
                         info!("configuration reload completed");
                     }
                     Err(e) => {
-                        warn!("failed to apply reloaded configuration: {}", e);
+                        reconcile_pending = true;
+                        warn!("failed to apply reloaded configuration; will retry: {}", e);
                     }
                 }
             }
