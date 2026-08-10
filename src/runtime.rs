@@ -37,6 +37,7 @@ pub(crate) enum ControlEvent {
     ShutdownRequested,
     DnsChanged { tunnel_id: u32 },
     InterfaceChanged { if_name: Option<String> },
+    LocalAddressChanged { if_index: u32 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,9 +82,11 @@ pub(crate) trait StateOps: Send + Sync {
         if_name: Option<&str>,
     ) -> Result<()>;
     async fn modify_tunnel(&self, tunnel_id: u32, remote_addr: IpAddr) -> Result<()>;
+    async fn reconnect_tunnel(&self, tunnel_id: u32) -> Result<()>;
     async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &str) -> Result<()>;
     async fn delete_tunnel(&self, tunnel_id: u32) -> Result<()>;
     async fn has_interface(&self, if_name: &str) -> Result<bool>;
+    async fn interface_index(&self, if_name: &str) -> Result<Option<u32>>;
     async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool;
     async fn add_session(
         &self,
@@ -116,6 +119,10 @@ impl StateOps for state::State {
         state::State::modify_tunnel(self, tunnel_id, remote_addr).await
     }
 
+    async fn reconnect_tunnel(&self, tunnel_id: u32) -> Result<()> {
+        state::State::reconnect_tunnel(self, tunnel_id).await
+    }
+
     async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &str) -> Result<()> {
         state::State::bind_tunnel_interface(self, tunnel_id, if_name).await
     }
@@ -126,6 +133,10 @@ impl StateOps for state::State {
 
     async fn has_interface(&self, if_name: &str) -> Result<bool> {
         state::State::has_interface(if_name).await
+    }
+
+    async fn interface_index(&self, if_name: &str) -> Result<Option<u32>> {
+        state::State::interface_index(if_name).await
     }
 
     async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool {
@@ -744,6 +755,53 @@ impl Runtime {
         }
     }
 
+    pub(crate) async fn handle_local_address_change(&self, if_index: u32) {
+        let mut retry_needed = false;
+        for desired in self.tunnel_specs.values() {
+            let Some(if_name) = desired.bind_interface.as_deref() else {
+                continue;
+            };
+            let matches_interface = match self.state.interface_index(if_name).await {
+                Ok(Some(index)) => index == if_index,
+                Ok(None) => false,
+                Err(e) => {
+                    warn!(
+                        "failed to resolve bind interface index tunnel_id={} if_name={} error={}",
+                        desired.tunnel_id, if_name, e
+                    );
+                    false
+                }
+            };
+            if !matches_interface {
+                continue;
+            }
+
+            match self.state.reconnect_tunnel(desired.tunnel_id).await {
+                Ok(()) => info!(
+                    "reconnected tunnel_id={} after local address change on {}",
+                    desired.tunnel_id, if_name
+                ),
+                Err(e) => {
+                    retry_needed = true;
+                    warn!(
+                        "failed to reconnect tunnel_id={} after local address change on {}: {}; will retry",
+                        desired.tunnel_id, if_name, e
+                    );
+                }
+            }
+        }
+
+        if retry_needed {
+            let control_tx = self.control_tx.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                let _ = control_tx
+                    .send(ControlEvent::LocalAddressChanged { if_index })
+                    .await;
+            });
+        }
+    }
+
     pub(crate) async fn shutdown(&mut self) -> Result<()> {
         self.reconcile(&Config::default()).await
     }
@@ -818,7 +876,8 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
             }
 
             let (connection, _handle, mut messages) =
-                match new_multicast_connection(&[MulticastGroup::Link]) {
+                match new_multicast_connection(&[MulticastGroup::Link, MulticastGroup::Ipv6Ifaddr])
+                {
                     Ok(parts) => parts,
                     Err(e) => {
                         warn!("failed to open rtnetlink link monitor: {}", e);
@@ -841,14 +900,10 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
                 if control_tx.is_closed() {
                     break;
                 }
-                let Some(if_name) = link_event_if_name(message.payload) else {
+                let Some(event) = control_event_for_netlink_payload(message.payload) else {
                     continue;
                 };
-                if control_tx
-                    .send(ControlEvent::InterfaceChanged { if_name })
-                    .await
-                    .is_err()
-                {
+                if control_tx.send(event).await.is_err() {
                     break;
                 }
             }
@@ -863,15 +918,25 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
     })
 }
 
-fn link_event_if_name(payload: NetlinkPayload<RouteNetlinkMessage>) -> Option<Option<String>> {
+fn control_event_for_netlink_payload(
+    payload: NetlinkPayload<RouteNetlinkMessage>,
+) -> Option<ControlEvent> {
     match payload {
         NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link)) => {
-            Some(link.attributes.into_iter().find_map(|attr| match attr {
-                LinkAttribute::IfName(name) => Some(name),
-                _ => None,
-            }))
+            Some(ControlEvent::InterfaceChanged {
+                if_name: link.attributes.into_iter().find_map(|attr| match attr {
+                    LinkAttribute::IfName(name) => Some(name),
+                    _ => None,
+                }),
+            })
         }
-        NetlinkPayload::Overrun(_) => Some(None),
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewAddress(address))
+        | NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelAddress(address)) => {
+            Some(ControlEvent::LocalAddressChanged {
+                if_index: address.header.index,
+            })
+        }
+        NetlinkPayload::Overrun(_) => Some(ControlEvent::InterfaceChanged { if_name: None }),
         _ => None,
     }
 }
@@ -1105,6 +1170,7 @@ mod tests {
         vanish_bind_interface_for: Option<u32>,
         fail_modify_tunnel_for: Option<u32>,
         fail_add_session_for: Option<(u32, u32)>,
+        reconnect_counts: BTreeMap<u32, u32>,
     }
 
     #[derive(Default)]
@@ -1182,6 +1248,16 @@ mod tests {
                 .get(&tunnel_id)
                 .and_then(|t| t.bound_interface.clone())
         }
+
+        fn reconnect_count(&self, tunnel_id: u32) -> u32 {
+            *self
+                .inner
+                .lock()
+                .expect("lock poisoned")
+                .reconnect_counts
+                .get(&tunnel_id)
+                .unwrap_or(&0)
+        }
     }
 
     #[async_trait]
@@ -1243,6 +1319,15 @@ mod tests {
             Ok(())
         }
 
+        async fn reconnect_tunnel(&self, tunnel_id: u32) -> Result<()> {
+            let mut inner = self.inner.lock().expect("lock poisoned");
+            if !inner.tunnels.contains_key(&tunnel_id) {
+                return Err(Error::Other("tunnel not found".to_string()));
+            }
+            *inner.reconnect_counts.entry(tunnel_id).or_default() += 1;
+            Ok(())
+        }
+
         async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &str) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
             if !inner.interfaces.contains(if_name) {
@@ -1273,6 +1358,16 @@ mod tests {
                 .expect("lock poisoned")
                 .interfaces
                 .contains(if_name))
+        }
+
+        async fn interface_index(&self, if_name: &str) -> Result<Option<u32>> {
+            Ok(self
+                .inner
+                .lock()
+                .expect("lock poisoned")
+                .interfaces
+                .contains(if_name)
+                .then_some(1))
         }
 
         async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool {
@@ -1743,6 +1838,40 @@ mod tests {
 
         assert_eq!(mock.tunnel_bound_interface(10).as_deref(), Some("vrf0"));
         assert!(!runtime.pending_bind_interfaces.contains_key(&10));
+    }
+
+    #[tokio::test]
+    async fn local_address_change_reconnects_tunnels_bound_to_changed_interface() {
+        let mock = Arc::new(MockState::default());
+        mock.add_interface("underlay0");
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        let cfg = test_config(
+            vec![
+                (
+                    "bound",
+                    10,
+                    10,
+                    IpVersion::V6,
+                    IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                    Some("underlay0"),
+                ),
+                (
+                    "unbound",
+                    11,
+                    11,
+                    IpVersion::V6,
+                    IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                    None,
+                ),
+            ],
+            vec![],
+        );
+
+        runtime.reconcile(&cfg).await.expect("initial reconcile");
+        runtime.handle_local_address_change(1).await;
+
+        assert_eq!(mock.reconnect_count(10), 1);
+        assert_eq!(mock.reconnect_count(11), 0);
     }
 
     #[tokio::test]

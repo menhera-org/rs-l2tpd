@@ -9,6 +9,7 @@ use tokio::sync::RwLock;
 use std::{
     collections::BTreeMap,
     net::{IpAddr, Ipv6Addr},
+    os::fd::AsRawFd,
     sync::Arc,
 };
 
@@ -39,6 +40,10 @@ pub(crate) async fn rename_interface(old: &str, new: &str) -> Result<()> {
 }
 
 pub(crate) async fn interface_exists(if_name: &str) -> Result<bool> {
+    Ok(interface_index(if_name).await?.is_some())
+}
+
+pub(crate) async fn interface_index(if_name: &str) -> Result<Option<u32>> {
     let (connection, handle, _) = rtnetlink::new_connection()
         .map_err(|e| Error::Other(format!("failed to create netlink connection: {e}")))?;
     tokio::spawn(connection);
@@ -51,7 +56,7 @@ pub(crate) async fn interface_exists(if_name: &str) -> Result<bool> {
     links
         .try_next()
         .await
-        .map(|link| link.is_some())
+        .map(|link| link.map(|link| link.header.index))
         .map_err(|e| Error::Other(format!("failed to look up interface {if_name}: {e}")))
 }
 
@@ -113,6 +118,10 @@ impl State {
 
     pub(crate) async fn has_interface(if_name: &str) -> Result<bool> {
         interface_exists(if_name).await
+    }
+
+    pub(crate) async fn interface_index(if_name: &str) -> Result<Option<u32>> {
+        interface_index(if_name).await
     }
 
     pub(crate) async fn add_tunnel(
@@ -181,6 +190,35 @@ impl State {
         *tunnel.remote_addr.write().await = remote_addr;
 
         Ok(())
+    }
+
+    pub(crate) async fn reconnect_tunnel(&self, tunnel_id: u32) -> Result<()> {
+        let tunnels = self.tunnels.read().await;
+        let tunnel = tunnels
+            .get(&tunnel_id)
+            .ok_or_else(|| Error::Other("tunnel not found".to_string()))?;
+        let socket = tunnel
+            .handle
+            .socket()
+            .ok_or_else(|| Error::Other("tunnel has no managed socket".to_string()))?;
+
+        let mut address: libc::sockaddr = unsafe { std::mem::zeroed() };
+        address.sa_family = libc::AF_UNSPEC as libc::sa_family_t;
+        let result = unsafe {
+            libc::connect(
+                socket.as_raw_fd(),
+                (&address as *const libc::sockaddr).cast(),
+                std::mem::size_of::<libc::sockaddr>() as libc::socklen_t,
+            )
+        };
+        if result != 0 {
+            return Err(Error::L2tp(
+                l2tp::Error::Io(std::io::Error::last_os_error()),
+            ));
+        }
+
+        let remote = l2tp::IpEndpoint::V6(to_ipv6_mapped(*tunnel.remote_addr.read().await));
+        tunnel.handle.reconnect_ip(&remote).map_err(Error::L2tp)
     }
 
     pub(crate) async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &str) -> Result<()> {

@@ -647,6 +647,9 @@ async fn run_daemon(
             ControlEvent::InterfaceChanged { if_name } => {
                 runtime.handle_interface_change(if_name.as_deref()).await;
             }
+            ControlEvent::LocalAddressChanged { if_index } => {
+                runtime.handle_local_address_change(if_index).await;
+            }
         }
     }
 
