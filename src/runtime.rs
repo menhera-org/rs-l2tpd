@@ -1169,6 +1169,7 @@ mod tests {
         fail_add_tunnel_for: Option<u32>,
         vanish_bind_interface_for: Option<u32>,
         fail_modify_tunnel_for: Option<u32>,
+        fail_reconnect_tunnel_for: Option<u32>,
         fail_add_session_for: Option<(u32, u32)>,
         reconnect_counts: BTreeMap<u32, u32>,
     }
@@ -1325,6 +1326,9 @@ mod tests {
                 return Err(Error::Other("tunnel not found".to_string()));
             }
             *inner.reconnect_counts.entry(tunnel_id).or_default() += 1;
+            if inner.fail_reconnect_tunnel_for == Some(tunnel_id) {
+                return Err(Error::Other("injected reconnect failure".to_string()));
+            }
             Ok(())
         }
 
@@ -1872,6 +1876,54 @@ mod tests {
 
         assert_eq!(mock.reconnect_count(10), 1);
         assert_eq!(mock.reconnect_count(11), 0);
+    }
+
+    #[tokio::test]
+    async fn local_address_change_retries_failed_reconnect_after_one_second() {
+        let mock = Arc::new(MockState::default());
+        mock.add_interface("underlay0");
+        let (control_tx, mut control_rx) = mpsc::channel(32);
+        let mut runtime = Runtime::new_with_state_ops(mock.clone(), control_tx);
+        let cfg = test_config(
+            vec![(
+                "bound",
+                10,
+                10,
+                IpVersion::V6,
+                IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                Some("underlay0"),
+            )],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = Some(10);
+
+        let started = tokio::time::Instant::now();
+        runtime.handle_local_address_change(1).await;
+        assert_eq!(mock.reconnect_count(10), 1);
+        let event = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
+            .await
+            .expect("failed reconnect should schedule a retry")
+            .expect("control channel remains open");
+        assert!(started.elapsed() >= Duration::from_secs(1));
+        let ControlEvent::LocalAddressChanged { if_index } = event else {
+            panic!("expected a local address retry");
+        };
+        assert_eq!(if_index, 1);
+
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = None;
+        runtime.handle_local_address_change(if_index).await;
+        assert_eq!(mock.reconnect_count(10), 2);
+        assert_eq!(
+            mock.tunnel_bound_interface(10).as_deref(),
+            Some("underlay0")
+        );
+        assert!(
+            tokio::time::timeout(Duration::from_millis(1100), control_rx.recv())
+                .await
+                .is_err(),
+            "successful reconnect should not schedule another retry"
+        );
     }
 
     #[tokio::test]
