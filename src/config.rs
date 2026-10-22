@@ -398,6 +398,12 @@ impl TryFrom<PartialConfig> for Config {
 /// `tunnel_id` when deserialised through [`PartialConfig`]), `ip_version`,
 /// `remote_addr` (an address or a host name) and the optional
 /// `bind_interface`.
+///
+/// A host name is resolved in the background: the tunnel is first
+/// connected to the discard address `100::` and moved to the resolved
+/// address once known, so its creation never depends on routing. A literal
+/// address is connected to directly, and creating the tunnel fails (and is
+/// retried) until the kernel has a route to it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TunnelConfig {

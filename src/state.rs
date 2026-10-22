@@ -18,6 +18,7 @@ use tokio::task::JoinHandle;
 use std::{
     collections::BTreeMap,
     net::{IpAddr, Ipv6Addr},
+    sync::atomic::{AtomicBool, Ordering},
     sync::Arc,
 };
 
@@ -280,8 +281,10 @@ fn rebind_socket_to_device(
         Err(e) => return Err(Error::L2tp(e)),
     };
     if current_name != device.name {
+        // Kernel-reported names are logged escaped: the kernel permits
+        // control characters in them.
         info!(
-            "bound interface index {} is now named {} (was {})",
+            "bound interface index {} is now named {:?} (was {:?})",
             device.index, current_name, device.name
         );
     }
@@ -325,6 +328,10 @@ pub(crate) struct TunnelState {
     // Last successfully applied device, retained across disconnects for retries.
     // The write lock serializes binding and the entire reconnect sequence.
     bound_interface: RwLock<Option<BoundDevice>>,
+    /// False between a disconnect this daemon issued and the connect that
+    /// completed it, so that a reconnect whose retry was lost is repeated
+    /// on the next reconcile. Written under the `bound_interface` lock.
+    connected: AtomicBool,
 
     /// session_id to SessionState
     sessions: Arc<RwLock<BTreeMap<u32, SessionState>>>,
@@ -500,6 +507,7 @@ impl State {
             remote_addr: RwLock::new(remote_addr),
             handle,
             bound_interface: RwLock::new(bound),
+            connected: AtomicBool::new(true),
             sessions: Arc::new(RwLock::new(BTreeMap::new())),
         };
 
@@ -544,6 +552,7 @@ impl State {
         // The socket tracks its own connection state, so the disconnect has to
         // go through it rather than through a raw connect(AF_UNSPEC).
         socket.disconnect().map_err(Error::L2tp)?;
+        tunnel.connected.store(false, Ordering::Release);
 
         // Re-bind to the same device by identity: its name may have changed,
         // and the configured name may by now belong to another device.
@@ -559,7 +568,18 @@ impl State {
             tunnel_id,
             bound_interface.as_ref().map(|device| &device.name),
             &info.encapsulation,
-        )
+        )?;
+        tunnel.connected.store(true, Ordering::Release);
+        Ok(())
+    }
+
+    /// Whether the tunnel socket is connected, as far as this daemon's own
+    /// disconnects are concerned. An unknown tunnel counts as connected.
+    pub(crate) async fn tunnel_is_connected(&self, tunnel_id: u32) -> bool {
+        let tunnels = self.tunnels.read().await;
+        tunnels
+            .get(&tunnel_id)
+            .is_none_or(|tunnel| tunnel.connected.load(Ordering::Acquire))
     }
 
     pub(crate) async fn bind_tunnel_interface(
@@ -1380,9 +1400,11 @@ mod tests {
         let Some((state, id)) = privileged_state(Some("lo")).await else {
             return;
         };
+        assert!(state.tunnel_is_connected(id).await);
         // The isolated test namespace has only loopback, with no route here.
         set_remote(&state, id, "2001:db8::dead".parse().unwrap()).await;
         assert!(state.reconnect_tunnel(id).await.is_err());
+        assert!(!state.tunnel_is_connected(id).await);
         assert_eq!(bound_interface(&state, id).await, Some(ifname("lo")));
         assert_eq!(with_socket(&state, id, socket_bound_interface).await, "lo");
 
@@ -1391,6 +1413,7 @@ mod tests {
             .reconnect_tunnel(id)
             .await
             .expect("retry with a reachable route");
+        assert!(state.tunnel_is_connected(id).await);
         assert_eq!(with_socket(&state, id, socket_bound_interface).await, "lo");
         assert_eq!(
             tunnel_info(&state, id).await.encapsulation,

@@ -163,8 +163,10 @@ impl Service {
     }
 
     /// Applies the initial configuration, retrying every second until the
-    /// kernel state matches it or a shutdown is requested. Other events
-    /// are ignored until then.
+    /// kernel state matches it or a shutdown is requested. Reload requests
+    /// are ignored until then; kernel and DNS events are handled, so that a
+    /// reconnect retry or a bind interface appearing during a slow startup
+    /// is not lost.
     pub async fn converge(&mut self) -> Result<Startup> {
         let config = self.config.get();
         loop {
@@ -188,9 +190,30 @@ impl Service {
                         self.runtime.shutdown().await?;
                         return Ok(Startup::ShutdownRequested);
                     }
-                    Some(_) => {}
+                    Some(ControlEvent::ReloadRequested) => {}
+                    Some(event) => self.dispatch_runtime_event(event).await,
                 }
             }
+        }
+    }
+
+    /// Hands a DNS, interface or address event to the runtime. Reload and
+    /// shutdown requests are the caller's to handle.
+    async fn dispatch_runtime_event(&mut self, event: ControlEvent) {
+        match event {
+            ControlEvent::DnsChanged { tunnel_id } => {
+                self.runtime.handle_dns_change(tunnel_id).await;
+            }
+            ControlEvent::InterfaceChanged { if_name } => {
+                self.runtime.handle_interface_change(if_name.as_ref()).await;
+            }
+            ControlEvent::InterfaceRemoved { if_index } => {
+                self.runtime.handle_interface_removed(if_index).await;
+            }
+            ControlEvent::LocalAddressChanged { if_index } => {
+                self.runtime.handle_local_address_change(if_index).await;
+            }
+            ControlEvent::ReloadRequested | ControlEvent::ShutdownRequested => {}
         }
     }
 
@@ -276,18 +299,7 @@ impl Service {
                     info!("shutdown requested");
                     break;
                 }
-                ControlEvent::DnsChanged { tunnel_id } => {
-                    self.runtime.handle_dns_change(tunnel_id).await;
-                }
-                ControlEvent::InterfaceChanged { if_name } => {
-                    self.runtime.handle_interface_change(if_name.as_ref()).await;
-                }
-                ControlEvent::InterfaceRemoved { if_index } => {
-                    self.runtime.handle_interface_removed(if_index).await;
-                }
-                ControlEvent::LocalAddressChanged { if_index } => {
-                    self.runtime.handle_local_address_change(if_index).await;
-                }
+                event => self.dispatch_runtime_event(event).await,
             }
         }
 

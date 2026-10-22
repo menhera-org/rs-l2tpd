@@ -54,6 +54,21 @@ to `100::` (a discard address) initially, and then to
 the resolved addresses if FQDN was configured. Concrete
 destination addresses are configured upfront always.
 
+Note that this only applies to host names. A `remote_addr`
+given as a literal IP address is connected to as is, so
+the kernel must have a route to it when the tunnel is
+created: without one, the tunnel socket's `connect()`
+fails with "Network unreachable", the daemon keeps
+retrying every second, and readiness (the parent's exit,
+the PID file, `network-online.target`) waits until a
+route appears. This matches 0.1.5. If the route only
+exists through the configured `bind_interface`, that
+interface must exist too, as an absent bind interface
+makes the daemon connect through the main routing table
+first and move to the interface once it appears. To keep
+startup independent of routing, configure the peer as a
+host name (a `/etc/hosts` entry suffices).
+
 To signal the system of `rs-l2tpd`'s readiness (socket/
 L2TPv3 interface existence), it has been modified to do
 a double fork (daemonizing), and the parent only exits
@@ -68,9 +83,10 @@ block `network-online.target` until configuration has
 converged.
 
 PID-file directories must be owned by root or the daemon user, and an
-existing PID file must belong to the daemon user. The daemon repairs
-permissive modes on its own directories and replaces legacy PID files
-atomically; shared sticky directories such as `/tmp` keep their permissions.
+existing PID file must belong to the daemon user. The daemon replaces legacy
+PID files atomically with a fresh inode of its own. It never changes the
+permissions of existing directories; a directory writable by other users
+only earns a warning, since such users could then replace the PID file.
 
 This daemon intentionally does not depend on any
 specific init system nor libc.

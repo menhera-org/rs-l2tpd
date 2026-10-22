@@ -122,6 +122,11 @@ pub(crate) trait StateOps: Send + Sync {
     async fn session_hwaddr_pending(&self, _tunnel_id: u32, _session_id: u32) -> bool {
         false
     }
+    /// False only between a disconnect the state issued itself and the
+    /// connect that completed it.
+    async fn tunnel_is_connected(&self, _tunnel_id: u32) -> bool {
+        true
+    }
     async fn has_tunnel(&self, tunnel_id: u32) -> bool;
     async fn add_tunnel(
         &self,
@@ -173,6 +178,10 @@ impl StateOps for state::State {
 
     async fn session_hwaddr_pending(&self, tunnel_id: u32, session_id: u32) -> bool {
         state::State::session_hwaddr_pending(self, tunnel_id, session_id).await
+    }
+
+    async fn tunnel_is_connected(&self, tunnel_id: u32) -> bool {
+        state::State::tunnel_is_connected(self, tunnel_id).await
     }
 
     async fn has_tunnel(&self, tunnel_id: u32) -> bool {
@@ -815,7 +824,29 @@ impl Runtime {
         self.session_specs = desired_sessions;
         self.pending_bind_interfaces = applied_pending_bind_interfaces;
         self.handle_interface_change(None).await;
+        self.reconnect_disconnected_tunnels().await;
         Ok(())
+    }
+
+    /// Repeats the reconnect of every bound tunnel whose last reconnect
+    /// left it disconnected, so that a lost retry event cannot leave a
+    /// tunnel down until the next address change. Connected siblings on the
+    /// same device are left alone.
+    async fn reconnect_disconnected_tunnels(&mut self) {
+        let mut indexes = BTreeSet::new();
+        for desired in self.tunnel_specs.values() {
+            if desired.bind_interface.is_none()
+                || self.state.tunnel_is_connected(desired.tunnel_id).await
+            {
+                continue;
+            }
+            if let Some(index) = self.state.bound_interface_index(desired.tunnel_id).await {
+                indexes.insert(index);
+            }
+        }
+        for index in indexes {
+            self.reconnect_bound_tunnels(index, true).await;
+        }
     }
 
     /// Applies a tunnel's newly resolved remote address.
@@ -982,6 +1013,13 @@ impl Runtime {
     /// reconnect is retried after one second; at most one retry is queued
     /// per interface. A newer event replaces the previous timer.
     pub async fn handle_local_address_change(&mut self, if_index: u32) {
+        self.reconnect_bound_tunnels(if_index, false).await;
+    }
+
+    /// Reconnects the tunnels bound to `if_index`, all of them or only
+    /// those whose last reconnect did not complete, and queues one retry
+    /// for the interface if any reconnect failed.
+    async fn reconnect_bound_tunnels(&mut self, if_index: u32, only_disconnected: bool) {
         // This event supersedes any timer for the same interface. A retry
         // event can be received before its sender finishes, so task completion
         // cannot tell us whether another retry is needed.
@@ -994,6 +1032,9 @@ impl Runtime {
                 continue;
             };
             if self.state.bound_interface_index(desired.tunnel_id).await != Some(if_index) {
+                continue;
+            }
+            if only_disconnected && self.state.tunnel_is_connected(desired.tunnel_id).await {
                 continue;
             }
 
@@ -1443,6 +1484,8 @@ mod tests {
         remote_addr: IpAddr,
         /// Name and index of the bound device, as the real state records.
         bound_interface: Option<(L2tpIfName, u32)>,
+        /// False after a failed reconnect, like the real state's flag.
+        connected: bool,
     }
 
     #[derive(Debug, Clone)]
@@ -1658,6 +1701,7 @@ mod tests {
                 MockTunnel {
                     remote_addr,
                     bound_interface,
+                    connected: true,
                 },
             );
             Ok(())
@@ -1682,10 +1726,25 @@ mod tests {
                 return Err(Error::Other("tunnel not found".to_string()));
             }
             *inner.reconnect_counts.entry(tunnel_id).or_default() += 1;
-            if inner.fail_reconnect_tunnel_for == Some(tunnel_id) {
+            let failed = inner.fail_reconnect_tunnel_for == Some(tunnel_id);
+            inner
+                .tunnels
+                .get_mut(&tunnel_id)
+                .expect("tunnel exists")
+                .connected = !failed;
+            if failed {
                 return Err(Error::Other("injected reconnect failure".to_string()));
             }
             Ok(())
+        }
+
+        async fn tunnel_is_connected(&self, tunnel_id: u32) -> bool {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .tunnels
+                .get(&tunnel_id)
+                .is_none_or(|tunnel| tunnel.connected)
         }
 
         async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &L2tpIfName) -> Result<()> {
@@ -2986,6 +3045,60 @@ mod tests {
             mock.tunnel_bound_interface(10),
             Some((ifname("underlay0"), index))
         );
+    }
+
+    #[tokio::test]
+    async fn reconcile_repeats_a_reconnect_whose_retry_was_lost() {
+        let mock = Arc::new(MockState::default());
+        let underlay = mock.add_interface("underlay0");
+        let (control_tx, mut control_rx) = mpsc::channel(32);
+        let mut runtime = Runtime::new_with_state_ops(mock.clone(), control_tx);
+        let remote = IpHost::V6Addr(Ipv6Addr::LOCALHOST);
+        let cfg = test_config(
+            vec![
+                (
+                    "a",
+                    10,
+                    10,
+                    IpVersion::V6,
+                    remote.clone(),
+                    Some("underlay0"),
+                ),
+                ("b", 11, 11, IpVersion::V6, remote, Some("underlay0")),
+            ],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+
+        // Tunnel 10 fails to reconnect after an address change; tunnel 11
+        // reconnects fine. The queued retry is then lost (as it is when the
+        // event arrives while the service is still converging).
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = Some(10);
+        runtime.handle_local_address_change(underlay).await;
+        assert_eq!(mock.reconnect_count(10), 1);
+        assert_eq!(mock.reconnect_count(11), 1);
+        assert!(!mock.tunnel_is_connected(10).await);
+        assert!(mock.tunnel_is_connected(11).await);
+        let _lost = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
+            .await
+            .expect("retry queued")
+            .expect("channel open");
+        assert!(runtime.reconnect_retries.contains_key(&underlay));
+
+        // A connected sibling must not be touched; the disconnected tunnel
+        // is retried by the next reconcile and keeps a retry queued while
+        // it fails.
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = None;
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(mock.reconnect_count(10), 2);
+        assert_eq!(mock.reconnect_count(11), 1);
+        assert!(mock.tunnel_is_connected(10).await);
+        assert!(runtime.reconnect_retries.is_empty());
+
+        // Nothing disconnected: a reconcile reconnects nothing.
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(mock.reconnect_count(10), 2);
+        assert_eq!(mock.reconnect_count(11), 1);
     }
 
     #[tokio::test]

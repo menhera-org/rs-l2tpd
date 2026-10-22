@@ -227,16 +227,18 @@ mod unix_daemon {
             ));
         }
         let mode = metadata.mode();
-        // Sticky shared directories protect our entries without changing
-        // their normal permissions; in particular, never chmod /tmp.
+        // A directory other users can write to lets them replace the PID
+        // file; sticky directories protect our entries. The daemon does not
+        // change the permissions of directories it did not create: that
+        // would silently alter an administrator's setup, and refusing would
+        // break deployments that worked before. It warns instead; the PID
+        // file itself is always published as a fresh inode owned by the
+        // daemon user.
         if mode & 0o022 != 0 && mode & libc::S_ISVTX == 0 {
-            if metadata.uid() != uid {
-                return Err(io::Error::new(
-                    io::ErrorKind::PermissionDenied,
-                    "pidfile directory is writable by other users",
-                ));
-            }
-            directory.set_permissions(fs::Permissions::from_mode(mode & 0o7755))?;
+            log::warn!(
+                "pidfile directory is writable by other users (mode {:04o}); the PID file can be replaced by them",
+                mode & 0o7777
+            );
         }
         Ok(())
     }
@@ -640,6 +642,50 @@ fn create_empty_file(path: &Path) -> Result<()> {
         .map_err(|e| Error::Other(format!("failed to create {}: {e}", path.display())))
 }
 
+/// Copies `source` to `destination` through a temporary file next to it
+/// and an atomic rename, so that the destination either keeps its old
+/// content or holds the complete new one, never a partial copy, and a
+/// running copy of the old binary is not modified in place.
+#[cfg(feature = "setup")]
+fn install_file_atomically(source: &Path, destination: &Path, mode: u32) -> std::io::Result<()> {
+    use std::io;
+    use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+
+    let parent = destination
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "destination has no parent"))?;
+    let name = destination
+        .file_name()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "destination has no name"))?;
+    let temporary = parent.join(format!(
+        ".{}.{}.tmp",
+        name.to_string_lossy(),
+        std::process::id()
+    ));
+
+    let result = (|| {
+        let mut input = fs::File::open(source)?;
+        let mut output = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(mode)
+            .open(&temporary)?;
+        io::copy(&mut input, &mut output)?;
+        // The umask may have masked the mode at creation.
+        output.set_permissions(fs::Permissions::from_mode(mode))?;
+        output.sync_all()?;
+        drop(output);
+        fs::rename(&temporary, destination)?;
+        // Make the rename durable as well.
+        fs::File::open(parent)?.sync_all()
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+    result
+}
+
 #[cfg(feature = "setup")]
 fn run_command_checked(cmd: &mut Command, description: &str) -> Result<()> {
     let status = cmd
@@ -700,8 +746,6 @@ fn systemd_unit_text() -> String {
 
 #[cfg(feature = "setup")]
 fn run_setup() -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-
     ensure_root_uid()?;
 
     let current_exe = std::fs::read_link("/proc/self/exe")
@@ -717,21 +761,13 @@ fn run_setup() -> Result<()> {
             ))
         })?;
     }
-    std::fs::copy(&current_exe, install_binary).map_err(|e| {
+    install_file_atomically(&current_exe, install_binary, 0o755).map_err(|e| {
         Error::Other(format!(
-            "failed to copy {} to {}: {e}",
+            "failed to install {} as {}: {e}",
             current_exe.display(),
             install_binary.display()
         ))
     })?;
-    std::fs::set_permissions(install_binary, std::fs::Permissions::from_mode(0o755)).map_err(
-        |e| {
-            Error::Other(format!(
-                "failed to set executable permissions on {}: {e}",
-                install_binary.display()
-            ))
-        },
-    )?;
     info!("installed binary at {}", install_binary.display());
 
     let service_file = Path::new(INSTALL_SYSTEMD_UNIT_PATH);
@@ -1030,7 +1066,7 @@ mod tests {
     }
 
     #[test]
-    fn write_pid_file_replaces_legacy_inode_and_repairs_directory_permissions() {
+    fn write_pid_file_replaces_legacy_inode_and_leaves_directory_permissions() {
         use std::io::{Seek, SeekFrom, Write};
         use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
@@ -1038,7 +1074,7 @@ mod tests {
         let parent = temp_dir.join("run");
         let dir = parent.join("nested");
         fs::create_dir_all(&dir).unwrap();
-        fs::set_permissions(&parent, fs::Permissions::from_mode(0o777)).unwrap();
+        fs::set_permissions(&parent, fs::Permissions::from_mode(0o775)).unwrap();
         fs::set_permissions(&dir, fs::Permissions::from_mode(0o777)).unwrap();
         let pidfile = dir.join("daemon.pid");
         fs::write(&pidfile, "123\n").unwrap();
@@ -1051,8 +1087,9 @@ mod tests {
         assert_eq!(fs::read_to_string(&pidfile).unwrap(), expected);
         assert_ne!(fs::metadata(&pidfile).unwrap().ino(), old_inode);
         assert_eq!(fs::metadata(&pidfile).unwrap().mode() & 0o777, 0o644);
-        assert_eq!(fs::metadata(&parent).unwrap().mode() & 0o777, 0o755);
-        assert_eq!(fs::metadata(&dir).unwrap().mode() & 0o777, 0o755);
+        // Directories the daemon did not create keep their permissions.
+        assert_eq!(fs::metadata(&parent).unwrap().mode() & 0o777, 0o775);
+        assert_eq!(fs::metadata(&dir).unwrap().mode() & 0o777, 0o777);
 
         // A writer who opened the old world-writable file can still write
         // that inode, but can no longer alter the published PID.
@@ -1102,6 +1139,41 @@ mod tests {
         let loop_link = temp_dir.join("loop");
         std::os::unix::fs::symlink("loop", &loop_link).unwrap();
         assert!(super::unix_daemon::write_pid_file(&loop_link.join("daemon.pid")).is_err());
+        fs::remove_dir_all(temp_dir).unwrap();
+    }
+
+    #[cfg(feature = "setup")]
+    #[test]
+    fn install_file_atomically_replaces_and_sets_mode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = unique_temp_dir("install");
+        let source = temp_dir.join("source");
+        let destination = temp_dir.join("bin").join("rs-l2tpd");
+        fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        fs::write(&source, b"new binary").unwrap();
+        fs::write(&destination, b"old binary").unwrap();
+
+        super::install_file_atomically(&source, &destination, 0o755).unwrap();
+        assert_eq!(fs::read(&destination).unwrap(), b"new binary");
+        assert_eq!(
+            fs::metadata(&destination).unwrap().permissions().mode() & 0o777,
+            0o755
+        );
+        // No temporary file is left behind, on success or on failure.
+        assert_eq!(
+            fs::read_dir(destination.parent().unwrap()).unwrap().count(),
+            1
+        );
+        assert!(
+            super::install_file_atomically(&temp_dir.join("absent"), &destination, 0o755).is_err()
+        );
+        assert_eq!(fs::read(&destination).unwrap(), b"new binary");
+        assert_eq!(
+            fs::read_dir(destination.parent().unwrap()).unwrap().count(),
+            1
+        );
+
         fs::remove_dir_all(temp_dir).unwrap();
     }
 
