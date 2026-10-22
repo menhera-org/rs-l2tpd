@@ -452,6 +452,9 @@ pub struct Runtime {
     session_specs: DesiredSessionMap,
     pending_bind_interfaces: BTreeMap<TunnelId, L2tpIfName>,
     resolvers: BTreeMap<TunnelId, ResolverRuntime>,
+    /// One queued reconnect retry per interface index, so that a burst of
+    /// address events on an unreachable interface cannot multiply retries.
+    reconnect_retries: BTreeMap<u32, JoinHandle<()>>,
     control_tx: mpsc::Sender<ControlEvent>,
     interface_worker: JoinHandle<()>,
 }
@@ -473,6 +476,7 @@ impl Runtime {
             session_specs: BTreeMap::new(),
             pending_bind_interfaces: BTreeMap::new(),
             resolvers: BTreeMap::new(),
+            reconnect_retries: BTreeMap::new(),
             control_tx,
             interface_worker,
         }
@@ -490,6 +494,7 @@ impl Runtime {
             session_specs: BTreeMap::new(),
             pending_bind_interfaces: BTreeMap::new(),
             resolvers: BTreeMap::new(),
+            reconnect_retries: BTreeMap::new(),
             control_tx,
             interface_worker,
         }
@@ -923,8 +928,9 @@ impl Runtime {
 
     /// Reconnects the tunnels bound to the interface whose addresses
     /// changed, so that the kernel selects a source address again. A failed
-    /// reconnect is retried after one second.
-    pub async fn handle_local_address_change(&self, if_index: u32) {
+    /// reconnect is retried after one second; at most one retry is queued
+    /// per interface, however many events arrive meanwhile.
+    pub async fn handle_local_address_change(&mut self, if_index: u32) {
         let mut retry_needed = false;
         for desired in self.tunnel_specs.values() {
             let Some(if_name) = desired.bind_interface.as_ref() else {
@@ -949,14 +955,17 @@ impl Runtime {
             }
         }
 
-        if retry_needed {
+        self.reconnect_retries
+            .retain(|_, retry| !retry.is_finished());
+        if retry_needed && !self.reconnect_retries.contains_key(&if_index) {
             let control_tx = self.control_tx.clone();
-            tokio::spawn(async move {
+            let retry = tokio::spawn(async move {
                 tokio::time::sleep(Duration::from_secs(1)).await;
                 let _ = control_tx
                     .send(ControlEvent::LocalAddressChanged { if_index })
                     .await;
             });
+            self.reconnect_retries.insert(if_index, retry);
         }
     }
 
@@ -1041,6 +1050,9 @@ impl Runtime {
 impl Drop for Runtime {
     fn drop(&mut self) {
         self.interface_worker.abort();
+        for retry in self.reconnect_retries.values() {
+            retry.abort();
+        }
     }
 }
 
@@ -2443,6 +2455,12 @@ mod tests {
         let started = tokio::time::Instant::now();
         runtime.handle_local_address_change(underlay).await;
         assert_eq!(mock.reconnect_count(10), 1);
+        // A burst of further events while the retry is queued does not
+        // queue more retries.
+        runtime.handle_local_address_change(underlay).await;
+        runtime.handle_local_address_change(underlay).await;
+        assert_eq!(mock.reconnect_count(10), 3);
+        assert_eq!(runtime.reconnect_retries.len(), 1);
         let event = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
             .await
             .expect("failed reconnect should schedule a retry")
@@ -2452,10 +2470,27 @@ mod tests {
             panic!("expected a local address retry");
         };
         assert_eq!(if_index, underlay);
+        assert!(
+            tokio::time::timeout(Duration::from_millis(300), control_rx.recv())
+                .await
+                .is_err(),
+            "only one retry is queued per interface"
+        );
+
+        // The retry itself fails again: exactly one further retry follows.
+        runtime.handle_local_address_change(if_index).await;
+        assert_eq!(mock.reconnect_count(10), 4);
+        assert_eq!(runtime.reconnect_retries.len(), 1);
+        let event = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
+            .await
+            .expect("second retry")
+            .expect("control channel remains open");
+        assert!(matches!(event, ControlEvent::LocalAddressChanged { .. }));
 
         mock.inner.lock().unwrap().fail_reconnect_tunnel_for = None;
         runtime.handle_local_address_change(if_index).await;
-        assert_eq!(mock.reconnect_count(10), 2);
+        assert_eq!(mock.reconnect_count(10), 5);
+        assert!(runtime.reconnect_retries.is_empty());
         assert_eq!(
             mock.tunnel_bound_interface(10),
             Some((ifname("underlay0"), underlay))

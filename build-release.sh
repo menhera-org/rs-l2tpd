@@ -1,22 +1,38 @@
 #!/bin/sh
+# Builds the rs-l2tpd daemon for release and packs one tarball per target.
+#
+# The package is a library plus the `rs-l2tpd` binary target, which needs
+# the `bin` feature; `setup` (the --setup installer) implies it. Pass extra
+# cargo features in FEATURES, and the targets to build in TARGETS.
 
 set -eu
 
 cd "$(dirname "$0")"
 
-ver=$(grep '^\s*version\s*=\s*".*"' Cargo.toml | head -n1 | sed 's/^\s*version\s*=\s*"\(.*\)".*/\1/')
+BIN=rs-l2tpd
+FEATURES=${FEATURES:-setup}
+TARGETS=${TARGETS:-"x86_64-unknown-linux-musl aarch64-unknown-linux-musl"}
 
-cross build --release --target=x86_64-unknown-linux-musl --features=setup
-cross build --release --target=aarch64-unknown-linux-musl --features=setup
+# The first `version =` line is the [package] version (rust-version does
+# not match because of the anchored key).
+ver=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' Cargo.toml | head -n1)
+if [ -z "$ver" ]; then
+    echo "could not read the package version from Cargo.toml" >&2
+    exit 1
+fi
 
 dir=$(pwd)
 
-cd target/x86_64-unknown-linux-musl/release
+for target in $TARGETS; do
+    cross build --release --locked \
+        --target="$target" \
+        --bin "$BIN" \
+        --features "$FEATURES"
 
-tar caf "$dir/rs-l2tpd-$ver-x86_64-unknown-linux-musl.tar.gz" rs-l2tpd
-cd "$dir"
-
-cd target/aarch64-unknown-linux-musl/release
-
-tar caf "$dir/rs-l2tpd-$ver-aarch64-unknown-linux-musl.tar.gz" rs-l2tpd
-cd "$dir"
+    out="$dir/$BIN-$ver-$target.tar.gz"
+    (
+        cd "target/$target/release"
+        tar caf "$out" "$BIN"
+    )
+    echo "built $out"
+done
