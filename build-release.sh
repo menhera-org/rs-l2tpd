@@ -3,7 +3,8 @@
 #
 # The package is a library plus the `rs-l2tpd` binary target, which needs
 # the `bin` feature; `setup` (the --setup installer) implies it. Pass extra
-# cargo features in FEATURES, and the targets to build in TARGETS.
+# cargo features in FEATURES, the targets to build in TARGETS, and any
+# further cargo arguments on the command line.
 
 set -eu
 
@@ -23,7 +24,17 @@ fi
 
 dir=$(pwd)
 
+# Every target gets a target directory of its own. The build scripts and
+# proc macros in `<target dir>/release/build` are host binaries that cargo
+# reuses across targets; each cross image has a different glibc (and this
+# machine a newer one still), so a build script compiled for one of them
+# fails to load in another.
+cross_target_dir=${CROSS_TARGET_DIR:-"$dir/target/cross"}
+
 for target in $TARGETS; do
+    CARGO_TARGET_DIR="$cross_target_dir/$target"
+    export CARGO_TARGET_DIR
+
     cross build --release --locked \
         --target="$target" \
         --bin "$BIN" \
@@ -31,7 +42,7 @@ for target in $TARGETS; do
 
     out="$dir/$BIN-$ver-$target.tar.gz"
     (
-        cd "target/$target/release"
+        cd "$CARGO_TARGET_DIR/$target/release"
         tar caf "$out" "$BIN"
     )
     echo "built $out"

@@ -2,6 +2,7 @@
 /.codex
 /.agents
 /.claude
+/.cargo
 .DS_Store
 ._*
 /*.tar.gz
