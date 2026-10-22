@@ -87,9 +87,19 @@ existing PID file must belong to the daemon user. The daemon replaces legacy
 PID files atomically with a fresh inode of its own. It never changes the
 permissions of existing directories; a directory writable by other users
 only earns a warning, since such users could then replace the PID file.
+Directory traversal needs search permission, not directory read permission.
+When the directory is not writable, a precreated PID file can be updated
+in place if it is owned by the daemon user, has one hard link, and grants
+no group or other write permission. This preserves its existing mode and
+supports capability-based nonroot services with a precreated file in `/run`.
+The fallback checks inode identity before writing; unlike replacement in a
+writable directory, an in-place update is not atomic for concurrent readers.
 
 This daemon intentionally does not depend on any
 specific init system nor libc.
+
+Privileged kernel and daemon interoperability tests are documented in
+[`tests/docker/README.md`](tests/docker/README.md).
 
 ## Library
 

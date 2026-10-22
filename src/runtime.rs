@@ -2879,34 +2879,8 @@ mod tests {
         assert_eq!(used.len(), 3);
     }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    #[tokio::test]
     async fn reconnect_retry_continues_when_event_precedes_sender_completion() {
-        use std::task::{Context, Poll, Wake, Waker};
-
-        // Pause the sender while it wakes the receiver, reproducing a worker
-        // being preempted between enqueueing its event and finishing its task.
-        struct PauseSender {
-            entered: AtomicBool,
-            release: AtomicBool,
-        }
-        impl Wake for PauseSender {
-            fn wake(self: Arc<Self>) {
-                self.wake_by_ref();
-            }
-            fn wake_by_ref(self: &Arc<Self>) {
-                self.entered.store(true, Ordering::Release);
-                while !self.release.load(Ordering::Acquire) {
-                    std::thread::yield_now();
-                }
-            }
-        }
-        struct ReleaseSender(Arc<PauseSender>);
-        impl Drop for ReleaseSender {
-            fn drop(&mut self) {
-                self.0.release.store(true, Ordering::Release);
-            }
-        }
-
         let mock = Arc::new(MockState::default());
         let index = mock.add_interface("underlay0");
         let (control_tx, mut control_rx) = mpsc::channel(32);
@@ -2926,28 +2900,31 @@ mod tests {
         mock.inner.lock().unwrap().fail_reconnect_tunnel_for = Some(10);
         runtime.handle_local_address_change(index).await;
 
-        let pause = Arc::new(PauseSender {
-            entered: AtomicBool::new(false),
-            release: AtomicBool::new(false),
+        // Model a retry sender preempted after enqueueing its event. Awaiting
+        // pending keeps its task unfinished without blocking the executor or
+        // relying on which thread invokes a receiver waker.
+        let timer = runtime.reconnect_retries.remove(&index).unwrap();
+        timer.abort();
+        assert!(timer.await.unwrap_err().is_cancelled());
+        let retry_tx = runtime.control_tx.clone();
+        let sender = tokio::spawn(async move {
+            retry_tx
+                .send(ControlEvent::LocalAddressChanged { if_index: index })
+                .await
+                .unwrap();
+            std::future::pending::<()>().await;
         });
-        let release = ReleaseSender(pause.clone());
-        {
-            let waker = Waker::from(pause.clone());
-            let mut cx = Context::from_waker(&waker);
-            assert!(matches!(control_rx.poll_recv(&mut cx), Poll::Pending));
-        }
-        tokio::time::timeout(Duration::from_secs(3), async {
-            while !pause.entered.load(Ordering::Acquire) {
-                tokio::time::sleep(Duration::from_millis(1)).await;
-            }
-        })
-        .await
-        .expect("retry sender wakes receiver");
-        let ControlEvent::LocalAddressChanged { if_index } = control_rx.try_recv().unwrap() else {
+        runtime.reconnect_retries.insert(index, sender);
+
+        let event = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
+            .await
+            .expect("retry sender enqueues its event")
+            .expect("control channel remains open");
+        let ControlEvent::LocalAddressChanged { if_index } = event else {
             panic!("expected reconnect retry");
         };
+        assert!(!runtime.reconnect_retries[&index].is_finished());
         runtime.handle_local_address_change(if_index).await;
-        drop(release);
         assert_eq!(mock.reconnect_count(10), 2);
         let event = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
             .await

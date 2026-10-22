@@ -361,7 +361,9 @@ fn verify_reconnected_endpoint(
 ) -> Result<()> {
     let reason = match encapsulation {
         l2tp::Encapsulation::Ip { local, .. } => {
-            if !local.ip().is_unspecified() {
+            // IPv4 uses a dual-stack socket, so a failed source selection can
+            // be reported as ::ffff:0.0.0.0 rather than the IPv6 wildcard.
+            if !local.ip().to_canonical().is_unspecified() {
                 return Ok(());
             }
             "kernel reports an unspecified local endpoint after reconnect"
@@ -1127,6 +1129,7 @@ mod tests {
         for local in [
             IpEndpoint::V4(Ipv4Addr::UNSPECIFIED),
             IpEndpoint::v6(Ipv6Addr::UNSPECIFIED),
+            IpEndpoint::v6(Ipv4Addr::UNSPECIFIED.to_ipv6_mapped()),
         ] {
             let remote = match local {
                 IpEndpoint::V4(_) => IpEndpoint::V4(Ipv4Addr::LOCALHOST),
@@ -1221,7 +1224,11 @@ mod tests {
 
     // These tests exercise the real State methods: TunnelHandle cannot be
     // constructed without kernel L2TP support. Run explicitly in a test netns.
-    async fn privileged_state(if_name: Option<&str>) -> Option<(State, u32)> {
+    async fn privileged_state(if_name: Option<&str>) -> (State, u32) {
+        privileged_state_at(IpAddr::V6(Ipv6Addr::LOCALHOST), if_name).await
+    }
+
+    async fn privileged_state_at(remote: IpAddr, if_name: Option<&str>) -> (State, u32) {
         const IPPROTO_L2TP: libc::c_int = 115;
         // SAFETY: socket has no pointer arguments; a successful fd is owned below.
         let fd = unsafe {
@@ -1233,14 +1240,7 @@ mod tests {
         };
         if fd < 0 {
             let err = std::io::Error::last_os_error();
-            if matches!(
-                err.raw_os_error(),
-                Some(libc::EAFNOSUPPORT | libc::EPROTONOSUPPORT | libc::ESOCKTNOSUPPORT)
-            ) {
-                eprintln!("skipping: IPv6 L2TP sockets unavailable: {err}");
-                return None;
-            }
-            panic!("IPv6 L2TP socket probe failed: {err}");
+            panic!("privileged tests require kernel IPv6 L2TP support: {err}");
         }
         // SAFETY: fd is a new, valid descriptor returned by socket above.
         drop(unsafe { OwnedFd::from_raw_fd(fd) });
@@ -1252,16 +1252,8 @@ mod tests {
             let id = 1_000_000_000
                 + (std::process::id().wrapping_mul(32) + NEXT_ID.fetch_add(2, Ordering::Relaxed))
                     % 500_000_000;
-            match state
-                .add_tunnel(
-                    id,
-                    id + 1,
-                    IpAddr::V6(Ipv6Addr::LOCALHOST),
-                    if_name.as_ref(),
-                )
-                .await
-            {
-                Ok(()) => return Some((state, id)),
+            match state.add_tunnel(id, id + 1, remote, if_name.as_ref()).await {
+                Ok(()) => return (state, id),
                 Err(crate::error::Error::L2tp(l2tp::Error::KernelError { code, .. }))
                     if code == libc::EEXIST => {}
                 Err(crate::error::Error::L2tp(l2tp::Error::Io(err)))
@@ -1310,12 +1302,227 @@ mod tests {
         *tunnels[&id].remote_addr.write().await = addr;
     }
 
+    async fn assert_kernel_endpoints(state: &State, id: u32, local: IpAddr, remote: IpAddr) {
+        let info = tunnel_info(state, id).await;
+        assert_eq!(info.tunnel_id, l2tp::TunnelId(id));
+        assert_eq!(info.peer_tunnel_id, l2tp::TunnelId(id + 1));
+        assert_eq!(
+            info.encapsulation,
+            Encapsulation::Ip {
+                local: IpEndpoint::v6(super::to_ipv6_mapped(local)),
+                remote: IpEndpoint::v6(super::to_ipv6_mapped(remote)),
+            }
+        );
+        assert!(state.tunnel_is_connected(id).await);
+    }
+
+    async fn assert_kernel_tunnel_deleted(state: &State, id: u32) {
+        tokio::time::timeout(std::time::Duration::from_secs(3), async {
+            loop {
+                let tunnels = state.handle.list_tunnels().await.unwrap();
+                if !tunnels.iter().any(|tunnel| tunnel.tunnel_id.0 == id) {
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("deleted tunnel must disappear from the kernel");
+    }
+
+    async fn add_test_dummy(rtnl: &super::Rtnl, name: &str) -> u32 {
+        rtnl.handle
+            .link()
+            .add(rtnetlink::LinkDummy::new(name).up().build())
+            .execute()
+            .await
+            .expect("privileged test requires dummy interfaces");
+        ifname(name).index().unwrap()
+    }
+
+    async fn add_test_address(
+        rtnl: &super::Rtnl,
+        index: u32,
+        address: IpAddr,
+    ) -> rtnetlink::packet_route::address::AddressMessage {
+        let prefix = if address.is_ipv4() { 24 } else { 64 };
+        let mut request = rtnl.handle.address().add(index, address, prefix);
+        // The isolated topology has no duplicate addresses. Avoid a DAD timer
+        // making source-selection assertions depend on scheduling.
+        request.message_mut().header.flags |=
+            rtnetlink::packet_route::address::AddressHeaderFlags::Nodad;
+        let message = request.message_mut().clone();
+        request.execute().await.expect("add test source address");
+        message
+    }
+
+    async fn exercise_source_reselection(name: &str, addresses: [&str; 4]) {
+        let [first, replacement, peer, new_peer] = addresses.map(|s| s.parse::<IpAddr>().unwrap());
+        let rtnl = super::Rtnl::connect().unwrap();
+        let index = add_test_dummy(&rtnl, name).await;
+        let old_address = add_test_address(&rtnl, index, first).await;
+        let (state, id) = privileged_state_at(peer, Some(name)).await;
+        assert_kernel_endpoints(&state, id, first, peer).await;
+        assert_eq!(with_socket(&state, id, socket_bound_interface).await, name);
+
+        // A peer update must change the kernel destination, preserving the
+        // chosen source, connection IDs, and device binding.
+        state.modify_tunnel(id, new_peer).await.unwrap();
+        assert_kernel_endpoints(&state, id, first, new_peer).await;
+        assert_eq!(with_socket(&state, id, socket_bound_interface).await, name);
+
+        // Delete before adding a same-prefix replacement: Linux normally
+        // deletes secondary IPv4 addresses together with their primary.
+        rtnl.handle
+            .address()
+            .del(old_address)
+            .execute()
+            .await
+            .unwrap();
+        assert!(state.reconnect_tunnel(id).await.is_err());
+        assert!(!state.tunnel_is_connected(id).await);
+        add_test_address(&rtnl, index, replacement).await;
+        state.reconnect_tunnel(id).await.unwrap();
+        assert_kernel_endpoints(&state, id, replacement, new_peer).await;
+        assert_eq!(with_socket(&state, id, socket_bound_interface).await, name);
+        assert_eq!(state.bound_interface_index(id).await, Some(index));
+
+        state.delete_tunnel(id).await.unwrap();
+        assert_kernel_tunnel_deleted(&state, id).await;
+        rtnl.handle.link().del(index).execute().await.unwrap();
+        assert_eq!(interface_index(&ifname(name)).await.unwrap(), None);
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy and IPv6 L2TP support"]
+    async fn privileged_ipv4_peer_update_and_source_reselection() {
+        exercise_source_reselection(
+            "rsl2tp-v4",
+            ["192.0.2.1", "192.0.2.3", "192.0.2.2", "192.0.2.4"],
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy and IPv6 L2TP support"]
+    async fn privileged_ipv6_peer_update_and_source_reselection() {
+        exercise_source_reselection(
+            "rsl2tp-v6",
+            [
+                "2001:db8:155::1",
+                "2001:db8:155::3",
+                "2001:db8:155::2",
+                "2001:db8:155::4",
+            ],
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy and IPv6 L2TP support"]
+    async fn privileged_reconnect_keeps_device_identity_after_rename_and_name_reuse() {
+        let rtnl = super::Rtnl::connect().unwrap();
+        let original_name = "rsl2tp-bind";
+        let renamed = "rsl2tp-moved";
+        let index = add_test_dummy(&rtnl, original_name).await;
+        let local = "2001:db8:156::1".parse().unwrap();
+        let peer = "2001:db8:156::2".parse().unwrap();
+        add_test_address(&rtnl, index, local).await;
+        let (state, id) = privileged_state_at(peer, Some(original_name)).await;
+
+        rtnl.set_link(LinkUnspec::new_with_index(index).name(renamed).build())
+            .await
+            .unwrap();
+        let replacement_index = add_test_dummy(&rtnl, original_name).await;
+        assert_ne!(index, replacement_index);
+        // Looking up the original name now finds the wrong device. Reconnect
+        // must use the saved index, resolve its new name, and retain its route.
+        for _ in 0..2 {
+            state.reconnect_tunnel(id).await.unwrap();
+            assert_eq!(state.bound_interface_index(id).await, Some(index));
+            assert_eq!(
+                with_socket(&state, id, socket_bound_interface).await,
+                renamed
+            );
+            assert_kernel_endpoints(&state, id, local, peer).await;
+        }
+
+        state.delete_tunnel(id).await.unwrap();
+        assert_kernel_tunnel_deleted(&state, id).await;
+        rtnl.handle
+            .link()
+            .del(replacement_index)
+            .execute()
+            .await
+            .unwrap();
+        rtnl.handle.link().del(index).execute().await.unwrap();
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, vrf, dummy and IPv6 L2TP support"]
+    async fn privileged_vrf_binding_selects_and_refreshes_slave_sources() {
+        let rtnl = super::Rtnl::connect().unwrap();
+        let vrf_name = "rsl2tp-vrf";
+        rtnl.handle
+            .link()
+            .add(rtnetlink::LinkVrf::new(vrf_name, 4242155).up().build())
+            .execute()
+            .await
+            .expect("privileged test requires VRF support");
+        let vrf_index = ifname(vrf_name).index().unwrap();
+        let slave_index = add_test_dummy(&rtnl, "rsl2tp-slave").await;
+        rtnl.set_link(
+            LinkUnspec::new_with_index(slave_index)
+                .controller(vrf_index)
+                .build(),
+        )
+        .await
+        .unwrap();
+
+        // Connected routes exist only in the VRF table. Successful connect and
+        // the exact source therefore exercise VRF routing, not just getsockopt.
+        for addresses in [
+            ["198.51.100.1", "198.51.100.3", "198.51.100.2"],
+            ["2001:db8:157::1", "2001:db8:157::3", "2001:db8:157::2"],
+        ] {
+            let [first, replacement, peer] = addresses.map(|s| s.parse::<IpAddr>().unwrap());
+            let old_address = add_test_address(&rtnl, slave_index, first).await;
+            let (state, id) = privileged_state_at(peer, Some(vrf_name)).await;
+            assert_kernel_endpoints(&state, id, first, peer).await;
+            assert_eq!(state.bound_interface_index(id).await, Some(vrf_index));
+            assert_eq!(
+                with_socket(&state, id, socket_bound_interface).await,
+                vrf_name
+            );
+
+            rtnl.handle
+                .address()
+                .del(old_address)
+                .execute()
+                .await
+                .unwrap();
+            assert!(state.reconnect_tunnel(id).await.is_err());
+            assert!(!state.tunnel_is_connected(id).await);
+            add_test_address(&rtnl, slave_index, replacement).await;
+            state.reconnect_tunnel(id).await.unwrap();
+            assert_kernel_endpoints(&state, id, replacement, peer).await;
+            assert_eq!(state.bound_interface_index(id).await, Some(vrf_index));
+            assert_eq!(
+                with_socket(&state, id, socket_bound_interface).await,
+                vrf_name
+            );
+            state.delete_tunnel(id).await.unwrap();
+            assert_kernel_tunnel_deleted(&state, id).await;
+        }
+
+        rtnl.handle.link().del(slave_index).execute().await.unwrap();
+        rtnl.handle.link().del(vrf_index).execute().await.unwrap();
+    }
+
     #[tokio::test]
     #[ignore = "requires CAP_NET_ADMIN/root and kernel IPv6 L2TP support"]
     async fn privileged_add_tunnel_records_bound_interface() {
-        let Some((state, id)) = privileged_state(Some("lo")).await else {
-            return;
-        };
+        let (state, id) = privileged_state(Some("lo")).await;
         assert_eq!(bound_interface(&state, id).await, Some(ifname("lo")));
         assert_eq!(
             state.bound_interface_index(id).await,
@@ -1340,9 +1547,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires CAP_NET_ADMIN/root and kernel IPv6 L2TP support"]
     async fn privileged_add_tunnel_records_unbound_socket() {
-        let Some((state, id)) = privileged_state(None).await else {
-            return;
-        };
+        let (state, id) = privileged_state(None).await;
         state.reconnect_tunnel(id).await.unwrap();
         assert!(bound_interface(&state, id).await.is_none());
         assert_eq!(with_socket(&state, id, socket_bound_interface).await, "");
@@ -1352,9 +1557,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires CAP_NET_ADMIN/root and kernel IPv6 L2TP support"]
     async fn privileged_bind_tunnel_interface_records_only_successful_binding() {
-        let Some((state, id)) = privileged_state(None).await else {
-            return;
-        };
+        let (state, id) = privileged_state(None).await;
         let missing = ifname("l2tp-missing");
         assert!(missing.index().is_err());
         assert!(state.bind_tunnel_interface(id, &missing).await.is_err());
@@ -1377,9 +1580,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires CAP_NET_ADMIN/root and kernel IPv6 L2TP support"]
     async fn privileged_reconnect_restores_binding_and_kernel_source() {
-        let Some((state, id)) = privileged_state(Some("lo")).await else {
-            return;
-        };
+        let (state, id) = privileged_state(Some("lo")).await;
         for _ in 0..3 {
             state.reconnect_tunnel(id).await.unwrap();
             assert_eq!(with_socket(&state, id, socket_bound_interface).await, "lo");
@@ -1397,9 +1598,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires CAP_NET_ADMIN/root and an isolated netns with IPv6 L2TP support"]
     async fn privileged_failed_reconnect_retains_binding_for_retry() {
-        let Some((state, id)) = privileged_state(Some("lo")).await else {
-            return;
-        };
+        let (state, id) = privileged_state(Some("lo")).await;
         assert!(state.tunnel_is_connected(id).await);
         // The isolated test namespace has only loopback, with no route here.
         set_remote(&state, id, "2001:db8::dead".parse().unwrap()).await;
@@ -1440,15 +1639,20 @@ mod tests {
         super::link_hwaddr(&rtnl.get_link(index).await.unwrap())
     }
 
-    // Run twice in a row: the second run re-creates the session under the
-    // same interface_name after delete_session, which exercises the
-    // DeletionPending/ENODEV handling.
+    async fn assert_interface_deleted(name: &L2tpIfName) {
+        tokio::time::timeout(std::time::Duration::from_secs(3), async {
+            while interface_index(name).await.unwrap().is_some() {
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("deleted session interface must disappear from the kernel");
+    }
+
     #[tokio::test]
     #[ignore = "requires CAP_NET_ADMIN/root, l2tp_eth and kernel IPv6 L2TP support"]
     async fn privileged_modify_session_renames_by_index() {
-        let Some((state, id)) = privileged_state(None).await else {
-            return;
-        };
+        let (state, id) = privileged_state(None).await;
         let session_id = id + 2;
         let created = ifname("rsl2tp-t0");
         let renamed = ifname("rsl2tp-t1");
@@ -1488,16 +1692,26 @@ mod tests {
 
         state.delete_session(id, session_id).await.unwrap();
         assert!(!state.has_session(id, session_id).await);
+        assert_interface_deleted(&created).await;
+        assert_interface_deleted(&renamed).await;
+        // Reuse the IDs and name within the same State instance, after the
+        // kernel has completed any deferred deletion of the previous device.
+        state
+            .add_session(id, session_id, session_id, &created, None)
+            .await
+            .expect("recreate the deleted session");
+        assert!(interface_index(&created).await.unwrap().is_some());
+        // Deleting the parent must also remove this retained child interface.
         state.delete_tunnel(id).await.unwrap();
         assert!(!state.has_tunnel(id).await);
+        assert_interface_deleted(&created).await;
+        assert_kernel_tunnel_deleted(&state, id).await;
     }
 
     #[tokio::test]
     #[ignore = "requires CAP_NET_ADMIN/root, l2tp_eth and kernel IPv6 L2TP support"]
     async fn privileged_session_hwaddr_is_applied_changed_and_restored() {
-        let Some((state, id)) = privileged_state(None).await else {
-            return;
-        };
+        let (state, id) = privileged_state(None).await;
         let session_id = id + 2;
         let name = ifname("rsl2tp-t2");
         let first: HwAddr = "02:00:5e:00:53:01".parse().unwrap();
@@ -1538,7 +1752,9 @@ mod tests {
         assert_eq!(current_hwaddr(index).await, Some(initial));
 
         state.delete_session(id, session_id).await.unwrap();
+        assert_interface_deleted(&name).await;
         state.delete_tunnel(id).await.unwrap();
+        assert_kernel_tunnel_deleted(&state, id).await;
     }
 
     use rtnetlink::LinkUnspec;

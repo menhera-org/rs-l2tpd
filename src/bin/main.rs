@@ -177,9 +177,10 @@ mod unix_daemon {
         unsafe { libc::geteuid() as u32 }
     }
 
-    /// Publishes a fresh PID-file inode in a trusted directory. Descriptors
-    /// opened while an older daemon's PID file was world-writable cannot
-    /// modify the newly published PID.
+    /// Publishes a fresh PID-file inode when its directory is writable.
+    /// Otherwise, a precreated owned file may be updated only after checking
+    /// its identity and restrictive permissions. Legacy writable inodes are
+    /// always replaced, so their old descriptors cannot alter the new PID.
     pub(crate) fn write_pid_file(path: &Path) -> Result<()> {
         write_pid_file_inner(path)
             .map_err(|e| Error::Other(format!("failed to write pidfile {}: {e}", path.display())))
@@ -232,8 +233,8 @@ mod unix_daemon {
         // change the permissions of directories it did not create: that
         // would silently alter an administrator's setup, and refusing would
         // break deployments that worked before. It warns instead; the PID
-        // file itself is always published as a fresh inode owned by the
-        // daemon user.
+        // file is normally published as a fresh inode owned by the daemon
+        // user; the guarded precreated-file fallback checks this mode too.
         if mode & 0o022 != 0 && mode & libc::S_ISVTX == 0 {
             log::warn!(
                 "pidfile directory is writable by other users (mode {:04o}); the PID file can be replaced by them",
@@ -247,6 +248,22 @@ mod unix_daemon {
         path.components()
             .map(|component| component.as_os_str().to_owned())
             .collect()
+    }
+
+    fn open_pid_root() -> io::Result<fs::File> {
+        // SAFETY: the static pathname is NUL-terminated. O_PATH obtains a
+        // directory handle without requiring permission to list its entries.
+        let fd = unsafe {
+            libc::open(
+                c"/".as_ptr(),
+                libc::O_PATH | libc::O_DIRECTORY | libc::O_CLOEXEC,
+            )
+        };
+        if fd < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        // SAFETY: open returned a new owned descriptor.
+        Ok(unsafe { fs::File::from_raw_fd(fd) })
     }
 
     fn read_link_at(parent: &fs::File, name: &CString) -> io::Result<PathBuf> {
@@ -286,12 +303,12 @@ mod unix_daemon {
             std::env::current_dir()?.join(path)
         };
         let mut pending = directory_components(&absolute);
-        let mut directory = fs::File::open("/")?;
+        let mut directory = open_pid_root()?;
         secure_pid_directory(&directory, uid)?;
         let mut symlinks = 0;
         while let Some(component) = pending.pop_front() {
             if component == "/" {
-                directory = fs::File::open("/")?;
+                directory = open_pid_root()?;
                 secure_pid_directory(&directory, uid)?;
                 continue;
             }
@@ -303,7 +320,7 @@ mod unix_daemon {
                     libc::openat(
                         directory.as_raw_fd(),
                         name.as_ptr(),
-                        libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                        libc::O_PATH | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
                     )
                 };
                 if fd >= 0 {
@@ -357,6 +374,63 @@ mod unix_daemon {
         Ok(())
     }
 
+    fn update_precreated_pid_file(
+        directory: &fs::File,
+        name: &CString,
+        expected: Option<&libc::stat>,
+        uid: libc::uid_t,
+        pid: u32,
+    ) -> io::Result<()> {
+        use std::io::Write;
+
+        let unsafe_file = || {
+            io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "non-writable pidfile directory requires an unchanged, owned regular file with one link and no group/other write permission",
+            )
+        };
+        let expected = expected.ok_or_else(unsafe_file)?;
+        validate_pid_entry(expected, uid)?;
+        if expected.st_nlink != 1 || expected.st_mode & 0o022 != 0 {
+            return Err(unsafe_file());
+        }
+        let parent = directory.metadata()?;
+        if parent.mode() & 0o022 != 0 && parent.mode() & libc::S_ISVTX == 0 {
+            return Err(unsafe_file());
+        }
+
+        // SAFETY: the descriptor and name are valid. Do not truncate until
+        // fstat confirms this is the previously inspected, safe inode.
+        // O_NONBLOCK also prevents a raced-in FIFO from hanging startup.
+        let fd = unsafe {
+            libc::openat(
+                directory.as_raw_fd(),
+                name.as_ptr(),
+                libc::O_WRONLY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC,
+            )
+        };
+        if fd < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        // SAFETY: openat returned a new owned descriptor.
+        let mut file = unsafe { fs::File::from_raw_fd(fd) };
+        let metadata = file.metadata()?;
+        if !metadata.is_file()
+            || metadata.uid() != uid
+            || metadata.dev() != expected.st_dev
+            || metadata.ino() != expected.st_ino
+            || metadata.nlink() != 1
+            || metadata.mode() & 0o022 != 0
+        {
+            return Err(unsafe_file());
+        }
+        // POSIX ACL write grants are limited by the group-class mask,
+        // reflected in these mode bits. Preserve the existing safe mode.
+        file.set_len(0)?;
+        file.write_all(format!("{pid}\n").as_bytes())?;
+        file.sync_all()
+    }
+
     fn write_pid_file_inner(path: &Path) -> io::Result<()> {
         use std::io::Write;
         use std::sync::atomic::{AtomicUsize, Ordering};
@@ -369,15 +443,16 @@ mod unix_daemon {
         // SAFETY: geteuid has no safety preconditions.
         let uid = unsafe { libc::geteuid() };
         let directory = open_pid_directory(path.parent().unwrap_or(Path::new(".")), uid)?;
-        if let Some(stat) = inspect_at(&directory, &name)? {
-            validate_pid_entry(&stat, uid)?;
+        let existing = inspect_at(&directory, &name)?;
+        if let Some(stat) = &existing {
+            validate_pid_entry(stat, uid)?;
         }
         let pid = std::process::id();
         let nonce = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_nanos();
-        let (temporary, mut file) = (0..128)
+        let temporary = (0..128)
             .find_map(|_| {
                 let serial = NEXT_TEMP.fetch_add(1, Ordering::Relaxed);
                 let temporary = CString::new(format!(".rs-l2tpd-{pid}-{nonce}-{serial}.tmp"))
@@ -400,7 +475,14 @@ mod unix_daemon {
                     (error.kind() != io::ErrorKind::AlreadyExists).then_some(Err(error))
                 }
             })
-            .unwrap_or_else(|| Err(io::Error::other("cannot create temporary pidfile")))?;
+            .unwrap_or_else(|| Err(io::Error::other("cannot create temporary pidfile")));
+        let (temporary, mut file) = match temporary {
+            Ok(created) => created,
+            Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
+                return update_precreated_pid_file(&directory, &name, existing.as_ref(), uid, pid);
+            }
+            Err(error) => return Err(error),
+        };
         let result = (|| {
             file.write_all(format!("{pid}\n").as_bytes())?;
             file.set_permissions(fs::Permissions::from_mode(0o644))?;
@@ -499,7 +581,10 @@ mod unix_daemon {
 
     #[cfg(test)]
     mod pid_security_tests {
-        use super::{trusted_owner, validate_pid_entry};
+        use super::{
+            inspect_at, open_pid_directory, trusted_owner, update_precreated_pid_file,
+            validate_pid_entry,
+        };
 
         #[test]
         fn rejects_foreign_owned_pid_entries_for_root_and_capability_users() {
@@ -516,6 +601,43 @@ mod unix_daemon {
                 assert!(trusted_owner(uid, uid));
                 assert!(!trusted_owner(uid + 1, uid));
             }
+        }
+
+        #[test]
+        fn precreated_pid_fallback_checks_identity_before_truncation() {
+            let unique = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "rs-l2tpd-pid-identity-{}-{unique}",
+                std::process::id()
+            ));
+            std::fs::create_dir(&path).unwrap();
+            let pidfile = path.join("daemon.pid");
+            std::fs::write(&pidfile, "original\n").unwrap();
+            // SAFETY: geteuid has no safety preconditions.
+            let uid = unsafe { libc::geteuid() };
+            let directory = open_pid_directory(&path, uid).unwrap();
+            let name = std::ffi::CString::new("daemon.pid").unwrap();
+            let expected = inspect_at(&directory, &name).unwrap().unwrap();
+            std::fs::rename(&pidfile, path.join("original")).unwrap();
+            std::fs::write(&pidfile, "replacement\n").unwrap();
+
+            assert!(update_precreated_pid_file(
+                &directory,
+                &name,
+                Some(&expected),
+                uid,
+                std::process::id(),
+            )
+            .is_err());
+            assert_eq!(std::fs::read_to_string(&pidfile).unwrap(), "replacement\n");
+            assert_eq!(
+                std::fs::read_to_string(path.join("original")).unwrap(),
+                "original\n"
+            );
+            std::fs::remove_dir_all(path).unwrap();
         }
     }
 }
@@ -1063,6 +1185,94 @@ mod tests {
         assert_eq!(fs::read_to_string(&target).unwrap(), "1\n");
 
         fs::remove_dir_all(temp_dir).expect("cleanup temp dir");
+    }
+
+    #[test]
+    fn write_pid_file_accepts_search_only_ancestors() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = unique_temp_dir("pidfile-search-only");
+        let ancestor = temp_dir.join("searchable");
+        let parent = ancestor.join("writable");
+        fs::create_dir_all(&parent).unwrap();
+        fs::set_permissions(&ancestor, fs::Permissions::from_mode(0o111)).unwrap();
+        let pidfile = parent.join("daemon.pid");
+        let result = super::unix_daemon::write_pid_file(&pidfile);
+        fs::set_permissions(&ancestor, fs::Permissions::from_mode(0o755)).unwrap();
+        result.expect("directory traversal needs search permission, not read permission");
+        assert_eq!(
+            fs::read_to_string(&pidfile).unwrap(),
+            format!("{}\n", std::process::id())
+        );
+        fs::remove_dir_all(temp_dir).unwrap();
+    }
+
+    #[test]
+    fn write_pid_file_updates_safe_precreated_file_in_nonwritable_directory() {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+        // Root can create the temporary file despite these mode bits;
+        // this compatibility case concerns a daemon using network capabilities.
+        // SAFETY: geteuid has no safety preconditions.
+        if unsafe { libc::geteuid() } == 0 {
+            return;
+        }
+        let temp_dir = unique_temp_dir("pidfile-precreated");
+        let pidfile = temp_dir.join("daemon.pid");
+        fs::write(&pidfile, "1234567890\n").unwrap();
+        fs::set_permissions(&pidfile, fs::Permissions::from_mode(0o600)).unwrap();
+        let inode = fs::metadata(&pidfile).unwrap().ino();
+        fs::set_permissions(&temp_dir, fs::Permissions::from_mode(0o555)).unwrap();
+        let result = super::unix_daemon::write_pid_file(&pidfile);
+        fs::set_permissions(&temp_dir, fs::Permissions::from_mode(0o755)).unwrap();
+        result.expect("safe precreated PID file remains usable without directory write permission");
+        assert_eq!(
+            fs::read_to_string(&pidfile).unwrap(),
+            format!("{}\n", std::process::id())
+        );
+        assert_eq!(fs::metadata(&pidfile).unwrap().ino(), inode);
+        assert_eq!(fs::metadata(&pidfile).unwrap().mode() & 0o777, 0o600);
+        assert_eq!(fs::read_dir(&temp_dir).unwrap().count(), 1);
+        fs::remove_dir_all(temp_dir).unwrap();
+    }
+
+    #[test]
+    fn write_pid_file_never_reuses_writable_or_hardlinked_inodes() {
+        use std::os::unix::fs::PermissionsExt;
+
+        // SAFETY: geteuid has no safety preconditions. Root bypasses the
+        // permissions that cause the guarded fallback to run.
+        if unsafe { libc::geteuid() } == 0 {
+            return;
+        }
+        let temp_dir = unique_temp_dir("pidfile-unsafe-precreated");
+        let pidfile = temp_dir.join("daemon.pid");
+        for mode in [0o666, 0o660] {
+            fs::write(&pidfile, "unchanged\n").unwrap();
+            fs::set_permissions(&pidfile, fs::Permissions::from_mode(mode)).unwrap();
+            fs::set_permissions(&temp_dir, fs::Permissions::from_mode(0o555)).unwrap();
+            let result = super::unix_daemon::write_pid_file(&pidfile);
+            fs::set_permissions(&temp_dir, fs::Permissions::from_mode(0o755)).unwrap();
+            assert!(
+                result.is_err(),
+                "mode {mode:o} must require fresh-inode publication"
+            );
+            assert_eq!(fs::read_to_string(&pidfile).unwrap(), "unchanged\n");
+        }
+
+        fs::set_permissions(&pidfile, fs::Permissions::from_mode(0o600)).unwrap();
+        let alias = temp_dir.join("alias");
+        fs::hard_link(&pidfile, &alias).unwrap();
+        fs::set_permissions(&temp_dir, fs::Permissions::from_mode(0o555)).unwrap();
+        let result = super::unix_daemon::write_pid_file(&pidfile);
+        fs::set_permissions(&temp_dir, fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(
+            result.is_err(),
+            "an in-place update must not alter a hardlink target"
+        );
+        assert_eq!(fs::read_to_string(&alias).unwrap(), "unchanged\n");
+        assert_eq!(fs::read_dir(&temp_dir).unwrap().count(), 2);
+        fs::remove_dir_all(temp_dir).unwrap();
     }
 
     #[test]
