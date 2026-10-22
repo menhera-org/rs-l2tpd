@@ -116,6 +116,12 @@ struct SessionPlan {
 /// substitute a mock.
 #[async_trait]
 pub(crate) trait StateOps: Send + Sync {
+    async fn cleanup_pending_sessions(&self) -> Result<()> {
+        Ok(())
+    }
+    async fn session_hwaddr_pending(&self, _tunnel_id: u32, _session_id: u32) -> bool {
+        false
+    }
     async fn has_tunnel(&self, tunnel_id: u32) -> bool;
     async fn add_tunnel(
         &self,
@@ -161,6 +167,14 @@ pub(crate) trait StateOps: Send + Sync {
 
 #[async_trait]
 impl StateOps for state::State {
+    async fn cleanup_pending_sessions(&self) -> Result<()> {
+        state::State::cleanup_pending_sessions(self).await
+    }
+
+    async fn session_hwaddr_pending(&self, tunnel_id: u32, session_id: u32) -> bool {
+        state::State::session_hwaddr_pending(self, tunnel_id, session_id).await
+    }
+
     async fn has_tunnel(&self, tunnel_id: u32) -> bool {
         state::State::has_tunnel(self, tunnel_id).await
     }
@@ -255,6 +269,8 @@ impl StateOps for state::State {
 
 struct ResolverRuntime {
     resolver: AutoIpHostResolver,
+    remote_addr: IpHost,
+    control_tx: mpsc::Sender<ControlEvent>,
     ip_version: Arc<StdRwLock<IpVersion>>,
     active: Arc<AtomicBool>,
     dns_event_pending: Arc<AtomicBool>,
@@ -292,10 +308,11 @@ impl ResolverRuntime {
         let watcher_active = Arc::clone(&active);
         let watcher_pending = Arc::clone(&dns_event_pending);
         let watcher_last_queued = Arc::clone(&last_queued_addr);
+        let watcher_tx = control_tx.clone();
         let worker = tokio::spawn(async move {
             loop {
                 tokio::time::sleep(Duration::from_secs(DNS_WATCH_POLL_INTERVAL_SECS)).await;
-                if control_tx.is_closed() {
+                if watcher_tx.is_closed() {
                     break;
                 }
                 if !watcher_active.load(Ordering::Relaxed) {
@@ -329,7 +346,7 @@ impl ResolverRuntime {
                     continue;
                 }
 
-                if control_tx
+                if watcher_tx
                     .send(ControlEvent::DnsChanged { tunnel_id })
                     .await
                     .is_err()
@@ -341,6 +358,8 @@ impl ResolverRuntime {
 
         Self {
             resolver,
+            remote_addr: desired.remote_addr.clone(),
+            control_tx,
             ip_version,
             active,
             dns_event_pending,
@@ -350,30 +369,23 @@ impl ResolverRuntime {
         }
     }
 
-    fn apply_tunnel_config(&self, desired: &DesiredTunnel) {
+    fn apply_tunnel_config(&mut self, desired: &DesiredTunnel) {
+        if self.remote_addr != desired.remote_addr {
+            // iphost's in-place replacement can fail while DNS is running,
+            // and an old hostname's cached answers can survive replacement.
+            // A new resolver makes the target and its answers inseparable,
+            // including when rolling back a failed tunnel update.
+            *self = Self::new(desired.tunnel_id, desired, self.control_tx.clone());
+            return;
+        }
+
         if let Ok(mut version) = self.ip_version.write() {
             *version = desired.ip_version;
         }
         self.active.store(true, Ordering::Relaxed);
         self.dns_event_pending.store(false, Ordering::Relaxed);
-
-        let replaced = self.resolver.replace_ip_host(desired.remote_addr.clone());
-        let host_changed = match replaced {
-            Ok(old) => old != desired.remote_addr,
-            Err(_) => {
-                warn!(
-                    "failed to update resolver hostname immediately for tunnel_id={}",
-                    desired.tunnel_id
-                );
-                true
-            }
-        };
-
         if let Ok(mut queued) = self.last_queued_addr.write() {
-            if matches!(desired.remote_addr, IpHost::Fqdn(_)) && host_changed {
-                self.use_discard_until_dns.store(true, Ordering::Release);
-                *queued = None;
-            } else if self.use_discard_until_dns.load(Ordering::Acquire) {
+            if self.use_discard_until_dns.load(Ordering::Acquire) {
                 *queued = None;
             } else {
                 *queued = Self::current_remote_addr_for(&self.resolver, desired.ip_version);
@@ -399,11 +411,11 @@ impl ResolverRuntime {
         Self::current_remote_addr_for(&self.resolver, ip_version)
     }
 
-    fn current_remote_addr_for_apply(&self) -> Option<IpAddr> {
+    fn current_remote_addr_for_apply(&self, ip_version: IpVersion) -> Option<IpAddr> {
         if self.use_discard_until_dns.load(Ordering::Acquire) {
             return None;
         }
-        self.current_remote_addr()
+        Self::current_remote_addr_for(&self.resolver, ip_version)
     }
 
     fn clear_discard_until_dns(&self) {
@@ -453,7 +465,7 @@ pub struct Runtime {
     pending_bind_interfaces: BTreeMap<TunnelId, L2tpIfName>,
     resolvers: BTreeMap<TunnelId, ResolverRuntime>,
     /// One queued reconnect retry per interface index, so that a burst of
-    /// address events on an unreachable interface cannot multiply retries.
+    /// address events on an unreachable interface cannot multiply timers.
     reconnect_retries: BTreeMap<u32, JoinHandle<()>>,
     control_tx: mpsc::Sender<ControlEvent>,
     interface_worker: JoinHandle<()>,
@@ -541,6 +553,8 @@ impl Runtime {
             applied_session_specs.retain(|(tid, _), _| tid != tunnel_id);
         }
 
+        try_apply!(self.state.cleanup_pending_sessions().await);
+
         for tunnel_id in &tunnel_plan.to_add {
             let desired = desired_tunnels
                 .get(tunnel_id)
@@ -554,11 +568,11 @@ impl Runtime {
 
             let resolver_runtime = self
                 .resolvers
-                .get(tunnel_id)
+                .get_mut(tunnel_id)
                 .expect("resolver exists for tunnel");
             resolver_runtime.apply_tunnel_config(desired);
 
-            let remote_addr = match tunnel_remote_addr_for_apply(desired, resolver_runtime) {
+            let remote_addr = match tunnel_remote_addr_for_apply(desired, Some(resolver_runtime)) {
                 Ok(addr) => addr,
                 Err(e) => {
                     if !applied_tunnel_specs.contains_key(tunnel_id) {
@@ -630,58 +644,39 @@ impl Runtime {
         }
 
         for tunnel_id in &tunnel_plan.to_update {
-            let current = self
-                .tunnel_specs
-                .get(tunnel_id)
-                .expect("tunnel exists in current map");
             let desired = desired_tunnels
                 .get(tunnel_id)
                 .expect("tunnel exists in desired map");
 
-            let had_resolver = self.resolvers.contains_key(tunnel_id);
-            if !had_resolver {
-                let runtime = ResolverRuntime::new(*tunnel_id, desired, self.control_tx.clone());
-                self.resolvers.insert(*tunnel_id, runtime);
-            }
-
-            let resolver_runtime = self
-                .resolvers
-                .get(tunnel_id)
-                .expect("resolver exists for tunnel");
-            resolver_runtime.apply_tunnel_config(desired);
-
-            let remote_addr = match tunnel_remote_addr_for_apply(desired, resolver_runtime) {
-                Ok(addr) => addr,
-                Err(e) => {
-                    if !had_resolver {
-                        self.resolvers.remove(tunnel_id);
-                    } else if let Some(resolver_runtime) = self.resolvers.get(tunnel_id) {
-                        resolver_runtime.apply_tunnel_config(current);
+            // Select the candidate endpoint without changing the resolver.
+            // A failed kernel update must keep the old target and its answers.
+            let remote_addr =
+                match tunnel_remote_addr_for_apply(desired, self.resolvers.get(tunnel_id)) {
+                    Ok(addr) => addr,
+                    Err(e) => {
+                        self.tunnel_specs = applied_tunnel_specs;
+                        self.session_specs = applied_session_specs;
+                        self.pending_bind_interfaces = applied_pending_bind_interfaces;
+                        return Err(e);
                     }
-                    self.tunnel_specs = applied_tunnel_specs;
-                    self.session_specs = applied_session_specs;
-                    return Err(e);
-                }
-            };
+                };
 
             info!(
                 "updating tunnel_id={} remote_addr={}",
                 desired.tunnel_id, remote_addr
             );
-            if let Err(e) = self
-                .state
-                .modify_tunnel(desired.tunnel_id, remote_addr)
-                .await
-            {
-                if !had_resolver {
-                    self.resolvers.remove(tunnel_id);
-                } else if let Some(resolver_runtime) = self.resolvers.get(tunnel_id) {
-                    resolver_runtime.apply_tunnel_config(current);
-                }
-                self.tunnel_specs = applied_tunnel_specs;
-                self.session_specs = applied_session_specs;
-                return Err(e);
-            }
+            try_apply!(
+                self.state
+                    .modify_tunnel(desired.tunnel_id, remote_addr)
+                    .await
+            );
+
+            let control_tx = self.control_tx.clone();
+            let resolver_runtime = self
+                .resolvers
+                .entry(*tunnel_id)
+                .or_insert_with(|| ResolverRuntime::new(*tunnel_id, desired, control_tx));
+            resolver_runtime.apply_tunnel_config(desired);
             self.reconcile_tunnel_bind_interface(desired, &mut applied_pending_bind_interfaces)
                 .await;
             applied_tunnel_specs.insert(*tunnel_id, desired.clone());
@@ -695,7 +690,7 @@ impl Runtime {
             .collect();
         for tunnel_id in unchanged_tunnel_ids {
             if let Some(desired) = desired_tunnels.get(&tunnel_id) {
-                if let Some(resolver_runtime) = self.resolvers.get(&tunnel_id) {
+                if let Some(resolver_runtime) = self.resolvers.get_mut(&tunnel_id) {
                     resolver_runtime.apply_tunnel_config(desired);
                 }
                 self.reconcile_tunnel_bind_interface(desired, &mut applied_pending_bind_interfaces)
@@ -704,7 +699,18 @@ impl Runtime {
             }
         }
 
-        let session_plan = plan_session_changes(&applied_session_specs, &desired_sessions);
+        let mut session_plan = plan_session_changes(&applied_session_specs, &desired_sessions);
+        // A failed MAC operation can have changed the kernel before its
+        // applied spec was committed. Finish or revert it even if a later
+        // reload restores the previous configuration.
+        for key in applied_session_specs.keys() {
+            if !session_plan.to_delete.contains(key)
+                && !session_plan.to_set_hwaddr.contains(key)
+                && self.state.session_hwaddr_pending(key.0, key.1).await
+            {
+                session_plan.to_set_hwaddr.push(*key);
+            }
+        }
 
         let mut reserved_interface_names: BTreeSet<L2tpIfName> = applied_session_specs
             .values()
@@ -856,8 +862,39 @@ impl Runtime {
     }
 
     /// Binds tunnel sockets whose bind interface was absent, now that an
-    /// interface appeared or changed. `None` re-checks every pending one.
+    /// interface appeared or changed. None also checks every recorded
+    /// binding, recovering removals missed while the monitor was disconnected.
     pub async fn handle_interface_change(&mut self, changed_if_name: Option<&L2tpIfName>) {
+        for desired in self.tunnel_specs.values() {
+            let Some(if_name) = desired.bind_interface else {
+                continue;
+            };
+            if changed_if_name.is_some_and(|changed| *changed != if_name) {
+                continue;
+            }
+            if let Some(index) = self.state.bound_interface_index(desired.tunnel_id).await {
+                match self.state.interface_name(index).await {
+                    // A live device keeps its identity even after a rename.
+                    Ok(Some(_)) => continue,
+                    Ok(None) => {
+                        self.state.forget_tunnel_binding(desired.tunnel_id).await;
+                        if let Some(retry) = self.reconnect_retries.remove(&index) {
+                            retry.abort();
+                        }
+                    }
+                    Err(e) => {
+                        warn!(
+                            "failed to check bound interface tunnel_id={} index={} error={}",
+                            desired.tunnel_id, index, e
+                        );
+                        continue;
+                    }
+                }
+            }
+            self.pending_bind_interfaces
+                .insert(desired.tunnel_id, if_name);
+        }
+
         let pending: Vec<(TunnelId, L2tpIfName)> = self
             .pending_bind_interfaces
             .iter()
@@ -868,6 +905,7 @@ impl Runtime {
             })
             .map(|(tunnel_id, if_name)| (*tunnel_id, *if_name))
             .collect();
+        let mut rebound_interfaces = BTreeSet::new();
 
         for (tunnel_id, if_name) in pending {
             if !self.tunnel_specs.contains_key(&tunnel_id) {
@@ -897,6 +935,9 @@ impl Runtime {
                         tunnel_id, if_name
                     );
                     self.pending_bind_interfaces.remove(&tunnel_id);
+                    if let Some(index) = self.state.bound_interface_index(tunnel_id).await {
+                        rebound_interfaces.insert(index);
+                    }
                 }
                 Err(e) => warn!(
                     "failed to bind tunnel_id={} socket to interface {}: {}",
@@ -904,11 +945,21 @@ impl Runtime {
                 ),
             }
         }
+
+        // SO_BINDTODEVICE alone does not replace a source address selected
+        // before the bind. Reconnect on the new device and retry if its
+        // addresses or routes are not ready yet.
+        for index in rebound_interfaces {
+            self.handle_local_address_change(index).await;
+        }
     }
 
     /// Forgets bindings to a removed interface, so that a new interface
     /// with the configured name is bound when it appears.
     pub async fn handle_interface_removed(&mut self, if_index: u32) {
+        if let Some(retry) = self.reconnect_retries.remove(&if_index) {
+            retry.abort();
+        }
         for desired in self.tunnel_specs.values() {
             let Some(if_name) = desired.bind_interface else {
                 continue;
@@ -929,8 +980,14 @@ impl Runtime {
     /// Reconnects the tunnels bound to the interface whose addresses
     /// changed, so that the kernel selects a source address again. A failed
     /// reconnect is retried after one second; at most one retry is queued
-    /// per interface, however many events arrive meanwhile.
+    /// per interface. A newer event replaces the previous timer.
     pub async fn handle_local_address_change(&mut self, if_index: u32) {
+        // This event supersedes any timer for the same interface. A retry
+        // event can be received before its sender finishes, so task completion
+        // cannot tell us whether another retry is needed.
+        if let Some(retry) = self.reconnect_retries.remove(&if_index) {
+            retry.abort();
+        }
         let mut retry_needed = false;
         for desired in self.tunnel_specs.values() {
             let Some(if_name) = desired.bind_interface.as_ref() else {
@@ -955,9 +1012,7 @@ impl Runtime {
             }
         }
 
-        self.reconnect_retries
-            .retain(|_, retry| !retry.is_finished());
-        if retry_needed && !self.reconnect_retries.contains_key(&if_index) {
+        if retry_needed {
             let control_tx = self.control_tx.clone();
             let retry = tokio::spawn(async move {
                 tokio::time::sleep(Duration::from_secs(1)).await;
@@ -1279,10 +1334,12 @@ fn resolve_ip_host_once(ip_host: &IpHost, ip_version: IpVersion) -> Result<IpAdd
 
 fn tunnel_remote_addr_for_apply(
     desired: &DesiredTunnel,
-    resolver_runtime: &ResolverRuntime,
+    resolver_runtime: Option<&ResolverRuntime>,
 ) -> Result<IpAddr> {
-    if let Some(addr) = resolver_runtime.current_remote_addr_for_apply() {
-        return Ok(addr);
+    if let Some(resolver) = resolver_runtime.filter(|r| r.remote_addr == desired.remote_addr) {
+        if let Some(addr) = resolver.current_remote_addr_for_apply(desired.ip_version) {
+            return Ok(addr);
+        }
     }
 
     if matches!(desired.remote_addr, IpHost::Fqdn(_)) {
@@ -1360,6 +1417,11 @@ fn build_desired_maps(config: &Config) -> Result<(DesiredTunnelMap, DesiredSessi
 }
 
 #[cfg(test)]
+pub(crate) fn test_runtime(control_tx: mpsc::Sender<ControlEvent>) -> Runtime {
+    Runtime::new_with_state_ops(Arc::new(tests::MockState::default()), control_tx)
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -1402,12 +1464,16 @@ mod tests {
         fail_reconnect_tunnel_for: Option<u32>,
         fail_add_session_for: Option<(u32, u32)>,
         fail_set_hwaddr_for: Option<(u32, u32)>,
+        fail_restore_up_for: Option<(u32, u32)>,
+        pending_hwaddr: BTreeSet<SessionKey>,
+        pending_cleanup_for: Option<TunnelId>,
+        fail_pending_cleanup: bool,
         reconnect_counts: BTreeMap<u32, u32>,
         hwaddr_sets: u32,
     }
 
     #[derive(Default)]
-    struct MockState {
+    pub(super) struct MockState {
         inner: Mutex<MockStateInner>,
     }
 
@@ -1534,6 +1600,23 @@ mod tests {
 
     #[async_trait]
     impl StateOps for MockState {
+        async fn cleanup_pending_sessions(&self) -> Result<()> {
+            let mut inner = self.inner.lock().unwrap();
+            if inner.pending_cleanup_for.is_some() && inner.fail_pending_cleanup {
+                return Err(Error::Other("injected pending cleanup failure".to_string()));
+            }
+            inner.pending_cleanup_for = None;
+            Ok(())
+        }
+
+        async fn session_hwaddr_pending(&self, tunnel_id: u32, session_id: u32) -> bool {
+            self.inner
+                .lock()
+                .unwrap()
+                .pending_hwaddr
+                .contains(&(tunnel_id, session_id))
+        }
+
         async fn has_tunnel(&self, tunnel_id: u32) -> bool {
             self.inner
                 .lock()
@@ -1642,6 +1725,9 @@ mod tests {
                 .remove(&tunnel_id)
                 .ok_or_else(|| Error::Other(format!("Tunnel not found: {}", tunnel_id)))?;
             inner.sessions.retain(|(tid, _), _| *tid != tunnel_id);
+            if inner.pending_cleanup_for == Some(tunnel_id) {
+                inner.pending_cleanup_for = None;
+            }
             Ok(())
         }
 
@@ -1767,6 +1853,11 @@ mod tests {
                     ))
                 })?;
             session.hwaddr = hwaddr.copied();
+            if inner.fail_restore_up_for == Some((tunnel_id, session_id)) {
+                inner.pending_hwaddr.insert((tunnel_id, session_id));
+                return Err(Error::Other("injected restore UP failure".to_string()));
+            }
+            inner.pending_hwaddr.remove(&(tunnel_id, session_id));
             Ok(())
         }
 
@@ -2173,6 +2264,7 @@ mod tests {
             .await
             .expect("initial reconcile should succeed");
         assert!(runtime.resolvers.contains_key(&10));
+        let previous_worker = runtime.resolvers[&10].worker.id();
 
         mock.inject_modify_tunnel_failure(10);
         let updated = test_config(
@@ -2188,6 +2280,7 @@ mod tests {
         );
         let result = runtime.reconcile(&updated).await;
         assert!(result.is_err());
+        assert_eq!(runtime.resolvers[&10].worker.id(), previous_worker);
 
         mock.clear_modify_tunnel_failure();
         runtime.handle_dns_change(10).await;
@@ -2566,6 +2659,12 @@ mod tests {
         runtime.reconcile(&fqdn).await.expect("fqdn reconcile");
 
         assert_eq!(mock.tunnel_remote_addr(10), Some(DISCARD_REMOTE_ADDR));
+        runtime.handle_dns_change(10).await;
+        assert_eq!(
+            mock.tunnel_remote_addr(10),
+            Some(DISCARD_REMOTE_ADDR),
+            "a stale DNS event must not restore the previous literal endpoint"
+        );
     }
 
     #[test]
@@ -2719,5 +2818,292 @@ mod tests {
         assert_eq!(first, ifname("rsl2tp00000001"));
         assert_eq!(second, ifname("rsl2tp00000002"));
         assert_eq!(used.len(), 3);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn reconnect_retry_continues_when_event_precedes_sender_completion() {
+        use std::task::{Context, Poll, Wake, Waker};
+
+        // Pause the sender while it wakes the receiver, reproducing a worker
+        // being preempted between enqueueing its event and finishing its task.
+        struct PauseSender {
+            entered: AtomicBool,
+            release: AtomicBool,
+        }
+        impl Wake for PauseSender {
+            fn wake(self: Arc<Self>) {
+                self.wake_by_ref();
+            }
+            fn wake_by_ref(self: &Arc<Self>) {
+                self.entered.store(true, Ordering::Release);
+                while !self.release.load(Ordering::Acquire) {
+                    std::thread::yield_now();
+                }
+            }
+        }
+        struct ReleaseSender(Arc<PauseSender>);
+        impl Drop for ReleaseSender {
+            fn drop(&mut self) {
+                self.0.release.store(true, Ordering::Release);
+            }
+        }
+
+        let mock = Arc::new(MockState::default());
+        let index = mock.add_interface("underlay0");
+        let (control_tx, mut control_rx) = mpsc::channel(32);
+        let mut runtime = Runtime::new_with_state_ops(mock.clone(), control_tx);
+        let cfg = test_config(
+            vec![(
+                "bound",
+                10,
+                10,
+                IpVersion::V6,
+                IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                Some("underlay0"),
+            )],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = Some(10);
+        runtime.handle_local_address_change(index).await;
+
+        let pause = Arc::new(PauseSender {
+            entered: AtomicBool::new(false),
+            release: AtomicBool::new(false),
+        });
+        let release = ReleaseSender(pause.clone());
+        {
+            let waker = Waker::from(pause.clone());
+            let mut cx = Context::from_waker(&waker);
+            assert!(matches!(control_rx.poll_recv(&mut cx), Poll::Pending));
+        }
+        tokio::time::timeout(Duration::from_secs(3), async {
+            while !pause.entered.load(Ordering::Acquire) {
+                tokio::time::sleep(Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .expect("retry sender wakes receiver");
+        let ControlEvent::LocalAddressChanged { if_index } = control_rx.try_recv().unwrap() else {
+            panic!("expected reconnect retry");
+        };
+        runtime.handle_local_address_change(if_index).await;
+        drop(release);
+        assert_eq!(mock.reconnect_count(10), 2);
+        let event = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
+            .await
+            .expect("failed reconnect must schedule its next retry")
+            .expect("control channel remains open");
+        assert!(
+            matches!(event, ControlEvent::LocalAddressChanged { if_index } if if_index == index)
+        );
+    }
+
+    #[tokio::test]
+    async fn interface_resync_recovers_replacement_after_missed_removal() {
+        // Both a new-link notification and a monitor restart can reveal a
+        // replacement whose earlier deletion notification was missed.
+        for full_resync in [false, true] {
+            let mock = Arc::new(MockState::default());
+            let old_index = mock.add_interface("vrf0");
+            let mut runtime = runtime_with_mock_state(mock.clone());
+            let remote = IpHost::V6Addr(Ipv6Addr::LOCALHOST);
+            let cfg = test_config(
+                vec![("bound", 10, 10, IpVersion::V6, remote, Some("vrf0"))],
+                vec![],
+            );
+            runtime.reconcile(&cfg).await.unwrap();
+            assert_eq!(mock.remove_interface("vrf0"), old_index);
+            let new_index = mock.add_interface("vrf0");
+            assert_ne!(old_index, new_index);
+
+            let name = ifname("vrf0");
+            runtime
+                .handle_interface_change(if full_resync { None } else { Some(&name) })
+                .await;
+            assert_eq!(mock.tunnel_bound_interface(10), Some((name, new_index)),);
+            assert_eq!(
+                mock.reconnect_count(10),
+                1,
+                "reselect source after rebinding"
+            );
+            assert_eq!(
+                mock.tunnel_remote_addr(10),
+                Some(IpAddr::V6(Ipv6Addr::LOCALHOST))
+            );
+            assert!(runtime.pending_bind_interfaces.is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn late_bind_retries_source_selection_until_interface_is_ready() {
+        let mock = Arc::new(MockState::default());
+        let (control_tx, mut control_rx) = mpsc::channel(32);
+        let mut runtime = Runtime::new_with_state_ops(mock.clone(), control_tx);
+        let cfg = test_config(
+            vec![(
+                "bound",
+                10,
+                10,
+                IpVersion::V6,
+                IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                Some("underlay0"),
+            )],
+            vec![],
+        );
+        runtime
+            .reconcile(&cfg)
+            .await
+            .expect("missing bind interface does not block readiness");
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = Some(10);
+        let index = mock.add_interface("underlay0");
+        runtime
+            .handle_interface_change(Some(&ifname("underlay0")))
+            .await;
+        assert_eq!(mock.reconnect_count(10), 1);
+        assert_eq!(
+            mock.tunnel_bound_interface(10),
+            Some((ifname("underlay0"), index))
+        );
+
+        let ControlEvent::LocalAddressChanged { if_index } =
+            tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
+                .await
+                .expect("late bind reconnect is retried")
+                .expect("control channel remains open")
+        else {
+            panic!("expected reconnect retry");
+        };
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = None;
+        runtime.handle_local_address_change(if_index).await;
+        assert_eq!(mock.reconnect_count(10), 2);
+        assert!(runtime.reconnect_retries.is_empty());
+        assert_eq!(
+            mock.tunnel_remote_addr(10),
+            Some(IpAddr::V6(Ipv6Addr::LOCALHOST))
+        );
+        assert_eq!(
+            mock.tunnel_bound_interface(10),
+            Some((ifname("underlay0"), index))
+        );
+    }
+
+    #[tokio::test]
+    async fn reload_reverting_partial_mac_change_restores_previous_address() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        let tunnel = (
+            "bound",
+            10,
+            10,
+            IpVersion::V6,
+            IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+            None,
+        );
+        let initial = test_config(
+            vec![tunnel.clone()],
+            vec![("lan", "bound", 100, 100, "l2tp0", None)],
+        );
+        runtime.reconcile(&initial).await.unwrap();
+
+        let changed = test_config(
+            vec![tunnel],
+            vec![("lan", "bound", 100, 100, "l2tp0", Some("02:00:00:00:00:02"))],
+        );
+        mock.inner.lock().unwrap().fail_restore_up_for = Some((10, 100));
+        assert!(runtime.reconcile(&changed).await.is_err());
+        assert_eq!(
+            mock.session_hwaddr(10, 100),
+            Some(hwaddr("02:00:00:00:00:02"))
+        );
+        assert_eq!(runtime.session_specs[&(10, 100)].interface_hwaddr, None);
+
+        mock.inner.lock().unwrap().fail_restore_up_for = None;
+        runtime.reconcile(&initial).await.unwrap();
+        assert_eq!(mock.session_hwaddr(10, 100), None);
+        assert!(!mock.session_hwaddr_pending(10, 100).await);
+    }
+
+    #[tokio::test]
+    async fn pending_session_cleanup_precedes_creation_but_not_parent_teardown() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        let tunnel = (
+            "bound",
+            10,
+            10,
+            IpVersion::V6,
+            IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+            None,
+        );
+        let initial = test_config(vec![tunnel.clone()], vec![]);
+        runtime.reconcile(&initial).await.unwrap();
+        let desired = test_config(
+            vec![tunnel],
+            vec![("lan", "bound", 100, 100, "l2tp0", None)],
+        );
+
+        // A previous session creation reached the kernel but setup and its
+        // first rollback failed. The state retains that unfinished deletion.
+        {
+            let mut inner = mock.inner.lock().unwrap();
+            inner.pending_cleanup_for = Some(10);
+            inner.fail_pending_cleanup = true;
+        }
+        assert!(runtime.reconcile(&desired).await.is_err());
+        assert_eq!(mock.session_name(10, 100), None);
+        assert!(runtime.session_specs.is_empty());
+
+        mock.inner.lock().unwrap().fail_pending_cleanup = false;
+        runtime.reconcile(&desired).await.unwrap();
+        assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp0")));
+        assert!(mock.inner.lock().unwrap().pending_cleanup_for.is_none());
+
+        // Removing the parent tunnel also removes its incomplete sessions;
+        // a failing per-session cleanup must not prevent that teardown.
+        {
+            let mut inner = mock.inner.lock().unwrap();
+            inner.pending_cleanup_for = Some(10);
+            inner.fail_pending_cleanup = true;
+        }
+        runtime.shutdown().await.unwrap();
+        assert!(!mock.has_tunnel(10).await);
+        assert!(mock.inner.lock().unwrap().pending_cleanup_for.is_none());
+        assert!(runtime.tunnel_specs.is_empty());
+    }
+
+    #[tokio::test]
+    async fn retargeting_resolver_does_not_reuse_the_previous_hosts_cached_address() {
+        let (tx, _rx) = mpsc::channel(32);
+        let original = DesiredTunnel {
+            tunnel_id: 10,
+            peer_tunnel_id: 10,
+            ip_version: IpVersion::V4,
+            remote_addr: IpHost::V4Addr(Ipv4Addr::new(198, 51, 100, 1)),
+            bind_interface: None,
+        };
+        let mut resolver = ResolverRuntime::new(10, &original, tx);
+        let original_resolver = resolver.resolver.clone();
+        let mut desired = original.clone();
+        desired.remote_addr = "new-target.invalid".parse().unwrap();
+        resolver.apply_tunnel_config(&desired);
+        assert_eq!(resolver.current_remote_addr(), None);
+        assert_eq!(
+            resolver.current_remote_addr_for_apply(desired.ip_version),
+            None
+        );
+        assert_eq!(
+            original_resolver.ipv4_addr(),
+            Some(Ipv4Addr::new(198, 51, 100, 1)),
+            "retargeting must not mutate a resolver still doing old work",
+        );
+
+        // A failed kernel update can immediately restore the previous target.
+        // Its literal endpoint is available without waiting for a DNS worker.
+        resolver.apply_tunnel_config(&original);
+        assert_eq!(
+            resolver.current_remote_addr(),
+            Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 1))),
+        );
     }
 }

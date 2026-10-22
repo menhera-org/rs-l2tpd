@@ -67,6 +67,11 @@ integration files use an unlimited startup timeout and
 block `network-online.target` until configuration has
 converged.
 
+PID-file directories must be owned by root or the daemon user, and an
+existing PID file must belong to the daemon user. The daemon repairs
+permissive modes on its own directories and replaces legacy PID files
+atomically; shared sticky directories such as `/tmp` keep their permissions.
+
 This daemon intentionally does not depend on any
 specific init system nor libc.
 
@@ -96,6 +101,10 @@ rs-l2tpd = { version = "0.2", default-features = false, features = ["serde"] }
 Both services hand out a `Control` handle for requesting reloads and
 shutdowns (the binary drives it from `SIGHUP`, `SIGTERM` and `SIGINT`) and for
 reading the current configuration.
+
+Shutdown requests persist even when the event queue is full. Asynchronous
+callers can use `Control::reload_wait()` to wait for room for a reload;
+`reload()` returns an error if the queue is full.
 
 ## Building
 

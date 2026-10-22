@@ -13,7 +13,7 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use log::{info, warn};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 
 use crate::config::Config;
 use crate::error::{Error, Result};
@@ -62,11 +62,14 @@ impl SharedConfig {
 /// A handle for requesting a reload or a shutdown from any thread, and for
 /// reading the configuration currently being applied.
 ///
-/// It never blocks: a request is queued for the service and fails only if
-/// the service is gone or its queue is full.
+/// The synchronous methods never wait for channel capacity. Reloads can
+/// fail if the event queue is full; [`reload_wait`](Self::reload_wait)
+/// waits for capacity instead. Shutdown has its own persistent notification
+/// and cannot be lost when the event queue is full.
 #[derive(Debug, Clone)]
 pub struct Control {
     tx: mpsc::Sender<ControlEvent>,
+    shutdown_tx: watch::Sender<bool>,
     config: SharedConfig,
 }
 
@@ -93,9 +96,23 @@ impl Control {
         self.send(ControlEvent::ReloadRequested)
     }
 
+    /// Queues a reload, waiting for capacity if the event queue is full.
+    ///
+    /// Use this when the request must be delivered, for example when
+    /// forwarding a daemon's SIGHUP signal. Fails only if the service stops.
+    pub async fn reload_wait(&self) -> Result<()> {
+        self.tx
+            .send(ControlEvent::ReloadRequested)
+            .await
+            .map_err(|_| Error::Other("service has stopped; dropped reload request".to_string()))
+    }
+
     /// Asks the service to remove every tunnel and session and stop.
+    /// This request persists independently of the event queue's capacity.
     pub fn shutdown(&self) -> Result<()> {
-        self.send(ControlEvent::ShutdownRequested)
+        self.shutdown_tx
+            .send(true)
+            .map_err(|_| Error::Other("service has stopped; dropped shutdown request".to_string()))
     }
 }
 
@@ -109,6 +126,8 @@ pub struct Service {
     config: SharedConfig,
     control_tx: mpsc::Sender<ControlEvent>,
     control_rx: mpsc::Receiver<ControlEvent>,
+    shutdown_tx: watch::Sender<bool>,
+    shutdown_rx: watch::Receiver<bool>,
 }
 
 impl Service {
@@ -116,12 +135,15 @@ impl Service {
     /// applied until [`converge`](Self::converge).
     pub async fn new(initial_config: Config) -> Result<Self> {
         let (control_tx, control_rx) = mpsc::channel(CONTROL_QUEUE);
+        let (shutdown_tx, shutdown_rx) = watch::channel(false);
         let runtime = Runtime::new(control_tx.clone()).await?;
         Ok(Self {
             runtime,
             config: SharedConfig::new(initial_config),
             control_tx,
             control_rx,
+            shutdown_tx,
+            shutdown_rx,
         })
     }
 
@@ -130,6 +152,7 @@ impl Service {
     pub fn control(&self) -> Control {
         Control {
             tx: self.control_tx.clone(),
+            shutdown_tx: self.shutdown_tx.clone(),
             config: self.config.clone(),
         }
     }
@@ -145,12 +168,19 @@ impl Service {
     pub async fn converge(&mut self) -> Result<Startup> {
         let config = self.config.get();
         loop {
+            if *self.shutdown_rx.borrow() {
+                info!("shutdown requested while waiting for initial configuration");
+                self.runtime.shutdown().await?;
+                return Ok(Startup::ShutdownRequested);
+            }
             match self.runtime.reconcile(&config).await {
-                Ok(()) => return Ok(Startup::Converged),
+                Ok(()) if !*self.shutdown_rx.borrow() => return Ok(Startup::Converged),
+                Ok(()) => continue,
                 Err(e) => warn!("initial configuration apply failed; will retry: {}", e),
             }
 
             tokio::select! {
+                _ = self.shutdown_rx.changed() => {}
                 _ = tokio::time::sleep(RETRY_INTERVAL) => {}
                 event = self.control_rx.recv() => match event {
                     Some(ControlEvent::ShutdownRequested) | None => {
@@ -180,7 +210,12 @@ impl Service {
         let mut config = self.config.get();
 
         loop {
+            if *self.shutdown_rx.borrow() {
+                info!("shutdown requested");
+                break;
+            }
             let event = tokio::select! {
+                _ = self.shutdown_rx.changed() => continue,
                 _ = retry_interval.tick(), if reconcile_pending => {
                     match self.runtime.reconcile(&config).await {
                         Ok(()) => {
@@ -257,5 +292,91 @@ impl Service {
         }
 
         self.runtime.shutdown().await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn service() -> Service {
+        let (control_tx, control_rx) = mpsc::channel(CONTROL_QUEUE);
+        let (shutdown_tx, shutdown_rx) = watch::channel(false);
+        Service {
+            runtime: crate::runtime::test_runtime(control_tx.clone()),
+            config: SharedConfig::new(Config::new()),
+            control_tx,
+            control_rx,
+            shutdown_tx,
+            shutdown_rx,
+        }
+    }
+
+    fn fill_queue(control: &Control) {
+        for _ in 0..CONTROL_QUEUE {
+            control.reload().unwrap();
+        }
+        assert!(control.reload().is_err());
+    }
+
+    #[tokio::test]
+    async fn shutdown_survives_a_full_queue_before_run() {
+        let service = service();
+        let control = service.control();
+        fill_queue(&control);
+        control.shutdown().unwrap();
+        // Repeated signals leave shutdown requested.
+        control.shutdown().unwrap();
+        tokio::time::timeout(
+            Duration::from_secs(1),
+            service.run(|| panic!("shutdown must take precedence over queued reloads")),
+        )
+        .await
+        .expect("shutdown must not wait for queue capacity")
+        .unwrap();
+        assert!(control.shutdown().is_err());
+        assert!(control.reload_wait().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn shutdown_survives_a_full_queue_before_converge() {
+        let mut service = service();
+        let control = service.control();
+        fill_queue(&control);
+        control.shutdown().unwrap();
+        assert_eq!(
+            service.converge().await.unwrap(),
+            Startup::ShutdownRequested
+        );
+    }
+
+    #[tokio::test]
+    async fn shutdown_wakes_an_idle_service() {
+        let service = service();
+        let control = service.control();
+        let task = tokio::spawn(service.run(|| Ok(Config::new())));
+        tokio::task::yield_now().await;
+        control.shutdown().unwrap();
+        tokio::time::timeout(Duration::from_secs(1), task)
+            .await
+            .expect("shutdown must wake the event loop")
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn reliable_reload_waits_for_queue_capacity() {
+        let mut service = service();
+        let control = service.control();
+        fill_queue(&control);
+        let request = control.reload_wait();
+        tokio::pin!(request);
+        assert!(futures_util::poll!(request.as_mut()).is_pending());
+        assert!(matches!(
+            service.control_rx.recv().await,
+            Some(ControlEvent::ReloadRequested)
+        ));
+        request.await.unwrap();
+        assert_eq!(service.control_rx.len(), CONTROL_QUEUE);
     }
 }

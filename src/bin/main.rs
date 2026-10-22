@@ -49,9 +49,13 @@ struct Args {
 mod unix_daemon {
     use rs_l2tpd::{Error, Result};
 
+    use std::collections::VecDeque;
+    use std::ffi::{CString, OsString};
     use std::fs;
     use std::io;
-    use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+    use std::os::fd::{AsRawFd, FromRawFd};
+    use std::os::unix::ffi::{OsStrExt, OsStringExt};
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
     use std::path::{Path, PathBuf};
 
     const READY: u8 = b'R';
@@ -173,50 +177,279 @@ mod unix_daemon {
         unsafe { libc::geteuid() as u32 }
     }
 
-    /// Writes the PID file so that only root can change it: the directory
-    /// is created with mode 0755, the file with mode 0644, and symbolic
-    /// links at the file's path are refused rather than followed, because
-    /// `ExecReload` and systemd act on whatever PID the file names.
+    /// Publishes a fresh PID-file inode in a trusted directory. Descriptors
+    /// opened while an older daemon's PID file was world-writable cannot
+    /// modify the newly published PID.
     pub(crate) fn write_pid_file(path: &Path) -> Result<()> {
-        if let Some(parent) = path
-            .parent()
-            .filter(|parent| !parent.as_os_str().is_empty())
-        {
-            fs::DirBuilder::new()
-                .recursive(true)
-                .mode(0o755)
-                .create(parent)
-                .map_err(|e| {
-                    Error::Other(format!(
-                        "failed to create pidfile directory {}: {e}",
-                        parent.display()
-                    ))
-                })?;
-        }
-
-        // SAFETY: getpid has no safety preconditions.
-        let pid = unsafe { libc::getpid() };
-        let mut file = fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .mode(0o644)
-            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
-            .open(path)
-            .map_err(|e| Error::Other(format!("failed to open pidfile {}: {e}", path.display())))?;
-        let metadata = file.metadata().map_err(|e| {
-            Error::Other(format!("failed to inspect pidfile {}: {e}", path.display()))
-        })?;
-        if !metadata.is_file() {
-            return Err(Error::Other(format!(
-                "pidfile {} is not a regular file",
-                path.display()
-            )));
-        }
-        use std::io::Write;
-        file.write_all(format!("{pid}\n").as_bytes())
-            .and_then(|()| file.sync_all())
+        write_pid_file_inner(path)
             .map_err(|e| Error::Other(format!("failed to write pidfile {}: {e}", path.display())))
+    }
+
+    fn path_component(name: &std::ffi::OsStr) -> io::Result<CString> {
+        CString::new(name.as_bytes())
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "path contains NUL"))
+    }
+
+    fn inspect_at(parent: &fs::File, name: &CString) -> io::Result<Option<libc::stat>> {
+        let mut stat = std::mem::MaybeUninit::<libc::stat>::uninit();
+        // SAFETY: the parent descriptor and NUL-terminated name are valid,
+        // and stat points to writable storage of the required size.
+        if unsafe {
+            libc::fstatat(
+                parent.as_raw_fd(),
+                name.as_ptr(),
+                stat.as_mut_ptr(),
+                libc::AT_SYMLINK_NOFOLLOW,
+            )
+        } == 0
+        {
+            // SAFETY: fstatat initialized stat on success.
+            return Ok(Some(unsafe { stat.assume_init() }));
+        }
+        let error = io::Error::last_os_error();
+        if error.kind() == io::ErrorKind::NotFound {
+            Ok(None)
+        } else {
+            Err(error)
+        }
+    }
+
+    fn trusted_owner(owner: libc::uid_t, uid: libc::uid_t) -> bool {
+        owner == 0 || owner == uid
+    }
+
+    fn secure_pid_directory(directory: &fs::File, uid: libc::uid_t) -> io::Result<()> {
+        let metadata = directory.metadata()?;
+        if !trusted_owner(metadata.uid(), uid) {
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "pidfile directory is owned by another user",
+            ));
+        }
+        let mode = metadata.mode();
+        // Sticky shared directories protect our entries without changing
+        // their normal permissions; in particular, never chmod /tmp.
+        if mode & 0o022 != 0 && mode & libc::S_ISVTX == 0 {
+            if metadata.uid() != uid {
+                return Err(io::Error::new(
+                    io::ErrorKind::PermissionDenied,
+                    "pidfile directory is writable by other users",
+                ));
+            }
+            directory.set_permissions(fs::Permissions::from_mode(mode & 0o7755))?;
+        }
+        Ok(())
+    }
+
+    fn directory_components(path: &Path) -> VecDeque<OsString> {
+        path.components()
+            .map(|component| component.as_os_str().to_owned())
+            .collect()
+    }
+
+    fn read_link_at(parent: &fs::File, name: &CString) -> io::Result<PathBuf> {
+        let mut buffer = vec![0_u8; 256];
+        loop {
+            // SAFETY: the descriptor and name are valid and buffer points
+            // to buffer.len() writable bytes. readlinkat adds no NUL.
+            let size = unsafe {
+                libc::readlinkat(
+                    parent.as_raw_fd(),
+                    name.as_ptr(),
+                    buffer.as_mut_ptr().cast(),
+                    buffer.len(),
+                )
+            };
+            if size < 0 {
+                return Err(io::Error::last_os_error());
+            }
+            if (size as usize) < buffer.len() {
+                buffer.truncate(size as usize);
+                return Ok(PathBuf::from(OsString::from_vec(buffer)));
+            }
+            if buffer.len() >= 65536 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "symlink too long",
+                ));
+            }
+            buffer.resize(buffer.len() * 2, 0);
+        }
+    }
+
+    fn open_pid_directory(path: &Path, uid: libc::uid_t) -> io::Result<fs::File> {
+        let absolute = if path.is_absolute() {
+            path.to_owned()
+        } else {
+            std::env::current_dir()?.join(path)
+        };
+        let mut pending = directory_components(&absolute);
+        let mut directory = fs::File::open("/")?;
+        secure_pid_directory(&directory, uid)?;
+        let mut symlinks = 0;
+        while let Some(component) = pending.pop_front() {
+            if component == "/" {
+                directory = fs::File::open("/")?;
+                secure_pid_directory(&directory, uid)?;
+                continue;
+            }
+            let name = path_component(&component)?;
+            loop {
+                // SAFETY: both descriptor and NUL-terminated name are
+                // valid. O_NOFOLLOW keeps inspection tied to this entry.
+                let fd = unsafe {
+                    libc::openat(
+                        directory.as_raw_fd(),
+                        name.as_ptr(),
+                        libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                    )
+                };
+                if fd >= 0 {
+                    // SAFETY: openat returned a new owned descriptor.
+                    let next = unsafe { fs::File::from_raw_fd(fd) };
+                    secure_pid_directory(&next, uid)?;
+                    directory = next;
+                    break;
+                }
+                let open_error = io::Error::last_os_error();
+                match inspect_at(&directory, &name)? {
+                    None => {
+                        // SAFETY: the secured parent descriptor and name
+                        // are valid; newly created directories are private
+                        // to their owner for modifications.
+                        if unsafe { libc::mkdirat(directory.as_raw_fd(), name.as_ptr(), 0o755) }
+                            != 0
+                            && io::Error::last_os_error().kind() != io::ErrorKind::AlreadyExists
+                        {
+                            return Err(io::Error::last_os_error());
+                        }
+                    }
+                    Some(stat) if stat.st_mode & libc::S_IFMT == libc::S_IFLNK => {
+                        if !trusted_owner(stat.st_uid, uid) || symlinks >= 40 {
+                            return Err(io::Error::new(
+                                io::ErrorKind::PermissionDenied,
+                                "untrusted or looping pidfile directory symlink",
+                            ));
+                        }
+                        symlinks += 1;
+                        let target = read_link_at(&directory, &name)?;
+                        for component in directory_components(&target).into_iter().rev() {
+                            pending.push_front(component);
+                        }
+                        break;
+                    }
+                    Some(_) => return Err(open_error),
+                }
+            }
+        }
+        Ok(directory)
+    }
+
+    fn validate_pid_entry(stat: &libc::stat, uid: libc::uid_t) -> io::Result<()> {
+        if stat.st_mode & libc::S_IFMT != libc::S_IFREG || stat.st_uid != uid {
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "existing pidfile must be a regular file owned by the daemon user",
+            ));
+        }
+        Ok(())
+    }
+
+    fn write_pid_file_inner(path: &Path) -> io::Result<()> {
+        use std::io::Write;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static NEXT_TEMP: AtomicUsize = AtomicUsize::new(0);
+
+        let name = path.file_name().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidInput, "pidfile path has no filename")
+        })?;
+        let name = path_component(name)?;
+        // SAFETY: geteuid has no safety preconditions.
+        let uid = unsafe { libc::geteuid() };
+        let directory = open_pid_directory(path.parent().unwrap_or(Path::new(".")), uid)?;
+        if let Some(stat) = inspect_at(&directory, &name)? {
+            validate_pid_entry(&stat, uid)?;
+        }
+        let pid = std::process::id();
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let (temporary, mut file) = (0..128)
+            .find_map(|_| {
+                let serial = NEXT_TEMP.fetch_add(1, Ordering::Relaxed);
+                let temporary = CString::new(format!(".rs-l2tpd-{pid}-{nonce}-{serial}.tmp"))
+                    .expect("generated name contains no NUL");
+                // SAFETY: the directory and name are valid. O_EXCL creates
+                // a fresh inode and refuses any preexisting entry.
+                let fd = unsafe {
+                    libc::openat(
+                        directory.as_raw_fd(),
+                        temporary.as_ptr(),
+                        libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_CLOEXEC,
+                        0o600,
+                    )
+                };
+                if fd >= 0 {
+                    // SAFETY: openat returned a new owned descriptor.
+                    Some(Ok((temporary, unsafe { fs::File::from_raw_fd(fd) })))
+                } else {
+                    let error = io::Error::last_os_error();
+                    (error.kind() != io::ErrorKind::AlreadyExists).then_some(Err(error))
+                }
+            })
+            .unwrap_or_else(|| Err(io::Error::other("cannot create temporary pidfile")))?;
+        let result = (|| {
+            file.write_all(format!("{pid}\n").as_bytes())?;
+            file.set_permissions(fs::Permissions::from_mode(0o644))?;
+            file.sync_all()?;
+            for _ in 0..128 {
+                let existing = inspect_at(&directory, &name)?;
+                if let Some(stat) = existing {
+                    validate_pid_entry(&stat, uid)?;
+                    // SAFETY: both names and their secured directory are
+                    // valid. Replacing the entry never follows a symlink.
+                    if unsafe {
+                        libc::renameat(
+                            directory.as_raw_fd(),
+                            temporary.as_ptr(),
+                            directory.as_raw_fd(),
+                            name.as_ptr(),
+                        )
+                    } == 0
+                    {
+                        return Ok(());
+                    }
+                    return Err(io::Error::last_os_error());
+                }
+                // SAFETY: both names and the secured directory are valid.
+                // linkat publishes without overwriting an entry created
+                // by another user in a sticky directory since inspection.
+                if unsafe {
+                    libc::linkat(
+                        directory.as_raw_fd(),
+                        temporary.as_ptr(),
+                        directory.as_raw_fd(),
+                        name.as_ptr(),
+                        0,
+                    )
+                } == 0
+                {
+                    return Ok(());
+                }
+                let error = io::Error::last_os_error();
+                if error.kind() != io::ErrorKind::AlreadyExists {
+                    return Err(error);
+                }
+            }
+            Err(io::Error::other(
+                "pidfile changed repeatedly during publication",
+            ))
+        })();
+        // SAFETY: this is the temporary entry created above, relative to
+        // the same held directory. After renameat it no longer exists.
+        unsafe { libc::unlinkat(directory.as_raw_fd(), temporary.as_ptr(), 0) };
+        result
     }
 
     pub(crate) fn remove_pid_file(path: PathBuf) {
@@ -259,6 +492,28 @@ mod unix_daemon {
         // SAFETY: closing an fd is safe; errors are intentionally ignored for cleanup.
         unsafe {
             let _ = libc::close(fd);
+        }
+    }
+
+    #[cfg(test)]
+    mod pid_security_tests {
+        use super::{trusted_owner, validate_pid_entry};
+
+        #[test]
+        fn rejects_foreign_owned_pid_entries_for_root_and_capability_users() {
+            // SAFETY: libc::stat consists of integer fields and padding;
+            // zero is a valid initial value for every field.
+            let mut stat: libc::stat = unsafe { std::mem::zeroed() };
+            stat.st_mode = libc::S_IFREG | 0o644;
+            for uid in [0, 1000] {
+                stat.st_uid = uid;
+                assert!(validate_pid_entry(&stat, uid).is_ok());
+                stat.st_uid = uid + 1;
+                assert!(validate_pid_entry(&stat, uid).is_err());
+                assert!(trusted_owner(0, uid));
+                assert!(trusted_owner(uid, uid));
+                assert!(!trusted_owner(uid + 1, uid));
+            }
         }
     }
 }
@@ -335,8 +590,9 @@ fn install_signal_handlers(control: Control) -> Result<()> {
     tokio::spawn(async move {
         while hup.recv().await.is_some() {
             info!("received SIGHUP");
-            if let Err(e) = hup_control.reload() {
-                warn!("reload request dropped: {}", e);
+            if let Err(e) = hup_control.reload_wait().await {
+                warn!("service stopped before reload could be delivered: {}", e);
+                break;
             }
         }
     });
@@ -732,7 +988,7 @@ mod tests {
         // A broken drop-in names its file.
         fs::write(
             dropin_dir.join("20-bad.toml"),
-            "[sessions.sess0]\ninterface_name = \"a b\"\n",
+            "[sessions.sess0]\ninterface_name = [\n",
         )
         .expect("write bad dropin");
         let err = load_config_at(&main_file, &dropin_dir).unwrap_err();
@@ -771,6 +1027,82 @@ mod tests {
         assert_eq!(fs::read_to_string(&target).unwrap(), "1\n");
 
         fs::remove_dir_all(temp_dir).expect("cleanup temp dir");
+    }
+
+    #[test]
+    fn write_pid_file_replaces_legacy_inode_and_repairs_directory_permissions() {
+        use std::io::{Seek, SeekFrom, Write};
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+        let temp_dir = unique_temp_dir("pidfile-legacy");
+        let parent = temp_dir.join("run");
+        let dir = parent.join("nested");
+        fs::create_dir_all(&dir).unwrap();
+        fs::set_permissions(&parent, fs::Permissions::from_mode(0o777)).unwrap();
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o777)).unwrap();
+        let pidfile = dir.join("daemon.pid");
+        fs::write(&pidfile, "123\n").unwrap();
+        fs::set_permissions(&pidfile, fs::Permissions::from_mode(0o666)).unwrap();
+        let mut old_descriptor = fs::OpenOptions::new().write(true).open(&pidfile).unwrap();
+        let old_inode = old_descriptor.metadata().unwrap().ino();
+
+        super::unix_daemon::write_pid_file(&pidfile).unwrap();
+        let expected = format!("{}\n", std::process::id());
+        assert_eq!(fs::read_to_string(&pidfile).unwrap(), expected);
+        assert_ne!(fs::metadata(&pidfile).unwrap().ino(), old_inode);
+        assert_eq!(fs::metadata(&pidfile).unwrap().mode() & 0o777, 0o644);
+        assert_eq!(fs::metadata(&parent).unwrap().mode() & 0o777, 0o755);
+        assert_eq!(fs::metadata(&dir).unwrap().mode() & 0o777, 0o755);
+
+        // A writer who opened the old world-writable file can still write
+        // that inode, but can no longer alter the published PID.
+        old_descriptor.seek(SeekFrom::Start(0)).unwrap();
+        old_descriptor.write_all(b"999999\n").unwrap();
+        old_descriptor.sync_all().unwrap();
+        assert_eq!(fs::read_to_string(&pidfile).unwrap(), expected);
+        assert_eq!(fs::read_dir(&dir).unwrap().count(), 1);
+        fs::remove_dir_all(temp_dir).unwrap();
+    }
+
+    #[test]
+    fn write_pid_file_preserves_sticky_directories_and_follows_trusted_directory_symlinks() {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+        let temp_dir = unique_temp_dir("pidfile-sticky");
+        let shared = temp_dir.join("shared");
+        fs::create_dir(&shared).unwrap();
+        fs::set_permissions(&shared, fs::Permissions::from_mode(0o1777)).unwrap();
+        // Like /var/run -> /run, this is a trusted directory alias.
+        let alias = temp_dir.join("alias");
+        std::os::unix::fs::symlink("shared", &alias).unwrap();
+        let pidfile = alias.join("daemon.pid");
+        super::unix_daemon::write_pid_file(&pidfile).unwrap();
+        super::unix_daemon::write_pid_file(&pidfile).unwrap();
+        assert_eq!(fs::metadata(&shared).unwrap().mode() & 0o7777, 0o1777);
+        assert_eq!(fs::metadata(&pidfile).unwrap().mode() & 0o777, 0o644);
+        assert_eq!(fs::read_dir(&shared).unwrap().count(), 1);
+        fs::remove_dir_all(temp_dir).unwrap();
+    }
+
+    #[test]
+    fn write_pid_file_rejects_nonregular_entries_and_directory_symlink_loops() {
+        use std::os::unix::ffi::OsStrExt;
+
+        let temp_dir = unique_temp_dir("pidfile-types");
+        let directory = temp_dir.join("directory.pid");
+        fs::create_dir(&directory).unwrap();
+        assert!(super::unix_daemon::write_pid_file(&directory).is_err());
+
+        let fifo = temp_dir.join("fifo.pid");
+        let fifo_name = std::ffi::CString::new(fifo.as_os_str().as_bytes()).unwrap();
+        // SAFETY: fifo_name is a valid NUL-terminated pathname.
+        assert_eq!(unsafe { libc::mkfifo(fifo_name.as_ptr(), 0o600) }, 0);
+        assert!(super::unix_daemon::write_pid_file(&fifo).is_err());
+
+        let loop_link = temp_dir.join("loop");
+        std::os::unix::fs::symlink("loop", &loop_link).unwrap();
+        assert!(super::unix_daemon::write_pid_file(&loop_link.join("daemon.pid")).is_err());
+        fs::remove_dir_all(temp_dir).unwrap();
     }
 
     #[cfg(feature = "setup")]

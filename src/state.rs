@@ -55,6 +55,23 @@ impl Drop for Rtnl {
     }
 }
 
+#[async_trait::async_trait]
+trait LinkOps: Sync {
+    async fn get_link(&self, index: u32) -> Result<LinkMessage>;
+    async fn set_link(&self, message: LinkMessage) -> std::result::Result<(), rtnetlink::Error>;
+}
+
+#[async_trait::async_trait]
+impl LinkOps for Rtnl {
+    async fn get_link(&self, index: u32) -> Result<LinkMessage> {
+        Rtnl::get_link(self, index).await
+    }
+
+    async fn set_link(&self, message: LinkMessage) -> std::result::Result<(), rtnetlink::Error> {
+        Rtnl::set_link(self, message).await
+    }
+}
+
 fn link_name(link: &LinkMessage) -> Option<L2tpIfName> {
     link.attributes.iter().find_map(|attr| match attr {
         LinkAttribute::IfName(name) => L2tpIfName::from_name(name).ok(),
@@ -108,10 +125,19 @@ async fn rename_interface(index: u32, new: &L2tpIfName) -> Result<()> {
 /// An `l2tpeth` device only accepts a new address while it is down. If the
 /// device is up, it is taken down for the change and brought up again, so
 /// that the configured address is applied rather than silently skipped.
-async fn apply_hwaddr(index: u32, target: HwAddr) -> Result<()> {
+async fn apply_hwaddr(index: u32, target: HwAddr, restore_up: &mut bool) -> Result<()> {
     let rtnl = Rtnl::connect()?;
+    apply_hwaddr_with(&rtnl, index, target, restore_up).await
+}
+
+async fn apply_hwaddr_with(
+    rtnl: &impl LinkOps,
+    index: u32,
+    target: HwAddr,
+    restore_up: &mut bool,
+) -> Result<()> {
     let link = rtnl.get_link(index).await?;
-    if link_hwaddr(&link) == Some(target) {
+    if link_hwaddr(&link) == Some(target) && !*restore_up {
         return Ok(());
     }
 
@@ -126,33 +152,34 @@ async fn apply_hwaddr(index: u32, target: HwAddr) -> Result<()> {
         ))
     };
 
-    match rtnl.set_link(address_message()).await {
-        Ok(()) => {}
-        Err(e) if is_netlink_errno(&e, libc::EBUSY) && link_is_up(&link) => {
-            info!("interface index {index} is up; taking it down to set hardware address {target}");
-            rtnl.set_link(LinkUnspec::new_with_index(index).down().build())
-                .await
-                .map_err(|e| {
-                    Error::Other(format!(
+    let changed = if link_hwaddr(&link) == Some(target) {
+        Ok(())
+    } else {
+        match rtnl.set_link(address_message()).await {
+            Ok(()) => Ok(()),
+            Err(e) if is_netlink_errno(&e, libc::EBUSY) && link_is_up(&link) => {
+                info!("interface index {index} is up; taking it down to set hardware address {target}");
+                // Retain this obligation across errors and cancellation. A retry
+                // must restore UP even if the address was already changed.
+                *restore_up = true;
+                let down = rtnl
+                    .set_link(LinkUnspec::new_with_index(index).down().build())
+                    .await;
+                match down {
+                    Ok(()) => rtnl.set_link(address_message()).await.map_err(failure),
+                    Err(e) => Err(Error::Other(format!(
                         "failed to take interface index {index} down for a hardware address change: {e}"
-                    ))
-                })?;
-            let result = rtnl.set_link(address_message()).await.map_err(failure);
-            // Bring the device back up whether or not the change succeeded.
-            if let Err(e) = rtnl
-                .set_link(LinkUnspec::new_with_index(index).up().build())
-                .await
-            {
-                warn!("failed to bring interface index {index} back up: {e}");
-                result?;
-                return Err(Error::Other(format!(
-                    "failed to bring interface index {index} back up after a hardware address change: {e}"
-                )));
+                    ))),
+                }
             }
-            result?;
+            Err(e) => Err(failure(e)),
         }
-        Err(e) => return Err(failure(e)),
-    }
+    };
+
+    // Restore the original link state even when setting the address failed.
+    let restored = restore_link_up(rtnl, index, restore_up).await;
+    changed?;
+    restored?;
 
     let link = rtnl.get_link(index).await?;
     match link_hwaddr(&link) {
@@ -162,6 +189,22 @@ async fn apply_hwaddr(index: u32, target: HwAddr) -> Result<()> {
             current.map_or_else(|| "<none>".to_string(), |a| a.to_string())
         ))),
     }
+}
+
+async fn restore_link_up(rtnl: &impl LinkOps, index: u32, restore_up: &mut bool) -> Result<()> {
+    if !*restore_up {
+        return Ok(());
+    }
+    rtnl.set_link(LinkUnspec::new_with_index(index).up().build())
+        .await
+        .map_err(|e| {
+            warn!("failed to bring interface index {index} back up: {e}");
+            Error::Other(format!(
+                "failed to bring interface index {index} back up after a hardware address change: {e}"
+            ))
+        })?;
+    *restore_up = false;
+    Ok(())
 }
 
 /// Resolves `if_name` in the daemon's own network namespace.
@@ -266,6 +309,11 @@ pub(crate) struct SessionState {
     /// The hardware address the kernel assigned at creation, restored when
     /// the configuration stops naming one.
     initial_hwaddr: Option<HwAddr>,
+    /// A MAC change took the device down and still owes it an UP request.
+    restore_up: bool,
+    /// Retry against the next desired configuration even if its stored
+    /// specification matches the value from before a partial update.
+    hwaddr_pending: bool,
     // Keep session handle alive for the session lifecycle even when we don't call methods on it.
     #[allow(dead_code)]
     handle: l2tp::SessionHandle,
@@ -287,6 +335,9 @@ pub(crate) struct State {
 
     /// tunnel_id to TunnelState
     tunnels: RwLock<BTreeMap<u32, TunnelState>>,
+    /// Sessions created in the kernel whose preparation has not completed.
+    /// Keep ownership until rollback is acknowledged, including across errors.
+    pending_sessions: RwLock<BTreeMap<(u32, u32), l2tp::SessionHandle>>,
 }
 
 fn tunnel_socket(tunnel: &TunnelState) -> Result<&l2tp::TunnelSocket> {
@@ -350,11 +401,33 @@ fn remove_if_delete_succeeded<K: Ord, V>(
     Ok(map.remove(key))
 }
 
+/// Deletion borrows each handle's owner; an error must not consume it.
+async fn cleanup_pending_entries<K, V, F, Fut>(
+    entries: &mut BTreeMap<K, V>,
+    mut delete: F,
+) -> Result<()>
+where
+    K: Copy + Ord,
+    F: FnMut(K) -> Fut,
+    Fut: std::future::Future<Output = Result<()>>,
+{
+    let keys: Vec<_> = entries.keys().copied().collect();
+    for key in keys {
+        delete(key).await?;
+        entries.remove(&key);
+    }
+    Ok(())
+}
+
 impl State {
     pub(crate) async fn new() -> Result<Self> {
         let handle = l2tp::L2tpHandle::new().await.map_err(Error::L2tp)?;
         let tunnels = RwLock::new(BTreeMap::new());
-        Ok(Self { handle, tunnels })
+        Ok(Self {
+            handle,
+            tunnels,
+            pending_sessions: RwLock::new(BTreeMap::new()),
+        })
     }
 
     pub(crate) async fn has_tunnel(&self, tunnel_id: u32) -> bool {
@@ -543,7 +616,25 @@ impl State {
             return Err(Error::Other(format!("Tunnel not found: {}", tunnel_id)));
         }
 
+        self.pending_sessions
+            .write()
+            .await
+            .retain(|(parent, _), _| *parent != tunnel_id);
+
         Ok(())
+    }
+
+    pub(crate) async fn cleanup_pending_sessions(&self) -> Result<()> {
+        let mut pending = self.pending_sessions.write().await;
+        cleanup_pending_entries(&mut pending, |(tunnel_id, session_id)| async move {
+            deletion_result(
+                &format!("incomplete session_id={session_id} in tunnel_id={tunnel_id}"),
+                self.handle
+                    .delete_session(l2tp::TunnelId(tunnel_id), l2tp::SessionId(session_id))
+                    .await,
+            )
+        })
+        .await
     }
 
     async fn sessions_of(
@@ -570,6 +661,7 @@ impl State {
         if_name: &L2tpIfName,
         hwaddr: Option<&HwAddr>,
     ) -> Result<()> {
+        self.cleanup_pending_sessions().await?;
         if self.has_session(tunnel_id, session_id).await {
             return Err(Error::Other(format!(
                 "Session exists: {}, tunnel: {}",
@@ -597,6 +689,9 @@ impl State {
             ifname: Some(*if_name),
         };
 
+        // Acquire ownership storage before kernel creation, so there is no
+        // cancellation point between receiving the handle and retaining it.
+        let mut pending = self.pending_sessions.write().await;
         let mut handle = self
             .handle
             .create_session(config)
@@ -605,10 +700,16 @@ impl State {
 
         handle.set_auto_delete(false);
 
+        let index = handle.ifindex();
+        let key = (tunnel_id, session_id);
+        pending.insert(key, handle);
+        drop(pending);
+
         // Until the session is recorded, every failure removes it again so
-        // that nothing half-configured is left behind and reconcile retries.
+        // that reconcile can retry. Failed rollback retains the owned handle
+        // and is retried before the next reconciliation or creation.
         let prepared = async {
-            let Some(index) = handle.ifindex() else {
+            let Some(index) = index else {
                 // Only if the registration notification was lost and the name
                 // lookup failed too.
                 return Err(Error::Other(format!(
@@ -617,7 +718,8 @@ impl State {
             };
             let initial_hwaddr = link_hwaddr(&Rtnl::connect()?.get_link(index).await?);
             if let Some(hwaddr) = hwaddr {
-                apply_hwaddr(index, *hwaddr).await?;
+                let mut restore_up = false;
+                apply_hwaddr(index, *hwaddr, &mut restore_up).await?;
             }
             Ok((index, initial_hwaddr))
         }
@@ -626,7 +728,7 @@ impl State {
         let (index, initial_hwaddr) = match prepared {
             Ok(prepared) => prepared,
             Err(e) => {
-                if let Err(cleanup) = handle.delete().await {
+                if let Err(cleanup) = self.cleanup_pending_sessions().await {
                     warn!(
                         "failed to remove session {} in tunnel {} after a setup failure: {}",
                         session_id, tunnel_id, cleanup
@@ -636,13 +738,27 @@ impl State {
             }
         };
 
+        let mut sessions = sessions.write().await;
+        let handle = self
+            .pending_sessions
+            .write()
+            .await
+            .remove(&key)
+            .ok_or_else(|| {
+                Error::Other(format!(
+                    "session {session_id} in tunnel {tunnel_id} disappeared during preparation"
+                ))
+            })?;
+
         let session = SessionState {
             index,
             initial_hwaddr,
+            restore_up: false,
+            hwaddr_pending: false,
             handle,
         };
 
-        sessions.write().await.insert(session_id, session);
+        sessions.insert(session_id, session);
 
         Ok(())
     }
@@ -674,20 +790,49 @@ impl State {
         rename_interface(index, ifname).await
     }
 
-    /// Sets the session device's hardware address, or restores the address
-    /// the kernel assigned at creation when `hwaddr` is `None`.
+    /// Whether a partial MAC update still needs convergence.
+    pub(crate) async fn session_hwaddr_pending(&self, tunnel_id: u32, session_id: u32) -> bool {
+        let Some(sessions) = self.sessions_of(tunnel_id).await else {
+            return false;
+        };
+        let sessions = sessions.read().await;
+        sessions
+            .get(&session_id)
+            .is_some_and(|session| session.hwaddr_pending)
+    }
+
+    /// Applies the desired address and any outstanding link-state restoration.
     pub(crate) async fn set_session_hwaddr(
         &self,
         tunnel_id: u32,
         session_id: u32,
         hwaddr: Option<&HwAddr>,
     ) -> Result<()> {
-        let (index, initial) = self.session_device(tunnel_id, session_id).await?;
-        match hwaddr.copied().or(initial) {
-            Some(target) => apply_hwaddr(index, target).await,
-            // No configured address and no usable creation-time address.
+        let sessions = self
+            .sessions_of(tunnel_id)
+            .await
+            .ok_or_else(|| Error::Other(format!("No such tunnel: {tunnel_id}")))?;
+        let mut sessions = sessions.write().await;
+        let session = sessions.get_mut(&session_id).ok_or_else(|| {
+            Error::Other(format!(
+                "No such session {session_id} in tunnel {tunnel_id}"
+            ))
+        })?;
+        session.hwaddr_pending = true;
+        let result = match hwaddr.copied().or(session.initial_hwaddr) {
+            Some(target) => apply_hwaddr(session.index, target, &mut session.restore_up).await,
+            // Even without a usable creation-time address, a previous MAC
+            // update may still owe the device its original UP state.
+            None if session.restore_up => {
+                let rtnl = Rtnl::connect()?;
+                restore_link_up(&rtnl, session.index, &mut session.restore_up).await
+            }
             None => Ok(()),
+        };
+        if result.is_ok() {
+            session.hwaddr_pending = false;
         }
+        result
     }
 
     pub(crate) async fn delete_session(&self, tunnel_id: u32, session_id: u32) -> Result<()> {
@@ -735,6 +880,222 @@ mod tests {
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
     use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
     use std::sync::atomic::{AtomicU32, Ordering};
+    use std::sync::{Arc, Mutex};
+
+    struct MockLink {
+        link: super::LinkMessage,
+        fail_up: usize,
+        fail_address_down: usize,
+        up_requests: usize,
+    }
+
+    fn netlink_error(code: i32) -> rtnetlink::Error {
+        let mut error = rtnetlink::packet_core::ErrorMessage::default();
+        error.code = std::num::NonZeroI32::new(-code);
+        rtnetlink::Error::NetlinkError(error)
+    }
+
+    #[async_trait::async_trait]
+    impl super::LinkOps for Mutex<MockLink> {
+        async fn get_link(&self, _index: u32) -> crate::Result<super::LinkMessage> {
+            Ok(self.lock().unwrap().link.clone())
+        }
+
+        async fn set_link(
+            &self,
+            message: super::LinkMessage,
+        ) -> std::result::Result<(), rtnetlink::Error> {
+            let mut state = self.lock().unwrap();
+            if let Some(address) = message.attributes.iter().find_map(|attr| match attr {
+                super::LinkAttribute::Address(address) => Some(address.clone()),
+                _ => None,
+            }) {
+                if super::link_is_up(&state.link) {
+                    return Err(netlink_error(libc::EBUSY));
+                }
+                if state.fail_address_down > 0 {
+                    state.fail_address_down -= 1;
+                    return Err(netlink_error(libc::ENOMEM));
+                }
+                state.link.attributes = vec![super::LinkAttribute::Address(address)];
+            } else if super::link_is_up(&message) {
+                state.up_requests += 1;
+                if state.fail_up > 0 {
+                    state.fail_up -= 1;
+                    return Err(netlink_error(libc::ENOMEM));
+                }
+                state.link.header.flags.insert(super::LinkFlags::Up);
+            } else {
+                state.link.header.flags.remove(super::LinkFlags::Up);
+            }
+            Ok(())
+        }
+    }
+
+    fn mock_link(up: bool, fail_up: usize, fail_address_down: usize) -> Mutex<MockLink> {
+        let mut link = super::LinkMessage::default();
+        if up {
+            link.header.flags.insert(super::LinkFlags::Up);
+        }
+        link.attributes
+            .push(super::LinkAttribute::Address(vec![2, 0, 0, 0, 0, 1]));
+        Mutex::new(MockLink {
+            link,
+            fail_up,
+            fail_address_down,
+            up_requests: 0,
+        })
+    }
+
+    #[tokio::test]
+    async fn hwaddr_retry_restores_up_after_the_address_already_changed() {
+        let link = mock_link(true, 2, 0);
+        let target = "02:00:00:00:00:02".parse().unwrap();
+        let mut restore_up = false;
+        for _ in 0..2 {
+            assert!(super::apply_hwaddr_with(&link, 1, target, &mut restore_up)
+                .await
+                .is_err());
+            assert!(restore_up);
+            let state = link.lock().unwrap();
+            assert_eq!(super::link_hwaddr(&state.link), Some(target));
+            assert!(!super::link_is_up(&state.link));
+        }
+        super::apply_hwaddr_with(&link, 1, target, &mut restore_up)
+            .await
+            .unwrap();
+        assert!(!restore_up);
+        assert!(super::link_is_up(&link.lock().unwrap().link));
+        super::apply_hwaddr_with(&link, 1, target, &mut restore_up)
+            .await
+            .unwrap();
+        assert_eq!(link.lock().unwrap().up_requests, 3);
+    }
+
+    #[tokio::test]
+    async fn hwaddr_retry_recovers_when_address_and_up_both_fail() {
+        let link = mock_link(true, 1, 1);
+        let target = "02:00:00:00:00:02".parse().unwrap();
+        let mut restore_up = false;
+        assert!(super::apply_hwaddr_with(&link, 1, target, &mut restore_up)
+            .await
+            .is_err());
+        assert!(restore_up);
+        assert_ne!(super::link_hwaddr(&link.lock().unwrap().link), Some(target));
+        super::apply_hwaddr_with(&link, 1, target, &mut restore_up)
+            .await
+            .unwrap();
+        let state = link.lock().unwrap();
+        assert_eq!(super::link_hwaddr(&state.link), Some(target));
+        assert!(super::link_is_up(&state.link));
+        assert!(!restore_up);
+    }
+
+    #[tokio::test]
+    async fn hwaddr_retry_can_revert_to_the_previous_desired_address() {
+        let link = mock_link(true, 1, 0);
+        let original = "02:00:00:00:00:01".parse().unwrap();
+        let changed = "02:00:00:00:00:02".parse().unwrap();
+        let mut restore_up = false;
+        assert!(super::apply_hwaddr_with(&link, 1, changed, &mut restore_up)
+            .await
+            .is_err());
+        assert_eq!(
+            super::link_hwaddr(&link.lock().unwrap().link),
+            Some(changed)
+        );
+        // A reload can withdraw the failed change before its next retry.
+        super::apply_hwaddr_with(&link, 1, original, &mut restore_up)
+            .await
+            .unwrap();
+        let state = link.lock().unwrap();
+        assert_eq!(super::link_hwaddr(&state.link), Some(original));
+        assert!(super::link_is_up(&state.link));
+        assert!(!restore_up);
+    }
+
+    #[tokio::test]
+    async fn hwaddr_change_preserves_an_initially_down_device() {
+        let link = mock_link(false, 0, 0);
+        let mut restore_up = false;
+        super::apply_hwaddr_with(
+            &link,
+            1,
+            "02:00:00:00:00:02".parse().unwrap(),
+            &mut restore_up,
+        )
+        .await
+        .unwrap();
+        let state = link.lock().unwrap();
+        assert!(!super::link_is_up(&state.link));
+        assert_eq!(state.up_requests, 0);
+    }
+
+    #[tokio::test]
+    async fn pending_up_restoration_needs_no_hardware_address_target() {
+        let link = mock_link(false, 1, 0);
+        let mut restore_up = true;
+        assert!(super::restore_link_up(&link, 1, &mut restore_up)
+            .await
+            .is_err());
+        assert!(restore_up);
+        super::restore_link_up(&link, 1, &mut restore_up)
+            .await
+            .unwrap();
+        assert!(!restore_up);
+        let state = link.lock().unwrap();
+        assert!(super::link_is_up(&state.link));
+        assert_eq!(
+            super::link_hwaddr(&state.link),
+            Some("02:00:00:00:00:01".parse().unwrap())
+        );
+    }
+
+    #[tokio::test]
+    async fn failed_session_rollback_retains_ownership_until_a_successful_retry() {
+        struct OwnedSession(Arc<AtomicU32>);
+        impl Drop for OwnedSession {
+            fn drop(&mut self) {
+                self.0.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+        let dropped = Arc::new(AtomicU32::new(0));
+        let mut pending = BTreeMap::from([((10, 20), OwnedSession(dropped.clone()))]);
+        let mut attempts = 0;
+        // Setup failed after kernel creation. Two unsuccessful rollback
+        // attempts must retain the handle and the identifier for retry.
+        for _ in 0..2 {
+            assert!(super::cleanup_pending_entries(&mut pending, |key| {
+                assert_eq!(key, (10, 20));
+                attempts += 1;
+                std::future::ready(Err(crate::Error::Other("delete failed".into())))
+            })
+            .await
+            .is_err());
+            assert!(pending.contains_key(&(10, 20)));
+            assert_eq!(dropped.load(Ordering::SeqCst), 0);
+        }
+        super::cleanup_pending_entries(&mut pending, |key| {
+            assert_eq!(key, (10, 20));
+            attempts += 1;
+            std::future::ready(Ok(()))
+        })
+        .await
+        .unwrap();
+        assert_eq!(attempts, 3);
+        assert_eq!(dropped.load(Ordering::SeqCst), 1);
+        assert!(pending.is_empty());
+        super::cleanup_pending_entries(&mut pending, |_| {
+            attempts += 1;
+            std::future::ready(Ok(()))
+        })
+        .await
+        .unwrap();
+        assert_eq!(
+            attempts, 3,
+            "an acknowledged deletion must not be sent twice"
+        );
+    }
 
     fn ifname(name: &str) -> L2tpIfName {
         L2tpIfName::from_name(name).unwrap()
@@ -1031,10 +1392,13 @@ mod tests {
             .await
             .expect("retry with a reachable route");
         assert_eq!(with_socket(&state, id, socket_bound_interface).await, "lo");
-        let Encapsulation::Ip { local, .. } = tunnel_info(&state, id).await.encapsulation else {
-            panic!("expected IP encapsulation");
-        };
-        assert_eq!(local, IpEndpoint::v6(Ipv6Addr::LOCALHOST));
+        assert_eq!(
+            tunnel_info(&state, id).await.encapsulation,
+            Encapsulation::Ip {
+                local: IpEndpoint::v6(Ipv6Addr::LOCALHOST),
+                remote: IpEndpoint::v6(Ipv6Addr::LOCALHOST),
+            }
+        );
         state.delete_tunnel(id).await.unwrap();
     }
 

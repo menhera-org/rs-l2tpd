@@ -20,10 +20,11 @@ use std::{collections::BTreeMap, fmt, str::FromStr};
 use crate::error::{Error, Result};
 use iphost::IpHost;
 use l2tp::L2tpIfName;
+#[cfg(feature = "serde")]
+use l2tp::L2tpIfNameExt;
 
-/// Serde adapter for interface names: documents carry them as strings, and a
-/// name the kernel would reject is refused while the document is parsed, so
-/// the checked `L2tpIfName` is the only representation after that point.
+/// Serde adapter for checked interface names in complete configurations.
+/// Partial configurations retain strings until their overrides are merged.
 #[cfg(feature = "serde")]
 pub(crate) mod ifname_serde {
     use l2tp::{L2tpIfName, L2tpIfNameExt};
@@ -183,9 +184,9 @@ fn merge_opt<T>(dst: &mut Option<T>, src: Option<T>) {
 
 /// A configuration as deserialised from one document: every field is
 /// optional so that several documents can be merged before the result is
-/// validated. Interface names and hardware addresses are still checked
-/// while deserialising, so an invalid value is reported with the document
-/// it came from.
+/// validated. Interface names are checked after merging, so a later document
+/// can replace an invalid placeholder. Hardware addresses are checked while
+/// deserialising.
 #[cfg(feature = "serde")]
 #[derive(Debug, Clone, serde::Deserialize, Default)]
 pub struct PartialConfig {
@@ -223,8 +224,7 @@ struct PartialTunnelConfig {
     peer_tunnel_id: Option<u32>,
     ip_version: Option<IpVersion>,
     remote_addr: Option<IpHost>,
-    #[serde(default, with = "ifname_serde::option")]
-    bind_interface: Option<L2tpIfName>,
+    bind_interface: Option<String>,
 }
 
 #[cfg(feature = "serde")]
@@ -253,8 +253,7 @@ impl PartialTunnelConfig {
             peer_tunnel_id: self.peer_tunnel_id.unwrap_or(tunnel_id),
             ip_version,
             remote_addr,
-            // Interface names were validated when the document was parsed.
-            bind_interface: self.bind_interface,
+            bind_interface: self.bind_interface.map(L2tpIfName::from_name).transpose()?,
         };
         config.validate()?;
         Ok(config)
@@ -267,8 +266,7 @@ struct PartialSessionConfig {
     tunnel_name: Option<String>,
     session_id: Option<u32>,
     peer_session_id: Option<u32>,
-    #[serde(default, with = "ifname_serde::option")]
-    interface_name: Option<L2tpIfName>,
+    interface_name: Option<String>,
     interface_hwaddr: Option<HwAddr>,
 }
 
@@ -289,11 +287,9 @@ impl PartialSessionConfig {
         let session_id = self
             .session_id
             .ok_or(Error::InvalidConfig("session_id is missing".to_string()))?;
-        // Interface names and hardware addresses were validated when the
-        // document was parsed.
-        let interface_name = self.interface_name.ok_or(Error::InvalidConfig(
-            "interface_name is missing".to_string(),
-        ))?;
+        let interface_name = L2tpIfName::from_name(self.interface_name.ok_or(
+            Error::InvalidConfig("interface_name is missing".to_string()),
+        )?)?;
 
         let config = SessionConfig {
             tunnel_name,
@@ -698,7 +694,7 @@ interface_hwaddr = "02:00:5E:00:53:01"
         }
 
         #[test]
-        fn rejects_invalid_interface_name_at_parse_time() {
+        fn rejects_invalid_interface_name_after_merging() {
             for bad in [
                 "this-interface-name-is-way-too-long",
                 "",
@@ -708,12 +704,50 @@ interface_hwaddr = "02:00:5E:00:53:01"
                 ".",
             ] {
                 let toml = VALID.replace("\"l2tp0\"", &format!("{bad:?}"));
-                let err = partial(&toml).expect_err(bad);
+                let err = partial(&toml).unwrap().into_config().expect_err(bad);
                 assert!(matches!(err, Error::InvalidConfig(_)), "{bad}: {err}");
+                assert!(toml::from_str::<Config>(&toml).is_err(), "{bad}");
 
                 let toml = VALID.replace("\"vrf0\"", &format!("{bad:?}"));
-                let err = partial(&toml).expect_err(bad);
+                let err = partial(&toml).unwrap().into_config().expect_err(bad);
                 assert!(matches!(err, Error::InvalidConfig(_)), "{bad}: {err}");
+                assert!(toml::from_str::<Config>(&toml).is_err(), "{bad}");
+            }
+        }
+
+        #[test]
+        fn later_documents_replace_invalid_interface_placeholders() {
+            for placeholder in ["", "this-interface-name-is-way-too-long", "a b", "a/b"] {
+                let base = VALID
+                    .replace("\"l2tp0\"", &format!("{placeholder:?}"))
+                    .replace("\"vrf0\"", &format!("{placeholder:?}"));
+                let mut merged = partial(&base).expect("parse base placeholders");
+                merged.merge(
+                    partial(
+                        "[sessions.sess0]\ninterface_name = \"l2tp9\"\n\
+                         [tunnels.tun0]\nbind_interface = \"vrf1\"\n",
+                    )
+                    .unwrap(),
+                );
+                let config = merged.into_config().expect("validate overridden names");
+                assert_eq!(
+                    config.sessions()["sess0"].interface_name(),
+                    &ifname("l2tp9")
+                );
+                assert_eq!(
+                    config.tunnels()["tun0"].bind_interface(),
+                    Some(&ifname("vrf1"))
+                );
+            }
+
+            // A bad final override still fails, even if the base was valid.
+            for invalid in [
+                "[sessions.sess0]\ninterface_name = \"\"\n",
+                "[tunnels.tun0]\nbind_interface = \"a/b\"\n",
+            ] {
+                let mut merged = partial(VALID).unwrap();
+                merged.merge(partial(invalid).unwrap());
+                assert!(merged.into_config().is_err());
             }
         }
 
