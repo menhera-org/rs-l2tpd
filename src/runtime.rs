@@ -1,6 +1,19 @@
+//! The reconciler: applies a [`Config`] to the kernel and keeps it applied.
+//!
+//! A [`Runtime`] owns the kernel state it created and converges it towards
+//! the configuration it was last given. It is driven by [`ControlEvent`]s
+//! that the caller forwards from a channel; [`crate::service::Service`] does
+//! this and is the easier entry point.
+//!
+//! Interfaces are identified by their index once they are known: a tunnel
+//! socket remembers the index of the device it was bound to, and session
+//! devices are renamed and configured by index. Configured names are only
+//! resolved at the moment a binding is made or checked.
+
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use iphost::{AutoIpHostResolver, IpHost, IpHostResolver};
+use l2tp::{L2tpIfName, L2tpIfNameExt};
 use log::{debug, info, warn};
 use rtnetlink::packet_core::NetlinkPayload;
 use rtnetlink::packet_route::{link::LinkAttribute, RouteNetlinkMessage};
@@ -15,7 +28,7 @@ use std::sync::Arc;
 use std::sync::RwLock as StdRwLock;
 use std::time::Duration;
 
-use crate::config::{Config, IpVersion};
+use crate::config::{Config, HwAddr, IpVersion};
 use crate::error::{Error, Result};
 use crate::state;
 
@@ -28,16 +41,42 @@ type DesiredSessionMap = BTreeMap<SessionKey, DesiredSession>;
 
 const DNS_REFRESH_INTERVAL_SECS: u64 = 30;
 const DNS_WATCH_POLL_INTERVAL_SECS: u64 = 1;
-const MAX_INTERFACE_NAME_LEN: usize = 15;
 const DISCARD_REMOTE_ADDR: IpAddr = IpAddr::V6(Ipv6Addr::new(0x0100, 0, 0, 0, 0, 0, 0, 0));
 
+/// Events that drive a [`Runtime`].
+///
+/// The runtime itself produces the DNS, interface and address events; the
+/// embedding program produces [`ReloadRequested`](Self::ReloadRequested)
+/// and [`ShutdownRequested`](Self::ShutdownRequested), typically from
+/// signals. The enum is `#[non_exhaustive]`.
 #[derive(Debug)]
-pub(crate) enum ControlEvent {
+#[non_exhaustive]
+pub enum ControlEvent {
+    /// The configuration should be read again and applied.
     ReloadRequested,
+    /// Every tunnel and session should be removed and the program should
+    /// exit.
     ShutdownRequested,
-    DnsChanged { tunnel_id: u32 },
-    InterfaceChanged { if_name: Option<String> },
-    LocalAddressChanged { if_index: u32 },
+    /// A tunnel's remote host name resolved to a different address.
+    DnsChanged {
+        /// The tunnel whose resolver changed.
+        tunnel_id: u32,
+    },
+    /// A network interface appeared or changed; `None` means "re-check all".
+    InterfaceChanged {
+        /// The name the kernel reported, when it is a valid one.
+        if_name: Option<L2tpIfName>,
+    },
+    /// A network interface was removed.
+    InterfaceRemoved {
+        /// The index of the removed interface.
+        if_index: u32,
+    },
+    /// An address was added to or removed from an interface.
+    LocalAddressChanged {
+        /// The index of the interface whose addresses changed.
+        if_index: u32,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -46,7 +85,7 @@ struct DesiredTunnel {
     peer_tunnel_id: u32,
     ip_version: IpVersion,
     remote_addr: IpHost,
-    bind_interface: Option<String>,
+    bind_interface: Option<L2tpIfName>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -54,7 +93,8 @@ struct DesiredSession {
     tunnel_id: u32,
     session_id: u32,
     peer_session_id: u32,
-    interface_name: String,
+    interface_name: L2tpIfName,
+    interface_hwaddr: Option<HwAddr>,
 }
 
 #[derive(Debug, Default)]
@@ -69,8 +109,11 @@ struct SessionPlan {
     to_delete: BTreeSet<SessionKey>,
     to_add: BTreeSet<SessionKey>,
     to_modify: Vec<SessionKey>,
+    to_set_hwaddr: Vec<SessionKey>,
 }
 
+/// The kernel operations the reconciler needs, as a trait so that tests can
+/// substitute a mock.
 #[async_trait]
 pub(crate) trait StateOps: Send + Sync {
     async fn has_tunnel(&self, tunnel_id: u32) -> bool;
@@ -79,23 +122,40 @@ pub(crate) trait StateOps: Send + Sync {
         tunnel_id: u32,
         peer_tunnel_id: u32,
         remote_addr: IpAddr,
-        if_name: Option<&str>,
+        if_name: Option<&L2tpIfName>,
     ) -> Result<()>;
     async fn modify_tunnel(&self, tunnel_id: u32, remote_addr: IpAddr) -> Result<()>;
     async fn reconnect_tunnel(&self, tunnel_id: u32) -> Result<()>;
-    async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &str) -> Result<()>;
+    async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &L2tpIfName) -> Result<()>;
+    /// The index of the device the tunnel socket is bound to, if any.
+    async fn bound_interface_index(&self, tunnel_id: u32) -> Option<u32>;
+    /// Forgets a binding whose device no longer exists.
+    async fn forget_tunnel_binding(&self, tunnel_id: u32);
     async fn delete_tunnel(&self, tunnel_id: u32) -> Result<()>;
-    async fn has_interface(&self, if_name: &str) -> Result<bool>;
-    async fn interface_index(&self, if_name: &str) -> Result<Option<u32>>;
+    async fn has_interface(&self, if_name: &L2tpIfName) -> Result<bool>;
+    /// The current name of the interface with `index`, `None` when it is gone.
+    async fn interface_name(&self, index: u32) -> Result<Option<L2tpIfName>>;
     async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool;
     async fn add_session(
         &self,
         tunnel_id: u32,
         session_id: u32,
         peer_session_id: u32,
-        if_name: &str,
+        if_name: &L2tpIfName,
+        hwaddr: Option<&HwAddr>,
     ) -> Result<()>;
-    async fn modify_session(&self, tunnel_id: u32, session_id: u32, ifname: &str) -> Result<()>;
+    async fn modify_session(
+        &self,
+        tunnel_id: u32,
+        session_id: u32,
+        ifname: &L2tpIfName,
+    ) -> Result<()>;
+    async fn set_session_hwaddr(
+        &self,
+        tunnel_id: u32,
+        session_id: u32,
+        hwaddr: Option<&HwAddr>,
+    ) -> Result<()>;
     async fn delete_session(&self, tunnel_id: u32, session_id: u32) -> Result<()>;
 }
 
@@ -110,7 +170,7 @@ impl StateOps for state::State {
         tunnel_id: u32,
         peer_tunnel_id: u32,
         remote_addr: IpAddr,
-        if_name: Option<&str>,
+        if_name: Option<&L2tpIfName>,
     ) -> Result<()> {
         state::State::add_tunnel(self, tunnel_id, peer_tunnel_id, remote_addr, if_name).await
     }
@@ -123,20 +183,28 @@ impl StateOps for state::State {
         state::State::reconnect_tunnel(self, tunnel_id).await
     }
 
-    async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &str) -> Result<()> {
+    async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &L2tpIfName) -> Result<()> {
         state::State::bind_tunnel_interface(self, tunnel_id, if_name).await
+    }
+
+    async fn bound_interface_index(&self, tunnel_id: u32) -> Option<u32> {
+        state::State::bound_interface_index(self, tunnel_id).await
+    }
+
+    async fn forget_tunnel_binding(&self, tunnel_id: u32) {
+        state::State::forget_tunnel_binding(self, tunnel_id).await
     }
 
     async fn delete_tunnel(&self, tunnel_id: u32) -> Result<()> {
         state::State::delete_tunnel(self, tunnel_id).await
     }
 
-    async fn has_interface(&self, if_name: &str) -> Result<bool> {
+    async fn has_interface(&self, if_name: &L2tpIfName) -> Result<bool> {
         state::State::has_interface(if_name).await
     }
 
-    async fn interface_index(&self, if_name: &str) -> Result<Option<u32>> {
-        state::State::interface_index(if_name).await
+    async fn interface_name(&self, index: u32) -> Result<Option<L2tpIfName>> {
+        state::State::interface_name(index).await
     }
 
     async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool {
@@ -148,13 +216,36 @@ impl StateOps for state::State {
         tunnel_id: u32,
         session_id: u32,
         peer_session_id: u32,
-        if_name: &str,
+        if_name: &L2tpIfName,
+        hwaddr: Option<&HwAddr>,
     ) -> Result<()> {
-        state::State::add_session(self, tunnel_id, session_id, peer_session_id, if_name).await
+        state::State::add_session(
+            self,
+            tunnel_id,
+            session_id,
+            peer_session_id,
+            if_name,
+            hwaddr,
+        )
+        .await
     }
 
-    async fn modify_session(&self, tunnel_id: u32, session_id: u32, ifname: &str) -> Result<()> {
+    async fn modify_session(
+        &self,
+        tunnel_id: u32,
+        session_id: u32,
+        ifname: &L2tpIfName,
+    ) -> Result<()> {
         state::State::modify_session(self, tunnel_id, session_id, ifname).await
+    }
+
+    async fn set_session_hwaddr(
+        &self,
+        tunnel_id: u32,
+        session_id: u32,
+        hwaddr: Option<&HwAddr>,
+    ) -> Result<()> {
+        state::State::set_session_hwaddr(self, tunnel_id, session_id, hwaddr).await
     }
 
     async fn delete_session(&self, tunnel_id: u32, session_id: u32) -> Result<()> {
@@ -344,18 +435,37 @@ impl Drop for ResolverRuntime {
     }
 }
 
-pub(crate) struct Runtime {
+/// Owns the kernel tunnels and sessions it created and converges them to a
+/// [`Config`].
+///
+/// Create one with [`Runtime::new`] inside a Tokio runtime, call
+/// [`reconcile`](Self::reconcile) with each configuration, and feed the
+/// [`ControlEvent`]s arriving on the channel to the matching `handle_*`
+/// method. [`shutdown`](Self::shutdown) removes everything again.
+///
+/// Dropping a `Runtime` stops its background tasks and closes the tunnel
+/// sockets, which tears the tunnels down; call `shutdown` first for an
+/// orderly removal.
+pub struct Runtime {
     state: Arc<dyn StateOps>,
     tunnel_specs: DesiredTunnelMap,
     session_specs: DesiredSessionMap,
-    pending_bind_interfaces: BTreeMap<TunnelId, String>,
+    pending_bind_interfaces: BTreeMap<TunnelId, L2tpIfName>,
     resolvers: BTreeMap<TunnelId, ResolverRuntime>,
     control_tx: mpsc::Sender<ControlEvent>,
     interface_worker: JoinHandle<()>,
 }
 
 impl Runtime {
-    pub(crate) fn new(state: Arc<state::State>, control_tx: mpsc::Sender<ControlEvent>) -> Self {
+    /// Opens the kernel L2TP interface and starts watching links and
+    /// addresses. Events are sent to `control_tx`; the caller reads the
+    /// other end and dispatches them.
+    pub async fn new(control_tx: mpsc::Sender<ControlEvent>) -> Result<Self> {
+        let state = Arc::new(state::State::new().await?);
+        Ok(Self::with_state_ops(state, control_tx))
+    }
+
+    fn with_state_ops(state: Arc<dyn StateOps>, control_tx: mpsc::Sender<ControlEvent>) -> Self {
         let interface_worker = spawn_interface_watcher(control_tx.clone());
         Self {
             state,
@@ -385,7 +495,13 @@ impl Runtime {
         }
     }
 
-    pub(crate) async fn reconcile(&mut self, config: &Config) -> Result<()> {
+    /// Converges the kernel state to `config`.
+    ///
+    /// Changes are applied in order: tunnels are deleted, added and
+    /// updated, then sessions are renamed, re-addressed, deleted and added.
+    /// On an error the work done so far is kept and recorded, so calling
+    /// again with the same configuration continues where it stopped.
+    pub async fn reconcile(&mut self, config: &Config) -> Result<()> {
         let (desired_tunnels, desired_sessions) = build_desired_maps(config)?;
         let mut applied_tunnel_specs = self.tunnel_specs.clone();
         let mut applied_session_specs = self.session_specs.clone();
@@ -454,16 +570,16 @@ impl Runtime {
                 desired.tunnel_id, desired.peer_tunnel_id, remote_addr
             );
             let bind_interface = self
-                .bind_interface_for_tunnel_add(desired.tunnel_id, desired.bind_interface.as_deref())
+                .bind_interface_for_tunnel_add(desired.tunnel_id, desired.bind_interface.as_ref())
                 .await;
-            let mut bound_interface = bind_interface.as_deref();
+            let mut bound_interface = bind_interface.as_ref();
             if let Err(e) = self
                 .state
                 .add_tunnel(
                     desired.tunnel_id,
                     desired.peer_tunnel_id,
                     remote_addr,
-                    bind_interface.as_deref(),
+                    bind_interface.as_ref(),
                 )
                 .await
             {
@@ -471,7 +587,10 @@ impl Runtime {
                     warn!(
                         "bind interface vanished for tunnel_id={} if_name={}; creating unbound socket",
                         desired.tunnel_id,
-                        desired.bind_interface.as_deref().unwrap_or("")
+                        desired
+                            .bind_interface
+                            .map(|name| name.to_string_lossy().into_owned())
+                            .unwrap_or_default()
                     );
                     if let Err(e) = self
                         .state
@@ -582,12 +701,11 @@ impl Runtime {
 
         let session_plan = plan_session_changes(&applied_session_specs, &desired_sessions);
 
-        let mut reserved_interface_names: BTreeSet<String> = applied_session_specs
+        let mut reserved_interface_names: BTreeSet<L2tpIfName> = applied_session_specs
             .values()
-            .map(|s| s.interface_name.clone())
+            .map(|s| s.interface_name)
             .collect();
-        reserved_interface_names
-            .extend(desired_sessions.values().map(|s| s.interface_name.clone()));
+        reserved_interface_names.extend(desired_sessions.values().map(|s| s.interface_name));
         let mut temp_interface_counter: u32 = 0;
 
         for (tunnel_id, session_id) in &session_plan.to_modify {
@@ -622,7 +740,31 @@ impl Runtime {
                     .modify_session(*tunnel_id, *session_id, &desired.interface_name)
                     .await
             );
-            applied_session_specs.insert((*tunnel_id, *session_id), desired.clone());
+            if let Some(applied) = applied_session_specs.get_mut(&(*tunnel_id, *session_id)) {
+                applied.interface_name = desired.interface_name;
+            }
+        }
+
+        for (tunnel_id, session_id) in &session_plan.to_set_hwaddr {
+            let desired = desired_sessions
+                .get(&(*tunnel_id, *session_id))
+                .expect("session exists in desired map");
+            info!(
+                "setting session interface hardware address tunnel_id={} session_id={} to {}",
+                tunnel_id,
+                session_id,
+                desired
+                    .interface_hwaddr
+                    .map_or_else(|| "<kernel default>".to_string(), |a| a.to_string())
+            );
+            try_apply!(
+                self.state
+                    .set_session_hwaddr(*tunnel_id, *session_id, desired.interface_hwaddr.as_ref())
+                    .await
+            );
+            if let Some(applied) = applied_session_specs.get_mut(&(*tunnel_id, *session_id)) {
+                applied.interface_hwaddr = desired.interface_hwaddr;
+            }
         }
 
         for (tunnel_id, session_id) in &session_plan.to_delete {
@@ -651,6 +793,7 @@ impl Runtime {
                         *session_id,
                         desired.peer_session_id,
                         &desired.interface_name,
+                        desired.interface_hwaddr.as_ref(),
                     )
                     .await
             );
@@ -664,7 +807,8 @@ impl Runtime {
         Ok(())
     }
 
-    pub(crate) async fn handle_dns_change(&self, tunnel_id: u32) {
+    /// Applies a tunnel's newly resolved remote address.
+    pub async fn handle_dns_change(&self, tunnel_id: u32) {
         let Some(resolver_runtime) = self.resolvers.get(&tunnel_id) else {
             return;
         };
@@ -706,16 +850,18 @@ impl Runtime {
         }
     }
 
-    pub(crate) async fn handle_interface_change(&mut self, changed_if_name: Option<&str>) {
-        let pending: Vec<(TunnelId, String)> = self
+    /// Binds tunnel sockets whose bind interface was absent, now that an
+    /// interface appeared or changed. `None` re-checks every pending one.
+    pub async fn handle_interface_change(&mut self, changed_if_name: Option<&L2tpIfName>) {
+        let pending: Vec<(TunnelId, L2tpIfName)> = self
             .pending_bind_interfaces
             .iter()
             .filter(|(_, if_name)| {
                 changed_if_name
-                    .map(|changed| changed == if_name.as_str())
+                    .map(|changed| changed == *if_name)
                     .unwrap_or(true)
             })
-            .map(|(tunnel_id, if_name)| (*tunnel_id, if_name.clone()))
+            .map(|(tunnel_id, if_name)| (*tunnel_id, *if_name))
             .collect();
 
         for (tunnel_id, if_name) in pending {
@@ -755,37 +901,49 @@ impl Runtime {
         }
     }
 
-    pub(crate) async fn handle_local_address_change(&self, if_index: u32) {
-        let mut retry_needed = false;
+    /// Forgets bindings to a removed interface, so that a new interface
+    /// with the configured name is bound when it appears.
+    pub async fn handle_interface_removed(&mut self, if_index: u32) {
         for desired in self.tunnel_specs.values() {
-            let Some(if_name) = desired.bind_interface.as_deref() else {
+            let Some(if_name) = desired.bind_interface else {
                 continue;
             };
-            let matches_interface = match self.state.interface_index(if_name).await {
-                Ok(Some(index)) => index == if_index,
-                Ok(None) => false,
-                Err(e) => {
-                    warn!(
-                        "failed to resolve bind interface index tunnel_id={} if_name={} error={}",
-                        desired.tunnel_id, if_name, e
-                    );
-                    false
-                }
+            if self.state.bound_interface_index(desired.tunnel_id).await != Some(if_index) {
+                continue;
+            }
+            info!(
+                "bind interface {} (index {}) of tunnel_id={} was removed; waiting for it to reappear",
+                if_name, if_index, desired.tunnel_id
+            );
+            self.state.forget_tunnel_binding(desired.tunnel_id).await;
+            self.pending_bind_interfaces
+                .insert(desired.tunnel_id, if_name);
+        }
+    }
+
+    /// Reconnects the tunnels bound to the interface whose addresses
+    /// changed, so that the kernel selects a source address again. A failed
+    /// reconnect is retried after one second.
+    pub async fn handle_local_address_change(&self, if_index: u32) {
+        let mut retry_needed = false;
+        for desired in self.tunnel_specs.values() {
+            let Some(if_name) = desired.bind_interface.as_ref() else {
+                continue;
             };
-            if !matches_interface {
+            if self.state.bound_interface_index(desired.tunnel_id).await != Some(if_index) {
                 continue;
             }
 
             match self.state.reconnect_tunnel(desired.tunnel_id).await {
                 Ok(()) => info!(
-                    "reconnected tunnel_id={} after local address change on {}",
-                    desired.tunnel_id, if_name
+                    "reconnected tunnel_id={} after local address change on {} (index {})",
+                    desired.tunnel_id, if_name, if_index
                 ),
                 Err(e) => {
                     retry_needed = true;
                     warn!(
-                        "failed to reconnect tunnel_id={} after local address change on {}: {}; will retry",
-                        desired.tunnel_id, if_name, e
+                        "failed to reconnect tunnel_id={} after local address change on {} (index {}): {}; will retry",
+                        desired.tunnel_id, if_name, if_index, e
                     );
                 }
             }
@@ -802,19 +960,21 @@ impl Runtime {
         }
     }
 
-    pub(crate) async fn shutdown(&mut self) -> Result<()> {
+    /// Removes every tunnel and session. Each tunnel deletion may wait up
+    /// to about two seconds for the kernel.
+    pub async fn shutdown(&mut self) -> Result<()> {
         self.reconcile(&Config::default()).await
     }
 
     async fn bind_interface_for_tunnel_add(
         &self,
         tunnel_id: u32,
-        if_name: Option<&str>,
-    ) -> Option<String> {
+        if_name: Option<&L2tpIfName>,
+    ) -> Option<L2tpIfName> {
         let if_name = if_name?;
 
         match self.state.has_interface(if_name).await {
-            Ok(true) => Some(if_name.to_string()),
+            Ok(true) => Some(*if_name),
             Ok(false) => {
                 info!(
                     "bind interface {} is absent for tunnel_id={}; creating unbound socket",
@@ -832,12 +992,16 @@ impl Runtime {
         }
     }
 
+    /// Checks that the tunnel is bound to a device currently carrying the
+    /// configured name; otherwise queues a (re)bind, which
+    /// [`handle_interface_change`](Self::handle_interface_change) performs
+    /// as soon as such a device exists.
     async fn reconcile_tunnel_bind_interface(
         &self,
         desired: &DesiredTunnel,
-        pending: &mut BTreeMap<TunnelId, String>,
+        pending: &mut BTreeMap<TunnelId, L2tpIfName>,
     ) {
-        let Some(if_name) = desired.bind_interface.as_deref() else {
+        let Some(if_name) = desired.bind_interface.as_ref() else {
             pending.remove(&desired.tunnel_id);
             return;
         };
@@ -846,19 +1010,31 @@ impl Runtime {
             return;
         }
 
-        match self.state.has_interface(if_name).await {
-            Ok(true) => {}
-            Ok(false) => {
-                pending.insert(desired.tunnel_id, if_name.to_string());
-            }
-            Err(e) => {
-                warn!(
-                    "failed to check bind interface tunnel_id={} if_name={} error={}",
-                    desired.tunnel_id, if_name, e
-                );
-                pending.insert(desired.tunnel_id, if_name.to_string());
-            }
+        let bound_name = match self.state.bound_interface_index(desired.tunnel_id).await {
+            Some(index) => match self.state.interface_name(index).await {
+                Ok(name) => name,
+                Err(e) => {
+                    warn!(
+                        "failed to check bind interface tunnel_id={} index={} error={}",
+                        desired.tunnel_id, index, e
+                    );
+                    None
+                }
+            },
+            None => None,
+        };
+        if bound_name.as_ref() == Some(if_name) {
+            return;
         }
+
+        if bound_name.is_some() {
+            info!(
+                "tunnel_id={} is bound to a device no longer named {}; rebinding",
+                desired.tunnel_id, if_name
+            );
+            self.state.forget_tunnel_binding(desired.tunnel_id).await;
+        }
+        pending.insert(desired.tunnel_id, *if_name);
     }
 }
 
@@ -896,9 +1072,19 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
                 break;
             }
 
-            while let Some((message, _addr)) = messages.next().await {
+            while let Some((message, addr)) = messages.next().await {
                 if control_tx.is_closed() {
                     break;
+                }
+                // Only the kernel (port 0) announces links and addresses. Any
+                // process can unicast to this socket, and acting on such a
+                // message would let an unprivileged user force reconnects.
+                if addr.port_number() != 0 {
+                    debug!(
+                        "ignoring rtnetlink message from user-space port {}",
+                        addr.port_number()
+                    );
+                    continue;
                 }
                 let Some(event) = control_event_for_netlink_payload(message.payload) else {
                     continue;
@@ -924,10 +1110,18 @@ fn control_event_for_netlink_payload(
     match payload {
         NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link)) => {
             Some(ControlEvent::InterfaceChanged {
+                // A name the kernel reports that fails validation cannot be
+                // one from the configuration; None re-checks every pending
+                // interface, which is always correct.
                 if_name: link.attributes.into_iter().find_map(|attr| match attr {
-                    LinkAttribute::IfName(name) => Some(name),
+                    LinkAttribute::IfName(name) => L2tpIfName::from_name(&name).ok(),
                     _ => None,
                 }),
+            })
+        }
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelLink(link)) => {
+            Some(ControlEvent::InterfaceRemoved {
+                if_index: link.header.index,
             })
         }
         NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewAddress(address))
@@ -942,14 +1136,14 @@ fn control_event_for_netlink_payload(
 }
 
 fn record_tunnel_bind_interface(
-    pending: &mut BTreeMap<TunnelId, String>,
+    pending: &mut BTreeMap<TunnelId, L2tpIfName>,
     desired: &DesiredTunnel,
-    bound_interface: Option<&str>,
+    bound_interface: Option<&L2tpIfName>,
 ) {
     if bound_interface.is_some() || desired.bind_interface.is_none() {
         pending.remove(&desired.tunnel_id);
     } else if let Some(if_name) = &desired.bind_interface {
-        pending.insert(desired.tunnel_id, if_name.clone());
+        pending.insert(desired.tunnel_id, *if_name);
     }
 }
 
@@ -1007,6 +1201,9 @@ fn plan_session_changes(current: &DesiredSessionMap, desired: &DesiredSessionMap
         if current_session.interface_name != desired_session.interface_name {
             plan.to_modify.push(*key);
         }
+        if current_session.interface_hwaddr != desired_session.interface_hwaddr {
+            plan.to_set_hwaddr.push(*key);
+        }
     }
 
     for key in desired.keys() {
@@ -1018,14 +1215,18 @@ fn plan_session_changes(current: &DesiredSessionMap, desired: &DesiredSessionMap
     plan
 }
 
-fn allocate_temp_interface_name(used_names: &mut BTreeSet<String>, counter: &mut u32) -> String {
+fn allocate_temp_interface_name(
+    used_names: &mut BTreeSet<L2tpIfName>,
+    counter: &mut u32,
+) -> L2tpIfName {
     loop {
+        // "rsl2tp" plus eight hex digits is 14 bytes, always a valid name.
         let candidate = format!("rsl2tp{:08x}", *counter);
         *counter = counter.wrapping_add(1);
-        if candidate.len() > MAX_INTERFACE_NAME_LEN {
+        let Ok(candidate) = L2tpIfName::from_name(&candidate) else {
             continue;
-        }
-        if used_names.insert(candidate.clone()) {
+        };
+        if used_names.insert(candidate) {
             return candidate;
         }
     }
@@ -1089,52 +1290,56 @@ fn is_missing_interface_bind_error(error: &Error) -> bool {
 
 fn build_desired_maps(config: &Config) -> Result<(DesiredTunnelMap, DesiredSessionMap)> {
     let mut tunnels: DesiredTunnelMap = BTreeMap::new();
-    for tunnel in config.tunnels.values() {
+    for tunnel in config.tunnels().values() {
         let desired = DesiredTunnel {
-            tunnel_id: tunnel.tunnel_id,
-            peer_tunnel_id: tunnel.peer_tunnel_id,
-            ip_version: tunnel.ip_version,
-            remote_addr: tunnel.remote_addr.clone(),
-            bind_interface: tunnel.bind_interface.clone(),
+            tunnel_id: tunnel.tunnel_id(),
+            peer_tunnel_id: tunnel.peer_tunnel_id(),
+            ip_version: tunnel.ip_version(),
+            remote_addr: tunnel.remote_addr().clone(),
+            bind_interface: tunnel.bind_interface().copied(),
         };
 
         if tunnels.insert(desired.tunnel_id, desired).is_some() {
             return Err(Error::InvalidConfig(format!(
                 "duplicate tunnel_id in config: {}",
-                tunnel.tunnel_id
+                tunnel.tunnel_id()
             )));
         }
     }
 
     let mut sessions: DesiredSessionMap = BTreeMap::new();
-    let mut interface_names: BTreeMap<String, String> = BTreeMap::new();
-    for (session_name, session) in &config.sessions {
-        let tunnel = config.tunnels.get(&session.tunnel_name).ok_or_else(|| {
-            Error::InvalidConfig(format!("tunnel not defined: {}", session.tunnel_name))
+    let mut interface_names: BTreeMap<L2tpIfName, String> = BTreeMap::new();
+    for (session_name, session) in config.sessions() {
+        let tunnel = config.tunnels().get(session.tunnel_name()).ok_or_else(|| {
+            Error::InvalidConfig(format!("tunnel not defined: {}", session.tunnel_name()))
         })?;
-        let tunnel_id = tunnel.tunnel_id;
+        let tunnel_id = tunnel.tunnel_id();
 
         if let Some(existing_tunnel) =
-            interface_names.insert(session.interface_name.clone(), session_name.clone())
+            interface_names.insert(*session.interface_name(), session_name.clone())
         {
             return Err(Error::InvalidConfig(format!(
                 "duplicate session interface_name={} used by sessions {} and {}",
-                session.interface_name, existing_tunnel, session_name
+                session.interface_name(),
+                existing_tunnel,
+                session_name
             )));
         }
 
         let desired = DesiredSession {
             tunnel_id,
-            session_id: session.session_id,
-            peer_session_id: session.peer_session_id,
-            interface_name: session.interface_name.clone(),
+            session_id: session.session_id(),
+            peer_session_id: session.peer_session_id(),
+            interface_name: *session.interface_name(),
+            interface_hwaddr: session.interface_hwaddr().copied(),
         };
         let key = (desired.tunnel_id, desired.session_id);
 
         if sessions.insert(key, desired).is_some() {
             return Err(Error::InvalidConfig(format!(
                 "duplicate session_id={} in tunnel_id={}",
-                session.session_id, tunnel_id
+                session.session_id(),
+                tunnel_id
             )));
         }
     }
@@ -1146,32 +1351,47 @@ fn build_desired_maps(config: &Config) -> Result<(DesiredTunnelMap, DesiredSessi
 mod tests {
     use super::*;
 
+    use crate::config::{SessionConfig, TunnelConfig};
     use std::io;
     use std::net::{Ipv4Addr, Ipv6Addr};
     use std::sync::Mutex;
 
+    fn ifname(name: &str) -> L2tpIfName {
+        L2tpIfName::from_name(name).unwrap()
+    }
+
+    fn hwaddr(s: &str) -> HwAddr {
+        s.parse().unwrap()
+    }
+
     #[derive(Debug, Clone)]
     struct MockTunnel {
         remote_addr: IpAddr,
-        bound_interface: Option<String>,
+        /// Name and index of the bound device, as the real state records.
+        bound_interface: Option<(L2tpIfName, u32)>,
     }
 
     #[derive(Debug, Clone)]
     struct MockSession {
-        interface_name: String,
+        interface_name: L2tpIfName,
+        hwaddr: Option<HwAddr>,
     }
 
     #[derive(Default)]
     struct MockStateInner {
         tunnels: BTreeMap<u32, MockTunnel>,
         sessions: BTreeMap<(u32, u32), MockSession>,
-        interfaces: BTreeSet<String>,
+        /// Interfaces by name, with the index each one was created with.
+        interfaces: BTreeMap<L2tpIfName, u32>,
+        next_interface_index: u32,
         fail_add_tunnel_for: Option<u32>,
         vanish_bind_interface_for: Option<u32>,
         fail_modify_tunnel_for: Option<u32>,
         fail_reconnect_tunnel_for: Option<u32>,
         fail_add_session_for: Option<(u32, u32)>,
+        fail_set_hwaddr_for: Option<(u32, u32)>,
         reconnect_counts: BTreeMap<u32, u32>,
+        hwaddr_sets: u32,
     }
 
     #[derive(Default)]
@@ -1215,21 +1435,60 @@ mod tests {
                 .fail_add_session_for = Some(key);
         }
 
-        fn add_interface(&self, if_name: &str) {
+        fn inject_set_hwaddr_failure(&self, key: Option<(u32, u32)>) {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .fail_set_hwaddr_for = key;
+        }
+
+        /// Creates an interface with a fresh index and returns the index.
+        fn add_interface(&self, if_name: &str) -> u32 {
+            let mut inner = self.inner.lock().expect("lock poisoned");
+            inner.next_interface_index += 1;
+            let index = inner.next_interface_index;
+            inner.interfaces.insert(ifname(if_name), index);
+            index
+        }
+
+        fn remove_interface(&self, if_name: &str) -> u32 {
             self.inner
                 .lock()
                 .expect("lock poisoned")
                 .interfaces
-                .insert(if_name.to_string());
+                .remove(&ifname(if_name))
+                .expect("interface exists")
         }
 
-        fn session_name(&self, tunnel_id: u32, session_id: u32) -> Option<String> {
+        fn rename_interface(&self, from: &str, to: &str) {
+            let mut inner = self.inner.lock().expect("lock poisoned");
+            let index = inner
+                .interfaces
+                .remove(&ifname(from))
+                .expect("interface exists");
+            inner.interfaces.insert(ifname(to), index);
+        }
+
+        fn session_name(&self, tunnel_id: u32, session_id: u32) -> Option<L2tpIfName> {
             self.inner
                 .lock()
                 .expect("lock poisoned")
                 .sessions
                 .get(&(tunnel_id, session_id))
-                .map(|s| s.interface_name.clone())
+                .map(|s| s.interface_name)
+        }
+
+        fn session_hwaddr(&self, tunnel_id: u32, session_id: u32) -> Option<HwAddr> {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .sessions
+                .get(&(tunnel_id, session_id))
+                .and_then(|s| s.hwaddr)
+        }
+
+        fn hwaddr_sets(&self) -> u32 {
+            self.inner.lock().expect("lock poisoned").hwaddr_sets
         }
 
         fn tunnel_remote_addr(&self, tunnel_id: u32) -> Option<IpAddr> {
@@ -1241,13 +1500,13 @@ mod tests {
                 .map(|t| t.remote_addr)
         }
 
-        fn tunnel_bound_interface(&self, tunnel_id: u32) -> Option<String> {
+        fn tunnel_bound_interface(&self, tunnel_id: u32) -> Option<(L2tpIfName, u32)> {
             self.inner
                 .lock()
                 .expect("lock poisoned")
                 .tunnels
                 .get(&tunnel_id)
-                .and_then(|t| t.bound_interface.clone())
+                .and_then(|t| t.bound_interface)
         }
 
         fn reconnect_count(&self, tunnel_id: u32) -> u32 {
@@ -1276,7 +1535,7 @@ mod tests {
             tunnel_id: u32,
             _peer_tunnel_id: u32,
             remote_addr: IpAddr,
-            if_name: Option<&str>,
+            if_name: Option<&L2tpIfName>,
         ) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
             if inner.fail_add_tunnel_for == Some(tunnel_id) {
@@ -1285,6 +1544,7 @@ mod tests {
             if inner.tunnels.contains_key(&tunnel_id) {
                 return Err(Error::Other("Duplicate tunnel_id".to_string()));
             }
+            let mut bound_interface = None;
             if let Some(if_name) = if_name {
                 if inner.vanish_bind_interface_for == Some(tunnel_id) {
                     inner.vanish_bind_interface_for = None;
@@ -1293,15 +1553,16 @@ mod tests {
                         libc::ENODEV,
                     ))));
                 }
-                if !inner.interfaces.contains(if_name) {
+                let Some(index) = inner.interfaces.get(if_name).copied() else {
                     return Err(Error::Other(format!("interface not found: {}", if_name)));
-                }
+                };
+                bound_interface = Some((*if_name, index));
             }
             inner.tunnels.insert(
                 tunnel_id,
                 MockTunnel {
                     remote_addr,
-                    bound_interface: if_name.map(str::to_string),
+                    bound_interface,
                 },
             );
             Ok(())
@@ -1332,17 +1593,34 @@ mod tests {
             Ok(())
         }
 
-        async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &str) -> Result<()> {
+        async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &L2tpIfName) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
-            if !inner.interfaces.contains(if_name) {
+            let Some(index) = inner.interfaces.get(if_name).copied() else {
                 return Err(Error::Other(format!("interface not found: {}", if_name)));
-            }
+            };
             let tunnel = inner
                 .tunnels
                 .get_mut(&tunnel_id)
                 .ok_or_else(|| Error::Other("tunnel not found".to_string()))?;
-            tunnel.bound_interface = Some(if_name.to_string());
+            tunnel.bound_interface = Some((*if_name, index));
             Ok(())
+        }
+
+        async fn bound_interface_index(&self, tunnel_id: u32) -> Option<u32> {
+            self.tunnel_bound_interface(tunnel_id)
+                .map(|(_, index)| index)
+        }
+
+        async fn forget_tunnel_binding(&self, tunnel_id: u32) {
+            if let Some(tunnel) = self
+                .inner
+                .lock()
+                .expect("lock poisoned")
+                .tunnels
+                .get_mut(&tunnel_id)
+            {
+                tunnel.bound_interface = None;
+            }
         }
 
         async fn delete_tunnel(&self, tunnel_id: u32) -> Result<()> {
@@ -1355,23 +1633,23 @@ mod tests {
             Ok(())
         }
 
-        async fn has_interface(&self, if_name: &str) -> Result<bool> {
+        async fn has_interface(&self, if_name: &L2tpIfName) -> Result<bool> {
             Ok(self
                 .inner
                 .lock()
                 .expect("lock poisoned")
                 .interfaces
-                .contains(if_name))
+                .contains_key(if_name))
         }
 
-        async fn interface_index(&self, if_name: &str) -> Result<Option<u32>> {
+        async fn interface_name(&self, index: u32) -> Result<Option<L2tpIfName>> {
             Ok(self
                 .inner
                 .lock()
                 .expect("lock poisoned")
                 .interfaces
-                .contains(if_name)
-                .then_some(1))
+                .iter()
+                .find_map(|(name, i)| (*i == index).then_some(*name)))
         }
 
         async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool {
@@ -1387,7 +1665,8 @@ mod tests {
             tunnel_id: u32,
             session_id: u32,
             _peer_session_id: u32,
-            if_name: &str,
+            if_name: &L2tpIfName,
+            hwaddr: Option<&HwAddr>,
         ) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
             if !inner.tunnels.contains_key(&tunnel_id) {
@@ -1402,14 +1681,18 @@ mod tests {
             if inner
                 .sessions
                 .values()
-                .any(|session| session.interface_name == if_name)
+                .any(|session| session.interface_name == *if_name)
             {
                 return Err(Error::Other(format!("interface exists: {}", if_name)));
+            }
+            if hwaddr.is_some() {
+                inner.hwaddr_sets += 1;
             }
             inner.sessions.insert(
                 (tunnel_id, session_id),
                 MockSession {
-                    interface_name: if_name.to_string(),
+                    interface_name: *if_name,
+                    hwaddr: hwaddr.copied(),
                 },
             );
             Ok(())
@@ -1419,7 +1702,7 @@ mod tests {
             &self,
             tunnel_id: u32,
             session_id: u32,
-            ifname: &str,
+            ifname: &L2tpIfName,
         ) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
             if !inner.sessions.contains_key(&(tunnel_id, session_id)) {
@@ -1432,13 +1715,12 @@ mod tests {
                 .sessions
                 .get(&(tunnel_id, session_id))
                 .expect("session exists")
-                .interface_name
-                .clone();
-            if current_ifname == ifname {
+                .interface_name;
+            if current_ifname == *ifname {
                 return Ok(());
             }
             if inner.sessions.iter().any(|(key, session)| {
-                *key != (tunnel_id, session_id) && session.interface_name == ifname
+                *key != (tunnel_id, session_id) && session.interface_name == *ifname
             }) {
                 return Err(Error::Other(format!("interface exists: {}", ifname)));
             }
@@ -1446,7 +1728,33 @@ mod tests {
                 .sessions
                 .get_mut(&(tunnel_id, session_id))
                 .expect("session exists")
-                .interface_name = ifname.to_string();
+                .interface_name = *ifname;
+            Ok(())
+        }
+
+        async fn set_session_hwaddr(
+            &self,
+            tunnel_id: u32,
+            session_id: u32,
+            hwaddr: Option<&HwAddr>,
+        ) -> Result<()> {
+            let mut inner = self.inner.lock().expect("lock poisoned");
+            if inner.fail_set_hwaddr_for == Some((tunnel_id, session_id)) {
+                return Err(Error::Other(
+                    "injected set_session_hwaddr failure".to_string(),
+                ));
+            }
+            inner.hwaddr_sets += 1;
+            let session = inner
+                .sessions
+                .get_mut(&(tunnel_id, session_id))
+                .ok_or_else(|| {
+                    Error::Other(format!(
+                        "No such session {} in tunnel {}",
+                        session_id, tunnel_id
+                    ))
+                })?;
+            session.hwaddr = hwaddr.copied();
             Ok(())
         }
 
@@ -1466,35 +1774,32 @@ mod tests {
     }
 
     type TestTunnelInput<'a> = (&'a str, u32, u32, IpVersion, IpHost, Option<&'a str>);
-    type TestSessionInput<'a> = (&'a str, &'a str, u32, u32, &'a str);
+    type TestSessionInput<'a> = (&'a str, &'a str, u32, u32, &'a str, Option<&'a str>);
 
     fn test_config(
         tunnels: Vec<TestTunnelInput<'_>>,
         sessions: Vec<TestSessionInput<'_>>,
     ) -> Config {
-        let mut config = Config::default();
+        let mut config = Config::new();
         for (name, tunnel_id, peer_tunnel_id, ip_version, remote_addr, bind_interface) in tunnels {
-            config.tunnels.insert(
-                name.to_string(),
-                crate::config::TunnelConfig {
-                    tunnel_id,
-                    peer_tunnel_id,
-                    ip_version,
-                    remote_addr,
-                    bind_interface: bind_interface.map(|s| s.to_string()),
-                },
-            );
+            config
+                .insert_tunnel(
+                    name,
+                    TunnelConfig::new(tunnel_id, ip_version, remote_addr)
+                        .with_peer_tunnel_id(peer_tunnel_id)
+                        .with_bind_interface(bind_interface.map(ifname)),
+                )
+                .expect("valid tunnel");
         }
-        for (name, tunnel_name, session_id, peer_session_id, ifname) in sessions {
-            config.sessions.insert(
-                name.to_string(),
-                crate::config::SessionConfig {
-                    tunnel_name: tunnel_name.to_string(),
-                    session_id,
-                    peer_session_id,
-                    interface_name: ifname.to_string(),
-                },
-            );
+        for (name, tunnel_name, session_id, peer_session_id, if_name, hw) in sessions {
+            config
+                .insert_session(
+                    name,
+                    SessionConfig::new(tunnel_name, session_id, ifname(if_name))
+                        .with_peer_session_id(peer_session_id)
+                        .with_interface_hwaddr(hw.map(hwaddr)),
+                )
+                .expect("valid session");
         }
         config
     }
@@ -1520,7 +1825,7 @@ mod tests {
                 IpHost::V4Addr(Ipv4Addr::new(198, 51, 100, 1)),
                 None,
             )],
-            vec![("sess0", "tun0", 100, 100, "l2tp0")],
+            vec![("sess0", "tun0", 100, 100, "l2tp0", None)],
         );
 
         let reconcile = runtime.reconcile(&cfg).await;
@@ -1574,8 +1879,8 @@ mod tests {
                 None,
             )],
             vec![
-                ("sess0", "tun0", 100, 100, "l2tp0"),
-                ("sess1", "tun0", 101, 101, "l2tp1"),
+                ("sess0", "tun0", 100, 100, "l2tp0", None),
+                ("sess1", "tun0", 101, 101, "l2tp1", None),
             ],
         );
         runtime
@@ -1593,21 +1898,21 @@ mod tests {
                 None,
             )],
             vec![
-                ("sess0", "tun0", 100, 100, "l2tp1"),
-                ("sess1", "tun0", 101, 101, "l2tp0"),
+                ("sess0", "tun0", 100, 100, "l2tp1", None),
+                ("sess1", "tun0", 101, 101, "l2tp0", None),
             ],
         );
         runtime.reconcile(&swapped).await.expect("swap reconcile");
 
-        assert_eq!(mock.session_name(10, 100).as_deref(), Some("l2tp1"));
-        assert_eq!(mock.session_name(10, 101).as_deref(), Some("l2tp0"));
+        assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp1")));
+        assert_eq!(mock.session_name(10, 101), Some(ifname("l2tp0")));
         assert_eq!(
             runtime
                 .session_specs
                 .get(&(10, 100))
                 .expect("session exists")
                 .interface_name,
-            "l2tp1"
+            ifname("l2tp1")
         );
         assert_eq!(
             runtime
@@ -1615,7 +1920,134 @@ mod tests {
                 .get(&(10, 101))
                 .expect("session exists")
                 .interface_name,
-            "l2tp0"
+            ifname("l2tp0")
+        );
+    }
+
+    #[tokio::test]
+    async fn reconcile_applies_changes_and_removes_session_hwaddr() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        let tunnel = (
+            "tun0",
+            10,
+            10,
+            IpVersion::V4,
+            IpHost::V4Addr(Ipv4Addr::new(203, 0, 113, 10)),
+            None,
+        );
+
+        let with_hwaddr = test_config(
+            vec![tunnel.clone()],
+            vec![(
+                "sess0",
+                "tun0",
+                100,
+                100,
+                "l2tp0",
+                Some("02:00:5e:00:53:01"),
+            )],
+        );
+        runtime
+            .reconcile(&with_hwaddr)
+            .await
+            .expect("initial reconcile");
+        assert_eq!(
+            mock.session_hwaddr(10, 100),
+            Some(hwaddr("02:00:5e:00:53:01"))
+        );
+        assert_eq!(mock.hwaddr_sets(), 1);
+
+        // Unchanged configuration: nothing is set again.
+        runtime
+            .reconcile(&with_hwaddr)
+            .await
+            .expect("idempotent reconcile");
+        assert_eq!(mock.hwaddr_sets(), 1);
+
+        // A changed address together with a rename applies both.
+        let changed = test_config(
+            vec![tunnel.clone()],
+            vec![(
+                "sess0",
+                "tun0",
+                100,
+                100,
+                "l2tp5",
+                Some("02:00:5e:00:53:02"),
+            )],
+        );
+        runtime.reconcile(&changed).await.expect("change reconcile");
+        assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp5")));
+        assert_eq!(
+            mock.session_hwaddr(10, 100),
+            Some(hwaddr("02:00:5e:00:53:02"))
+        );
+        assert_eq!(mock.hwaddr_sets(), 2);
+
+        // Dropping the address restores the kernel default (None).
+        let without = test_config(
+            vec![tunnel],
+            vec![("sess0", "tun0", 100, 100, "l2tp5", None)],
+        );
+        runtime.reconcile(&without).await.expect("remove reconcile");
+        assert_eq!(mock.session_hwaddr(10, 100), None);
+        assert_eq!(mock.hwaddr_sets(), 3);
+    }
+
+    #[tokio::test]
+    async fn reconcile_retries_failed_hwaddr_change_without_repeating_rename() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        let tunnel = (
+            "tun0",
+            10,
+            10,
+            IpVersion::V4,
+            IpHost::V4Addr(Ipv4Addr::new(203, 0, 113, 10)),
+            None,
+        );
+        let initial = test_config(
+            vec![tunnel.clone()],
+            vec![("sess0", "tun0", 100, 100, "l2tp0", None)],
+        );
+        runtime
+            .reconcile(&initial)
+            .await
+            .expect("initial reconcile");
+
+        mock.inject_set_hwaddr_failure(Some((10, 100)));
+        let changed = test_config(
+            vec![tunnel],
+            vec![(
+                "sess0",
+                "tun0",
+                100,
+                100,
+                "l2tp1",
+                Some("02:00:5e:00:53:01"),
+            )],
+        );
+        assert!(runtime.reconcile(&changed).await.is_err());
+        // The rename was applied and recorded; the address was not.
+        assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp1")));
+        let applied = runtime.session_specs.get(&(10, 100)).expect("session kept");
+        assert_eq!(applied.interface_name, ifname("l2tp1"));
+        assert_eq!(applied.interface_hwaddr, None);
+
+        mock.inject_set_hwaddr_failure(None);
+        runtime.reconcile(&changed).await.expect("retry reconcile");
+        assert_eq!(
+            mock.session_hwaddr(10, 100),
+            Some(hwaddr("02:00:5e:00:53:01"))
+        );
+        assert_eq!(
+            runtime
+                .session_specs
+                .get(&(10, 100))
+                .unwrap()
+                .interface_hwaddr,
+            Some(hwaddr("02:00:5e:00:53:01"))
         );
     }
 
@@ -1830,24 +2262,123 @@ mod tests {
         runtime.reconcile(&cfg).await.expect("initial reconcile");
         assert_eq!(mock.tunnel_bound_interface(10), None);
         assert_eq!(
-            runtime.pending_bind_interfaces.get(&10).map(String::as_str),
-            Some("vrf0")
+            runtime.pending_bind_interfaces.get(&10).copied(),
+            Some(ifname("vrf0"))
         );
 
         runtime.handle_interface_change(None).await;
         assert_eq!(mock.tunnel_bound_interface(10), None);
 
-        mock.add_interface("vrf0");
-        runtime.handle_interface_change(Some("vrf0")).await;
+        let index = mock.add_interface("vrf0");
+        runtime.handle_interface_change(Some(&ifname("vrf0"))).await;
 
-        assert_eq!(mock.tunnel_bound_interface(10).as_deref(), Some("vrf0"));
+        assert_eq!(
+            mock.tunnel_bound_interface(10),
+            Some((ifname("vrf0"), index))
+        );
         assert!(!runtime.pending_bind_interfaces.contains_key(&10));
+    }
+
+    #[tokio::test]
+    async fn removed_bind_interface_is_rebound_when_it_reappears() {
+        let mock = Arc::new(MockState::default());
+        let first = mock.add_interface("vrf0");
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        let cfg = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V6,
+                IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                Some("vrf0"),
+            )],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.expect("initial reconcile");
+        assert_eq!(
+            mock.tunnel_bound_interface(10),
+            Some((ifname("vrf0"), first))
+        );
+
+        // An unrelated interface going away changes nothing.
+        runtime.handle_interface_removed(first + 100).await;
+        assert!(runtime.pending_bind_interfaces.is_empty());
+
+        assert_eq!(mock.remove_interface("vrf0"), first);
+        runtime.handle_interface_removed(first).await;
+        assert_eq!(mock.tunnel_bound_interface(10), None);
+        assert_eq!(
+            runtime.pending_bind_interfaces.get(&10).copied(),
+            Some(ifname("vrf0"))
+        );
+
+        let second = mock.add_interface("vrf0");
+        assert_ne!(first, second);
+        runtime.handle_interface_change(Some(&ifname("vrf0"))).await;
+        assert_eq!(
+            mock.tunnel_bound_interface(10),
+            Some((ifname("vrf0"), second))
+        );
+        assert!(runtime.pending_bind_interfaces.is_empty());
+    }
+
+    #[tokio::test]
+    async fn reconcile_rebinds_when_bound_device_was_renamed_away() {
+        let mock = Arc::new(MockState::default());
+        let first = mock.add_interface("vrf0");
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        let cfg = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V6,
+                IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                Some("vrf0"),
+            )],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.expect("initial reconcile");
+
+        // The bound device keeps its identity under a new name: between
+        // reconciles nothing happens to the binding.
+        mock.rename_interface("vrf0", "vrf9");
+        runtime.handle_interface_change(None).await;
+        assert_eq!(
+            mock.tunnel_bound_interface(10),
+            Some((ifname("vrf0"), first))
+        );
+
+        // A reconcile notices the configured name is no longer the bound
+        // device's name and waits for a device called vrf0.
+        runtime
+            .reconcile(&cfg)
+            .await
+            .expect("reconcile after rename");
+        assert_eq!(mock.tunnel_bound_interface(10), None);
+        assert_eq!(
+            runtime.pending_bind_interfaces.get(&10).copied(),
+            Some(ifname("vrf0"))
+        );
+
+        let second = mock.add_interface("vrf0");
+        runtime
+            .reconcile(&cfg)
+            .await
+            .expect("reconcile with new vrf0");
+        assert_eq!(
+            mock.tunnel_bound_interface(10),
+            Some((ifname("vrf0"), second))
+        );
+        assert!(runtime.pending_bind_interfaces.is_empty());
     }
 
     #[tokio::test]
     async fn local_address_change_reconnects_tunnels_bound_to_changed_interface() {
         let mock = Arc::new(MockState::default());
-        mock.add_interface("underlay0");
+        let underlay = mock.add_interface("underlay0");
+        let other = mock.add_interface("other0");
         let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
         let cfg = test_config(
             vec![
@@ -1872,16 +2403,27 @@ mod tests {
         );
 
         runtime.reconcile(&cfg).await.expect("initial reconcile");
-        runtime.handle_local_address_change(1).await;
+        runtime.handle_local_address_change(other).await;
+        assert_eq!(mock.reconnect_count(10), 0);
 
+        runtime.handle_local_address_change(underlay).await;
         assert_eq!(mock.reconnect_count(10), 1);
         assert_eq!(mock.reconnect_count(11), 0);
+
+        // The match is by the bound device's identity, not by its name: a
+        // new device that takes over the name is not the bound one.
+        mock.rename_interface("underlay0", "underlay9");
+        let usurper = mock.add_interface("underlay0");
+        runtime.handle_local_address_change(usurper).await;
+        assert_eq!(mock.reconnect_count(10), 1);
+        runtime.handle_local_address_change(underlay).await;
+        assert_eq!(mock.reconnect_count(10), 2);
     }
 
     #[tokio::test]
     async fn local_address_change_retries_failed_reconnect_after_one_second() {
         let mock = Arc::new(MockState::default());
-        mock.add_interface("underlay0");
+        let underlay = mock.add_interface("underlay0");
         let (control_tx, mut control_rx) = mpsc::channel(32);
         let mut runtime = Runtime::new_with_state_ops(mock.clone(), control_tx);
         let cfg = test_config(
@@ -1899,7 +2441,7 @@ mod tests {
         mock.inner.lock().unwrap().fail_reconnect_tunnel_for = Some(10);
 
         let started = tokio::time::Instant::now();
-        runtime.handle_local_address_change(1).await;
+        runtime.handle_local_address_change(underlay).await;
         assert_eq!(mock.reconnect_count(10), 1);
         let event = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
             .await
@@ -1909,14 +2451,14 @@ mod tests {
         let ControlEvent::LocalAddressChanged { if_index } = event else {
             panic!("expected a local address retry");
         };
-        assert_eq!(if_index, 1);
+        assert_eq!(if_index, underlay);
 
         mock.inner.lock().unwrap().fail_reconnect_tunnel_for = None;
         runtime.handle_local_address_change(if_index).await;
         assert_eq!(mock.reconnect_count(10), 2);
         assert_eq!(
-            mock.tunnel_bound_interface(10).as_deref(),
-            Some("underlay0")
+            mock.tunnel_bound_interface(10),
+            Some((ifname("underlay0"), underlay))
         );
         assert!(
             tokio::time::timeout(Duration::from_millis(1100), control_rx.recv())
@@ -1949,8 +2491,8 @@ mod tests {
 
         assert_eq!(mock.tunnel_bound_interface(10), None);
         assert_eq!(
-            runtime.pending_bind_interfaces.get(&10).map(String::as_str),
-            Some("vrf0")
+            runtime.pending_bind_interfaces.get(&10).copied(),
+            Some(ifname("vrf0"))
         );
     }
 
@@ -2003,13 +2545,42 @@ mod tests {
                 None,
             )],
             vec![
-                ("sess0", "tun0", 100, 100, "l2tp0"),
-                ("sess1", "tun0", 101, 101, "l2tp0"),
+                ("sess0", "tun0", 100, 100, "l2tp0", None),
+                ("sess1", "tun0", 101, 101, "l2tp0", None),
             ],
         );
 
         let result = build_desired_maps(&cfg);
         assert!(matches!(result, Err(Error::InvalidConfig(_))));
+    }
+
+    #[test]
+    fn build_desired_maps_rejects_duplicate_tunnel_ids() {
+        let cfg = test_config(
+            vec![
+                (
+                    "a",
+                    10,
+                    10,
+                    IpVersion::V6,
+                    IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                    None,
+                ),
+                (
+                    "b",
+                    10,
+                    11,
+                    IpVersion::V6,
+                    IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                    None,
+                ),
+            ],
+            vec![],
+        );
+        assert!(matches!(
+            build_desired_maps(&cfg),
+            Err(Error::InvalidConfig(_))
+        ));
     }
 
     #[test]
@@ -2055,7 +2626,7 @@ mod tests {
                     peer_tunnel_id: 13,
                     ip_version: IpVersion::V6,
                     remote_addr: IpHost::V6Addr(Ipv6Addr::LOCALHOST),
-                    bind_interface: Some("vrf0".to_string()),
+                    bind_interface: Some(ifname("vrf0")),
                 },
             ),
         ]);
@@ -2067,62 +2638,51 @@ mod tests {
     }
 
     #[test]
-    fn plan_session_changes_detects_modify_recreate_and_add_delete() {
+    fn plan_session_changes_detects_modify_recreate_add_delete_and_hwaddr() {
+        let session = |id: u32, peer: u32, name: &str, hw: Option<&str>| DesiredSession {
+            tunnel_id: 1,
+            session_id: id,
+            peer_session_id: peer,
+            interface_name: ifname(name),
+            interface_hwaddr: hw.map(hwaddr),
+        };
         let current = BTreeMap::from([
+            ((1, 10), session(10, 100, "l2tp0", None)),
+            ((1, 11), session(11, 101, "l2tp1", None)),
             (
-                (1, 10),
-                DesiredSession {
-                    tunnel_id: 1,
-                    session_id: 10,
-                    peer_session_id: 100,
-                    interface_name: "l2tp0".to_string(),
-                },
-            ),
-            (
-                (1, 11),
-                DesiredSession {
-                    tunnel_id: 1,
-                    session_id: 11,
-                    peer_session_id: 101,
-                    interface_name: "l2tp1".to_string(),
-                },
+                (1, 13),
+                session(13, 103, "l2tp4", Some("02:00:5e:00:53:01")),
             ),
         ]);
 
         let desired = BTreeMap::from([
             (
                 (1, 10),
-                DesiredSession {
-                    tunnel_id: 1,
-                    session_id: 10,
-                    peer_session_id: 100,
-                    interface_name: "l2tp2".to_string(),
-                },
+                session(10, 100, "l2tp2", Some("02:00:5e:00:53:02")),
             ),
-            (
-                (1, 11),
-                DesiredSession {
-                    tunnel_id: 1,
-                    session_id: 11,
-                    peer_session_id: 999,
-                    interface_name: "l2tp1".to_string(),
-                },
-            ),
-            (
-                (1, 12),
-                DesiredSession {
-                    tunnel_id: 1,
-                    session_id: 12,
-                    peer_session_id: 102,
-                    interface_name: "l2tp3".to_string(),
-                },
-            ),
+            ((1, 11), session(11, 999, "l2tp1", None)),
+            ((1, 12), session(12, 102, "l2tp3", None)),
+            ((1, 13), session(13, 103, "l2tp4", None)),
         ]);
 
         let plan = plan_session_changes(&current, &desired);
         assert!(plan.to_modify.contains(&(1, 10)));
+        assert!(plan.to_set_hwaddr.contains(&(1, 10)));
         assert!(plan.to_delete.contains(&(1, 11)));
         assert!(plan.to_add.contains(&(1, 11)));
         assert!(plan.to_add.contains(&(1, 12)));
+        assert!(plan.to_set_hwaddr.contains(&(1, 13)));
+        assert!(!plan.to_modify.contains(&(1, 13)));
+    }
+
+    #[test]
+    fn temp_interface_names_are_valid_and_unique() {
+        let mut used = BTreeSet::from([ifname("rsl2tp00000000")]);
+        let mut counter = 0;
+        let first = allocate_temp_interface_name(&mut used, &mut counter);
+        let second = allocate_temp_interface_name(&mut used, &mut counter);
+        assert_eq!(first, ifname("rsl2tp00000001"));
+        assert_eq!(second, ifname("rsl2tp00000002"));
+        assert_eq!(used.len(), 3);
     }
 }

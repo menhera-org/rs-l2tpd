@@ -1,12 +1,45 @@
 # rs-l2tpd
 
-Simple L2TPv3 daemon for Linux-based systems, written in Rust.
+Simple L2TPv3 daemon for Linux-based systems, written in Rust, and the
+library (`rs_l2tpd`) it is built on.
 
 ## Features
 
 - L2TPv3 is handled in the kernel, so minimal overhead expected.
 - Supports binding to specific VRFs or interfaces
 - Supports FQDN-specified remote endpoints
+- Session interfaces are renamed and configured by interface index, so a
+  rename by udev or networkd after creation is handled correctly.
+- Optional fixed hardware (MAC) address per session interface.
+
+## Configuration
+
+The daemon reads `/etc/rs-l2tpd.toml` and then every `*.toml` file in
+`/etc/rs-l2tpd.toml.d/` in lexicographic order; later files override
+individual keys of earlier ones. `rs-l2tpd --check` prints the merged,
+validated result.
+
+```toml
+[tunnels.uplink]
+tunnel_id = 10
+peer_tunnel_id = 10          # defaults to tunnel_id
+ip_version = "V6"            # "V4" or "V6" ("v4"/"v6" accepted)
+remote_addr = "peer.example.org"   # an address or a host name
+bind_interface = "vrf-wan"   # optional: SO_BINDTODEVICE
+
+[sessions.lan]
+tunnel_name = "uplink"
+session_id = 100
+peer_session_id = 100        # defaults to session_id
+interface_name = "l2tp0"
+interface_hwaddr = "02:00:5e:00:53:01"   # optional, unicast
+```
+
+`interface_hwaddr` is applied through rtnetlink when the session is created
+and whenever it changes. An `l2tpeth` device only accepts a new address while
+it is down, so changing the address of a running interface takes it down and
+brings it back up. Removing the key restores the address the kernel assigned
+at creation.
 
 ## Early readiness during boot
 
@@ -36,3 +69,36 @@ converged.
 
 This daemon intentionally does not depend on any
 specific init system nor libc.
+
+## Library
+
+The crate is also a library. Without default features it pulls in neither
+`clap`, `toml`, `env_logger` nor `serde`; it does no file or terminal I/O,
+installs no signal handlers and logs through the `log` facade.
+
+```toml
+[dependencies]
+rs-l2tpd = { version = "0.2", default-features = false }
+# or, to deserialise configurations from any serde format:
+rs-l2tpd = { version = "0.2", default-features = false, features = ["serde"] }
+```
+
+- `rs_l2tpd::config` holds the configuration types, built in code or
+  deserialised with serde.
+- `rs_l2tpd::service::Service` is the daemon minus process management, for
+  Tokio programs.
+- `rs_l2tpd::blocking::Service` is the same behind a blocking API. It runs
+  a multi-threaded Tokio runtime on a thread of its own, so it can be used
+  without Tokio and even from inside another runtime.
+- `rs_l2tpd::runtime::Runtime` is the reconciler for programs that want to
+  drive the event loop themselves.
+
+Both services hand out a `Control` handle for requesting reloads and
+shutdowns (the binary drives it from `SIGHUP`, `SIGTERM` and `SIGINT`) and for
+reading the current configuration.
+
+## Building
+
+`cargo build --release` builds the daemon (the `bin` feature is on by
+default); add `--features setup` for the `--setup` installer, which installs
+the binary and a sandboxed systemd unit under `/usr/local`.

@@ -1,11 +1,19 @@
+//! The error type shared by every part of the library.
+
 use std::fmt::Display;
 
-use l2tp::Error as L2tpError;
-
+/// Errors reported by the library.
+///
+/// The enum is `#[non_exhaustive]`: more variants may be added in a minor
+/// release, so always keep a wildcard arm when matching on it.
 #[derive(Debug)]
-pub(crate) enum Error {
+#[non_exhaustive]
+pub enum Error {
+    /// The configuration is syntactically or semantically invalid.
     InvalidConfig(String),
-    L2tp(L2tpError),
+    /// The kernel L2TP subsystem or the tunnel socket reported an error.
+    L2tp(l2tp::Error),
+    /// Any other failure, with a human-readable description.
     Other(String),
 }
 
@@ -19,6 +27,20 @@ impl Display for Error {
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Error::L2tp(err) => Some(err),
+            _ => None,
+        }
+    }
+}
 
-pub(crate) type Result<T> = std::result::Result<T, Error>;
+impl From<l2tp::Error> for Error {
+    fn from(err: l2tp::Error) -> Self {
+        Error::L2tp(err)
+    }
+}
+
+/// A `Result` whose error type is [`Error`].
+pub type Result<T> = std::result::Result<T, Error>;

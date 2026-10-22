@@ -1,27 +1,23 @@
-pub(crate) mod config;
-pub(crate) mod error;
-pub(crate) mod runtime;
-pub(crate) mod state;
+//! The `rs-l2tpd` daemon: command line, configuration files, logging,
+//! signals, daemonisation and the optional installer around the
+//! `rs_l2tpd` library.
 
 use clap::{ArgAction, Parser};
-use config::{Config, PartialConfig};
-use error::{Error, Result};
 use log::{error, info, warn};
-use runtime::{ControlEvent, Runtime};
-use tokio::sync::{mpsc, RwLock};
+use rs_l2tpd::config::{Config, PartialConfig};
+use rs_l2tpd::service::{Control, Service, Startup};
+use rs_l2tpd::{Error, Result};
 
 use std::fs;
 use std::path::{Path, PathBuf};
 #[cfg(feature = "setup")]
 use std::process::Command;
-use std::sync::Arc;
-use std::time::Duration;
 
 /// This is the path to the main configuration file.
-pub(crate) const CONFIG_FILE_PATH: &str = env!("CONFIG_FILE_PATH");
+const CONFIG_FILE_PATH: &str = env!("CONFIG_FILE_PATH");
 
 /// This is where configuration overrides (filenames ending in .toml) live.
-pub(crate) const CONFIG_DIR_PATH: &str = env!("CONFIG_DIR_PATH");
+const CONFIG_DIR_PATH: &str = env!("CONFIG_DIR_PATH");
 
 #[cfg(feature = "setup")]
 const INSTALL_BINARY_PATH: &str = "/usr/local/bin/rs-l2tpd";
@@ -50,12 +46,12 @@ struct Args {
     setup: bool,
 }
 
-#[cfg(unix)]
 mod unix_daemon {
-    use crate::error::{Error, Result};
+    use rs_l2tpd::{Error, Result};
 
     use std::fs;
     use std::io;
+    use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
     use std::path::{Path, PathBuf};
 
     const READY: u8 = b'R';
@@ -146,9 +142,13 @@ mod unix_daemon {
                 match unsafe { libc::fork() } {
                     -1 => signal_failure_and_exit(pipe_fds[1]),
                     0 => {
+                        // The daemon creates only its PID file and that
+                        // file's directory, with explicit modes; a
+                        // restrictive umask is a second line of defence
+                        // against world-writable files.
                         // SAFETY: setting a process umask has no Rust-side invariants.
                         unsafe {
-                            libc::umask(0);
+                            libc::umask(0o022);
                         }
                         Ok(ReadinessNotifier::new(pipe_fds[1]))
                     }
@@ -173,19 +173,49 @@ mod unix_daemon {
         unsafe { libc::geteuid() as u32 }
     }
 
+    /// Writes the PID file so that only root can change it: the directory
+    /// is created with mode 0755, the file with mode 0644, and symbolic
+    /// links at the file's path are refused rather than followed, because
+    /// `ExecReload` and systemd act on whatever PID the file names.
     pub(crate) fn write_pid_file(path: &Path) -> Result<()> {
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).map_err(|e| {
-                Error::Other(format!(
-                    "failed to create pidfile directory {}: {e}",
-                    parent.display()
-                ))
-            })?;
+        if let Some(parent) = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
+            fs::DirBuilder::new()
+                .recursive(true)
+                .mode(0o755)
+                .create(parent)
+                .map_err(|e| {
+                    Error::Other(format!(
+                        "failed to create pidfile directory {}: {e}",
+                        parent.display()
+                    ))
+                })?;
         }
 
         // SAFETY: getpid has no safety preconditions.
         let pid = unsafe { libc::getpid() };
-        fs::write(path, format!("{pid}\n"))
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o644)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+            .open(path)
+            .map_err(|e| Error::Other(format!("failed to open pidfile {}: {e}", path.display())))?;
+        let metadata = file.metadata().map_err(|e| {
+            Error::Other(format!("failed to inspect pidfile {}: {e}", path.display()))
+        })?;
+        if !metadata.is_file() {
+            return Err(Error::Other(format!(
+                "pidfile {} is not a regular file",
+                path.display()
+            )));
+        }
+        use std::io::Write;
+        file.write_all(format!("{pid}\n").as_bytes())
+            .and_then(|()| file.sync_all())
             .map_err(|e| Error::Other(format!("failed to write pidfile {}: {e}", path.display())))
     }
 
@@ -233,6 +263,9 @@ mod unix_daemon {
     }
 }
 
+/// Lists the configuration files to merge: `file` if it exists, then every
+/// regular `.toml` file in `dir` in lexicographic order. A missing
+/// directory is not an error.
 fn list_toml_files_at(file: &Path, dir: &Path) -> Result<Vec<PathBuf>> {
     let mut dropins = Vec::new();
 
@@ -255,7 +288,12 @@ fn list_toml_files_at(file: &Path, dir: &Path) -> Result<Vec<PathBuf>> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             // directory does not exist -> not an error
         }
-        Err(e) => return Err(Error::Other(e.to_string())),
+        Err(e) => {
+            return Err(Error::Other(format!(
+                "failed to read {}: {e}",
+                dir.display()
+            )))
+        }
     }
 
     dropins.sort(); // lexicographic order among drop-ins only
@@ -268,36 +306,37 @@ fn list_toml_files_at(file: &Path, dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
-fn list_toml_files() -> Result<Vec<PathBuf>> {
-    list_toml_files_at(Path::new(CONFIG_FILE_PATH), Path::new(CONFIG_DIR_PATH))
+fn parse_toml_config(path: &Path) -> Result<PartialConfig> {
+    let text = fs::read_to_string(path)
+        .map_err(|e| Error::InvalidConfig(format!("{}: {e}", path.display())))?;
+    toml::from_str(&text).map_err(|e| Error::InvalidConfig(format!("{}: {e}", path.display())))
+}
+
+fn load_config_at(file: &Path, dir: &Path) -> Result<Config> {
+    let mut partial = PartialConfig::default();
+    for path in list_toml_files_at(file, dir)? {
+        partial.merge(parse_toml_config(&path)?);
+    }
+    partial.into_config()
 }
 
 fn load_config_blocking() -> Result<Config> {
-    let mut partial = PartialConfig::default();
-
-    let config_paths = list_toml_files()?;
-    for path in &config_paths {
-        let other = PartialConfig::from_path(path)?;
-        partial.merge(other);
-    }
-
-    Config::from_partial(partial)
+    load_config_at(Path::new(CONFIG_FILE_PATH), Path::new(CONFIG_DIR_PATH))
 }
 
-#[cfg(unix)]
-fn install_signal_handlers(control_tx: mpsc::Sender<ControlEvent>) -> Result<()> {
+/// SIGHUP reloads, SIGTERM and SIGINT shut down; both drive the service
+/// through its control handle.
+fn install_signal_handlers(control: Control) -> Result<()> {
     use tokio::signal::unix::{signal, SignalKind};
 
     let mut hup = signal(SignalKind::hangup())
         .map_err(|e| Error::Other(format!("failed to install SIGHUP handler: {e}")))?;
-    let hup_tx = control_tx.clone();
+    let hup_control = control.clone();
     tokio::spawn(async move {
-        loop {
-            if hup.recv().await.is_none() {
-                break;
-            }
-            if hup_tx.send(ControlEvent::ReloadRequested).await.is_err() {
-                break;
+        while hup.recv().await.is_some() {
+            info!("received SIGHUP");
+            if let Err(e) = hup_control.reload() {
+                warn!("reload request dropped: {}", e);
             }
         }
     });
@@ -308,24 +347,18 @@ fn install_signal_handlers(control_tx: mpsc::Sender<ControlEvent>) -> Result<()>
         .map_err(|e| Error::Other(format!("failed to install SIGINT handler: {e}")))?;
     tokio::spawn(async move {
         tokio::select! {
-            _ = term.recv() => {}
-            _ = int.recv() => {}
+            _ = term.recv() => info!("received SIGTERM"),
+            _ = int.recv() => info!("received SIGINT"),
         }
-        let _ = control_tx.send(ControlEvent::ShutdownRequested).await;
+        if let Err(e) = control.shutdown() {
+            warn!("shutdown request dropped: {}", e);
+        }
     });
 
     Ok(())
 }
 
-#[cfg(not(unix))]
-fn install_signal_handlers(_control_tx: mpsc::Sender<ControlEvent>) -> Result<()> {
-    Err(Error::Other(
-        "this daemon requires unix signal support".to_string(),
-    ))
-}
-
 #[cfg(feature = "setup")]
-#[cfg(unix)]
 fn ensure_root_uid() -> Result<()> {
     if unix_daemon::effective_uid() != 0 {
         return Err(Error::Other(
@@ -333,14 +366,6 @@ fn ensure_root_uid() -> Result<()> {
         ));
     }
     Ok(())
-}
-
-#[cfg(feature = "setup")]
-#[cfg(not(unix))]
-fn ensure_root_uid() -> Result<()> {
-    Err(Error::Other(
-        "--setup is only supported on unix systems".to_string(),
-    ))
 }
 
 #[cfg(feature = "setup")]
@@ -372,15 +397,52 @@ fn run_command_checked(cmd: &mut Command, description: &str) -> Result<()> {
     Ok(())
 }
 
+/// The unit confines the daemon to what it needs: netlink and IP sockets,
+/// a read-only system with the PID file as the only write, no new
+/// privileges and no access to home directories, kernel tunables or logs.
+/// Capabilities are not restricted: the kernel autoloads the L2TP modules
+/// and resolves names on the daemon's behalf, and the exact set differs
+/// between kernels.
 #[cfg(feature = "setup")]
 fn systemd_unit_text() -> String {
     format!(
-        "[Unit]\nDescription=rs-l2tpd daemon\nBefore=network-online.target\n\n[Service]\nType=forking\nPIDFile={DEFAULT_PIDFILE_PATH}\nExecStart={INSTALL_BINARY_PATH}\nExecReload=/bin/kill -HUP $MAINPID\nTimeoutStartSec=infinity\nRestart=on-failure\nRestartSec=3\n\n[Install]\nRequiredBy=network-online.target\n"
+        "[Unit]\n\
+         Description=rs-l2tpd daemon\n\
+         Before=network-online.target\n\
+         \n\
+         [Service]\n\
+         Type=forking\n\
+         PIDFile={DEFAULT_PIDFILE_PATH}\n\
+         ExecStart={INSTALL_BINARY_PATH}\n\
+         ExecReload=/bin/kill -HUP $MAINPID\n\
+         TimeoutStartSec=infinity\n\
+         Restart=on-failure\n\
+         RestartSec=3\n\
+         \n\
+         # Hardening: the daemon only needs netlink and IP sockets, and only\n\
+         # writes its PID file.\n\
+         NoNewPrivileges=yes\n\
+         ProtectSystem=full\n\
+         ProtectHome=yes\n\
+         PrivateTmp=yes\n\
+         ProtectKernelTunables=yes\n\
+         ProtectKernelLogs=yes\n\
+         ProtectControlGroups=yes\n\
+         ProtectClock=yes\n\
+         ProtectHostname=yes\n\
+         RestrictRealtime=yes\n\
+         RestrictSUIDSGID=yes\n\
+         LockPersonality=yes\n\
+         MemoryDenyWriteExecute=yes\n\
+         SystemCallArchitectures=native\n\
+         RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK\n\
+         \n\
+         [Install]\n\
+         RequiredBy=network-online.target\n"
     )
 }
 
 #[cfg(feature = "setup")]
-#[cfg(target_os = "linux")]
 fn run_setup() -> Result<()> {
     use std::os::unix::fs::PermissionsExt;
 
@@ -470,14 +532,6 @@ fn run_setup() -> Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "setup")]
-#[cfg(not(target_os = "linux"))]
-fn run_setup() -> Result<()> {
-    Err(Error::Other(
-        "--setup is currently supported only on Linux systems".to_string(),
-    ))
-}
-
 fn main() -> Result<()> {
     std::env::set_current_dir("/")
         .map_err(|e| Error::Other(format!("failed to change directory to /: {e}")))?;
@@ -508,14 +562,6 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    #[cfg(not(unix))]
-    {
-        return Err(Error::Other(
-            "daemonization is only supported on unix systems".to_string(),
-        ));
-    }
-
-    #[cfg(unix)]
     let readiness = unix_daemon::daemonize()?;
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -523,149 +569,65 @@ fn main() -> Result<()> {
         .build()
         .map_err(|e| Error::Other(format!("failed to create Tokio runtime: {e}")))?;
 
-    #[cfg(unix)]
     runtime.block_on(run_daemon(initial_config, args.pidfile, readiness))
 }
 
 async fn run_daemon(
     initial_config: Config,
     pidfile: PathBuf,
-    #[cfg(unix)] mut readiness: unix_daemon::ReadinessNotifier,
+    mut readiness: unix_daemon::ReadinessNotifier,
 ) -> Result<()> {
-    let state = Arc::new(state::State::new().await?);
-    let config = Arc::new(RwLock::new(initial_config.clone()));
-    let (control_tx, mut control_rx) = mpsc::channel(256);
+    let mut service = Service::new(initial_config).await?;
+    install_signal_handlers(service.control())?;
 
-    install_signal_handlers(control_tx.clone())?;
-
-    let mut runtime = Runtime::new(Arc::clone(&state), control_tx.clone());
-    loop {
-        match runtime.reconcile(&initial_config).await {
-            Ok(()) => break,
-            Err(e) => warn!("initial configuration apply failed; will retry: {}", e),
+    match service.converge().await {
+        Ok(Startup::Converged) => {}
+        Ok(Startup::ShutdownRequested) => {
+            readiness.signal_failure();
+            return Ok(());
         }
-
-        tokio::select! {
-            _ = tokio::time::sleep(Duration::from_secs(1)) => {}
-            event = control_rx.recv() => match event {
-                Some(ControlEvent::ShutdownRequested) | None => {
-                    info!("shutdown requested while waiting for initial configuration");
-                    if let Err(e) = runtime.shutdown().await {
-                        warn!("startup shutdown cleanup failed: {}", e);
-                    }
-                    #[cfg(unix)]
-                    readiness.signal_failure();
-                    return Ok(());
-                }
-                Some(_) => {}
-            }
+        Ok(_) => unreachable!("unknown startup outcome"),
+        Err(e) => {
+            readiness.signal_failure();
+            return Err(e);
         }
     }
 
-    let mut reconcile_pending = false;
-
-    #[cfg(unix)]
-    {
-        if let Err(e) = unix_daemon::write_pid_file(&pidfile) {
-            readiness.signal_failure();
-            if let Err(cleanup) = runtime.shutdown().await {
-                warn!("startup cleanup failed after pidfile error: {}", cleanup);
-            }
-            return Err(e);
+    if let Err(e) = unix_daemon::write_pid_file(&pidfile) {
+        readiness.signal_failure();
+        error!("{e}");
+        // Dropping the service closes the tunnel sockets, which removes the
+        // tunnels; shutdown does so in order and reports failures.
+        if let Err(cleanup) = service.control().shutdown() {
+            warn!("startup cleanup failed after pidfile error: {}", cleanup);
         }
-        if let Err(e) = readiness.signal_ready() {
-            let _ = runtime.shutdown().await;
-            unix_daemon::remove_pid_file(pidfile);
-            return Err(e);
+        if let Err(cleanup) = service.run(load_config_blocking).await {
+            warn!("startup cleanup failed after pidfile error: {}", cleanup);
         }
+        return Err(e);
+    }
+    if let Err(e) = readiness.signal_ready() {
+        let _ = service.control().shutdown();
+        let _ = service.run(load_config_blocking).await;
+        unix_daemon::remove_pid_file(pidfile);
+        return Err(e);
     }
 
     info!("initial configuration applied");
 
-    let mut retry_interval = tokio::time::interval(Duration::from_secs(1));
-    retry_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-
-    loop {
-        let event = tokio::select! {
-            _ = retry_interval.tick(), if reconcile_pending => {
-                let desired = config.read().await.clone();
-                match runtime.reconcile(&desired).await {
-                    Ok(()) => {
-                        reconcile_pending = false;
-                        info!("configuration convergence completed");
-                    }
-                    Err(e) => warn!("configuration apply still pending; will retry: {}", e),
-                }
-                continue;
-            }
-            event = control_rx.recv() => event,
-        };
-
-        let Some(event) = event else {
-            warn!("control channel closed");
-            break;
-        };
-
-        match event {
-            ControlEvent::ReloadRequested => {
-                info!("received SIGHUP: reloading configuration");
-                let loaded = tokio::task::spawn_blocking(load_config_blocking).await;
-                let new_config = match loaded {
-                    Ok(Ok(config)) => config,
-                    Ok(Err(e)) => {
-                        warn!("failed to load configuration: {}", e);
-                        continue;
-                    }
-                    Err(e) => {
-                        warn!("config loader task failed: {}", e);
-                        continue;
-                    }
-                };
-
-                *config.write().await = new_config.clone();
-                match runtime.reconcile(&new_config).await {
-                    Ok(()) => {
-                        reconcile_pending = false;
-                        info!("configuration reload completed");
-                    }
-                    Err(e) => {
-                        reconcile_pending = true;
-                        warn!("failed to apply reloaded configuration; will retry: {}", e);
-                    }
-                }
-            }
-            ControlEvent::ShutdownRequested => {
-                info!("shutdown requested");
-                if let Err(e) = runtime.shutdown().await {
-                    error!("shutdown cleanup failed: {}", e);
-                }
-                break;
-            }
-            ControlEvent::DnsChanged { tunnel_id } => {
-                runtime.handle_dns_change(tunnel_id).await;
-            }
-            ControlEvent::InterfaceChanged { if_name } => {
-                runtime.handle_interface_change(if_name.as_deref()).await;
-            }
-            ControlEvent::LocalAddressChanged { if_index } => {
-                runtime.handle_local_address_change(if_index).await;
-            }
-        }
+    let result = service.run(load_config_blocking).await;
+    if let Err(e) = &result {
+        error!("shutdown cleanup failed: {}", e);
     }
 
-    if let Err(e) = runtime.shutdown().await {
-        warn!("final cleanup failed: {}", e);
-    }
-
-    #[cfg(unix)]
     unix_daemon::remove_pid_file(pidfile);
 
-    Ok(())
+    result
 }
 
 #[cfg(test)]
 mod tests {
-    use super::list_toml_files_at;
+    use super::{list_toml_files_at, load_config_at};
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -738,5 +700,95 @@ mod tests {
         assert_eq!(files, expected);
 
         fs::remove_dir_all(temp_dir).expect("cleanup temp dir");
+    }
+
+    #[test]
+    fn load_config_at_merges_main_and_dropins() {
+        let temp_dir = unique_temp_dir("config-load");
+        let main_file = temp_dir.join("rs-l2tpd.toml");
+        let dropin_dir = temp_dir.join("rs-l2tpd.toml.d");
+        fs::create_dir_all(&dropin_dir).expect("create dropin dir");
+        fs::write(
+            &main_file,
+            "[tunnels.tun0]\ntunnel_id = 10\nip_version = \"V6\"\nremote_addr = \"2001:db8::1\"\n\
+             [sessions.sess0]\ntunnel_name = \"tun0\"\nsession_id = 100\ninterface_name = \"l2tp0\"\n",
+        )
+        .expect("write main config");
+        fs::write(
+            dropin_dir.join("10-rename.toml"),
+            "[sessions.sess0]\ninterface_name = \"l2tp5\"\ninterface_hwaddr = \"02:00:5e:00:53:01\"\n",
+        )
+        .expect("write dropin");
+
+        let config = load_config_at(&main_file, &dropin_dir).expect("load");
+        let session = &config.sessions()["sess0"];
+        assert_eq!(session.interface_name().to_str().unwrap(), "l2tp5");
+        assert_eq!(
+            session.interface_hwaddr().map(|a| a.to_string()).as_deref(),
+            Some("02:00:5e:00:53:01")
+        );
+        assert_eq!(config.tunnels()["tun0"].tunnel_id(), 10);
+
+        // A broken drop-in names its file.
+        fs::write(
+            dropin_dir.join("20-bad.toml"),
+            "[sessions.sess0]\ninterface_name = \"a b\"\n",
+        )
+        .expect("write bad dropin");
+        let err = load_config_at(&main_file, &dropin_dir).unwrap_err();
+        assert!(err.to_string().contains("20-bad.toml"), "{err}");
+
+        let empty = load_config_at(&temp_dir.join("absent.toml"), &temp_dir.join("absent.d"))
+            .expect("load nothing");
+        assert!(empty.tunnels().is_empty());
+        fs::remove_dir_all(temp_dir).expect("cleanup temp dir");
+    }
+
+    #[test]
+    fn write_pid_file_refuses_symlinks_and_sets_modes() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = unique_temp_dir("pidfile");
+        let dir = temp_dir.join("run").join("nested");
+        let pidfile = dir.join("rs-l2tpd.pid");
+        super::unix_daemon::write_pid_file(&pidfile).expect("write pidfile");
+        let contents = fs::read_to_string(&pidfile).expect("read pidfile");
+        assert_eq!(contents.trim().parse::<u32>().unwrap(), std::process::id());
+        assert_eq!(
+            fs::metadata(&pidfile).unwrap().permissions().mode() & 0o777,
+            0o644
+        );
+        assert_eq!(
+            fs::metadata(&dir).unwrap().permissions().mode() & 0o777,
+            0o755
+        );
+
+        let target = temp_dir.join("target");
+        fs::write(&target, "1\n").unwrap();
+        let link = temp_dir.join("link.pid");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        assert!(super::unix_daemon::write_pid_file(&link).is_err());
+        assert_eq!(fs::read_to_string(&target).unwrap(), "1\n");
+
+        fs::remove_dir_all(temp_dir).expect("cleanup temp dir");
+    }
+
+    #[cfg(feature = "setup")]
+    #[test]
+    fn systemd_unit_keeps_its_contract_and_is_hardened() {
+        let unit = super::systemd_unit_text();
+        for line in [
+            "Type=forking",
+            "PIDFile=/run/rs-l2tpd.pid",
+            "ExecStart=/usr/local/bin/rs-l2tpd",
+            "ExecReload=/bin/kill -HUP $MAINPID",
+            "TimeoutStartSec=infinity",
+            "Before=network-online.target",
+            "RequiredBy=network-online.target",
+            "NoNewPrivileges=yes",
+            "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK",
+        ] {
+            assert!(unit.lines().any(|l| l == line), "missing {line}");
+        }
     }
 }

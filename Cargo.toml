@@ -1,31 +1,57 @@
 [package]
 name = "rs-l2tpd"
-version = "0.1.5"
+version = "0.2.0"
 edition = "2021"
+rust-version = "1.89"
 authors = ["metastable-void"]
-description = "Simple L2TPv3 daemon for Linux-based systems"
+description = "Simple L2TPv3 daemon for Linux-based systems, and the library it is built on"
 license = "Apache-2.0 OR MPL-2.0"
 readme = "README.md"
 repository = "https://github.com/menhera-org/rs-l2tpd"
 homepage = "https://github.com/menhera-org/rs-l2tpd"
+keywords = ["l2tp", "l2tpv3", "netlink", "linux", "daemon"]
+categories = ["network-programming", "os::linux-apis"]
+
+[lib]
+name = "rs_l2tpd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rs-l2tpd"
+path = "src/bin/main.rs"
+required-features = ["bin"]
 
 [dependencies]
+# Library
 tokio = { version = "1", features = ["net", "io-util", "sync", "rt", "rt-multi-thread", "macros", "signal", "time"] }
-l2tp = "0.2.1"
+l2tp = "0.4.0"
 async-trait = "0.1"
-clap = { version = "4", features = ["derive"] }
-serde = { version = "1", features = ["derive"] }
-toml = "1.1.0"
-iphost = { version = "0.3.3", features = ["serde", "broadcast"] }
-rtnetlink = "0.20.0"
+iphost = { version = "0.3.3", features = ["broadcast"] }
+rtnetlink = "0.23.0"
 futures-util = "0.3"
-env_logger = "0.11.10"
 log = "0.4.29"
 libc = "0.2"
 
+# `serde` feature
+serde = { version = "1", features = ["derive"], optional = true }
+
+# `bin` feature
+clap = { version = "4", features = ["derive"], optional = true }
+toml = { version = "1.1.0", optional = true }
+env_logger = { version = "0.11.10", optional = true }
+
 [features]
-default = []
-setup = []
+default = ["bin"]
+# Serialize/Deserialize for the configuration types.
+serde = ["dep:serde", "iphost/serde"]
+# Everything the `rs-l2tpd` binary needs on top of the library.
+bin = ["serde", "dep:clap", "dep:toml", "dep:env_logger"]
+# The `--setup` installer in the binary.
+setup = ["bin"]
+
+[package.metadata.docs.rs]
+all-features = true
+targets = ["x86_64-unknown-linux-gnu"]
 
 [profile.release]
 opt-level = 3
