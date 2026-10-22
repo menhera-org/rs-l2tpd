@@ -27,7 +27,7 @@ for target in $TARGETS; do
     cross build --release --locked \
         --target="$target" \
         --bin "$BIN" \
-        --features "$FEATURES"
+        --features "$FEATURES" "$@"
 
     out="$dir/$BIN-$ver-$target.tar.gz"
     (
