@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Build library without default features
+        run: cargo build --locked --lib --no-default-features
+
+      - name: Build library with serde
+        run: cargo build --locked --lib --no-default-features --features serde
+
+      - name: Build daemon with the installer
+        run: cargo build --locked --features setup
+
+      # The privileged tests (CAP_NET_ADMIN, l2tp_eth, l2tp_ip6) are marked
+      # #[ignore] and are not run here; the rest needs no L2TP support.
+      - name: Unit tests
+        run: cargo test --locked --all-features
+
+      - name: Docs
+        run: cargo doc --locked --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
