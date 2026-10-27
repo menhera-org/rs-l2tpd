@@ -17,6 +17,13 @@
 //! configuration files, logging output, signals, daemonisation, the PID
 //! file and the optional `--setup` installer on top.
 //!
+//! Every type from another crate that appears in this API is re-exported
+//! next to where it is used, so no dependency of a matching version is
+//! needed to name it: [`config::IpHost`] and [`config::FQDN`] (the remote
+//! endpoint), [`config::L2tpIfName`] and [`config::L2tpIfNameExt`]
+//! (interface names), [`error::L2tpError`] (the kernel-level error) and
+//! [`runtime::mpsc`] (the channel a [`runtime::Runtime`] is driven from).
+//!
 //! Everything here needs `CAP_NET_ADMIN` (and `CAP_NET_RAW` for binding
 //! sockets to devices) and a kernel with `l2tp_ip6` and `l2tp_eth`.
 //!

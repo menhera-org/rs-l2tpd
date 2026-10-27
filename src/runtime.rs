@@ -21,8 +21,13 @@ use rtnetlink::packet_route::{
     AddressFamily, RouteNetlinkMessage,
 };
 use rtnetlink::{new_multicast_connection, MulticastGroup};
-use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
+
+/// Tokio's bounded channel, whose [`Sender`](mpsc::Sender) a [`Runtime`] is
+/// created with and whose [`Receiver`](mpsc::Receiver) the embedding program
+/// reads the events from. Re-exported so that the pair can be made with
+/// `mpsc::channel(n)` without a Tokio dependency of a matching version.
+pub use tokio::sync::mpsc;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::net::{IpAddr, Ipv6Addr};
@@ -31,9 +36,9 @@ use std::sync::Arc;
 use std::sync::RwLock as StdRwLock;
 use std::time::Duration;
 
-use crate::config::{Config, HwAddr, IpVersion};
+use crate::config::{is_usable_remote_addr, Config, Cookie, HwAddr, IpVersion};
 use crate::error::{Error, Result};
-use crate::state::{self, HwAddrApply};
+use crate::state::{self, HwAddrApply, SessionCookies};
 
 pub(crate) type TunnelId = u32;
 pub(crate) type SessionId = u32;
@@ -118,6 +123,17 @@ struct DesiredSession {
     peer_session_id: u32,
     interface_name: L2tpIfName,
     interface_hwaddr: Option<HwAddr>,
+    cookie: Option<Cookie>,
+    peer_cookie: Option<Cookie>,
+}
+
+impl DesiredSession {
+    fn cookies(&self) -> SessionCookies {
+        SessionCookies {
+            cookie: self.cookie,
+            peer_cookie: self.peer_cookie,
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -184,6 +200,7 @@ pub(crate) trait StateOps: Send + Sync {
         peer_session_id: u32,
         if_name: &L2tpIfName,
         hwaddr: Option<&HwAddr>,
+        cookies: SessionCookies,
     ) -> Result<HwAddrApply>;
     async fn modify_session(
         &self,
@@ -285,6 +302,7 @@ impl StateOps for state::State {
         peer_session_id: u32,
         if_name: &L2tpIfName,
         hwaddr: Option<&HwAddr>,
+        cookies: SessionCookies,
     ) -> Result<HwAddrApply> {
         state::State::add_session(
             self,
@@ -293,6 +311,7 @@ impl StateOps for state::State {
             peer_session_id,
             if_name,
             hwaddr,
+            cookies,
         )
         .await
     }
@@ -459,9 +478,18 @@ impl ResolverRuntime {
         self.dns_event_pending.store(false, Ordering::Relaxed);
     }
 
+    /// The resolver's current address for the selected family, if it is
+    /// one a tunnel can be connected to.
     fn current_remote_addr(&self) -> Option<IpAddr> {
         let ip_version = self.ip_version.read().ok().map(|v| *v)?;
         Self::current_remote_addr_for(&self.resolver, ip_version)
+    }
+
+    /// The resolver's current address for the selected family, usable or
+    /// not; for reporting an answer that was ignored.
+    fn raw_remote_addr(&self) -> Option<IpAddr> {
+        let ip_version = self.ip_version.read().ok().map(|v| *v)?;
+        Self::raw_remote_addr_for(&self.resolver, ip_version)
     }
 
     fn current_remote_addr_for_apply(&self, ip_version: IpVersion) -> Option<IpAddr> {
@@ -482,10 +510,19 @@ impl ResolverRuntime {
         }
     }
 
+    /// The resolver's address for `ip_version`, ignoring answers that
+    /// cannot be a peer (the unspecified, multicast and broadcast
+    /// addresses): those count as no answer, so the tunnel keeps its
+    /// current peer instead of being connected to the host itself or to
+    /// nowhere.
     fn current_remote_addr_for(
         resolver: &AutoIpHostResolver,
         ip_version: IpVersion,
     ) -> Option<IpAddr> {
+        Self::raw_remote_addr_for(resolver, ip_version).filter(|addr| is_usable_remote_addr(*addr))
+    }
+
+    fn raw_remote_addr_for(resolver: &AutoIpHostResolver, ip_version: IpVersion) -> Option<IpAddr> {
         match ip_version {
             IpVersion::V4 => resolver.ipv4_addr().map(IpAddr::V4),
             IpVersion::V6 => resolver.ipv6_addr().map(IpAddr::V6),
@@ -853,8 +890,11 @@ impl Runtime {
                 .get(&(*tunnel_id, *session_id))
                 .expect("session exists in desired map");
             info!(
-                "adding session tunnel_id={} session_id={} interface_name={}",
-                tunnel_id, session_id, desired.interface_name
+                "adding session tunnel_id={} session_id={} interface_name={} {}",
+                tunnel_id,
+                session_id,
+                desired.interface_name,
+                describe_cookies(desired)
             );
             match self
                 .state
@@ -864,6 +904,7 @@ impl Runtime {
                     desired.peer_session_id,
                     &desired.interface_name,
                     desired.interface_hwaddr.as_ref(),
+                    desired.cookies(),
                 )
                 .await
             {
@@ -919,10 +960,16 @@ impl Runtime {
         }
 
         let Some(remote_addr) = resolver_runtime.current_remote_addr() else {
-            debug!(
-                "resolver emitted change for tunnel_id={} but no address for the selected ip_version",
-                tunnel_id
-            );
+            match resolver_runtime.raw_remote_addr() {
+                Some(unusable) => warn!(
+                    "ignoring resolved address {} for tunnel_id={}: not a unicast address; keeping the current peer",
+                    unusable, tunnel_id
+                ),
+                None => debug!(
+                    "resolver emitted change for tunnel_id={} but no address for the selected ip_version",
+                    tunnel_id
+                ),
+            }
             return;
         };
 
@@ -1105,13 +1152,16 @@ impl Runtime {
     /// Reconnects tunnels bound to this interface or its VRF master,
     /// allowing the kernel to select a source address again. This refreshes
     /// both families; use [`Self::handle_local_address_family_change`] when
-    /// the address family is known.
+    /// the address family is known. Nothing is looked up or reconnected
+    /// while no tunnel is bound to a device.
     pub async fn handle_local_address_change(&mut self, if_index: u32) {
         self.handle_address_change(if_index, None).await;
     }
 
     /// Refreshes only tunnels using the changed address family on this
     /// interface or its current VRF master. IPv4-mapped peers use IPv4.
+    /// Nothing is looked up or reconnected while no tunnel is bound to a
+    /// device.
     pub async fn handle_local_address_family_change(
         &mut self,
         if_index: u32,
@@ -1120,7 +1170,29 @@ impl Runtime {
         self.handle_address_change(if_index, Some(ip_version)).await;
     }
 
+    /// The indexes of the devices tunnels are bound to right now. A tunnel
+    /// whose binding is pending has no device to reconnect on.
+    async fn bound_interface_indexes(&self) -> BTreeSet<u32> {
+        let mut indexes = BTreeSet::new();
+        for desired in self.tunnel_specs.values() {
+            if desired.bind_interface.is_none() {
+                continue;
+            }
+            if let Some(index) = self.state.bound_interface_index(desired.tunnel_id).await {
+                indexes.insert(index);
+            }
+        }
+        indexes
+    }
+
     async fn handle_address_change(&mut self, if_index: u32, ip_version: Option<IpVersion>) {
+        // Address notifications are the most frequent kind, and any host on
+        // a link can provoke them (router advertisements, for one). With
+        // nothing bound there is nothing to refresh, so do not even look the
+        // interface up.
+        if self.bound_interface_indexes().await.is_empty() {
+            return;
+        }
         // Resolve the relationship at notification time, by index. An
         // unrelated bridge/bond controller must not be treated as a VRF.
         // A failed lookup must not suppress directly bound tunnels.
@@ -1147,8 +1219,12 @@ impl Runtime {
 
     /// Refreshes a VRF after a slave was attached, detached, or removed.
     /// The notification can outlive the slave, so its observed controller
-    /// index is checked directly instead of looking up the slave again.
+    /// index is checked directly instead of looking up the slave again. A
+    /// controller no tunnel is bound to is not looked up at all.
     pub async fn handle_vrf_change(&mut self, if_index: u32) {
+        if !self.bound_interface_indexes().await.contains(&if_index) {
+            return;
+        }
         match self.state.interface_is_vrf(if_index).await {
             Ok(true) => self.reconnect_bound_tunnels(if_index, None, false).await,
             Ok(false) => {}
@@ -1375,9 +1451,10 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
                 if control_tx.is_closed() {
                     break;
                 }
-                // Only the kernel (port 0) announces links and addresses. Any
-                // process can unicast to this socket, and acting on such a
-                // message would let an unprivileged user force reconnects.
+                // Only the kernel (port 0) announces links and addresses.
+                // Unicasting to this socket needs CAP_NET_ADMIN on
+                // NETLINK_ROUTE, so this is a second line of defence: nothing
+                // but the kernel's own notifications drives the reconciler.
                 if addr.port_number() != 0 {
                     debug!(
                         "ignoring rtnetlink message from user-space port {}",
@@ -1521,6 +1598,16 @@ fn describe_hwaddr(desired: &DesiredSession) -> String {
         .map_or_else(|| "<kernel default>".to_string(), |a| a.to_string())
 }
 
+/// Whether each cookie is configured; never the cookies themselves.
+fn describe_cookies(desired: &DesiredSession) -> String {
+    let set = |cookie: Option<Cookie>| if cookie.is_some() { "set" } else { "none" };
+    format!(
+        "cookie={} peer_cookie={}",
+        set(desired.cookie),
+        set(desired.peer_cookie)
+    )
+}
+
 fn log_deferred_hwaddr(tunnel_id: u32, session_id: u32, desired: &DesiredSession) {
     info!(
         "session interface {} (tunnel_id={} session_id={}) is up; hardware address {} will be applied when the interface is down",
@@ -1588,7 +1675,12 @@ fn plan_session_changes(current: &DesiredSessionMap, desired: &DesiredSessionMap
             continue;
         };
 
-        if current_session.peer_session_id != desired_session.peer_session_id {
+        // The kernel can change neither a session's peer identifier nor its
+        // cookies: such sessions are re-created.
+        if current_session.peer_session_id != desired_session.peer_session_id
+            || current_session.cookie != desired_session.cookie
+            || current_session.peer_cookie != desired_session.peer_cookie
+        {
             plan.to_delete.insert(*key);
             plan.to_add.insert(*key);
             continue;
@@ -1628,7 +1720,20 @@ fn allocate_temp_interface_name(
     }
 }
 
+/// Resolves `ip_host` for `ip_version` once, refusing an address that
+/// cannot be a peer. Literals are rejected by the configuration already;
+/// this also covers host names and anything built around validation.
 fn resolve_ip_host_once(ip_host: &IpHost, ip_version: IpVersion) -> Result<IpAddr> {
+    let addr = resolve_ip_host_unchecked(ip_host, ip_version)?;
+    if !is_usable_remote_addr(addr) {
+        return Err(Error::InvalidConfig(format!(
+            "remote_addr {ip_host} gives {addr}, which is not a unicast address"
+        )));
+    }
+    Ok(addr)
+}
+
+fn resolve_ip_host_unchecked(ip_host: &IpHost, ip_version: IpVersion) -> Result<IpAddr> {
     match (ip_version, ip_host) {
         (IpVersion::V4, IpHost::V4Addr(addr)) => return Ok(IpAddr::V4(*addr)),
         (IpVersion::V6, IpHost::V6Addr(addr)) => return Ok(IpAddr::V6(*addr)),
@@ -1730,6 +1835,8 @@ fn build_desired_maps(config: &Config) -> Result<(DesiredTunnelMap, DesiredSessi
             peer_session_id: session.peer_session_id(),
             interface_name: *session.interface_name(),
             interface_hwaddr: session.interface_hwaddr().copied(),
+            cookie: session.cookie().copied(),
+            peer_cookie: session.peer_cookie().copied(),
         };
         let key = (desired.tunnel_id, desired.session_id);
 
@@ -1780,6 +1887,7 @@ mod tests {
     struct MockSession {
         interface_name: L2tpIfName,
         hwaddr: Option<HwAddr>,
+        cookies: SessionCookies,
     }
 
     #[derive(Default)]
@@ -1805,6 +1913,10 @@ mod tests {
         fail_pending_cleanup: bool,
         reconnect_counts: BTreeMap<u32, u32>,
         hwaddr_sets: u32,
+        /// VRF master and VRF kind lookups, each of which costs the real
+        /// state a netlink connection.
+        vrf_lookups: u32,
+        session_creations: u32,
     }
 
     #[derive(Default)]
@@ -1911,6 +2023,23 @@ mod tests {
 
         fn hwaddr_sets(&self) -> u32 {
             self.inner.lock().expect("lock poisoned").hwaddr_sets
+        }
+
+        fn vrf_lookups(&self) -> u32 {
+            self.inner.lock().expect("lock poisoned").vrf_lookups
+        }
+
+        fn session_creations(&self) -> u32 {
+            self.inner.lock().expect("lock poisoned").session_creations
+        }
+
+        fn session_cookies(&self, tunnel_id: u32, session_id: u32) -> Option<SessionCookies> {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .sessions
+                .get(&(tunnel_id, session_id))
+                .map(|s| s.cookies)
         }
 
         fn tunnel_remote_addr(&self, tunnel_id: u32) -> Option<IpAddr> {
@@ -2131,7 +2260,8 @@ mod tests {
         }
 
         async fn interface_vrf_master(&self, index: u32) -> Result<Option<u32>> {
-            let inner = self.inner.lock().unwrap();
+            let mut inner = self.inner.lock().unwrap();
+            inner.vrf_lookups += 1;
             if inner.fail_vrf_lookup {
                 return Err(Error::Other("injected VRF lookup failure".to_string()));
             }
@@ -2139,7 +2269,8 @@ mod tests {
         }
 
         async fn interface_is_vrf(&self, index: u32) -> Result<bool> {
-            let inner = self.inner.lock().unwrap();
+            let mut inner = self.inner.lock().unwrap();
+            inner.vrf_lookups += 1;
             if inner.fail_vrf_lookup {
                 return Err(Error::Other("injected VRF lookup failure".to_string()));
             }
@@ -2162,6 +2293,7 @@ mod tests {
             _peer_session_id: u32,
             if_name: &L2tpIfName,
             hwaddr: Option<&HwAddr>,
+            cookies: SessionCookies,
         ) -> Result<HwAddrApply> {
             let mut inner = self.inner.lock().expect("lock poisoned");
             if !inner.tunnels.contains_key(&tunnel_id) {
@@ -2184,11 +2316,13 @@ mod tests {
             if hwaddr.is_some() {
                 inner.hwaddr_sets += 1;
             }
+            inner.session_creations += 1;
             inner.sessions.insert(
                 (tunnel_id, session_id),
                 MockSession {
                     interface_name: *if_name,
                     hwaddr: hwaddr.copied(),
+                    cookies,
                 },
             );
             Ok(HwAddrApply::Applied)
@@ -3582,6 +3716,8 @@ mod tests {
             peer_session_id: peer,
             interface_name: ifname(name),
             interface_hwaddr: hw.map(hwaddr),
+            cookie: None,
+            peer_cookie: None,
         };
         let current = BTreeMap::from([
             ((1, 10), session(10, 100, "l2tp0", None)),
@@ -3610,6 +3746,29 @@ mod tests {
         assert!(plan.to_add.contains(&(1, 12)));
         assert!(plan.to_set_hwaddr.contains(&(1, 13)));
         assert!(!plan.to_modify.contains(&(1, 13)));
+
+        // Cookies cannot be changed in place: a change to either re-creates.
+        let with_cookies = |cookie: Option<&str>, peer_cookie: Option<&str>| DesiredSession {
+            cookie: cookie.map(|c| c.parse().unwrap()),
+            peer_cookie: peer_cookie.map(|c| c.parse().unwrap()),
+            ..session(10, 100, "l2tp0", None)
+        };
+        let current = BTreeMap::from([((1, 10), with_cookies(Some("deadbeef"), Some("deadbeef")))]);
+        for desired in [
+            with_cookies(Some("deadbeef"), Some("0011223344556677")),
+            with_cookies(Some("0011223344556677"), Some("deadbeef")),
+            with_cookies(None, Some("deadbeef")),
+            with_cookies(None, None),
+        ] {
+            let plan = plan_session_changes(&current, &BTreeMap::from([((1, 10), desired)]));
+            assert!(plan.to_delete.contains(&(1, 10)));
+            assert!(plan.to_add.contains(&(1, 10)));
+            assert!(plan.to_modify.is_empty());
+            assert!(plan.to_set_hwaddr.is_empty());
+        }
+        let unchanged = plan_session_changes(&current, &current);
+        assert!(unchanged.to_delete.is_empty());
+        assert!(unchanged.to_add.is_empty());
     }
 
     #[test]
@@ -3621,6 +3780,206 @@ mod tests {
         assert_eq!(first, ifname("rsl2tp00000001"));
         assert_eq!(second, ifname("rsl2tp00000002"));
         assert_eq!(used.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn cookie_changes_recreate_the_session() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        let config = |cookie: Option<&str>, peer_cookie: Option<&str>| {
+            let mut config = Config::new();
+            config
+                .insert_tunnel(
+                    "tun0",
+                    TunnelConfig::new(
+                        10,
+                        IpVersion::V4,
+                        IpHost::V4Addr(Ipv4Addr::new(203, 0, 113, 10)),
+                    ),
+                )
+                .unwrap();
+            config
+                .insert_session(
+                    "sess0",
+                    SessionConfig::new("tun0", 100, ifname("l2tp0")).with_cookies(
+                        cookie.map(|c| c.parse().unwrap()),
+                        peer_cookie.map(|c| c.parse().unwrap()),
+                    ),
+                )
+                .unwrap();
+            config
+        };
+        let cookie = |c: &str| -> Cookie { c.parse().unwrap() };
+
+        runtime.reconcile(&config(None, None)).await.unwrap();
+        assert_eq!(mock.session_creations(), 1);
+        assert_eq!(
+            mock.session_cookies(10, 100),
+            Some(SessionCookies::default())
+        );
+
+        runtime
+            .reconcile(&config(Some("deadbeef"), Some("0011223344556677")))
+            .await
+            .unwrap();
+        assert_eq!(mock.session_creations(), 2);
+        assert_eq!(
+            mock.session_cookies(10, 100),
+            Some(SessionCookies {
+                cookie: Some(cookie("deadbeef")),
+                peer_cookie: Some(cookie("0011223344556677")),
+            })
+        );
+
+        // An unchanged configuration leaves the session alone.
+        runtime
+            .reconcile(&config(Some("deadbeef"), Some("0011223344556677")))
+            .await
+            .unwrap();
+        assert_eq!(mock.session_creations(), 2);
+
+        // Changing one direction is enough to re-create.
+        runtime
+            .reconcile(&config(Some("deadbeef"), Some("deadbeef")))
+            .await
+            .unwrap();
+        assert_eq!(mock.session_creations(), 3);
+        assert_eq!(
+            mock.session_cookies(10, 100),
+            Some(SessionCookies {
+                cookie: Some(cookie("deadbeef")),
+                peer_cookie: Some(cookie("deadbeef")),
+            })
+        );
+
+        runtime.reconcile(&config(None, None)).await.unwrap();
+        assert_eq!(mock.session_creations(), 4);
+        assert_eq!(
+            mock.session_cookies(10, 100),
+            Some(SessionCookies::default())
+        );
+    }
+
+    #[tokio::test]
+    async fn address_and_vrf_notifications_do_nothing_without_bound_tunnels() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+
+        // No tunnel at all, then an unbound one: no lookups, no reconnects.
+        for cfg in [
+            Config::new(),
+            test_config(
+                vec![(
+                    "tun0",
+                    10,
+                    10,
+                    IpVersion::V6,
+                    IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                    None,
+                )],
+                vec![],
+            ),
+        ] {
+            runtime.reconcile(&cfg).await.unwrap();
+            runtime.handle_local_address_change(5).await;
+            runtime
+                .handle_local_address_family_change(5, IpVersion::V6)
+                .await;
+            runtime.handle_vrf_change(5).await;
+            runtime.handle_reconnect_request(5).await;
+            assert_eq!(mock.vrf_lookups(), 0);
+            assert_eq!(mock.reconnect_count(10), 0);
+        }
+
+        // A bound tunnel whose device is absent has nothing to refresh yet.
+        let bound = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V6,
+                IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                Some("underlay0"),
+            )],
+            vec![],
+        );
+        runtime.reconcile(&bound).await.unwrap();
+        runtime.handle_local_address_change(5).await;
+        runtime.handle_vrf_change(5).await;
+        assert_eq!(mock.vrf_lookups(), 0);
+        assert_eq!(mock.reconnect_count(10), 0);
+
+        // Once bound, address changes are looked up and the tunnel refreshed.
+        let index = mock.add_interface("underlay0");
+        runtime
+            .handle_interface_change(Some(&ifname("underlay0")))
+            .await;
+        let lookups_after_bind = mock.vrf_lookups();
+        let reconnects_after_bind = mock.reconnect_count(10);
+        assert!(lookups_after_bind >= 1);
+        assert!(reconnects_after_bind >= 1);
+        runtime.handle_local_address_change(index).await;
+        assert_eq!(mock.vrf_lookups(), lookups_after_bind + 1);
+        assert_eq!(mock.reconnect_count(10), reconnects_after_bind + 1);
+
+        // A controller no tunnel is bound to is not even looked up.
+        runtime.handle_vrf_change(index + 1).await;
+        assert_eq!(mock.vrf_lookups(), lookups_after_bind + 1);
+        runtime.handle_vrf_change(index).await;
+        assert_eq!(mock.vrf_lookups(), lookups_after_bind + 2);
+    }
+
+    #[tokio::test]
+    async fn resolved_addresses_that_cannot_be_peers_are_ignored() {
+        let (control_tx, _control_rx) = mpsc::channel(4);
+        for (ip_version, remote_addr) in [
+            (IpVersion::V6, IpHost::V6Addr(Ipv6Addr::UNSPECIFIED)),
+            (IpVersion::V4, IpHost::V4Addr(Ipv4Addr::UNSPECIFIED)),
+            (IpVersion::V4, IpHost::V4Addr(Ipv4Addr::new(224, 0, 0, 1))),
+            (IpVersion::V4, IpHost::V4Addr(Ipv4Addr::BROADCAST)),
+            (
+                IpVersion::V6,
+                IpHost::V6Addr(Ipv6Addr::new(0xff02, 0, 0, 0, 0, 0, 0, 1)),
+            ),
+        ] {
+            // Such literals never pass validation; a resolver holding one
+            // models a host name resolving to it.
+            let expected_raw = match remote_addr {
+                IpHost::V4Addr(addr) => IpAddr::V4(addr),
+                IpHost::V6Addr(addr) => IpAddr::V6(addr),
+                IpHost::Fqdn(_) => unreachable!(),
+            };
+            let desired = DesiredTunnel {
+                tunnel_id: 10,
+                peer_tunnel_id: 10,
+                ip_version,
+                remote_addr,
+                bind_interface: None,
+            };
+            let resolver = ResolverRuntime::new(10, &desired, control_tx.clone());
+            assert_eq!(resolver.raw_remote_addr(), Some(expected_raw));
+            assert_eq!(resolver.current_remote_addr(), None);
+            assert_eq!(resolver.current_remote_addr_for_apply(ip_version), None);
+            let err = tunnel_remote_addr_for_apply(&desired, Some(&resolver)).unwrap_err();
+            assert!(err.to_string().contains("not a unicast address"), "{err}");
+        }
+
+        let desired = DesiredTunnel {
+            tunnel_id: 10,
+            peer_tunnel_id: 10,
+            ip_version: IpVersion::V6,
+            remote_addr: IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+            bind_interface: None,
+        };
+        let resolver = ResolverRuntime::new(10, &desired, control_tx);
+        assert_eq!(
+            resolver.current_remote_addr(),
+            Some(IpAddr::V6(Ipv6Addr::LOCALHOST))
+        );
+        assert_eq!(
+            tunnel_remote_addr_for_apply(&desired, Some(&resolver)).unwrap(),
+            IpAddr::V6(Ipv6Addr::LOCALHOST)
+        );
     }
 
     #[tokio::test]

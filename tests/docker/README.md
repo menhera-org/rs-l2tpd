@@ -27,7 +27,7 @@ cargo build --locked --target x86_64-unknown-linux-musl \
     --manifest-path /tmp/rs-l2tpd-baseline/Cargo.toml
 ```
 
-Run all eleven privileged library tests, substituting an absolute artifacts
+Run all twelve privileged library tests, substituting an absolute artifacts
 directory for `/path/to/artifacts`:
 
 ```sh
@@ -42,9 +42,10 @@ docker run --rm --network none --cap-add NET_ADMIN --cap-add NET_RAW \
 
 These assert exact IPv4-mapped and IPv6 local/remote endpoints, peer changes,
 source removal and replacement, disconnect/retry recovery, interface identity
-after rename and name reuse, VRF source selection, session MAC/link state, and
-kernel cleanup. IPv4 source verification rejects `::ffff:0.0.0.0` as well as
-the native wildcards.
+after rename and name reuse, VRF source selection, session MAC/link state,
+session cookies as reported back by the kernel, and kernel cleanup. IPv4
+source verification rejects `::ffff:0.0.0.0` as well as the native
+wildcards.
 
 Run the daemon interoperability matrix:
 
@@ -85,8 +86,27 @@ for the daemon to apply the new MAC on the link-change notification, brings
 the interface back up, restores the test's IPv6 address and checks traffic
 again.
 
-On Linux 6.8.0-147-generic, validation on 2026-10-22 passed all eleven privileged
-library tests, all eighteen compatibility cases and the MAC-changing check.
+## Additional cookie check
+
+Add `--env COOKIES=1` to the matrix command to run the six current/current
+cases with session cookies: an asymmetric pair, each side sending a
+different cookie and requiring the other's. The twelve cases with a
+baseline peer stay cookie-free, as a 0.1.5 daemon ignores the keys. Cookies
+are a feature introduced after 0.1.5, so this is separate from the
+unchanged-config compatibility matrix.
+
+After the usual checks, each cookie case reloads the left daemon with a
+`peer_cookie` the right side does not send. The session is re-created (the
+kernel cannot change a session's cookies), the test restores the new
+interface's addresses, and a ping in either direction must now fail: the
+kernel discards the right side's requests and its replies alike. Restoring
+the agreed cookies re-creates the session again and traffic must flow.
+
+On Linux 6.8.0-147-generic, validation on 2026-10-22 passed all eleven
+privileged library tests, all eighteen compatibility cases and the
+MAC-changing check. On 2026-10-27, on the same kernel, the twelve privileged
+library tests, the eighteen compatibility cases, the MAC-changing check, the
+cookie check and the four address-notification cases below all passed.
 
 The tests establish behavior on the kernel and topologies exercised. They do
 not establish universal compatibility across all kernels or routing setups.

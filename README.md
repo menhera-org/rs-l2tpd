@@ -14,6 +14,11 @@ library (`rs_l2tpd`) it is built on.
 - Session interfaces are renamed and configured by interface index, so a
   rename by udev or networkd after creation is handled correctly.
 - Optional fixed hardware (MAC) address per session interface.
+- Optional L2TPv3 session cookies, so that frames cannot be injected into a
+  pseudowire by whoever guesses its session identifier.
+- Address and VRF notifications are ignored, without any lookup, while no
+  tunnel is bound to a device, so a host without `bind_interface` does no
+  work when addresses come and go.
 
 Tunnel sockets remain dual-stack: IPv4 peers use IPv4-mapped IPv6 addresses,
 and a peer can switch between IPv4 and IPv6 without replacing the socket or
@@ -42,7 +47,16 @@ session_id = 100
 peer_session_id = 100        # defaults to session_id
 interface_name = "l2tp0"
 interface_hwaddr = "02:00:5e:00:53:01"   # optional, unicast
+cookie = "0011223344556677"  # optional: 8 or 16 hex digits, sent in every frame
+peer_cookie = "8899aabb"     # optional, defaults to cookie: required in every received frame
 ```
+
+A literal `remote_addr` must be a unicast address: the unspecified address
+(which the kernel would connect to the host itself), multicast and broadcast
+addresses are rejected when the configuration is loaded. Loopback is
+accepted, for local testing. A host name whose answer is such an address is
+treated as unresolved: a warning is logged and the tunnel keeps its current
+peer (the discard address, until a usable answer arrives).
 
 `interface_hwaddr` is applied through rtnetlink when the session is created,
 before anything can bring the interface up, and whenever it changes. An
@@ -53,6 +67,30 @@ logged and deferred, and applied as soon as the interface is seen down (for
 example after `ip link set <name> down`). Until then the interface keeps its
 current address. Removing the key restores the address the kernel assigned
 at creation, under the same rule.
+
+## Session cookies
+
+L2TPv3 over IP delivers data frames by session identifier alone: the kernel
+checks neither the sender's address nor the socket's `bind_interface`, so
+without cookies anyone who can send IP protocol 115 packets to the host and
+knows, or guesses, a session identifier can inject Ethernet frames into that
+pseudowire. A `cookie` (four or eight bytes, written as 8 or 16 hexadecimal
+digits) is appended to every frame this end sends, and `peer_cookie` is
+required in every frame it receives: the kernel discards frames whose cookie
+does not match. Both ends must agree, this end's `cookie` being the peer's
+`peer_cookie` and vice versa; when both directions use the same value,
+`cookie` alone suffices, as `peer_cookie` defaults to it.
+
+Cookies are off unless configured, which is the wire format of 0.1.5, and
+must be enabled on both ends at once: a peer without matching settings
+discards or misreads every frame, and daemons before this version ignore
+the keys silently. The kernel cannot change the cookies of an existing
+session, so changing them re-creates the session, whose interface
+disappears briefly and loses its addresses and routes, as on any other
+session re-creation. Cookies authenticate nothing beyond the frame's origin
+and are visible in captured traffic; they are not a substitute for
+encryption. `rs-l2tpd --check` prints them with the rest of the merged
+configuration; the daemon's logs do not.
 
 ## Early readiness during boot
 
@@ -136,6 +174,11 @@ rs-l2tpd = { version = "0.2", default-features = false, features = ["serde"] }
   without Tokio and even from inside another runtime.
 - `rs_l2tpd::runtime::Runtime` is the reconciler for programs that want to
   drive the event loop themselves.
+
+Every type from another crate that appears in the API is re-exported next
+to where it is used (`config::IpHost`, `config::FQDN`, `config::L2tpIfName`,
+`config::L2tpIfNameExt`, `error::L2tpError` and `runtime::mpsc`), so none of
+them needs a dependency of a matching version to be named.
 
 Both services hand out a `Control` handle for requesting reloads and
 shutdowns (the binary drives it from `SIGHUP`, `SIGTERM` and `SIGINT`) and for

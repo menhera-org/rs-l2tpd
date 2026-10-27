@@ -3,6 +3,7 @@
 # /artifacts contains static current and v0.1.5 daemon binaries, mounted read-only.
 set -eu
 MAC_RELOAD=${MAC_RELOAD:-0}
+COOKIES=${COOKIES:-0}
 
 cp /artifacts/current /opt/current
 cp /artifacts/baseline /opt/baseline
@@ -48,6 +49,8 @@ config() {
     peer_id=$3
     peer_addr=$4
     mac=$5
+    cookie=${6:-}
+    peer_cookie=${7:-}
     cat > "/etc/netns/$side/rs-l2tpd.toml" <<EOF
 [tunnels.uplink]
 tunnel_id = $local_id
@@ -66,6 +69,46 @@ peer_session_id = $peer_id
 interface_name = "pseudowire0"
 interface_hwaddr = "$mac"
 EOF
+    if [ -n "$cookie" ]; then
+        printf 'cookie = "%s"\npeer_cookie = "%s"\n' "$cookie" "$peer_cookie" \
+            >> "/etc/netns/$side/rs-l2tpd.toml"
+    fi
+}
+
+# Reloads one daemon and waits for the reload to be applied, whether at
+# once or after a retry (a re-created session's old device may still be
+# going away when the new one is requested).
+reload_side() {
+    side=$1
+    before=$(grep -c -E 'configuration (reload|convergence) completed' "/tmp/$side-daemon.log" || true)
+    cp "/etc/netns/$side/rs-l2tpd.toml" /etc/rs-l2tpd.toml
+    kill -HUP "$(cat "/run/$side.pid")"
+    attempts=0
+    until [ "$(grep -c -E 'configuration (reload|convergence) completed' "/tmp/$side-daemon.log" || true)" -gt "$before" ]; do
+        attempts=$((attempts + 1))
+        [ "$attempts" -lt 100 ] || return 1
+        sleep 0.1
+    done
+}
+
+# Waits until pseudowire0 in a namespace is a different device than before.
+wait_new_interface() {
+    side=$1
+    old_index=$2
+    attempts=0
+    until index=$(netip "$side" -o link show pseudowire0 2>/dev/null | cut -d: -f1) \
+        && [ -n "$index" ] && [ "$index" != "$old_index" ]; do
+        attempts=$((attempts + 1))
+        [ "$attempts" -lt 100 ] || return 1
+        sleep 0.1
+    done
+}
+
+# A re-created session device comes up bare: restore the test addresses.
+configure_left_pseudowire() {
+    netip left link set pseudowire0 up
+    netip left address replace 198.18.0.1/30 dev pseudowire0
+    netip left address replace fd00:2::1/64 dev pseudowire0 nodad
 }
 
 traffic() {
@@ -111,8 +154,20 @@ run_case() {
         left_addr=2001:db8:1::1
         right_addr=2001:db8:1::2
     fi
-    config left 1001 2001 "$right_addr" 02:00:5e:00:53:01
-    config right 2001 1001 "$left_addr" 02:00:5e:00:53:02
+    # Cookies exist only in the current daemon; a baseline peer would
+    # ignore the keys and drop or misread every frame.
+    left_cookie=
+    left_peer_cookie=
+    right_cookie=
+    right_peer_cookie=
+    if [ "$COOKIES" = 1 ] && [ "$left_binary" = current ] && [ "$right_binary" = current ]; then
+        left_cookie=0011223344556677
+        left_peer_cookie=8899aabb
+        right_cookie=8899aabb
+        right_peer_cookie=0011223344556677
+    fi
+    config left 1001 2001 "$right_addr" 02:00:5e:00:53:01 "$left_cookie" "$left_peer_cookie"
+    config right 2001 1001 "$left_addr" 02:00:5e:00:53:02 "$right_cookie" "$right_peer_cookie"
     cp /etc/netns/left/rs-l2tpd.toml /etc/rs-l2tpd.toml
     timeout 15 nsenter --net=/run/netns/left "/opt/$left_binary" --pidfile /run/left.pid > /tmp/left-daemon.log 2>&1
     cp /etc/netns/right/rs-l2tpd.toml /etc/rs-l2tpd.toml
@@ -135,15 +190,8 @@ run_case() {
     if [ "$MAC_RELOAD" = 1 ] && [ "$left_binary" = current ]; then
         expected_mac=02:00:5e:00:53:11
     fi
-    config left 1001 2001 "$right_addr" "$expected_mac"
-    cp /etc/netns/left/rs-l2tpd.toml /etc/rs-l2tpd.toml
-    kill -HUP "$(cat /run/left.pid)"
-    attempts=0
-    until grep -q 'configuration reload completed' /tmp/left-daemon.log; do
-        attempts=$((attempts + 1))
-        [ "$attempts" -lt 50 ] || return 1
-        sleep 0.1
-    done
+    config left 1001 2001 "$right_addr" "$expected_mac" "$left_cookie" "$left_peer_cookie"
+    reload_side left
     # A running interface is never taken down for a MAC change: right after
     # the reload it still carries its original MAC and its addresses, and
     # traffic is intact.
@@ -165,6 +213,37 @@ run_case() {
         done
         netip left link set pseudowire0 up
         netip left address replace fd00:2::1/64 dev pseudowire0 nodad
+        traffic
+    fi
+
+    if [ -n "$left_cookie" ]; then
+        # A session whose cookies change is re-created. With a peer cookie
+        # the right side does not send, every frame from the right is
+        # discarded at the left: requests from the right and replies to the
+        # left's own requests alike.
+        old_index=$(netip left -o link show pseudowire0 | cut -d: -f1)
+        config left 1001 2001 "$right_addr" "$expected_mac" "$left_cookie" ffffffff
+        reload_side left
+        wait_new_interface left "$old_index"
+        echo "cookie change re-created pseudowire0 (index $old_index -> $index)"
+        configure_left_pseudowire
+        if netexec right ping -n -q -c 1 -W 1 198.18.0.1 > /dev/null 2>&1; then
+            echo "frames with a wrong cookie were accepted" >&2
+            return 1
+        fi
+        if netexec left ping -n -q -c 1 -W 1 198.18.0.2 > /dev/null 2>&1; then
+            echo "replies with a wrong cookie were accepted" >&2
+            return 1
+        fi
+        echo "cookie mismatch: frames discarded in both directions"
+        # Restoring the agreed cookies re-creates the session once more and
+        # traffic flows again.
+        old_index=$(netip left -o link show pseudowire0 | cut -d: -f1)
+        config left 1001 2001 "$right_addr" "$expected_mac" "$left_cookie" "$left_peer_cookie"
+        reload_side left
+        wait_new_interface left "$old_index"
+        echo "cookies restored, pseudowire0 re-created (index $old_index -> $index)"
+        configure_left_pseudowire
         traffic
     fi
 
@@ -194,4 +273,8 @@ for family in V4 V6; do
         run_case current current "$family" "$binding"
     done
 done
-echo 'PASS all 18 daemon interoperability cases, reloads and shutdown cleanup'
+if [ "$COOKIES" = 1 ]; then
+    echo 'PASS all 18 daemon interoperability cases, reloads, cookie checks and shutdown cleanup'
+else
+    echo 'PASS all 18 daemon interoperability cases, reloads and shutdown cleanup'
+fi

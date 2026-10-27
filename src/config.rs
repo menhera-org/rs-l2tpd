@@ -1,8 +1,9 @@
 //! Desired configuration: tunnels and the sessions riding on them.
 //!
 //! A [`Config`] is validated as a whole: identifiers are non-zero, every
-//! session names a tunnel that exists, interface names satisfy the kernel's
-//! rules and hardware addresses are unicast. It is built in code with
+//! session names a tunnel that exists, a literal remote address is unicast,
+//! interface names satisfy the kernel's rules, hardware addresses are
+//! unicast and cookies are four or eight bytes. It is built in code with
 //! [`Config::new`] and the `insert_*` methods or, with the `serde` feature,
 //! deserialised from any format (deserialising runs the same validation).
 //! This module does no I/O and assumes no serialisation format: the daemon
@@ -15,13 +16,20 @@
 //! [`PartialConfig::merge`], later ones overriding earlier ones, which is
 //! how the daemon layers its drop-in directory over its main file.
 
-use std::{collections::BTreeMap, fmt, str::FromStr};
+use std::{collections::BTreeMap, fmt, net::IpAddr, str::FromStr};
 
 use crate::error::{Error, Result};
-use iphost::IpHost;
-use l2tp::L2tpIfName;
-#[cfg(feature = "serde")]
-use l2tp::L2tpIfNameExt;
+
+/// A tunnel's remote endpoint: an address or a host name, parsed from a
+/// string. Re-exported from the `iphost` crate so that it can be named
+/// without a dependency of a matching version; [`FQDN`] is the type inside
+/// its host-name variant.
+pub use iphost::{IpHost, FQDN};
+/// A checked interface name and the extension trait that constructs it from
+/// bytes and resolves it to and from an interface index. Re-exported from
+/// the `l2tp` crate so that they can be named without a dependency of a
+/// matching version; a name also parses from a string.
+pub use l2tp::{L2tpIfName, L2tpIfNameExt};
 
 /// Serde adapter for checked interface names in complete configurations.
 /// Partial configurations retain strings until their overrides are merged.
@@ -161,6 +169,135 @@ impl<'de> serde::Deserialize<'de> for HwAddr {
     }
 }
 
+/// An L2TPv3 session cookie: four or eight bytes, written as 8 or 16
+/// hexadecimal digits such as `0011223344556677`.
+///
+/// The kernel appends a session's [`cookie`](SessionConfig::cookie) to every
+/// frame it sends and discards received frames that do not carry the
+/// session's [`peer_cookie`](SessionConfig::peer_cookie). L2TPv3 over IP
+/// delivers data frames by session identifier alone, so without cookies any
+/// host that can reach this one with IP protocol 115 and knows the session
+/// identifier can inject frames into the pseudowire. Both ends must agree on
+/// the values. `Display` renders the digits in lower case; `Debug` only
+/// gives the length, so that a cookie does not end up in a log by accident.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Cookie(CookieBytes);
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum CookieBytes {
+    Four([u8; 4]),
+    Eight([u8; 8]),
+}
+
+impl Cookie {
+    /// Wraps `bytes`, which must be four or eight long.
+    pub fn new(bytes: &[u8]) -> Result<Self> {
+        if let Ok(four) = <[u8; 4]>::try_from(bytes) {
+            return Ok(Self::from(four));
+        }
+        if let Ok(eight) = <[u8; 8]>::try_from(bytes) {
+            return Ok(Self::from(eight));
+        }
+        Err(Error::InvalidConfig(format!(
+            "a cookie is 4 or 8 bytes long, not {}",
+            bytes.len()
+        )))
+    }
+
+    /// The four or eight bytes of the cookie.
+    pub fn as_bytes(&self) -> &[u8] {
+        match &self.0 {
+            CookieBytes::Four(bytes) => bytes,
+            CookieBytes::Eight(bytes) => bytes,
+        }
+    }
+
+    pub(crate) fn to_l2tp(self) -> l2tp::Cookie {
+        match self.0 {
+            CookieBytes::Four(bytes) => l2tp::Cookie::from(bytes),
+            CookieBytes::Eight(bytes) => l2tp::Cookie::from(bytes),
+        }
+    }
+}
+
+impl From<[u8; 4]> for Cookie {
+    fn from(bytes: [u8; 4]) -> Self {
+        Self(CookieBytes::Four(bytes))
+    }
+}
+
+impl From<[u8; 8]> for Cookie {
+    fn from(bytes: [u8; 8]) -> Self {
+        Self(CookieBytes::Eight(bytes))
+    }
+}
+
+impl fmt::Display for Cookie {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for byte in self.as_bytes() {
+            write!(f, "{byte:02x}")?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for Cookie {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Cookie(<{} bytes>)", self.as_bytes().len())
+    }
+}
+
+impl FromStr for Cookie {
+    type Err = Error;
+
+    /// Parses 8 or 16 hexadecimal digits of either case. Signs, prefixes
+    /// and separators are not accepted.
+    fn from_str(s: &str) -> Result<Self> {
+        let invalid = || {
+            Error::InvalidConfig(format!(
+                "invalid cookie {s:?}: expected 8 or 16 hexadecimal digits"
+            ))
+        };
+        let digits = s.as_bytes();
+        if !(digits.len() == 8 || digits.len() == 16) || !digits.iter().all(u8::is_ascii_hexdigit) {
+            return Err(invalid());
+        }
+        let mut bytes = [0_u8; 8];
+        for (byte, pair) in bytes.iter_mut().zip(digits.chunks(2)) {
+            let pair = std::str::from_utf8(pair).map_err(|_| invalid())?;
+            *byte = u8::from_str_radix(pair, 16).map_err(|_| invalid())?;
+        }
+        Self::new(&bytes[..digits.len() / 2])
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Cookie {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> std::result::Result<S::Ok, S::Error> {
+        s.collect_str(self)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Cookie {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Self, D::Error> {
+        let text = String::deserialize(d)?;
+        text.parse().map_err(serde::de::Error::custom)
+    }
+}
+
+/// Whether `addr` can be a tunnel's peer: a unicast address other than the
+/// unspecified one. Multicast and IPv4 broadcast addresses cannot answer,
+/// and the kernel connects a socket to the unspecified address by pointing
+/// it at the host itself. Loopback is allowed, for local testing.
+/// IPv4-mapped IPv6 addresses are judged as the IPv4 address they carry.
+pub(crate) fn is_usable_remote_addr(addr: IpAddr) -> bool {
+    match addr.to_canonical() {
+        IpAddr::V4(v4) => !(v4.is_unspecified() || v4.is_multicast() || v4.is_broadcast()),
+        IpAddr::V6(v6) => !(v6.is_unspecified() || v6.is_multicast()),
+    }
+}
+
 /// Which address family a tunnel's remote endpoint is resolved to.
 ///
 /// Serialised as `"V4"`/`"V6"`; `"v4"`/`"v6"` are accepted when reading.
@@ -185,8 +322,8 @@ fn merge_opt<T>(dst: &mut Option<T>, src: Option<T>) {
 /// A configuration as deserialised from one document: every field is
 /// optional so that several documents can be merged before the result is
 /// validated. Interface names are checked after merging, so a later document
-/// can replace an invalid placeholder. Hardware addresses are checked while
-/// deserialising.
+/// can replace an invalid placeholder. Hardware addresses and cookies are
+/// checked while deserialising.
 #[cfg(feature = "serde")]
 #[derive(Debug, Clone, serde::Deserialize, Default)]
 pub struct PartialConfig {
@@ -268,6 +405,8 @@ struct PartialSessionConfig {
     peer_session_id: Option<u32>,
     interface_name: Option<String>,
     interface_hwaddr: Option<HwAddr>,
+    cookie: Option<Cookie>,
+    peer_cookie: Option<Cookie>,
 }
 
 #[cfg(feature = "serde")]
@@ -278,6 +417,8 @@ impl PartialSessionConfig {
         merge_opt(&mut self.peer_session_id, latter.peer_session_id);
         merge_opt(&mut self.interface_name, latter.interface_name);
         merge_opt(&mut self.interface_hwaddr, latter.interface_hwaddr);
+        merge_opt(&mut self.cookie, latter.cookie);
+        merge_opt(&mut self.peer_cookie, latter.peer_cookie);
     }
 
     fn into_full(self) -> Result<SessionConfig> {
@@ -297,6 +438,8 @@ impl PartialSessionConfig {
             peer_session_id: self.peer_session_id.unwrap_or(session_id),
             interface_name,
             interface_hwaddr: self.interface_hwaddr,
+            cookie: self.cookie,
+            peer_cookie: self.peer_cookie.or(self.cookie),
         };
         config.validate()?;
         Ok(config)
@@ -473,6 +616,16 @@ impl TunnelConfig {
         if self.peer_tunnel_id == 0 {
             return Err(Error::InvalidConfig("peer_tunnel_id is zero".to_string()));
         }
+        let literal = match &self.remote_addr {
+            IpHost::V4Addr(addr) => Some(IpAddr::V4(*addr)),
+            IpHost::V6Addr(addr) => Some(IpAddr::V6(*addr)),
+            IpHost::Fqdn(_) => None,
+        };
+        if let Some(addr) = literal.filter(|addr| !is_usable_remote_addr(*addr)) {
+            return Err(Error::InvalidConfig(format!(
+                "remote_addr {addr} is not a unicast address"
+            )));
+        }
         Ok(())
     }
 }
@@ -481,8 +634,15 @@ impl TunnelConfig {
 ///
 /// Serialised fields: `tunnel_name` (a key of the `tunnels` map),
 /// `session_id`, `peer_session_id` (defaults to `session_id` when
-/// deserialised through [`PartialConfig`]), `interface_name` and the
-/// optional `interface_hwaddr`.
+/// deserialised through [`PartialConfig`]), `interface_name`, the optional
+/// `interface_hwaddr`, and the optional `cookie` and `peer_cookie`
+/// (`peer_cookie` defaults to `cookie` when deserialised through
+/// [`PartialConfig`]).
+///
+/// Cookies are off unless configured, which is the only setting an
+/// rs-l2tpd 0.1.x peer supports. The kernel cannot change the cookies of an
+/// existing session, so changing them re-creates the session and its
+/// device.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SessionConfig {
@@ -496,11 +656,21 @@ pub struct SessionConfig {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     interface_hwaddr: Option<HwAddr>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    cookie: Option<Cookie>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    peer_cookie: Option<Cookie>,
 }
 
 impl SessionConfig {
-    /// A session whose peer uses the same identifier and whose device keeps
-    /// the hardware address the kernel assigns.
+    /// A session whose peer uses the same identifier, whose device keeps
+    /// the hardware address the kernel assigns and which uses no cookies.
     pub fn new(
         tunnel_name: impl Into<String>,
         session_id: u32,
@@ -512,7 +682,28 @@ impl SessionConfig {
             peer_session_id: session_id,
             interface_name,
             interface_hwaddr: None,
+            cookie: None,
+            peer_cookie: None,
         }
+    }
+
+    /// Uses `cookie` in both directions: it is appended to every frame this
+    /// end sends and required in every frame it receives. `None` turns
+    /// cookies off, which is the default. The peer must be configured the
+    /// same way. See [`with_cookies`](Self::with_cookies) for a pair of
+    /// different values.
+    pub fn with_cookie(self, cookie: Option<Cookie>) -> Self {
+        self.with_cookies(cookie, cookie)
+    }
+
+    /// Sets the cookie appended to every frame this end sends (`cookie`)
+    /// and the cookie required in every frame it receives (`peer_cookie`)
+    /// separately. Each `None` turns that direction off. This end's `cookie`
+    /// must be the peer's `peer_cookie` and vice versa.
+    pub fn with_cookies(mut self, cookie: Option<Cookie>, peer_cookie: Option<Cookie>) -> Self {
+        self.cookie = cookie;
+        self.peer_cookie = peer_cookie;
+        self
     }
 
     /// Sets the identifier the peer uses for this session.
@@ -554,6 +745,16 @@ impl SessionConfig {
         self.interface_hwaddr.as_ref()
     }
 
+    /// The cookie appended to every frame this end sends, if any.
+    pub fn cookie(&self) -> Option<&Cookie> {
+        self.cookie.as_ref()
+    }
+
+    /// The cookie required in every frame this end receives, if any.
+    pub fn peer_cookie(&self) -> Option<&Cookie> {
+        self.peer_cookie.as_ref()
+    }
+
     fn validate(&self) -> Result<()> {
         if self.session_id == 0 {
             return Err(Error::InvalidConfig("session_id is zero".to_string()));
@@ -567,9 +768,12 @@ impl SessionConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{Config, HwAddr, IpVersion, SessionConfig, TunnelConfig};
+    use super::{
+        is_usable_remote_addr, Config, Cookie, HwAddr, IpVersion, SessionConfig, TunnelConfig,
+    };
     use crate::error::Error;
     use l2tp::{L2tpIfName, L2tpIfNameExt};
+    use std::net::IpAddr;
 
     fn hwaddr(s: &str) -> HwAddr {
         s.parse().unwrap()
@@ -577,6 +781,123 @@ mod tests {
 
     fn ifname(s: &str) -> L2tpIfName {
         L2tpIfName::from_name(s).unwrap()
+    }
+
+    fn cookie(s: &str) -> Cookie {
+        s.parse().unwrap()
+    }
+
+    #[test]
+    fn cookie_parsing_and_rendering() {
+        assert_eq!(cookie("DEADBEEF").as_bytes(), [0xde, 0xad, 0xbe, 0xef]);
+        assert_eq!(cookie("DEADBEEF").to_string(), "deadbeef");
+        assert_eq!(
+            cookie("0011223344556677").as_bytes(),
+            [0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77]
+        );
+        assert_eq!(cookie("0011223344556677").to_string(), "0011223344556677");
+        assert_eq!(
+            cookie("0011223344556677").to_l2tp().as_bytes(),
+            cookie("0011223344556677").as_bytes()
+        );
+        assert_eq!(cookie("deadbeef").to_l2tp().len(), 4);
+        for bad in [
+            "",
+            "deadbee",
+            "deadbeefa",
+            "deadbeefdead",
+            "0x00112233",
+            "+eadbeef",
+            "-eadbeef",
+            "dead beef",
+            "zzzzzzzz",
+            "00:11:22:33",
+            "deadbeef\n",
+        ] {
+            assert!(bad.parse::<Cookie>().is_err(), "{bad:?}");
+        }
+        assert!(Cookie::new(&[1, 2, 3]).is_err());
+        assert!(Cookie::new(&[]).is_err());
+        assert!(Cookie::new(&[0; 16]).is_err());
+        assert_eq!(Cookie::new(&[0; 4]).unwrap(), Cookie::from([0; 4]));
+        assert_eq!(Cookie::new(&[7; 8]).unwrap(), Cookie::from([7; 8]));
+        assert_ne!(Cookie::from([0; 4]), Cookie::from([0; 8]));
+        // The value stays out of Debug output.
+        assert_eq!(format!("{:?}", cookie("deadbeef")), "Cookie(<4 bytes>)");
+        assert_eq!(
+            format!("{:?}", cookie("0011223344556677")),
+            "Cookie(<8 bytes>)"
+        );
+    }
+
+    #[test]
+    fn cookie_builders() {
+        let session = SessionConfig::new("tun0", 100, ifname("l2tp0"));
+        assert_eq!(session.cookie(), None);
+        assert_eq!(session.peer_cookie(), None);
+        let symmetric = session.clone().with_cookie(Some(cookie("deadbeef")));
+        assert_eq!(symmetric.cookie(), Some(&cookie("deadbeef")));
+        assert_eq!(symmetric.peer_cookie(), Some(&cookie("deadbeef")));
+        let asymmetric = symmetric
+            .clone()
+            .with_cookies(Some(cookie("0011223344556677")), None);
+        assert_eq!(asymmetric.cookie(), Some(&cookie("0011223344556677")));
+        assert_eq!(asymmetric.peer_cookie(), None);
+        assert_eq!(symmetric.with_cookie(None), session);
+    }
+
+    #[test]
+    fn remote_addr_must_be_unicast() {
+        for bad in [
+            "::",
+            "0.0.0.0",
+            "::ffff:0.0.0.0",
+            "224.0.0.1",
+            "ff02::1",
+            "255.255.255.255",
+            "::ffff:255.255.255.255",
+        ] {
+            let addr: IpAddr = bad.parse().unwrap();
+            assert!(!is_usable_remote_addr(addr), "{bad}");
+            let version = if addr.is_ipv4() {
+                IpVersion::V4
+            } else {
+                IpVersion::V6
+            };
+            let err = Config::new()
+                .insert_tunnel("tun0", TunnelConfig::new(10, version, bad.parse().unwrap()))
+                .unwrap_err();
+            assert!(err.to_string().contains("not a unicast address"), "{err}");
+        }
+        for good in [
+            "::1",
+            "127.0.0.1",
+            "100::",
+            "fe80::1",
+            "2001:db8::1",
+            "192.0.2.1",
+        ] {
+            let addr: IpAddr = good.parse().unwrap();
+            assert!(is_usable_remote_addr(addr), "{good}");
+            let version = if addr.is_ipv4() {
+                IpVersion::V4
+            } else {
+                IpVersion::V6
+            };
+            Config::new()
+                .insert_tunnel(
+                    "tun0",
+                    TunnelConfig::new(10, version, good.parse().unwrap()),
+                )
+                .unwrap_or_else(|e| panic!("{good}: {e}"));
+        }
+        // Host names are checked when they resolve, not here.
+        Config::new()
+            .insert_tunnel(
+                "tun0",
+                TunnelConfig::new(10, IpVersion::V6, "peer.example.org".parse().unwrap()),
+            )
+            .unwrap();
     }
 
     #[test]
@@ -653,7 +974,7 @@ mod tests {
     // The serde tests use TOML as one format; the library assumes none.
     #[cfg(feature = "bin")]
     mod serde {
-        use super::{hwaddr, ifname, Config, Error, IpVersion};
+        use super::{cookie, hwaddr, ifname, Config, Error, IpVersion};
         use crate::config::PartialConfig;
 
         const VALID: &str = r#"
@@ -854,6 +1175,84 @@ interface_hwaddr = "02:00:5E:00:53:01"
         fn empty_document_yields_empty_config() {
             assert_eq!(full("").unwrap(), Config::new());
             assert_eq!(full("[tunnels]\n[sessions]\n").unwrap(), Config::new());
+        }
+
+        #[test]
+        fn cookies_are_optional_and_peer_cookie_defaults_to_cookie() {
+            let config = full(VALID).unwrap();
+            assert_eq!(config.sessions()["sess0"].cookie(), None);
+            assert_eq!(config.sessions()["sess0"].peer_cookie(), None);
+            assert!(!render(&config).contains("cookie"));
+
+            let symmetric = full(&format!("{VALID}cookie = \"0011223344556677\"\n")).unwrap();
+            let session = &symmetric.sessions()["sess0"];
+            assert_eq!(session.cookie(), Some(&cookie("0011223344556677")));
+            assert_eq!(session.peer_cookie(), Some(&cookie("0011223344556677")));
+
+            let asymmetric = full(&format!(
+                "{VALID}cookie = \"DEADBEEF\"\npeer_cookie = \"8899aabbccddeeff\"\n"
+            ))
+            .unwrap();
+            let session = &asymmetric.sessions()["sess0"];
+            assert_eq!(session.cookie(), Some(&cookie("deadbeef")));
+            assert_eq!(session.peer_cookie(), Some(&cookie("8899aabbccddeeff")));
+
+            let receive_only = full(&format!("{VALID}peer_cookie = \"deadbeef\"\n")).unwrap();
+            let session = &receive_only.sessions()["sess0"];
+            assert_eq!(session.cookie(), None);
+            assert_eq!(session.peer_cookie(), Some(&cookie("deadbeef")));
+
+            // Rendering keeps both values and round-trips.
+            let rendered = render(&asymmetric);
+            assert!(rendered.contains("cookie = \"deadbeef\""));
+            assert!(rendered.contains("peer_cookie = \"8899aabbccddeeff\""));
+            let reparsed: Config = toml::from_str(&rendered).unwrap();
+            assert_eq!(reparsed, asymmetric);
+
+            // A drop-in overrides one value and the other keeps its default.
+            let mut merged = partial(&format!("{VALID}cookie = \"deadbeef\"\n")).unwrap();
+            merged
+                .merge(partial("[sessions.sess0]\npeer_cookie = \"0011223344556677\"\n").unwrap());
+            let session = merged.into_config().unwrap();
+            let session = &session.sessions()["sess0"];
+            assert_eq!(session.cookie(), Some(&cookie("deadbeef")));
+            assert_eq!(session.peer_cookie(), Some(&cookie("0011223344556677")));
+        }
+
+        #[test]
+        fn rejects_invalid_cookies_at_parse_time() {
+            for bad in [
+                "\"\"",
+                "\"deadbee\"",
+                "\"0x00112233\"",
+                "\"+eadbeef\"",
+                "1234",
+                "[1, 2]",
+            ] {
+                for key in ["cookie", "peer_cookie"] {
+                    let toml = format!("{VALID}{key} = {bad}\n");
+                    assert!(
+                        matches!(partial(&toml), Err(Error::InvalidConfig(_))),
+                        "{key} = {bad}"
+                    );
+                    assert!(toml::from_str::<Config>(&toml).is_err(), "{key} = {bad}");
+                }
+            }
+        }
+
+        #[test]
+        fn rejects_non_unicast_literal_remote_addrs() {
+            for (version, bad) in [("v6", "::"), ("v6", "ff02::1"), ("v4", "0.0.0.0")] {
+                let toml = VALID
+                    .replace("\"v6\"", &format!("{version:?}"))
+                    .replace("\"2001:db8::1\"", &format!("{bad:?}"));
+                let err = full(&toml).unwrap_err();
+                assert!(
+                    err.to_string().contains("not a unicast address"),
+                    "{bad}: {err}"
+                );
+                assert!(toml::from_str::<Config>(&toml).is_err(), "{bad}");
+            }
         }
     }
 }

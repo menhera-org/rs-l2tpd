@@ -3,7 +3,7 @@
 //! This module is private; [`crate::runtime::Runtime`] owns the only
 //! instance and decides when each operation runs.
 
-use crate::config::{HwAddr, IpVersion};
+use crate::config::{Cookie, HwAddr, IpVersion};
 use crate::error::{Error, Result};
 
 use futures_util::TryStreamExt;
@@ -118,7 +118,10 @@ fn link_is_vrf(link: &LinkMessage) -> bool {
 }
 
 fn is_netlink_errno(err: &rtnetlink::Error, errno: i32) -> bool {
-    matches!(err, rtnetlink::Error::NetlinkError(msg) if msg.raw_code().abs() == errno)
+    // The kernel reports negative errno values; compare magnitudes without
+    // the overflow `abs` has at `i32::MIN`.
+    matches!(err, rtnetlink::Error::NetlinkError(msg)
+        if msg.raw_code().unsigned_abs() == errno.unsigned_abs())
 }
 
 /// Renames the interface with index `index` to `new`.
@@ -144,6 +147,21 @@ async fn rename_interface(index: u32, new: &L2tpIfName) -> Result<()> {
                 "failed to rename interface index {index} to {new}: {e}"
             ))
         })
+}
+
+/// The cookies of a session: the one appended to every frame it sends and
+/// the one required in every frame it receives. `None` is no cookie, which
+/// is the wire format of rs-l2tpd 0.1.x.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct SessionCookies {
+    pub(crate) cookie: Option<Cookie>,
+    pub(crate) peer_cookie: Option<Cookie>,
+}
+
+impl SessionCookies {
+    fn to_l2tp(cookie: Option<Cookie>) -> l2tp::Cookie {
+        cookie.map_or_else(l2tp::Cookie::none, Cookie::to_l2tp)
+    }
 }
 
 /// What became of a hardware address change.
@@ -754,6 +772,7 @@ impl State {
         peer_session_id: u32,
         if_name: &L2tpIfName,
         hwaddr: Option<&HwAddr>,
+        cookies: SessionCookies,
     ) -> Result<HwAddrApply> {
         self.cleanup_pending_sessions().await?;
         if self.has_session(tunnel_id, session_id).await {
@@ -774,8 +793,8 @@ impl State {
             peer_session_id: l2tp::SessionId(peer_session_id),
             pseudowire_type: l2tp::PseudowireType::Eth,
             l2spec_type: l2tp::L2SpecType::None,
-            cookie: l2tp::Cookie::none(),
-            peer_cookie: l2tp::Cookie::none(),
+            cookie: SessionCookies::to_l2tp(cookies.cookie),
+            peer_cookie: SessionCookies::to_l2tp(cookies.peer_cookie),
             recv_seq: false,
             send_seq: false,
             lns_mode: false,
@@ -966,9 +985,9 @@ impl State {
 mod tests {
     use super::{
         deletion_result, interface_index, remove_if_delete_succeeded, verify_reconnected_endpoint,
-        State,
+        SessionCookies, State,
     };
-    use crate::config::HwAddr;
+    use crate::config::{Cookie, HwAddr};
     use l2tp::{Encapsulation, IpEndpoint, L2tpIfName, L2tpIfNameExt};
     use std::collections::BTreeMap;
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -1689,7 +1708,14 @@ mod tests {
         let session_id = id + 2;
         let session_name = ifname("rsl2tp-family");
         state
-            .add_session(id, session_id, session_id, &session_name, None)
+            .add_session(
+                id,
+                session_id,
+                session_id,
+                &session_name,
+                None,
+                SessionCookies::default(),
+            )
             .await
             .unwrap();
         let session_device = state.session_device(id, session_id).await.unwrap();
@@ -1929,7 +1955,14 @@ mod tests {
         let renamed = ifname("rsl2tp-t1");
 
         state
-            .add_session(id, session_id, session_id, &created, None)
+            .add_session(
+                id,
+                session_id,
+                session_id,
+                &created,
+                None,
+                SessionCookies::default(),
+            )
             .await
             .expect("create session");
         let (index, _) = session_device(&state, id, session_id).await;
@@ -1968,7 +2001,14 @@ mod tests {
         // Reuse the IDs and name within the same State instance, after the
         // kernel has completed any deferred deletion of the previous device.
         state
-            .add_session(id, session_id, session_id, &created, None)
+            .add_session(
+                id,
+                session_id,
+                session_id,
+                &created,
+                None,
+                SessionCookies::default(),
+            )
             .await
             .expect("recreate the deleted session");
         assert!(interface_index(&created).await.unwrap().is_some());
@@ -1992,7 +2032,14 @@ mod tests {
 
         assert_eq!(
             state
-                .add_session(id, session_id, session_id, &name, Some(&first))
+                .add_session(
+                    id,
+                    session_id,
+                    session_id,
+                    &name,
+                    Some(&first),
+                    SessionCookies::default(),
+                )
                 .await
                 .expect("create session with hardware address"),
             HwAddrApply::Applied
@@ -2069,6 +2116,56 @@ mod tests {
         state.delete_session(id, session_id).await.unwrap();
         assert_interface_deleted(&name).await;
         state.delete_tunnel(id).await.unwrap();
+        assert_kernel_tunnel_deleted(&state, id).await;
+    }
+
+    #[tokio::test]
+    #[ignore = "requires CAP_NET_ADMIN/root, l2tp_eth and kernel IPv6 L2TP support"]
+    async fn privileged_session_cookies_are_applied() {
+        let (state, id) = privileged_state(None).await;
+        let session_id = id + 2;
+        let name = ifname("rsl2tp-t3");
+        let cookie: Cookie = "deadbeef".parse().unwrap();
+        let peer_cookie: Cookie = "0011223344556677".parse().unwrap();
+
+        state
+            .add_session(
+                id,
+                session_id,
+                session_id,
+                &name,
+                None,
+                SessionCookies {
+                    cookie: Some(cookie),
+                    peer_cookie: Some(peer_cookie),
+                },
+            )
+            .await
+            .expect("create session with cookies");
+        let info = session_info(&state, id, session_id).await;
+        assert_eq!(info.cookie.as_bytes(), cookie.as_bytes());
+        assert_eq!(info.peer_cookie.as_bytes(), peer_cookie.as_bytes());
+        state.delete_session(id, session_id).await.unwrap();
+        assert_interface_deleted(&name).await;
+
+        // Without cookies the kernel reports none: the 0.1.x wire format.
+        state
+            .add_session(
+                id,
+                session_id,
+                session_id,
+                &name,
+                None,
+                SessionCookies::default(),
+            )
+            .await
+            .expect("create session without cookies");
+        let info = session_info(&state, id, session_id).await;
+        assert!(info.cookie.is_empty());
+        assert!(info.peer_cookie.is_empty());
+
+        state.delete_tunnel(id).await.unwrap();
+        assert_interface_deleted(&name).await;
         assert_kernel_tunnel_deleted(&state, id).await;
     }
 
