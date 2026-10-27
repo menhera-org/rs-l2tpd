@@ -1,5 +1,7 @@
 # rs-l2tpd
 
+[![crates.io](https://img.shields.io/crates/v/rs-l2tpd.svg)](https://crates.io/crates/rs-l2tpd)
+
 A Linux L2TPv3 daemon written in Rust, and the `rs_l2tpd` library it is built on.
 The kernel carries Ethernet pseudowires over IPv4 or IPv6.
 
