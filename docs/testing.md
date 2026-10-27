@@ -25,13 +25,15 @@ When changing startup, reconnection, readiness or the service unit:
   `RequiredBy=network-online.target` and `Type=forking`. Do not add a
   dependency that reverses this startup order.
 - Readiness **MUST** mean the applied kernel tunnels and sessions exist,
-  including discard peers. Unresolved names, absent bind devices,
+  disconnected tunnels included. Unresolved names, absent bind devices,
   unroutable peers and identifiers held by another tunnel or session must
   not turn into a requirement for a ready network.
-- Actual kernel prerequisites still apply: the L2TP modules, and a route to
-  a discard address or, after the grace period, the daemon's null device.
+- Actual kernel prerequisites still apply: the L2TP modules
+  ([kernel requirements](spec/kernel.md#requirements)). No route, discard
+  address or null device is needed: a tunnel without a reachable peer is
+  left disconnected and the kernel drops its frames.
 
-Check these invariants with the runtime discard-peer, pending-peer,
+Check these invariants with the runtime disconnected-tunnel, pending-peer,
 conflict and deferred-binding tests, the binary's
 `systemd_unit_keeps_its_contract_and_is_hardened` test,
 `tests/docker/degraded-start.sh`, `tests/docker/source-and-peers.sh` and
@@ -50,8 +52,8 @@ Coverage includes:
 - Source removal, interface replacement, VRF membership changes and
   recovery after lost netlink notifications, while preserving sockets
   and session identities.
-- Degraded startup, late peers, last-resort discard routes of both families
-  and ownership of null devices; a host with IPv6 disabled by sysctl.
+- Degraded startup, late peers and disconnected tunnels of both families;
+  a host with IPv6 disabled by sysctl.
 - Unbound tunnels whose selected source is replaced, literal peers without
   a route, and identifiers held by a foreign tunnel and session.
 - Loss of link notifications while a session is still being prepared, and
@@ -88,8 +90,16 @@ Facts that cost time once and shape how the tests are written:
   requested the change. A test listening for `RTM_DELROUTE` must make the
   change on a second connection, as the daemon itself does.
 - A VRF whose table has no IPv4 `unreachable default` route falls through
-  to the main table for IPv4 lookups, so a route in the main table makes an
-  IPv4 discard address routable inside the VRF too.
+  to the main table for IPv4 lookups, so a route in the main table makes a
+  peer routable inside the VRF too.
+- A socket bound to an ordinary device with no route to an IPv4 destination
+  still connects: the kernel assumes the destination is on-link and sends
+  ARP out of the device ([K28](spec/kernel.md#facts)). Do not use a
+  successful IPv4 connect as proof of a route.
+- `ip netns exec` fails inside a Docker container (it cannot remount
+  sysfs); `nsenter --net=/var/run/netns/<name>` works. `nsenter --net` does
+  not switch `/sys`, so read a namespace's interface counters with
+  `ip -s link`, not from `/sys/class/net`.
 - Classic BPF loads multi-byte fields in network byte order, while netlink
   headers are in host byte order: a message type is compared byte-swapped.
 - A process traced by strace reports `State: t` after `SIGSTOP`, not `T`.
@@ -97,5 +107,14 @@ Facts that cost time once and shape how the tests are written:
   creation in `ip l2tp show session`, whatever its current name.
 - Deleting a session and creating one with the same identifiers at once can
   be refused with `EEXIST` for a moment; tests wait for a retry.
-- A netlink socket whose receive queue is full loses unicast replies too:
-  a lookup on an overflowed subscription times out rather than failing.
+- A netlink socket whose receive queue is full loses unicast replies too.
+  Unless `NETLINK_NO_ENOBUFS` is set, the next receive fails with
+  `ENOBUFS` once; with it set, the reply is simply missing, and its
+  acknowledgement may still arrive without it. A test must accept all
+  three outcomes as "loss" ([E21](spec/events.md#monitor-loss)).
+- A tunnel registered on an unconnected socket drops the frames of its
+  sessions (`tx_dropped` on the l2tpeth device) and still receives frames
+  from the peer; the kernel's own router solicitations on a fresh device
+  count as dropped frames before any test frame is sent.
+- Tunnel deletion is asynchronous on every kernel; re-creating the same
+  tunnel id right after closing the socket is refused for a moment.
