@@ -16,9 +16,9 @@ The final state must satisfy the following requirements:
 
 ## Roadmaps
 
-1. Finish the specs (`docs/spec`).
-2. Diff the current code's behavior against the specs.
-3. Confirm every diff for the correct behavior.
-4. Rewrite the specs with knowledge from the diff if really needed (skip if none)
-5. Refactor the whole codebase for minimal testable codebase satisifying every spec item. Don't aim for minimal diff, but refactor everything to minimize the codebase (`ponytail` skill is useful; coding agents are encouraged to ask humans for its installation), to minimize the supply-chain size (i.e. remove unnecessary deps), to minimize the attack surface, and to minimize the ongoing maintenance costs.
-6. Make everything satisfy the requirements above. The specs and the kernel sources are authoritative, along with live kernel tests.
+1. [ ] Finish the specs (`docs/spec`).
+2. [ ] Diff the current code's behavior against the specs.
+3. [ ] Confirm every diff for the correct behavior.
+4. [ ] Rewrite the specs with knowledge from the diff if really needed (skip if none)
+5. [ ] Refactor the whole codebase for minimal testable codebase satisifying every spec item. Don't aim for minimal diff, but refactor everything to minimize the codebase (`ponytail` skill is useful; coding agents are encouraged to ask humans for its installation), to minimize the supply-chain size (i.e. remove unnecessary deps), to minimize the attack surface, and to minimize the ongoing maintenance costs.
+6. [ ] Make everything satisfy the requirements above. The specs and the kernel sources are authoritative, along with live kernel tests.
