@@ -224,15 +224,6 @@ pub(crate) const NULL_DEVICE: &str = "rsl2tpnull0";
 /// The main routing table.
 const RT_TABLE_MAIN: u32 = 254;
 
-/// Where the frames of a tunnel without a peer go.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum DiscardRoute {
-    /// Along a route the host already had (its default route, say).
-    Existing,
-    /// Into the daemon's null device, which this call routed them to.
-    NullDevice,
-}
-
 fn is_netlink_errno(err: &rtnetlink::Error, errno: i32) -> bool {
     // The kernel reports negative errno values; compare magnitudes without
     // the overflow `abs` has at `i32::MIN`.
@@ -591,26 +582,31 @@ impl State {
         interface_index(if_name).await
     }
 
-    /// Makes sure a socket bound to the VRF with index `vrf`, or an unbound
-    /// one, can be connected to [`TunnelConfig::NO_PEER_ADDR`]. The kernel's
-    /// own route is used when it has one; otherwise, as a last resort, the
-    /// null device [`NULL_DEVICE`] is created (or brought up) and a host
-    /// route to it added to the table concerned, replacing a reject route of
-    /// the same prefix that would refuse the connection.
-    pub(crate) async fn ensure_discard_route(vrf: Option<u32>) -> Result<DiscardRoute> {
+    /// Whether a socket bound to the VRF with index `vrf`, or an unbound
+    /// one, can be connected to [`TunnelConfig::NO_PEER_ADDR`]: the kernel
+    /// routes it, and not through a reject route.
+    pub(crate) async fn discard_route_exists(vrf: Option<u32>) -> Result<bool> {
+        Rtnl::connect()?
+            .routes(TunnelConfig::NO_PEER_ADDR, vrf)
+            .await
+    }
+
+    /// Routes [`TunnelConfig::NO_PEER_ADDR`] to the null device
+    /// [`NULL_DEVICE`], creating it or bringing it up as needed, in the
+    /// table of the VRF with index `vrf` or the main one: the last resort
+    /// for a host that does not route the address itself. A reject route of
+    /// the same prefix there, which would refuse the connection, is
+    /// replaced.
+    pub(crate) async fn route_discard_to_null_device(vrf: Option<u32>) -> Result<()> {
         let rtnl = Rtnl::connect()?;
-        let destination = TunnelConfig::NO_PEER_ADDR;
-        if rtnl.routes(destination, vrf).await? {
-            return Ok(DiscardRoute::Existing);
-        }
         let table = match vrf {
             Some(index) => link_vrf_table(&rtnl.get_link(index).await?)
                 .ok_or_else(|| Error::Other(format!("interface index {index} is not a VRF")))?,
             None => RT_TABLE_MAIN,
         };
         let index = Self::null_device(&rtnl).await?;
-        rtnl.route_to_device(destination, index, table).await?;
-        Ok(DiscardRoute::NullDevice)
+        rtnl.route_to_device(TunnelConfig::NO_PEER_ADDR, index, table)
+            .await
     }
 
     /// The null device's index, creating it or bringing it up as needed.
@@ -2380,7 +2376,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy, vrf and IPv6 L2TP support"]
     async fn privileged_discard_route_falls_back_to_the_null_device() {
-        use super::{DiscardRoute, NULL_DEVICE};
+        use super::NULL_DEVICE;
         use crate::config::TunnelConfig;
         use rtnetlink::packet_route::route::RouteType;
         use rtnetlink::RouteMessageBuilder;
@@ -2401,20 +2397,16 @@ mod tests {
             matches!(&err, crate::Error::L2tp(l2tp::Error::Io(e)) if e.raw_os_error() == Some(libc::ENETUNREACH)),
             "{err}"
         );
-        assert_eq!(
-            State::ensure_discard_route(None).await.unwrap(),
-            DiscardRoute::NullDevice
-        );
+        assert!(!State::discard_route_exists(None).await.unwrap());
+        State::route_discard_to_null_device(None).await.unwrap();
         let index = interface_index(&null).await.unwrap().expect("null device");
         let rtnl = super::Rtnl::connect().unwrap();
         let link = rtnl.get_link(index).await.unwrap();
         assert!(super::link_is_dummy(&link));
         assert!(super::link_is_up(&link));
-        // Now the host routes it, so nothing more is done.
-        assert_eq!(
-            State::ensure_discard_route(None).await.unwrap(),
-            DiscardRoute::Existing
-        );
+        // Now the host routes it; routing it again is harmless.
+        assert!(State::discard_route_exists(None).await.unwrap());
+        State::route_discard_to_null_device(None).await.unwrap();
         state
             .add_tunnel(id, id + 1, discard, None)
             .await
@@ -2466,14 +2458,11 @@ mod tests {
             .add_tunnel(id + 2, id + 3, discard, Some(&ifname(vrf_name)))
             .await
             .is_err());
-        assert_eq!(
-            State::ensure_discard_route(Some(vrf_index)).await.unwrap(),
-            DiscardRoute::NullDevice
-        );
-        assert_eq!(
-            State::ensure_discard_route(Some(vrf_index)).await.unwrap(),
-            DiscardRoute::Existing
-        );
+        assert!(!State::discard_route_exists(Some(vrf_index)).await.unwrap());
+        State::route_discard_to_null_device(Some(vrf_index))
+            .await
+            .unwrap();
+        assert!(State::discard_route_exists(Some(vrf_index)).await.unwrap());
         state
             .add_tunnel(id + 2, id + 3, discard, Some(&ifname(vrf_name)))
             .await

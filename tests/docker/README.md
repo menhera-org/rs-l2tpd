@@ -185,12 +185,13 @@ sessions that would be applied, the contradicting tunnel with the discard
 address `100::` as its peer and the session without its hardware address,
 name each problem, exit 1 and touch nothing. The namespace routes neither
 the far peer nor `100::`: the daemon must not become ready while the far
-tunnel cannot be created, and must meanwhile have created the null device
-`rsl2tpnull0` and routed `100::` to it. Once the far peer has a route it
-must reach readiness with every entry, the unusable endpoint connected to
-`100::` and the session carrying the kernel's address, and frames sent into
-the pseudowire without a peer must count as transmitted on the null
-device. It must keep the previous configuration when a reload still has
+tunnel cannot be created, and must meanwhile be waiting for a route to
+`100::` without having created the null device yet. Once the far peer has
+a route and the grace period has passed it must have created
+`rsl2tpnull0`, routed `100::` to it and reached readiness with every
+entry, the unusable endpoint connected to `100::` and the session carrying
+the kernel's address, and frames sent into the pseudowire without a peer
+must count as transmitted on the null device. It must keep the previous configuration when a reload still has
 the unparsable drop-in. A reload that breaks the valid tunnel's identifier
 must keep that tunnel's previous values and leave the new broken tunnel
 out, applying the rest; a reload correcting the identifiers must create

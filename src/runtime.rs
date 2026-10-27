@@ -34,11 +34,11 @@ use std::net::IpAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::sync::RwLock as StdRwLock;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::config::{is_usable_remote_addr, Config, Cookie, HwAddr, IpVersion};
 use crate::error::{Error, Result};
-use crate::state::{self, DiscardRoute, HwAddrApply, SessionCookies, NULL_DEVICE};
+use crate::state::{self, HwAddrApply, SessionCookies, NULL_DEVICE};
 
 pub(crate) type TunnelId = u32;
 pub(crate) type SessionId = u32;
@@ -50,6 +50,10 @@ type DesiredSessionMap = BTreeMap<SessionKey, DesiredSession>;
 const DNS_REFRESH_INTERVAL_SECS: u64 = 30;
 const DNS_WATCH_POLL_INTERVAL_SECS: u64 = 1;
 const DISCARD_REMOTE_ADDR: IpAddr = IpAddr::V6(crate::config::TunnelConfig::NO_PEER_ADDR);
+/// How long a host that does not route the discard address is given to
+/// get a route, as it usually does shortly after the daemon starts at
+/// boot, before the null device is created as a last resort.
+const DISCARD_ROUTE_GRACE: Duration = Duration::from_secs(10);
 
 /// Events that drive a [`Runtime`].
 ///
@@ -221,10 +225,12 @@ pub(crate) trait StateOps: Send + Sync {
     async fn interface_index(&self, name: &L2tpIfName) -> Result<Option<u32>>;
     /// The peer the tunnel is connected to now.
     async fn tunnel_remote_addr(&self, tunnel_id: u32) -> Option<IpAddr>;
-    /// Makes sure the discard address can be connected to from a socket
-    /// bound to the VRF `vrf` or an unbound one, creating the null device
-    /// as a last resort.
-    async fn ensure_discard_route(&self, vrf: Option<u32>) -> Result<DiscardRoute>;
+    /// Whether the discard address can be connected to from a socket bound
+    /// to the VRF `vrf` or an unbound one.
+    async fn discard_route_exists(&self, vrf: Option<u32>) -> Result<bool>;
+    /// Routes the discard address to the null device for that context,
+    /// creating the device as needed: the last resort.
+    async fn route_discard_to_null_device(&self, vrf: Option<u32>) -> Result<()>;
     /// Removes the null device.
     async fn remove_null_device(&self) -> Result<()>;
 }
@@ -356,8 +362,12 @@ impl StateOps for state::State {
         state::State::tunnel_remote_addr(self, tunnel_id).await
     }
 
-    async fn ensure_discard_route(&self, vrf: Option<u32>) -> Result<DiscardRoute> {
-        state::State::ensure_discard_route(vrf).await
+    async fn discard_route_exists(&self, vrf: Option<u32>) -> Result<bool> {
+        state::State::discard_route_exists(vrf).await
+    }
+
+    async fn route_discard_to_null_device(&self, vrf: Option<u32>) -> Result<()> {
+        state::State::route_discard_to_null_device(vrf).await
     }
 
     async fn remove_null_device(&self) -> Result<()> {
@@ -587,6 +597,11 @@ pub struct Runtime {
     interface_worker: JoinHandle<()>,
     /// Whether the null device was routed to, so that shutdown removes it.
     null_device_used: bool,
+    /// When the discard address was first found unrouted: the grace period
+    /// before the null device is created runs from there.
+    discard_route_wait: Option<Instant>,
+    /// How long to wait for the host to route the discard address itself.
+    discard_route_grace: Duration,
 }
 
 impl Runtime {
@@ -610,6 +625,8 @@ impl Runtime {
             control_tx,
             interface_worker,
             null_device_used: false,
+            discard_route_wait: None,
+            discard_route_grace: DISCARD_ROUTE_GRACE,
         }
     }
 
@@ -629,6 +646,8 @@ impl Runtime {
             control_tx,
             interface_worker,
             null_device_used: false,
+            discard_route_wait: None,
+            discard_route_grace: DISCARD_ROUTE_GRACE,
         }
     }
 
@@ -711,8 +730,18 @@ impl Runtime {
             let bind_interface = self
                 .bind_interface_for_tunnel_add(desired.tunnel_id, desired.bind_interface.as_ref())
                 .await;
-            self.prepare_discard_route(desired.tunnel_id, remote_addr, bind_interface.as_ref())
-                .await;
+            if let Err(e) = self
+                .prepare_discard_route(desired.tunnel_id, remote_addr, bind_interface.as_ref())
+                .await
+            {
+                if !applied_tunnel_specs.contains_key(tunnel_id) {
+                    self.resolvers.remove(tunnel_id);
+                }
+                self.tunnel_specs = applied_tunnel_specs;
+                self.session_specs = applied_session_specs;
+                self.pending_bind_interfaces = applied_pending_bind_interfaces;
+                return Err(e);
+            }
             let mut bound_interface = bind_interface.as_ref();
             if let Err(e) = self
                 .state
@@ -787,12 +816,14 @@ impl Runtime {
                 "updating tunnel_id={} remote_addr={}",
                 desired.tunnel_id, remote_addr
             );
-            self.prepare_discard_route(
-                desired.tunnel_id,
-                remote_addr,
-                desired.bind_interface.as_ref(),
-            )
-            .await;
+            try_apply!(
+                self.prepare_discard_route(
+                    desired.tunnel_id,
+                    remote_addr,
+                    desired.bind_interface.as_ref(),
+                )
+                .await
+            );
             try_apply!(
                 self.state
                     .modify_tunnel(desired.tunnel_id, remote_addr)
@@ -1110,13 +1141,6 @@ impl Runtime {
                         tunnel_id, if_name
                     );
                     self.pending_bind_interfaces.remove(&tunnel_id);
-                    // A tunnel still without a peer reconnects to the
-                    // discard address through this device next: a VRF may
-                    // need the route in its own table.
-                    if self.state.tunnel_remote_addr(tunnel_id).await == Some(DISCARD_REMOTE_ADDR) {
-                        self.prepare_discard_route(tunnel_id, DISCARD_REMOTE_ADDR, Some(&if_name))
-                            .await;
-                    }
                     if let Some(index) = self.state.bound_interface_index(tunnel_id).await {
                         rebound_interfaces.insert(index);
                     }
@@ -1304,6 +1328,12 @@ impl Runtime {
             if self.state.bound_interface_index(desired.tunnel_id).await != Some(if_index) {
                 continue;
             }
+            // A tunnel without a peer has no source to reselect: its frames
+            // are discarded whatever the route, and it connects through
+            // this device once it has a peer.
+            if self.state.tunnel_remote_addr(desired.tunnel_id).await == Some(DISCARD_REMOTE_ADDR) {
+                continue;
+            }
             let connected = self.state.tunnel_is_connected(desired.tunnel_id).await;
             if only_disconnected && connected {
                 continue;
@@ -1380,19 +1410,22 @@ impl Runtime {
     }
 
     /// Makes sure a tunnel about to connect to the discard address, as one
-    /// without a peer does, can: the kernel's own route serves when it has
+    /// without a peer does, can. The kernel's own route serves when it has
     /// one, in the main table for an unbound socket or the VRF's table for
-    /// one bound to a VRF; otherwise the null device is routed to, as a
-    /// last resort. A failure is only logged: creating the tunnel then
-    /// fails and is retried, as for any peer without a route.
+    /// one bound to a VRF. Without one, the host is first given a grace
+    /// period to get a route, as it usually does shortly after the daemon
+    /// starts at boot: the error returned meanwhile makes the reconcile
+    /// retry. Only then is the null device routed to, as a last resort; a
+    /// failure to do so is logged, and creating the tunnel then fails and
+    /// is retried, as for any peer without a route.
     async fn prepare_discard_route(
         &mut self,
         tunnel_id: u32,
         remote_addr: IpAddr,
         bind_interface: Option<&L2tpIfName>,
-    ) {
+    ) -> Result<()> {
         if remote_addr != DISCARD_REMOTE_ADDR {
-            return;
+            return Ok(());
         }
         let vrf = match bind_interface {
             Some(name) => match self.state.interface_index(name).await {
@@ -1412,26 +1445,66 @@ impl Runtime {
             },
             None => None,
         };
-        match self.state.ensure_discard_route(vrf).await {
-            Ok(DiscardRoute::Existing) => {}
-            Ok(DiscardRoute::NullDevice) => {
+        let context = match bind_interface {
+            Some(name) if vrf.is_some() => format!(" in the table of VRF {name}"),
+            _ => String::new(),
+        };
+        match self.state.discard_route_exists(vrf).await {
+            Ok(true) => {
+                self.discard_route_wait = None;
+                return Ok(());
+            }
+            Ok(false) => {}
+            Err(e) => {
+                // Let the connection attempt tell.
+                warn!(
+                    "failed to look up the route to the discard address {}{}: {}",
+                    DISCARD_REMOTE_ADDR, context, e
+                );
+                return Ok(());
+            }
+        }
+        let waited = match self.discard_route_wait {
+            Some(since) => since.elapsed(),
+            None => {
+                info!(
+                    "no route to the discard address {}{} for tunnel_id={} yet; waiting up to {}s for the host to get one before creating the null device {}",
+                    DISCARD_REMOTE_ADDR,
+                    context,
+                    tunnel_id,
+                    self.discard_route_grace.as_secs(),
+                    NULL_DEVICE
+                );
+                self.discard_route_wait = Some(Instant::now());
+                Duration::ZERO
+            }
+        };
+        if waited < self.discard_route_grace {
+            let left = self.discard_route_grace - waited;
+            return Err(Error::Other(format!(
+                "tunnel_id={} has no route to the discard address {}{} yet; the null device {} will be created in {}s unless one appears",
+                tunnel_id,
+                DISCARD_REMOTE_ADDR,
+                context,
+                NULL_DEVICE,
+                left.as_secs() + u64::from(left.subsec_nanos() > 0)
+            )));
+        }
+        match self.state.route_discard_to_null_device(vrf).await {
+            Ok(()) => {
                 info!(
                     "routed the discard address {} to the null device {} for tunnel_id={}{}",
-                    DISCARD_REMOTE_ADDR,
-                    NULL_DEVICE,
-                    tunnel_id,
-                    match bind_interface {
-                        Some(name) if vrf.is_some() => format!(" in the table of VRF {name}"),
-                        _ => String::new(),
-                    }
+                    DISCARD_REMOTE_ADDR, NULL_DEVICE, tunnel_id, context
                 );
                 self.null_device_used = true;
+                self.discard_route_wait = None;
             }
             Err(e) => warn!(
-                "tunnel_id={} has no route to the discard address {} and none could be provided: {}; creating it fails until a route exists",
-                tunnel_id, DISCARD_REMOTE_ADDR, e
+                "tunnel_id={} has no route to the discard address {}{} and none could be provided: {}; creating it fails until a route exists",
+                tunnel_id, DISCARD_REMOTE_ADDR, context, e
             ),
         }
+        Ok(())
     }
 
     async fn bind_interface_for_tunnel_add(
@@ -2543,14 +2616,19 @@ mod tests {
             MockState::tunnel_remote_addr(self, tunnel_id)
         }
 
-        async fn ensure_discard_route(&self, vrf: Option<u32>) -> Result<DiscardRoute> {
-            let mut inner = self.inner.lock().expect("lock poisoned");
-            inner.discard_route_calls.push(vrf);
-            Ok(if inner.null_device_needed {
-                DiscardRoute::NullDevice
-            } else {
-                DiscardRoute::Existing
-            })
+        async fn discard_route_exists(&self, vrf: Option<u32>) -> Result<bool> {
+            let inner = self.inner.lock().expect("lock poisoned");
+            // Like the kernel: routed once the null device serves it.
+            Ok(!inner.null_device_needed || inner.discard_route_calls.contains(&vrf))
+        }
+
+        async fn route_discard_to_null_device(&self, vrf: Option<u32>) -> Result<()> {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .discard_route_calls
+                .push(vrf);
+            Ok(())
         }
 
         async fn remove_null_device(&self) -> Result<()> {
@@ -4165,17 +4243,19 @@ mod tests {
             ],
             vec![],
         );
+        runtime.discard_route_grace = Duration::ZERO;
         runtime.reconcile(&cfg).await.unwrap();
-        // Tunnels by identifier: the literal one needs nothing, the host
-        // names and the no-peer literal do, the VRF-bound one in its VRF.
-        assert_eq!(mock.discard_route_calls(), vec![None, Some(vrf), None]);
+        // Tunnels by identifier: the literal one needs nothing; the host
+        // name gets the main table routed, which then also serves the
+        // no-peer literal; the VRF-bound one gets its VRF's table routed.
+        assert_eq!(mock.discard_route_calls(), vec![None, Some(vrf)]);
         assert!(runtime.null_device_used);
         assert_eq!(mock.tunnel_remote_addr(11), Some(DISCARD_REMOTE_ADDR));
         assert_eq!(mock.tunnel_remote_addr(13), Some(DISCARD_REMOTE_ADDR));
 
         // An unchanged reload prepares nothing again.
         runtime.reconcile(&cfg).await.unwrap();
-        assert_eq!(mock.discard_route_calls().len(), 3);
+        assert_eq!(mock.discard_route_calls().len(), 2);
 
         // A literal peer becoming a host name moves to the discard address.
         let changed = test_config(
@@ -4195,10 +4275,8 @@ mod tests {
             vec![],
         );
         runtime.reconcile(&changed).await.unwrap();
-        assert_eq!(
-            mock.discard_route_calls(),
-            vec![None, Some(vrf), None, None]
-        );
+        // The main table is routed already.
+        assert_eq!(mock.discard_route_calls(), vec![None, Some(vrf)]);
         assert_eq!(mock.tunnel_remote_addr(10), Some(DISCARD_REMOTE_ADDR));
 
         // Shutdown removes the null device once it was used.
@@ -4210,9 +4288,60 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn discard_route_is_prepared_in_a_vrf_that_appears_later() {
+    async fn null_device_waits_for_the_host_to_route_the_discard_address() {
+        let cfg = test_config(
+            vec![(
+                "name",
+                11,
+                11,
+                IpVersion::V6,
+                "peer.invalid".parse().unwrap(),
+                None,
+            )],
+            vec![],
+        );
+
+        // No route: the tunnel waits rather than getting a device at once.
         let mock = Arc::new(MockState::default());
         mock.inner.lock().unwrap().null_device_needed = true;
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        let err = runtime.reconcile(&cfg).await.unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("has no route to the discard address"),
+            "{err}"
+        );
+        assert!(mock.discard_route_calls().is_empty());
+        assert!(!mock.has_tunnel(11).await);
+        assert!(runtime.discard_route_wait.is_some());
+        // The host gets a route in time: no device is ever created.
+        mock.inner.lock().unwrap().null_device_needed = false;
+        runtime.reconcile(&cfg).await.unwrap();
+        assert!(mock.has_tunnel(11).await);
+        assert!(mock.discard_route_calls().is_empty());
+        assert!(runtime.discard_route_wait.is_none());
+        assert!(!runtime.null_device_used);
+        runtime.shutdown().await.unwrap();
+        assert_eq!(mock.null_device_removals(), 0);
+
+        // Without one, the grace period ends with the device.
+        let mock = Arc::new(MockState::default());
+        mock.inner.lock().unwrap().null_device_needed = true;
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        assert!(runtime.reconcile(&cfg).await.is_err());
+        assert!(runtime.reconcile(&cfg).await.is_err());
+        assert!(mock.discard_route_calls().is_empty());
+        runtime.discard_route_grace = Duration::ZERO;
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(mock.discard_route_calls(), vec![None]);
+        assert!(runtime.null_device_used);
+        assert!(runtime.discard_route_wait.is_none());
+        assert!(mock.has_tunnel(11).await);
+    }
+
+    #[tokio::test]
+    async fn tunnels_without_a_peer_are_not_reconnected_for_address_changes() {
+        let mock = Arc::new(MockState::default());
         let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
         let cfg = test_config(
             vec![(
@@ -4225,25 +4354,22 @@ mod tests {
             )],
             vec![],
         );
-        // The VRF is absent: the socket is unbound and uses the main table.
+        // The VRF is absent: the socket is unbound, and the host routes the
+        // discard address, so nothing is prepared.
         runtime.reconcile(&cfg).await.unwrap();
-        assert_eq!(mock.discard_route_calls(), vec![None]);
+        assert!(mock.discard_route_calls().is_empty());
 
-        // Once bound to the VRF, the tunnel reconnects there: its table
-        // needs the route first.
+        // Once the VRF appears the socket is bound to it, but a tunnel with
+        // nothing to reach is not reconnected: its frames are discarded
+        // anyway, and it connects through the device once it has a peer.
         let vrf = mock.add_interface("vrf0");
         mock.inner.lock().unwrap().vrf_interfaces.insert(vrf);
         runtime.handle_interface_change(Some(&ifname("vrf0"))).await;
-        assert_eq!(mock.discard_route_calls(), vec![None, Some(vrf)]);
         assert_eq!(mock.tunnel_bound_interface(11), Some((ifname("vrf0"), vrf)));
-        assert_eq!(mock.reconnect_count(11), 1);
-
-        // With a host that routes the address, the null device is never
-        // used and nothing is removed.
-        let mock = Arc::new(MockState::default());
-        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
-        runtime.reconcile(&cfg).await.unwrap();
-        assert_eq!(mock.discard_route_calls(), vec![None]);
+        assert_eq!(mock.reconnect_count(11), 0);
+        runtime.handle_local_address_change(vrf).await;
+        assert_eq!(mock.reconnect_count(11), 0);
+        assert!(mock.discard_route_calls().is_empty());
         assert!(!runtime.null_device_used);
         runtime.shutdown().await.unwrap();
         assert_eq!(mock.null_device_removals(), 0);

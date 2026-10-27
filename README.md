@@ -114,13 +114,15 @@ is connected to the discard address `100::`, and its frames are discarded
 until it gets one. Connecting there needs a route but no reachability: when
 the host routes `100::` already (through a default route, say), that route
 is used; when it does not, as on an IPv4-only host or in a VRF with an
-unreachable default route, the daemon creates the null device
-`rsl2tpnull0`, a `dummy` link that drops whatever it transmits, and routes
-`100::/128` to it in the table concerned. Blackhole and unreachable routes
-cannot serve, as they refuse the connection outright, and nothing is ever
-routed through loopback. The null device is created only when needed and
-removed on shutdown. A literal address needs a route when the tunnel is
-created, as in 0.1.5, so a literal peer without one delays readiness.
+unreachable default route, the daemon waits ten seconds for one to appear,
+as it usually does shortly after the daemon starts at boot, and only then
+resorts to creating the null device `rsl2tpnull0`, a `dummy` link that
+drops whatever it transmits, and routing `100::/128` to it in the table
+concerned. Blackhole and unreachable routes cannot serve, as they refuse
+the connection outright, and nothing is ever routed through loopback. The
+null device is created only when needed and removed on shutdown. A literal
+address needs a route when the tunnel is created, as in 0.1.5, so a
+literal peer without one delays readiness.
 
 The PID file is published as a fresh inode owned by the daemon user,
 replacing a legacy file atomically. Its directories must be owned by root

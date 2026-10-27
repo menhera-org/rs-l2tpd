@@ -167,8 +167,9 @@ echo 'PASS --check with mistakes'
 echo 'CASE readiness waits for every configurable interface'
 # The far peer has no route, so that tunnel cannot be created yet and the
 # parent must not exit: readiness is deferred until every tunnel and
-# session exists. The discard address has no route either; the daemon
-# provides one through its null device, as the tunnels before it show.
+# session exists. The discard address has no route either: the daemon
+# first waits for the host to get one, then provides one through its null
+# device, as a last resort.
 timeout 60 /opt/current --pidfile /run/test.pid > /tmp/daemon.log 2>&1 &
 parent=$!
 sleep 3
@@ -178,12 +179,17 @@ if ip link show soft0 > /dev/null 2>&1 || [ -e /run/test.pid ]; then
     echo "readiness must wait for every configurable interface" >&2
     exit 1
 fi
-ip link show rsl2tpnull0 > /dev/null
-ip -6 route get 100:: | grep -q 'dev rsl2tpnull0'
-grep -q 'routed the discard address 100:: to the null device rsl2tpnull0 for tunnel_id=11' /tmp/daemon.log
+grep -q 'no route to the discard address 100:: for tunnel_id=11 yet; waiting up to 10s' /tmp/daemon.log
+if ip link show rsl2tpnull0 > /dev/null 2>&1; then
+    echo "the null device must not be created before the grace period ends" >&2
+    exit 1
+fi
 ip -6 route add 2001:db8:2::/64 dev dummy0
 wait "$parent"
 [ -e /run/test.pid ]
+ip link show rsl2tpnull0 > /dev/null
+ip -6 route get 100:: | grep -q 'dev rsl2tpnull0'
+grep -q 'routed the discard address 100:: to the null device rsl2tpnull0 for tunnel_id=11' /tmp/daemon.log
 echo 'PASS readiness waits for every configurable interface'
 
 echo 'CASE degraded start'
