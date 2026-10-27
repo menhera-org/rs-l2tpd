@@ -116,9 +116,10 @@ H15. Without the L2TP modules, without `CAP_NET_ADMIN`, or without
 netlink, the daemon cannot create the interfaces the network depends on:
 it reports the condition once, retries every second, and withholds
 readiness, because readiness would be a lie; it never exits. No other
-capability is needed ([K8](kernel.md#requirements)); a DHCPv6 resolver
-without its port permission is reported once and withholds nothing
-([V12](resolvers.md#dhcpv6-information-request)). Without procfs the
+capability is needed ([K8](kernel.md#requirements)); a `dhcpv6` resolver
+without its port permission is reported once and withholds nothing, and
+an `ipv6` resolver falls back to router advertisements
+([V12](resolvers.md#dhcpv6-information-request), [V14](resolvers.md#the-unified-ipv6-method)). Without procfs the
 current library dependency cannot determine the namespace and the daemon
 reports it as a host defect.
 

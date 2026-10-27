@@ -89,7 +89,7 @@ C16. Fields of a resolver entry ([resolvers](resolvers.md)):
 | Field | Rule |
 |---|---|
 | `addresses` | A non-empty list of name-server addresses: an IPv4 or IPv6 literal as for `remote_addr`, optionally with a port (`192.0.2.53:5353`, `[2001:db8::53]:5353`), port 53 by default. Exclusive with `method`. |
-| `method` | `"ra"` or `"dhcpv6"`, either case. Exclusive with `addresses`; requires `bind_interface`. |
+| `method` | `"ra"`, `"dhcpv6"` or `"ipv6"` (both, DHCPv6 first, [V14](resolvers.md#the-unified-ipv6-method)), either case. Exclusive with `addresses`; requires `bind_interface`. |
 | `bind_interface` | An interface name as for a tunnel. Required with `method`, optional with `addresses`. |
 
 An entry with neither `addresses` nor `method`, with both, with `method`

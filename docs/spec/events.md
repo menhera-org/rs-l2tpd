@@ -97,7 +97,7 @@ resolver: its servers are recorded with their lifetimes
 interfaces, and other user options, are dropped by comparison.
 
 E24. The event monitor's filter MUST pass `RTM_NEWNDUSEROPT` messages
-whenever a router-advertisement resolver is configured, and MAY drop them
+whenever a resolver using router advertisements (`ra` or `ipv6`) is configured, and MAY drop them
 otherwise; the filter never applies to the sockets requests are sent on
 ([K29](kernel.md#facts), [A5](architecture.md#layers)).
 

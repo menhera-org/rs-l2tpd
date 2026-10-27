@@ -19,7 +19,7 @@ the [kernel page](kernel.md#requirements); the rows below summarise them.
 | R2 | Removed. No null device, no `dummy` driver and no route is needed ([discard](discard.md)). | — |
 | R3 | `CAP_NET_ADMIN` in the daemon's network namespace ([K8](kernel.md#requirements)). | Host defect, as R1. |
 | R4 | Removed. `CAP_NET_RAW` is not needed: a device binding is only ever set on a socket that has none, because every change of binding follows a disconnect ([K22](kernel.md#facts), [T21](tunnels.md#source-addresses)). | — |
-| R5 | `NETLINK_ROUTE` and `NETLINK_GENERIC` sockets, with the link and address multicast groups ([K7](kernel.md#requirements)); the `RTNLGRP_ND_USEROPT` group when a router-advertisement resolver is configured ([K14](kernel.md#requirements)). No route group. | Host defect, as R1. |
+| R5 | `NETLINK_ROUTE` and `NETLINK_GENERIC` sockets, with the link and address multicast groups ([K7](kernel.md#requirements)); the `RTNLGRP_ND_USEROPT` group when a resolver using router advertisements (`ra` or `ipv6`) is configured ([K14](kernel.md#requirements)). No route group. | Host defect, as R1. |
 | R6 | Permission to attach a classic BPF socket filter (`SO_ATTACH_FILTER`, [K10](kernel.md#requirements)). | The monitor runs without the filter, with a warning; unrelated link and address events then cost buffer space and may cause resyncs, never failures ([E20](events.md#monitor-loss)). |
 | R7 | `procfs` mounted at `/proc`, while the current library dependency needs it to identify the network namespace ([K12](kernel.md#requirements)). | Reported at start-up as a host defect; readiness withheld. |
 | R8 | A monotonic clock. | Not met on no supported host. |
@@ -30,7 +30,7 @@ the [kernel page](kernel.md#requirements); the rows below summarise them.
 | R43 | `/proc` and `/sys` mounted is all the daemon needs of the filesystem layout besides its own files; no systemd, no freedesktop.org layout, no particular libc ([P22–P24](process.md#the-process-contract)). | Not a condition: the daemon does not depend on any of them. |
 | R44 | `net.ipv6.bindv6only = 0` in the daemon's namespace, while IPv4 peers ride on `AF_INET6` sockets ([K11](kernel.md#requirements)); the daemon sets it itself unless the operator opted out ([T26](tunnels.md#hosts-with-bindv6only), [P25](process.md#host-tunables)). | With the opt-out, IPv4 peers get `AF_INET` sockets ([T26](tunnels.md#hosts-with-bindv6only)). |
 | R45 | VRF support in the kernel, when a `bind_interface` names a VRF ([K9](kernel.md#requirements)). | The name is an ordinary device to the kernel: the binding applies, the VRF semantics of [H7](hosts.md#vrfs) do not. |
-| R46 | `CAP_NET_BIND_SERVICE`, or `ip_unprivileged_port_start` at or below 546, when a DHCPv6 resolver is configured ([K13](kernel.md#requirements)). | The resolver is reported once as a host defect; its tunnels stay disconnected; readiness is not withheld ([V12](resolvers.md#dhcpv6-information-request)). |
+| R46 | `CAP_NET_BIND_SERVICE`, or `ip_unprivileged_port_start` at or below 546, when a `dhcpv6` resolver is configured, or an `ipv6` one is to use its DHCPv6 half ([K13](kernel.md#requirements)). | A `dhcpv6` resolver is reported once as a host defect and its tunnels stay disconnected; an `ipv6` resolver uses its router-advertisement servers ([V12](resolvers.md#dhcpv6-information-request), [V14](resolvers.md#the-unified-ipv6-method)); readiness is not withheld. |
 
 Nothing else is required of the host at start-up: no address, no route,
 no DNS, no IPv6, no bind device, no peer.

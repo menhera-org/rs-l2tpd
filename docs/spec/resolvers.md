@@ -5,9 +5,9 @@
 How a host name in `remote_addr` becomes a peer address: through the
 system resolver by default, or through a resolver the configuration names,
 given by address or by a discovery method, with an optional bind interface.
-This page describes the behaviour whether the mechanism is implemented in
-the `iphost` crate or in this crate; that choice is open and does not
-change the rules.
+The mechanism is implemented in the `iphost` crate (version 0.4.0 adds the
+configured resolvers and the unified `ipv6` method); this page states the
+behaviour the daemon requires of it.
 
 ## Model
 
@@ -25,11 +25,12 @@ V2. A resolver is one of three kinds, chosen by its fields:
 | Address | `addresses`: one or more literal IPv4 or IPv6 addresses, each with an optional port (`[2001:db8::53]:5353`, `192.0.2.53:5353`), port 53 by default; `bind_interface` optional | The listed servers, tried in order |
 | Router advertisements | `method = "ra"`; `bind_interface` required | The servers of the RDNSS options received on the bind interface ([V10](#router-advertisements)) |
 | DHCPv6 Information-Request | `method = "dhcpv6"`; `bind_interface` required | The servers a DHCPv6 server returns on the bind interface ([V12](#dhcpv6-information-request)) |
+| IPv6 (unified) | `method = "ipv6"`; `bind_interface` required | Both of the above at once, DHCPv6 servers first ([V14](#the-unified-ipv6-method)) |
 
 A resolver with both `addresses` and `method`, or with `method` and no
 `bind_interface`, is a hard mistake ([C10](configuration.md#start-up)).
-All three kinds are part of the first implementation; none is optional,
-and a `method` value outside the two defined ones is a hard mistake.
+All four kinds are part of the first implementation; none is optional,
+and a `method` value outside the three defined ones is a hard mistake.
 
 V3. The system resolver is the libc resolver of the build: on glibc the
 host's NSS configuration, on musl `/etc/resolv.conf` and `/etc/hosts` and
@@ -86,7 +87,7 @@ needs no capability ([K22](kernel.md#facts)).
 
 ## Router advertisements
 
-V10. For `method = "ra"` the daemon joins the rtnetlink group
+V10. For `method = "ra"` (and as half of `ipv6`, [V14](#the-unified-ipv6-method)) the daemon joins the rtnetlink group
 `RTNLGRP_ND_USEROPT` ([K14](kernel.md#requirements)) and takes the RDNSS
 options of router advertisements received on the resolver's bind
 interface, matched by index. Each server is in force for the option's
@@ -103,7 +104,7 @@ whenever such a resolver is configured ([E24](events.md#resolver-events)).
 
 ## DHCPv6 Information-Request
 
-V12. For `method = "dhcpv6"` the daemon sends an Information-Request
+V12. For `method = "dhcpv6"` (and as half of `ipv6`, [V14](#the-unified-ipv6-method)) the daemon sends an Information-Request
 (RFC 8415 section 18.2.6) to `ff02::1:2` from UDP port 546 on the bind
 interface, requesting the DNS Recursive Name Server option (23) and the
 Information Refresh Time option (32), with RFC 8415's retransmission
@@ -112,8 +113,25 @@ the next Reply; the request is repeated at the Information Refresh Time
 the server gave, or every 24 hours when it gave none, and never more
 often than every 10 minutes (RFC 8415 section 21.23). Nothing else is
 taken from DHCPv6. Port 546 needs [K13](kernel.md#requirements); without
-it the resolver is reported once as a host defect, retried every thirty
-seconds, and its tunnels stay disconnected; readiness is not withheld.
+it a `dhcpv6` resolver is reported once as a host defect, retried every
+thirty seconds, and its tunnels stay disconnected, while an `ipv6`
+resolver falls back to its RDNSS servers ([V14](#the-unified-ipv6-method));
+readiness is not withheld.
+
+## The unified IPv6 method
+
+V14. For `method = "ipv6"` the resolver runs both discovery methods on
+the bind interface at once: it joins `RTNLGRP_ND_USEROPT` for RDNSS
+servers ([V10](#router-advertisements)) and sends Information-Requests
+([V12](#dhcpv6-information-request)). Its server list is the DHCPv6
+servers in force followed by the RDNSS servers in force; a query is sent
+to the servers in that order and the first answer wins, so DHCPv6 servers
+take precedence while any working server suffices. Either source being
+absent, expired or failing (no router advertises servers, no DHCPv6 server
+answers, port 546 refused) is not a failure of the resolver as long as
+the other source has a server; the resolver is reported as without
+servers only when both are empty. The lifetimes and refresh rules of each
+source apply unchanged.
 
 ## Resolver events
 

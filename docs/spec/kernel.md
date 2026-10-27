@@ -28,8 +28,8 @@ statement about older kernels.
 | K10 | Classic BPF socket filter (`SO_ATTACH_FILTER`) | reducing the monitor's traffic | optional: without it the monitor runs unfiltered ([R6](requirements.md#the-host)) | `net/core/filter.c`, built unconditionally; no `bpf()` syscall |
 | K11 | `net.ipv6.bindv6only = 0` in the daemon's namespace | IPv4 peers on `AF_INET6` sockets | only while a tunnel carries IPv4 peers on an `AF_INET6` socket; otherwise `AF_INET` sockets ([T26](tunnels.md#hosts-with-bindv6only)) | `IPV6_V6ONLY` is fixed at socket creation ([K13](#facts)) |
 | K12 | `procfs` at `/proc` | the namespace identity of the current library dependency ([R7](requirements.md#the-host)) | only while that dependency is used | — |
-| K13 | `CAP_NET_BIND_SERVICE`, or `net.ipv4.ip_unprivileged_port_start` at or below 546 (Docker sets it to 0 in its containers) | DHCPv6 Information-Request resolvers ([V12](resolvers.md#dhcpv6-information-request)) | only when such a resolver is configured | `net/ipv4/af_inet.c:508-510`, `include/net/ip.h:374-377` |
-| K14 | Router-advertisement user options delivered on `RTNLGRP_ND_USEROPT` | router-advertisement resolvers ([V4](resolvers.md#router-advertisements)) | only when such a resolver is configured | `net/ipv6/ndisc.c:1189-1235` |
+| K13 | `CAP_NET_BIND_SERVICE`, or `net.ipv4.ip_unprivileged_port_start` at or below 546 (Docker sets it to 0 in its containers) | resolvers with `method = "dhcpv6"` or `"ipv6"` ([V12](resolvers.md#dhcpv6-information-request), [V14](resolvers.md#the-unified-ipv6-method)) | only when such a resolver is configured; an `ipv6` resolver works without it through its RDNSS servers | `net/ipv4/af_inet.c:508-510`, `include/net/ip.h:374-377` |
+| K14 | Router-advertisement user options delivered on `RTNLGRP_ND_USEROPT` | resolvers with `method = "ra"` or `"ipv6"` ([V10](resolvers.md#router-advertisements), [V14](resolvers.md#the-unified-ipv6-method)) | only when such a resolver is configured | `net/ipv6/ndisc.c:1189-1235` |
 
 Not required: the `dummy` driver, any route, any route lookup, the route
 multicast groups, `/sys`, `CAP_NET_RAW` (every change of a device binding
