@@ -213,6 +213,20 @@ impl Service {
             ControlEvent::LocalAddressChanged { if_index } => {
                 self.runtime.handle_local_address_change(if_index).await;
             }
+            ControlEvent::LocalAddressFamilyChanged {
+                if_index,
+                ip_version,
+            } => {
+                self.runtime
+                    .handle_local_address_family_change(if_index, ip_version)
+                    .await;
+            }
+            ControlEvent::ReconnectRequested { if_index } => {
+                self.runtime.handle_reconnect_request(if_index).await;
+            }
+            ControlEvent::VrfChanged { if_index } => {
+                self.runtime.handle_vrf_change(if_index).await;
+            }
             ControlEvent::ReloadRequested | ControlEvent::ShutdownRequested => {}
         }
     }

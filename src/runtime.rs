@@ -5,18 +5,21 @@
 //! that the caller forwards from a channel; [`crate::service::Service`] does
 //! this and is the easier entry point.
 //!
-//! Interfaces are identified by their index once they are known: a tunnel
-//! socket remembers the index of the device it was bound to, and session
-//! devices are renamed and configured by index. Configured names are only
-//! resolved at the moment a binding is made or checked.
+//! Interface indices match notifications to current bindings, and session
+//! devices are renamed and configured by index. Every socket rebind resolves
+//! its configured interface name afresh, accepting replacements whose index
+//! differs from the previous binding.
 
 use async_trait::async_trait;
-use futures_util::StreamExt;
+use futures_util::{StreamExt, TryStreamExt};
 use iphost::{AutoIpHostResolver, IpHost, IpHostResolver};
 use l2tp::{L2tpIfName, L2tpIfNameExt};
 use log::{debug, info, warn};
 use rtnetlink::packet_core::NetlinkPayload;
-use rtnetlink::packet_route::{link::LinkAttribute, RouteNetlinkMessage};
+use rtnetlink::packet_route::{
+    link::{LinkAttribute, LinkMessage},
+    AddressFamily, RouteNetlinkMessage,
+};
 use rtnetlink::{new_multicast_connection, MulticastGroup};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
@@ -77,6 +80,26 @@ pub enum ControlEvent {
         /// The index of the interface whose addresses changed.
         if_index: u32,
     },
+    /// An IPv4 or IPv6 address changed on an interface. Only tunnels using
+    /// that address family are refreshed, including those bound to its VRF.
+    LocalAddressFamilyChanged {
+        /// The index of the interface whose addresses changed.
+        if_index: u32,
+        /// The family of the changed address.
+        ip_version: IpVersion,
+    },
+    /// Retry incomplete reconnects on a bound device. The index identifies
+    /// the binding itself, even when a VRF slave caused the original event.
+    ReconnectRequested {
+        /// The index of the device to which the tunnel sockets are bound.
+        if_index: u32,
+    },
+    /// A controller's slave membership changed. The runtime verifies that
+    /// the controller is still a VRF before refreshing its bound tunnels.
+    VrfChanged {
+        /// The controller index observed before or after the link change.
+        if_index: u32,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -122,11 +145,12 @@ pub(crate) trait StateOps: Send + Sync {
     async fn session_hwaddr_pending(&self, _tunnel_id: u32, _session_id: u32) -> bool {
         false
     }
-    /// False only between a disconnect the state issued itself and the
-    /// connect that completed it.
+    /// False while the last source-reselection attempt is incomplete.
     async fn tunnel_is_connected(&self, _tunnel_id: u32) -> bool {
         true
     }
+    /// The effective underlay family, canonicalizing IPv4-mapped peers.
+    async fn tunnel_ip_version(&self, tunnel_id: u32) -> Option<IpVersion>;
     async fn has_tunnel(&self, tunnel_id: u32) -> bool;
     async fn add_tunnel(
         &self,
@@ -146,6 +170,10 @@ pub(crate) trait StateOps: Send + Sync {
     async fn has_interface(&self, if_name: &L2tpIfName) -> Result<bool>;
     /// The current name of the interface with `index`, `None` when it is gone.
     async fn interface_name(&self, index: u32) -> Result<Option<L2tpIfName>>;
+    /// The current VRF master of this interface, excluding other controllers.
+    async fn interface_vrf_master(&self, index: u32) -> Result<Option<u32>>;
+    /// Whether this index currently identifies a VRF device.
+    async fn interface_is_vrf(&self, index: u32) -> Result<bool>;
     async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool;
     /// Creates the session; the outcome tells whether its hardware address
     /// (if configured) is on the device or deferred until it is down.
@@ -186,6 +214,10 @@ impl StateOps for state::State {
 
     async fn tunnel_is_connected(&self, tunnel_id: u32) -> bool {
         state::State::tunnel_is_connected(self, tunnel_id).await
+    }
+
+    async fn tunnel_ip_version(&self, tunnel_id: u32) -> Option<IpVersion> {
+        state::State::tunnel_ip_version(self, tunnel_id).await
     }
 
     async fn has_tunnel(&self, tunnel_id: u32) -> bool {
@@ -232,6 +264,14 @@ impl StateOps for state::State {
 
     async fn interface_name(&self, index: u32) -> Result<Option<L2tpIfName>> {
         state::State::interface_name(index).await
+    }
+
+    async fn interface_vrf_master(&self, index: u32) -> Result<Option<u32>> {
+        state::State::interface_vrf_master(index).await
+    }
+
+    async fn interface_is_vrf(&self, index: u32) -> Result<bool> {
+        state::State::interface_is_vrf(index).await
     }
 
     async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool {
@@ -859,7 +899,7 @@ impl Runtime {
             }
         }
         for index in indexes {
-            self.reconnect_bound_tunnels(index, true).await;
+            self.reconnect_bound_tunnels(index, None, true).await;
         }
     }
 
@@ -923,9 +963,10 @@ impl Runtime {
             }
             if let Some(index) = self.state.bound_interface_index(desired.tunnel_id).await {
                 match self.state.interface_name(index).await {
-                    // A live device keeps its identity even after a rename.
-                    Ok(Some(_)) => continue,
-                    Ok(None) => {
+                    Ok(Some(current_name)) if current_name == if_name => continue,
+                    // The configured name may now identify a replacement,
+                    // even while the previous device lives under a new name.
+                    Ok(_) => {
                         self.state.forget_tunnel_binding(desired.tunnel_id).await;
                         if let Some(retry) = self.reconnect_retries.remove(&index) {
                             retry.abort();
@@ -1061,25 +1102,80 @@ impl Runtime {
         }
     }
 
-    /// Reconnects the tunnels bound to the interface whose addresses
-    /// changed, so that the kernel selects a source address again. A failed
-    /// reconnect is retried after one second; at most one retry is queued
-    /// per interface. A newer event replaces the previous timer.
+    /// Reconnects tunnels bound to this interface or its VRF master,
+    /// allowing the kernel to select a source address again. This refreshes
+    /// both families; use [`Self::handle_local_address_family_change`] when
+    /// the address family is known.
     pub async fn handle_local_address_change(&mut self, if_index: u32) {
-        self.reconnect_bound_tunnels(if_index, false).await;
+        self.handle_address_change(if_index, None).await;
+    }
+
+    /// Refreshes only tunnels using the changed address family on this
+    /// interface or its current VRF master. IPv4-mapped peers use IPv4.
+    pub async fn handle_local_address_family_change(
+        &mut self,
+        if_index: u32,
+        ip_version: IpVersion,
+    ) {
+        self.handle_address_change(if_index, Some(ip_version)).await;
+    }
+
+    async fn handle_address_change(&mut self, if_index: u32, ip_version: Option<IpVersion>) {
+        // Resolve the relationship at notification time, by index. An
+        // unrelated bridge/bond controller must not be treated as a VRF.
+        // A failed lookup must not suppress directly bound tunnels.
+        let master = match self.state.interface_vrf_master(if_index).await {
+            Ok(master) => master,
+            Err(e) => {
+                warn!("failed to look up VRF master of interface index {if_index}: {e}");
+                None
+            }
+        };
+        self.reconnect_bound_tunnels(if_index, ip_version, false)
+            .await;
+        if let Some(master) = master.filter(|master| *master != if_index) {
+            self.reconnect_bound_tunnels(master, ip_version, false)
+                .await;
+        }
+    }
+
+    /// Retries incomplete reconnects on the bound device, without depending
+    /// on the continued existence or VRF membership of the original slave.
+    pub async fn handle_reconnect_request(&mut self, if_index: u32) {
+        self.reconnect_bound_tunnels(if_index, None, true).await;
+    }
+
+    /// Refreshes a VRF after a slave was attached, detached, or removed.
+    /// The notification can outlive the slave, so its observed controller
+    /// index is checked directly instead of looking up the slave again.
+    pub async fn handle_vrf_change(&mut self, if_index: u32) {
+        match self.state.interface_is_vrf(if_index).await {
+            Ok(true) => self.reconnect_bound_tunnels(if_index, None, false).await,
+            Ok(false) => {}
+            Err(e) => warn!("failed to verify changed VRF interface index {if_index}: {e}"),
+        }
     }
 
     /// Reconnects the tunnels bound to `if_index`, all of them or only
     /// those whose last reconnect did not complete, and queues one retry
     /// for the interface if any reconnect failed.
-    async fn reconnect_bound_tunnels(&mut self, if_index: u32, only_disconnected: bool) {
-        // This event supersedes any timer for the same interface. A retry
-        // event can be received before its sender finishes, so task completion
-        // cannot tell us whether another retry is needed.
-        if let Some(retry) = self.reconnect_retries.remove(&if_index) {
-            retry.abort();
+    async fn reconnect_bound_tunnels(
+        &mut self,
+        if_index: u32,
+        ip_version: Option<IpVersion>,
+        only_disconnected: bool,
+    ) {
+        // A broad refresh/retry consumes the previous timer. Family-specific
+        // notifications retain its deadline: otherwise a stream of IPv6
+        // events could indefinitely postpone an incomplete IPv4 reconnect.
+        // A queued retry can arrive before its sender finishes, so task
+        // completion cannot tell us whether another retry is needed.
+        if ip_version.is_none() {
+            if let Some(retry) = self.reconnect_retries.remove(&if_index) {
+                retry.abort();
+            }
         }
-        let mut retry_needed = false;
+        let mut retry_indexes = BTreeSet::new();
         for desired in self.tunnel_specs.values() {
             let Some(if_name) = desired.bind_interface.as_ref() else {
                 continue;
@@ -1087,8 +1183,19 @@ impl Runtime {
             if self.state.bound_interface_index(desired.tunnel_id).await != Some(if_index) {
                 continue;
             }
-            if only_disconnected && self.state.tunnel_is_connected(desired.tunnel_id).await {
+            let connected = self.state.tunnel_is_connected(desired.tunnel_id).await;
+            if only_disconnected && connected {
                 continue;
+            }
+            if let Some(version) = ip_version {
+                if self.state.tunnel_ip_version(desired.tunnel_id).await != Some(version) {
+                    // A notification for the other family must not cancel a
+                    // retry already needed on this same bound device.
+                    if !connected {
+                        retry_indexes.insert(if_index);
+                    }
+                    continue;
+                }
             }
 
             match self.state.reconnect_tunnel(desired.tunnel_id).await {
@@ -1097,7 +1204,15 @@ impl Runtime {
                     desired.tunnel_id, if_name, if_index
                 ),
                 Err(e) => {
-                    retry_needed = true;
+                    // Resolving the configured name at bind time may have
+                    // selected a replacement device. Retry its current index,
+                    // rather than the index carried by the original event.
+                    retry_indexes.insert(
+                        self.state
+                            .bound_interface_index(desired.tunnel_id)
+                            .await
+                            .unwrap_or(if_index),
+                    );
                     warn!(
                         "failed to reconnect tunnel_id={} after local address change on {} (index {}): {}; will retry",
                         desired.tunnel_id, if_name, if_index, e
@@ -1106,12 +1221,20 @@ impl Runtime {
             }
         }
 
-        if retry_needed {
+        if !retry_indexes.contains(&if_index) {
+            if let Some(retry) = self.reconnect_retries.remove(&if_index) {
+                retry.abort();
+            }
+        }
+        for if_index in retry_indexes {
+            if self.reconnect_retries.contains_key(&if_index) {
+                continue;
+            }
             let control_tx = self.control_tx.clone();
             let retry = tokio::spawn(async move {
                 tokio::time::sleep(Duration::from_secs(1)).await;
                 let _ = control_tx
-                    .send(ControlEvent::LocalAddressChanged { if_index })
+                    .send(ControlEvent::ReconnectRequested { if_index })
                     .await;
             });
             self.reconnect_retries.insert(if_index, retry);
@@ -1212,17 +1335,32 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
                 break;
             }
 
-            let (connection, _handle, mut messages) =
-                match new_multicast_connection(&[MulticastGroup::Link, MulticastGroup::Ipv6Ifaddr])
-                {
-                    Ok(parts) => parts,
-                    Err(e) => {
-                        warn!("failed to open rtnetlink link monitor: {}", e);
-                        tokio::time::sleep(Duration::from_secs(1)).await;
-                        continue;
-                    }
-                };
+            let (connection, handle, mut messages) = match new_multicast_connection(&[
+                MulticastGroup::Link,
+                MulticastGroup::Ipv4Ifaddr,
+                MulticastGroup::Ipv6Ifaddr,
+            ]) {
+                Ok(parts) => parts,
+                Err(e) => {
+                    warn!("failed to open rtnetlink link monitor: {}", e);
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    continue;
+                }
+            };
             let connection_task = tokio::spawn(connection);
+
+            // A preexisting down slave can be deleted without a preceding
+            // NEWLINK, and DELLINK need not include its former controller.
+            // Subscribe before dumping so changes during the dump are queued.
+            let mut controllers = match read_interface_controllers(&handle).await {
+                Ok(controllers) => controllers,
+                Err(e) => {
+                    warn!("failed to seed rtnetlink controller monitor: {e}; reopening");
+                    connection_task.abort();
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    continue;
+                }
+            };
 
             if control_tx
                 .send(ControlEvent::InterfaceChanged { if_name: None })
@@ -1233,7 +1371,7 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
                 break;
             }
 
-            while let Some((message, addr)) = messages.next().await {
+            'messages: while let Some((message, addr)) = messages.next().await {
                 if control_tx.is_closed() {
                     break;
                 }
@@ -1247,10 +1385,26 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
                     );
                     continue;
                 }
-                let Some(event) = control_event_for_netlink_payload(message.payload) else {
-                    continue;
-                };
-                if control_tx.send(event).await.is_err() {
+                let changed_controllers =
+                    controller_changes_for_netlink_payload(&mut controllers, &message.payload);
+                let overrun = matches!(&message.payload, NetlinkPayload::Overrun(_));
+                if let Some(event) = control_event_for_netlink_payload(message.payload) {
+                    if control_tx.send(event).await.is_err() {
+                        break;
+                    }
+                }
+                for if_index in changed_controllers {
+                    if control_tx
+                        .send(ControlEvent::VrfChanged { if_index })
+                        .await
+                        .is_err()
+                    {
+                        break 'messages;
+                    }
+                }
+                if overrun {
+                    // Membership notifications may have been lost. Reopen
+                    // and seed from the kernel instead of keeping stale data.
                     break;
                 }
             }
@@ -1263,6 +1417,65 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
             tokio::time::sleep(Duration::from_secs(1)).await;
         }
     })
+}
+
+fn interface_controller(link: &LinkMessage) -> Option<u32> {
+    link.attributes
+        .iter()
+        .find_map(|attribute| match attribute {
+            LinkAttribute::Controller(index) if *index != 0 => Some(*index),
+            _ => None,
+        })
+}
+
+fn remember_interface_controller(controllers: &mut BTreeMap<u32, u32>, link: &LinkMessage) {
+    match interface_controller(link) {
+        Some(controller) => {
+            controllers.insert(link.header.index, controller);
+        }
+        None => {
+            controllers.remove(&link.header.index);
+        }
+    }
+}
+
+async fn read_interface_controllers(handle: &rtnetlink::Handle) -> Result<BTreeMap<u32, u32>> {
+    let mut controllers = BTreeMap::new();
+    let mut links = handle.link().get().execute();
+    while let Some(link) = links
+        .try_next()
+        .await
+        .map_err(|e| Error::Other(format!("failed to dump interface controllers: {e}")))?
+    {
+        remember_interface_controller(&mut controllers, &link);
+    }
+    Ok(controllers)
+}
+
+/// Controller indexes only route notifications. Socket binding still resolves
+/// its configured name, and the runtime checks the controller's current kind.
+fn controller_changes_for_netlink_payload(
+    controllers: &mut BTreeMap<u32, u32>,
+    payload: &NetlinkPayload<RouteNetlinkMessage>,
+) -> BTreeSet<u32> {
+    let (previous, current) = match payload {
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link)) => {
+            let previous = controllers.get(&link.header.index).copied();
+            remember_interface_controller(controllers, link);
+            (previous, interface_controller(link))
+        }
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelLink(link)) => {
+            let previous = controllers
+                .remove(&link.header.index)
+                .or_else(|| interface_controller(link));
+            (previous, None)
+        }
+        _ => return BTreeSet::new(),
+    };
+    if previous == current {
+        return BTreeSet::new();
+    }
+    previous.into_iter().chain(current).collect()
 }
 
 fn control_event_for_netlink_payload(
@@ -1287,8 +1500,14 @@ fn control_event_for_netlink_payload(
         }
         NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewAddress(address))
         | NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelAddress(address)) => {
-            Some(ControlEvent::LocalAddressChanged {
+            let ip_version = match address.header.family {
+                AddressFamily::Inet => IpVersion::V4,
+                AddressFamily::Inet6 => IpVersion::V6,
+                _ => return None,
+            };
+            Some(ControlEvent::LocalAddressFamilyChanged {
                 if_index: address.header.index,
+                ip_version,
             })
         }
         NetlinkPayload::Overrun(_) => Some(ControlEvent::InterfaceChanged { if_name: None }),
@@ -1569,6 +1788,9 @@ mod tests {
         sessions: BTreeMap<(u32, u32), MockSession>,
         /// Interfaces by name, with the index each one was created with.
         interfaces: BTreeMap<L2tpIfName, u32>,
+        vrf_masters: BTreeMap<u32, u32>,
+        vrf_interfaces: BTreeSet<u32>,
+        fail_vrf_lookup: bool,
         next_interface_index: u32,
         fail_add_tunnel_for: Option<u32>,
         vanish_bind_interface_for: Option<u32>,
@@ -1805,6 +2027,16 @@ mod tests {
                 return Err(Error::Other("tunnel not found".to_string()));
             }
             *inner.reconnect_counts.entry(tunnel_id).or_default() += 1;
+            let binding = inner.tunnels[&tunnel_id].bound_interface;
+            if let Some((name, _)) = binding {
+                let Some(index) = inner.interfaces.get(&name).copied() else {
+                    inner.tunnels.get_mut(&tunnel_id).unwrap().connected = false;
+                    return Err(Error::Other(
+                        "configured bind interface is absent".to_string(),
+                    ));
+                };
+                inner.tunnels.get_mut(&tunnel_id).unwrap().bound_interface = Some((name, index));
+            }
             let failed = inner.fail_reconnect_tunnel_for == Some(tunnel_id);
             inner
                 .tunnels
@@ -1824,6 +2056,16 @@ mod tests {
                 .tunnels
                 .get(&tunnel_id)
                 .is_none_or(|tunnel| tunnel.connected)
+        }
+
+        async fn tunnel_ip_version(&self, tunnel_id: u32) -> Option<IpVersion> {
+            self.tunnel_remote_addr(tunnel_id).map(|addr| {
+                if addr.to_canonical().is_ipv4() {
+                    IpVersion::V4
+                } else {
+                    IpVersion::V6
+                }
+            })
         }
 
         async fn bind_tunnel_interface(&self, tunnel_id: u32, if_name: &L2tpIfName) -> Result<()> {
@@ -1886,6 +2128,23 @@ mod tests {
                 .interfaces
                 .iter()
                 .find_map(|(name, i)| (*i == index).then_some(*name)))
+        }
+
+        async fn interface_vrf_master(&self, index: u32) -> Result<Option<u32>> {
+            let inner = self.inner.lock().unwrap();
+            if inner.fail_vrf_lookup {
+                return Err(Error::Other("injected VRF lookup failure".to_string()));
+            }
+            Ok(inner.vrf_masters.get(&index).copied())
+        }
+
+        async fn interface_is_vrf(&self, index: u32) -> Result<bool> {
+            let inner = self.inner.lock().unwrap();
+            if inner.fail_vrf_lookup {
+                return Err(Error::Other("injected VRF lookup failure".to_string()));
+            }
+            Ok(inner.vrf_interfaces.contains(&index)
+                && inner.interfaces.values().any(|current| *current == index))
         }
 
         async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool {
@@ -2588,14 +2847,11 @@ mod tests {
         );
         runtime.reconcile(&cfg).await.expect("initial reconcile");
 
-        // The bound device keeps its identity under a new name: between
-        // reconciles nothing happens to the binding.
+        // Resynchronization notices that the configured name no longer
+        // identifies the bound device and waits for its replacement.
         mock.rename_interface("vrf0", "vrf9");
         runtime.handle_interface_change(None).await;
-        assert_eq!(
-            mock.tunnel_bound_interface(10),
-            Some((ifname("vrf0"), first))
-        );
+        assert_eq!(mock.tunnel_bound_interface(10), None);
 
         // A reconcile notices the configured name is no longer the bound
         // device's name and waits for a device called vrf0.
@@ -2610,6 +2866,7 @@ mod tests {
         );
 
         let second = mock.add_interface("vrf0");
+        assert_ne!(first, second);
         runtime
             .reconcile(&cfg)
             .await
@@ -2701,7 +2958,7 @@ mod tests {
             .expect("failed reconnect should schedule a retry")
             .expect("control channel remains open");
         assert!(started.elapsed() >= Duration::from_secs(1));
-        let ControlEvent::LocalAddressChanged { if_index } = event else {
+        let ControlEvent::ReconnectRequested { if_index } = event else {
             panic!("expected a local address retry");
         };
         assert_eq!(if_index, underlay);
@@ -2713,17 +2970,17 @@ mod tests {
         );
 
         // The retry itself fails again: exactly one further retry follows.
-        runtime.handle_local_address_change(if_index).await;
+        runtime.handle_reconnect_request(if_index).await;
         assert_eq!(mock.reconnect_count(10), 4);
         assert_eq!(runtime.reconnect_retries.len(), 1);
         let event = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
             .await
             .expect("second retry")
             .expect("control channel remains open");
-        assert!(matches!(event, ControlEvent::LocalAddressChanged { .. }));
+        assert!(matches!(event, ControlEvent::ReconnectRequested { .. }));
 
         mock.inner.lock().unwrap().fail_reconnect_tunnel_for = None;
-        runtime.handle_local_address_change(if_index).await;
+        runtime.handle_reconnect_request(if_index).await;
         assert_eq!(mock.reconnect_count(10), 5);
         assert!(runtime.reconnect_retries.is_empty());
         assert_eq!(
@@ -2736,6 +2993,410 @@ mod tests {
                 .is_err(),
             "successful reconnect should not schedule another retry"
         );
+    }
+
+    #[test]
+    fn controller_cache_tracks_attachment_reparenting_and_detachment() {
+        fn link(controller: Option<u32>) -> LinkMessage {
+            let mut link = LinkMessage::default();
+            link.header.index = 42;
+            if let Some(controller) = controller {
+                link.attributes.push(LinkAttribute::Controller(controller));
+            }
+            link
+        }
+
+        let mut controllers = BTreeMap::new();
+        for (controller, changed) in [
+            (None, BTreeSet::new()),
+            (Some(10), BTreeSet::from([10])),
+            (Some(10), BTreeSet::new()),
+            (Some(11), BTreeSet::from([10, 11])),
+            (Some(0), BTreeSet::from([11])),
+            (None, BTreeSet::new()),
+        ] {
+            let payload =
+                NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link(controller)));
+            assert_eq!(
+                controller_changes_for_netlink_payload(&mut controllers, &payload),
+                changed
+            );
+            assert_eq!(
+                controllers.get(&42).copied(),
+                controller.filter(|index| *index != 0)
+            );
+        }
+    }
+
+    #[test]
+    fn seeded_controller_cache_handles_deletion_without_controller_attribute() {
+        let mut link = LinkMessage::default();
+        link.header.index = 42;
+        link.attributes.push(LinkAttribute::Controller(10));
+        let mut controllers = BTreeMap::new();
+        // Seeding records the existing membership without producing events.
+        remember_interface_controller(&mut controllers, &link);
+        assert_eq!(controllers.get(&42), Some(&10));
+
+        // Deleting a preexisting down slave need not have a preceding NEWLINK
+        // and its DELLINK payload can omit the old controller entirely.
+        link.attributes.clear();
+        let payload = NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelLink(link));
+        assert_eq!(
+            controller_changes_for_netlink_payload(&mut controllers, &payload),
+            BTreeSet::from([10])
+        );
+        assert!(controllers.is_empty());
+        assert!(controller_changes_for_netlink_payload(&mut controllers, &payload).is_empty());
+
+        // A supplied controller can still recover a deletion not in the cache.
+        let mut link = LinkMessage::default();
+        link.header.index = 43;
+        link.attributes.push(LinkAttribute::Controller(11));
+        let payload = NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelLink(link));
+        assert_eq!(
+            controller_changes_for_netlink_payload(&mut controllers, &payload),
+            BTreeSet::from([11])
+        );
+        assert!(controllers.is_empty());
+    }
+
+    #[tokio::test]
+    async fn controller_change_refreshes_only_a_verified_current_vrf_after_slave_deletion() {
+        let mock = Arc::new(MockState::default());
+        let slave = mock.add_interface("underlay0");
+        let vrf = mock.add_interface("vrf0");
+        let bridge = mock.add_interface("bridge0");
+        {
+            let mut inner = mock.inner.lock().unwrap();
+            inner.vrf_interfaces.insert(vrf);
+            inner.vrf_masters.insert(slave, vrf);
+        }
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        let cfg = test_config(
+            vec![
+                (
+                    "v4",
+                    10,
+                    10,
+                    IpVersion::V4,
+                    IpHost::V4Addr(Ipv4Addr::LOCALHOST),
+                    Some("vrf0"),
+                ),
+                (
+                    "v6",
+                    11,
+                    11,
+                    IpVersion::V6,
+                    IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                    Some("vrf0"),
+                ),
+                (
+                    "bridge",
+                    12,
+                    12,
+                    IpVersion::V4,
+                    IpHost::V4Addr(Ipv4Addr::LOCALHOST),
+                    Some("bridge0"),
+                ),
+                (
+                    "unbound",
+                    13,
+                    13,
+                    IpVersion::V4,
+                    IpHost::V4Addr(Ipv4Addr::LOCALHOST),
+                    None,
+                ),
+            ],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+
+        runtime.handle_vrf_change(bridge).await;
+        runtime.handle_vrf_change(u32::MAX).await;
+        mock.inner.lock().unwrap().fail_vrf_lookup = true;
+        runtime.handle_vrf_change(vrf).await;
+        mock.inner.lock().unwrap().fail_vrf_lookup = false;
+        for id in [10, 11, 12, 13] {
+            assert_eq!(mock.reconnect_count(id), 0);
+        }
+
+        // The watcher retained the former controller before the slave went
+        // away. The runtime no longer needs a successful lookup of the slave.
+        mock.remove_interface("underlay0");
+        mock.inner.lock().unwrap().vrf_masters.remove(&slave);
+        runtime.handle_interface_removed(slave).await;
+        runtime.handle_vrf_change(vrf).await;
+        assert_eq!(mock.reconnect_count(10), 1);
+        assert_eq!(mock.reconnect_count(11), 1);
+        assert_eq!(mock.reconnect_count(12), 0);
+        assert_eq!(mock.reconnect_count(13), 0);
+
+        // A deleted controller cannot be treated as a currently valid VRF.
+        mock.remove_interface("vrf0");
+        runtime.handle_vrf_change(vrf).await;
+        assert_eq!(mock.reconnect_count(10), 1);
+        assert_eq!(mock.reconnect_count(11), 1);
+    }
+
+    #[test]
+    fn address_notifications_preserve_family_for_additions_and_removals() {
+        use rtnetlink::packet_route::address::AddressMessage;
+
+        for (family, expected) in [
+            (AddressFamily::Inet, Some(IpVersion::V4)),
+            (AddressFamily::Inet6, Some(IpVersion::V6)),
+            (AddressFamily::Unspec, None),
+        ] {
+            for removed in [false, true] {
+                let mut address = AddressMessage::default();
+                address.header.index = 42;
+                address.header.family = family;
+                let message = if removed {
+                    RouteNetlinkMessage::DelAddress(address)
+                } else {
+                    RouteNetlinkMessage::NewAddress(address)
+                };
+                let event =
+                    control_event_for_netlink_payload(NetlinkPayload::InnerMessage(message));
+                match expected {
+                    Some(expected) => assert!(matches!(event,
+                        Some(ControlEvent::LocalAddressFamilyChanged { if_index: 42, ip_version })
+                            if ip_version == expected)),
+                    None => assert!(event.is_none()),
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn address_changes_match_effective_family_and_current_bindings() {
+        let mock = Arc::new(MockState::default());
+        let underlay = mock.add_interface("underlay0");
+        let vrf = mock.add_interface("vrf0");
+        let unrelated = mock.add_interface("vrf1");
+        mock.inner.lock().unwrap().vrf_masters.insert(underlay, vrf);
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        let v4 = IpHost::V4Addr(Ipv4Addr::LOCALHOST);
+        let v6 = IpHost::V6Addr(Ipv6Addr::LOCALHOST);
+        let mapped = IpHost::V6Addr(Ipv4Addr::LOCALHOST.to_ipv6_mapped());
+        let cfg = test_config(
+            vec![
+                (
+                    "direct4",
+                    10,
+                    10,
+                    IpVersion::V4,
+                    v4.clone(),
+                    Some("underlay0"),
+                ),
+                ("vrf4", 11, 11, IpVersion::V4, v4.clone(), Some("vrf0")),
+                ("vrf6", 12, 12, IpVersion::V6, v6.clone(), Some("vrf0")),
+                ("other", 13, 13, IpVersion::V4, v4.clone(), Some("vrf1")),
+                ("unbound", 14, 14, IpVersion::V4, v4, None),
+                ("mapped", 15, 15, IpVersion::V6, mapped, Some("vrf0")),
+                ("direct6", 16, 16, IpVersion::V6, v6, Some("underlay0")),
+            ],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+        runtime
+            .handle_local_address_family_change(underlay, IpVersion::V4)
+            .await;
+        for (id, count) in [
+            (10, 1),
+            (11, 1),
+            (12, 0),
+            (13, 0),
+            (14, 0),
+            (15, 1),
+            (16, 0),
+        ] {
+            assert_eq!(mock.reconnect_count(id), count, "tunnel {id}");
+        }
+        runtime
+            .handle_local_address_family_change(underlay, IpVersion::V6)
+            .await;
+        assert_eq!(mock.reconnect_count(10), 1);
+        assert_eq!(mock.reconnect_count(11), 1);
+        assert_eq!(mock.reconnect_count(12), 1);
+        assert_eq!(mock.reconnect_count(16), 1);
+
+        // Notifications match the current binding, but a rebind resolves the
+        // configured name afresh and records its replacement's new index.
+        mock.rename_interface("vrf0", "renamed");
+        let replacement = mock.add_interface("vrf0");
+        runtime
+            .handle_local_address_family_change(underlay, IpVersion::V4)
+            .await;
+        assert_eq!(mock.reconnect_count(11), 2);
+        assert_eq!(mock.tunnel_bound_interface(11).unwrap().1, replacement);
+        runtime
+            .handle_local_address_family_change(replacement, IpVersion::V4)
+            .await;
+        assert_eq!(mock.reconnect_count(11), 3);
+        assert_eq!(mock.reconnect_count(13), 0);
+
+        // Current membership is resolved again after the slave is moved.
+        mock.inner
+            .lock()
+            .unwrap()
+            .vrf_masters
+            .insert(underlay, unrelated);
+        runtime
+            .handle_local_address_family_change(underlay, IpVersion::V4)
+            .await;
+        assert_eq!(mock.reconnect_count(11), 3);
+        assert_eq!(mock.reconnect_count(13), 1);
+
+        // Lookup errors do not suppress a directly bound tunnel or guess a VRF.
+        mock.inner.lock().unwrap().fail_vrf_lookup = true;
+        let direct_before = mock.reconnect_count(10);
+        runtime
+            .handle_local_address_family_change(underlay, IpVersion::V4)
+            .await;
+        assert_eq!(mock.reconnect_count(10), direct_before + 1);
+        assert_eq!(mock.reconnect_count(13), 1);
+    }
+
+    #[tokio::test]
+    async fn vrf_retry_survives_other_family_events_and_slave_removal() {
+        let mock = Arc::new(MockState::default());
+        let slave = mock.add_interface("underlay0");
+        let vrf = mock.add_interface("vrf0");
+        mock.inner.lock().unwrap().vrf_masters.insert(slave, vrf);
+        let (control_tx, mut control_rx) = mpsc::channel(32);
+        let mut runtime = Runtime::new_with_state_ops(mock.clone(), control_tx);
+        let cfg = test_config(
+            vec![
+                (
+                    "v4",
+                    10,
+                    10,
+                    IpVersion::V4,
+                    IpHost::V4Addr(Ipv4Addr::LOCALHOST),
+                    Some("vrf0"),
+                ),
+                (
+                    "v6",
+                    11,
+                    11,
+                    IpVersion::V6,
+                    IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                    Some("vrf0"),
+                ),
+                (
+                    "sibling",
+                    12,
+                    12,
+                    IpVersion::V4,
+                    IpHost::V4Addr(Ipv4Addr::LOCALHOST),
+                    Some("vrf0"),
+                ),
+            ],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = Some(10);
+        runtime
+            .handle_local_address_family_change(slave, IpVersion::V4)
+            .await;
+        runtime
+            .handle_local_address_family_change(slave, IpVersion::V6)
+            .await;
+        assert_eq!(mock.reconnect_count(10), 1);
+        assert_eq!(mock.reconnect_count(11), 1);
+        assert_eq!(mock.reconnect_count(12), 1);
+        assert_eq!(runtime.reconnect_retries.len(), 1);
+        assert!(runtime.reconnect_retries.contains_key(&vrf));
+
+        mock.remove_interface("underlay0");
+        mock.inner.lock().unwrap().vrf_masters.remove(&slave);
+        runtime.handle_interface_removed(slave).await;
+        // A continuing stream of opposite-family notifications must not
+        // keep pushing the failed IPv4 reconnect's deadline into the future.
+        let event = tokio::time::timeout(Duration::from_secs(3), async {
+            let mut notifications = tokio::time::interval(Duration::from_millis(200));
+            loop {
+                tokio::select! {
+                    event = control_rx.recv() => break event.unwrap(),
+                    _ = notifications.tick() => {
+                        runtime.handle_local_address_family_change(vrf, IpVersion::V6).await;
+                    }
+                }
+            }
+        })
+        .await
+        .expect("other-family events must not starve a retry");
+        let ControlEvent::ReconnectRequested { if_index } = event else {
+            panic!("expected a retry on the VRF master");
+        };
+        assert_eq!(if_index, vrf);
+        let v6_reconnects = mock.reconnect_count(11);
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = None;
+        runtime.handle_reconnect_request(if_index).await;
+        assert_eq!(mock.reconnect_count(10), 2);
+        assert_eq!(mock.reconnect_count(11), v6_reconnects);
+        assert_eq!(mock.reconnect_count(12), 1);
+        assert!(runtime.reconnect_retries.is_empty());
+        assert_eq!(mock.tunnel_bound_interface(10).unwrap().1, vrf);
+
+        // An already queued stale retry does not disturb recovered tunnels.
+        runtime.handle_reconnect_request(if_index).await;
+        assert_eq!(mock.reconnect_count(10), 2);
+    }
+
+    #[tokio::test]
+    async fn reconnect_retries_follow_replacement_interfaces_resolved_by_name() {
+        let mock = Arc::new(MockState::default());
+        let original = mock.add_interface("underlay0");
+        let (control_tx, mut control_rx) = mpsc::channel(32);
+        let mut runtime = Runtime::new_with_state_ops(mock.clone(), control_tx);
+        let cfg = test_config(
+            vec![(
+                "bound",
+                10,
+                10,
+                IpVersion::V4,
+                IpHost::V4Addr(Ipv4Addr::LOCALHOST),
+                Some("underlay0"),
+            )],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+        mock.rename_interface("underlay0", "old0");
+        let replacement = mock.add_interface("underlay0");
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = Some(10);
+        runtime
+            .handle_local_address_family_change(original, IpVersion::V4)
+            .await;
+        assert_eq!(mock.tunnel_bound_interface(10).unwrap().1, replacement);
+        assert!(runtime.reconnect_retries.contains_key(&replacement));
+        assert!(!runtime.reconnect_retries.contains_key(&original));
+
+        // A queued removal of the previous device cannot invalidate the new
+        // binding or cancel the retry associated with its new index.
+        mock.remove_interface("old0");
+        runtime.handle_interface_removed(original).await;
+        assert_eq!(mock.tunnel_bound_interface(10).unwrap().1, replacement);
+        let event = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        let ControlEvent::ReconnectRequested { if_index } = event else {
+            panic!("expected replacement-device retry");
+        };
+        assert_eq!(if_index, replacement);
+
+        // Even this retry must resolve the name again if another replacement
+        // was created while its timer was queued.
+        mock.rename_interface("underlay0", "old1");
+        let latest = mock.add_interface("underlay0");
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = None;
+        runtime.handle_reconnect_request(if_index).await;
+        assert_eq!(mock.tunnel_bound_interface(10).unwrap().1, latest);
+        assert_eq!(mock.reconnect_count(10), 2);
+        assert!(runtime.reconnect_retries.is_empty());
     }
 
     #[tokio::test]
@@ -2992,7 +3653,7 @@ mod tests {
         let retry_tx = runtime.control_tx.clone();
         let sender = tokio::spawn(async move {
             retry_tx
-                .send(ControlEvent::LocalAddressChanged { if_index: index })
+                .send(ControlEvent::ReconnectRequested { if_index: index })
                 .await
                 .unwrap();
             std::future::pending::<()>().await;
@@ -3003,18 +3664,18 @@ mod tests {
             .await
             .expect("retry sender enqueues its event")
             .expect("control channel remains open");
-        let ControlEvent::LocalAddressChanged { if_index } = event else {
+        let ControlEvent::ReconnectRequested { if_index } = event else {
             panic!("expected reconnect retry");
         };
         assert!(!runtime.reconnect_retries[&index].is_finished());
-        runtime.handle_local_address_change(if_index).await;
+        runtime.handle_reconnect_request(if_index).await;
         assert_eq!(mock.reconnect_count(10), 2);
         let event = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
             .await
             .expect("failed reconnect must schedule its next retry")
             .expect("control channel remains open");
         assert!(
-            matches!(event, ControlEvent::LocalAddressChanged { if_index } if if_index == index)
+            matches!(event, ControlEvent::ReconnectRequested { if_index } if if_index == index)
         );
     }
 
@@ -3085,7 +3746,7 @@ mod tests {
             Some((ifname("underlay0"), index))
         );
 
-        let ControlEvent::LocalAddressChanged { if_index } =
+        let ControlEvent::ReconnectRequested { if_index } =
             tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
                 .await
                 .expect("late bind reconnect is retried")
@@ -3094,7 +3755,7 @@ mod tests {
             panic!("expected reconnect retry");
         };
         mock.inner.lock().unwrap().fail_reconnect_tunnel_for = None;
-        runtime.handle_local_address_change(if_index).await;
+        runtime.handle_reconnect_request(if_index).await;
         assert_eq!(mock.reconnect_count(10), 2);
         assert!(runtime.reconnect_retries.is_empty());
         assert_eq!(

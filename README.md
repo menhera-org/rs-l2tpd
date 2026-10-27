@@ -8,9 +8,18 @@ library (`rs_l2tpd`) it is built on.
 - L2TPv3 is handled in the kernel, so minimal overhead expected.
 - Supports binding to specific VRFs or interfaces
 - Supports FQDN-specified remote endpoints
+- Refreshes source addresses after IPv4 or IPv6 address changes on a bound
+  interface or a slave of the bound VRF. Only tunnels using the changed
+  address family reconnect; failed attempts are retried automatically.
 - Session interfaces are renamed and configured by interface index, so a
   rename by udev or networkd after creation is handled correctly.
 - Optional fixed hardware (MAC) address per session interface.
+
+Tunnel sockets remain dual-stack: IPv4 peers use IPv4-mapped IPv6 addresses,
+and a peer can switch between IPv4 and IPv6 without replacing the socket or
+its sessions. Each rebind resolves the configured interface name immediately
+before binding, so replacing an interface or VRF with another of the same
+name works even when its interface index changes.
 
 ## Configuration
 

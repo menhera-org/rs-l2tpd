@@ -3,13 +3,13 @@
 //! This module is private; [`crate::runtime::Runtime`] owns the only
 //! instance and decides when each operation runs.
 
-use crate::config::HwAddr;
+use crate::config::{HwAddr, IpVersion};
 use crate::error::{Error, Result};
 
 use futures_util::TryStreamExt;
 use l2tp::{L2tpIfName, L2tpIfNameExt};
-use log::{debug, info, warn};
-use rtnetlink::packet_route::link::{LinkAttribute, LinkFlags, LinkMessage};
+use log::{debug, warn};
+use rtnetlink::packet_route::link::{InfoKind, LinkAttribute, LinkFlags, LinkInfo, LinkMessage};
 use rtnetlink::LinkUnspec;
 
 use tokio::sync::RwLock;
@@ -37,12 +37,22 @@ impl Rtnl {
     }
 
     async fn get_link(&self, index: u32) -> Result<LinkMessage> {
-        let mut links = self.handle.link().get().match_index(index).execute();
-        links
-            .try_next()
-            .await
-            .map_err(|e| Error::Other(format!("failed to look up interface index {index}: {e}")))?
+        self.find_link(index)
+            .await?
             .ok_or_else(|| Error::Other(format!("interface index {index} not found")))
+    }
+
+    async fn find_link(&self, index: u32) -> Result<Option<LinkMessage>> {
+        let mut links = self.handle.link().get().match_index(index).execute();
+        match links.try_next().await {
+            Ok(link) => Ok(link),
+            Err(e) if is_netlink_errno(&e, libc::ENODEV) || is_netlink_errno(&e, libc::ENXIO) => {
+                Ok(None)
+            }
+            Err(e) => Err(Error::Other(format!(
+                "failed to look up interface index {index}: {e}"
+            ))),
+        }
     }
 
     async fn set_link(&self, message: LinkMessage) -> std::result::Result<(), rtnetlink::Error> {
@@ -89,6 +99,22 @@ fn link_hwaddr(link: &LinkMessage) -> Option<HwAddr> {
 
 fn link_is_up(link: &LinkMessage) -> bool {
     link.header.flags.contains(LinkFlags::Up)
+}
+
+fn link_controller(link: &LinkMessage) -> Option<u32> {
+    link.attributes.iter().find_map(|attr| match attr {
+        LinkAttribute::Controller(index) if *index != 0 => Some(*index),
+        _ => None,
+    })
+}
+
+fn link_is_vrf(link: &LinkMessage) -> bool {
+    link.attributes.iter().any(|attr| match attr {
+        LinkAttribute::LinkInfo(info) => info
+            .iter()
+            .any(|info| matches!(info, LinkInfo::Kind(InfoKind::Vrf))),
+        _ => false,
+    })
 }
 
 fn is_netlink_errno(err: &rtnetlink::Error, errno: i32) -> bool {
@@ -200,12 +226,15 @@ pub(crate) async fn interface_name(index: u32) -> Result<Option<L2tpIfName>> {
     }
 }
 
-/// A device a tunnel socket is bound to: the index is its identity, the name
-/// is what it was called when the binding was made or last refreshed.
+/// A configured device name and the index selected by its last successful
+/// binding. Every subsequent binding resolves the configured name again.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct BoundDevice {
     pub(crate) name: L2tpIfName,
     pub(crate) index: u32,
+    /// Whether the last binding is still usable for address-event matching.
+    /// An invalid binding retains its configured name for the next attempt.
+    valid: bool,
 }
 
 /// Binds the socket to the device called `name` and captures its identity.
@@ -229,40 +258,18 @@ fn bind_socket_to_named_device(
     Ok(BoundDevice {
         name: *name,
         index: after,
+        valid: true,
     })
 }
 
-/// Re-binds the socket to the device identified by `device.index`, whatever
-/// it is called now. `ENODEV` from the lookup means the device is gone.
+/// Re-binds the socket by its configured name, resolving the device just
+/// before the bind. A replacement under the same name is accepted; a missing
+/// name fails even if the previously bound device still exists under a new name.
 fn rebind_socket_to_device(
     socket: &l2tp::TunnelSocket,
     device: &BoundDevice,
 ) -> Result<BoundDevice> {
-    let current_name = match L2tpIfName::from_index(device.index) {
-        Ok(name) => name,
-        Err(e) if e.raw_os_error() == Some(libc::ENXIO) => {
-            return Err(Error::L2tp(l2tp::Error::Io(
-                std::io::Error::from_raw_os_error(libc::ENODEV),
-            )));
-        }
-        Err(e) => return Err(Error::L2tp(e)),
-    };
-    if current_name != device.name {
-        // Kernel-reported names are logged escaped: the kernel permits
-        // control characters in them.
-        info!(
-            "bound interface index {} is now named {:?} (was {:?})",
-            device.index, current_name, device.name
-        );
-    }
-    let rebound = bind_socket_to_named_device(socket, &current_name)?;
-    if rebound.index != device.index {
-        return Err(Error::Other(format!(
-            "interface {current_name} changed identity (index {} to {}) while rebinding",
-            device.index, rebound.index
-        )));
-    }
-    Ok(rebound)
+    bind_socket_to_named_device(socket, &device.name)
 }
 
 pub(crate) fn to_ipv6_mapped(addr: IpAddr) -> Ipv6Addr {
@@ -294,9 +301,10 @@ pub(crate) struct TunnelState {
     // Last successfully applied device, retained across disconnects for retries.
     // The write lock serializes binding and the entire reconnect sequence.
     bound_interface: RwLock<Option<BoundDevice>>,
-    /// False between a disconnect this daemon issued and the connect that
-    /// completed it, so that a reconnect whose retry was lost is repeated
-    /// on the next reconcile. Written under the `bound_interface` lock.
+    /// False from the start of a reconnect until its successful completion,
+    /// including failures to disconnect. An incomplete attempt whose retry
+    /// was lost is repeated on the next reconcile. Written under the
+    /// `bound_interface` lock.
     connected: AtomicBool,
 
     /// session_id to SessionState
@@ -417,6 +425,34 @@ impl State {
         interface_name(index).await
     }
 
+    /// Validates a controller index captured before a slave disappeared.
+    pub(crate) async fn interface_is_vrf(index: u32) -> Result<bool> {
+        let rtnl = Rtnl::connect()?;
+        Ok(rtnl
+            .find_link(index)
+            .await?
+            .as_ref()
+            .is_some_and(link_is_vrf))
+    }
+
+    /// Finds the VRF currently controlling the interface with `index`.
+    ///
+    /// Other controllers, such as bridges and bonds, do not select a VRF
+    /// routing table. A deleted interface or controller has no current VRF.
+    pub(crate) async fn interface_vrf_master(index: u32) -> Result<Option<u32>> {
+        let rtnl = Rtnl::connect()?;
+        let Some(link) = rtnl.find_link(index).await? else {
+            return Ok(None);
+        };
+        let Some(controller) = link_controller(&link) else {
+            return Ok(None);
+        };
+        let Some(master) = rtnl.find_link(controller).await? else {
+            return Ok(None);
+        };
+        Ok(link_is_vrf(&master).then_some(controller))
+    }
+
     pub(crate) async fn add_tunnel(
         &self,
         tunnel_id: u32,
@@ -440,8 +476,8 @@ impl State {
 
         // Binds with tunnel_id and connects with peer_tunnel_id as the
         // L2TP/IP connection IDs; a missing device is reported as ENODEV.
-        // The device's index is captured right away so that later operations
-        // address the device by identity.
+        // Capture the device index for address events; every subsequent
+        // binding resolves this configured name again.
         let before = if_name
             .map(|name| name.index())
             .transpose()
@@ -458,6 +494,7 @@ impl State {
                 Some(BoundDevice {
                     name: *name,
                     index: after,
+                    valid: true,
                 })
             }
             _ => None,
@@ -492,15 +529,47 @@ impl State {
             return Err(Error::Other("tunnel not found".to_string()));
         };
 
-        if *tunnel.remote_addr.read().await == remote_addr {
+        let previous_remote = *tunnel.remote_addr.read().await;
+        if previous_remote == remote_addr {
             return Ok(());
         }
 
-        let new_remote = l2tp::IpEndpoint::v6(to_ipv6_mapped(remote_addr));
-        tunnel
-            .handle
-            .reconnect_ip(&new_remote)
-            .map_err(Error::L2tp)?;
+        let binding_changed = {
+            let bound = tunnel.bound_interface.read().await;
+            match bound.as_ref() {
+                Some(device) => {
+                    !device.valid || device.name.index().map_err(Error::L2tp)? != device.index
+                }
+                None => false,
+            }
+        };
+        if !tunnel.connected.load(Ordering::Acquire)
+            || binding_changed
+            || previous_remote.to_canonical().is_ipv4() != remote_addr.to_canonical().is_ipv4()
+        {
+            // A dual-stack socket retains its selected source across connect.
+            // Clear it before crossing families or changing devices, restoring
+            // the binding that disconnect clears. Resolve a replacement even
+            // if its link notification has not yet reached the runtime.
+            if let Err(error) = Self::reconnect_tunnel_to(tunnel_id, tunnel, remote_addr).await {
+                // The candidate endpoint is not applied. Preserve the old
+                // connection when possible while the runtime retries it.
+                if !tunnel.connected.load(Ordering::Acquire) {
+                    if let Err(rollback) =
+                        Self::reconnect_tunnel_to(tunnel_id, tunnel, previous_remote).await
+                    {
+                        warn!("failed to restore tunnel_id={tunnel_id} after peer update failed: {rollback}");
+                    }
+                }
+                return Err(error);
+            }
+        } else {
+            let new_remote = l2tp::IpEndpoint::v6(to_ipv6_mapped(remote_addr));
+            tunnel
+                .handle
+                .reconnect_ip(&new_remote)
+                .map_err(Error::L2tp)?;
+        }
 
         *tunnel.remote_addr.write().await = remote_addr;
 
@@ -512,23 +581,39 @@ impl State {
         let tunnel = tunnels
             .get(&tunnel_id)
             .ok_or_else(|| Error::Other("tunnel not found".to_string()))?;
+        let remote_addr = *tunnel.remote_addr.read().await;
+        Self::reconnect_tunnel_to(tunnel_id, tunnel, remote_addr).await
+    }
+
+    async fn reconnect_tunnel_to(
+        tunnel_id: u32,
+        tunnel: &TunnelState,
+        remote_addr: IpAddr,
+    ) -> Result<()> {
         let mut bound_interface = tunnel.bound_interface.write().await;
         let socket = tunnel_socket(tunnel)?;
+
+        // A missing configured name leaves this attempt incomplete, even
+        // when the previous connection still works. Check before disconnect
+        // so that waiting for a replacement does not strip that old binding.
+        tunnel.connected.store(false, Ordering::Release);
+        if let Some(device) = bound_interface.as_ref() {
+            device.name.index().map_err(Error::L2tp)?;
+        }
 
         // Disconnect to clear a stale source address and force source selection.
         // This also clears SO_BINDTODEVICE, which must be restored before connect.
         // The socket tracks its own connection state, so the disconnect has to
         // go through it rather than through a raw connect(AF_UNSPEC).
         socket.disconnect().map_err(Error::L2tp)?;
-        tunnel.connected.store(false, Ordering::Release);
 
-        // Re-bind to the same device by identity: its name may have changed,
-        // and the configured name may by now belong to another device.
+        // Resolve the configured name immediately before binding. The old
+        // device may have been renamed or replaced since the previous bind.
         if let Some(device) = bound_interface.as_ref() {
             *bound_interface = Some(rebind_socket_to_device(socket, device)?);
         }
 
-        let remote = l2tp::IpEndpoint::v6(to_ipv6_mapped(*tunnel.remote_addr.read().await));
+        let remote = l2tp::IpEndpoint::v6(to_ipv6_mapped(remote_addr));
         tunnel.handle.reconnect_ip(&remote).map_err(Error::L2tp)?;
 
         let info = tunnel.handle.get().await.map_err(Error::L2tp)?;
@@ -541,13 +626,27 @@ impl State {
         Ok(())
     }
 
-    /// Whether the tunnel socket is connected, as far as this daemon's own
-    /// disconnects are concerned. An unknown tunnel counts as connected.
+    /// Whether this daemon's last reconnect completed successfully.
+    /// A failed disconnect also leaves the attempt incomplete even if the
+    /// socket still has its old peer. An unknown tunnel counts as connected.
     pub(crate) async fn tunnel_is_connected(&self, tunnel_id: u32) -> bool {
         let tunnels = self.tunnels.read().await;
         tunnels
             .get(&tunnel_id)
             .is_none_or(|tunnel| tunnel.connected.load(Ordering::Acquire))
+    }
+
+    /// The currently applied peer's address family, including the temporary
+    /// discard peer used before DNS resolution. IPv4-mapped IPv6 peers use
+    /// IPv4 on the underlay regardless of the configured family.
+    pub(crate) async fn tunnel_ip_version(&self, tunnel_id: u32) -> Option<IpVersion> {
+        let tunnels = self.tunnels.read().await;
+        let tunnel = tunnels.get(&tunnel_id)?;
+        let remote = *tunnel.remote_addr.read().await;
+        Some(match remote.to_canonical() {
+            IpAddr::V4(_) => IpVersion::V4,
+            IpAddr::V6(_) => IpVersion::V6,
+        })
     }
 
     pub(crate) async fn bind_tunnel_interface(
@@ -572,15 +671,22 @@ impl State {
         let tunnels = self.tunnels.read().await;
         let tunnel = tunnels.get(&tunnel_id)?;
         let bound = tunnel.bound_interface.read().await;
-        bound.map(|device| device.index)
+        bound
+            .filter(|device| device.valid)
+            .map(|device| device.index)
     }
 
-    /// Forgets the recorded binding. The kernel keeps the socket bound to
-    /// the (gone or renamed) device until the next bind or disconnect.
+    /// Invalidates the recorded index while retaining the configured name
+    /// for the next bind. The kernel keeps the socket bound to the old
+    /// device until the next bind or disconnect; a missing name must not
+    /// cause a later reconnect to silently use an unbound socket.
     pub(crate) async fn forget_tunnel_binding(&self, tunnel_id: u32) {
         let tunnels = self.tunnels.read().await;
         if let Some(tunnel) = tunnels.get(&tunnel_id) {
-            *tunnel.bound_interface.write().await = None;
+            let mut bound = tunnel.bound_interface.write().await;
+            if let Some(device) = bound.as_mut() {
+                device.valid = false;
+            }
         }
     }
 
@@ -882,6 +988,31 @@ mod tests {
         rtnetlink::Error::NetlinkError(error)
     }
 
+    #[test]
+    fn vrf_classification_does_not_treat_other_controllers_or_ports_as_vrfs() {
+        use super::{InfoKind, LinkAttribute, LinkInfo, LinkMessage};
+        use rtnetlink::packet_route::link::InfoPortKind;
+
+        let mut link = LinkMessage::default();
+        assert_eq!(super::link_controller(&link), None);
+        assert!(!super::link_is_vrf(&link));
+        link.attributes.push(LinkAttribute::Controller(0));
+        assert_eq!(super::link_controller(&link), None);
+        link.attributes.push(LinkAttribute::Controller(42));
+        assert_eq!(super::link_controller(&link), Some(42));
+
+        for kind in [InfoKind::Bridge, InfoKind::Bond, InfoKind::Dummy] {
+            link.attributes = vec![LinkAttribute::LinkInfo(vec![LinkInfo::Kind(kind)])];
+            assert!(!super::link_is_vrf(&link));
+        }
+        link.attributes = vec![LinkAttribute::LinkInfo(vec![LinkInfo::PortKind(
+            InfoPortKind::Vrf,
+        )])];
+        assert!(!super::link_is_vrf(&link));
+        link.attributes = vec![LinkAttribute::LinkInfo(vec![LinkInfo::Kind(InfoKind::Vrf)])];
+        assert!(super::link_is_vrf(&link));
+    }
+
     #[async_trait::async_trait]
     impl super::LinkOps for Mutex<MockLink> {
         async fn get_link(&self, _index: u32) -> crate::Result<super::LinkMessage> {
@@ -1132,6 +1263,22 @@ mod tests {
         assert!(rtnl.get_link(u32::MAX).await.is_err());
     }
 
+    #[tokio::test]
+    async fn vrf_lookup_without_a_controller_or_with_a_missing_interface_returns_none() {
+        let loopback = ifname("lo").index().unwrap();
+        assert!(!State::interface_is_vrf(loopback).await.unwrap());
+        assert!(!State::interface_is_vrf(i32::MAX as u32).await.unwrap());
+        assert!(State::interface_is_vrf(u32::MAX).await.is_err());
+        assert_eq!(State::interface_vrf_master(loopback).await.unwrap(), None);
+        assert_eq!(
+            State::interface_vrf_master(i32::MAX as u32).await.unwrap(),
+            None
+        );
+        // Netlink rejects negative signed indexes instead of reporting a
+        // missing device. Other lookup errors must not become "no VRF".
+        assert!(State::interface_vrf_master(u32::MAX).await.is_err());
+    }
+
     // These tests exercise the real State methods: TunnelHandle cannot be
     // constructed without kernel L2TP support. Run explicitly in a test netns.
     async fn privileged_state(if_name: Option<&str>) -> (State, u32) {
@@ -1330,7 +1477,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy and IPv6 L2TP support"]
-    async fn privileged_reconnect_keeps_device_identity_after_rename_and_name_reuse() {
+    async fn privileged_reconnect_resolves_configured_name_after_rename_and_replacement() {
         let rtnl = super::Rtnl::connect().unwrap();
         let original_name = "rsl2tp-bind";
         let renamed = "rsl2tp-moved";
@@ -1343,25 +1490,120 @@ mod tests {
         rtnl.set_link(LinkUnspec::new_with_index(index).name(renamed).build())
             .await
             .unwrap();
+        // The old device and its route still exist, but its new name was
+        // never configured. Reconnect must fail instead of following it or
+        // connecting unbound through its route.
+        state.forget_tunnel_binding(id).await;
+        assert_eq!(state.bound_interface_index(id).await, None);
+        assert!(state.reconnect_tunnel(id).await.is_err());
+        assert!(!state.tunnel_is_connected(id).await);
+        assert_eq!(
+            bound_interface(&state, id).await,
+            Some(ifname(original_name))
+        );
+        assert_eq!(
+            with_socket(&state, id, socket_bound_interface).await,
+            renamed
+        );
+
         let replacement_index = add_test_dummy(&rtnl, original_name).await;
         assert_ne!(index, replacement_index);
-        // Looking up the original name now finds the wrong device. Reconnect
-        // must use the saved index, resolve its new name, and retain its route.
+        let replacement_local = "2001:db8:156::3".parse().unwrap();
+        add_test_address(&rtnl, replacement_index, replacement_local).await;
+        // A same-family peer update must also restore a pending binding.
+        let peer = "2001:db8:156::5".parse().unwrap();
+        state.modify_tunnel(id, peer).await.unwrap();
+        assert_kernel_endpoints(&state, id, replacement_local, peer).await;
+        // The configured name now selects its replacement and source.
         for _ in 0..2 {
             state.reconnect_tunnel(id).await.unwrap();
-            assert_eq!(state.bound_interface_index(id).await, Some(index));
+            assert_eq!(
+                state.bound_interface_index(id).await,
+                Some(replacement_index)
+            );
             assert_eq!(
                 with_socket(&state, id, socket_bound_interface).await,
-                renamed
+                original_name
             );
-            assert_kernel_endpoints(&state, id, local, peer).await;
+            assert_kernel_endpoints(&state, id, replacement_local, peer).await;
         }
 
-        state.delete_tunnel(id).await.unwrap();
-        assert_kernel_tunnel_deleted(&state, id).await;
+        // Reproduce an incomplete reconnect that stopped after disconnect,
+        // before restoring SO_BINDTODEVICE. A same-family update must restore
+        // the binding even though its recorded name and index still match.
+        {
+            let tunnels = state.tunnels.read().await;
+            let tunnel = &tunnels[&id];
+            tunnel.connected.store(false, Ordering::Release);
+            super::tunnel_socket(tunnel).unwrap().disconnect().unwrap();
+        }
+        let peer = "2001:db8:156::8".parse().unwrap();
+        state.modify_tunnel(id, peer).await.unwrap();
+        assert!(state.tunnel_is_connected(id).await);
+        assert_eq!(
+            with_socket(&state, id, socket_bound_interface).await,
+            original_name
+        );
+        assert_kernel_endpoints(&state, id, replacement_local, peer).await;
+
         rtnl.handle
             .link()
             .del(replacement_index)
+            .execute()
+            .await
+            .unwrap();
+        state.forget_tunnel_binding(id).await;
+        assert_eq!(state.bound_interface_index(id).await, None);
+        assert!(state.reconnect_tunnel(id).await.is_err());
+        assert!(!state.tunnel_is_connected(id).await);
+        assert_eq!(
+            bound_interface(&state, id).await,
+            Some(ifname(original_name))
+        );
+
+        // A second replacement proves no earlier lookup or index is reused.
+        let latest_index = add_test_dummy(&rtnl, original_name).await;
+        assert_ne!(latest_index, replacement_index);
+        let latest_local = "2001:db8:156::4".parse().unwrap();
+        add_test_address(&rtnl, latest_index, latest_local).await;
+        state.reconnect_tunnel(id).await.unwrap();
+        assert_eq!(state.bound_interface_index(id).await, Some(latest_index));
+        assert_eq!(
+            with_socket(&state, id, socket_bound_interface).await,
+            original_name
+        );
+        assert_kernel_endpoints(&state, id, latest_local, peer).await;
+
+        // A peer update can race ahead of link notifications. Even with the
+        // cached binding still valid, it must select the configured name's
+        // replacement rather than follow the old device under its new name.
+        rtnl.set_link(
+            LinkUnspec::new_with_index(latest_index)
+                .name("rsl2tp-moved2")
+                .build(),
+        )
+        .await
+        .unwrap();
+        let updated_peer = "2001:db8:156::6".parse().unwrap();
+        assert!(state.modify_tunnel(id, updated_peer).await.is_err());
+        assert_kernel_endpoints(&state, id, latest_local, peer).await;
+        let final_index = add_test_dummy(&rtnl, original_name).await;
+        let final_local = "2001:db8:156::7".parse().unwrap();
+        add_test_address(&rtnl, final_index, final_local).await;
+        state.modify_tunnel(id, updated_peer).await.unwrap();
+        assert_eq!(state.bound_interface_index(id).await, Some(final_index));
+        assert_eq!(
+            with_socket(&state, id, socket_bound_interface).await,
+            original_name
+        );
+        assert_kernel_endpoints(&state, id, final_local, updated_peer).await;
+
+        state.delete_tunnel(id).await.unwrap();
+        assert_kernel_tunnel_deleted(&state, id).await;
+        rtnl.handle.link().del(final_index).execute().await.unwrap();
+        rtnl.handle
+            .link()
+            .del(latest_index)
             .execute()
             .await
             .unwrap();
@@ -1369,7 +1611,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, vrf, dummy and IPv6 L2TP support"]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, vrf, dummy, l2tp_eth and IPv6 L2TP support"]
     async fn privileged_vrf_binding_selects_and_refreshes_slave_sources() {
         let rtnl = super::Rtnl::connect().unwrap();
         let vrf_name = "rsl2tp-vrf";
@@ -1381,6 +1623,12 @@ mod tests {
             .expect("privileged test requires VRF support");
         let vrf_index = ifname(vrf_name).index().unwrap();
         let slave_index = add_test_dummy(&rtnl, "rsl2tp-slave").await;
+        assert!(State::interface_is_vrf(vrf_index).await.unwrap());
+        assert!(!State::interface_is_vrf(slave_index).await.unwrap());
+        assert_eq!(
+            State::interface_vrf_master(slave_index).await.unwrap(),
+            None
+        );
         rtnl.set_link(
             LinkUnspec::new_with_index(slave_index)
                 .controller(vrf_index)
@@ -1388,6 +1636,11 @@ mod tests {
         )
         .await
         .unwrap();
+        assert_eq!(
+            State::interface_vrf_master(slave_index).await.unwrap(),
+            Some(vrf_index)
+        );
+        assert_eq!(State::interface_vrf_master(vrf_index).await.unwrap(), None);
 
         // Connected routes exist only in the VRF table. Successful connect and
         // the exact source therefore exercise VRF routing, not just getsockopt.
@@ -1425,8 +1678,116 @@ mod tests {
             assert_kernel_tunnel_deleted(&state, id).await;
         }
 
-        rtnl.handle.link().del(slave_index).execute().await.unwrap();
+        // Both replacement addresses remain on the slave. A peer update can
+        // cross families on the same dual-stack socket without losing its
+        // VRF, tunnel, or Ethernet session.
+        let local_v4: IpAddr = "198.51.100.3".parse().unwrap();
+        let peer_v4: IpAddr = "198.51.100.2".parse().unwrap();
+        let local_v6: IpAddr = "2001:db8:157::3".parse().unwrap();
+        let peer_v6: IpAddr = "2001:db8:157::2".parse().unwrap();
+        let (state, id) = privileged_state_at(peer_v4, Some(vrf_name)).await;
+        let session_id = id + 2;
+        let session_name = ifname("rsl2tp-family");
+        state
+            .add_session(id, session_id, session_id, &session_name, None)
+            .await
+            .unwrap();
+        let session_device = state.session_device(id, session_id).await.unwrap();
+        let socket_fd = with_socket(&state, id, AsRawFd::as_raw_fd).await;
+        assert_kernel_endpoints(&state, id, local_v4, peer_v4).await;
+        assert_eq!(
+            state.tunnel_ip_version(id).await,
+            Some(crate::config::IpVersion::V4)
+        );
+        // An invalidated index retains the configured name. If that name
+        // exists, a peer update restores its binding without another event.
+        state.forget_tunnel_binding(id).await;
+        assert_eq!(state.bound_interface_index(id).await, None);
+        state.modify_tunnel(id, peer_v6).await.unwrap();
+        assert_kernel_endpoints(&state, id, local_v6, peer_v6).await;
+        assert_eq!(state.bound_interface_index(id).await, Some(vrf_index));
+        state.modify_tunnel(id, peer_v4).await.unwrap();
+        assert_kernel_endpoints(&state, id, local_v4, peer_v4).await;
+
+        // When the name is absent, fail before disconnect so a pending bind
+        // cannot escape the VRF through the main routing table. Restore the
+        // name and let the peer update itself resolve and bind it again.
+        let renamed_vrf = "rsl2tp-vrf-old";
+        rtnl.set_link(
+            LinkUnspec::new_with_index(vrf_index)
+                .name(renamed_vrf)
+                .build(),
+        )
+        .await
+        .unwrap();
+        state.forget_tunnel_binding(id).await;
+        let previous = tunnel_info(&state, id).await.encapsulation;
+        assert!(state.modify_tunnel(id, peer_v6).await.is_err());
+        assert_eq!(tunnel_info(&state, id).await.encapsulation, previous);
+        assert!(!state.tunnel_is_connected(id).await);
+        assert_eq!(
+            with_socket(&state, id, socket_bound_interface).await,
+            renamed_vrf
+        );
+        rtnl.set_link(LinkUnspec::new_with_index(vrf_index).name(vrf_name).build())
+            .await
+            .unwrap();
+        state.modify_tunnel(id, peer_v6).await.unwrap();
+        assert_kernel_endpoints(&state, id, local_v6, peer_v6).await;
+        assert_eq!(state.bound_interface_index(id).await, Some(vrf_index));
+        state.modify_tunnel(id, peer_v4).await.unwrap();
+        // A failed cross-family update keeps the previous usable peer and
+        // family while the runtime retries the candidate configuration.
+        assert!(state
+            .modify_tunnel(id, "2001:db8:ffff::2".parse().unwrap())
+            .await
+            .is_err());
+        assert_kernel_endpoints(&state, id, local_v4, peer_v4).await;
+        assert!(state.tunnel_is_connected(id).await);
+        assert_eq!(
+            state.tunnel_ip_version(id).await,
+            Some(crate::config::IpVersion::V4)
+        );
+        for (local, peer, family) in [
+            (local_v6, peer_v6, crate::config::IpVersion::V6),
+            (local_v4, peer_v4, crate::config::IpVersion::V4),
+        ] {
+            state.modify_tunnel(id, peer).await.unwrap();
+            assert_kernel_endpoints(&state, id, local, peer).await;
+            assert_eq!(state.tunnel_ip_version(id).await, Some(family));
+            assert_eq!(state.bound_interface_index(id).await, Some(vrf_index));
+            assert_eq!(
+                with_socket(&state, id, socket_bound_interface).await,
+                vrf_name
+            );
+            assert_eq!(with_socket(&state, id, AsRawFd::as_raw_fd).await, socket_fd);
+            assert_eq!(
+                state.session_device(id, session_id).await.unwrap(),
+                session_device
+            );
+            assert_eq!(
+                interface_index(&session_name).await.unwrap(),
+                Some(session_device.0)
+            );
+            assert_eq!(
+                session_info(&state, id, session_id).await.session_id,
+                l2tp::SessionId(session_id)
+            );
+        }
+        state.delete_tunnel(id).await.unwrap();
+        assert_kernel_tunnel_deleted(&state, id).await;
+        assert_interface_deleted(&session_name).await;
+
         rtnl.handle.link().del(vrf_index).execute().await.unwrap();
+        assert_eq!(
+            State::interface_vrf_master(slave_index).await.unwrap(),
+            None
+        );
+        rtnl.handle.link().del(slave_index).execute().await.unwrap();
+        assert_eq!(
+            State::interface_vrf_master(slave_index).await.unwrap(),
+            None
+        );
     }
 
     #[tokio::test]
