@@ -219,7 +219,9 @@ families the host's resolver needs, a read-only system except the PID
 file, no new privileges and no access to home directories or logs, and
 MUST allow writing `net.ipv6.bindv6only` for [P25](#host-tunables),
 without restricting the capabilities the kernel needs to autoload the
-L2TP modules. Using the unit is optional; the process contract below is
+L2TP modules. It grants `CAP_NET_RAW`, which resolvers using router
+advertisements require ([K39](kernel.md#requirements)); an operator who
+removes it loses only those resolvers' discovery where `accept_ra` is off. Using the unit is optional; the process contract below is
 what the daemon promises every init system.
 
 ## The process contract

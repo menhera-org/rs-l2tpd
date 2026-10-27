@@ -87,19 +87,33 @@ needs no capability ([K22](kernel.md#facts)).
 
 ## Router advertisements
 
-V10. For `method = "ra"` (and as half of `ipv6`, [V14](#the-unified-ipv6-method)) the daemon joins the rtnetlink group
-`RTNLGRP_ND_USEROPT` ([K14](kernel.md#requirements)) and takes the RDNSS
-options of router advertisements received on the resolver's bind
-interface, matched by index. Each server is in force for the option's
+V10. For `method = "ra"` (and as half of `ipv6`, [V14](#the-unified-ipv6-method)) the resolver speaks ICMPv6 itself on the
+bind interface from a raw ICMPv6 socket, which needs `CAP_NET_RAW`
+([K39](kernel.md#requirements)): it receives Router Advertisements
+(type 134) directly, accepting only those with a link-local source and
+hop limit 255, and takes their RDNSS options; and it **solicits**, sending
+a Router Solicitation (type 133, from the interface's link-local address
+to `ff02::2`, hop limit 255) when it starts and after a loss of
+notifications ([V11](#router-advertisements)), so that servers are
+learned at once instead of at the next periodic advertisement. Receiving
+through the kernel's `RTNLGRP_ND_USEROPT` group ([K14](kernel.md#requirements))
+is only an additional source: the kernel forwards the options of an
+advertisement only when `accept_ra` is enabled on the interface
+([K40](kernel.md#facts)), and interfaces managed by systemd-networkd and
+similar daemons usually have it disabled, because the manager processes
+advertisements in user space. The raw socket is therefore required, not
+optional, for this method. Each server is in force for the option's
 lifetime and refreshed by every advertisement that repeats it; a server
 whose lifetime expires is forgotten. A link-local server address is used
-with the interface as its scope. DNSSL options are ignored. No raw socket
-and no capability beyond [K8](kernel.md#requirements) is needed.
+with the interface as its scope. DNSSL options are ignored. Advertisements
+are multicast, so the daemon neither competes with nor disturbs other
+consumers of them and needs nothing from them.
 
 V11. After a loss of notifications ([E20](events.md#monitor-loss)) the
 servers in force are kept until their lifetimes expire, because the kernel
-does not replay advertisements; the next periodic advertisement refreshes
-them. The event monitor's filter MUST pass `RTM_NEWNDUSEROPT` messages
+does not replay advertisements; the resolver solicits again
+([V10](#router-advertisements)) and the reply or the next periodic
+advertisement refreshes them. The event monitor's filter MUST pass `RTM_NEWNDUSEROPT` messages
 whenever such a resolver is configured ([E24](events.md#resolver-events)).
 
 ## DHCPv6 Information-Request
@@ -112,14 +126,28 @@ timing until a Reply arrives. The servers of the Reply are in force until
 the next Reply; the request is repeated at the Information Refresh Time
 the server gave, or every 24 hours when it gave none, and never more
 often than every 10 minutes (RFC 8415 section 21.23). Nothing else is
-taken from DHCPv6. The client identifier is a DUID-LL (RFC 8415 section
-11.4) built from the bind interface's hardware address: the daemon reads
-the address and the hardware type over rtnetlink (`RTM_GETLINK`,
-`IFLA_ADDRESS` and `ifi_type`, [A5](architecture.md#layers)) when the
-resolver starts and hands the resolver the real address, never a DUID;
-the resolver forms the DUID from it. The identifier is kept for the
-resolver's lifetime, so a later change of the device's address does not
-change it.
+taken from DHCPv6. The client socket is bound with `SO_REUSEADDR`, so
+that it binds beside another DHCPv6 client on the host: this method
+exists mainly for VRFs, where the system resolver breaks and where no
+system DHCPv6 client (systemd-networkd or the like) holds port 546, so the
+port is normally free; when two clients do share it the kernel delivers a
+unicast Reply to the most recently bound of them ([K38](kernel.md#facts)),
+so coexistence is tolerated, not relied upon, and a Reply that went to the
+other client shows as a query without answer, retried by the normal
+timing. The client identifier, with the default
+`dhcpv6_identity = "link-layer"`, is a DUID-LL (DUID type 3, RFC 8415
+section 11.4: the two-byte type 3, the two-byte hardware type 1 for
+Ethernet, then the address) built from the bind interface's Ethernet
+address, so it is the same at every start while the device keeps its
+address: the daemon reads
+the address over rtnetlink (`RTM_GETLINK`, `IFLA_ADDRESS`,
+[A5](architecture.md#layers)) when the resolver starts and hands the
+resolver the real six-byte address, never a DUID; the resolver forms the
+DUID from it and always uses the Ethernet hardware type. A device whose
+address is not a six-byte Ethernet address (`ifi_type` other than
+`ARPHRD_ETHER`) counts as a device without a hardware address below. The
+identifier is kept for the resolver's lifetime, so a later change of the
+device's address does not change it.
 Alternatively the entry's `dhcpv6_identity = "anonymous"`
 ([C16](configuration.md#resolver-entries)) selects the anonymity profile
 of RFC 7844: a random identifier generated when the resolver starts, no

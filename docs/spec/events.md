@@ -90,11 +90,13 @@ force ([V6](resolvers.md#queries-and-answers)). Replacing a tunnel's host
 name, family or resolver discards its answers, so an old answer can
 never be applied to a new name.
 
-E23. **A router advertisement with RDNSS options** arrives on
-`RTNLGRP_ND_USEROPT` for the bind interface of a router-advertisement
+E23. **A router advertisement with RDNSS options** arrives, on the
+resolver's raw ICMPv6 socket or as an additional source on
+`RTNLGRP_ND_USEROPT`, for the bind interface of a router-advertisement
 resolver: its servers are recorded with their lifetimes
 ([V10](resolvers.md#router-advertisements)); advertisements for other
-interfaces, and other user options, are dropped by comparison.
+interfaces, and other user options, are dropped by comparison; the same
+advertisement seen on both sources is recorded once.
 
 E24. The event monitor's filter MUST pass `RTM_NEWNDUSEROPT` messages
 whenever a resolver using router advertisements (`ra` or `ipv6`) is configured, and MAY drop them

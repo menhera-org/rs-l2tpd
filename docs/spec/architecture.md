@@ -70,10 +70,10 @@ A5. The **kernel interfaces**, each used for what only it can give:
 |---|---|
 | L2TP/IP socket, one per tunnel | Ownership and automatic cleanup; bind to a device; connect to the peer, which selects the source; disconnect to stop sending and to reselect |
 | L2TP generic netlink | Create, delete and query tunnels and sessions; the creation-time interface name as ownership proof and as the key of a deletion ([K16](kernel.md#facts)) |
-| rtnetlink requests, on a socket of their own | Resolve names to indexes, rename, set hardware addresses, read a device's hardware type and address for a DHCPv6 resolver's DUID ([V12](resolvers.md#dhcpv6-information-request)), dump for resync. Never on the filtered monitor ([K29](kernel.md#facts)) |
+| rtnetlink requests, on a socket of their own | Resolve names to indexes, rename, set hardware addresses, read a device's Ethernet address for a DHCPv6 resolver's DUID ([V12](resolvers.md#dhcpv6-information-request)), dump for resync. Never on the filtered monitor ([K29](kernel.md#facts)) |
 | Link-lifetime subscription | A dedicated `RTNLGRP_LINK` socket whose sole job is to prove identities: opened before the first session, read continuously, consulted with ordered lookups, never filtered |
 | Event monitor | One subscription to the link and address groups, and to `RTNLGRP_ND_USEROPT` when a resolver using router advertisements (`ra` or `ipv6`) is configured, filtered in the kernel to the events the reconciler needs when the host allows a filter ([K10](kernel.md#requirements)). No route group ([K7](kernel.md#requirements)) |
-| Resolvers | The system resolver and the configured resolvers ([resolvers](resolvers.md)), in the background, one task per resolver, answers polled by the reconciler |
+| Resolvers | The system resolver and the configured resolvers ([resolvers](resolvers.md)), in the background, one task per resolver, answers polled by the reconciler; a router-advertisement resolver owns a raw ICMPv6 socket on its bind interface ([K39](kernel.md#requirements)), a DHCPv6 one a UDP socket on port 546 |
 
 ## Concurrency
 

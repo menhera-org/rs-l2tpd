@@ -113,7 +113,10 @@ privileged socket tests.
   ones on a monitor resync. Disconnected tunnels are not reconnected for
   address events.
 - Device bindings are set by index on an unbound socket; `CAP_NET_RAW` is
-  not needed.
+  not needed for them. `CAP_NET_RAW` is required only by resolvers that use
+  router advertisements, which receive and solicit them from a raw ICMPv6
+  socket because networkd-managed interfaces usually have `accept_ra` off
+  ([K39](spec/kernel.md#requirements), [K40](spec/kernel.md#facts)).
 
 Guards: the privileged socket tests, `address-changes.sh`,
 `source-and-peers.sh`, `ipv6-disabled.sh`, `monitor-resync.sh`.

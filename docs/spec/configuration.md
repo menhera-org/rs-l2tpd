@@ -91,7 +91,7 @@ C16. Fields of a resolver entry ([resolvers](resolvers.md)):
 | `addresses` | A non-empty list of name-server addresses: an IPv4 or IPv6 literal as for `remote_addr`, optionally with a port (`192.0.2.53:5353`, `[2001:db8::53]:5353`), port 53 by default. Exclusive with `method`. |
 | `method` | `"ra"`, `"dhcpv6"` or `"ipv6"` (both, DHCPv6 first, [V14](resolvers.md#the-unified-ipv6-method)), either case. Exclusive with `addresses`; requires `bind_interface`. |
 | `bind_interface` | An interface name as for a tunnel. Required with `method`, optional with `addresses`. |
-| `dhcpv6_identity` | `"link-layer"` (default) or `"anonymous"`, either case: the DHCPv6 client identifier, a DUID-LL from the bind interface's hardware address or a random identifier per RFC 7844 ([V12](resolvers.md#dhcpv6-information-request)). Meaningful with `method = "dhcpv6"` or `"ipv6"`; ignored with a warning otherwise. |
+| `dhcpv6_identity` | `"link-layer"` (default) or `"anonymous"`, either case: the DHCPv6 client identifier. `"link-layer"` is a DUID-LL (DUID type 3, RFC 8415 section 11.4) with hardware type 1 (Ethernet) and the bind interface's six-byte address, stable across restarts of the daemon because it derives from the device. `"anonymous"` is a random identifier per RFC 7844, new at every start of the resolver. See [V12](resolvers.md#dhcpv6-information-request). Meaningful with `method = "dhcpv6"` or `"ipv6"`; ignored with a warning otherwise. |
 
 An entry with neither `addresses` nor `method`, with both, with `method`
 and no `bind_interface`, with an unknown `method` or `dhcpv6_identity`

@@ -87,6 +87,11 @@ the device is down, and publishes a staged device under its configured
 name even when a manager already configured it. A manager that needs a
 particular hardware address before activation must match the configured
 name, not the temporary device; the race is the kernel's and documented.
+systemd-networkd processes router advertisements itself and usually
+disables `accept_ra` on the interfaces it manages, so the kernel forwards
+no RDNSS option for them ([K40](kernel.md#facts)); a resolver using router
+advertisements on such an interface receives them from its own raw socket
+([V10](resolvers.md#router-advertisements)).
 
 H12. **Another L2TP user** (a second daemon, `ip l2tp`, a tool holding a
 tunnel or session identifier) makes the daemon's entries conflicts
@@ -116,7 +121,10 @@ H15. Without the L2TP modules, without `CAP_NET_ADMIN`, or without
 netlink, the daemon cannot create the interfaces the network depends on:
 it reports the condition once, retries every second, and withholds
 readiness, because readiness would be a lie; it never exits. No other
-capability is needed ([K8](kernel.md#requirements)); a `dhcpv6` resolver
+capability is needed ([K8](kernel.md#requirements)) except by the
+resolvers: `CAP_NET_RAW` for one that uses router advertisements
+([K39](kernel.md#requirements)), without which it is reported once and
+learns servers only where `accept_ra` is enabled; a `dhcpv6` resolver
 without its port permission is reported once and withholds nothing, and
 an `ipv6` resolver falls back to router advertisements
 ([V12](resolvers.md#dhcpv6-information-request), [V14](resolvers.md#the-unified-ipv6-method)). Without procfs the

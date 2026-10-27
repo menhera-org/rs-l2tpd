@@ -29,10 +29,12 @@ statement about older kernels.
 | K11 | `net.ipv6.bindv6only = 0` in the daemon's namespace | IPv4 peers on `AF_INET6` sockets | only while a tunnel carries IPv4 peers on an `AF_INET6` socket; otherwise `AF_INET` sockets ([T26](tunnels.md#hosts-with-bindv6only)) | `IPV6_V6ONLY` is fixed at socket creation ([K13](#facts)) |
 | K12 | `procfs` at `/proc` | the namespace identity of the current library dependency ([R7](requirements.md#the-host)) | only while that dependency is used | — |
 | K13 | `CAP_NET_BIND_SERVICE`, or `net.ipv4.ip_unprivileged_port_start` at or below 546 (Docker sets it to 0 in its containers) | resolvers with `method = "dhcpv6"` or `"ipv6"` ([V12](resolvers.md#dhcpv6-information-request), [V14](resolvers.md#the-unified-ipv6-method)) | only when such a resolver is configured; an `ipv6` resolver works without it through its RDNSS servers | `net/ipv4/af_inet.c:508-510`, `include/net/ip.h:374-377` |
-| K14 | Router-advertisement user options delivered on `RTNLGRP_ND_USEROPT` | resolvers with `method = "ra"` or `"ipv6"` ([V10](resolvers.md#router-advertisements), [V14](resolvers.md#the-unified-ipv6-method)) | only when such a resolver is configured | `net/ipv6/ndisc.c:1189-1235` |
+| K14 | Router-advertisement user options delivered on `RTNLGRP_ND_USEROPT` | an additional source of RDNSS servers for resolvers with `method = "ra"` or `"ipv6"` ([V10](resolvers.md#router-advertisements)) | only when such a resolver is configured, and only useful where `accept_ra` is enabled on the interface ([K40](#facts)); never relied upon alone | `net/ipv6/ndisc.c:1189-1235` |
+| K39 | `CAP_NET_RAW` in the daemon's namespace, for a raw ICMPv6 socket | receiving and soliciting router advertisements ([V10](resolvers.md#router-advertisements)) | required whenever a resolver with `method = "ra"` or `"ipv6"` is configured; not needed otherwise | `net/ipv6/af_inet6.c:180-182` |
 
 Not required: the `dummy` driver, any route, any route lookup, the route
-multicast groups, `/sys`, `CAP_NET_RAW` (every change of a device binding
+multicast groups, `/sys`, and `CAP_NET_RAW` for anything but the
+router-advertisement resolvers of K39 (every change of a device binding
 follows a disconnect, which clears the binding; [K22](#facts)). The daemon
 MUST NOT depend on any of them.
 
@@ -65,6 +67,8 @@ depends on a fact that is not here is wrong.
 | K34 | An IPv4 connect succeeds with source `0.0.0.0` when no IPv4 address exists; an IPv6 connect fails `EADDRNOTAVAIL` when no IPv6 address exists in the socket's L3 domain; `::1` is selected outside a VRF when nothing else exists. | `net/ipv4/devinet.c:1370-1376`, `include/net/ip6_route.h:128-152` |
 | K35 | The kernel accepts a cookie of any length up to 8 bytes. | `l2tp_netlink.c:584-600`, `913-920` |
 | K37 | A tunnel lives as long as any descriptor of its socket is open, in any process: a descriptor passed with `SCM_RIGHTS` or inherited across `execve` keeps the tunnel, its sessions and their devices intact, and the receiving program can register sessions on it, connect and disconnect it. | `l2tp_ip.c:236-246` (deletion only in the socket's destructor); shown by F1 and F8 of the feasibility report |
+| K40 | The kernel processes a router advertisement, and forwards its user options on `RTNLGRP_ND_USEROPT`, only when `accept_ra` is enabled on the receiving interface; with `accept_ra=0` the advertisement is dropped before any option is looked at. | `net/ipv6/ndisc.c:1287` and `1505` (early returns), `1599` (forwarding) |
+| K38 | Two UDP sockets may bind the same port with `SO_REUSEADDR`; a unicast datagram is delivered to one of them, the most recently bound among equal matches, because the lookup keeps the first socket with a strictly better score and new sockets are added at the head of the port chain. Multicast datagrams reach every member. | `net/ipv6/udp.c:222-227`, `net/ipv4/udp.c:342` |
 | K36 | `SO_RCVBUF` is capped by `net.core.rmem_max` and doubled; `SO_RCVBUFFORCE` is not capped but needs `CAP_NET_ADMIN` in the **initial** user namespace (`capable()`, not `ns_capable()`), so it is refused with `EPERM` inside a user-namespaced container whatever capabilities the process holds there. | `net/core/sock.c:1080-1083`, `1271-1275` |
 
 ## Verified behaviour
