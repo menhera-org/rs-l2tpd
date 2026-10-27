@@ -3,14 +3,19 @@
 //! This module is private; [`crate::runtime::Runtime`] owns the only
 //! instance and decides when each operation runs.
 
-use crate::config::{Cookie, HwAddr, IpVersion};
+use crate::config::{Cookie, HwAddr, IpVersion, TunnelConfig};
 use crate::error::{Error, Result};
 
-use futures_util::TryStreamExt;
+use futures_util::{StreamExt, TryStreamExt};
 use l2tp::{L2tpIfName, L2tpIfNameExt};
 use log::{debug, warn};
-use rtnetlink::packet_route::link::{InfoKind, LinkAttribute, LinkFlags, LinkInfo, LinkMessage};
-use rtnetlink::LinkUnspec;
+use rtnetlink::packet_core::{NetlinkMessage, NetlinkPayload, NLM_F_REQUEST};
+use rtnetlink::packet_route::link::{
+    InfoData, InfoKind, InfoVrf, LinkAttribute, LinkFlags, LinkInfo, LinkMessage,
+};
+use rtnetlink::packet_route::route::{RouteAddress, RouteAttribute, RouteMessage};
+use rtnetlink::packet_route::{AddressFamily, RouteNetlinkMessage};
+use rtnetlink::{LinkDummy, LinkUnspec, RouteMessageBuilder};
 
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
@@ -57,6 +62,74 @@ impl Rtnl {
 
     async fn set_link(&self, message: LinkMessage) -> std::result::Result<(), rtnetlink::Error> {
         self.handle.link().set(message).execute().await
+    }
+
+    /// Whether the kernel routes `destination` for a socket bound to the
+    /// device `oif` (a VRF, say), or for an unbound one. The lookup is the
+    /// one `connect` would do, so a reject route (blackhole, unreachable,
+    /// prohibit) counts as no route: it refuses connections just the same.
+    async fn routes(&self, destination: Ipv6Addr, oif: Option<u32>) -> Result<bool> {
+        let mut message = RouteMessage::default();
+        message.header.address_family = AddressFamily::Inet6;
+        message.header.destination_prefix_length = 128;
+        message
+            .attributes
+            .push(RouteAttribute::Destination(RouteAddress::Inet6(
+                destination,
+            )));
+        if let Some(oif) = oif {
+            message.attributes.push(RouteAttribute::Oif(oif));
+        }
+        let mut request = NetlinkMessage::from(RouteNetlinkMessage::GetRoute(message));
+        request.header.flags = NLM_F_REQUEST;
+        let mut handle = self.handle.clone();
+        let mut responses = handle.request(request).map_err(|e| {
+            Error::Other(format!("failed to look up the route to {destination}: {e}"))
+        })?;
+        while let Some(response) = responses.next().await {
+            match response.payload {
+                NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewRoute(_)) => return Ok(true),
+                NetlinkPayload::Error(error) => {
+                    let Some(code) = error.code else {
+                        // An acknowledgement without a route.
+                        return Ok(false);
+                    };
+                    return match code.get().unsigned_abs() as i32 {
+                        libc::ENETUNREACH
+                        | libc::EHOSTUNREACH
+                        | libc::EINVAL
+                        | libc::EACCES
+                        | libc::EAGAIN => Ok(false),
+                        _ => Err(Error::Other(format!(
+                            "failed to look up the route to {destination}: {error}"
+                        ))),
+                    };
+                }
+                _ => {}
+            }
+        }
+        Ok(false)
+    }
+
+    /// Routes `destination` to the device `index` in `table`, replacing
+    /// a route of the same prefix and metric there.
+    async fn route_to_device(&self, destination: Ipv6Addr, index: u32, table: u32) -> Result<()> {
+        let message = RouteMessageBuilder::<Ipv6Addr>::new()
+            .destination_prefix(destination, 128)
+            .output_interface(index)
+            .table_id(table)
+            .build();
+        self.handle
+            .route()
+            .add(message)
+            .replace()
+            .execute()
+            .await
+            .map_err(|e| {
+                Error::Other(format!(
+                    "failed to route {destination} to {NULL_DEVICE} in table {table}: {e}"
+                ))
+            })
     }
 }
 
@@ -115,6 +188,49 @@ fn link_is_vrf(link: &LinkMessage) -> bool {
             .any(|info| matches!(info, LinkInfo::Kind(InfoKind::Vrf))),
         _ => false,
     })
+}
+
+fn link_is_dummy(link: &LinkMessage) -> bool {
+    link.attributes.iter().any(|attr| match attr {
+        LinkAttribute::LinkInfo(info) => info
+            .iter()
+            .any(|info| matches!(info, LinkInfo::Kind(InfoKind::Dummy))),
+        _ => false,
+    })
+}
+
+/// The routing table of a VRF device.
+fn link_vrf_table(link: &LinkMessage) -> Option<u32> {
+    link.attributes.iter().find_map(|attr| match attr {
+        LinkAttribute::LinkInfo(info) => info.iter().find_map(|info| match info {
+            LinkInfo::Data(InfoData::Vrf(vrf)) => vrf.iter().find_map(|attr| match attr {
+                InfoVrf::TableId(table) => Some(*table),
+                _ => None,
+            }),
+            _ => None,
+        }),
+        _ => None,
+    })
+}
+
+/// The null device the daemon creates as a last resort, so that tunnels
+/// without a peer can be connected to [`TunnelConfig::NO_PEER_ADDR`] on a
+/// host that does not route it (an IPv4-only host, a VRF with an
+/// unreachable default route) and their frames discarded. A `dummy` link
+/// drops whatever it transmits: nothing is looped back, nothing leaves the
+/// host, no neighbour discovery runs.
+pub(crate) const NULL_DEVICE: &str = "rsl2tpnull0";
+
+/// The main routing table.
+const RT_TABLE_MAIN: u32 = 254;
+
+/// Where the frames of a tunnel without a peer go.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum DiscardRoute {
+    /// Along a route the host already had (its default route, say).
+    Existing,
+    /// Into the daemon's null device, which this call routed them to.
+    NullDevice,
 }
 
 fn is_netlink_errno(err: &rtnetlink::Error, errno: i32) -> bool {
@@ -469,6 +585,98 @@ impl State {
             return Ok(None);
         };
         Ok(link_is_vrf(&master).then_some(controller))
+    }
+
+    pub(crate) async fn interface_index(if_name: &L2tpIfName) -> Result<Option<u32>> {
+        interface_index(if_name).await
+    }
+
+    /// Makes sure a socket bound to the VRF with index `vrf`, or an unbound
+    /// one, can be connected to [`TunnelConfig::NO_PEER_ADDR`]. The kernel's
+    /// own route is used when it has one; otherwise, as a last resort, the
+    /// null device [`NULL_DEVICE`] is created (or brought up) and a host
+    /// route to it added to the table concerned, replacing a reject route of
+    /// the same prefix that would refuse the connection.
+    pub(crate) async fn ensure_discard_route(vrf: Option<u32>) -> Result<DiscardRoute> {
+        let rtnl = Rtnl::connect()?;
+        let destination = TunnelConfig::NO_PEER_ADDR;
+        if rtnl.routes(destination, vrf).await? {
+            return Ok(DiscardRoute::Existing);
+        }
+        let table = match vrf {
+            Some(index) => link_vrf_table(&rtnl.get_link(index).await?)
+                .ok_or_else(|| Error::Other(format!("interface index {index} is not a VRF")))?,
+            None => RT_TABLE_MAIN,
+        };
+        let index = Self::null_device(&rtnl).await?;
+        rtnl.route_to_device(destination, index, table).await?;
+        Ok(DiscardRoute::NullDevice)
+    }
+
+    /// The null device's index, creating it or bringing it up as needed.
+    async fn null_device(rtnl: &Rtnl) -> Result<u32> {
+        let name = L2tpIfName::from_name(NULL_DEVICE).map_err(Error::L2tp)?;
+        let index = match interface_index(&name).await? {
+            Some(index) => index,
+            None => {
+                let created = rtnl
+                    .handle
+                    .link()
+                    .add(LinkDummy::new(NULL_DEVICE).up().build())
+                    .execute()
+                    .await;
+                match created {
+                    Ok(()) => {}
+                    Err(e) if is_netlink_errno(&e, libc::EEXIST) => {}
+                    Err(e) => {
+                        return Err(Error::Other(format!(
+                            "failed to create the null device {NULL_DEVICE}: {e}"
+                        )))
+                    }
+                }
+                interface_index(&name).await?.ok_or_else(|| {
+                    Error::Other(format!("the null device {NULL_DEVICE} did not appear"))
+                })?
+            }
+        };
+        let link = rtnl.get_link(index).await?;
+        if !link_is_dummy(&link) {
+            return Err(Error::Other(format!(
+                "{NULL_DEVICE} exists but is not a dummy device; rename it so that the daemon can create its own"
+            )));
+        }
+        if !link_is_up(&link) {
+            rtnl.set_link(LinkUnspec::new_with_index(index).up().build())
+                .await
+                .map_err(|e| {
+                    Error::Other(format!(
+                        "failed to bring the null device {NULL_DEVICE} up: {e}"
+                    ))
+                })?;
+        }
+        Ok(index)
+    }
+
+    /// Removes the null device, and with it its routes. Its absence is fine.
+    pub(crate) async fn remove_null_device() -> Result<()> {
+        let name = L2tpIfName::from_name(NULL_DEVICE).map_err(Error::L2tp)?;
+        let Some(index) = interface_index(&name).await? else {
+            return Ok(());
+        };
+        let rtnl = Rtnl::connect()?;
+        rtnl.handle.link().del(index).execute().await.map_err(|e| {
+            Error::Other(format!(
+                "failed to remove the null device {NULL_DEVICE}: {e}"
+            ))
+        })
+    }
+
+    /// The peer the tunnel is connected to now.
+    pub(crate) async fn tunnel_remote_addr(&self, tunnel_id: u32) -> Option<IpAddr> {
+        let tunnels = self.tunnels.read().await;
+        let tunnel = tunnels.get(&tunnel_id)?;
+        let remote_addr = *tunnel.remote_addr.read().await;
+        Some(remote_addr)
     }
 
     pub(crate) async fn add_tunnel(
@@ -2166,6 +2374,119 @@ mod tests {
 
         state.delete_tunnel(id).await.unwrap();
         assert_interface_deleted(&name).await;
+        assert_kernel_tunnel_deleted(&state, id).await;
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy, vrf and IPv6 L2TP support"]
+    async fn privileged_discard_route_falls_back_to_the_null_device() {
+        use super::{DiscardRoute, NULL_DEVICE};
+        use crate::config::TunnelConfig;
+        use rtnetlink::packet_route::route::RouteType;
+        use rtnetlink::RouteMessageBuilder;
+
+        let null = ifname(NULL_DEVICE);
+        let discard = IpAddr::V6(TunnelConfig::NO_PEER_ADDR);
+        let state = State::new().await.expect("create L2TP handle");
+        let id = 1_600_000_000 + (std::process::id() % 100_000) * 8;
+        assert_eq!(interface_index(&null).await.unwrap(), None);
+
+        // The isolated namespace routes nothing: without help, a tunnel to
+        // the discard address cannot be created.
+        let err = state
+            .add_tunnel(id, id + 1, discard, None)
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(&err, crate::Error::L2tp(l2tp::Error::Io(e)) if e.raw_os_error() == Some(libc::ENETUNREACH)),
+            "{err}"
+        );
+        assert_eq!(
+            State::ensure_discard_route(None).await.unwrap(),
+            DiscardRoute::NullDevice
+        );
+        let index = interface_index(&null).await.unwrap().expect("null device");
+        let rtnl = super::Rtnl::connect().unwrap();
+        let link = rtnl.get_link(index).await.unwrap();
+        assert!(super::link_is_dummy(&link));
+        assert!(super::link_is_up(&link));
+        // Now the host routes it, so nothing more is done.
+        assert_eq!(
+            State::ensure_discard_route(None).await.unwrap(),
+            DiscardRoute::Existing
+        );
+        state
+            .add_tunnel(id, id + 1, discard, None)
+            .await
+            .expect("tunnel to the discard address through the null device");
+        let Encapsulation::Ip { local, remote } = tunnel_info(&state, id).await.encapsulation
+        else {
+            panic!("expected IP encapsulation");
+        };
+        assert_eq!(remote, IpEndpoint::v6(TunnelConfig::NO_PEER_ADDR));
+        // Without a global address the kernel selects a link-local source,
+        // the null device's own: enough to connect, as on an IPv4-only host.
+        assert!(!local.ip().is_unspecified(), "{local}");
+
+        // A VRF with an unreachable default route, the usual VRF setup,
+        // needs the route in its own table.
+        let vrf_name = "rsl2tp-nullvrf";
+        let table = 4242156;
+        rtnl.handle
+            .link()
+            .add(rtnetlink::LinkVrf::new(vrf_name, table).up().build())
+            .execute()
+            .await
+            .expect("privileged test requires VRF support");
+        let vrf_index = ifname(vrf_name).index().unwrap();
+        // A VRF has members; their link-local addresses are the only
+        // source candidates for a socket bound to it, as on an IPv4-only
+        // VRF.
+        let slave_index = add_test_dummy(&rtnl, "rsl2tp-nslave").await;
+        rtnl.set_link(
+            LinkUnspec::new_with_index(slave_index)
+                .controller(vrf_index)
+                .build(),
+        )
+        .await
+        .unwrap();
+        rtnl.handle
+            .route()
+            .add(
+                RouteMessageBuilder::<Ipv6Addr>::new()
+                    .destination_prefix(Ipv6Addr::UNSPECIFIED, 0)
+                    .kind(RouteType::Unreachable)
+                    .table_id(table)
+                    .build(),
+            )
+            .execute()
+            .await
+            .expect("unreachable default route in the VRF table");
+        assert!(state
+            .add_tunnel(id + 2, id + 3, discard, Some(&ifname(vrf_name)))
+            .await
+            .is_err());
+        assert_eq!(
+            State::ensure_discard_route(Some(vrf_index)).await.unwrap(),
+            DiscardRoute::NullDevice
+        );
+        assert_eq!(
+            State::ensure_discard_route(Some(vrf_index)).await.unwrap(),
+            DiscardRoute::Existing
+        );
+        state
+            .add_tunnel(id + 2, id + 3, discard, Some(&ifname(vrf_name)))
+            .await
+            .expect("tunnel in the VRF through the null device");
+
+        state.delete_tunnel(id).await.unwrap();
+        state.delete_tunnel(id + 2).await.unwrap();
+        State::remove_null_device().await.unwrap();
+        assert_eq!(interface_index(&null).await.unwrap(), None);
+        // Removing it again is fine.
+        State::remove_null_device().await.unwrap();
+        rtnl.handle.link().del(slave_index).execute().await.unwrap();
+        rtnl.handle.link().del(vrf_index).execute().await.unwrap();
         assert_kernel_tunnel_deleted(&state, id).await;
     }
 

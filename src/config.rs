@@ -1,11 +1,19 @@
 //! Desired configuration: tunnels and the sessions riding on them.
 //!
-//! A [`Config`] is validated as a whole: identifiers are non-zero, every
-//! session names a tunnel that exists, a literal remote address is unicast,
-//! interface names satisfy the kernel's rules, hardware addresses are
-//! unicast and cookies are four or eight bytes. It is built in code with
+//! A [`Config`] is validated as a whole: identifiers are non-zero and
+//! unique, every session names a tunnel that exists, a literal remote
+//! address is unicast and of the tunnel's address family, interface names
+//! satisfy the kernel's rules and are unique, hardware addresses are unicast
+//! and cookies are four or eight bytes. It is built in code with
 //! [`Config::new`] and the `insert_*` methods or, with the `serde` feature,
-//! deserialised from any format (deserialising runs the same validation).
+//! deserialised from any format (deserialising runs the same validation and
+//! applies the same defaults). A merged [`PartialConfig`] becomes a `Config`
+//! either strictly, with [`PartialConfig::into_config`], or leniently, with
+//! [`PartialConfig::into_config_lenient`], which keeps everything usable,
+//! connects a tunnel with an unusable endpoint to the discard address, gives
+//! a session with an unusable hardware address the kernel's, and reports
+//! each problem as a [`ConfigProblem`]; the daemon loads its configuration
+//! that way.
 //! This module does no I/O and assumes no serialisation format: the daemon
 //! binary reads its TOML files and feeds the documents in as
 //! [`PartialConfig`] values.
@@ -16,7 +24,12 @@
 //! [`PartialConfig::merge`], later ones overriding earlier ones, which is
 //! how the daemon layers its drop-in directory over its main file.
 
-use std::{collections::BTreeMap, fmt, net::IpAddr, str::FromStr};
+use std::{
+    collections::BTreeMap,
+    fmt,
+    net::{IpAddr, Ipv6Addr},
+    str::FromStr,
+};
 
 use crate::error::{Error, Result};
 
@@ -31,12 +44,13 @@ pub use iphost::{IpHost, FQDN};
 /// matching version; a name also parses from a string.
 pub use l2tp::{L2tpIfName, L2tpIfNameExt};
 
-/// Serde adapter for checked interface names in complete configurations.
-/// Partial configurations retain strings until their overrides are merged.
+/// Serde adapter rendering checked interface names as strings. Reading goes
+/// through the partial configurations, which keep strings until their
+/// overrides are merged and check them when completing the configuration.
 #[cfg(feature = "serde")]
 pub(crate) mod ifname_serde {
-    use l2tp::{L2tpIfName, L2tpIfNameExt};
-    use serde::{Deserialize, Deserializer, Serializer};
+    use l2tp::L2tpIfName;
+    use serde::Serializer;
 
     fn text<E: serde::ser::Error>(name: &L2tpIfName) -> Result<&str, E> {
         name.to_str()
@@ -47,29 +61,13 @@ pub(crate) mod ifname_serde {
         s.serialize_str(text(name)?)
     }
 
-    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<L2tpIfName, D::Error> {
-        L2tpIfName::from_name(&String::deserialize(d)?).map_err(serde::de::Error::custom)
-    }
-
-    pub(crate) mod option {
-        use super::*;
-
-        pub(crate) fn serialize<S: Serializer>(
-            name: &Option<L2tpIfName>,
-            s: S,
-        ) -> Result<S::Ok, S::Error> {
-            match name {
-                None => s.serialize_none(),
-                Some(name) => s.serialize_some(text(name)?),
-            }
-        }
-
-        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
-            d: D,
-        ) -> Result<Option<L2tpIfName>, D::Error> {
-            Option::<String>::deserialize(d)?
-                .map(|name| L2tpIfName::from_name(&name).map_err(serde::de::Error::custom))
-                .transpose()
+    pub(crate) fn serialize_option<S: Serializer>(
+        name: &Option<L2tpIfName>,
+        s: S,
+    ) -> Result<S::Ok, S::Error> {
+        match name {
+            None => s.serialize_none(),
+            Some(name) => s.serialize_some(text(name)?),
         }
     }
 }
@@ -312,6 +310,143 @@ pub enum IpVersion {
     V6,
 }
 
+impl IpVersion {
+    /// The family of a literal address; a host name has none until resolved.
+    fn of_literal(remote_addr: &IpHost) -> Option<Self> {
+        match remote_addr {
+            IpHost::V4Addr(_) => Some(IpVersion::V4),
+            IpHost::V6Addr(_) => Some(IpVersion::V6),
+            IpHost::Fqdn(_) => None,
+        }
+    }
+
+    fn describe(self) -> &'static str {
+        match self {
+            IpVersion::V4 => "IPv4",
+            IpVersion::V6 => "IPv6",
+        }
+    }
+}
+
+impl FromStr for IpVersion {
+    type Err = Error;
+
+    /// Parses `"V4"` or `"V6"`, in either case.
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "V4" | "v4" => Ok(IpVersion::V4),
+            "V6" | "v6" => Ok(IpVersion::V6),
+            other => Err(Error::InvalidConfig(format!(
+                "invalid ip_version {other:?}: expected \"V4\" or \"V6\""
+            ))),
+        }
+    }
+}
+
+/// Which kind of entry a [`ConfigProblem`] concerns.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum EntryKind {
+    /// An entry of the `tunnels` map.
+    Tunnel,
+    /// An entry of the `sessions` map.
+    Session,
+}
+
+impl fmt::Display for EntryKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            EntryKind::Tunnel => "tunnel",
+            EntryKind::Session => "session",
+        })
+    }
+}
+
+/// What became of an entry a lenient conversion found a problem with.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum ProblemEffect {
+    /// The entry was left out; a left-out tunnel takes its sessions with it.
+    Rejected,
+    /// The tunnel was kept but has no usable peer: it is connected to
+    /// [`TunnelConfig::NO_PEER_ADDR`] until its endpoint is corrected, and
+    /// its sessions are created as usual. Correcting the endpoint, with the
+    /// identifiers and `bind_interface` unchanged, reconnects the tunnel in
+    /// place.
+    NoPeer,
+    /// The session was kept with the hardware address the kernel assigns,
+    /// its `interface_hwaddr` being unusable. Correcting it applies the
+    /// address in place, once the interface is down if it is up.
+    KernelHwAddr,
+    /// The entry would have been rejected, so the tunnel or session of the
+    /// same name from the previous configuration was kept instead; see
+    /// [`Config::from_partial_with_previous`].
+    KeptPrevious,
+}
+
+/// A problem a lenient conversion found with a tunnel or session, and what
+/// became of the entry.
+///
+/// Displays as `tunnel <name>: <reason>` or `session <name>: <reason>`; the
+/// underlying [`Error`] is its source.
+#[derive(Debug)]
+pub struct ConfigProblem {
+    kind: EntryKind,
+    name: String,
+    effect: ProblemEffect,
+    error: Error,
+}
+
+impl ConfigProblem {
+    fn new(kind: EntryKind, name: &str, effect: ProblemEffect, error: Error) -> Self {
+        Self {
+            kind,
+            name: name.to_string(),
+            effect,
+            error,
+        }
+    }
+
+    /// Whether the entry is a tunnel or a session.
+    pub fn kind(&self) -> EntryKind {
+        self.kind
+    }
+
+    /// The entry's configuration name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// What became of the entry.
+    pub fn effect(&self) -> ProblemEffect {
+        self.effect
+    }
+
+    /// What is wrong with the entry.
+    pub fn error(&self) -> &Error {
+        &self.error
+    }
+
+    fn reason(&self) -> String {
+        match &self.error {
+            Error::InvalidConfig(message) => message.clone(),
+            other => other.to_string(),
+        }
+    }
+}
+
+impl fmt::Display for ConfigProblem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {}: {}", self.kind, self.name, self.reason())
+    }
+}
+
+impl std::error::Error for ConfigProblem {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.error)
+    }
+}
+
 #[cfg(feature = "serde")]
 fn merge_opt<T>(dst: &mut Option<T>, src: Option<T>) {
     if let Some(v) = src {
@@ -319,11 +454,31 @@ fn merge_opt<T>(dst: &mut Option<T>, src: Option<T>) {
     }
 }
 
+/// Parses an optional text field, naming the field in the error.
+#[cfg(feature = "serde")]
+fn parse_field<T: FromStr<Err = Error>>(field: &str, text: Option<String>) -> Result<Option<T>> {
+    text.map(|text| text.parse().map_err(|e| field_error(field, e)))
+        .transpose()
+}
+
+/// Prefixes an error with the field it concerns.
+#[cfg(feature = "serde")]
+fn field_error(field: &str, error: impl Into<Error>) -> Error {
+    let message = match error.into() {
+        Error::InvalidConfig(message) => message,
+        other => other.to_string(),
+    };
+    Error::InvalidConfig(format!("{field}: {message}"))
+}
+
 /// A configuration as deserialised from one document: every field is
 /// optional so that several documents can be merged before the result is
-/// validated. Interface names are checked after merging, so a later document
-/// can replace an invalid placeholder. Hardware addresses and cookies are
-/// checked while deserialising.
+/// validated. Values that have a textual form (addresses, names, hardware
+/// addresses, cookies, the address family) stay text until then, so a later
+/// document can replace an invalid placeholder and, in a lenient
+/// conversion, a mistake in one entry rejects only that entry. Only a value
+/// of the wrong type, such as a string where a number is expected, fails
+/// deserialising the document itself.
 #[cfg(feature = "serde")]
 #[derive(Debug, Clone, serde::Deserialize, Default)]
 pub struct PartialConfig {
@@ -348,9 +503,24 @@ impl PartialConfig {
         }
     }
 
-    /// Validates the merged result into a [`Config`].
+    /// Validates the merged result into a [`Config`], failing on the first
+    /// invalid entry.
     pub fn into_config(self) -> Result<Config> {
         Config::from_partial(self)
+    }
+
+    /// Validates the merged result into a [`Config`] of everything usable
+    /// and reports each problem with what became of its entry. See
+    /// [`Config::from_partial_lenient`].
+    pub fn into_config_lenient(self) -> (Config, Vec<ConfigProblem>) {
+        Config::from_partial_lenient(self)
+    }
+
+    /// Like [`into_config_lenient`](Self::into_config_lenient), for a
+    /// reload: an entry that would be rejected keeps its values from
+    /// `previous` instead. See [`Config::from_partial_with_previous`].
+    pub fn into_config_with_previous(self, previous: &Config) -> (Config, Vec<ConfigProblem>) {
+        Config::from_partial_with_previous(self, previous)
     }
 }
 
@@ -359,8 +529,8 @@ impl PartialConfig {
 struct PartialTunnelConfig {
     tunnel_id: Option<u32>,
     peer_tunnel_id: Option<u32>,
-    ip_version: Option<IpVersion>,
-    remote_addr: Option<IpHost>,
+    ip_version: Option<String>,
+    remote_addr: Option<String>,
     bind_interface: Option<String>,
 }
 
@@ -374,26 +544,73 @@ impl PartialTunnelConfig {
         merge_opt(&mut self.bind_interface, latter.bind_interface);
     }
 
-    fn into_full(self) -> Result<TunnelConfig> {
+    /// The complete tunnel, with the problem of its endpoint if that had to
+    /// be replaced by [`TunnelConfig::NO_PEER_ADDR`]. Anything else wrong is
+    /// an error.
+    fn into_full(self) -> Result<(TunnelConfig, Option<Error>)> {
         let tunnel_id = self
             .tunnel_id
             .ok_or(Error::InvalidConfig("tunnel_id is missing".to_string()))?;
-        let ip_version = self
-            .ip_version
-            .ok_or(Error::InvalidConfig("ip_version is missing".to_string()))?;
-        let remote_addr = self
-            .remote_addr
-            .ok_or(Error::InvalidConfig("remote_addr is missing".to_string()))?;
+        let bind_interface = self
+            .bind_interface
+            .map(|name| L2tpIfName::from_name(&name).map_err(|e| field_error("bind_interface", e)))
+            .transpose()?;
+        let (ip_version, remote_addr, endpoint_problem) =
+            match Self::endpoint(self.ip_version, self.remote_addr) {
+                Ok((ip_version, remote_addr)) => (ip_version, remote_addr, None),
+                Err(problem) => (
+                    IpVersion::V6,
+                    IpHost::V6Addr(TunnelConfig::NO_PEER_ADDR),
+                    Some(problem),
+                ),
+            };
 
         let config = TunnelConfig {
             tunnel_id,
             peer_tunnel_id: self.peer_tunnel_id.unwrap_or(tunnel_id),
             ip_version,
             remote_addr,
-            bind_interface: self.bind_interface.map(L2tpIfName::from_name).transpose()?,
+            bind_interface,
         };
         config.validate()?;
-        Ok(config)
+        Ok((config, endpoint_problem))
+    }
+
+    /// The endpoint, or why it cannot be used.
+    fn endpoint(
+        ip_version: Option<String>,
+        remote_addr: Option<String>,
+    ) -> Result<(IpVersion, IpHost)> {
+        let text = remote_addr.ok_or(Error::InvalidConfig("remote_addr is missing".to_string()))?;
+        let remote_addr: IpHost = text
+            .parse()
+            .map_err(|e| Error::InvalidConfig(format!("remote_addr {text:?}: {e}")))?;
+        // A literal address implies its family; a host name needs to be
+        // told which of its answers to use.
+        let ip_version = match ip_version {
+            Some(text) => text.parse()?,
+            None => IpVersion::of_literal(&remote_addr).ok_or_else(|| {
+                Error::InvalidConfig(
+                    "ip_version is missing: it selects the address family a host name resolves to"
+                        .to_string(),
+                )
+            })?,
+        };
+        TunnelConfig::validate_endpoint(ip_version, &remote_addr)?;
+        Ok((ip_version, remote_addr))
+    }
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<PartialTunnelConfig> for TunnelConfig {
+    type Error = Error;
+
+    /// Strict: an unusable endpoint is an error here.
+    fn try_from(partial: PartialTunnelConfig) -> Result<Self> {
+        match partial.into_full()? {
+            (config, None) => Ok(config),
+            (_, Some(endpoint_problem)) => Err(endpoint_problem),
+        }
     }
 }
 
@@ -404,9 +621,9 @@ struct PartialSessionConfig {
     session_id: Option<u32>,
     peer_session_id: Option<u32>,
     interface_name: Option<String>,
-    interface_hwaddr: Option<HwAddr>,
-    cookie: Option<Cookie>,
-    peer_cookie: Option<Cookie>,
+    interface_hwaddr: Option<String>,
+    cookie: Option<String>,
+    peer_cookie: Option<String>,
 }
 
 #[cfg(feature = "serde")]
@@ -421,28 +638,52 @@ impl PartialSessionConfig {
         merge_opt(&mut self.peer_cookie, latter.peer_cookie);
     }
 
-    fn into_full(self) -> Result<SessionConfig> {
+    /// The complete session, with the problem of its hardware address if
+    /// that had to be left to the kernel. Anything else wrong is an error.
+    fn into_full(self) -> Result<(SessionConfig, Option<Error>)> {
         let tunnel_name = self
             .tunnel_name
             .ok_or(Error::InvalidConfig("tunnel_name is missing".to_string()))?;
         let session_id = self
             .session_id
             .ok_or(Error::InvalidConfig("session_id is missing".to_string()))?;
-        let interface_name = L2tpIfName::from_name(self.interface_name.ok_or(
-            Error::InvalidConfig("interface_name is missing".to_string()),
-        )?)?;
+        let interface_name = self.interface_name.ok_or(Error::InvalidConfig(
+            "interface_name is missing".to_string(),
+        ))?;
+        let interface_name =
+            L2tpIfName::from_name(&interface_name).map_err(|e| field_error("interface_name", e))?;
+        let (interface_hwaddr, hwaddr_problem) =
+            match parse_field("interface_hwaddr", self.interface_hwaddr) {
+                Ok(hwaddr) => (hwaddr, None),
+                Err(problem) => (None, Some(problem)),
+            };
+        let cookie: Option<Cookie> = parse_field("cookie", self.cookie)?;
+        let peer_cookie = parse_field("peer_cookie", self.peer_cookie)?;
 
         let config = SessionConfig {
             tunnel_name,
             session_id,
             peer_session_id: self.peer_session_id.unwrap_or(session_id),
             interface_name,
-            interface_hwaddr: self.interface_hwaddr,
-            cookie: self.cookie,
-            peer_cookie: self.peer_cookie.or(self.cookie),
+            interface_hwaddr,
+            cookie,
+            peer_cookie: peer_cookie.or(cookie),
         };
         config.validate()?;
-        Ok(config)
+        Ok((config, hwaddr_problem))
+    }
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<PartialSessionConfig> for SessionConfig {
+    type Error = Error;
+
+    /// Strict: an unusable hardware address is an error here.
+    fn try_from(partial: PartialSessionConfig) -> Result<Self> {
+        match partial.into_full()? {
+            (config, None) => Ok(config),
+            (_, Some(hwaddr_problem)) => Err(hwaddr_problem),
+        }
     }
 }
 
@@ -471,47 +712,175 @@ impl Config {
         Self::default()
     }
 
-    /// Validates a merged [`PartialConfig`].
+    /// Validates a merged [`PartialConfig`], failing on the first problem,
+    /// an unusable endpoint included; the error names the entry.
     #[cfg(feature = "serde")]
     pub fn from_partial(partial: PartialConfig) -> Result<Self> {
-        let mut full = Config::default();
-        for (k, v) in partial.tunnels {
-            let tunnel = v
-                .into_full()
-                .map_err(|e| Error::InvalidConfig(format!("tunnel {k}: {e}")))?;
-            full.insert_tunnel(k, tunnel)?;
+        let (config, problems) = Self::from_partial_lenient(partial);
+        match problems.into_iter().next() {
+            Some(first) => Err(Error::InvalidConfig(first.to_string())),
+            None => Ok(config),
         }
-        for (k, v) in partial.sessions {
-            let session = v
-                .into_full()
-                .map_err(|e| Error::InvalidConfig(format!("session {k}: {e}")))?;
-            full.insert_session(k, session)?;
-        }
-        Ok(full)
     }
 
-    /// Adds or replaces the tunnel called `name`.
+    /// Validates a merged [`PartialConfig`] entry by entry, keeping
+    /// everything usable and reporting each problem with what became of
+    /// its entry. The result may well be empty, which is a valid
+    /// configuration.
+    ///
+    /// A tunnel whose endpoint cannot be used (`remote_addr` missing or
+    /// neither an address nor a host name, `ip_version` invalid or missing
+    /// for a host name, a literal address that is not unicast or of the
+    /// other family) is kept with [`TunnelConfig::NO_PEER_ADDR`] as its
+    /// peer, since only connectivity is affected
+    /// ([`ProblemEffect::NoPeer`]). A session whose `interface_hwaddr`
+    /// cannot be used is kept with the hardware address the kernel assigns
+    /// ([`ProblemEffect::KernelHwAddr`]). Any other problem leaves the
+    /// entry out ([`ProblemEffect::Rejected`]). Tunnels are taken in name
+    /// order, then sessions: a duplicate identifier or interface name
+    /// rejects the later entry, and a session whose tunnel was rejected is
+    /// rejected too. The daemon starts this way, so one mistake does not
+    /// keep every other tunnel down; it reloads with
+    /// [`from_partial_with_previous`](Self::from_partial_with_previous).
+    #[cfg(feature = "serde")]
+    pub fn from_partial_lenient(partial: PartialConfig) -> (Self, Vec<ConfigProblem>) {
+        Self::complete(partial, None)
+    }
+
+    /// Like [`from_partial_lenient`](Self::from_partial_lenient), for a
+    /// reload: an entry that would be rejected keeps the tunnel or session
+    /// of the same name from `previous`, the configuration in force, when
+    /// there is one and it still fits the rest
+    /// ([`ProblemEffect::KeptPrevious`]); otherwise it is rejected as usual.
+    /// A session of a tunnel that kept its previous values is taken as
+    /// given, since that tunnel still exists. So a mistake made while the
+    /// daemon runs never takes a running tunnel or session down.
+    #[cfg(feature = "serde")]
+    pub fn from_partial_with_previous(
+        partial: PartialConfig,
+        previous: &Config,
+    ) -> (Self, Vec<ConfigProblem>) {
+        Self::complete(partial, Some(previous))
+    }
+
+    #[cfg(feature = "serde")]
+    fn complete(partial: PartialConfig, previous: Option<&Config>) -> (Self, Vec<ConfigProblem>) {
+        let mut full = Config::default();
+        let mut problems: Vec<ConfigProblem> = Vec::new();
+        for (name, tunnel) in partial.tunnels {
+            let result = tunnel.into_full().and_then(|(tunnel, endpoint_problem)| {
+                full.insert_tunnel(name.as_str(), tunnel)
+                    .map(|()| endpoint_problem)
+            });
+            let (effect, error) = match result {
+                Ok(None) => continue,
+                Ok(Some(endpoint_problem)) => (ProblemEffect::NoPeer, endpoint_problem),
+                Err(error) => {
+                    let kept = previous
+                        .and_then(|previous| previous.tunnels.get(&name))
+                        .is_some_and(|old| full.insert_tunnel(name.as_str(), old.clone()).is_ok());
+                    let effect = if kept {
+                        ProblemEffect::KeptPrevious
+                    } else {
+                        ProblemEffect::Rejected
+                    };
+                    (effect, error)
+                }
+            };
+            problems.push(ConfigProblem::new(EntryKind::Tunnel, &name, effect, error));
+        }
+        for (name, session) in partial.sessions {
+            let result = session.into_full().and_then(|(session, hwaddr_problem)| {
+                let tunnel_rejected = problems.iter().any(|p| {
+                    p.kind == EntryKind::Tunnel
+                        && p.effect == ProblemEffect::Rejected
+                        && p.name == session.tunnel_name
+                });
+                if tunnel_rejected {
+                    return Err(Error::InvalidConfig(format!(
+                        "its tunnel {} was rejected",
+                        session.tunnel_name
+                    )));
+                }
+                full.insert_session(name.as_str(), session)
+                    .map(|()| hwaddr_problem)
+            });
+            let (effect, error) = match result {
+                Ok(None) => continue,
+                Ok(Some(hwaddr_problem)) => (ProblemEffect::KernelHwAddr, hwaddr_problem),
+                Err(error) => {
+                    let kept = previous
+                        .and_then(|previous| previous.sessions.get(&name))
+                        .is_some_and(|old| full.insert_session(name.as_str(), old.clone()).is_ok());
+                    let effect = if kept {
+                        ProblemEffect::KeptPrevious
+                    } else {
+                        ProblemEffect::Rejected
+                    };
+                    (effect, error)
+                }
+            };
+            problems.push(ConfigProblem::new(EntryKind::Session, &name, effect, error));
+        }
+        (full, problems)
+    }
+
+    /// Adds or replaces the tunnel called `name`. Its identifier must not be
+    /// in use by a tunnel of another name.
     pub fn insert_tunnel(&mut self, name: impl Into<String>, tunnel: TunnelConfig) -> Result<()> {
         tunnel.validate()?;
-        self.tunnels.insert(name.into(), tunnel);
+        let name = name.into();
+        if let Some(other) = self
+            .tunnels
+            .iter()
+            .find(|(other, existing)| **other != name && existing.tunnel_id == tunnel.tunnel_id)
+            .map(|(other, _)| other)
+        {
+            return Err(Error::InvalidConfig(format!(
+                "tunnel_id {} is already used by tunnel {other}",
+                tunnel.tunnel_id
+            )));
+        }
+        self.tunnels.insert(name, tunnel);
         Ok(())
     }
 
     /// Adds or replaces the session called `name`, whose tunnel must already
-    /// be present.
+    /// be present. Neither its identifier nor its interface name may be in
+    /// use by another session, whatever its tunnel, except by the session
+    /// of the same name it replaces: L2TPv3 over IP delivers frames by
+    /// session identifier alone, so the kernel keeps them unique per host.
     pub fn insert_session(
         &mut self,
         name: impl Into<String>,
         session: SessionConfig,
     ) -> Result<()> {
         session.validate()?;
+        let name = name.into();
         if !self.tunnels.contains_key(&session.tunnel_name) {
             return Err(Error::InvalidConfig(format!(
                 "tunnel not defined: {}",
                 session.tunnel_name
             )));
         }
-        self.sessions.insert(name.into(), session);
+        for (other, existing) in &self.sessions {
+            if *other == name {
+                continue;
+            }
+            if existing.interface_name == session.interface_name {
+                return Err(Error::InvalidConfig(format!(
+                    "interface_name {} is already used by session {other}",
+                    session.interface_name
+                )));
+            }
+            if existing.session_id == session.session_id {
+                return Err(Error::InvalidConfig(format!(
+                    "session_id {} is already used by session {other} (L2TPv3 session identifiers are unique per host)",
+                    session.session_id
+                )));
+            }
+        }
+        self.sessions.insert(name, session);
         Ok(())
     }
 
@@ -538,29 +907,51 @@ impl TryFrom<PartialConfig> for Config {
 /// One L2TPv3-over-IP tunnel.
 ///
 /// Serialised fields: `tunnel_id`, `peer_tunnel_id` (defaults to
-/// `tunnel_id` when deserialised through [`PartialConfig`]), `ip_version`,
-/// `remote_addr` (an address or a host name) and the optional
-/// `bind_interface`.
+/// `tunnel_id`), `remote_addr` (an address or a host name), `ip_version`
+/// (optional for a literal address, whose family it then is; required for
+/// a host name, as it selects which of its answers are used) and the
+/// optional `bind_interface`. A literal address of the other family than
+/// an explicit `ip_version`, or one that is not unicast, is an unusable
+/// endpoint: an error here and when deserialising strictly, while a lenient
+/// conversion keeps the tunnel connected to
+/// [`NO_PEER_ADDR`](Self::NO_PEER_ADDR) instead.
 ///
 /// A host name is resolved in the background: the tunnel is first
-/// connected to the discard address `100::` and moved to the resolved
-/// address once known, so its creation never depends on routing. A literal
-/// address is connected to directly, and creating the tunnel fails (and is
-/// retried) until the kernel has a route to it.
+/// connected to the discard address [`NO_PEER_ADDR`](Self::NO_PEER_ADDR)
+/// and moved to the resolved address once known, so its creation needs an
+/// IPv6 route covering that address (a default route suffices) but no
+/// reachability. A literal address is connected to directly, and creating
+/// the tunnel fails (and is retried) until the kernel has a route to it.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(try_from = "PartialTunnelConfig")
+)]
 pub struct TunnelConfig {
     tunnel_id: u32,
     peer_tunnel_id: u32,
     ip_version: IpVersion,
     remote_addr: IpHost,
-    #[cfg_attr(feature = "serde", serde(default, with = "ifname_serde::option"))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "ifname_serde::serialize_option")
+    )]
     bind_interface: Option<L2tpIfName>,
 }
 
 impl TunnelConfig {
+    /// The discard address `100::`, which a tunnel is connected to while it
+    /// has no usable peer: before a host name resolves, and in place of an
+    /// endpoint a lenient conversion could not use. Frames sent there are
+    /// dropped. Connecting to it needs an IPv6 route that covers it but no
+    /// reachability; the runtime routes it to a null device of its own on
+    /// a host that has none.
+    pub const NO_PEER_ADDR: Ipv6Addr = Ipv6Addr::new(0x0100, 0, 0, 0, 0, 0, 0, 0);
+
     /// A tunnel whose peer uses the same identifier and whose socket is not
-    /// bound to a device.
+    /// bound to a device. A literal `remote_addr` must be of the
+    /// `ip_version` family; see [`for_address`](Self::for_address).
     pub fn new(tunnel_id: u32, ip_version: IpVersion, remote_addr: IpHost) -> Self {
         Self {
             tunnel_id,
@@ -569,6 +960,16 @@ impl TunnelConfig {
             remote_addr,
             bind_interface: None,
         }
+    }
+
+    /// A tunnel to a literal address, whose family is the `ip_version`;
+    /// otherwise like [`new`](Self::new).
+    pub fn for_address(tunnel_id: u32, remote_addr: IpAddr) -> Self {
+        let (ip_version, remote_addr) = match remote_addr {
+            IpAddr::V4(addr) => (IpVersion::V4, IpHost::V4Addr(addr)),
+            IpAddr::V6(addr) => (IpVersion::V6, IpHost::V6Addr(addr)),
+        };
+        Self::new(tunnel_id, ip_version, remote_addr)
     }
 
     /// Sets the identifier the peer uses for this tunnel.
@@ -616,12 +1017,27 @@ impl TunnelConfig {
         if self.peer_tunnel_id == 0 {
             return Err(Error::InvalidConfig("peer_tunnel_id is zero".to_string()));
         }
-        let literal = match &self.remote_addr {
-            IpHost::V4Addr(addr) => Some(IpAddr::V4(*addr)),
-            IpHost::V6Addr(addr) => Some(IpAddr::V6(*addr)),
-            IpHost::Fqdn(_) => None,
+        Self::validate_endpoint(self.ip_version, &self.remote_addr)
+    }
+
+    /// Checks that a literal `remote_addr` is of the `ip_version` family
+    /// and unicast. A host name is checked when it resolves.
+    fn validate_endpoint(ip_version: IpVersion, remote_addr: &IpHost) -> Result<()> {
+        let addr = match remote_addr {
+            IpHost::V4Addr(addr) => IpAddr::V4(*addr),
+            IpHost::V6Addr(addr) => IpAddr::V6(*addr),
+            IpHost::Fqdn(_) => return Ok(()),
         };
-        if let Some(addr) = literal.filter(|addr| !is_usable_remote_addr(*addr)) {
+        // A literal of the other family could never be connected to; refuse
+        // it here rather than retrying the tunnel forever.
+        if let Some(family) = IpVersion::of_literal(remote_addr).filter(|f| *f != ip_version) {
+            return Err(Error::InvalidConfig(format!(
+                "remote_addr {addr} is {} but ip_version is {}",
+                family.describe(),
+                ip_version.describe()
+            )));
+        }
+        if !is_usable_remote_addr(addr) {
             return Err(Error::InvalidConfig(format!(
                 "remote_addr {addr} is not a unicast address"
             )));
@@ -633,38 +1049,35 @@ impl TunnelConfig {
 /// One Ethernet pseudowire session, which appears as an `l2tpeth` device.
 ///
 /// Serialised fields: `tunnel_name` (a key of the `tunnels` map),
-/// `session_id`, `peer_session_id` (defaults to `session_id` when
-/// deserialised through [`PartialConfig`]), `interface_name`, the optional
+/// `session_id` (unique on this host, whatever the tunnel: L2TPv3 over IP
+/// delivers frames by session identifier alone), `peer_session_id`
+/// (defaults to `session_id`), `interface_name`, the optional
 /// `interface_hwaddr`, and the optional `cookie` and `peer_cookie`
-/// (`peer_cookie` defaults to `cookie` when deserialised through
-/// [`PartialConfig`]).
+/// (`peer_cookie` defaults to `cookie`).
 ///
 /// Cookies are off unless configured, which is the only setting an
 /// rs-l2tpd 0.1.x peer supports. The kernel cannot change the cookies of an
 /// existing session, so changing them re-creates the session and its
-/// device.
+/// device. An `interface_hwaddr` that is not a unicast address is an error
+/// when deserialising strictly, while a lenient conversion keeps the
+/// session with the address the kernel assigns.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(try_from = "PartialSessionConfig")
+)]
 pub struct SessionConfig {
     tunnel_name: String,
     session_id: u32,
     peer_session_id: u32,
-    #[cfg_attr(feature = "serde", serde(with = "ifname_serde"))]
+    #[cfg_attr(feature = "serde", serde(serialize_with = "ifname_serde::serialize"))]
     interface_name: L2tpIfName,
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     interface_hwaddr: Option<HwAddr>,
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     cookie: Option<Cookie>,
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     peer_cookie: Option<Cookie>,
 }
 
@@ -769,7 +1182,8 @@ impl SessionConfig {
 #[cfg(test)]
 mod tests {
     use super::{
-        is_usable_remote_addr, Config, Cookie, HwAddr, IpVersion, SessionConfig, TunnelConfig,
+        is_usable_remote_addr, Config, Cookie, HwAddr, IpHost, IpVersion, SessionConfig,
+        TunnelConfig,
     };
     use crate::error::Error;
     use l2tp::{L2tpIfName, L2tpIfNameExt};
@@ -901,6 +1315,116 @@ mod tests {
     }
 
     #[test]
+    fn literal_remote_addr_must_match_ip_version() {
+        let v4: IpAddr = "192.0.2.1".parse().unwrap();
+        let v6: IpAddr = "2001:db8::1".parse().unwrap();
+        let tunnel = TunnelConfig::for_address(10, v4);
+        assert_eq!(tunnel.ip_version(), IpVersion::V4);
+        assert_eq!(
+            tunnel.remote_addr(),
+            &IpHost::V4Addr("192.0.2.1".parse().unwrap())
+        );
+        assert_eq!(tunnel.peer_tunnel_id(), 10);
+        assert_eq!(
+            tunnel,
+            TunnelConfig::new(10, IpVersion::V4, "192.0.2.1".parse().unwrap())
+        );
+        assert_eq!(
+            TunnelConfig::for_address(10, v6).ip_version(),
+            IpVersion::V6
+        );
+        Config::new()
+            .insert_tunnel("tun0", TunnelConfig::for_address(10, v6))
+            .unwrap();
+
+        for (ip_version, addr, expected) in [
+            (IpVersion::V6, "192.0.2.1", "is IPv4 but ip_version is IPv6"),
+            (
+                IpVersion::V4,
+                "2001:db8::1",
+                "is IPv6 but ip_version is IPv4",
+            ),
+            // An IPv4-mapped literal is written as IPv6 and judged as such.
+            (
+                IpVersion::V4,
+                "::ffff:192.0.2.1",
+                "is IPv6 but ip_version is IPv4",
+            ),
+        ] {
+            let err = Config::new()
+                .insert_tunnel(
+                    "tun0",
+                    TunnelConfig::new(10, ip_version, addr.parse().unwrap()),
+                )
+                .unwrap_err();
+            assert!(err.to_string().contains(expected), "{addr}: {err}");
+        }
+        // Host names take either family.
+        for ip_version in [IpVersion::V4, IpVersion::V6] {
+            Config::new()
+                .insert_tunnel(
+                    "tun0",
+                    TunnelConfig::new(10, ip_version, "peer.example.org".parse().unwrap()),
+                )
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn config_rejects_duplicate_ids_and_interface_names() {
+        let mut config = Config::new();
+        let tunnel = |id: u32| TunnelConfig::for_address(id, "2001:db8::1".parse().unwrap());
+        config.insert_tunnel("a", tunnel(10)).unwrap();
+        let err = config.insert_tunnel("b", tunnel(10)).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("tunnel_id 10 is already used by tunnel a"),
+            "{err}"
+        );
+        // Replacing a tunnel under its own name is fine, with any identifier.
+        config.insert_tunnel("a", tunnel(10)).unwrap();
+        config.insert_tunnel("a", tunnel(12)).unwrap();
+        config.insert_tunnel("b", tunnel(10)).unwrap();
+
+        let session =
+            |tunnel: &str, id: u32, name: &str| SessionConfig::new(tunnel, id, ifname(name));
+        config
+            .insert_session("s0", session("a", 100, "l2tp0"))
+            .unwrap();
+        let err = config
+            .insert_session("s1", session("b", 100, "l2tp0"))
+            .unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("interface_name l2tp0 is already used by session s0"),
+            "{err}"
+        );
+        // Session identifiers are unique per host, not per tunnel.
+        for tunnel in ["a", "b"] {
+            let err = config
+                .insert_session("s1", session(tunnel, 100, "l2tp1"))
+                .unwrap_err();
+            assert!(
+                err.to_string()
+                    .contains("session_id 100 is already used by session s0"),
+                "{err}"
+            );
+        }
+        // Another identifier on another tunnel, and replacing s0 itself,
+        // are fine.
+        config
+            .insert_session("s1", session("b", 101, "l2tp1"))
+            .unwrap();
+        config
+            .insert_session("s0", session("a", 100, "l2tp0"))
+            .unwrap();
+        config
+            .insert_session("s0", session("a", 102, "l2tp9"))
+            .unwrap();
+        assert_eq!(config.sessions().len(), 2);
+    }
+
+    #[test]
     fn hwaddr_parsing_and_rendering() {
         assert_eq!(hwaddr("02-00-5e-00-53-01").to_string(), "02:00:5e:00:53:01");
         assert_eq!(
@@ -974,8 +1498,8 @@ mod tests {
     // The serde tests use TOML as one format; the library assumes none.
     #[cfg(feature = "bin")]
     mod serde {
-        use super::{cookie, hwaddr, ifname, Config, Error, IpVersion};
-        use crate::config::PartialConfig;
+        use super::{cookie, hwaddr, ifname, Config, Error, IpHost, IpVersion, TunnelConfig};
+        use crate::config::{EntryKind, PartialConfig, ProblemEffect};
 
         const VALID: &str = r#"
 [tunnels.tun0]
@@ -1079,9 +1603,377 @@ interface_hwaddr = "02:00:5E:00:53:01"
         }
 
         #[test]
-        fn rejects_invalid_hwaddr_at_parse_time() {
-            let toml = VALID.replace("\"02:00:5E:00:53:01\"", "\"01:00:5e:00:53:01\"");
-            assert!(matches!(partial(&toml), Err(Error::InvalidConfig(_))));
+        fn invalid_values_reject_only_their_entry() {
+            // A bad value is a validation error of its entry, not a parse
+            // error of the whole document. A bad hardware address does not
+            // even reject the session: the kernel's address is used.
+            let bad_hwaddr = VALID.replace("\"02:00:5E:00:53:01\"", "\"01:00:5e:00:53:01\"");
+            let err = partial(&bad_hwaddr).unwrap().into_config().unwrap_err();
+            assert!(
+                err.to_string()
+                    .contains("session sess0: interface_hwaddr: hardware address"),
+                "{err}"
+            );
+            assert!(toml::from_str::<Config>(&bad_hwaddr).is_err());
+            let (config, problems) = partial(&bad_hwaddr).unwrap().into_config_lenient();
+            assert_eq!(config.tunnels().len(), 1);
+            assert_eq!(config.sessions()["sess0"].interface_hwaddr(), None);
+            assert_eq!(config.sessions()["sess0"].tunnel_name(), "tun0");
+            assert_eq!(problems.len(), 1);
+            assert_eq!(problems[0].kind(), EntryKind::Session);
+            assert_eq!(problems[0].name(), "sess0");
+            assert_eq!(problems[0].effect(), ProblemEffect::KernelHwAddr);
+            assert!(matches!(problems[0].error(), Error::InvalidConfig(_)));
+            for bad in ["\"\"", "\"02:00:5e:00:53\"", "\"zz:00:5e:00:53:01\""] {
+                let toml = VALID.replace("\"02:00:5E:00:53:01\"", bad);
+                let (config, problems) = partial(&toml).unwrap().into_config_lenient();
+                assert_eq!(config.sessions()["sess0"].interface_hwaddr(), None, "{bad}");
+                assert_eq!(problems.len(), 1, "{bad}");
+                assert_eq!(problems[0].effect(), ProblemEffect::KernelHwAddr, "{bad}");
+                assert!(
+                    problems[0]
+                        .to_string()
+                        .starts_with("session sess0: interface_hwaddr: invalid hardware address"),
+                    "{bad}: {}",
+                    problems[0]
+                );
+            }
+            // A session rejected for another reason stays rejected.
+            let rejected = bad_hwaddr.replace("session_id = 100", "session_id = 0");
+            let (config, problems) = partial(&rejected).unwrap().into_config_lenient();
+            assert!(config.sessions().is_empty());
+            assert_eq!(problems.len(), 1);
+            assert_eq!(problems[0].effect(), ProblemEffect::Rejected);
+
+            for (replace, with, expected) in [
+                ("\"v6\"", "\"v5\"", "tunnel tun0: invalid ip_version \"v5\""),
+                (
+                    "\"2001:db8::1\"",
+                    "\"not a host!\"",
+                    "tunnel tun0: remote_addr \"not a host!\": ",
+                ),
+                ("\"vrf0\"", "\"a/b\"", "tunnel tun0: bind_interface: "),
+                ("\"l2tp0\"", "\"a/b\"", "session sess0: interface_name: "),
+            ] {
+                let toml = VALID.replace(replace, with);
+                let err = partial(&toml).unwrap().into_config().unwrap_err();
+                assert!(err.to_string().contains(expected), "{expected}: {err}");
+            }
+        }
+
+        #[test]
+        fn lenient_conversion_keeps_valid_entries_and_reports_the_rest() {
+            let toml = "\
+[tunnels.alpha]
+tunnel_id = 10
+remote_addr = \"2001:db8::1\"
+
+[tunnels.beta]
+tunnel_id = 11
+ip_version = \"V6\"
+remote_addr = \"192.0.2.1\"
+
+[tunnels.gamma]
+tunnel_id = 10
+remote_addr = \"2001:db8::2\"
+
+[sessions.on-alpha]
+tunnel_name = \"alpha\"
+session_id = 100
+interface_name = \"l2tp0\"
+
+[sessions.on-beta]
+tunnel_name = \"beta\"
+session_id = 103
+interface_name = \"l2tp1\"
+
+[sessions.on-gamma]
+tunnel_name = \"gamma\"
+session_id = 100
+interface_name = \"l2tp2\"
+
+[sessions.orphan]
+tunnel_name = \"nope\"
+session_id = 102
+interface_name = \"l2tp4\"
+
+[sessions.same-id]
+tunnel_name = \"alpha\"
+session_id = 100
+interface_name = \"l2tp3\"
+
+[sessions.same-iface]
+tunnel_name = \"alpha\"
+session_id = 101
+interface_name = \"l2tp0\"
+";
+            let (config, problems) = partial(toml).unwrap().into_config_lenient();
+            // The unusable endpoint keeps its tunnel, and the session on it.
+            assert_eq!(
+                config.tunnels().keys().collect::<Vec<_>>(),
+                vec!["alpha", "beta"]
+            );
+            assert_eq!(
+                config.sessions().keys().collect::<Vec<_>>(),
+                vec!["on-alpha", "on-beta"]
+            );
+            assert_eq!(
+                config.tunnels()["beta"].remote_addr(),
+                &IpHost::V6Addr(TunnelConfig::NO_PEER_ADDR)
+            );
+            assert_eq!(config.tunnels()["beta"].ip_version(), IpVersion::V6);
+            let messages: Vec<String> = problems.iter().map(ToString::to_string).collect();
+            assert_eq!(
+                messages,
+                [
+                    "tunnel beta: remote_addr 192.0.2.1 is IPv4 but ip_version is IPv6",
+                    "tunnel gamma: tunnel_id 10 is already used by tunnel alpha",
+                    "session on-gamma: its tunnel gamma was rejected",
+                    "session orphan: tunnel not defined: nope",
+                    "session same-id: session_id 100 is already used by session on-alpha (L2TPv3 session identifiers are unique per host)",
+                    "session same-iface: interface_name l2tp0 is already used by session on-alpha",
+                ]
+            );
+            let effects: Vec<ProblemEffect> = problems.iter().map(|p| p.effect()).collect();
+            assert_eq!(
+                effects,
+                [
+                    ProblemEffect::NoPeer,
+                    ProblemEffect::Rejected,
+                    ProblemEffect::Rejected,
+                    ProblemEffect::Rejected,
+                    ProblemEffect::Rejected,
+                    ProblemEffect::Rejected,
+                ]
+            );
+            assert!(problems
+                .iter()
+                .all(|p| std::error::Error::source(p).is_some()));
+            assert_eq!(problems[0].kind(), EntryKind::Tunnel);
+            assert_eq!(problems[2].kind(), EntryKind::Session);
+
+            // The strict conversion reports the first problem, whatever
+            // its effect.
+            let err = partial(toml).unwrap().into_config().unwrap_err();
+            assert_eq!(
+                err.to_string(),
+                "invalid config: tunnel beta: remote_addr 192.0.2.1 is IPv4 but ip_version is IPv6"
+            );
+            assert!(toml::from_str::<Config>(toml).is_err());
+
+            // Nothing wrong, no problems.
+            let (config, problems) = partial(VALID).unwrap().into_config_lenient();
+            assert_eq!(config, full(VALID).unwrap());
+            assert!(problems.is_empty());
+
+            // Nothing usable is still a valid, empty configuration.
+            let (config, problems) =
+                partial("[tunnels.hard]\ntunnel_id = 0\nremote_addr = \"::1\"\n")
+                    .unwrap()
+                    .into_config_lenient();
+            assert_eq!(config, Config::new());
+            assert_eq!(problems.len(), 1);
+        }
+
+        #[test]
+        fn previous_values_replace_entries_that_would_be_rejected() {
+            let previous = full(
+                "\
+[tunnels.a]
+tunnel_id = 10
+remote_addr = \"2001:db8::1\"
+
+[tunnels.b]
+tunnel_id = 11
+remote_addr = \"2001:db8::2\"
+
+[sessions.s-a]
+tunnel_name = \"a\"
+session_id = 100
+interface_name = \"l2tp0\"
+
+[sessions.s-b]
+tunnel_name = \"b\"
+session_id = 101
+interface_name = \"l2tp1\"
+",
+            )
+            .unwrap();
+            // a changes validly; b and s-b break; c and s-c are new and broken.
+            let reload = "\
+[tunnels.a]
+tunnel_id = 10
+remote_addr = \"2001:db8::9\"
+
+[tunnels.b]
+tunnel_id = 0
+remote_addr = \"2001:db8::2\"
+
+[tunnels.c]
+tunnel_id = 0
+remote_addr = \"2001:db8::3\"
+
+[sessions.s-a]
+tunnel_name = \"a\"
+session_id = 100
+interface_name = \"l2tp0\"
+
+[sessions.s-b]
+tunnel_name = \"b\"
+session_id = 101
+interface_name = \"a/b\"
+
+[sessions.s-c]
+tunnel_name = \"c\"
+session_id = 102
+interface_name = \"l2tp2\"
+";
+            let (config, problems) = partial(reload)
+                .unwrap()
+                .into_config_with_previous(&previous);
+            assert_eq!(
+                config.tunnels()["a"].remote_addr(),
+                &IpHost::V6Addr("2001:db8::9".parse().unwrap())
+            );
+            assert_eq!(config.tunnels()["b"], previous.tunnels()["b"]);
+            assert!(!config.tunnels().contains_key("c"));
+            assert_eq!(config.sessions()["s-a"], previous.sessions()["s-a"]);
+            assert_eq!(config.sessions()["s-b"], previous.sessions()["s-b"]);
+            assert!(!config.sessions().contains_key("s-c"));
+            let effects: Vec<ProblemEffect> = problems.iter().map(|p| p.effect()).collect();
+            assert_eq!(
+                effects,
+                [
+                    ProblemEffect::KeptPrevious,
+                    ProblemEffect::Rejected,
+                    ProblemEffect::KeptPrevious,
+                    ProblemEffect::Rejected,
+                ]
+            );
+            assert_eq!(problems[0].to_string(), "tunnel b: tunnel_id is zero");
+            assert_eq!(problems[1].to_string(), "tunnel c: tunnel_id is zero");
+            assert!(
+                problems[2]
+                    .to_string()
+                    .starts_with("session s-b: interface_name: "),
+                "{}",
+                problems[2]
+            );
+            assert_eq!(
+                problems[3].to_string(),
+                "session s-c: its tunnel c was rejected"
+            );
+
+            // Without a previous configuration every such entry is rejected.
+            let (config, problems) = partial(reload).unwrap().into_config_lenient();
+            assert_eq!(config.tunnels().keys().collect::<Vec<_>>(), vec!["a"]);
+            assert_eq!(config.sessions().keys().collect::<Vec<_>>(), vec!["s-a"]);
+            assert!(problems
+                .iter()
+                .all(|p| p.effect() == ProblemEffect::Rejected));
+
+            // When a takes b's old identifier, b's previous values no longer
+            // fit, and s-b has no tunnel to fall back on either.
+            let conflict = reload.replace("tunnel_id = 10", "tunnel_id = 11");
+            let (config, problems) = partial(&conflict)
+                .unwrap()
+                .into_config_with_previous(&previous);
+            assert_eq!(config.tunnels().keys().collect::<Vec<_>>(), vec!["a"]);
+            assert_eq!(config.tunnels()["a"].tunnel_id(), 11);
+            assert_eq!(config.sessions().keys().collect::<Vec<_>>(), vec!["s-a"]);
+            assert_eq!(problems[0].to_string(), "tunnel b: tunnel_id is zero");
+            assert_eq!(problems[0].effect(), ProblemEffect::Rejected);
+            // s-b is reported for its own mistake; its previous values do
+            // not fit either, their tunnel being gone.
+            assert!(
+                problems[2]
+                    .to_string()
+                    .starts_with("session s-b: interface_name: "),
+                "{}",
+                problems[2]
+            );
+            assert_eq!(problems[2].effect(), ProblemEffect::Rejected);
+
+            // Tolerated problems are unaffected by a previous configuration.
+            let soft = reload
+                .replace(
+                    "tunnel_id = 0\nremote_addr = \"2001:db8::2\"",
+                    "tunnel_id = 11\nremote_addr = \"::\"",
+                )
+                .replace(
+                    "interface_name = \"a/b\"",
+                    "interface_name = \"l2tp1\"\ninterface_hwaddr = \"nope\"",
+                );
+            let (config, problems) = partial(&soft).unwrap().into_config_with_previous(&previous);
+            assert_eq!(
+                config.tunnels()["b"].remote_addr(),
+                &IpHost::V6Addr(TunnelConfig::NO_PEER_ADDR)
+            );
+            assert_eq!(config.sessions()["s-b"].interface_hwaddr(), None);
+            assert_eq!(problems[0].effect(), ProblemEffect::NoPeer);
+            assert_eq!(problems[2].effect(), ProblemEffect::KernelHwAddr);
+        }
+
+        #[test]
+        fn unusable_endpoints_keep_the_tunnel_without_a_peer() {
+            let cases: [(&str, &str, &str); 7] = [
+                (
+                    "remote_addr = \"2001:db8::1\"\n",
+                    "",
+                    "tunnel tun0: remote_addr is missing",
+                ),
+                (
+                    "\"2001:db8::1\"",
+                    "\"not a host!\"",
+                    "tunnel tun0: remote_addr \"not a host!\": ",
+                ),
+                ("\"v6\"", "\"v5\"", "tunnel tun0: invalid ip_version \"v5\""),
+                (
+                    "ip_version = \"v6\"\nremote_addr = \"2001:db8::1\"\n",
+                    "remote_addr = \"peer.example.org\"\n",
+                    "tunnel tun0: ip_version is missing",
+                ),
+                (
+                    "\"2001:db8::1\"",
+                    "\"ff02::1\"",
+                    "tunnel tun0: remote_addr ff02::1 is not a unicast address",
+                ),
+                (
+                    "\"2001:db8::1\"",
+                    "\"192.0.2.1\"",
+                    "tunnel tun0: remote_addr 192.0.2.1 is IPv4 but ip_version is IPv6",
+                ),
+                (
+                    "ip_version = \"v6\"\nremote_addr = \"2001:db8::1\"\n",
+                    "ip_version = \"v4\"\nremote_addr = \"::\"\n",
+                    "tunnel tun0: remote_addr :: is IPv6 but ip_version is IPv4",
+                ),
+            ];
+            for (replace, with, expected) in cases {
+                let toml = VALID.replace(replace, with);
+                let (config, problems) = partial(&toml).unwrap().into_config_lenient();
+                assert_eq!(problems.len(), 1, "{expected}: {problems:?}");
+                assert_eq!(problems[0].kind(), EntryKind::Tunnel, "{expected}");
+                assert_eq!(problems[0].effect(), ProblemEffect::NoPeer, "{expected}");
+                assert!(
+                    problems[0].to_string().starts_with(expected),
+                    "{expected}: {}",
+                    problems[0]
+                );
+                let tunnel = &config.tunnels()["tun0"];
+                assert_eq!(
+                    tunnel.remote_addr(),
+                    &IpHost::V6Addr(TunnelConfig::NO_PEER_ADDR),
+                    "{expected}"
+                );
+                assert_eq!(tunnel.ip_version(), IpVersion::V6);
+                assert_eq!(tunnel.bind_interface(), Some(&ifname("vrf0")));
+                assert_eq!(config.sessions()["sess0"].tunnel_name(), "tun0");
+                // Strictly it is an error like any other.
+                let err = partial(&toml).unwrap().into_config().unwrap_err();
+                assert!(err.to_string().contains(expected), "{expected}: {err}");
+                assert!(toml::from_str::<Config>(&toml).is_err(), "{expected}");
+            }
         }
 
         #[test]
@@ -1093,6 +1985,15 @@ interface_hwaddr = "02:00:5E:00:53:01"
                 let config = full(&toml).unwrap();
                 assert_eq!(config.tunnels()["tun0"].ip_version(), IpVersion::V4);
                 assert!(render(&config).contains("ip_version = \"V4\""));
+            }
+            assert_eq!("v6".parse::<IpVersion>().unwrap(), IpVersion::V6);
+            assert_eq!("V6".parse::<IpVersion>().unwrap(), IpVersion::V6);
+            for bad in ["v5", "ipv4", "4", ""] {
+                let err = bad.parse::<IpVersion>().unwrap_err();
+                assert!(
+                    err.to_string().contains("invalid ip_version"),
+                    "{bad}: {err}"
+                );
             }
         }
 
@@ -1220,15 +2121,10 @@ interface_hwaddr = "02:00:5E:00:53:01"
         }
 
         #[test]
-        fn rejects_invalid_cookies_at_parse_time() {
-            for bad in [
-                "\"\"",
-                "\"deadbee\"",
-                "\"0x00112233\"",
-                "\"+eadbeef\"",
-                "1234",
-                "[1, 2]",
-            ] {
+        fn rejects_invalid_cookies() {
+            // A value of the wrong type fails the document; a wrong value
+            // fails only its entry.
+            for bad in ["1234", "[1, 2]"] {
                 for key in ["cookie", "peer_cookie"] {
                     let toml = format!("{VALID}{key} = {bad}\n");
                     assert!(
@@ -1238,6 +2134,95 @@ interface_hwaddr = "02:00:5E:00:53:01"
                     assert!(toml::from_str::<Config>(&toml).is_err(), "{key} = {bad}");
                 }
             }
+            for bad in ["\"\"", "\"deadbee\"", "\"0x00112233\"", "\"+eadbeef\""] {
+                for key in ["cookie", "peer_cookie"] {
+                    let toml = format!("{VALID}{key} = {bad}\n");
+                    let err = partial(&toml).unwrap().into_config().unwrap_err();
+                    assert!(
+                        err.to_string()
+                            .contains(&format!("session sess0: {key}: invalid cookie")),
+                        "{key} = {bad}: {err}"
+                    );
+                    assert!(toml::from_str::<Config>(&toml).is_err(), "{key} = {bad}");
+                }
+            }
+        }
+
+        #[test]
+        fn ip_version_is_optional_for_literal_addresses_only() {
+            let without = |addr: &str| {
+                VALID
+                    .replace("ip_version = \"v6\"\n", "")
+                    .replace("\"2001:db8::1\"", &format!("{addr:?}"))
+            };
+            let config = full(&without("2001:db8::1")).unwrap();
+            assert_eq!(config.tunnels()["tun0"].ip_version(), IpVersion::V6);
+            let config = full(&without("192.0.2.1")).unwrap();
+            assert_eq!(config.tunnels()["tun0"].ip_version(), IpVersion::V4);
+            assert!(render(&config).contains("ip_version = \"V4\""));
+            let config: Config = toml::from_str(&without("192.0.2.1")).unwrap();
+            assert_eq!(config.tunnels()["tun0"].ip_version(), IpVersion::V4);
+
+            let err = full(&without("peer.example.org")).unwrap_err();
+            assert!(err.to_string().contains("ip_version is missing"), "{err}");
+            assert!(toml::from_str::<Config>(&without("peer.example.org")).is_err());
+
+            // A drop-in may supply the family, or the address that implies it.
+            let mut merged = partial(&without("peer.example.org")).unwrap();
+            merged.merge(partial("[tunnels.tun0]\nip_version = \"v4\"\n").unwrap());
+            assert_eq!(
+                merged.into_config().unwrap().tunnels()["tun0"].ip_version(),
+                IpVersion::V4
+            );
+            let mut merged = partial(&without("peer.example.org")).unwrap();
+            merged.merge(partial("[tunnels.tun0]\nremote_addr = \"192.0.2.1\"\n").unwrap());
+            assert_eq!(
+                merged.into_config().unwrap().tunnels()["tun0"].ip_version(),
+                IpVersion::V4
+            );
+        }
+
+        #[test]
+        fn rejects_literal_remote_addrs_of_the_other_family() {
+            for (version, addr) in [("v6", "192.0.2.1"), ("v4", "2001:db8::1")] {
+                let toml = VALID
+                    .replace("\"v6\"", &format!("{version:?}"))
+                    .replace("\"2001:db8::1\"", &format!("{addr:?}"));
+                let err = full(&toml).unwrap_err();
+                assert!(
+                    err.to_string().contains("but ip_version is"),
+                    "{addr}: {err}"
+                );
+                assert!(toml::from_str::<Config>(&toml).is_err(), "{addr}");
+            }
+        }
+
+        #[test]
+        fn standalone_tunnel_and_session_documents_get_the_same_defaults() {
+            let tunnel: super::super::TunnelConfig =
+                toml::from_str("tunnel_id = 10\nremote_addr = \"192.0.2.1\"\n").unwrap();
+            assert_eq!(tunnel.peer_tunnel_id(), 10);
+            assert_eq!(tunnel.ip_version(), IpVersion::V4);
+            assert_eq!(tunnel.bind_interface(), None);
+            assert!(toml::from_str::<super::super::TunnelConfig>(
+                "tunnel_id = 10\nremote_addr = \"peer.example.org\"\n"
+            )
+            .is_err());
+            assert!(toml::from_str::<super::super::TunnelConfig>(
+                "tunnel_id = 10\nip_version = \"v4\"\nremote_addr = \"2001:db8::1\"\n"
+            )
+            .is_err());
+
+            let session: super::super::SessionConfig = toml::from_str(
+                "tunnel_name = \"tun0\"\nsession_id = 100\ninterface_name = \"l2tp0\"\ncookie = \"deadbeef\"\n",
+            )
+            .unwrap();
+            assert_eq!(session.peer_session_id(), 100);
+            assert_eq!(session.peer_cookie(), Some(&cookie("deadbeef")));
+            assert!(toml::from_str::<super::super::SessionConfig>(
+                "tunnel_name = \"tun0\"\nsession_id = 100\ninterface_name = \"a/b\"\n"
+            )
+            .is_err());
         }
 
         #[test]

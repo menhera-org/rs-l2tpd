@@ -30,7 +30,7 @@ use tokio::task::JoinHandle;
 pub use tokio::sync::mpsc;
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::net::{IpAddr, Ipv6Addr};
+use std::net::IpAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::sync::RwLock as StdRwLock;
@@ -38,7 +38,7 @@ use std::time::Duration;
 
 use crate::config::{is_usable_remote_addr, Config, Cookie, HwAddr, IpVersion};
 use crate::error::{Error, Result};
-use crate::state::{self, HwAddrApply, SessionCookies};
+use crate::state::{self, DiscardRoute, HwAddrApply, SessionCookies, NULL_DEVICE};
 
 pub(crate) type TunnelId = u32;
 pub(crate) type SessionId = u32;
@@ -49,7 +49,7 @@ type DesiredSessionMap = BTreeMap<SessionKey, DesiredSession>;
 
 const DNS_REFRESH_INTERVAL_SECS: u64 = 30;
 const DNS_WATCH_POLL_INTERVAL_SECS: u64 = 1;
-const DISCARD_REMOTE_ADDR: IpAddr = IpAddr::V6(Ipv6Addr::new(0x0100, 0, 0, 0, 0, 0, 0, 0));
+const DISCARD_REMOTE_ADDR: IpAddr = IpAddr::V6(crate::config::TunnelConfig::NO_PEER_ADDR);
 
 /// Events that drive a [`Runtime`].
 ///
@@ -217,6 +217,16 @@ pub(crate) trait StateOps: Send + Sync {
         hwaddr: Option<&HwAddr>,
     ) -> Result<HwAddrApply>;
     async fn delete_session(&self, tunnel_id: u32, session_id: u32) -> Result<()>;
+    /// The index of the interface called `name`, `None` when there is none.
+    async fn interface_index(&self, name: &L2tpIfName) -> Result<Option<u32>>;
+    /// The peer the tunnel is connected to now.
+    async fn tunnel_remote_addr(&self, tunnel_id: u32) -> Option<IpAddr>;
+    /// Makes sure the discard address can be connected to from a socket
+    /// bound to the VRF `vrf` or an unbound one, creating the null device
+    /// as a last resort.
+    async fn ensure_discard_route(&self, vrf: Option<u32>) -> Result<DiscardRoute>;
+    /// Removes the null device.
+    async fn remove_null_device(&self) -> Result<()>;
 }
 
 #[async_trait]
@@ -336,6 +346,22 @@ impl StateOps for state::State {
 
     async fn delete_session(&self, tunnel_id: u32, session_id: u32) -> Result<()> {
         state::State::delete_session(self, tunnel_id, session_id).await
+    }
+
+    async fn interface_index(&self, name: &L2tpIfName) -> Result<Option<u32>> {
+        state::State::interface_index(name).await
+    }
+
+    async fn tunnel_remote_addr(&self, tunnel_id: u32) -> Option<IpAddr> {
+        state::State::tunnel_remote_addr(self, tunnel_id).await
+    }
+
+    async fn ensure_discard_route(&self, vrf: Option<u32>) -> Result<DiscardRoute> {
+        state::State::ensure_discard_route(vrf).await
+    }
+
+    async fn remove_null_device(&self) -> Result<()> {
+        state::State::remove_null_device().await
     }
 }
 
@@ -559,6 +585,8 @@ pub struct Runtime {
     reconnect_retries: BTreeMap<u32, JoinHandle<()>>,
     control_tx: mpsc::Sender<ControlEvent>,
     interface_worker: JoinHandle<()>,
+    /// Whether the null device was routed to, so that shutdown removes it.
+    null_device_used: bool,
 }
 
 impl Runtime {
@@ -581,6 +609,7 @@ impl Runtime {
             reconnect_retries: BTreeMap::new(),
             control_tx,
             interface_worker,
+            null_device_used: false,
         }
     }
 
@@ -599,6 +628,7 @@ impl Runtime {
             reconnect_retries: BTreeMap::new(),
             control_tx,
             interface_worker,
+            null_device_used: false,
         }
     }
 
@@ -681,6 +711,8 @@ impl Runtime {
             let bind_interface = self
                 .bind_interface_for_tunnel_add(desired.tunnel_id, desired.bind_interface.as_ref())
                 .await;
+            self.prepare_discard_route(desired.tunnel_id, remote_addr, bind_interface.as_ref())
+                .await;
             let mut bound_interface = bind_interface.as_ref();
             if let Err(e) = self
                 .state
@@ -755,6 +787,12 @@ impl Runtime {
                 "updating tunnel_id={} remote_addr={}",
                 desired.tunnel_id, remote_addr
             );
+            self.prepare_discard_route(
+                desired.tunnel_id,
+                remote_addr,
+                desired.bind_interface.as_ref(),
+            )
+            .await;
             try_apply!(
                 self.state
                     .modify_tunnel(desired.tunnel_id, remote_addr)
@@ -1072,6 +1110,13 @@ impl Runtime {
                         tunnel_id, if_name
                     );
                     self.pending_bind_interfaces.remove(&tunnel_id);
+                    // A tunnel still without a peer reconnects to the
+                    // discard address through this device next: a VRF may
+                    // need the route in its own table.
+                    if self.state.tunnel_remote_addr(tunnel_id).await == Some(DISCARD_REMOTE_ADDR) {
+                        self.prepare_discard_route(tunnel_id, DISCARD_REMOTE_ADDR, Some(&if_name))
+                            .await;
+                    }
                     if let Some(index) = self.state.bound_interface_index(tunnel_id).await {
                         rebound_interfaces.insert(index);
                     }
@@ -1317,10 +1362,76 @@ impl Runtime {
         }
     }
 
-    /// Removes every tunnel and session. Each tunnel deletion may wait up
-    /// to about two seconds for the kernel.
+    /// Removes every tunnel and session, and the null device if it was
+    /// used. Each tunnel deletion may wait up to about two seconds for the
+    /// kernel.
     pub async fn shutdown(&mut self) -> Result<()> {
-        self.reconcile(&Config::default()).await
+        let result = self.reconcile(&Config::default()).await;
+        if self.null_device_used {
+            match self.state.remove_null_device().await {
+                Ok(()) => {
+                    info!("removed the null device {NULL_DEVICE}");
+                    self.null_device_used = false;
+                }
+                Err(e) => warn!("{e}"),
+            }
+        }
+        result
+    }
+
+    /// Makes sure a tunnel about to connect to the discard address, as one
+    /// without a peer does, can: the kernel's own route serves when it has
+    /// one, in the main table for an unbound socket or the VRF's table for
+    /// one bound to a VRF; otherwise the null device is routed to, as a
+    /// last resort. A failure is only logged: creating the tunnel then
+    /// fails and is retried, as for any peer without a route.
+    async fn prepare_discard_route(
+        &mut self,
+        tunnel_id: u32,
+        remote_addr: IpAddr,
+        bind_interface: Option<&L2tpIfName>,
+    ) {
+        if remote_addr != DISCARD_REMOTE_ADDR {
+            return;
+        }
+        let vrf = match bind_interface {
+            Some(name) => match self.state.interface_index(name).await {
+                Ok(Some(index)) => match self.state.interface_is_vrf(index).await {
+                    Ok(true) => Some(index),
+                    Ok(false) => None,
+                    Err(e) => {
+                        warn!("failed to check whether {name} is a VRF: {e}");
+                        None
+                    }
+                },
+                Ok(None) => None,
+                Err(e) => {
+                    warn!("failed to look up {name}: {e}");
+                    None
+                }
+            },
+            None => None,
+        };
+        match self.state.ensure_discard_route(vrf).await {
+            Ok(DiscardRoute::Existing) => {}
+            Ok(DiscardRoute::NullDevice) => {
+                info!(
+                    "routed the discard address {} to the null device {} for tunnel_id={}{}",
+                    DISCARD_REMOTE_ADDR,
+                    NULL_DEVICE,
+                    tunnel_id,
+                    match bind_interface {
+                        Some(name) if vrf.is_some() => format!(" in the table of VRF {name}"),
+                        _ => String::new(),
+                    }
+                );
+                self.null_device_used = true;
+            }
+            Err(e) => warn!(
+                "tunnel_id={} has no route to the discard address {} and none could be provided: {}; creating it fails until a route exists",
+                tunnel_id, DISCARD_REMOTE_ADDR, e
+            ),
+        }
     }
 
     async fn bind_interface_for_tunnel_add(
@@ -1812,6 +1923,7 @@ fn build_desired_maps(config: &Config) -> Result<(DesiredTunnelMap, DesiredSessi
 
     let mut sessions: DesiredSessionMap = BTreeMap::new();
     let mut interface_names: BTreeMap<L2tpIfName, String> = BTreeMap::new();
+    let mut session_ids: BTreeMap<SessionId, String> = BTreeMap::new();
     for (session_name, session) in config.sessions() {
         let tunnel = config.tunnels().get(session.tunnel_name()).ok_or_else(|| {
             Error::InvalidConfig(format!("tunnel not defined: {}", session.tunnel_name()))
@@ -1838,15 +1950,16 @@ fn build_desired_maps(config: &Config) -> Result<(DesiredTunnelMap, DesiredSessi
             cookie: session.cookie().copied(),
             peer_cookie: session.peer_cookie().copied(),
         };
-        let key = (desired.tunnel_id, desired.session_id);
-
-        if sessions.insert(key, desired).is_some() {
+        // L2TPv3 session identifiers are unique per host, not per tunnel.
+        if let Some(other) = session_ids.insert(desired.session_id, session_name.clone()) {
             return Err(Error::InvalidConfig(format!(
-                "duplicate session_id={} in tunnel_id={}",
+                "duplicate session_id={} used by sessions {} and {}",
                 session.session_id(),
-                tunnel_id
+                other,
+                session_name
             )));
         }
+        sessions.insert((desired.tunnel_id, desired.session_id), desired);
     }
 
     Ok((tunnels, sessions))
@@ -1917,6 +2030,11 @@ mod tests {
         /// state a netlink connection.
         vrf_lookups: u32,
         session_creations: u32,
+        /// Whether the host lacks a route to the discard address, so that
+        /// the null device is used.
+        null_device_needed: bool,
+        discard_route_calls: Vec<Option<u32>>,
+        null_device_removals: u32,
     }
 
     #[derive(Default)]
@@ -2040,6 +2158,21 @@ mod tests {
                 .sessions
                 .get(&(tunnel_id, session_id))
                 .map(|s| s.cookies)
+        }
+
+        fn discard_route_calls(&self) -> Vec<Option<u32>> {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .discard_route_calls
+                .clone()
+        }
+
+        fn null_device_removals(&self) -> u32 {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .null_device_removals
         }
 
         fn tunnel_remote_addr(&self, tunnel_id: u32) -> Option<IpAddr> {
@@ -2394,6 +2527,38 @@ mod tests {
             inner.sessions.get_mut(&key).expect("session exists").hwaddr = hwaddr.copied();
             inner.pending_hwaddr.remove(&key);
             Ok(HwAddrApply::Applied)
+        }
+
+        async fn interface_index(&self, name: &L2tpIfName) -> Result<Option<u32>> {
+            Ok(self
+                .inner
+                .lock()
+                .expect("lock poisoned")
+                .interfaces
+                .get(name)
+                .copied())
+        }
+
+        async fn tunnel_remote_addr(&self, tunnel_id: u32) -> Option<IpAddr> {
+            MockState::tunnel_remote_addr(self, tunnel_id)
+        }
+
+        async fn ensure_discard_route(&self, vrf: Option<u32>) -> Result<DiscardRoute> {
+            let mut inner = self.inner.lock().expect("lock poisoned");
+            inner.discard_route_calls.push(vrf);
+            Ok(if inner.null_device_needed {
+                DiscardRoute::NullDevice
+            } else {
+                DiscardRoute::Existing
+            })
+        }
+
+        async fn remove_null_device(&self) -> Result<()> {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .null_device_removals += 1;
+            Ok(())
         }
 
         async fn delete_session(&self, tunnel_id: u32, session_id: u32) -> Result<()> {
@@ -3605,28 +3770,9 @@ mod tests {
     }
 
     #[test]
-    fn build_desired_maps_rejects_duplicate_session_interface_names() {
-        let cfg = test_config(
-            vec![(
-                "tun0",
-                10,
-                10,
-                IpVersion::V6,
-                IpHost::V6Addr(Ipv6Addr::LOCALHOST),
-                None,
-            )],
-            vec![
-                ("sess0", "tun0", 100, 100, "l2tp0", None),
-                ("sess1", "tun0", 101, 101, "l2tp0", None),
-            ],
-        );
-
-        let result = build_desired_maps(&cfg);
-        assert!(matches!(result, Err(Error::InvalidConfig(_))));
-    }
-
-    #[test]
-    fn build_desired_maps_rejects_duplicate_tunnel_ids() {
+    fn build_desired_maps_accepts_every_valid_config() {
+        // Duplicate identifiers and interface names are rejected by Config
+        // itself, so a Config always maps; the checks here stay as a guard.
         let cfg = test_config(
             vec![
                 (
@@ -3639,19 +3785,23 @@ mod tests {
                 ),
                 (
                     "b",
-                    10,
                     11,
+                    10,
                     IpVersion::V6,
                     IpHost::V6Addr(Ipv6Addr::LOCALHOST),
                     None,
                 ),
             ],
-            vec![],
+            vec![
+                ("sess0", "a", 100, 100, "l2tp0", None),
+                ("sess1", "b", 101, 100, "l2tp1", None),
+            ],
         );
-        assert!(matches!(
-            build_desired_maps(&cfg),
-            Err(Error::InvalidConfig(_))
-        ));
+        let (tunnels, sessions) = build_desired_maps(&cfg).unwrap();
+        assert_eq!(tunnels.len(), 2);
+        assert_eq!(sessions.len(), 2);
+        assert!(sessions.contains_key(&(10, 100)));
+        assert!(sessions.contains_key(&(11, 101)));
     }
 
     #[test]
@@ -3980,6 +4130,123 @@ mod tests {
             tunnel_remote_addr_for_apply(&desired, Some(&resolver)).unwrap(),
             IpAddr::V6(Ipv6Addr::LOCALHOST)
         );
+    }
+
+    #[tokio::test]
+    async fn discard_route_is_prepared_only_for_tunnels_without_a_peer() {
+        let mock = Arc::new(MockState::default());
+        mock.inner.lock().unwrap().null_device_needed = true;
+        let vrf = mock.add_interface("vrf0");
+        mock.inner.lock().unwrap().vrf_interfaces.insert(vrf);
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        let name: IpHost = "peer.invalid".parse().unwrap();
+        let literal = IpHost::V4Addr(Ipv4Addr::new(203, 0, 113, 10));
+
+        let cfg = test_config(
+            vec![
+                ("literal", 10, 10, IpVersion::V4, literal.clone(), None),
+                ("name", 11, 11, IpVersion::V6, name.clone(), None),
+                (
+                    "name-vrf",
+                    12,
+                    12,
+                    IpVersion::V6,
+                    name.clone(),
+                    Some("vrf0"),
+                ),
+                (
+                    "no-peer",
+                    13,
+                    13,
+                    IpVersion::V6,
+                    IpHost::V6Addr(TunnelConfig::NO_PEER_ADDR),
+                    None,
+                ),
+            ],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+        // Tunnels by identifier: the literal one needs nothing, the host
+        // names and the no-peer literal do, the VRF-bound one in its VRF.
+        assert_eq!(mock.discard_route_calls(), vec![None, Some(vrf), None]);
+        assert!(runtime.null_device_used);
+        assert_eq!(mock.tunnel_remote_addr(11), Some(DISCARD_REMOTE_ADDR));
+        assert_eq!(mock.tunnel_remote_addr(13), Some(DISCARD_REMOTE_ADDR));
+
+        // An unchanged reload prepares nothing again.
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(mock.discard_route_calls().len(), 3);
+
+        // A literal peer becoming a host name moves to the discard address.
+        let changed = test_config(
+            vec![
+                ("literal", 10, 10, IpVersion::V6, name.clone(), None),
+                ("name", 11, 11, IpVersion::V6, name.clone(), None),
+                ("name-vrf", 12, 12, IpVersion::V6, name, Some("vrf0")),
+                (
+                    "no-peer",
+                    13,
+                    13,
+                    IpVersion::V6,
+                    IpHost::V6Addr(TunnelConfig::NO_PEER_ADDR),
+                    None,
+                ),
+            ],
+            vec![],
+        );
+        runtime.reconcile(&changed).await.unwrap();
+        assert_eq!(
+            mock.discard_route_calls(),
+            vec![None, Some(vrf), None, None]
+        );
+        assert_eq!(mock.tunnel_remote_addr(10), Some(DISCARD_REMOTE_ADDR));
+
+        // Shutdown removes the null device once it was used.
+        runtime.shutdown().await.unwrap();
+        assert_eq!(mock.null_device_removals(), 1);
+        assert!(!runtime.null_device_used);
+        runtime.shutdown().await.unwrap();
+        assert_eq!(mock.null_device_removals(), 1);
+    }
+
+    #[tokio::test]
+    async fn discard_route_is_prepared_in_a_vrf_that_appears_later() {
+        let mock = Arc::new(MockState::default());
+        mock.inner.lock().unwrap().null_device_needed = true;
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        let cfg = test_config(
+            vec![(
+                "name-vrf",
+                11,
+                11,
+                IpVersion::V6,
+                "peer.invalid".parse().unwrap(),
+                Some("vrf0"),
+            )],
+            vec![],
+        );
+        // The VRF is absent: the socket is unbound and uses the main table.
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(mock.discard_route_calls(), vec![None]);
+
+        // Once bound to the VRF, the tunnel reconnects there: its table
+        // needs the route first.
+        let vrf = mock.add_interface("vrf0");
+        mock.inner.lock().unwrap().vrf_interfaces.insert(vrf);
+        runtime.handle_interface_change(Some(&ifname("vrf0"))).await;
+        assert_eq!(mock.discard_route_calls(), vec![None, Some(vrf)]);
+        assert_eq!(mock.tunnel_bound_interface(11), Some((ifname("vrf0"), vrf)));
+        assert_eq!(mock.reconnect_count(11), 1);
+
+        // With a host that routes the address, the null device is never
+        // used and nothing is removed.
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(mock.discard_route_calls(), vec![None]);
+        assert!(!runtime.null_device_used);
+        runtime.shutdown().await.unwrap();
+        assert_eq!(mock.null_device_removals(), 0);
     }
 
     #[tokio::test]

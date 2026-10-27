@@ -5,45 +5,50 @@ library (`rs_l2tpd`) it is built on.
 
 ## Features
 
-- L2TPv3 is handled in the kernel, so minimal overhead expected.
-- Supports binding to specific VRFs or interfaces
-- Supports FQDN-specified remote endpoints
-- Refreshes source addresses after IPv4 or IPv6 address changes on a bound
-  interface or a slave of the bound VRF. Only tunnels using the changed
-  address family reconnect; failed attempts are retried automatically.
-- Session interfaces are renamed and configured by interface index, so a
-  rename by udev or networkd after creation is handled correctly.
-- Optional fixed hardware (MAC) address per session interface.
-- Optional L2TPv3 session cookies, so that frames cannot be injected into a
-  pseudowire by whoever guesses its session identifier.
-- Address and VRF notifications are ignored, without any lookup, while no
-  tunnel is bound to a device, so a host without `bind_interface` does no
-  work when addresses come and go.
+- L2TPv3 over IP with Ethernet pseudowires, handled by the kernel.
+- Peers by address or host name, over IPv4 or IPv6. Each tunnel uses one
+  dual-stack socket, so a peer can change family without anything being
+  re-created.
+- Tunnel sockets bound to an interface or VRF, with the source address
+  refreshed when addresses change. A bind device may appear later or be
+  replaced under the same name.
+- Session interfaces tracked by index, so renames by udev or networkd are
+  fine.
+- Optional fixed hardware (MAC) address and optional cookies per session.
+- Readiness for systemd: the daemonising parent exits once the
+  configuration is applied.
 
-Tunnel sockets remain dual-stack: IPv4 peers use IPv4-mapped IPv6 addresses,
-and a peer can switch between IPv4 and IPv6 without replacing the socket or
-its sessions. Each rebind resolves the configured interface name immediately
-before binding, so replacing an interface or VRF with another of the same
-name works even when its interface index changes.
+## Two rules
+
+- **Run degraded gracefully rather than failing.** A configuration mistake
+  never stops the daemon: what can be applied is applied, the rest is
+  reported. An empty configuration, also one emptied by mistakes, is valid.
+- **Never change `l2tpeth` interface identities unnecessarily.** A session
+  interface is re-created only when its session must change in the kernel:
+  its peer identifier or cookies, or its tunnel's identifiers or bind
+  device. Nothing else, a mistake included, touches it, and a running
+  interface is never taken down.
+
+Everything below follows from these.
 
 ## Configuration
 
-The daemon reads `/etc/rs-l2tpd.toml` and then every `*.toml` file in
+The daemon reads `/etc/rs-l2tpd.toml`, then every `*.toml` file in
 `/etc/rs-l2tpd.toml.d/` in lexicographic order; later files override
-individual keys of earlier ones. `rs-l2tpd --check` prints the merged,
-validated result.
+individual keys. `rs-l2tpd --check` prints the merged result as it would be
+applied and exits with status 1 if it found any problem.
 
 ```toml
 [tunnels.uplink]
 tunnel_id = 10
 peer_tunnel_id = 10          # defaults to tunnel_id
-ip_version = "V6"            # "V4" or "V6" ("v4"/"v6" accepted)
 remote_addr = "peer.example.org"   # an address or a host name
+ip_version = "V6"            # "V4" or "V6": required for a host name, implied by an address
 bind_interface = "vrf-wan"   # optional: SO_BINDTODEVICE
 
 [sessions.lan]
 tunnel_name = "uplink"
-session_id = 100
+session_id = 100             # unique on the host, whatever the tunnel
 peer_session_id = 100        # defaults to session_id
 interface_name = "l2tp0"
 interface_hwaddr = "02:00:5e:00:53:01"   # optional, unicast
@@ -51,112 +56,89 @@ cookie = "0011223344556677"  # optional: 8 or 16 hex digits, sent in every frame
 peer_cookie = "8899aabb"     # optional, defaults to cookie: required in every received frame
 ```
 
-A literal `remote_addr` must be a unicast address: the unspecified address
-(which the kernel would connect to the host itself), multicast and broadcast
-addresses are rejected when the configuration is loaded. Loopback is
-accepted, for local testing. A host name whose answer is such an address is
-treated as unresolved: a warning is logged and the tunnel keeps its current
-peer (the discard address, until a usable answer arrives).
+Identifiers are non-zero. Tunnel identifiers, session identifiers and
+interface names are each unique on the host: L2TPv3 over IP delivers
+frames by session identifier alone, so a session identifier cannot repeat
+even across tunnels. A literal `remote_addr` is a unicast address of the
+`ip_version` family; loopback is allowed, for testing.
 
-`interface_hwaddr` is applied through rtnetlink when the session is created,
-before anything can bring the interface up, and whenever it changes. An
-`l2tpeth` device only accepts a new address while it is down, and taking a
-running interface down would drop its IPv6 addresses, routes and neighbour
-state, so the daemon never does that: a change to a running interface is
-logged and deferred, and applied as soon as the interface is seen down (for
-example after `ip link set <name> down`). Until then the interface keeps its
-current address. Removing the key restores the address the kernel assigned
-at creation, under the same rule.
+### Mistakes
 
-## Session cookies
+| Mistake | At start-up | On reload |
+|---|---|---|
+| Unusable endpoint: `remote_addr` missing, neither an address nor a host name, not unicast or of the wrong family; `ip_version` invalid, or missing for a host name | The tunnel and its sessions are created, connected to the discard address `100::`, where frames are dropped; warning | The same; a correction reconnects the tunnel in place |
+| `interface_hwaddr` not a unicast address | The session is created with the kernel's address; warning | The same; a correction applies the address in place |
+| Any other mistake in an entry: a missing, zero or duplicate identifier, an invalid interface name or cookie | The entry is left out, a tunnel with its sessions; warning | The entry keeps the values in force; a new entry is left out; warning |
+| A file that cannot be read or parsed | The file is skipped; warning | The previous configuration is kept as a whole |
+| An entry's previous values no longer fit the rest (its identifier is now taken by another entry, say) | | The previous configuration is kept as a whole |
 
-L2TPv3 over IP delivers data frames by session identifier alone: the kernel
-checks neither the sender's address nor the socket's `bind_interface`, so
-without cookies anyone who can send IP protocol 115 packets to the host and
-knows, or guesses, a session identifier can inject Ethernet frames into that
-pseudowire. A `cookie` (four or eight bytes, written as 8 or 16 hexadecimal
-digits) is appended to every frame this end sends, and `peer_cookie` is
-required in every frame it receives: the kernel discards frames whose cookie
-does not match. Both ends must agree, this end's `cookie` being the peer's
-`peer_cookie` and vice versa; when both directions use the same value,
-`cookie` alone suffices, as `peer_cookie` defaults to it.
+For comparison, 0.1.5 accepted a wrong-family literal and retried the
+tunnel forever, and it ignores the cookie keys silently.
 
-Cookies are off unless configured, which is the wire format of 0.1.5, and
-must be enabled on both ends at once: a peer without matching settings
-discards or misreads every frame, and daemons before this version ignore
-the keys silently. The kernel cannot change the cookies of an existing
-session, so changing them re-creates the session, whose interface
-disappears briefly and loses its addresses and routes, as on any other
-session re-creation. Cookies authenticate nothing beyond the frame's origin
-and are visible in captured traffic; they are not a substitute for
-encryption. `rs-l2tpd --check` prints them with the rest of the merged
-configuration; the daemon's logs do not.
+### Hardware addresses
 
-## Early readiness during boot
+`interface_hwaddr` is applied when the session is created, before anything
+can bring the interface up, and whenever it changes. The kernel accepts a
+new address only while the interface is down, and taking a running
+interface down would drop its IPv6 addresses, routes and neighbours, so a
+change is deferred until the interface is seen down, for example after
+`ip link set <name> down`. Removing the key restores the kernel's address
+under the same rule.
 
-This daemon binds its sockets to `::`, so it does not
-need any networking for L2TPv3 interfaces to exist. It
-does not need interfaces it binds to exist as well, and
-it just creates sockets with no bind interfaces when
-they are absent, and let the sockets bind to interfaces
-when the interfaces appear. This is always possible as
-the bind address is `::`. It also connects its sockets
-to `100::` (a discard address) initially, and then to
-the resolved addresses if FQDN was configured. Concrete
-destination addresses are configured upfront always.
+### Session cookies
 
-Note that this only applies to host names. A `remote_addr`
-given as a literal IP address is connected to as is, so
-the kernel must have a route to it when the tunnel is
-created: without one, the tunnel socket's `connect()`
-fails with "Network unreachable", the daemon keeps
-retrying every second, and readiness (the parent's exit,
-the PID file, `network-online.target`) waits until a
-route appears. This matches 0.1.5. If the route only
-exists through the configured `bind_interface`, that
-interface must exist too, as an absent bind interface
-makes the daemon connect through the main routing table
-first and move to the interface once it appears. To keep
-startup independent of routing, configure the peer as a
-host name (a `/etc/hosts` entry suffices).
+Without cookies, anyone who can send IP protocol 115 packets to the host
+and knows a session identifier can inject frames into that pseudowire: the
+kernel checks neither the sender's address nor the bind device. A `cookie`
+(four or eight bytes) is appended to every frame sent, and `peer_cookie` is
+required in every frame received; the kernel discards the rest. This end's
+`cookie` is the peer's `peer_cookie` and vice versa; with one value for
+both directions, `cookie` alone suffices. Cookies are off unless
+configured, which is the 0.1.5 wire format, so enable them on both ends at
+once. Changing them re-creates the session. Frames stay in clear text:
+cookies are not encryption. `--check` prints them; the logs do not.
 
-To signal the system of `rs-l2tpd`'s readiness (socket/
-L2TPv3 interface existence), it has been modified to do
-a double fork (daemonizing), and the parent only exits
-on readiness of every interface configured. Transient
-kernel or network failures are retried before readiness.
-`-p|--pidfile` option (defaults to `/run/rs-l2tpd.pid`)
-is available. The startup waits until kernel operations
-succeed if the syntax of the configs is correct, so
-network unavailability does not fail startup. SystemD
-integration files use an unlimited startup timeout and
-block `network-online.target` until configuration has
-converged.
+## Readiness during boot
 
-PID-file directories must be owned by root or the daemon user, and an
-existing PID file must belong to the daemon user. The daemon replaces legacy
-PID files atomically with a fresh inode of its own. It never changes the
-permissions of existing directories; a directory writable by other users
-only earns a warning, since such users could then replace the PID file.
-Directory traversal needs search permission, not directory read permission.
-When the directory is not writable, a precreated PID file can be updated
-in place if it is owned by the daemon user, has one hard link, and grants
-no group or other write permission. This preserves its existing mode and
-supports capability-based nonroot services with a precreated file in `/run`.
-The fallback checks inode identity before writing; unlike replacement in a
-writable directory, an in-place update is not atomic for concurrent readers.
+Readiness means that every tunnel and session of the applied configuration
+exists in the kernel, those connected to `100::` included. The daemon
+double-forks, and only then does the parent exit, the PID file (`-p`,
+default `/run/rs-l2tpd.pid`) get written and `network-online.target` get
+released; a failure to create any of them is retried every second until
+then. Readiness does not wait for a host name to resolve or for an absent
+bind device to appear.
 
-This daemon intentionally does not depend on any
-specific init system nor libc.
+Sockets bind to `::`, so tunnels need no address of their own. A tunnel
+without a peer yet (a host name before it resolves, an unusable endpoint)
+is connected to the discard address `100::`, and its frames are discarded
+until it gets one. Connecting there needs a route but no reachability: when
+the host routes `100::` already (through a default route, say), that route
+is used; when it does not, as on an IPv4-only host or in a VRF with an
+unreachable default route, the daemon creates the null device
+`rsl2tpnull0`, a `dummy` link that drops whatever it transmits, and routes
+`100::/128` to it in the table concerned. Blackhole and unreachable routes
+cannot serve, as they refuse the connection outright, and nothing is ever
+routed through loopback. The null device is created only when needed and
+removed on shutdown. A literal address needs a route when the tunnel is
+created, as in 0.1.5, so a literal peer without one delays readiness.
 
-Privileged kernel and daemon interoperability tests are documented in
+The PID file is published as a fresh inode owned by the daemon user,
+replacing a legacy file atomically. Its directories must be owned by root
+or the daemon user; the daemon never changes their permissions and only
+warns when other users could replace the file. In a directory it cannot
+write to, a precreated file is updated in place if the daemon user owns
+it and it has one link and no group or other write permission, for
+capability-based services with a file in `/run`.
+
+The daemon depends on no init system and no libc. Privileged kernel and
+daemon tests, including interoperability with 0.1.5, are documented in
 [`tests/docker/README.md`](tests/docker/README.md).
 
 ## Library
 
-The crate is also a library. Without default features it pulls in neither
-`clap`, `toml`, `env_logger` nor `serde`; it does no file or terminal I/O,
-installs no signal handlers and logs through the `log` facade.
+Without default features the crate pulls in neither `clap`, `toml`,
+`env_logger` nor `serde`; it does no file or terminal I/O, installs no
+signal handlers and logs through the `log` facade.
 
 ```toml
 [dependencies]
@@ -166,14 +148,14 @@ rs-l2tpd = { version = "0.2", default-features = false, features = ["serde"] }
 ```
 
 - `rs_l2tpd::config` holds the configuration types, built in code or
-  deserialised with serde.
+  deserialised with serde; `PartialConfig::into_config_lenient` and
+  `into_config_with_previous` implement the table above.
 - `rs_l2tpd::service::Service` is the daemon minus process management, for
   Tokio programs.
-- `rs_l2tpd::blocking::Service` is the same behind a blocking API. It runs
-  a multi-threaded Tokio runtime on a thread of its own, so it can be used
-  without Tokio and even from inside another runtime.
-- `rs_l2tpd::runtime::Runtime` is the reconciler for programs that want to
-  drive the event loop themselves.
+- `rs_l2tpd::blocking::Service` is the same behind a blocking API, on a
+  Tokio runtime of its own, usable without Tokio or inside another runtime.
+- `rs_l2tpd::runtime::Runtime` is the reconciler, for programs that drive
+  the event loop themselves.
 
 Every type from another crate that appears in the API is re-exported next
 to where it is used (`config::IpHost`, `config::FQDN`, `config::L2tpIfName`,
@@ -181,12 +163,10 @@ to where it is used (`config::IpHost`, `config::FQDN`, `config::L2tpIfName`,
 them needs a dependency of a matching version to be named.
 
 Both services hand out a `Control` handle for requesting reloads and
-shutdowns (the binary drives it from `SIGHUP`, `SIGTERM` and `SIGINT`) and for
-reading the current configuration.
-
-Shutdown requests persist even when the event queue is full. Asynchronous
-callers can use `Control::reload_wait()` to wait for room for a reload;
-`reload()` returns an error if the queue is full.
+shutdowns (the binary drives it from `SIGHUP`, `SIGTERM` and `SIGINT`) and
+for reading the current configuration. Shutdown requests persist even when
+the event queue is full; `Control::reload_wait()` waits for room, while
+`reload()` fails if the queue is full.
 
 ## Building
 

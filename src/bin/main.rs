@@ -4,7 +4,7 @@
 
 use clap::{ArgAction, Parser};
 use log::{error, info, warn};
-use rs_l2tpd::config::{Config, PartialConfig};
+use rs_l2tpd::config::{Config, EntryKind, PartialConfig, ProblemEffect};
 use rs_l2tpd::service::{Control, Service, Startup};
 use rs_l2tpd::{Error, Result};
 
@@ -32,7 +32,8 @@ struct Args {
     #[arg(short, long, action = ArgAction::SetTrue)]
     verbose: bool,
 
-    /// Validate and print the merged configuration, then exit.
+    /// Validate the merged configuration, print what would be applied and
+    /// exit; the exit status is 1 if any problem was found.
     #[arg(short = 'c', long, action = ArgAction::SetTrue)]
     check: bool,
 
@@ -691,16 +692,147 @@ fn parse_toml_config(path: &Path) -> Result<PartialConfig> {
     toml::from_str(&text).map_err(|e| Error::InvalidConfig(format!("{}: {e}", path.display())))
 }
 
-fn load_config_at(file: &Path, dir: &Path) -> Result<Config> {
-    let mut partial = PartialConfig::default();
-    for path in list_toml_files_at(file, dir)? {
-        partial.merge(parse_toml_config(&path)?);
+/// The message of a configuration error, without the generic prefix.
+fn config_problem(error: &Error) -> String {
+    match error {
+        Error::InvalidConfig(message) => message.clone(),
+        other => other.to_string(),
     }
-    partial.into_config()
 }
 
-fn load_config_blocking() -> Result<Config> {
-    load_config_at(Path::new(CONFIG_FILE_PATH), Path::new(CONFIG_DIR_PATH))
+/// A configuration loaded leniently: what will be applied, and the problems
+/// found on the way, each naming the file or entry it concerns. `errors`
+/// are what was left out: a drop-in directory that could not be listed,
+/// files that could not be read or parsed and entries that failed
+/// validation. `warnings` are entries kept in a degraded form: a tunnel
+/// without a usable peer, a session with the kernel's hardware address.
+/// Either way the result may be empty, which is a valid configuration.
+struct LoadedConfig {
+    config: Config,
+    errors: Vec<String>,
+    warnings: Vec<String>,
+}
+
+/// Reads and merges the configuration files. A drop-in directory that
+/// cannot be listed and files that cannot be read or parsed are reported
+/// and skipped.
+fn read_partial_config(file: &Path, dir: &Path) -> (PartialConfig, Vec<String>) {
+    let mut errors = Vec::new();
+    let files = match list_toml_files_at(file, dir) {
+        Ok(files) => files,
+        Err(e) => {
+            errors.push(format!(
+                "{}; using {} alone",
+                config_problem(&e),
+                file.display()
+            ));
+            if file.is_file() {
+                vec![file.to_path_buf()]
+            } else {
+                Vec::new()
+            }
+        }
+    };
+    let mut partial = PartialConfig::default();
+    for path in files {
+        match parse_toml_config(&path) {
+            Ok(document) => partial.merge(document),
+            Err(e) => errors.push(config_problem(&e)),
+        }
+    }
+    (partial, errors)
+}
+
+/// Loads the configuration for start-up, keeping everything usable; see
+/// `LoadedConfig`. A rejected tunnel takes its sessions with it.
+fn load_config_lenient_at(file: &Path, dir: &Path) -> LoadedConfig {
+    let (partial, mut errors) = read_partial_config(file, dir);
+    let (config, problems) = partial.into_config_lenient();
+    let mut warnings = Vec::new();
+    for problem in problems {
+        match tolerated_as(problem.effect()) {
+            Some(how) => warnings.push(format!("{how}: {problem}")),
+            None => errors.push(problem.to_string()),
+        }
+    }
+    LoadedConfig {
+        config,
+        errors,
+        warnings,
+    }
+}
+
+/// How the daemon copes with a problem that does not reject its entry.
+fn tolerated_as(effect: ProblemEffect) -> Option<&'static str> {
+    match effect {
+        ProblemEffect::NoPeer => Some("no peer until corrected"),
+        ProblemEffect::KernelHwAddr => Some("kernel hardware address until corrected"),
+        ProblemEffect::KeptPrevious => Some("keeping the previous values until corrected"),
+        _ => None,
+    }
+}
+
+/// Loads the configuration for a reload, `previous` being the one in
+/// force. Mistakes degrade rather than fail and never take a running tunnel
+/// or session down: an unusable endpoint or hardware address is applied as
+/// at start-up, an entry that would be rejected keeps its previous values,
+/// and a new entry that would be rejected is left out, each with a warning.
+/// Only a file that cannot be read or parsed, whose entries cannot be told
+/// apart, or an entry whose previous values no longer fit the rest keeps
+/// the whole previous configuration in force, which the error says.
+fn load_config_for_reload_at(file: &Path, dir: &Path, previous: &Config) -> Result<Config> {
+    let (partial, file_errors) = read_partial_config(file, dir);
+    if !file_errors.is_empty() {
+        return Err(Error::InvalidConfig(format!(
+            "{}; keeping the previous configuration",
+            file_errors.join("; ")
+        )));
+    }
+    let (config, problems) = partial.into_config_with_previous(previous);
+    let mut errors = Vec::new();
+    for problem in problems {
+        let existed = match problem.kind() {
+            EntryKind::Tunnel => previous.tunnels().contains_key(problem.name()),
+            EntryKind::Session => previous.sessions().contains_key(problem.name()),
+            _ => false,
+        };
+        match (problem.effect(), existed) {
+            (ProblemEffect::Rejected, true) => errors.push(problem.to_string()),
+            (ProblemEffect::Rejected, false) => {
+                warn!("configuration problem, left out: {problem}");
+            }
+            (effect, _) => match tolerated_as(effect) {
+                Some(how) => warn!("configuration problem, {how}: {problem}"),
+                None => errors.push(problem.to_string()),
+            },
+        }
+    }
+    if errors.is_empty() {
+        Ok(config)
+    } else {
+        Err(Error::InvalidConfig(format!(
+            "{}; the previous values no longer fit, keeping the previous configuration",
+            errors.join("; ")
+        )))
+    }
+}
+
+fn load_config_lenient() -> LoadedConfig {
+    load_config_lenient_at(Path::new(CONFIG_FILE_PATH), Path::new(CONFIG_DIR_PATH))
+}
+
+fn load_config_for_reload(previous: &Config) -> Result<Config> {
+    load_config_for_reload_at(
+        Path::new(CONFIG_FILE_PATH),
+        Path::new(CONFIG_DIR_PATH),
+        previous,
+    )
+}
+
+/// The service's reload callback: it loads against the configuration in
+/// force, which the control handle reports.
+fn reload_with(control: Control) -> impl FnMut() -> Result<Config> {
+    move || load_config_for_reload(&control.config())
 }
 
 /// SIGHUP reloads, SIGTERM and SIGINT shut down; both drive the service
@@ -968,13 +1100,32 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let initial_config = load_config_blocking()?;
+    // Start-up is lenient: whatever is usable is applied, even nothing, so
+    // that one mistake does not keep every tunnel down. A reload (see
+    // load_config_for_reload) also keeps the previous values of an entry it
+    // cannot use, so that a mistake never takes a running tunnel down.
+    let loaded = load_config_lenient();
+    for problem in &loaded.errors {
+        error!("configuration problem, left out: {problem}");
+    }
+    for problem in &loaded.warnings {
+        warn!("configuration problem, {problem}");
+    }
     if args.check {
-        let rendered = toml::to_string_pretty(&initial_config)
+        let rendered = toml::to_string_pretty(&loaded.config)
             .map_err(|e| Error::Other(format!("failed to render config as TOML: {e}")))?;
         println!("{rendered}");
+        let count = loaded.errors.len() + loaded.warnings.len();
+        if count > 0 {
+            error!("{count} problem(s) found; the configuration above is what would be applied");
+            std::process::exit(1);
+        }
         return Ok(());
     }
+    if !loaded.errors.is_empty() {
+        warn!("starting with the usable part of the configuration only; fix the problems above and reload");
+    }
+    let initial_config = loaded.config;
 
     let readiness = unix_daemon::daemonize()?;
 
@@ -1015,21 +1166,24 @@ async fn run_daemon(
         if let Err(cleanup) = service.control().shutdown() {
             warn!("startup cleanup failed after pidfile error: {}", cleanup);
         }
-        if let Err(cleanup) = service.run(load_config_blocking).await {
+        let control = service.control();
+        if let Err(cleanup) = service.run(reload_with(control)).await {
             warn!("startup cleanup failed after pidfile error: {}", cleanup);
         }
         return Err(e);
     }
     if let Err(e) = readiness.signal_ready() {
-        let _ = service.control().shutdown();
-        let _ = service.run(load_config_blocking).await;
+        let control = service.control();
+        let _ = control.shutdown();
+        let _ = service.run(reload_with(control)).await;
         unix_daemon::remove_pid_file(pidfile);
         return Err(e);
     }
 
     info!("initial configuration applied");
 
-    let result = service.run(load_config_blocking).await;
+    let control = service.control();
+    let result = service.run(reload_with(control)).await;
     if let Err(e) = &result {
         error!("shutdown cleanup failed: {}", e);
     }
@@ -1041,7 +1195,7 @@ async fn run_daemon(
 
 #[cfg(test)]
 mod tests {
-    use super::{list_toml_files_at, load_config_at};
+    use super::{list_toml_files_at, load_config_for_reload_at, load_config_lenient_at, Config};
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -1134,7 +1288,8 @@ mod tests {
         )
         .expect("write dropin");
 
-        let config = load_config_at(&main_file, &dropin_dir).expect("load");
+        let config =
+            load_config_for_reload_at(&main_file, &dropin_dir, &Config::new()).expect("load");
         let session = &config.sessions()["sess0"];
         assert_eq!(session.interface_name().to_str().unwrap(), "l2tp5");
         assert_eq!(
@@ -1143,18 +1298,189 @@ mod tests {
         );
         assert_eq!(config.tunnels()["tun0"].tunnel_id(), 10);
 
-        // A broken drop-in names its file.
+        // A broken drop-in names its file and keeps the previous
+        // configuration on a reload, since its entries cannot be told apart.
         fs::write(
             dropin_dir.join("20-bad.toml"),
             "[sessions.sess0]\ninterface_name = [\n",
         )
         .expect("write bad dropin");
-        let err = load_config_at(&main_file, &dropin_dir).unwrap_err();
+        let err = load_config_for_reload_at(&main_file, &dropin_dir, &config).unwrap_err();
         assert!(err.to_string().contains("20-bad.toml"), "{err}");
+        assert!(
+            err.to_string()
+                .contains("keeping the previous configuration"),
+            "{err}"
+        );
 
-        let empty = load_config_at(&temp_dir.join("absent.toml"), &temp_dir.join("absent.d"))
-            .expect("load nothing");
+        // Leniently, the broken file is left out and the rest is used.
+        let loaded = load_config_lenient_at(&main_file, &dropin_dir);
+        assert_eq!(loaded.errors.len(), 1, "{:?}", loaded.errors);
+        assert!(loaded.errors[0].contains("20-bad.toml"));
+        assert!(loaded.warnings.is_empty());
+        assert_eq!(
+            loaded.config.sessions()["sess0"]
+                .interface_name()
+                .to_str()
+                .unwrap(),
+            "l2tp5"
+        );
+
+        let empty = load_config_for_reload_at(
+            &temp_dir.join("absent.toml"),
+            &temp_dir.join("absent.d"),
+            &Config::new(),
+        )
+        .expect("load nothing");
         assert!(empty.tunnels().is_empty());
+        fs::remove_dir_all(temp_dir).expect("cleanup temp dir");
+    }
+
+    #[test]
+    fn lenient_loading_keeps_everything_usable_and_sorts_the_problems() {
+        use rs_l2tpd::config::{IpHost, TunnelConfig};
+
+        let temp_dir = unique_temp_dir("config-lenient");
+        let main_file = temp_dir.join("rs-l2tpd.toml");
+        let dropin_dir = temp_dir.join("rs-l2tpd.toml.d");
+        fs::write(
+            &main_file,
+            "[tunnels.good]\ntunnel_id = 10\nremote_addr = \"2001:db8::1\"\n\
+             [tunnels.soft]\ntunnel_id = 11\nip_version = \"V6\"\nremote_addr = \"192.0.2.1\"\n\
+             [tunnels.hard]\ntunnel_id = 0\nremote_addr = \"2001:db8::3\"\n\
+             [sessions.on-good]\ntunnel_name = \"good\"\nsession_id = 100\ninterface_name = \"l2tp0\"\n\
+             [sessions.on-soft]\ntunnel_name = \"soft\"\nsession_id = 102\ninterface_name = \"l2tp1\"\n\
+             [sessions.on-hard]\ntunnel_name = \"hard\"\nsession_id = 103\ninterface_name = \"l2tp3\"\n\
+             [sessions.bad-mac]\ntunnel_name = \"good\"\nsession_id = 101\ninterface_name = \"l2tp2\"\n\
+             interface_hwaddr = \"01:00:5e:00:53:01\"\n",
+        )
+        .expect("write main config");
+
+        let loaded = load_config_lenient_at(&main_file, &dropin_dir);
+        assert_eq!(
+            loaded.config.tunnels().keys().collect::<Vec<_>>(),
+            vec!["good", "soft"]
+        );
+        assert_eq!(
+            loaded.config.sessions().keys().collect::<Vec<_>>(),
+            vec!["bad-mac", "on-good", "on-soft"]
+        );
+        // An unusable endpoint keeps the tunnel, without a peer; an unusable
+        // hardware address keeps the session, with the kernel's address.
+        assert_eq!(
+            loaded.config.tunnels()["soft"].remote_addr(),
+            &IpHost::V6Addr(TunnelConfig::NO_PEER_ADDR)
+        );
+        assert_eq!(loaded.config.sessions()["bad-mac"].interface_hwaddr(), None);
+        assert_eq!(
+            loaded.errors,
+            [
+                "tunnel hard: tunnel_id is zero",
+                "session on-hard: its tunnel hard was rejected",
+            ]
+        );
+        assert_eq!(
+            loaded.warnings,
+            [
+                "no peer until corrected: tunnel soft: remote_addr 192.0.2.1 is IPv4 but ip_version is IPv6",
+                "kernel hardware address until corrected: session bad-mac: interface_hwaddr: hardware address 01:00:5e:00:53:01 is a multicast address",
+            ]
+        );
+
+        // On a reload the new, broken entries are left out and the rest is
+        // applied, with the same tolerance for the soft problems.
+        let config = load_config_for_reload_at(&main_file, &dropin_dir, &Config::new())
+            .expect("reload leaving the new broken entries out");
+        assert_eq!(config, loaded.config);
+
+        // An entry that was in force keeps its previous values instead.
+        let mut previous = Config::new();
+        previous
+            .insert_tunnel(
+                "hard",
+                TunnelConfig::for_address(12, "2001:db8::3".parse().unwrap()),
+            )
+            .unwrap();
+        previous
+            .insert_session(
+                "on-hard",
+                rs_l2tpd::config::SessionConfig::new("hard", 103, "l2tp3".parse().unwrap()),
+            )
+            .unwrap();
+        let config = load_config_for_reload_at(&main_file, &dropin_dir, &previous)
+            .expect("reload keeping the previous values");
+        assert_eq!(config.tunnels()["hard"], previous.tunnels()["hard"]);
+        assert_eq!(config.sessions()["on-hard"], previous.sessions()["on-hard"]);
+        assert_eq!(config.tunnels().len(), 3);
+        assert_eq!(config.sessions().len(), 4);
+
+        // Previous values that no longer fit keep the whole configuration.
+        let mut previous = Config::new();
+        previous
+            .insert_tunnel(
+                "hard",
+                TunnelConfig::for_address(10, "2001:db8::3".parse().unwrap()),
+            )
+            .unwrap();
+        let err = load_config_for_reload_at(&main_file, &dropin_dir, &previous).unwrap_err();
+        assert!(err.to_string().contains("tunnel hard"), "{err}");
+        assert!(
+            err.to_string()
+                .contains("keeping the previous configuration"),
+            "{err}"
+        );
+
+        // With only the unusable endpoint left, a reload applies it.
+        fs::write(
+            &main_file,
+            "[tunnels.good]\ntunnel_id = 10\nremote_addr = \"2001:db8::1\"\n\
+             [tunnels.soft]\ntunnel_id = 11\nremote_addr = \"not a host!\"\n",
+        )
+        .expect("rewrite main config");
+        let config = load_config_for_reload_at(&main_file, &dropin_dir, &Config::new())
+            .expect("reload with a warning");
+        assert_eq!(
+            config.tunnels()["soft"].remote_addr(),
+            &IpHost::V6Addr(TunnelConfig::NO_PEER_ADDR)
+        );
+
+        // Nothing usable at all is still a valid, empty configuration.
+        fs::write(&main_file, "[tunnels.hard]\ntunnel_id = 0\n").expect("rewrite main config");
+        let loaded = load_config_lenient_at(&main_file, &dropin_dir);
+        assert!(loaded.config.tunnels().is_empty());
+        assert_eq!(loaded.errors.len(), 1);
+        fs::write(&main_file, "").expect("empty main config");
+        let loaded = load_config_lenient_at(&main_file, &dropin_dir);
+        assert!(loaded.config.tunnels().is_empty());
+        assert!(loaded.errors.is_empty() && loaded.warnings.is_empty());
+        fs::remove_dir_all(temp_dir).expect("cleanup temp dir");
+    }
+
+    #[test]
+    fn a_bad_hardware_address_alone_does_not_refuse_a_reload() {
+        let temp_dir = unique_temp_dir("config-bad-mac");
+        let main_file = temp_dir.join("rs-l2tpd.toml");
+        let dropin_dir = temp_dir.join("rs-l2tpd.toml.d");
+        fs::write(
+            &main_file,
+            "[tunnels.good]\ntunnel_id = 10\nremote_addr = \"2001:db8::1\"\n\
+             [sessions.bad-mac]\ntunnel_name = \"good\"\nsession_id = 101\ninterface_name = \"l2tp2\"\n\
+             interface_hwaddr = \"02:00:5e:00:53\"\n",
+        )
+        .expect("write main config");
+        let config = load_config_for_reload_at(&main_file, &dropin_dir, &Config::new())
+            .expect("reload with a warning");
+        assert_eq!(config.sessions()["bad-mac"].interface_hwaddr(), None);
+        let loaded = load_config_lenient_at(&main_file, &dropin_dir);
+        assert!(loaded.errors.is_empty());
+        assert_eq!(loaded.warnings.len(), 1);
+        assert!(
+            loaded.warnings[0].starts_with(
+                "kernel hardware address until corrected: session bad-mac: interface_hwaddr: invalid hardware address"
+            ),
+            "{:?}",
+            loaded.warnings
+        );
         fs::remove_dir_all(temp_dir).expect("cleanup temp dir");
     }
 

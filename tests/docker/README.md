@@ -27,8 +27,8 @@ cargo build --locked --target x86_64-unknown-linux-musl \
     --manifest-path /tmp/rs-l2tpd-baseline/Cargo.toml
 ```
 
-Run all twelve privileged library tests, substituting an absolute artifacts
-directory for `/path/to/artifacts`:
+Run all thirteen privileged library tests, substituting an absolute
+artifacts directory for `/path/to/artifacts`:
 
 ```sh
 docker run --rm --network none --cap-add NET_ADMIN --cap-add NET_RAW \
@@ -43,9 +43,10 @@ docker run --rm --network none --cap-add NET_ADMIN --cap-add NET_RAW \
 These assert exact IPv4-mapped and IPv6 local/remote endpoints, peer changes,
 source removal and replacement, disconnect/retry recovery, interface identity
 after rename and name reuse, VRF source selection, session MAC/link state,
-session cookies as reported back by the kernel, and kernel cleanup. IPv4
-source verification rejects `::ffff:0.0.0.0` as well as the native
-wildcards.
+session cookies as reported back by the kernel, the null device routing
+the discard address in the main table and in a VRF table with an
+unreachable default route, and kernel cleanup. IPv4 source verification
+rejects `::ffff:0.0.0.0` as well as the native wildcards.
 
 Run the daemon interoperability matrix:
 
@@ -104,9 +105,10 @@ the agreed cookies re-creates the session again and traffic must flow.
 
 On Linux 6.8.0-147-generic, validation on 2026-10-22 passed all eleven
 privileged library tests, all eighteen compatibility cases and the
-MAC-changing check. On 2026-10-27, on the same kernel, the twelve privileged
-library tests, the eighteen compatibility cases, the MAC-changing check, the
-cookie check and the four address-notification cases below all passed.
+MAC-changing check. On 2026-10-27, on the same kernel, the thirteen
+privileged library tests, the eighteen compatibility cases, the MAC-changing check, the
+cookie check, the four address-notification cases and the ten
+degraded-start cases below all passed.
 
 The tests establish behavior on the kernel and topologies exercised. They do
 not establish universal compatibility across all kernels or routing setups.
@@ -160,3 +162,41 @@ VRF routing, and no further retries after recovery.
 
 These are endpoint and lifecycle tests with dummy underlays; packet delivery
 is covered separately by the two-peer interoperability matrix above.
+
+## Degraded start
+
+`degraded-start.sh` checks that configuration mistakes never stop the
+daemon. Run it like `address-changes.sh`, mounting it at
+`/opt/degraded-start.sh` and with a 150-second timeout:
+
+```sh
+docker run --rm --network none --cap-add NET_ADMIN --cap-add NET_RAW \
+    --mount type=bind,source=/path/to/artifacts,target=/artifacts,readonly \
+    --mount type=bind,source=/path/to/rs-l2tpd/tests/docker/degraded-start.sh,target=/opt/degraded-start.sh,readonly \
+    --entrypoint timeout rs-l2tpd-network-test:local 150 sh /opt/degraded-start.sh
+```
+
+The configuration has a valid tunnel and session; a tunnel whose literal
+address contradicts its `ip_version`, with a session on it; a tunnel with a
+zero identifier, with a session on it; a tunnel to a literal peer without a
+route, with a session on it; a session with a multicast hardware address;
+and an unparsable drop-in. `--check` must print the three tunnels and four
+sessions that would be applied, the contradicting tunnel with the discard
+address `100::` as its peer and the session without its hardware address,
+name each problem, exit 1 and touch nothing. The namespace routes neither
+the far peer nor `100::`: the daemon must not become ready while the far
+tunnel cannot be created, and must meanwhile have created the null device
+`rsl2tpnull0` and routed `100::` to it. Once the far peer has a route it
+must reach readiness with every entry, the unusable endpoint connected to
+`100::` and the session carrying the kernel's address, and frames sent into
+the pseudowire without a peer must count as transmitted on the null
+device. It must keep the previous configuration when a reload still has
+the unparsable drop-in. A reload that breaks the valid tunnel's identifier
+must keep that tunnel's previous values and leave the new broken tunnel
+out, applying the rest; a reload correcting the identifiers must create
+the missing entries; a reload correcting the endpoint and the hardware
+address must reconnect that tunnel in place and set the address, the
+interfaces keeping their indexes throughout. Shutdown must remove every
+tunnel and the null device. A configuration with nothing usable and an
+empty one must both start and reach readiness with no tunnels and without
+creating the null device.
