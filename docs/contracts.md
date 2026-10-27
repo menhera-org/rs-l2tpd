@@ -48,8 +48,11 @@ Guards: `tests/docker/degraded-start.sh`, `session-children.sh`,
   kept: the daemon works under any init system, on glibc and musl, with
   only `/proc` and `/sys` mounted; the systemd unit is one integration.
   The binary never links against libsystemd or D-Bus libraries; its
-  systemd integration (the descriptor hand-over) is optional at runtime
-  and spoken natively, so one binary serves every host.
+  systemd integration (the descriptor store) is optional at runtime and
+  spoken natively, so one binary serves every host. On every host the
+  daemon's own restart operation (`SIGUSR2`) replaces the running binary
+  with the one on disk in the same process, tunnels and interfaces intact
+  ([P26](spec/process.md#restart)).
 
 Guards: `tests/docker/network.sh` (current against 0.1.5), the
 `systemd_unit_keeps_its_contract_and_is_hardened` test, the

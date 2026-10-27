@@ -69,7 +69,9 @@ with the kernel on the socket, and creating its sessions. It is created
 disconnected; it is connected in the same reconcile when a real peer
 exists and the kernel accepts the connect ([T16](#peers-that-cannot-be-reached)),
 and otherwise as soon as one does. The socket is created with the
-close-on-exec flag so that no child process can keep a tunnel alive.
+close-on-exec flag so that no child process can keep a tunnel alive; the
+flag is cleared only for the hand-over of [P26](process.md#restart), on
+the sockets being handed over, for that exec alone.
 
 T7. The tunnel identifier is unique in the namespace and the kernel
 refuses a second use (`EEXIST` at registration, `EADDRINUSE` at bind,

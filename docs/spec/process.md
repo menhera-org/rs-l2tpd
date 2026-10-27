@@ -84,9 +84,9 @@ the kernel, not about the file.
 
 ## Signals and requests
 
-P12. `SIGHUP` requests a reload, `SIGTERM` and `SIGINT` a shutdown. A
-signal is a request to reload the latest files or to shut down, not a
-counted event: several `SIGHUP`s before the daemon acts cause one reload
+P12. `SIGHUP` requests a reload, `SIGTERM` and `SIGINT` a shutdown,
+`SIGUSR2` a restart ([P26](#restart)). A signal is a request to reload
+the latest files, to shut down or to restart, not a counted event: several `SIGHUP`s before the daemon acts cause one reload
 of the files as they are then. A reload request the signal thread has
 observed MUST NOT be lost: the thread waits for queue capacity, and a
 shutdown request bypasses that wait through the persistent flag
@@ -128,6 +128,41 @@ simply absent. An adopted socket is verified to carry the tunnel of the
 same identifiers before it is used; one that does not is closed. An
 explicit stop MUST still remove everything, and the store MUST be told to
 forget the sockets then (`FDSTOREREMOVE=1`).
+
+P26. On every host, with or without a descriptor store, the daemon
+provides a **restart** operation of its own, so that a new binary on disk
+replaces the running one without re-creating the tunnels: on a restart
+request (`SIGUSR2`, or the control handle; the binary MAY offer a
+command-line form that signals the PID of the PID file), the daemon
+executes the binary again in the same process, with its tunnel sockets
+inherited as descriptors 3 and up and announced to the new program through
+the same `LISTEN_FDS`, `LISTEN_PID` and `LISTEN_FDNAMES` protocol as
+[P14](#restart), which is the indirection between the two programs. Rules:
+
+- The program executed is the one at the path the daemon was started
+  with, or the path given on the command line, never `/proc/self/exe`,
+  which names the old inode once the file on disk was replaced.
+- Close-on-exec ([T6](tunnels.md#creation-and-identifiers)) is cleared
+  only on the descriptors being handed over and only for this exec; every
+  other descriptor (netlink, resolvers, the readiness pipe) closes with
+  the exec and is opened anew.
+- The process, its PID and the PID file stay the same, so every init
+  system keeps supervising the same process ([P22](#the-process-contract)).
+- The new instance reads the configuration files afresh, verifies every
+  adopted socket as in [P14](#restart), closes those it cannot verify,
+  and reconciles; a tunnel of the accepted configuration that was not
+  handed over is created as at start-up. Readiness is not signalled
+  again: there is no parent to tell.
+- If the exec fails, the old instance continues unchanged, restores
+  close-on-exec, and reports the failure; if the new program dies before
+  adopting, the kernel closes the sockets and removes the tunnels, and
+  the init system restarts the daemon as after any crash.
+- A restart request before readiness, or during a shutdown, is ignored
+  with a report.
+
+Where a descriptor store exists, the restart operation and the store are
+independent: the operation works the same, and the store additionally
+keeps the sockets across an unplanned exit.
 
 P15. After a restart the daemon MUST reach the applied state at least as
 fast as after a first start, and the configuration MUST NOT need to
@@ -192,7 +227,8 @@ what the daemon promises every init system.
 P22. The daemon's interface to its init system is: it double-forks and
 its parent exits 0 at readiness ([P4](#start-up), [P6](#readiness)); it
 publishes a PID file at the configured path ([P10](#pid-file)); it takes
-`SIGHUP`, `SIGTERM` and `SIGINT` ([P12](#signals-and-requests)); it logs
+`SIGHUP`, `SIGTERM`, `SIGINT` and `SIGUSR2` ([P12](#signals-and-requests),
+[P26](#restart)); it logs
 to standard error ([O1](observability.md#logging)); and it reads its
 configuration from the documented paths ([C1](configuration.md#files)).
 This is sufficient for OpenRC, busybox init, sysvinit, runit, s6 or a

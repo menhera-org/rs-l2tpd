@@ -28,7 +28,7 @@ statement about older kernels.
 | K10 | Classic BPF socket filter (`SO_ATTACH_FILTER`) | reducing the monitor's traffic | optional: without it the monitor runs unfiltered ([R6](requirements.md#the-host)) | `net/core/filter.c`, built unconditionally; no `bpf()` syscall |
 | K11 | `net.ipv6.bindv6only = 0` in the daemon's namespace | IPv4 peers on `AF_INET6` sockets | only while a tunnel carries IPv4 peers on an `AF_INET6` socket; otherwise `AF_INET` sockets ([T26](tunnels.md#hosts-with-bindv6only)) | `IPV6_V6ONLY` is fixed at socket creation ([K13](#facts)) |
 | K12 | `procfs` at `/proc` | the namespace identity of the current library dependency ([R7](requirements.md#the-host)) | only while that dependency is used | — |
-| K13 | `CAP_NET_BIND_SERVICE`, or `net.ipv4.ip_unprivileged_port_start` at or below 546 | DHCPv6 Information-Request resolvers ([V5](resolvers.md#dhcpv6-information-request)) | only when such a resolver is configured | `net/ipv4/af_inet.c:508-510` |
+| K13 | `CAP_NET_BIND_SERVICE`, or `net.ipv4.ip_unprivileged_port_start` at or below 546 (Docker sets it to 0 in its containers) | DHCPv6 Information-Request resolvers ([V12](resolvers.md#dhcpv6-information-request)) | only when such a resolver is configured | `net/ipv4/af_inet.c:508-510`, `include/net/ip.h:374-377` |
 | K14 | Router-advertisement user options delivered on `RTNLGRP_ND_USEROPT` | router-advertisement resolvers ([V4](resolvers.md#router-advertisements)) | only when such a resolver is configured | `net/ipv6/ndisc.c:1189-1235` |
 
 Not required: the `dummy` driver, any route, any route lookup, the route
@@ -64,12 +64,18 @@ depends on a fact that is not here is wrong.
 | K33 | Taking a device down removes its IPv6 addresses unless `keep_addr_on_down` is set on the device or on `all`; routes and neighbour state through it go regardless. | `net/ipv6/addrconf.c:3890-3898`, defaults `226`, `288` |
 | K34 | An IPv4 connect succeeds with source `0.0.0.0` when no IPv4 address exists; an IPv6 connect fails `EADDRNOTAVAIL` when no IPv6 address exists in the socket's L3 domain; `::1` is selected outside a VRF when nothing else exists. | `net/ipv4/devinet.c:1370-1376`, `include/net/ip6_route.h:128-152` |
 | K35 | The kernel accepts a cookie of any length up to 8 bytes. | `l2tp_netlink.c:584-600`, `913-920` |
-| K36 | `SO_RCVBUF` is capped by `net.core.rmem_max` and doubled; `SO_RCVBUFFORCE` is not capped and needs `CAP_NET_ADMIN`. | `net/core/sock.c:1271-1275` |
+| K37 | A tunnel lives as long as any descriptor of its socket is open, in any process: a descriptor passed with `SCM_RIGHTS` or inherited across `execve` keeps the tunnel, its sessions and their devices intact, and the receiving program can register sessions on it, connect and disconnect it. | `l2tp_ip.c:236-246` (deletion only in the socket's destructor); shown by F1 and F8 of the feasibility report |
+| K36 | `SO_RCVBUF` is capped by `net.core.rmem_max` and doubled; `SO_RCVBUFFORCE` is not capped but needs `CAP_NET_ADMIN` in the **initial** user namespace (`capable()`, not `ns_capable()`), so it is refused with `EPERM` inside a user-namespaced container whatever capabilities the process holds there. | `net/core/sock.c:1080-1083`, `1271-1275` |
 
 ## Verified behaviour
 
 Every fact above was reproduced on Linux `6.8.0-147-generic` on 2026-10-27
-in privileged containers, except K21 (reproduced on the host) and K35 and
-K36 (source only). The procedures are in
-[`SPEC_AUDIT_2026-10-27_2.md`](../../SPEC_AUDIT_2026-10-27_2.md); the
-tests of roadmap step 6 MUST repeat them against the live kernel.
+in privileged containers, except K21 (reproduced on the host) and K35
+(source only). The procedures are in
+[`SPEC_AUDIT_2026-10-27_2.md`](../../SPEC_AUDIT_2026-10-27_2.md) and, for
+the mechanisms of K13, K14, K16's deletion by name, K23's write-and-recreate
+sequence and K36, in
+[`SPEC_FEASIBILITY_2026-10-27.md`](../../SPEC_FEASIBILITY_2026-10-27.md),
+which also showed the descriptor hand-over of [P14](process.md#restart)
+and the re-exec of [P26](process.md#restart) on a live tunnel (K37). The tests of roadmap step 6 MUST repeat them against the
+live kernel.

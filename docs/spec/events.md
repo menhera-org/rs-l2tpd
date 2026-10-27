@@ -135,6 +135,12 @@ start-up removes what was created so far.
 E19. **A reload while a reload is incomplete** replaces it; the last
 configuration received wins.
 
+E26. **Restart** (`SIGUSR2` or the control handle): the daemon finishes
+the operation in progress, hands its tunnel sockets to the binary on disk
+by executing it in the same process ([P26](process.md#restart)), and the
+new instance adopts them and reconciles; before readiness or during a
+shutdown the request is ignored with a report.
+
 ## Monitor loss
 
 E20. The netlink subscriptions have finite buffers (8 MiB, obtained with
