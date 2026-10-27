@@ -28,9 +28,8 @@ V2. A resolver is one of three kinds, chosen by its fields:
 
 A resolver with both `addresses` and `method`, or with `method` and no
 `bind_interface`, is a hard mistake ([C10](configuration.md#start-up)).
-Which kinds an implementation supports is stated in its documentation; a
-kind it does not support is a hard mistake of the entry, never silently
-accepted.
+All three kinds are part of the first implementation; none is optional,
+and a `method` value outside the two defined ones is a hard mistake.
 
 V3. The system resolver is the libc resolver of the build: on glibc the
 host's NSS configuration, on musl `/etc/resolv.conf` and `/etc/hosts` and

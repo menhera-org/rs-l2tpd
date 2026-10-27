@@ -78,5 +78,5 @@ re-derives it from the code.
 | [S27](sessions.md#external-deletion) | A session the kernel no longer has (deleted by an operator) is created again. | It is noticed only at the next reload that changes it, or at restart. |
 | [P14](process.md#restart) | A restart or upgrade keeps session interfaces where the init system offers a descriptor store. | Every restart tears the tunnels down and creates them again. |
 | [C6](configuration.md#documents) | Unknown keys are reported. | They are ignored silently. |
-| [V1](resolvers.md#model) | Configured resolvers. | Only the system resolver exists. |
+| [V1–V12](resolvers.md#model) | Configured resolvers: by address, by router advertisements, by DHCPv6 Information-Request, with bind interfaces. | Only the system resolver exists. |
 | [E20](events.md#monitor-loss), [K10](kernel.md#requirements) | The monitor subscribes to link and address groups only. | It also subscribes to the route groups and filters them for discard routes. |
