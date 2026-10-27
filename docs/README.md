@@ -14,6 +14,7 @@ for managing them.
 | [Library](library.md) | Features, asynchronous and blocking services, control handles |
 | [Testing](testing.md) | Compatibility expectations, validation suites, kernel test pitfalls |
 | [Contracts](contracts.md) | The rules every change must keep, and the tests that guard them |
+| [Specification](spec/README.md) | Requirements, promises, architecture and the normative behaviour in every condition, with the known gaps of the implementation |
 
 These pages use relative Markdown links, so navigation works in a checkout
 and on GitHub. The directory can also be used as the `/docs` source for

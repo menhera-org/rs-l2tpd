@@ -5,7 +5,8 @@
 The rules every change to rs-l2tpd must keep. They are the decisions the
 rest of the documentation describes the consequences of; a change that
 breaks one is a bug even if every test passes. Each section names the tests
-that guard it.
+that guard it. The [specification](spec/README.md) spells the rules out
+condition by condition.
 
 ## The two hard rules
 

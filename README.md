@@ -47,6 +47,7 @@ Start with the [documentation index](docs/README.md):
 - [Library APIs](docs/library.md)
 - [Testing and compatibility](docs/testing.md)
 - [Contracts every change must keep](docs/contracts.md)
+- [Specification: requirements, promises, architecture, behaviour in every condition](docs/spec/README.md)
 
 Complete container test commands are in the
 [Docker validation guide](tests/docker/README.md).
