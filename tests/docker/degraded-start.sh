@@ -189,7 +189,7 @@ wait "$parent"
 [ -e /run/test.pid ]
 ip link show rsl2tpnull0 > /dev/null
 ip -6 route get 100:: | grep -q 'dev rsl2tpnull0'
-grep -q 'routed the discard address 100:: to the null device rsl2tpnull0 for tunnel_id=11' /tmp/daemon.log
+grep -q 'routed the discard address 100:: to a daemon-owned null device for tunnel_id=11' /tmp/daemon.log
 echo 'PASS readiness waits for every configurable interface'
 
 echo 'CASE degraded start'
@@ -281,7 +281,6 @@ grep -q 'updating tunnel_id=11 remote_addr=192.0.2.2' /tmp/daemon.log
 ip l2tp show tunnel | grep -A1 '^Tunnel 11,' | grep -q 'to .*192.0.2.2'
 echo 'PASS corrected endpoint and address apply in place'
 stop_daemon
-grep -q 'removed the null device rsl2tpnull0' /tmp/daemon.log
 if ip link show rsl2tpnull0 > /dev/null 2>&1; then
     echo "shutdown must remove the null device" >&2
     exit 1

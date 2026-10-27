@@ -8,7 +8,7 @@ use crate::error::{Error, Result};
 
 use futures_util::{StreamExt, TryStreamExt};
 use l2tp::{L2tpIfName, L2tpIfNameExt};
-use log::{debug, warn};
+use log::{debug, info, warn};
 use rtnetlink::packet_core::{NetlinkMessage, NetlinkPayload, NLM_F_REQUEST};
 use rtnetlink::packet_route::link::{
     InfoData, InfoKind, InfoVrf, LinkAttribute, LinkFlags, LinkInfo, LinkMessage,
@@ -17,13 +17,14 @@ use rtnetlink::packet_route::route::{RouteAddress, RouteAttribute, RouteMessage}
 use rtnetlink::packet_route::{AddressFamily, RouteNetlinkMessage};
 use rtnetlink::{LinkDummy, LinkUnspec, RouteMessageBuilder};
 
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 use tokio::task::JoinHandle;
 
 use std::{
     collections::BTreeMap,
+    hash::BuildHasher,
     net::{IpAddr, Ipv6Addr},
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
     sync::Arc,
 };
 
@@ -127,7 +128,7 @@ impl Rtnl {
             .await
             .map_err(|e| {
                 Error::Other(format!(
-                    "failed to route {destination} to {NULL_DEVICE} in table {table}: {e}"
+                    "failed to route {destination} to interface index {index} in table {table}: {e}"
                 ))
             })
     }
@@ -220,6 +221,64 @@ fn link_vrf_table(link: &LinkMessage) -> Option<u32> {
 /// drops whatever it transmits: nothing is looped back, nothing leaves the
 /// host, no neighbour discovery runs.
 pub(crate) const NULL_DEVICE: &str = "rsl2tpnull0";
+
+/// The random MAC is installed atomically with creation. An index alone can be
+/// reused after deletion, and a name can be assigned to somebody else's link.
+struct NullDevice {
+    // Creation is recorded before the subsequent lookup can fail. Cleanup
+    // resolves the creation MAC by dumping links if that lookup never completed.
+    index: Option<u32>,
+    address: [u8; 6],
+}
+
+impl NullDevice {
+    fn new() -> Self {
+        static NEXT_DEVICE: AtomicUsize = AtomicUsize::new(0);
+        let time = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let random = std::collections::hash_map::RandomState::new().hash_one((
+            std::process::id(),
+            time,
+            NEXT_DEVICE.fetch_add(1, Ordering::Relaxed),
+        ));
+        let mut address = [0; 6];
+        address.copy_from_slice(&random.to_ne_bytes()[..6]);
+        // A locally administered unicast MAC, like the kernel's dummy default.
+        address[0] = (address[0] & !1) | 2;
+        Self {
+            index: None,
+            address,
+        }
+    }
+
+    fn owns(&self, link: &LinkMessage) -> bool {
+        link_is_dummy(link)
+            && link
+                .attributes
+                .iter()
+                .any(|attr| matches!(attr, LinkAttribute::Address(address) if address.as_slice() == self.address))
+    }
+
+    async fn find(&mut self, rtnl: &Rtnl) -> Result<Option<LinkMessage>> {
+        if let Some(index) = self.index {
+            return Ok(rtnl.find_link(index).await?.filter(|link| self.owns(link)));
+        }
+        let mut links = rtnl.handle.link().get().execute();
+        while let Some(link) = links
+            .try_next()
+            .await
+            .map_err(|e| Error::Other(format!("failed to find the created null device: {e}")))?
+        {
+            if self.owns(&link) {
+                self.index = Some(link.header.index);
+                return Ok(Some(link));
+            }
+        }
+        Ok(None)
+    }
+}
 
 /// The main routing table.
 const RT_TABLE_MAIN: u32 = 254;
@@ -444,6 +503,8 @@ pub(crate) struct State {
     /// Sessions created in the kernel whose preparation has not completed.
     /// Keep ownership until rollback is acknowledged, including across errors.
     pending_sessions: RwLock<BTreeMap<(u32, u32), l2tp::SessionHandle>>,
+    /// Only links created by this State; route insertion can fail after creation.
+    null_devices: Mutex<Vec<NullDevice>>,
 }
 
 fn tunnel_socket(tunnel: &TunnelState) -> Result<&l2tp::TunnelSocket> {
@@ -535,6 +596,7 @@ impl State {
             handle,
             tunnels,
             pending_sessions: RwLock::new(BTreeMap::new()),
+            null_devices: Mutex::new(Vec::new()),
         })
     }
 
@@ -591,80 +653,109 @@ impl State {
             .await
     }
 
-    /// Routes [`TunnelConfig::NO_PEER_ADDR`] to the null device
-    /// [`NULL_DEVICE`], creating it or bringing it up as needed, in the
+    /// Routes [`TunnelConfig::NO_PEER_ADDR`] to an owned null device,
+    /// creating it or bringing it up as needed, in the
     /// table of the VRF with index `vrf` or the main one: the last resort
     /// for a host that does not route the address itself. A reject route of
     /// the same prefix there, which would refuse the connection, is
     /// replaced.
-    pub(crate) async fn route_discard_to_null_device(vrf: Option<u32>) -> Result<()> {
+    pub(crate) async fn route_discard_to_null_device(&self, vrf: Option<u32>) -> Result<()> {
         let rtnl = Rtnl::connect()?;
         let table = match vrf {
             Some(index) => link_vrf_table(&rtnl.get_link(index).await?)
                 .ok_or_else(|| Error::Other(format!("interface index {index} is not a VRF")))?,
             None => RT_TABLE_MAIN,
         };
-        let index = Self::null_device(&rtnl).await?;
+        let mut devices = self.null_devices.lock().await;
+        let index = Self::null_device(&rtnl, &mut devices).await?;
         rtnl.route_to_device(TunnelConfig::NO_PEER_ADDR, index, table)
             .await
     }
 
-    /// The null device's index, creating it or bringing it up as needed.
-    async fn null_device(rtnl: &Rtnl) -> Result<u32> {
-        let name = L2tpIfName::from_name(NULL_DEVICE).map_err(Error::L2tp)?;
-        let index = match interface_index(&name).await? {
-            Some(index) => index,
-            None => {
-                let created = rtnl
-                    .handle
-                    .link()
-                    .add(LinkDummy::new(NULL_DEVICE).up().build())
-                    .execute()
-                    .await;
-                match created {
+    /// Reuses a verified owned link, or allocates an unused name. Existing
+    /// devices are neither adopted nor changed, even if they are dummies.
+    async fn null_device(rtnl: &Rtnl, devices: &mut Vec<NullDevice>) -> Result<u32> {
+        for device in devices.iter_mut() {
+            if let Some(link) = device.find(rtnl).await? {
+                let index = link.header.index;
+                if !link_is_up(&link) {
+                    rtnl.set_link(LinkUnspec::new_with_index(index).up().build())
+                        .await
+                        .map_err(|e| {
+                            Error::Other(format!(
+                                "failed to bring the null device at index {index} up: {e}"
+                            ))
+                        })?;
+                }
+                return Ok(index);
+            }
+        }
+        // All generated names fit Linux's 15-byte interface name limit.
+        for suffix in 0..=99_999 {
+            let name = if suffix == 0 {
+                NULL_DEVICE.to_string()
+            } else {
+                format!("rsl2tpnull{suffix}")
+            };
+            let device = NullDevice::new();
+            // Linux applies the MAC in RTM_NEWLINK, whereas IFLA_IFALIAS
+            // can be silently ignored until a later RTM_SETLINK request.
+            let message = LinkDummy::new(&name)
+                .address(device.address.to_vec())
+                .up()
+                .build();
+            match rtnl.handle.link().add(message).execute().await {
+                Ok(()) => {}
+                Err(e) if is_netlink_errno(&e, libc::EEXIST) => continue,
+                Err(e) => {
+                    return Err(Error::Other(format!(
+                        "failed to create the null device {name}: {e}"
+                    )))
+                }
+            }
+            devices.push(device);
+            let created = devices.last_mut().unwrap();
+            let link = created.find(rtnl).await?.ok_or_else(|| {
+                Error::Other(format!("the created null device {name} disappeared"))
+            })?;
+            info!("created null device {name} at index {}", link.header.index);
+            return Ok(link.header.index);
+        }
+        Err(Error::Other(
+            "no unused null device name is available".to_string(),
+        ))
+    }
+
+    /// Removes only verified owned null devices, and with them their routes.
+    /// Renames are harmless; a deleted device's replacement is never owned.
+    pub(crate) async fn remove_null_device(&self) -> Result<()> {
+        let mut devices = self.null_devices.lock().await;
+        if devices.is_empty() {
+            return Ok(());
+        }
+        let rtnl = Rtnl::connect()?;
+        while let Some(device) = devices.last_mut() {
+            if let Some(link) = device.find(&rtnl).await? {
+                let index = link.header.index;
+                match rtnl.handle.link().del(index).execute().await {
                     Ok(()) => {}
-                    Err(e) if is_netlink_errno(&e, libc::EEXIST) => {}
+                    Err(e) if is_netlink_errno(&e, libc::ENODEV) => {}
                     Err(e) => {
                         return Err(Error::Other(format!(
-                            "failed to create the null device {NULL_DEVICE}: {e}"
+                            "failed to remove the null device at index {index}: {e}"
                         )))
                     }
                 }
-                interface_index(&name).await?.ok_or_else(|| {
-                    Error::Other(format!("the null device {NULL_DEVICE} did not appear"))
-                })?
+                info!(
+                    "removed owned null device {} at index {index}",
+                    link_name(&link)
+                        .map(|name| name.to_string())
+                        .unwrap_or_default()
+                );
             }
-        };
-        let link = rtnl.get_link(index).await?;
-        if !link_is_dummy(&link) {
-            return Err(Error::Other(format!(
-                "{NULL_DEVICE} exists but is not a dummy device; rename it so that the daemon can create its own"
-            )));
+            devices.pop();
         }
-        if !link_is_up(&link) {
-            rtnl.set_link(LinkUnspec::new_with_index(index).up().build())
-                .await
-                .map_err(|e| {
-                    Error::Other(format!(
-                        "failed to bring the null device {NULL_DEVICE} up: {e}"
-                    ))
-                })?;
-        }
-        Ok(index)
-    }
-
-    /// Removes the null device, and with it its routes. Its absence is fine.
-    pub(crate) async fn remove_null_device() -> Result<()> {
-        let name = L2tpIfName::from_name(NULL_DEVICE).map_err(Error::L2tp)?;
-        let Some(index) = interface_index(&name).await? else {
-            return Ok(());
-        };
-        let rtnl = Rtnl::connect()?;
-        rtnl.handle.link().del(index).execute().await.map_err(|e| {
-            Error::Other(format!(
-                "failed to remove the null device {NULL_DEVICE}: {e}"
-            ))
-        })
+        Ok(())
     }
 
     /// The peer the tunnel is connected to now.
@@ -767,12 +858,15 @@ impl State {
         };
         if !tunnel.connected.load(Ordering::Acquire)
             || binding_changed
+            || previous_remote == IpAddr::V6(TunnelConfig::NO_PEER_ADDR)
             || previous_remote.to_canonical().is_ipv4() != remote_addr.to_canonical().is_ipv4()
         {
             // A dual-stack socket retains its selected source across connect.
-            // Clear it before crossing families or changing devices, restoring
-            // the binding that disconnect clears. Resolve a replacement even
-            // if its link notification has not yet reached the runtime.
+            // Clear it when leaving the discard peer, crossing families or
+            // changing devices, restoring the binding that disconnect clears.
+            // A discard socket may still carry a removed address or the null
+            // device's link-local source. Resolve a replacement even if its
+            // link notification has not yet reached the runtime.
             if let Err(error) = Self::reconnect_tunnel_to(tunnel_id, tunnel, remote_addr).await {
                 // The candidate endpoint is not applied. Preserve the old
                 // connection when possible while the runtime retries it.
@@ -1192,6 +1286,7 @@ mod tests {
         SessionCookies, State,
     };
     use crate::config::{Cookie, HwAddr};
+    use futures_util::TryStreamExt;
     use l2tp::{Encapsulation, IpEndpoint, L2tpIfName, L2tpIfNameExt};
     use std::collections::BTreeMap;
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -2398,7 +2493,7 @@ mod tests {
             "{err}"
         );
         assert!(!State::discard_route_exists(None).await.unwrap());
-        State::route_discard_to_null_device(None).await.unwrap();
+        state.route_discard_to_null_device(None).await.unwrap();
         let index = interface_index(&null).await.unwrap().expect("null device");
         let rtnl = super::Rtnl::connect().unwrap();
         let link = rtnl.get_link(index).await.unwrap();
@@ -2406,7 +2501,7 @@ mod tests {
         assert!(super::link_is_up(&link));
         // Now the host routes it; routing it again is harmless.
         assert!(State::discard_route_exists(None).await.unwrap());
-        State::route_discard_to_null_device(None).await.unwrap();
+        state.route_discard_to_null_device(None).await.unwrap();
         state
             .add_tunnel(id, id + 1, discard, None)
             .await
@@ -2418,7 +2513,37 @@ mod tests {
         assert_eq!(remote, IpEndpoint::v6(TunnelConfig::NO_PEER_ADDR));
         // Without a global address the kernel selects a link-local source,
         // the null device's own: enough to connect, as on an IPv4-only host.
-        assert!(!local.ip().is_unspecified(), "{local}");
+        assert!(
+            matches!(local.ip(), IpAddr::V6(addr) if addr.is_unicast_link_local()),
+            "{local}"
+        );
+
+        // A newly resolved IPv6 peer must select the real underlay's global
+        // source, keeping the socket and Ethernet session created offline.
+        let session_id = id + 4;
+        let session_name = ifname("rsl2tp-nulls");
+        state
+            .add_session(
+                id,
+                session_id,
+                session_id,
+                &session_name,
+                None,
+                SessionCookies::default(),
+            )
+            .await
+            .unwrap();
+        let session_before = session_device(&state, id, session_id).await;
+        let fd = with_socket(&state, id, AsRawFd::as_raw_fd).await;
+        let real_index = add_test_dummy(&rtnl, "rsl2tp-nreal").await;
+        let real_source: IpAddr = "2001:db8:158::1".parse().unwrap();
+        let real_peer: IpAddr = "2001:db8:158::2".parse().unwrap();
+        add_test_address(&rtnl, real_index, real_source).await;
+        state.modify_tunnel(id, real_peer).await.unwrap();
+        assert_kernel_endpoints(&state, id, real_source, real_peer).await;
+        assert_eq!(with_socket(&state, id, AsRawFd::as_raw_fd).await, fd);
+        assert_eq!(session_device(&state, id, session_id).await, session_before);
+        assert_eq!(with_socket(&state, id, socket_bound_interface).await, "");
 
         // A VRF with an unreachable default route, the usual VRF setup,
         // needs the route in its own table.
@@ -2459,7 +2584,8 @@ mod tests {
             .await
             .is_err());
         assert!(!State::discard_route_exists(Some(vrf_index)).await.unwrap());
-        State::route_discard_to_null_device(Some(vrf_index))
+        state
+            .route_discard_to_null_device(Some(vrf_index))
             .await
             .unwrap();
         assert!(State::discard_route_exists(Some(vrf_index)).await.unwrap());
@@ -2470,13 +2596,164 @@ mod tests {
 
         state.delete_tunnel(id).await.unwrap();
         state.delete_tunnel(id + 2).await.unwrap();
-        State::remove_null_device().await.unwrap();
+        assert_interface_deleted(&session_name).await;
+        state.remove_null_device().await.unwrap();
         assert_eq!(interface_index(&null).await.unwrap(), None);
         // Removing it again is fine.
-        State::remove_null_device().await.unwrap();
+        state.remove_null_device().await.unwrap();
         rtnl.handle.link().del(slave_index).execute().await.unwrap();
         rtnl.handle.link().del(vrf_index).execute().await.unwrap();
+        rtnl.handle.link().del(real_index).execute().await.unwrap();
         assert_kernel_tunnel_deleted(&state, id).await;
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy, l2tp_eth and IPv6 L2TP support"]
+    async fn privileged_discard_peer_update_replaces_removed_source() {
+        let rtnl = super::Rtnl::connect().unwrap();
+        let name = "rsl2tp-dsrc";
+        let index = add_test_dummy(&rtnl, name).await;
+        let first: IpAddr = "2001:db8:159::1".parse().unwrap();
+        let replacement: IpAddr = "2001:db8:159::3".parse().unwrap();
+        let peer: IpAddr = "2001:db8:159::2".parse().unwrap();
+        let discard = IpAddr::V6(crate::config::TunnelConfig::NO_PEER_ADDR);
+        let old_address = add_test_address(&rtnl, index, first).await;
+        rtnl.route_to_device(
+            crate::config::TunnelConfig::NO_PEER_ADDR,
+            index,
+            super::RT_TABLE_MAIN,
+        )
+        .await
+        .unwrap();
+        let (state, id) = privileged_state_at(discard, Some(name)).await;
+        let session_id = id + 2;
+        let session_name = ifname("rsl2tp-dsrcs");
+        state
+            .add_session(
+                id,
+                session_id,
+                session_id,
+                &session_name,
+                None,
+                SessionCookies::default(),
+            )
+            .await
+            .unwrap();
+        let session_before = session_device(&state, id, session_id).await;
+        let fd = with_socket(&state, id, AsRawFd::as_raw_fd).await;
+        assert_kernel_endpoints(&state, id, first, discard).await;
+
+        // Offline address notifications deliberately do not reconnect the
+        // placeholder. Updating its peer must discard this stale source.
+        rtnl.handle
+            .address()
+            .del(old_address)
+            .execute()
+            .await
+            .unwrap();
+        add_test_address(&rtnl, index, replacement).await;
+        state.modify_tunnel(id, peer).await.unwrap();
+        assert_kernel_endpoints(&state, id, replacement, peer).await;
+        assert_eq!(with_socket(&state, id, socket_bound_interface).await, name);
+        assert_eq!(state.bound_interface_index(id).await, Some(index));
+        assert_eq!(with_socket(&state, id, AsRawFd::as_raw_fd).await, fd);
+        assert_eq!(session_device(&state, id, session_id).await, session_before);
+
+        state.delete_tunnel(id).await.unwrap();
+        assert_interface_deleted(&session_name).await;
+        assert_kernel_tunnel_deleted(&state, id).await;
+        rtnl.handle.link().del(index).execute().await.unwrap();
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN and dummy support"]
+    async fn privileged_null_device_cleanup_preserves_foreign_devices() {
+        let rtnl = super::Rtnl::connect().unwrap();
+        let state = State::new().await.unwrap();
+        let foreign = add_test_dummy(&rtnl, super::NULL_DEVICE).await;
+        let address: IpAddr = "2001:db8:160::1".parse().unwrap();
+        // The administrative device stays down, with its address.
+        rtnl.set_link(LinkUnspec::new_with_index(foreign).down().build())
+            .await
+            .unwrap();
+        add_test_address(&rtnl, foreign, address).await;
+        let before = rtnl.get_link(foreign).await.unwrap();
+        state.route_discard_to_null_device(None).await.unwrap();
+        let owned = ifname("rsl2tpnull1").index().unwrap();
+        assert_ne!(owned, foreign);
+        assert_eq!(
+            super::link_is_up(&rtnl.get_link(foreign).await.unwrap()),
+            super::link_is_up(&before)
+        );
+        state.route_discard_to_null_device(None).await.unwrap();
+        assert_eq!(ifname("rsl2tpnull1").index().unwrap(), owned);
+
+        // Renaming the owned device does not transfer ownership to a new
+        // device given its old name. Reuse and cleanup still follow its index.
+        super::rename_interface(owned, &ifname("rsl2tp-nowned"))
+            .await
+            .unwrap();
+        let replacement = add_test_dummy(&rtnl, "rsl2tpnull1").await;
+        state.route_discard_to_null_device(None).await.unwrap();
+        assert_eq!(state.null_devices.lock().await.len(), 1);
+        state.remove_null_device().await.unwrap();
+        assert!(rtnl.find_link(owned).await.unwrap().is_none());
+        assert_eq!(ifname("rsl2tpnull1").index().unwrap(), replacement);
+        assert_eq!(ifname(super::NULL_DEVICE).index().unwrap(), foreign);
+        let mut addresses = rtnl
+            .handle
+            .address()
+            .get()
+            .set_link_index_filter(foreign)
+            .execute();
+        let mut found = false;
+        while let Some(message) = addresses.try_next().await.unwrap() {
+            found |= message.attributes.iter().any(|attr| {
+                matches!(attr, rtnetlink::packet_route::address::AddressAttribute::Address(value) if *value == address)
+            });
+        }
+        assert!(found, "foreign address must survive cleanup");
+
+        // A deleted owned link can be replaced before shutdown. The new link
+        // must survive too; reusing the index does not match the creation MAC.
+        state.route_discard_to_null_device(None).await.unwrap();
+        let gone = ifname("rsl2tpnull2").index().unwrap();
+        rtnl.handle.link().del(gone).execute().await.unwrap();
+        rtnl.handle
+            .link()
+            .add(
+                rtnetlink::LinkDummy::new("rsl2tpnull2")
+                    .index(gone)
+                    .up()
+                    .build(),
+            )
+            .execute()
+            .await
+            .unwrap();
+        let replacement2 = ifname("rsl2tpnull2").index().unwrap();
+        assert_eq!(replacement2, gone, "exercise actual interface-index reuse");
+        state.remove_null_device().await.unwrap();
+        assert_eq!(ifname("rsl2tpnull2").index().unwrap(), replacement2);
+
+        // Ownership starts at creation, independently of route installation.
+        let uninstalled = {
+            let mut devices = state.null_devices.lock().await;
+            State::null_device(&rtnl, &mut devices).await.unwrap()
+        };
+        assert!(rtnl
+            .route_to_device(
+                crate::config::TunnelConfig::NO_PEER_ADDR,
+                u32::MAX,
+                super::RT_TABLE_MAIN
+            )
+            .await
+            .is_err());
+        state.remove_null_device().await.unwrap();
+        assert!(rtnl.find_link(uninstalled).await.unwrap().is_none());
+        state.remove_null_device().await.unwrap();
+        for index in [foreign, replacement, replacement2] {
+            rtnl.handle.link().del(index).execute().await.unwrap();
+        }
     }
 
     use rtnetlink::LinkUnspec;

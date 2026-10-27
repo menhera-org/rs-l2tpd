@@ -27,7 +27,7 @@ cargo build --locked --target x86_64-unknown-linux-musl \
     --manifest-path /tmp/rs-l2tpd-baseline/Cargo.toml
 ```
 
-Run all thirteen privileged library tests, substituting an absolute
+Run all fifteen privileged library tests, substituting an absolute
 artifacts directory for `/path/to/artifacts`:
 
 ```sh
@@ -45,7 +45,8 @@ source removal and replacement, disconnect/retry recovery, interface identity
 after rename and name reuse, VRF source selection, session MAC/link state,
 session cookies as reported back by the kernel, the null device routing
 the discard address in the main table and in a VRF table with an
-unreachable default route, and kernel cleanup. IPv4 source verification
+unreachable default route, source reselection after a discard peer, ownership
+checks when cleaning up null devices, and kernel cleanup. IPv4 source verification
 rejects `::ffff:0.0.0.0` as well as the native wildcards.
 
 Run the daemon interoperability matrix:
@@ -162,6 +163,40 @@ VRF routing, and no further retries after recovery.
 
 These are endpoint and lifecycle tests with dummy underlays; packet delivery
 is covered separately by the two-peer interoperability matrix above.
+
+## Discard-peer recovery and device ownership
+
+`discard-recovery.sh` covers native IPv6 recovery from the temporary `100::`
+peer and preservation of interfaces that the daemon does not own. Run it with
+the same test image and a fresh `current` artifact:
+
+```sh
+docker run --rm --network none --cap-add NET_ADMIN --cap-add NET_RAW \
+    --mount type=bind,source=/path/to/artifacts,target=/artifacts,readonly \
+    --mount type=bind,source=/path/to/rs-l2tpd/tests/docker/discard-recovery.sh,target=/opt/discard-recovery.sh,readonly \
+    --entrypoint timeout rs-l2tpd-network-test:local 150 sh /opt/discard-recovery.sh
+```
+
+The four cases check:
+
+- A valid unresolved IPv6 hostname starts with `100::`, its bound interface
+  is renumbered, and the hostname then resolves to a real peer. The selected
+  source must be the replacement address. Resolution uses a container-local
+  `/etc/hosts` update and the normal 30-second DNS refresh, without a reload.
+- A tunnel using the daemon's fallback route to `100::` is reloaded with a
+  real native IPv6 peer. Its source must be selected from the real underlay.
+- A preexisting `rsl2tpnull0` dummy, its address and an administrator-installed
+  route survive daemon startup and shutdown.
+- A daemon-created fallback device is removed and a different device receives
+  the same name. Shutdown preserves the replacement, its address and route.
+
+Both peer-recovery cases require the same tunnel socket, daemon PID, session
+interface index, session IDs and inner interface addresses throughout. The
+ownership checks permit any fallback allocation strategy that preserves the
+unowned devices and their configuration. Each case also checks tunnel and
+session cleanup. Use `--env CASES=dns`, `fallback`, `existing`, or `replacement`
+to run one case. The full run includes the normal fallback grace periods and
+DNS refresh interval; all filesystem and network changes stay in the container.
 
 ## Degraded start
 

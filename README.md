@@ -38,6 +38,13 @@ The daemon reads `/etc/rs-l2tpd.toml`, then every `*.toml` file in
 individual keys. `rs-l2tpd --check` prints the merged result as it would be
 applied and exits with status 1 if it found any problem.
 
+When using the supplied systemd unit on a systemd-based system,
+configuration files under `/home` or `/tmp` are not supported, including
+symlinks that resolve there. The unit uses `ProtectHome=yes` and
+`PrivateTmp=yes`; keep its configuration in `/etc` or another location
+visible inside the unit's sandbox. This restriction does not apply when
+running the daemon without that unit.
+
 ```toml
 [tunnels.uplink]
 tunnel_id = 10
@@ -120,9 +127,14 @@ resorts to creating the null device `rsl2tpnull0`, a `dummy` link that
 drops whatever it transmits, and routing `100::/128` to it in the table
 concerned. Blackhole and unreachable routes cannot serve, as they refuse
 the connection outright, and nothing is ever routed through loopback. The
-null device is created only when needed and removed on shutdown. A literal
-address needs a route when the tunnel is created, as in 0.1.5, so a
-literal peer without one delays readiness.
+null device is created only when needed. If `rsl2tpnull0` is already in
+use, the daemon chooses another unused `rsl2tpnullN` name. Shutdown removes
+only devices created by this daemon whose ownership still matches; existing
+devices and replacements under the same name are left alone. When a tunnel
+gets a real peer, its source is selected again through its configured bind
+device, including when both peers use IPv6. A literal address needs a route
+when the tunnel is created, as in 0.1.5, so a literal peer without one delays
+readiness.
 
 The PID file is published as a fresh inode owned by the daemon user,
 replacing a legacy file atomically. Its directories must be owned by root
@@ -135,6 +147,11 @@ capability-based services with a file in `/run`.
 The daemon depends on no init system and no libc. Privileged kernel and
 daemon tests, including interoperability with 0.1.5, are documented in
 [`tests/docker/README.md`](tests/docker/README.md).
+
+The current `l2tp 0.4.0` dependency requires procfs to be mounted and
+`/proc/thread-self/ns/net` to be accessible at startup, including inside
+chroots and other sandboxes. Supporting operation without procfs again is
+deferred until a new upstream `l2tp 0.4.x` release resolves this requirement.
 
 ## Library
 
