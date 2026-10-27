@@ -12,7 +12,8 @@ for managing them.
 | [Sessions](sessions.md) | Interface identity, child namespaces, MAC preparation and session cookies |
 | [Operation](operation.md) | Readiness, source selection, discard routing, reload and shutdown |
 | [Library](library.md) | Features, asynchronous and blocking services, control handles |
-| [Testing](testing.md) | Compatibility expectations and validation suites |
+| [Testing](testing.md) | Compatibility expectations, validation suites, kernel test pitfalls |
+| [Contracts](contracts.md) | The rules every change must keep, and the tests that guard them |
 
 These pages use relative Markdown links, so navigation works in a checkout
 and on GitHub. The directory can also be used as the `/docs` source for

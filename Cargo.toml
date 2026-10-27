@@ -32,6 +32,7 @@ futures-util = "0.3"
 log = "0.4.29"
 libc = "0.2"
 nix = { version = "0.30", default-features = false, features = ["socket"] }
+socket2 = { version = "0.6", features = ["all"] }
 
 # `serde` feature
 serde = { version = "1", features = ["derive"], optional = true }

@@ -10,8 +10,12 @@ The kernel carries Ethernet pseudowires over IPv4 or IPv6.
   are handled without recreating working session interfaces.
 - Sessions support optional fixed MAC addresses and cookies.
 - Invalid configuration degrades gracefully; usable entries keep running.
+  Peers that cannot be reached yet and identifiers held elsewhere are
+  retried without holding anything else up.
 - [Early startup](docs/operation.md#early-start-contract) lets network readiness
-  depend on daemon-created session interfaces.
+  depend on daemon-created session interfaces, without any route to a peer.
+- Hosts without IPv6, with IPv6 disabled, and routers with large routing
+  tables are supported.
 - The daemon works with any init system and includes a systemd installer.
 
 ## Quick start
@@ -42,6 +46,7 @@ Start with the [documentation index](docs/README.md):
 - [Readiness, reconnection and routing](docs/operation.md)
 - [Library APIs](docs/library.md)
 - [Testing and compatibility](docs/testing.md)
+- [Contracts every change must keep](docs/contracts.md)
 
 Complete container test commands are in the
 [Docker validation guide](tests/docker/README.md).

@@ -165,11 +165,11 @@ fi
 echo 'PASS --check with mistakes'
 
 echo 'CASE readiness waits for every configurable interface'
-# The far peer has no route, so that tunnel cannot be created yet and the
-# parent must not exit: readiness is deferred until every tunnel and
-# session exists. The discard address has no route either: the daemon
-# first waits for the host to get one, then provides one through its null
-# device, as a last resort.
+# The discard address has no route: the daemon first waits for the host to
+# get one, then provides one through its null device, as a last resort.
+# Readiness is deferred until every tunnel and session exists; the far
+# peer, which has no route, does not hold it up: its tunnel is created on
+# the discard address and the peer retried.
 timeout 60 /opt/current --pidfile /run/test.pid > /tmp/daemon.log 2>&1 &
 parent=$!
 sleep 3
@@ -184,12 +184,23 @@ if ip link show rsl2tpnull0 > /dev/null 2>&1; then
     echo "the null device must not be created before the grace period ends" >&2
     exit 1
 fi
-ip -6 route add 2001:db8:2::/64 dev dummy0
 wait "$parent"
 [ -e /run/test.pid ]
 ip link show rsl2tpnull0 > /dev/null
 ip -6 route get 100:: | grep -q 'dev rsl2tpnull0'
 grep -q 'routed the discard address 100:: to a daemon-owned null device for tunnel_id=11' /tmp/daemon.log
+ip l2tp show tunnel | grep -A1 '^Tunnel 13,' | grep -q 'to 100::'
+grep -q 'tunnel_id=13 cannot reach its peer 2001:db8:2::2 yet' /tmp/daemon.log
+far_index=$(ifindex far0)
+# The route appears: the peer is connected within a few retries, in place.
+ip -6 route add 2001:db8:2::/64 dev dummy0
+attempts=0
+until ip l2tp show tunnel | grep -A1 '^Tunnel 13,' | grep -q 'to 2001:db8:2::2'; do
+    attempts=$((attempts + 1))
+    [ "$attempts" -lt 50 ] || { echo 'the far peer was not connected once routable' >&2; cat /tmp/daemon.log >&2; exit 1; }
+    sleep 0.1
+done
+[ "$(ifindex far0)" = "$far_index" ]
 echo 'PASS readiness waits for every configurable interface'
 
 echo 'CASE degraded start'

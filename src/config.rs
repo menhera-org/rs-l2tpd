@@ -27,7 +27,7 @@
 use std::{
     collections::BTreeMap,
     fmt,
-    net::{IpAddr, Ipv6Addr},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
     str::FromStr,
 };
 
@@ -299,7 +299,7 @@ pub(crate) fn is_usable_remote_addr(addr: IpAddr) -> bool {
 /// Which address family a tunnel's remote endpoint is resolved to.
 ///
 /// Serialised as `"V4"`/`"V6"`; `"v4"`/`"v6"` are accepted when reading.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum IpVersion {
     /// IPv4; the tunnel socket uses an IPv4-mapped IPv6 address.
@@ -368,11 +368,11 @@ impl fmt::Display for EntryKind {
 pub enum ProblemEffect {
     /// The entry was left out; a left-out tunnel takes its sessions with it.
     Rejected,
-    /// The tunnel was kept but has no usable peer: it is connected to
-    /// [`TunnelConfig::NO_PEER_ADDR`] until its endpoint is corrected, and
-    /// its sessions are created as usual. Correcting the endpoint, with the
-    /// identifiers and `bind_interface` unchanged, reconnects the tunnel in
-    /// place.
+    /// The tunnel was kept but has no usable peer: it is connected to the
+    /// discard address of its family ([`TunnelConfig::no_peer_addr`]) until
+    /// its endpoint is corrected, and its sessions are created as usual.
+    /// Correcting the endpoint, with the identifiers and `bind_interface`
+    /// unchanged, reconnects the tunnel in place.
     NoPeer,
     /// The session was kept with the hardware address the kernel assigns,
     /// its `interface_hwaddr` being unusable. Correcting it applies the
@@ -398,6 +398,7 @@ pub struct ConfigProblem {
 }
 
 impl ConfigProblem {
+    #[cfg(feature = "serde")]
     fn new(kind: EntryKind, name: &str, effect: ProblemEffect, error: Error) -> Self {
         Self {
             kind,
@@ -545,8 +546,8 @@ impl PartialTunnelConfig {
     }
 
     /// The complete tunnel, with the problem of its endpoint if that had to
-    /// be replaced by [`TunnelConfig::NO_PEER_ADDR`]. Anything else wrong is
-    /// an error.
+    /// be replaced by the discard address of its family
+    /// ([`TunnelConfig::no_peer_addr`]). Anything else wrong is an error.
     fn into_full(self) -> Result<(TunnelConfig, Option<Error>)> {
         let tunnel_id = self
             .tunnel_id
@@ -555,14 +556,11 @@ impl PartialTunnelConfig {
             .bind_interface
             .map(|name| L2tpIfName::from_name(&name).map_err(|e| field_error("bind_interface", e)))
             .transpose()?;
+        let family = Self::family_hint(self.ip_version.as_deref(), self.remote_addr.as_deref());
         let (ip_version, remote_addr, endpoint_problem) =
             match Self::endpoint(self.ip_version, self.remote_addr) {
                 Ok((ip_version, remote_addr)) => (ip_version, remote_addr, None),
-                Err(problem) => (
-                    IpVersion::V6,
-                    IpHost::V6Addr(TunnelConfig::NO_PEER_ADDR),
-                    Some(problem),
-                ),
+                Err(problem) => (family, no_peer_host(family), Some(problem)),
             };
 
         let config = TunnelConfig {
@@ -574,6 +572,21 @@ impl PartialTunnelConfig {
         };
         config.validate()?;
         Ok((config, endpoint_problem))
+    }
+
+    /// The family a tunnel without a usable endpoint is given: the one its
+    /// `ip_version` names, else that of its literal address, else IPv6. So
+    /// an IPv4 tunnel with a mistake stays an IPv4 tunnel, which a host
+    /// without IPv6 can still create.
+    fn family_hint(ip_version: Option<&str>, remote_addr: Option<&str>) -> IpVersion {
+        ip_version
+            .and_then(|text| text.parse().ok())
+            .or_else(|| {
+                remote_addr
+                    .and_then(|text| text.parse::<IpHost>().ok())
+                    .and_then(|host| IpVersion::of_literal(&host))
+            })
+            .unwrap_or(IpVersion::V6)
     }
 
     /// The endpoint, or why it cannot be used.
@@ -598,6 +611,15 @@ impl PartialTunnelConfig {
         };
         TunnelConfig::validate_endpoint(ip_version, &remote_addr)?;
         Ok((ip_version, remote_addr))
+    }
+}
+
+/// The discard address of a family as a literal endpoint.
+#[cfg(feature = "serde")]
+fn no_peer_host(ip_version: IpVersion) -> IpHost {
+    match TunnelConfig::no_peer_addr(ip_version) {
+        IpAddr::V4(addr) => IpHost::V4Addr(addr),
+        IpAddr::V6(addr) => IpHost::V6Addr(addr),
     }
 }
 
@@ -731,8 +753,9 @@ impl Config {
     /// A tunnel whose endpoint cannot be used (`remote_addr` missing or
     /// neither an address nor a host name, `ip_version` invalid or missing
     /// for a host name, a literal address that is not unicast or of the
-    /// other family) is kept with [`TunnelConfig::NO_PEER_ADDR`] as its
-    /// peer, since only connectivity is affected
+    /// other family) is kept with the discard address of its family
+    /// ([`TunnelConfig::no_peer_addr`]) as its peer, since only
+    /// connectivity is affected
     /// ([`ProblemEffect::NoPeer`]). A session whose `interface_hwaddr`
     /// cannot be used is kept with the hardware address the kernel assigns
     /// ([`ProblemEffect::KernelHwAddr`]). Any other problem leaves the
@@ -913,15 +936,17 @@ impl TryFrom<PartialConfig> for Config {
 /// optional `bind_interface`. A literal address of the other family than
 /// an explicit `ip_version`, or one that is not unicast, is an unusable
 /// endpoint: an error here and when deserialising strictly, while a lenient
-/// conversion keeps the tunnel connected to
-/// [`NO_PEER_ADDR`](Self::NO_PEER_ADDR) instead.
+/// conversion keeps the tunnel connected to the discard address of its
+/// family ([`no_peer_addr`](Self::no_peer_addr)) instead.
 ///
 /// A host name is resolved in the background: the tunnel is first
-/// connected to the discard address [`NO_PEER_ADDR`](Self::NO_PEER_ADDR)
-/// and moved to the resolved address once known, so its creation needs an
-/// IPv6 route covering that address (a default route suffices) but no
-/// reachability. A literal address is connected to directly, and creating
-/// the tunnel fails (and is retried) until the kernel has a route to it.
+/// connected to the discard address of its family and moved to the
+/// resolved address once known. A literal address is connected to
+/// directly; while the kernel has no route to it, the tunnel is connected
+/// to the discard address instead and the address is retried. Connecting
+/// to a discard address needs a route covering it (a default route
+/// suffices) but no reachability; the runtime routes it to a null device
+/// of its own on a host that has none.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
@@ -941,13 +966,39 @@ pub struct TunnelConfig {
 }
 
 impl TunnelConfig {
-    /// The discard address `100::`, which a tunnel is connected to while it
-    /// has no usable peer: before a host name resolves, and in place of an
-    /// endpoint a lenient conversion could not use. Frames sent there are
-    /// dropped. Connecting to it needs an IPv6 route that covers it but no
-    /// reachability; the runtime routes it to a null device of its own on
-    /// a host that has none.
+    /// The IPv6 discard address `100::`, which an IPv6 tunnel is connected
+    /// to while it has no usable peer: before a host name resolves, while a
+    /// literal address has no route, and in place of an endpoint a lenient
+    /// conversion could not use. Frames sent there are dropped. Connecting
+    /// to it needs an IPv6 route that covers it but no reachability; the
+    /// runtime routes it to a null device of its own on a host that has
+    /// none. An IPv4 tunnel uses [`NO_PEER_ADDR_V4`](Self::NO_PEER_ADDR_V4)
+    /// instead, so that a host without IPv6 can create it too.
     pub const NO_PEER_ADDR: Ipv6Addr = Ipv6Addr::new(0x0100, 0, 0, 0, 0, 0, 0, 0);
+
+    /// The IPv4 discard address `192.0.0.8`, the IPv4 dummy address of
+    /// RFC 7600, which an IPv4 tunnel is connected to while it has no usable
+    /// peer; see [`NO_PEER_ADDR`](Self::NO_PEER_ADDR). Nothing answers at
+    /// it, and it is never forwarded on the Internet.
+    pub const NO_PEER_ADDR_V4: Ipv4Addr = Ipv4Addr::new(192, 0, 0, 8);
+
+    /// The discard address of a family: [`NO_PEER_ADDR`](Self::NO_PEER_ADDR)
+    /// for IPv6, [`NO_PEER_ADDR_V4`](Self::NO_PEER_ADDR_V4) for IPv4.
+    pub fn no_peer_addr(ip_version: IpVersion) -> IpAddr {
+        match ip_version {
+            IpVersion::V4 => IpAddr::V4(Self::NO_PEER_ADDR_V4),
+            IpVersion::V6 => IpAddr::V6(Self::NO_PEER_ADDR),
+        }
+    }
+
+    /// Whether `addr` is a discard address, of either family. An
+    /// IPv4-mapped IPv6 address is judged as the IPv4 address it carries.
+    pub fn is_no_peer_addr(addr: IpAddr) -> bool {
+        match addr.to_canonical() {
+            IpAddr::V4(addr) => addr == Self::NO_PEER_ADDR_V4,
+            IpAddr::V6(addr) => addr == Self::NO_PEER_ADDR,
+        }
+    }
 
     /// A tunnel whose peer uses the same identifier and whose socket is not
     /// bound to a device. A literal `remote_addr` must be of the
@@ -1287,6 +1338,7 @@ mod tests {
             "::1",
             "127.0.0.1",
             "100::",
+            "192.0.0.8",
             "fe80::1",
             "2001:db8::1",
             "192.0.2.1",
@@ -1312,6 +1364,30 @@ mod tests {
                 TunnelConfig::new(10, IpVersion::V6, "peer.example.org".parse().unwrap()),
             )
             .unwrap();
+    }
+
+    #[test]
+    fn discard_addresses_are_told_apart_by_family() {
+        assert_eq!(
+            TunnelConfig::no_peer_addr(IpVersion::V6),
+            IpAddr::V6(TunnelConfig::NO_PEER_ADDR)
+        );
+        assert_eq!(
+            TunnelConfig::no_peer_addr(IpVersion::V4),
+            IpAddr::V4(TunnelConfig::NO_PEER_ADDR_V4)
+        );
+        for discard in ["100::", "192.0.0.8", "::ffff:192.0.0.8"] {
+            assert!(
+                TunnelConfig::is_no_peer_addr(discard.parse().unwrap()),
+                "{discard}"
+            );
+        }
+        for other in ["100::1", "192.0.0.9", "::ffff:100.0.0.0", "::"] {
+            assert!(
+                !TunnelConfig::is_no_peer_addr(other.parse().unwrap()),
+                "{other}"
+            );
+        }
     }
 
     #[test]
@@ -1916,40 +1992,66 @@ interface_name = \"l2tp2\"
 
         #[test]
         fn unusable_endpoints_keep_the_tunnel_without_a_peer() {
-            let cases: [(&str, &str, &str); 7] = [
+            // The tunnel keeps the family its ip_version names, else that
+            // of its literal address, else IPv6, and gets that family's
+            // discard address as its peer.
+            let cases: [(&str, &str, &str, IpVersion); 9] = [
                 (
                     "remote_addr = \"2001:db8::1\"\n",
                     "",
                     "tunnel tun0: remote_addr is missing",
+                    IpVersion::V6,
                 ),
                 (
                     "\"2001:db8::1\"",
                     "\"not a host!\"",
                     "tunnel tun0: remote_addr \"not a host!\": ",
+                    IpVersion::V6,
                 ),
-                ("\"v6\"", "\"v5\"", "tunnel tun0: invalid ip_version \"v5\""),
+                (
+                    "ip_version = \"v6\"\nremote_addr = \"2001:db8::1\"\n",
+                    "ip_version = \"v4\"\nremote_addr = \"not a host!\"\n",
+                    "tunnel tun0: remote_addr \"not a host!\": ",
+                    IpVersion::V4,
+                ),
+                (
+                    "\"v6\"",
+                    "\"v5\"",
+                    "tunnel tun0: invalid ip_version \"v5\"",
+                    IpVersion::V6,
+                ),
+                (
+                    "ip_version = \"v6\"\nremote_addr = \"2001:db8::1\"\n",
+                    "ip_version = \"v5\"\nremote_addr = \"192.0.2.1\"\n",
+                    "tunnel tun0: invalid ip_version \"v5\"",
+                    IpVersion::V4,
+                ),
                 (
                     "ip_version = \"v6\"\nremote_addr = \"2001:db8::1\"\n",
                     "remote_addr = \"peer.example.org\"\n",
                     "tunnel tun0: ip_version is missing",
+                    IpVersion::V6,
                 ),
                 (
                     "\"2001:db8::1\"",
                     "\"ff02::1\"",
                     "tunnel tun0: remote_addr ff02::1 is not a unicast address",
+                    IpVersion::V6,
                 ),
                 (
                     "\"2001:db8::1\"",
                     "\"192.0.2.1\"",
                     "tunnel tun0: remote_addr 192.0.2.1 is IPv4 but ip_version is IPv6",
+                    IpVersion::V6,
                 ),
                 (
                     "ip_version = \"v6\"\nremote_addr = \"2001:db8::1\"\n",
                     "ip_version = \"v4\"\nremote_addr = \"::\"\n",
                     "tunnel tun0: remote_addr :: is IPv6 but ip_version is IPv4",
+                    IpVersion::V4,
                 ),
             ];
-            for (replace, with, expected) in cases {
+            for (replace, with, expected, family) in cases {
                 let toml = VALID.replace(replace, with);
                 let (config, problems) = partial(&toml).unwrap().into_config_lenient();
                 assert_eq!(problems.len(), 1, "{expected}: {problems:?}");
@@ -1961,12 +2063,12 @@ interface_name = \"l2tp2\"
                     problems[0]
                 );
                 let tunnel = &config.tunnels()["tun0"];
-                assert_eq!(
-                    tunnel.remote_addr(),
-                    &IpHost::V6Addr(TunnelConfig::NO_PEER_ADDR),
-                    "{expected}"
-                );
-                assert_eq!(tunnel.ip_version(), IpVersion::V6);
+                let discard = match family {
+                    IpVersion::V4 => IpHost::V4Addr(TunnelConfig::NO_PEER_ADDR_V4),
+                    IpVersion::V6 => IpHost::V6Addr(TunnelConfig::NO_PEER_ADDR),
+                };
+                assert_eq!(tunnel.remote_addr(), &discard, "{expected}");
+                assert_eq!(tunnel.ip_version(), family, "{expected}");
                 assert_eq!(tunnel.bind_interface(), Some(&ifname("vrf0")));
                 assert_eq!(config.sessions()["sess0"].tunnel_name(), "tun0");
                 // Strictly it is an error like any other.

@@ -5,7 +5,10 @@
 rs-l2tpd runs on Linux and requires kernel L2TPv3 over IP and Ethernet
 pseudowire support. The daemon manages network interfaces and sockets, so
 it needs the corresponding network privileges. It does not require an init
-system; a musl build has no dependency on the host's libc.
+system; a musl build has no dependency on the host's libc. IPv6 need not
+be available: a host without IPv6 addresses, with IPv6 disabled by sysctl
+or booted with `ipv6.disable=1` runs IPv4 tunnels as usual; see
+[binding and source selection](operation.md#binding-and-source-selection).
 
 ## Building
 

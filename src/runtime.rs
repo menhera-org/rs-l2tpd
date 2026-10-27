@@ -10,7 +10,7 @@
 //! its configured interface name afresh, accepting replacements whose index
 //! differs from the previous binding.
 
-use crate::netlink::multicast_connection;
+use crate::netlink::{monitor_filter, multicast_connection};
 use async_trait::async_trait;
 use futures_util::{StreamExt, TryStreamExt};
 use iphost::{AutoIpHostResolver, IpHost, IpHostResolver};
@@ -18,8 +18,9 @@ use l2tp::{L2tpIfName, L2tpIfNameExt};
 use log::{debug, info, warn};
 use rtnetlink::packet_core::NetlinkPayload;
 use rtnetlink::packet_route::{
+    address::{AddressAttribute, AddressMessage},
     link::{LinkAttribute, LinkMessage},
-    route::{RouteAddress, RouteAttribute},
+    route::{RouteAddress, RouteAttribute, RouteMessage},
     AddressFamily, RouteNetlinkMessage,
 };
 use rtnetlink::MulticastGroup;
@@ -38,9 +39,9 @@ use std::sync::Arc;
 use std::sync::RwLock as StdRwLock;
 use std::time::{Duration, Instant};
 
-use crate::config::{is_usable_remote_addr, Config, Cookie, HwAddr, IpVersion};
+use crate::config::{is_usable_remote_addr, Config, Cookie, HwAddr, IpVersion, TunnelConfig};
 use crate::error::{Error, Result};
-use crate::state::{self, HwAddrApply, SessionCookies};
+use crate::state::{self, HwAddrApply, SessionCookies, SessionRename};
 
 pub(crate) type TunnelId = u32;
 pub(crate) type SessionId = u32;
@@ -51,11 +52,55 @@ type DesiredSessionMap = BTreeMap<SessionKey, DesiredSession>;
 
 const DNS_REFRESH_INTERVAL_SECS: u64 = 30;
 const DNS_WATCH_POLL_INTERVAL_SECS: u64 = 1;
-const DISCARD_REMOTE_ADDR: IpAddr = IpAddr::V6(crate::config::TunnelConfig::NO_PEER_ADDR);
-/// How long a host that does not route the discard address is given to
-/// get a route, as it usually does shortly after the daemon starts at
-/// boot, before the null device is created as a last resort.
+/// How long a host that does not route a discard address is given to get
+/// a route, as it usually does shortly after the daemon starts at boot,
+/// before the null device is created as a last resort.
 const DISCARD_ROUTE_GRACE: Duration = Duration::from_secs(10);
+/// The index under which the reconnect retries of unbound tunnels are
+/// queued: never an interface index, which the kernel starts at one.
+const UNBOUND_RETRY_INDEX: u32 = 0;
+/// How many consecutive refusals of an entry's identifiers by the kernel
+/// (`EEXIST`, `EADDRINUSE`) are retried, a second apart, before the entry
+/// is left out until the next reload or the next slow retry. A session
+/// deleted a moment ago can be refused briefly; an identifier held by
+/// another process is refused for good, and must not keep every other
+/// entry from being applied.
+const CONFLICT_RETRIES: u32 = 10;
+/// How often a peer that could not be connected to yet is tried again.
+const PEER_RETRY_INTERVAL: Duration = Duration::from_secs(1);
+/// How often entries left out for a conflict are tried again.
+const CONFLICT_RETRY_INTERVAL: Duration = Duration::from_secs(30);
+
+/// The discard address a tunnel of `ip_version` connects to while it has
+/// no peer.
+fn discard_remote_addr(ip_version: IpVersion) -> IpAddr {
+    TunnelConfig::no_peer_addr(ip_version)
+}
+
+fn is_discard_addr(addr: IpAddr) -> bool {
+    TunnelConfig::is_no_peer_addr(addr)
+}
+
+fn other_family(ip_version: IpVersion) -> IpVersion {
+    match ip_version {
+        IpVersion::V4 => IpVersion::V6,
+        IpVersion::V6 => IpVersion::V4,
+    }
+}
+
+fn family_of(addr: IpAddr) -> IpVersion {
+    match addr.to_canonical() {
+        IpAddr::V4(_) => IpVersion::V4,
+        IpAddr::V6(_) => IpVersion::V6,
+    }
+}
+
+/// An entry whose identifiers the kernel refused.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ConflictKey {
+    Tunnel(TunnelId),
+    Session(SessionKey),
+}
 
 /// Events that drive a [`Runtime`].
 ///
@@ -99,6 +144,22 @@ pub enum ControlEvent {
         /// The family of the changed address.
         ip_version: IpVersion,
     },
+    /// An address was removed from an interface. Tunnels bound to that
+    /// interface or its VRF are refreshed as for any change of that family,
+    /// and so is every unbound tunnel that had selected the address as its
+    /// source: the kernel would keep sending from it otherwise.
+    LocalAddressRemoved {
+        /// The index of the interface the address was removed from.
+        if_index: u32,
+        /// The removed address.
+        address: IpAddr,
+    },
+    /// Try the peers that could not be connected to yet, and the entries
+    /// left out for a conflict, again.
+    PeerRetryRequested,
+    /// The current configuration should be applied again: an entry left
+    /// out earlier may be applicable now.
+    ReconcileRequested,
     /// Retry incomplete reconnects on a bound device. The index identifies
     /// the binding itself, even when a VRF slave caused the original event.
     ReconnectRequested {
@@ -114,8 +175,9 @@ pub enum ControlEvent {
     /// A discard route was removed, or the route monitor needs a resync.
     /// Only fallback routes previously requested by this runtime are restored.
     DiscardRouteChanged,
-    /// The monitor started or lost events; re-read bindings and refresh
-    /// their sources as well as the daemon's own fallback routes.
+    /// The monitor was reopened after losing events, or opened late;
+    /// re-read bindings and refresh every tunnel's source as well as the
+    /// daemon's own fallback routes.
     NetworkResyncRequested,
 }
 
@@ -214,12 +276,14 @@ pub(crate) trait StateOps: Send + Sync {
         hwaddr: Option<&HwAddr>,
         cookies: SessionCookies,
     ) -> Result<HwAddrApply>;
+    /// Renames the session's device, unless it can no longer be proved to
+    /// be the one created.
     async fn modify_session(
         &self,
         tunnel_id: u32,
         session_id: u32,
         ifname: &L2tpIfName,
-    ) -> Result<()>;
+    ) -> Result<SessionRename>;
     /// Applies (or, with `None`, restores) the device's hardware address;
     /// deferred while the device is up.
     async fn set_session_hwaddr(
@@ -233,12 +297,22 @@ pub(crate) trait StateOps: Send + Sync {
     async fn interface_index(&self, name: &L2tpIfName) -> Result<Option<u32>>;
     /// The peer the tunnel is connected to now.
     async fn tunnel_remote_addr(&self, tunnel_id: u32) -> Option<IpAddr>;
-    /// Whether the discard address can be connected to from a socket bound
-    /// to the VRF `vrf` or an unbound one.
-    async fn discard_route_exists(&self, vrf: Option<u32>) -> Result<bool>;
-    /// Routes the discard address to the null device for that context,
-    /// creating the device as needed: the last resort.
-    async fn route_discard_to_null_device(&self, vrf: Option<u32>) -> Result<()>;
+    /// The source address the tunnel selected, canonical; `None` while it
+    /// is not connected.
+    async fn tunnel_local_addr(&self, tunnel_id: u32) -> Option<IpAddr>;
+    /// Whether the tunnel socket is bound to a device, even one the
+    /// configured name no longer identifies.
+    async fn tunnel_is_bound(&self, tunnel_id: u32) -> bool;
+    /// Whether the discard address of `ip_version` can be connected to
+    /// from a socket bound to the VRF `vrf` or an unbound one.
+    async fn discard_route_exists(&self, vrf: Option<u32>, ip_version: IpVersion) -> Result<bool>;
+    /// Routes the discard address of `ip_version` to the null device for
+    /// that context, creating the device as needed: the last resort.
+    async fn route_discard_to_null_device(
+        &self,
+        vrf: Option<u32>,
+        ip_version: IpVersion,
+    ) -> Result<()>;
     /// Restores missing fallback routes in their current routing contexts.
     async fn restore_discard_routes(&self) -> Result<()>;
     /// Removes only null devices created and still owned by this state.
@@ -347,7 +421,7 @@ impl StateOps for state::State {
         tunnel_id: u32,
         session_id: u32,
         ifname: &L2tpIfName,
-    ) -> Result<()> {
+    ) -> Result<SessionRename> {
         state::State::modify_session(self, tunnel_id, session_id, ifname).await
     }
 
@@ -372,12 +446,24 @@ impl StateOps for state::State {
         state::State::tunnel_remote_addr(self, tunnel_id).await
     }
 
-    async fn discard_route_exists(&self, vrf: Option<u32>) -> Result<bool> {
-        state::State::discard_route_exists(vrf).await
+    async fn tunnel_local_addr(&self, tunnel_id: u32) -> Option<IpAddr> {
+        state::State::tunnel_local_addr(self, tunnel_id).await
     }
 
-    async fn route_discard_to_null_device(&self, vrf: Option<u32>) -> Result<()> {
-        state::State::route_discard_to_null_device(self, vrf).await
+    async fn tunnel_is_bound(&self, tunnel_id: u32) -> bool {
+        state::State::tunnel_is_bound(self, tunnel_id).await
+    }
+
+    async fn discard_route_exists(&self, vrf: Option<u32>, ip_version: IpVersion) -> Result<bool> {
+        state::State::discard_route_exists(vrf, ip_version).await
+    }
+
+    async fn route_discard_to_null_device(
+        &self,
+        vrf: Option<u32>,
+        ip_version: IpVersion,
+    ) -> Result<()> {
+        state::State::route_discard_to_null_device(self, vrf, ip_version).await
     }
 
     async fn remove_null_device(&self) -> Result<()> {
@@ -606,13 +692,26 @@ pub struct Runtime {
     reconnect_retries: BTreeMap<u32, JoinHandle<()>>,
     control_tx: mpsc::Sender<ControlEvent>,
     interface_worker: JoinHandle<()>,
-    /// When the discard address was first found unrouted: the grace period
-    /// before the null device is created runs from there.
-    discard_route_wait: Option<Instant>,
-    /// How long to wait for the host to route the discard address itself.
+    /// When a discard address was first found unrouted: the grace period
+    /// before the null device is created runs from there, per family.
+    discard_route_wait: BTreeMap<IpVersion, Instant>,
+    /// How long to wait for the host to route a discard address itself.
     discard_route_grace: Duration,
     /// One retry worker until all previously installed routes are restored.
     discard_route_retry: Option<JoinHandle<()>>,
+    /// Whether the last restoration failed, so that a lasting failure is
+    /// reported once, not every second.
+    discard_route_restore_failing: bool,
+    /// Peers that could not be connected to yet: the tunnel keeps its
+    /// previous connection, or a discard address, meanwhile.
+    pending_peers: BTreeMap<TunnelId, IpAddr>,
+    /// Entries whose identifiers the kernel refused, with the count of
+    /// consecutive refusals; past [`CONFLICT_RETRIES`] they are left out.
+    conflicts: BTreeMap<ConflictKey, u32>,
+    /// The one timer for pending peers and left-out entries.
+    peer_retry: Option<JoinHandle<()>>,
+    /// When left-out entries were last given another reconcile.
+    conflict_retry_due: Option<Instant>,
 }
 
 impl Runtime {
@@ -626,20 +725,7 @@ impl Runtime {
 
     fn with_state_ops(state: Arc<dyn StateOps>, control_tx: mpsc::Sender<ControlEvent>) -> Self {
         let interface_worker = spawn_interface_watcher(control_tx.clone());
-        Self {
-            state,
-            tunnel_specs: BTreeMap::new(),
-            session_specs: BTreeMap::new(),
-            temp_interface_counter: 0,
-            pending_bind_interfaces: BTreeMap::new(),
-            resolvers: BTreeMap::new(),
-            reconnect_retries: BTreeMap::new(),
-            control_tx,
-            interface_worker,
-            discard_route_wait: None,
-            discard_route_grace: DISCARD_ROUTE_GRACE,
-            discard_route_retry: None,
-        }
+        Self::assemble(state, control_tx, interface_worker)
     }
 
     #[cfg(test)]
@@ -648,6 +734,14 @@ impl Runtime {
         control_tx: mpsc::Sender<ControlEvent>,
     ) -> Self {
         let interface_worker = tokio::spawn(async {});
+        Self::assemble(state, control_tx, interface_worker)
+    }
+
+    fn assemble(
+        state: Arc<dyn StateOps>,
+        control_tx: mpsc::Sender<ControlEvent>,
+        interface_worker: JoinHandle<()>,
+    ) -> Self {
         Self {
             state,
             tunnel_specs: BTreeMap::new(),
@@ -658,9 +752,14 @@ impl Runtime {
             reconnect_retries: BTreeMap::new(),
             control_tx,
             interface_worker,
-            discard_route_wait: None,
+            discard_route_wait: BTreeMap::new(),
             discard_route_grace: DISCARD_ROUTE_GRACE,
             discard_route_retry: None,
+            discard_route_restore_failing: false,
+            pending_peers: BTreeMap::new(),
+            conflicts: BTreeMap::new(),
+            peer_retry: None,
+            conflict_retry_due: None,
         }
     }
 
@@ -715,6 +814,10 @@ impl Runtime {
                 .await
         );
 
+        // Tunnels whose identifiers the kernel keeps refusing are left out,
+        // with their sessions, rather than keeping every other entry from
+        // being applied.
+        let mut skipped_tunnels: BTreeSet<TunnelId> = BTreeSet::new();
         for tunnel_id in &tunnel_plan.to_add {
             let desired = desired_tunnels
                 .get(tunnel_id)
@@ -748,56 +851,26 @@ impl Runtime {
                 "adding tunnel_id={} peer_tunnel_id={} remote_addr={}",
                 desired.tunnel_id, desired.peer_tunnel_id, remote_addr
             );
-            let bind_interface = self
-                .bind_interface_for_tunnel_add(desired.tunnel_id, desired.bind_interface.as_ref())
-                .await;
-            if let Err(e) = self
-                .prepare_discard_route(desired.tunnel_id, remote_addr, bind_interface.as_ref())
-                .await
-            {
-                if !applied_tunnel_specs.contains_key(tunnel_id) {
-                    self.resolvers.remove(tunnel_id);
-                }
-                self.tunnel_specs = applied_tunnel_specs;
-                self.session_specs = applied_session_specs;
-                self.pending_bind_interfaces = applied_pending_bind_interfaces;
-                return Err(e);
-            }
-            let mut bound_interface = bind_interface.as_ref();
-            if let Err(e) = self
-                .state
-                .add_tunnel(
-                    desired.tunnel_id,
-                    desired.peer_tunnel_id,
-                    remote_addr,
-                    bind_interface.as_ref(),
-                )
-                .await
-            {
-                if bind_interface.is_some() && is_missing_interface_bind_error(&e) {
-                    warn!(
-                        "bind interface vanished for tunnel_id={} if_name={}; creating unbound socket",
-                        desired.tunnel_id,
-                        desired
-                            .bind_interface
-                            .map(|name| name.to_string_lossy().into_owned())
-                            .unwrap_or_default()
+            match self.create_tunnel(desired, remote_addr).await {
+                Ok(bound_interface) => {
+                    self.conflicts.remove(&ConflictKey::Tunnel(*tunnel_id));
+                    record_tunnel_bind_interface(
+                        &mut applied_pending_bind_interfaces,
+                        desired,
+                        bound_interface.as_ref(),
                     );
-                    if let Err(e) = self
-                        .state
-                        .add_tunnel(desired.tunnel_id, desired.peer_tunnel_id, remote_addr, None)
-                        .await
-                    {
-                        if !applied_tunnel_specs.contains_key(tunnel_id) {
-                            self.resolvers.remove(tunnel_id);
-                        }
-                        self.tunnel_specs = applied_tunnel_specs;
-                        self.session_specs = applied_session_specs;
-                        self.pending_bind_interfaces = applied_pending_bind_interfaces;
-                        return Err(e);
+                    applied_tunnel_specs.insert(*tunnel_id, desired.clone());
+                }
+                Err(e)
+                    if is_conflict_error(&e)
+                        && self.note_conflict(ConflictKey::Tunnel(*tunnel_id), &e) =>
+                {
+                    if !applied_tunnel_specs.contains_key(tunnel_id) {
+                        self.resolvers.remove(tunnel_id);
                     }
-                    bound_interface = None;
-                } else {
+                    skipped_tunnels.insert(*tunnel_id);
+                }
+                Err(e) => {
                     if !applied_tunnel_specs.contains_key(tunnel_id) {
                         self.resolvers.remove(tunnel_id);
                     }
@@ -807,12 +880,6 @@ impl Runtime {
                     return Err(e);
                 }
             }
-            record_tunnel_bind_interface(
-                &mut applied_pending_bind_interfaces,
-                desired,
-                bound_interface,
-            );
-            applied_tunnel_specs.insert(*tunnel_id, desired.clone());
         }
 
         for tunnel_id in &tunnel_plan.to_update {
@@ -837,19 +904,7 @@ impl Runtime {
                 "updating tunnel_id={} remote_addr={}",
                 desired.tunnel_id, remote_addr
             );
-            try_apply!(
-                self.prepare_discard_route(
-                    desired.tunnel_id,
-                    remote_addr,
-                    desired.bind_interface.as_ref(),
-                )
-                .await
-            );
-            try_apply!(
-                self.state
-                    .modify_tunnel(desired.tunnel_id, remote_addr)
-                    .await
-            );
+            try_apply!(self.update_tunnel_peer(desired, remote_addr).await);
 
             let control_tx = self.control_tx.clone();
             let resolver_runtime = self
@@ -898,6 +953,10 @@ impl Runtime {
             .collect();
         reserved_interface_names.extend(desired_sessions.values().map(|s| s.interface_name));
 
+        // A device that can no longer be proved to be the session's is left
+        // alone: the change is skipped, recorded, and reported by the state
+        // once, rather than failing every reconcile.
+        let mut unmanageable_renames: BTreeSet<SessionKey> = BTreeSet::new();
         for (tunnel_id, session_id) in &session_plan.to_modify {
             let temp_ifname = try_apply!(
                 allocate_unused_temp_interface_name(
@@ -911,13 +970,20 @@ impl Runtime {
                 "renaming session interface tunnel_id={} session_id={} to temporary {}",
                 tunnel_id, session_id, temp_ifname
             );
-            try_apply!(
+            match try_apply!(
                 self.state
                     .modify_session(*tunnel_id, *session_id, &temp_ifname)
                     .await
-            );
-            if let Some(applied) = applied_session_specs.get_mut(&(*tunnel_id, *session_id)) {
-                applied.interface_name = temp_ifname;
+            ) {
+                SessionRename::Applied => {
+                    if let Some(applied) = applied_session_specs.get_mut(&(*tunnel_id, *session_id))
+                    {
+                        applied.interface_name = temp_ifname;
+                    }
+                }
+                SessionRename::Unmanageable => {
+                    unmanageable_renames.insert((*tunnel_id, *session_id));
+                }
             }
         }
 
@@ -925,15 +991,30 @@ impl Runtime {
             let desired = desired_sessions
                 .get(&(*tunnel_id, *session_id))
                 .expect("session exists in desired map");
-            info!(
-                "renaming session interface tunnel_id={} session_id={} to {}",
-                tunnel_id, session_id, desired.interface_name
-            );
-            try_apply!(
-                self.state
-                    .modify_session(*tunnel_id, *session_id, &desired.interface_name)
-                    .await
-            );
+            if unmanageable_renames.contains(&(*tunnel_id, *session_id)) {
+                warn!(
+                    "session interface of tunnel_id={} session_id={} keeps its name: it is not renamed to {}",
+                    tunnel_id, session_id, desired.interface_name
+                );
+            } else {
+                info!(
+                    "renaming session interface tunnel_id={} session_id={} to {}",
+                    tunnel_id, session_id, desired.interface_name
+                );
+                if try_apply!(
+                    self.state
+                        .modify_session(*tunnel_id, *session_id, &desired.interface_name)
+                        .await
+                ) == SessionRename::Unmanageable
+                {
+                    warn!(
+                        "session interface of tunnel_id={} session_id={} keeps its temporary name: it is not renamed to {}",
+                        tunnel_id, session_id, desired.interface_name
+                    );
+                }
+            }
+            // Recorded as applied either way, so that the change is not
+            // attempted again until the configuration changes.
             if let Some(applied) = applied_session_specs.get_mut(&(*tunnel_id, *session_id)) {
                 applied.interface_name = desired.interface_name;
             }
@@ -958,6 +1039,12 @@ impl Runtime {
             {
                 Ok(HwAddrApply::Applied) => {}
                 Ok(HwAddrApply::Deferred) => log_deferred_hwaddr(*tunnel_id, *session_id, desired),
+                Ok(HwAddrApply::Unmanageable) => warn!(
+                    "session interface of tunnel_id={} session_id={} keeps its hardware address: {} is not applied",
+                    tunnel_id,
+                    session_id,
+                    describe_hwaddr(desired)
+                ),
                 Err(e) => try_apply!(Err::<(), Error>(e)),
             }
             // Recorded as applied either way: a deferred change is retried
@@ -982,6 +1069,13 @@ impl Runtime {
             let desired = desired_sessions
                 .get(&(*tunnel_id, *session_id))
                 .expect("session exists in desired map");
+            if skipped_tunnels.contains(tunnel_id) {
+                debug!(
+                    "not adding session tunnel_id={} session_id={}: its tunnel is left out",
+                    tunnel_id, session_id
+                );
+                continue;
+            }
             info!(
                 "adding session tunnel_id={} session_id={} interface_name={} {}",
                 tunnel_id,
@@ -1001,25 +1095,43 @@ impl Runtime {
                 )
                 .await
             {
-                Ok(HwAddrApply::Applied) => {}
+                Ok(HwAddrApply::Applied) | Ok(HwAddrApply::Unmanageable) => {}
                 Ok(HwAddrApply::Deferred) => log_deferred_hwaddr(*tunnel_id, *session_id, desired),
+                Err(e)
+                    if is_conflict_error(&e)
+                        && self
+                            .note_conflict(ConflictKey::Session((*tunnel_id, *session_id)), &e) =>
+                {
+                    continue;
+                }
                 Err(e) => try_apply!(Err::<(), Error>(e)),
             }
+            self.conflicts
+                .remove(&ConflictKey::Session((*tunnel_id, *session_id)));
             applied_session_specs.insert((*tunnel_id, *session_id), desired.clone());
         }
 
-        self.tunnel_specs = desired_tunnels;
-        self.session_specs = desired_sessions;
+        // What was applied is the desired configuration minus the entries
+        // left out for a conflict, which the next reconcile tries again.
+        self.tunnel_specs = applied_tunnel_specs;
+        self.session_specs = applied_session_specs;
         self.pending_bind_interfaces = applied_pending_bind_interfaces;
+        self.conflicts.retain(|key, _| match key {
+            ConflictKey::Tunnel(tunnel_id) => desired_tunnels.contains_key(tunnel_id),
+            ConflictKey::Session(key) => desired_sessions.contains_key(key),
+        });
+        self.pending_peers
+            .retain(|tunnel_id, _| desired_tunnels.contains_key(tunnel_id));
+        self.schedule_peer_retry();
         self.handle_interface_change(None).await;
         self.reconnect_disconnected_tunnels().await;
         Ok(())
     }
 
-    /// Repeats the reconnect of every bound tunnel whose last reconnect
-    /// left it disconnected, so that a lost retry event cannot leave a
-    /// tunnel down until the next address change. Connected siblings on the
-    /// same device are left alone.
+    /// Repeats the reconnect of every tunnel whose last reconnect left it
+    /// disconnected, so that a lost retry event cannot leave a tunnel down
+    /// until the next address change. Connected siblings on the same device
+    /// are left alone.
     async fn reconnect_disconnected_tunnels(&mut self) {
         let mut indexes = BTreeSet::new();
         for desired in self.tunnel_specs.values() {
@@ -1035,10 +1147,13 @@ impl Runtime {
         for index in indexes {
             self.reconnect_bound_tunnels(index, None, true).await;
         }
+        self.reconnect_unbound_tunnels(None, true).await;
     }
 
-    /// Applies a tunnel's newly resolved remote address.
-    pub async fn handle_dns_change(&self, tunnel_id: u32) {
+    /// Applies a tunnel's newly resolved remote address. An address that
+    /// cannot be reached yet is kept for retry; the tunnel keeps its current
+    /// peer, or its discard address, meanwhile.
+    pub async fn handle_dns_change(&mut self, tunnel_id: u32) {
         let Some(resolver_runtime) = self.resolvers.get(&tunnel_id) else {
             return;
         };
@@ -1068,19 +1183,31 @@ impl Runtime {
 
         match self.state.modify_tunnel(tunnel_id, remote_addr).await {
             Ok(()) => {
-                resolver_runtime.clear_discard_until_dns();
+                self.peer_outcome(tunnel_id, remote_addr, remote_addr, None);
+                self.peer_applied(tunnel_id);
                 info!(
                     "dns change applied tunnel_id={} remote_addr={}",
                     tunnel_id, remote_addr
                 );
+            }
+            Err(e) if is_unreachable_error(&e) => {
+                let connected = self
+                    .state
+                    .tunnel_remote_addr(tunnel_id)
+                    .await
+                    .unwrap_or(remote_addr);
+                self.peer_outcome(tunnel_id, remote_addr, connected, Some(&e));
+                self.schedule_peer_retry();
             }
             Err(e) => {
                 warn!(
                     "failed to apply dns change tunnel_id={} remote_addr={} error={}",
                     tunnel_id, remote_addr, e
                 );
-                if resolver_runtime.current_remote_addr() == Some(remote_addr) {
-                    resolver_runtime.requeue_dns_change();
+                if let Some(resolver_runtime) = self.resolvers.get(&tunnel_id) {
+                    if resolver_runtime.current_remote_addr() == Some(remote_addr) {
+                        resolver_runtime.requeue_dns_change();
+                    }
                 }
             }
         }
@@ -1098,6 +1225,354 @@ impl Runtime {
         for index in previous.intersection(&self.bound_interface_indexes().await) {
             self.reconnect_bound_tunnels(*index, None, false).await;
         }
+        self.reconnect_unbound_tunnels(None, false).await;
+    }
+
+    /// Reconnects the tunnels that selected the removed `address` as their
+    /// source: those bound to the interface or its VRF as for any address
+    /// change of that family, and the unbound ones by comparing sources.
+    /// The kernel keeps sending from a removed address otherwise.
+    pub async fn handle_local_address_removed(&mut self, if_index: u32, address: IpAddr) {
+        self.handle_address_change(if_index, Some(family_of(address)))
+            .await;
+        self.reconnect_unbound_tunnels(Some(address), false).await;
+    }
+
+    /// Reconnects unbound tunnels (whose socket is not bound to any device)
+    /// for a fresh source selection: all of them, those whose source was
+    /// `removed`, or only those whose last reconnect did not complete. A
+    /// failed reconnect queues one retry for all of them. Tunnels connected
+    /// to a discard address have nothing to reach and are left alone.
+    async fn reconnect_unbound_tunnels(
+        &mut self,
+        removed: Option<IpAddr>,
+        only_disconnected: bool,
+    ) {
+        if removed.is_none() {
+            if let Some(retry) = self.reconnect_retries.remove(&UNBOUND_RETRY_INDEX) {
+                retry.abort();
+            }
+        }
+        let mut retry = false;
+        for desired in self.tunnel_specs.values() {
+            let tunnel_id = desired.tunnel_id;
+            if self.state.tunnel_is_bound(tunnel_id).await {
+                continue;
+            }
+            match self.state.tunnel_remote_addr(tunnel_id).await {
+                Some(remote) if !is_discard_addr(remote) => {}
+                _ => continue,
+            }
+            let connected = self.state.tunnel_is_connected(tunnel_id).await;
+            if only_disconnected && connected {
+                continue;
+            }
+            if let Some(removed) = removed {
+                if connected && self.state.tunnel_local_addr(tunnel_id).await != Some(removed) {
+                    continue;
+                }
+            }
+            match self.state.reconnect_tunnel(tunnel_id).await {
+                Ok(()) => info!(
+                    "reconnected unbound tunnel_id={} {}",
+                    tunnel_id,
+                    match removed {
+                        Some(address) => format!("after its source address {address} was removed"),
+                        None => "for a fresh source selection".to_string(),
+                    }
+                ),
+                Err(e) => {
+                    retry = true;
+                    warn!(
+                        "failed to reconnect unbound tunnel_id={}: {}; will retry",
+                        tunnel_id, e
+                    );
+                }
+            }
+        }
+        if !retry {
+            if let Some(retry) = self.reconnect_retries.remove(&UNBOUND_RETRY_INDEX) {
+                retry.abort();
+            }
+        } else if !self.reconnect_retries.contains_key(&UNBOUND_RETRY_INDEX) {
+            let control_tx = self.control_tx.clone();
+            let retry = tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                let _ = control_tx
+                    .send(ControlEvent::ReconnectRequested {
+                        if_index: UNBOUND_RETRY_INDEX,
+                    })
+                    .await;
+            });
+            self.reconnect_retries.insert(UNBOUND_RETRY_INDEX, retry);
+        }
+    }
+
+    /// Creates the tunnel connected to `remote_addr`, or, when that cannot
+    /// be reached yet, to a discard address, its family's first, with the
+    /// peer remembered for retry. Returns the device the socket is bound to.
+    async fn create_tunnel(
+        &mut self,
+        desired: &DesiredTunnel,
+        remote_addr: IpAddr,
+    ) -> Result<Option<L2tpIfName>> {
+        let bind_interface = self
+            .bind_interface_for_tunnel_add(desired.tunnel_id, desired.bind_interface.as_ref())
+            .await;
+        let mut last_error = None;
+        for candidate in connection_candidates(remote_addr, desired.ip_version) {
+            if is_discard_addr(candidate) {
+                self.prepare_discard_route(desired.tunnel_id, candidate, bind_interface.as_ref())
+                    .await?;
+            }
+            match self
+                .add_tunnel_on(desired, candidate, bind_interface.as_ref())
+                .await
+            {
+                Ok(bound) => {
+                    self.peer_outcome(
+                        desired.tunnel_id,
+                        remote_addr,
+                        candidate,
+                        last_error.as_ref(),
+                    );
+                    return Ok(bound);
+                }
+                Err(error) if is_unreachable_error(&error) => last_error = Some(error),
+                Err(error) => return Err(error),
+            }
+        }
+        Err(last_error.expect("a candidate was tried"))
+    }
+
+    /// Creates the tunnel socket, unbound if its bind device vanished
+    /// between the lookup and the bind.
+    async fn add_tunnel_on(
+        &self,
+        desired: &DesiredTunnel,
+        remote_addr: IpAddr,
+        bind_interface: Option<&L2tpIfName>,
+    ) -> Result<Option<L2tpIfName>> {
+        match self
+            .state
+            .add_tunnel(
+                desired.tunnel_id,
+                desired.peer_tunnel_id,
+                remote_addr,
+                bind_interface,
+            )
+            .await
+        {
+            Ok(()) => Ok(bind_interface.copied()),
+            Err(e) if bind_interface.is_some() && is_missing_interface_bind_error(&e) => {
+                warn!(
+                    "bind interface vanished for tunnel_id={} if_name={}; creating unbound socket",
+                    desired.tunnel_id,
+                    desired
+                        .bind_interface
+                        .map(|name| name.to_string_lossy().into_owned())
+                        .unwrap_or_default()
+                );
+                self.state
+                    .add_tunnel(desired.tunnel_id, desired.peer_tunnel_id, remote_addr, None)
+                    .await?;
+                Ok(None)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    /// Moves an existing tunnel to `remote_addr`. A peer that cannot be
+    /// reached yet is remembered and retried every second; the tunnel is
+    /// connected to a discard address meanwhile, not to the peer the
+    /// configuration no longer names.
+    async fn update_tunnel_peer(
+        &mut self,
+        desired: &DesiredTunnel,
+        remote_addr: IpAddr,
+    ) -> Result<()> {
+        let tunnel_id = desired.tunnel_id;
+        let mut last_error = None;
+        for candidate in connection_candidates(remote_addr, desired.ip_version) {
+            if is_discard_addr(candidate) {
+                self.prepare_discard_route(tunnel_id, candidate, desired.bind_interface.as_ref())
+                    .await?;
+            }
+            match self.state.modify_tunnel(tunnel_id, candidate).await {
+                Ok(()) => {
+                    self.peer_outcome(tunnel_id, remote_addr, candidate, last_error.as_ref());
+                    if candidate == remote_addr {
+                        self.peer_applied(tunnel_id);
+                    }
+                    return Ok(());
+                }
+                Err(error) if is_unreachable_error(&error) => last_error = Some(error),
+                Err(error) => return Err(error),
+            }
+        }
+        if self.state.tunnel_is_connected(tunnel_id).await {
+            let connected = self
+                .state
+                .tunnel_remote_addr(tunnel_id)
+                .await
+                .unwrap_or(remote_addr);
+            self.peer_outcome(tunnel_id, remote_addr, connected, last_error.as_ref());
+            return Ok(());
+        }
+        Err(last_error.expect("a candidate was tried"))
+    }
+
+    /// Connects a tunnel that lost its connection to a discard address.
+    async fn connect_to_discard(&mut self, desired: &DesiredTunnel) -> Result<()> {
+        let mut last_error = None;
+        for candidate in [
+            discard_remote_addr(desired.ip_version),
+            discard_remote_addr(other_family(desired.ip_version)),
+        ] {
+            self.prepare_discard_route(
+                desired.tunnel_id,
+                candidate,
+                desired.bind_interface.as_ref(),
+            )
+            .await?;
+            match self.state.modify_tunnel(desired.tunnel_id, candidate).await {
+                Ok(()) => return Ok(()),
+                Err(error) if is_unreachable_error(&error) => last_error = Some(error),
+                Err(error) => return Err(error),
+            }
+        }
+        Err(last_error.expect("two candidates were tried"))
+    }
+
+    /// Records what a tunnel ended up connected to: its peer, or something
+    /// else while the peer cannot be reached, which is then retried.
+    fn peer_outcome(
+        &mut self,
+        tunnel_id: u32,
+        wanted: IpAddr,
+        connected: IpAddr,
+        error: Option<&Error>,
+    ) {
+        if connected == wanted {
+            if self.pending_peers.remove(&tunnel_id).is_some() {
+                info!("tunnel_id={tunnel_id} reached its peer {wanted}");
+            }
+            return;
+        }
+        if is_discard_addr(wanted) {
+            // Nothing to retry: the next peer comes from the resolver.
+            self.pending_peers.remove(&tunnel_id);
+            if let Some(error) = error {
+                info!(
+                    "tunnel_id={tunnel_id} uses the discard address {connected}: {wanted} cannot be connected to ({error})"
+                );
+            }
+            return;
+        }
+        let reason = error.map_or_else(|| "no route".to_string(), ToString::to_string);
+        if self.pending_peers.insert(tunnel_id, wanted) != Some(wanted) {
+            warn!(
+                "tunnel_id={tunnel_id} cannot reach its peer {wanted} yet ({reason}); connected to {connected} meanwhile, retrying every second"
+            );
+        }
+    }
+
+    /// The tunnel is on the peer its configuration or resolver named.
+    fn peer_applied(&self, tunnel_id: u32) {
+        if let Some(resolver) = self.resolvers.get(&tunnel_id) {
+            resolver.clear_discard_until_dns();
+        }
+    }
+
+    /// Counts a refusal of an entry's identifiers; true once it has been
+    /// refused often enough to be left out for now.
+    fn note_conflict(&mut self, key: ConflictKey, error: &Error) -> bool {
+        let count = self.conflicts.entry(key).or_insert(0);
+        *count = count.saturating_add(1);
+        let count = *count;
+        if count < CONFLICT_RETRIES {
+            return false;
+        }
+        if count == CONFLICT_RETRIES {
+            warn!(
+                "{key}: the kernel refused its identifiers {count} times ({error}); another tunnel or session on this host holds them, so the entry is left out and tried again every {}s and on reload",
+                CONFLICT_RETRY_INTERVAL.as_secs()
+            );
+        } else {
+            debug!("{key} is still refused: {error}");
+        }
+        true
+    }
+
+    /// Whether any entry is left out for a conflict.
+    fn has_lasting_conflicts(&self) -> bool {
+        self.conflicts
+            .values()
+            .any(|count| *count >= CONFLICT_RETRIES)
+    }
+
+    /// Arms the one timer behind [`ControlEvent::PeerRetryRequested`] when
+    /// a peer is pending or an entry is left out.
+    fn schedule_peer_retry(&mut self) {
+        if self
+            .peer_retry
+            .as_ref()
+            .is_some_and(|retry| !retry.is_finished())
+        {
+            return;
+        }
+        let interval = if !self.pending_peers.is_empty() {
+            PEER_RETRY_INTERVAL
+        } else if self.has_lasting_conflicts() {
+            CONFLICT_RETRY_INTERVAL
+        } else {
+            return;
+        };
+        let control_tx = self.control_tx.clone();
+        self.peer_retry = Some(tokio::spawn(async move {
+            tokio::time::sleep(interval).await;
+            let _ = control_tx.send(ControlEvent::PeerRetryRequested).await;
+        }));
+    }
+
+    /// Tries the peers that could not be connected to yet, and asks for a
+    /// reconcile when entries left out for a conflict are due a retry.
+    pub async fn handle_peer_retry(&mut self) {
+        self.peer_retry = None;
+        for (tunnel_id, peer) in self.pending_peers.clone() {
+            let Some(desired) = self.tunnel_specs.get(&tunnel_id).cloned() else {
+                self.pending_peers.remove(&tunnel_id);
+                continue;
+            };
+            match self.state.modify_tunnel(tunnel_id, peer).await {
+                Ok(()) => {
+                    self.peer_outcome(tunnel_id, peer, peer, None);
+                    self.peer_applied(tunnel_id);
+                }
+                Err(error) if is_unreachable_error(&error) => {
+                    debug!("tunnel_id={tunnel_id} still cannot reach {peer}: {error}");
+                    if !self.state.tunnel_is_connected(tunnel_id).await {
+                        if let Err(error) = self.connect_to_discard(&desired).await {
+                            debug!(
+                                "tunnel_id={tunnel_id} cannot be connected to a discard address either: {error}"
+                            );
+                        }
+                    }
+                }
+                Err(error) => {
+                    warn!("failed to connect tunnel_id={tunnel_id} to {peer}: {error}; retrying")
+                }
+            }
+        }
+        if self.has_lasting_conflicts()
+            && self
+                .conflict_retry_due
+                .is_none_or(|last| last.elapsed() >= CONFLICT_RETRY_INTERVAL)
+        {
+            self.conflict_retry_due = Some(Instant::now());
+            let _ = self.control_tx.try_send(ControlEvent::ReconcileRequested);
+        }
+        self.schedule_peer_retry();
     }
 
     /// Binds tunnel sockets whose bind interface was absent, now that an
@@ -1224,7 +1699,7 @@ impl Runtime {
                     key.0,
                     key.1
                 ),
-                Ok(HwAddrApply::Deferred) => {}
+                Ok(HwAddrApply::Deferred) | Ok(HwAddrApply::Unmanageable) => {}
                 Err(e) => warn!(
                     "failed to apply hardware address {} to session interface {} (tunnel_id={} session_id={}): {}; will retry",
                     describe_hwaddr(desired),
@@ -1323,9 +1798,14 @@ impl Runtime {
     }
 
     /// Retries incomplete reconnects on the bound device, without depending
-    /// on the continued existence or VRF membership of the original slave.
+    /// on the continued existence or VRF membership of the original slave;
+    /// index 0 stands for the unbound tunnels.
     pub async fn handle_reconnect_request(&mut self, if_index: u32) {
-        self.reconnect_bound_tunnels(if_index, None, true).await;
+        if if_index == UNBOUND_RETRY_INDEX {
+            self.reconnect_unbound_tunnels(None, true).await;
+        } else {
+            self.reconnect_bound_tunnels(if_index, None, true).await;
+        }
     }
 
     /// Refreshes a VRF after a slave was attached, detached, or removed.
@@ -1373,7 +1853,12 @@ impl Runtime {
             // Preserve the placeholder connection until a peer is available.
             // State::modify_tunnel clears its selected source and resolves
             // the configured bind name before connecting to the real peer.
-            if self.state.tunnel_remote_addr(desired.tunnel_id).await == Some(DISCARD_REMOTE_ADDR) {
+            if self
+                .state
+                .tunnel_remote_addr(desired.tunnel_id)
+                .await
+                .is_some_and(is_discard_addr)
+            {
                 continue;
             }
             let connected = self.state.tunnel_is_connected(desired.tunnel_id).await;
@@ -1440,12 +1925,22 @@ impl Runtime {
     pub async fn handle_discard_route_change(&mut self) {
         match self.state.restore_discard_routes().await {
             Ok(()) => {
+                if self.discard_route_restore_failing {
+                    self.discard_route_restore_failing = false;
+                    info!("discard routes restored");
+                }
                 if let Some(retry) = self.discard_route_retry.take() {
                     retry.abort();
                 }
             }
             Err(e) => {
-                warn!("failed to restore discard routes: {e}; will retry");
+                // Reported once per failure streak; the retry is silent.
+                if !self.discard_route_restore_failing {
+                    self.discard_route_restore_failing = true;
+                    warn!("failed to restore discard routes: {e}; retrying every second");
+                } else {
+                    debug!("failed to restore discard routes: {e}; retrying");
+                }
                 if self.discard_route_retry.is_none() {
                     let control_tx = self.control_tx.clone();
                     self.discard_route_retry = Some(tokio::spawn(async move {
@@ -1472,6 +1967,11 @@ impl Runtime {
         if let Some(retry) = self.discard_route_retry.take() {
             retry.abort();
         }
+        if let Some(retry) = self.peer_retry.take() {
+            retry.abort();
+        }
+        self.pending_peers.clear();
+        self.conflicts.clear();
         let result = self.reconcile(&Config::default()).await;
         // Creation may have succeeded even when installing its route failed.
         // State tracks actual ownership, so cleanup is safe without a prior
@@ -1485,7 +1985,7 @@ impl Runtime {
         result
     }
 
-    /// Makes sure a tunnel about to connect to the discard address, as one
+    /// Makes sure a tunnel about to connect to a discard address, as one
     /// without a peer does, can. The kernel's own route serves when it has
     /// one, in the main table for an unbound socket or the VRF's table for
     /// one bound to a VRF. Without one, the host is first given a grace
@@ -1500,9 +2000,11 @@ impl Runtime {
         remote_addr: IpAddr,
         bind_interface: Option<&L2tpIfName>,
     ) -> Result<()> {
-        if remote_addr != DISCARD_REMOTE_ADDR {
+        if !is_discard_addr(remote_addr) {
             return Ok(());
         }
+        let ip_version = family_of(remote_addr);
+        let discard = discard_remote_addr(ip_version);
         let vrf = match bind_interface {
             Some(name) => match self.state.interface_index(name).await {
                 Ok(Some(index)) => match self.state.interface_is_vrf(index).await {
@@ -1525,9 +2027,9 @@ impl Runtime {
             Some(name) if vrf.is_some() => format!(" in the table of VRF {name}"),
             _ => String::new(),
         };
-        match self.state.discard_route_exists(vrf).await {
+        match self.state.discard_route_exists(vrf, ip_version).await {
             Ok(true) => {
-                self.discard_route_wait = None;
+                self.discard_route_wait.remove(&ip_version);
                 return Ok(());
             }
             Ok(false) => {}
@@ -1535,22 +2037,22 @@ impl Runtime {
                 // Let the connection attempt tell.
                 warn!(
                     "failed to look up the route to the discard address {}{}: {}",
-                    DISCARD_REMOTE_ADDR, context, e
+                    discard, context, e
                 );
                 return Ok(());
             }
         }
-        let waited = match self.discard_route_wait {
+        let waited = match self.discard_route_wait.get(&ip_version) {
             Some(since) => since.elapsed(),
             None => {
                 info!(
                     "no route to the discard address {}{} for tunnel_id={} yet; waiting up to {}s for the host to get one before creating a null device",
-                    DISCARD_REMOTE_ADDR,
+                    discard,
                     context,
                     tunnel_id,
                     self.discard_route_grace.as_secs()
                 );
-                self.discard_route_wait = Some(Instant::now());
+                self.discard_route_wait.insert(ip_version, Instant::now());
                 Duration::ZERO
             }
         };
@@ -1559,22 +2061,26 @@ impl Runtime {
             return Err(Error::Other(format!(
                 "tunnel_id={} has no route to the discard address {}{} yet; a null device will be created in {}s unless one appears",
                 tunnel_id,
-                DISCARD_REMOTE_ADDR,
+                discard,
                 context,
                 left.as_secs() + u64::from(left.subsec_nanos() > 0)
             )));
         }
-        match self.state.route_discard_to_null_device(vrf).await {
+        match self
+            .state
+            .route_discard_to_null_device(vrf, ip_version)
+            .await
+        {
             Ok(()) => {
                 info!(
                     "routed the discard address {} to a daemon-owned null device for tunnel_id={}{}",
-                    DISCARD_REMOTE_ADDR, tunnel_id, context
+                    discard, tunnel_id, context
                 );
-                self.discard_route_wait = None;
+                self.discard_route_wait.remove(&ip_version);
             }
             Err(e) => warn!(
-                "tunnel_id={} has no route to the discard address {}{} and none could be provided: {}; creating it fails until a route exists",
-                tunnel_id, DISCARD_REMOTE_ADDR, context, e
+                "tunnel_id={} has no route to the discard address {}{} and none could be provided: {}; connecting to it fails until a route exists",
+                tunnel_id, discard, context, e
             ),
         }
         Ok(())
@@ -1658,31 +2164,109 @@ impl Drop for Runtime {
         if let Some(retry) = self.discard_route_retry.take() {
             retry.abort();
         }
+        if let Some(retry) = self.peer_retry.take() {
+            retry.abort();
+        }
         for retry in self.reconnect_retries.values() {
             retry.abort();
         }
     }
 }
 
+impl std::fmt::Display for ConflictKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConflictKey::Tunnel(tunnel_id) => write!(f, "tunnel_id={tunnel_id}"),
+            ConflictKey::Session((tunnel_id, session_id)) => {
+                write!(f, "session_id={session_id} in tunnel_id={tunnel_id}")
+            }
+        }
+    }
+}
+
+/// What a tunnel wanting `remote_addr` is connected to, in order of
+/// preference: the address itself, then the discard address of its own
+/// family, then that of the other family, for a host without the first.
+fn connection_candidates(remote_addr: IpAddr, ip_version: IpVersion) -> Vec<IpAddr> {
+    let mut candidates = vec![remote_addr];
+    for candidate in [
+        discard_remote_addr(ip_version),
+        discard_remote_addr(other_family(ip_version)),
+    ] {
+        if !candidates.contains(&candidate) {
+            candidates.push(candidate);
+        }
+    }
+    candidates
+}
+
+/// Whether connecting to a peer failed for want of a way to reach it right
+/// now, which a route, an address or a device appearing later can cure,
+/// as opposed to a refusal by the kernel.
+fn is_unreachable_error(error: &Error) -> bool {
+    match error {
+        Error::L2tp(l2tp::Error::Io(e)) => matches!(
+            e.raw_os_error(),
+            Some(libc::ENETUNREACH)
+                | Some(libc::EHOSTUNREACH)
+                | Some(libc::EADDRNOTAVAIL)
+                | Some(libc::EACCES)
+                | Some(libc::EINVAL)
+                | Some(libc::ENETDOWN)
+                | Some(libc::ENODEV)
+        ),
+        // An IPv6 peer on an AF_INET socket, or a link-local peer without a
+        // device: not until the configuration or the host changes.
+        Error::L2tp(l2tp::Error::AddressFamilyMismatch)
+        | Error::L2tp(l2tp::Error::ScopeRequired(_)) => true,
+        _ => false,
+    }
+}
+
+/// Whether the kernel refused an entry's identifiers as taken.
+fn is_conflict_error(error: &Error) -> bool {
+    match error {
+        Error::L2tp(l2tp::Error::KernelError { code, .. }) => {
+            *code == libc::EEXIST || *code == libc::EADDRINUSE
+        }
+        Error::L2tp(l2tp::Error::Io(e)) => {
+            matches!(
+                e.raw_os_error(),
+                Some(libc::EEXIST) | Some(libc::EADDRINUSE)
+            )
+        }
+        _ => false,
+    }
+}
+
 fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle<()> {
     tokio::spawn(async move {
+        // The first subscription, opened before anything exists, misses
+        // nothing; a reopened one, or a first one that came late, may have.
+        let mut needs_resync = false;
         loop {
             if control_tx.is_closed() {
                 break;
             }
 
+            // Route notifications are the bulk on a router; the kernel-side
+            // filter leaves only the removal of a discard route to read.
+            let filter = monitor_filter();
             let (connection, handle, mut messages) = match multicast_connection(
                 &[
                     MulticastGroup::Link,
                     MulticastGroup::Ipv4Ifaddr,
                     MulticastGroup::Ipv6Ifaddr,
+                    MulticastGroup::Ipv4Route,
                     MulticastGroup::Ipv6Route,
                 ],
                 "rtnetlink event monitor",
+                Some(&filter),
             ) {
                 Ok(parts) => parts,
                 Err(e) => {
                     warn!("failed to open rtnetlink link monitor: {}", e);
+                    needs_resync = true;
                     tokio::time::sleep(Duration::from_secs(1)).await;
                     continue;
                 }
@@ -1697,19 +2281,22 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
                 Err(e) => {
                     warn!("failed to seed rtnetlink controller monitor: {e}; reopening");
                     connection_task.abort();
+                    needs_resync = true;
                     tokio::time::sleep(Duration::from_secs(1)).await;
                     continue;
                 }
             };
 
-            if control_tx
-                .send(ControlEvent::NetworkResyncRequested)
-                .await
-                .is_err()
+            if needs_resync
+                && control_tx
+                    .send(ControlEvent::NetworkResyncRequested)
+                    .await
+                    .is_err()
             {
                 connection_task.abort();
                 break;
             }
+            needs_resync = true;
 
             'messages: while let Some((message, addr)) = messages.next().await {
                 if control_tx.is_closed() {
@@ -1850,32 +2437,72 @@ fn control_event_for_netlink_payload(
                 if_index: link.header.index,
             })
         }
-        NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewAddress(address))
-        | NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelAddress(address)) => {
-            let ip_version = match address.header.family {
-                AddressFamily::Inet => IpVersion::V4,
-                AddressFamily::Inet6 => IpVersion::V6,
-                _ => return None,
-            };
-            Some(ControlEvent::LocalAddressFamilyChanged {
-                if_index: address.header.index,
-                ip_version,
-            })
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewAddress(address)) => {
+            address_family_changed(&address)
+        }
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelAddress(address)) => {
+            match removed_address(&address) {
+                Some(removed) => Some(ControlEvent::LocalAddressRemoved {
+                    if_index: address.header.index,
+                    address: removed,
+                }),
+                None => address_family_changed(&address),
+            }
         }
         NetlinkPayload::Overrun(_) => Some(ControlEvent::NetworkResyncRequested),
         NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelRoute(route))
-            if route.header.address_family == AddressFamily::Inet6
-                && route.header.destination_prefix_length == 128
-                && route.attributes.iter().any(|attr| {
-                    matches!(attr,
-                    RouteAttribute::Destination(RouteAddress::Inet6(address))
-                    if *address == crate::config::TunnelConfig::NO_PEER_ADDR)
-                }) =>
+            if is_discard_route(&route) =>
         {
             Some(ControlEvent::DiscardRouteChanged)
         }
         _ => None,
     }
+}
+
+fn address_family_changed(address: &AddressMessage) -> Option<ControlEvent> {
+    let ip_version = match address.header.family {
+        AddressFamily::Inet => IpVersion::V4,
+        AddressFamily::Inet6 => IpVersion::V6,
+        _ => return None,
+    };
+    Some(ControlEvent::LocalAddressFamilyChanged {
+        if_index: address.header.index,
+        ip_version,
+    })
+}
+
+/// The local address an address notification is about: `IFA_LOCAL` where
+/// the kernel reports one (IPv4, where `IFA_ADDRESS` is the peer of a
+/// point-to-point link), else `IFA_ADDRESS`.
+fn removed_address(address: &AddressMessage) -> Option<IpAddr> {
+    let mut found = None;
+    for attribute in &address.attributes {
+        match attribute {
+            AddressAttribute::Local(local) => return Some(*local),
+            AddressAttribute::Address(addr) => found = Some(*addr),
+            _ => {}
+        }
+    }
+    found
+}
+
+/// Whether the route is a host route to a discard address of either family.
+fn is_discard_route(route: &RouteMessage) -> bool {
+    let host_route = match route.header.address_family {
+        AddressFamily::Inet => route.header.destination_prefix_length == 32,
+        AddressFamily::Inet6 => route.header.destination_prefix_length == 128,
+        _ => false,
+    };
+    host_route
+        && route.attributes.iter().any(|attr| match attr {
+            RouteAttribute::Destination(RouteAddress::Inet(address)) => {
+                *address == TunnelConfig::NO_PEER_ADDR_V4
+            }
+            RouteAttribute::Destination(RouteAddress::Inet6(address)) => {
+                *address == TunnelConfig::NO_PEER_ADDR
+            }
+            _ => false,
+        })
 }
 
 fn describe_hwaddr(desired: &DesiredSession) -> String {
@@ -2080,7 +2707,7 @@ fn tunnel_remote_addr_for_apply(
     }
 
     if matches!(desired.remote_addr, IpHost::Fqdn(_)) {
-        return Ok(DISCARD_REMOTE_ADDR);
+        return Ok(discard_remote_addr(desired.ip_version));
     }
 
     resolve_ip_host_once(&desired.remote_addr, desired.ip_version)
@@ -2184,8 +2811,13 @@ mod tests {
         remote_addr: IpAddr,
         /// Name and index of the bound device, as the real state records.
         bound_interface: Option<(L2tpIfName, u32)>,
+        /// The configured device the socket was last bound to, kept across
+        /// a forgotten binding like the real state's invalid binding.
+        bind_name: Option<L2tpIfName>,
         /// False after a failed reconnect, like the real state's flag.
         connected: bool,
+        /// The source the socket selected, as a test sets it.
+        local_addr: Option<IpAddr>,
     }
 
     #[derive(Debug, Clone)]
@@ -2224,7 +2856,7 @@ mod tests {
         vrf_lookups: u32,
         session_creations: u32,
         session_renames: Vec<(SessionKey, L2tpIfName)>,
-        /// Whether the host lacks a route to the discard address, so that
+        /// Whether the host lacks a route to the discard addresses, so that
         /// the null device is used.
         null_device_needed: bool,
         null_device_present: bool,
@@ -2232,8 +2864,30 @@ mod tests {
         fail_restore_discard_routes: bool,
         tracked_discard_route: bool,
         discard_route_restores: u32,
-        discard_route_calls: Vec<Option<u32>>,
+        discard_route_calls: Vec<(Option<u32>, IpVersion)>,
         null_device_removals: u32,
+        /// Peers, discard addresses included, that connecting to fails with
+        /// ENETUNREACH, as without a route.
+        unreachable: BTreeSet<IpAddr>,
+        /// Tunnels whose identifiers the kernel refuses with EEXIST.
+        conflicting_tunnels: BTreeSet<u32>,
+        /// Sessions whose identifiers the kernel refuses with EEXIST.
+        conflicting_sessions: BTreeSet<SessionKey>,
+        /// Sessions whose device can no longer be proved to be theirs.
+        unmanageable_sessions: BTreeSet<SessionKey>,
+    }
+
+    fn unreachable_error() -> Error {
+        Error::L2tp(l2tp::Error::Io(io::Error::from_raw_os_error(
+            libc::ENETUNREACH,
+        )))
+    }
+
+    fn conflict_error() -> Error {
+        Error::L2tp(l2tp::Error::KernelError {
+            code: libc::EEXIST,
+            message: "File exists".to_string(),
+        })
     }
 
     #[derive(Default)]
@@ -2359,12 +3013,33 @@ mod tests {
                 .map(|s| s.cookies)
         }
 
-        fn discard_route_calls(&self) -> Vec<Option<u32>> {
+        fn discard_route_calls(&self) -> Vec<(Option<u32>, IpVersion)> {
             self.inner
                 .lock()
                 .expect("lock poisoned")
                 .discard_route_calls
                 .clone()
+        }
+
+        fn set_unreachable(&self, addr: IpAddr, unreachable: bool) {
+            let mut inner = self.inner.lock().expect("lock poisoned");
+            if unreachable {
+                inner.unreachable.insert(addr);
+            } else {
+                inner.unreachable.remove(&addr);
+            }
+        }
+
+        fn set_local_addr(&self, tunnel_id: u32, local_addr: Option<IpAddr>) {
+            if let Some(tunnel) = self
+                .inner
+                .lock()
+                .expect("lock poisoned")
+                .tunnels
+                .get_mut(&tunnel_id)
+            {
+                tunnel.local_addr = local_addr;
+            }
         }
 
         fn null_device_removals(&self) -> u32 {
@@ -2449,6 +3124,9 @@ mod tests {
             if inner.tunnels.contains_key(&tunnel_id) {
                 return Err(Error::Other("Duplicate tunnel_id".to_string()));
             }
+            if inner.conflicting_tunnels.contains(&tunnel_id) {
+                return Err(conflict_error());
+            }
             let mut bound_interface = None;
             if let Some(if_name) = if_name {
                 if inner.vanish_bind_interface_for == Some(tunnel_id) {
@@ -2463,12 +3141,17 @@ mod tests {
                 };
                 bound_interface = Some((*if_name, index));
             }
+            if inner.unreachable.contains(&remote_addr) {
+                return Err(unreachable_error());
+            }
             inner.tunnels.insert(
                 tunnel_id,
                 MockTunnel {
                     remote_addr,
                     bound_interface,
+                    bind_name: if_name.copied(),
                     connected: true,
+                    local_addr: None,
                 },
             );
             Ok(())
@@ -2479,11 +3162,16 @@ mod tests {
             if inner.fail_modify_tunnel_for == Some(tunnel_id) {
                 return Err(Error::Other("injected modify_tunnel failure".to_string()));
             }
+            if inner.unreachable.contains(&remote_addr) {
+                // Like the real state: the previous peer stays connected.
+                return Err(unreachable_error());
+            }
             let tunnel = inner
                 .tunnels
                 .get_mut(&tunnel_id)
                 .ok_or_else(|| Error::Other("tunnel not found".to_string()))?;
             tunnel.remote_addr = remote_addr;
+            tunnel.connected = true;
             Ok(())
         }
 
@@ -2544,12 +3232,31 @@ mod tests {
                 .get_mut(&tunnel_id)
                 .ok_or_else(|| Error::Other("tunnel not found".to_string()))?;
             tunnel.bound_interface = Some((*if_name, index));
+            tunnel.bind_name = Some(*if_name);
             Ok(())
         }
 
         async fn bound_interface_index(&self, tunnel_id: u32) -> Option<u32> {
             self.tunnel_bound_interface(tunnel_id)
                 .map(|(_, index)| index)
+        }
+
+        async fn tunnel_local_addr(&self, tunnel_id: u32) -> Option<IpAddr> {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .tunnels
+                .get(&tunnel_id)
+                .and_then(|tunnel| tunnel.local_addr)
+        }
+
+        async fn tunnel_is_bound(&self, tunnel_id: u32) -> bool {
+            self.inner
+                .lock()
+                .expect("lock poisoned")
+                .tunnels
+                .get(&tunnel_id)
+                .is_some_and(|tunnel| tunnel.bind_name.is_some())
         }
 
         async fn forget_tunnel_binding(&self, tunnel_id: u32) {
@@ -2651,6 +3358,12 @@ mod tests {
             if inner.fail_add_session_for == Some((tunnel_id, session_id)) {
                 return Err(Error::Other("injected add_session failure".to_string()));
             }
+            if inner
+                .conflicting_sessions
+                .contains(&(tunnel_id, session_id))
+            {
+                return Err(conflict_error());
+            }
             if inner.sessions.contains_key(&(tunnel_id, session_id)) {
                 return Err(Error::Other("session exists".to_string()));
             }
@@ -2682,7 +3395,7 @@ mod tests {
             tunnel_id: u32,
             session_id: u32,
             ifname: &L2tpIfName,
-        ) -> Result<()> {
+        ) -> Result<SessionRename> {
             let mut inner = self.inner.lock().expect("lock poisoned");
             if !inner.sessions.contains_key(&(tunnel_id, session_id)) {
                 return Err(Error::Other(format!(
@@ -2690,13 +3403,19 @@ mod tests {
                     session_id, tunnel_id
                 )));
             }
+            if inner
+                .unmanageable_sessions
+                .contains(&(tunnel_id, session_id))
+            {
+                return Ok(SessionRename::Unmanageable);
+            }
             let current_ifname = inner
                 .sessions
                 .get(&(tunnel_id, session_id))
                 .expect("session exists")
                 .interface_name;
             if current_ifname == *ifname {
-                return Ok(());
+                return Ok(SessionRename::Applied);
             }
             if inner.interfaces.contains_key(ifname)
                 || inner.sessions.iter().any(|(key, session)| {
@@ -2713,7 +3432,7 @@ mod tests {
             inner
                 .session_renames
                 .push(((tunnel_id, session_id), *ifname));
-            Ok(())
+            Ok(SessionRename::Applied)
         }
 
         async fn set_session_hwaddr(
@@ -2732,6 +3451,10 @@ mod tests {
             }
             // Like the real state: pending until the address is in place.
             inner.pending_hwaddr.insert(key);
+            if inner.unmanageable_sessions.contains(&key) {
+                inner.pending_hwaddr.remove(&key);
+                return Ok(HwAddrApply::Unmanageable);
+            }
             if inner.fail_set_hwaddr_for == Some(key) {
                 return Err(Error::Other(
                     "injected set_session_hwaddr failure".to_string(),
@@ -2764,21 +3487,30 @@ mod tests {
             MockState::tunnel_remote_addr(self, tunnel_id)
         }
 
-        async fn discard_route_exists(&self, vrf: Option<u32>) -> Result<bool> {
+        async fn discard_route_exists(
+            &self,
+            vrf: Option<u32>,
+            ip_version: IpVersion,
+        ) -> Result<bool> {
             let inner = self.inner.lock().expect("lock poisoned");
             // Like the kernel: routed once the null device serves it.
             Ok(!inner.null_device_needed
-                || (inner.null_device_present && inner.discard_route_calls.contains(&vrf)))
+                || (inner.null_device_present
+                    && inner.discard_route_calls.contains(&(vrf, ip_version))))
         }
 
-        async fn route_discard_to_null_device(&self, vrf: Option<u32>) -> Result<()> {
+        async fn route_discard_to_null_device(
+            &self,
+            vrf: Option<u32>,
+            ip_version: IpVersion,
+        ) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
             inner.null_device_present = true;
             inner.tracked_discard_route = true;
             if inner.fail_discard_route {
                 return Err(Error::Other("injected route installation failure".into()));
             }
-            inner.discard_route_calls.push(vrf);
+            inner.discard_route_calls.push((vrf, ip_version));
             Ok(())
         }
 
@@ -3477,7 +4209,11 @@ mod tests {
             .await
             .expect("reconcile should succeed");
 
-        assert_eq!(mock.tunnel_remote_addr(10), Some(DISCARD_REMOTE_ADDR));
+        assert_eq!(
+            mock.tunnel_remote_addr(10),
+            Some(discard_remote_addr(IpVersion::V6))
+        );
+        assert!(runtime.pending_peers.is_empty());
     }
 
     #[tokio::test]
@@ -4343,11 +5079,12 @@ mod tests {
         );
         runtime.reconcile(&fqdn).await.expect("fqdn reconcile");
 
-        assert_eq!(mock.tunnel_remote_addr(10), Some(DISCARD_REMOTE_ADDR));
+        let discard = discard_remote_addr(IpVersion::V6);
+        assert_eq!(mock.tunnel_remote_addr(10), Some(discard));
         runtime.handle_dns_change(10).await;
         assert_eq!(
             mock.tunnel_remote_addr(10),
-            Some(DISCARD_REMOTE_ADDR),
+            Some(discard),
             "a stale DNS event must not restore the previous literal endpoint"
         );
     }
@@ -4737,7 +5474,7 @@ mod tests {
 
         let cfg = test_config(
             vec![
-                ("literal", 10, 10, IpVersion::V4, literal.clone(), None),
+                ("literal", 10, 10, IpVersion::V4, literal, None),
                 ("name", 11, 11, IpVersion::V6, name.clone(), None),
                 (
                     "name-vrf",
@@ -4763,10 +5500,15 @@ mod tests {
         // Tunnels by identifier: the literal one needs nothing; the host
         // name gets the main table routed, which then also serves the
         // no-peer literal; the VRF-bound one gets its VRF's table routed.
-        assert_eq!(mock.discard_route_calls(), vec![None, Some(vrf)]);
+        let discard = discard_remote_addr(IpVersion::V6);
+        assert_eq!(
+            mock.discard_route_calls(),
+            vec![(None, IpVersion::V6), (Some(vrf), IpVersion::V6)]
+        );
         assert!(mock.inner.lock().unwrap().null_device_present);
-        assert_eq!(mock.tunnel_remote_addr(11), Some(DISCARD_REMOTE_ADDR));
-        assert_eq!(mock.tunnel_remote_addr(13), Some(DISCARD_REMOTE_ADDR));
+        assert_eq!(mock.tunnel_remote_addr(11), Some(discard));
+        assert_eq!(mock.tunnel_remote_addr(13), Some(discard));
+        assert!(runtime.pending_peers.is_empty());
 
         // An unchanged reload prepares nothing again.
         runtime.reconcile(&cfg).await.unwrap();
@@ -4791,8 +5533,11 @@ mod tests {
         );
         runtime.reconcile(&changed).await.unwrap();
         // The main table is routed already.
-        assert_eq!(mock.discard_route_calls(), vec![None, Some(vrf)]);
-        assert_eq!(mock.tunnel_remote_addr(10), Some(DISCARD_REMOTE_ADDR));
+        assert_eq!(
+            mock.discard_route_calls(),
+            vec![(None, IpVersion::V6), (Some(vrf), IpVersion::V6)]
+        );
+        assert_eq!(mock.tunnel_remote_addr(10), Some(discard));
 
         // Shutdown removes the null device once it was used.
         runtime.shutdown().await.unwrap();
@@ -4860,13 +5605,13 @@ mod tests {
         );
         assert!(mock.discard_route_calls().is_empty());
         assert!(!mock.has_tunnel(11).await);
-        assert!(runtime.discard_route_wait.is_some());
+        assert!(runtime.discard_route_wait.contains_key(&IpVersion::V6));
         // The host gets a route in time: no device is ever created.
         mock.inner.lock().unwrap().null_device_needed = false;
         runtime.reconcile(&cfg).await.unwrap();
         assert!(mock.has_tunnel(11).await);
         assert!(mock.discard_route_calls().is_empty());
-        assert!(runtime.discard_route_wait.is_none());
+        assert!(runtime.discard_route_wait.is_empty());
         assert!(!mock.inner.lock().unwrap().null_device_present);
         runtime.shutdown().await.unwrap();
         assert_eq!(mock.null_device_removals(), 0);
@@ -4880,10 +5625,466 @@ mod tests {
         assert!(mock.discard_route_calls().is_empty());
         runtime.discard_route_grace = Duration::ZERO;
         runtime.reconcile(&cfg).await.unwrap();
-        assert_eq!(mock.discard_route_calls(), vec![None]);
+        assert_eq!(mock.discard_route_calls(), vec![(None, IpVersion::V6)]);
         assert!(mock.inner.lock().unwrap().null_device_present);
-        assert!(runtime.discard_route_wait.is_none());
+        assert!(runtime.discard_route_wait.is_empty());
         assert!(mock.has_tunnel(11).await);
+    }
+
+    #[tokio::test]
+    async fn discard_address_falls_back_to_the_other_family() {
+        // A host without IPv6 cannot connect to 100:: at all: an IPv6 host
+        // name's tunnel then uses the IPv4 discard address, so that its
+        // sessions exist, and an IPv4 host name's tunnel needs no IPv6.
+        let mock = Arc::new(MockState::default());
+        mock.set_unreachable(discard_remote_addr(IpVersion::V6), true);
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        let cfg = test_config(
+            vec![
+                (
+                    "v6",
+                    11,
+                    11,
+                    IpVersion::V6,
+                    "peer.invalid".parse().unwrap(),
+                    None,
+                ),
+                (
+                    "v4",
+                    12,
+                    12,
+                    IpVersion::V4,
+                    "peer.invalid".parse().unwrap(),
+                    None,
+                ),
+            ],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(
+            mock.tunnel_remote_addr(11),
+            Some(discard_remote_addr(IpVersion::V4))
+        );
+        assert_eq!(
+            mock.tunnel_remote_addr(12),
+            Some(discard_remote_addr(IpVersion::V4))
+        );
+        // Nothing to retry: the resolver supplies the next peer.
+        assert!(runtime.pending_peers.is_empty());
+        assert!(runtime.peer_retry.is_none());
+
+        // The IPv6 answer cannot be connected to either; the tunnel keeps
+        // its discard address and the answer is retried, not requeued as
+        // a DNS change every second.
+        let answer: IpAddr = "2001:db8::2".parse().unwrap();
+        mock.set_unreachable(answer, true);
+        set_cached_resolver_answer(&runtime.resolvers[&11], "2001:db8::2".parse().unwrap());
+        runtime.handle_dns_change(11).await;
+        assert_eq!(
+            mock.tunnel_remote_addr(11),
+            Some(discard_remote_addr(IpVersion::V4))
+        );
+        assert_eq!(runtime.pending_peers.get(&11), Some(&answer));
+        assert!(!runtime.resolvers[&11]
+            .dns_event_pending
+            .load(Ordering::Acquire));
+        mock.set_unreachable(answer, false);
+        runtime.handle_peer_retry().await;
+        assert_eq!(mock.tunnel_remote_addr(11), Some(answer));
+        assert!(runtime.pending_peers.is_empty());
+    }
+
+    #[tokio::test]
+    async fn unroutable_literal_peer_gets_a_discard_address_and_is_retried() {
+        let mock = Arc::new(MockState::default());
+        let peer: IpAddr = "192.0.2.9".parse().unwrap();
+        mock.set_unreachable(peer, true);
+        let (tx, mut rx) = mpsc::channel(16);
+        let mut runtime = Runtime::new_with_state_ops(mock.clone(), tx);
+        let cfg = test_config(
+            vec![(
+                "far",
+                10,
+                10,
+                IpVersion::V4,
+                IpHost::V4Addr("192.0.2.9".parse().unwrap()),
+                None,
+            )],
+            vec![("lan", "far", 100, 100, "l2tp0", None)],
+        );
+        // Readiness does not wait for the route: the tunnel and its session
+        // exist, on the family's discard address, and the peer is pending.
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(
+            mock.tunnel_remote_addr(10),
+            Some(discard_remote_addr(IpVersion::V4))
+        );
+        assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp0")));
+        assert_eq!(runtime.pending_peers.get(&10), Some(&peer));
+        let event = tokio::time::timeout(Duration::from_secs(3), rx.recv())
+            .await
+            .expect("a retry is scheduled")
+            .unwrap();
+        assert!(matches!(event, ControlEvent::PeerRetryRequested));
+
+        // Still unroutable: the discard address stays, the retry goes on.
+        runtime.handle_peer_retry().await;
+        assert_eq!(
+            mock.tunnel_remote_addr(10),
+            Some(discard_remote_addr(IpVersion::V4))
+        );
+        assert!(runtime.peer_retry.is_some());
+        // An unchanged reload changes nothing about that.
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(runtime.pending_peers.get(&10), Some(&peer));
+
+        // A route appears: the next retry connects the peer, in place.
+        mock.set_unreachable(peer, false);
+        runtime.handle_peer_retry().await;
+        assert_eq!(mock.tunnel_remote_addr(10), Some(peer));
+        assert!(runtime.pending_peers.is_empty());
+        assert_eq!(mock.session_creations(), 1);
+        let _ = tokio::time::timeout(Duration::from_secs(2), rx.recv()).await;
+        runtime.handle_peer_retry().await;
+        assert!(runtime.peer_retry.is_none());
+    }
+
+    #[tokio::test]
+    async fn a_peer_update_to_an_unroutable_address_uses_a_discard_address_meanwhile() {
+        let mock = Arc::new(MockState::default());
+        let old_peer: IpAddr = "2001:db8::1".parse().unwrap();
+        let new_peer: IpAddr = "2001:db8::2".parse().unwrap();
+        mock.set_unreachable(new_peer, true);
+        let mut runtime = runtime_with_mock_state(Arc::clone(&mock));
+        let tunnel = |peer: &str| {
+            (
+                "tun0",
+                10,
+                10,
+                IpVersion::V6,
+                peer.parse::<IpHost>().unwrap(),
+                None,
+            )
+        };
+        runtime
+            .reconcile(&test_config(vec![tunnel("2001:db8::1")], vec![]))
+            .await
+            .unwrap();
+        // The old peer is no longer configured: frames go nowhere until the
+        // new one can be reached, and the tunnel and its sessions stay.
+        let updated = test_config(vec![tunnel("2001:db8::2")], vec![]);
+        runtime.reconcile(&updated).await.unwrap();
+        assert_eq!(
+            mock.tunnel_remote_addr(10),
+            Some(discard_remote_addr(IpVersion::V6))
+        );
+        assert_eq!(runtime.pending_peers.get(&10), Some(&new_peer));
+        assert_eq!(
+            runtime.tunnel_specs[&10].remote_addr,
+            IpHost::V6Addr("2001:db8::2".parse().unwrap())
+        );
+        mock.set_unreachable(new_peer, false);
+        runtime.handle_peer_retry().await;
+        assert_eq!(mock.tunnel_remote_addr(10), Some(new_peer));
+        assert!(runtime.pending_peers.is_empty());
+
+        // Removing the tunnel forgets its pending peer.
+        mock.set_unreachable(old_peer, true);
+        runtime
+            .reconcile(&test_config(vec![tunnel("2001:db8::1")], vec![]))
+            .await
+            .unwrap();
+        assert_eq!(runtime.pending_peers.get(&10), Some(&old_peer));
+        runtime.reconcile(&Config::new()).await.unwrap();
+        assert!(runtime.pending_peers.is_empty());
+    }
+
+    #[tokio::test]
+    async fn refused_identifiers_are_retried_then_left_out_until_a_retry_succeeds() {
+        let mock = Arc::new(MockState::default());
+        mock.inner
+            .lock()
+            .unwrap()
+            .conflicting_sessions
+            .insert((10, 101));
+        let (tx, _rx) = mpsc::channel(16);
+        let mut runtime = Runtime::new_with_state_ops(mock.clone(), tx);
+        let tunnel = (
+            "tun0",
+            10,
+            10,
+            IpVersion::V6,
+            IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+            None,
+        );
+        let cfg = test_config(
+            vec![tunnel.clone()],
+            vec![
+                ("first", "tun0", 100, 100, "l2tp0", None),
+                ("taken", "tun0", 101, 101, "l2tp1", None),
+                ("third", "tun0", 102, 102, "l2tp2", None),
+            ],
+        );
+        // A refusal is retried a bounded number of times, as after a
+        // deletion the kernel has not finished yet...
+        for _ in 1..CONFLICT_RETRIES {
+            assert!(runtime.reconcile(&cfg).await.is_err());
+            assert!(mock.session_name(10, 102).is_none());
+        }
+        // ...then the entry is left out and everything else applied.
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp0")));
+        assert_eq!(mock.session_name(10, 102), Some(ifname("l2tp2")));
+        assert!(mock.session_name(10, 101).is_none());
+        assert!(!runtime.session_specs.contains_key(&(10, 101)));
+        assert!(runtime.has_lasting_conflicts());
+        assert!(runtime.peer_retry.is_some());
+        // Still refused: still left out, quietly.
+        runtime.reconcile(&cfg).await.unwrap();
+        assert!(mock.session_name(10, 101).is_none());
+        // Once the identifiers are free, the next reconcile creates it.
+        mock.inner.lock().unwrap().conflicting_sessions.clear();
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(mock.session_name(10, 101), Some(ifname("l2tp1")));
+        assert!(runtime.conflicts.is_empty());
+
+        // A tunnel whose identifiers are taken takes its sessions with it,
+        // and nothing else.
+        runtime.shutdown().await.unwrap();
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        mock.inner.lock().unwrap().conflicting_tunnels.insert(11);
+        let cfg = test_config(
+            vec![
+                tunnel,
+                (
+                    "taken",
+                    11,
+                    11,
+                    IpVersion::V6,
+                    IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+                    None,
+                ),
+            ],
+            vec![
+                ("first", "tun0", 100, 100, "l2tp0", None),
+                ("on-taken", "taken", 103, 103, "l2tp3", None),
+            ],
+        );
+        for _ in 1..CONFLICT_RETRIES {
+            assert!(runtime.reconcile(&cfg).await.is_err());
+        }
+        runtime.reconcile(&cfg).await.unwrap();
+        assert!(mock.has_tunnel(10).await);
+        assert!(!mock.has_tunnel(11).await);
+        assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp0")));
+        assert!(mock.session_name(11, 103).is_none());
+        assert!(!runtime.tunnel_specs.contains_key(&11));
+        assert!(!runtime.resolvers.contains_key(&11));
+        mock.inner.lock().unwrap().conflicting_tunnels.clear();
+        runtime.reconcile(&cfg).await.unwrap();
+        assert!(mock.has_tunnel(11).await);
+        assert_eq!(mock.session_name(11, 103), Some(ifname("l2tp3")));
+        assert!(runtime.conflicts.is_empty());
+    }
+
+    #[tokio::test]
+    async fn unmanageable_sessions_do_not_keep_other_changes_from_being_applied() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        let tunnel = (
+            "tun0",
+            10,
+            10,
+            IpVersion::V6,
+            IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+            None,
+        );
+        let initial = test_config(
+            vec![tunnel.clone()],
+            vec![("lan", "tun0", 100, 100, "l2tp0", None)],
+        );
+        runtime.reconcile(&initial).await.unwrap();
+        mock.inner
+            .lock()
+            .unwrap()
+            .unmanageable_sessions
+            .insert((10, 100));
+
+        // Its rename and address change are skipped; the new session is
+        // created all the same, and nothing is retried every second.
+        let changed = test_config(
+            vec![tunnel],
+            vec![
+                ("lan", "tun0", 100, 100, "l2tp9", Some("02:00:5e:00:53:01")),
+                ("other", "tun0", 101, 101, "l2tp1", None),
+            ],
+        );
+        runtime.reconcile(&changed).await.unwrap();
+        assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp0")));
+        assert_eq!(mock.session_hwaddr(10, 100), None);
+        assert!(!mock.session_hwaddr_pending(10, 100).await);
+        assert_eq!(mock.session_name(10, 101), Some(ifname("l2tp1")));
+        assert_eq!(
+            runtime.session_specs[&(10, 100)].interface_name,
+            ifname("l2tp9")
+        );
+        assert!(mock.inner.lock().unwrap().session_renames.is_empty());
+        assert_eq!(mock.hwaddr_sets(), 0);
+        runtime.reconcile(&changed).await.unwrap();
+        assert!(mock.inner.lock().unwrap().session_renames.is_empty());
+    }
+
+    #[tokio::test]
+    async fn removed_source_addresses_reconnect_the_unbound_tunnels_using_them() {
+        let mock = Arc::new(MockState::default());
+        let underlay = mock.add_interface("underlay0");
+        let (control_tx, mut control_rx) = mpsc::channel(32);
+        let mut runtime = Runtime::new_with_state_ops(mock.clone(), control_tx);
+        let cfg = test_config(
+            vec![
+                (
+                    "unbound",
+                    10,
+                    10,
+                    IpVersion::V6,
+                    "2001:db8::2".parse().unwrap(),
+                    None,
+                ),
+                (
+                    "other",
+                    11,
+                    11,
+                    IpVersion::V4,
+                    "192.0.2.2".parse().unwrap(),
+                    None,
+                ),
+                (
+                    "bound",
+                    12,
+                    12,
+                    IpVersion::V6,
+                    "2001:db8::2".parse().unwrap(),
+                    Some("underlay0"),
+                ),
+                (
+                    "name",
+                    13,
+                    13,
+                    IpVersion::V6,
+                    "peer.invalid".parse().unwrap(),
+                    None,
+                ),
+            ],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+        let source: IpAddr = "2001:db8::1".parse().unwrap();
+        mock.set_local_addr(10, Some(source));
+        mock.set_local_addr(11, Some("192.0.2.1".parse().unwrap()));
+        mock.set_local_addr(12, Some(source));
+
+        // Another address going: nothing to do for the unbound tunnels.
+        runtime
+            .handle_local_address_removed(underlay, "2001:db8::9".parse().unwrap())
+            .await;
+        assert_eq!(mock.reconnect_count(10), 0);
+        assert_eq!(mock.reconnect_count(11), 0);
+        // The bound tunnel is refreshed for any change on its device.
+        assert_eq!(mock.reconnect_count(12), 1);
+
+        // The source itself going: the unbound tunnel using it reconnects,
+        // whichever interface the address was on; the discard one does not.
+        runtime
+            .handle_local_address_removed(underlay + 7, source)
+            .await;
+        assert_eq!(mock.reconnect_count(10), 1);
+        assert_eq!(mock.reconnect_count(11), 0);
+        assert_eq!(mock.reconnect_count(12), 1);
+        assert_eq!(mock.reconnect_count(13), 0);
+        assert!(runtime.reconnect_retries.is_empty());
+
+        // A failed reconnect is retried, under the index of no interface.
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = Some(10);
+        runtime
+            .handle_local_address_removed(underlay + 7, source)
+            .await;
+        assert_eq!(mock.reconnect_count(10), 2);
+        assert!(runtime.reconnect_retries.contains_key(&UNBOUND_RETRY_INDEX));
+        let event = tokio::time::timeout(Duration::from_secs(3), control_rx.recv())
+            .await
+            .expect("retry queued")
+            .unwrap();
+        assert!(matches!(
+            event,
+            ControlEvent::ReconnectRequested {
+                if_index: UNBOUND_RETRY_INDEX
+            }
+        ));
+        mock.inner.lock().unwrap().fail_reconnect_tunnel_for = None;
+        runtime.handle_reconnect_request(UNBOUND_RETRY_INDEX).await;
+        assert_eq!(mock.reconnect_count(10), 3);
+        assert_eq!(mock.reconnect_count(11), 0);
+        assert!(runtime.reconnect_retries.is_empty());
+
+        // A resync refreshes every unbound tunnel with a peer as well.
+        runtime.handle_network_resync().await;
+        assert_eq!(mock.reconnect_count(10), 4);
+        assert_eq!(mock.reconnect_count(11), 1);
+        assert_eq!(mock.reconnect_count(12), 2);
+        assert_eq!(mock.reconnect_count(13), 0);
+    }
+
+    #[test]
+    fn address_removals_carry_the_address_and_discard_route_removals_both_families() {
+        use rtnetlink::packet_route::address::AddressMessage;
+        use rtnetlink::RouteMessageBuilder;
+
+        let mut address = AddressMessage::default();
+        address.header.index = 42;
+        address.header.family = AddressFamily::Inet;
+        address
+            .attributes
+            .push(AddressAttribute::Address("192.0.2.2".parse().unwrap()));
+        address
+            .attributes
+            .push(AddressAttribute::Local("192.0.2.1".parse().unwrap()));
+        let event = control_event_for_netlink_payload(NetlinkPayload::InnerMessage(
+            RouteNetlinkMessage::DelAddress(address.clone()),
+        ));
+        assert!(matches!(
+            event,
+            Some(ControlEvent::LocalAddressRemoved { if_index: 42, address })
+                if address == "192.0.2.1".parse::<IpAddr>().unwrap()
+        ));
+        let event = control_event_for_netlink_payload(NetlinkPayload::InnerMessage(
+            RouteNetlinkMessage::NewAddress(address),
+        ));
+        assert!(matches!(
+            event,
+            Some(ControlEvent::LocalAddressFamilyChanged {
+                if_index: 42,
+                ip_version: IpVersion::V4
+            })
+        ));
+
+        let route = RouteMessageBuilder::<Ipv4Addr>::new()
+            .destination_prefix(TunnelConfig::NO_PEER_ADDR_V4, 32)
+            .build();
+        assert!(matches!(
+            control_event_for_netlink_payload(NetlinkPayload::InnerMessage(
+                RouteNetlinkMessage::DelRoute(route)
+            )),
+            Some(ControlEvent::DiscardRouteChanged)
+        ));
+        let other = RouteMessageBuilder::<Ipv4Addr>::new()
+            .destination_prefix("192.0.0.9".parse().unwrap(), 32)
+            .build();
+        assert!(
+            control_event_for_netlink_payload(NetlinkPayload::InnerMessage(
+                RouteNetlinkMessage::DelRoute(other)
+            ))
+            .is_none()
+        );
     }
 
     #[tokio::test]

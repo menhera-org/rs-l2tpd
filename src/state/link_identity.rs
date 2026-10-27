@@ -5,6 +5,13 @@
 //! detect deletion, namespace moves, and index reuse. Linux does not provide an
 //! atomic lifetime-token-plus-SETLINK operation: callers must still keep the
 //! interval between validation and mutation short.
+//!
+//! A lifetime ends in one of two ways, which callers treat differently: the
+//! kernel announced the device's removal ([`Invalidation::Deleted`]), or the
+//! subscription lost notifications and can no longer tell
+//! ([`Invalidation::Lost`]). After a loss, the subscription is reopened and
+//! reseeded, so devices created afterwards get fresh identities, but the
+//! identities captured before cannot be proved again.
 
 use crate::error::{Error, Result};
 use futures_util::{stream::BoxStream, FutureExt, StreamExt, TryStreamExt};
@@ -17,8 +24,9 @@ use rtnetlink::packet_route::{
 use rtnetlink::{sys::SocketAddr, MulticastGroup};
 use std::{
     collections::BTreeMap,
+    fmt,
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicU8, Ordering},
         Arc, Mutex, Weak,
     },
     time::Duration,
@@ -28,50 +36,90 @@ use tokio::{
     task::JoinHandle,
 };
 
+const LIVE: u8 = 0;
+const DELETED: u8 = 1;
+const LOST: u8 = 2;
+
+/// Why a device's lifetime can no longer be proved.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Invalidation {
+    /// The kernel announced the device's removal from this namespace: it
+    /// was deleted, or moved to another namespace.
+    Deleted,
+    /// Link notifications were lost, so the device may or may not still be
+    /// the one captured.
+    Lost,
+}
+
+impl fmt::Display for Invalidation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Invalidation::Deleted => "its device was removed from this namespace",
+            Invalidation::Lost => "link notifications were lost",
+        })
+    }
+}
+
 #[derive(Clone)]
 pub(super) struct LinkIdentity {
     index: u32,
-    live: Arc<AtomicBool>,
+    state: Arc<AtomicU8>,
 }
 
 impl LinkIdentity {
+    fn new(index: u32) -> Self {
+        Self {
+            index,
+            state: Arc::new(AtomicU8::new(LIVE)),
+        }
+    }
+
     pub(super) fn index(&self) -> u32 {
         self.index
     }
 
-    fn is_live(&self) -> bool {
-        self.live.load(Ordering::Acquire)
+    fn invalidation(&self) -> Option<Invalidation> {
+        match self.state.load(Ordering::Acquire) {
+            DELETED => Some(Invalidation::Deleted),
+            LOST => Some(Invalidation::Lost),
+            _ => None,
+        }
     }
 
-    fn invalidate(&self) {
-        self.live.store(false, Ordering::Release);
+    fn is_live(&self) -> bool {
+        self.invalidation().is_none()
+    }
+
+    /// The first invalidation wins: a loss cannot upgrade an observed
+    /// deletion, nor the other way round.
+    fn invalidate(&self, why: Invalidation) {
+        let state = match why {
+            Invalidation::Deleted => DELETED,
+            Invalidation::Lost => LOST,
+        };
+        let _ = self
+            .state
+            .compare_exchange(LIVE, state, Ordering::AcqRel, Ordering::Relaxed);
     }
 }
 
-#[derive(Default)]
 struct Capture {
+    /// The name the device is created under.
+    name: String,
     first: Option<LinkIdentity>,
-    invalidated: bool,
+    lost: bool,
 }
 
 pub(super) struct CreationWatch {
     capture: Arc<Mutex<Capture>>,
 }
 
-impl CreationWatch {
-    pub(super) fn is_invalidated(&self) -> bool {
-        let capture = self.capture.lock().expect("creation watch poisoned");
-        capture.invalidated || capture.first.as_ref().is_some_and(|id| !id.is_live())
-    }
-}
-
 pub(super) enum LinkStatus {
     Live(LinkMessage),
-    Invalidated,
+    Invalidated(Invalidation),
 }
 
 struct PendingWatch {
-    name: String,
     capture: Weak<Mutex<Capture>>,
 }
 
@@ -86,19 +134,19 @@ impl Ledger {
         for link in links {
             self.links
                 .entry(link.header.index)
-                .or_insert_with(|| LinkIdentity {
-                    index: link.header.index,
-                    live: Arc::new(AtomicBool::new(true)),
-                });
+                .or_insert_with(|| LinkIdentity::new(link.header.index));
         }
     }
 
     fn arm(&mut self, name: String) -> CreationWatch {
         self.watches
             .retain(|watch| watch.capture.strong_count() != 0);
-        let capture = Arc::new(Mutex::new(Capture::default()));
-        self.watches.push(PendingWatch {
+        let capture = Arc::new(Mutex::new(Capture {
             name,
+            first: None,
+            lost: false,
+        }));
+        self.watches.push(PendingWatch {
             capture: Arc::downgrade(&capture),
         });
         CreationWatch { capture }
@@ -113,23 +161,14 @@ impl Ledger {
         if self.links.contains_key(&link.header.index) {
             return;
         }
-        let identity = LinkIdentity {
-            index: link.header.index,
-            live: Arc::new(AtomicBool::new(true)),
-        };
-        let name = link
-            .attributes
-            .iter()
-            .find_map(|attribute| match attribute {
-                LinkAttribute::IfName(name) => Some(name),
-                _ => None,
-            });
+        let identity = LinkIdentity::new(link.header.index);
+        let name = link_name(&link);
         self.watches.retain(|watch| {
             let Some(capture) = watch.capture.upgrade() else {
                 return false;
             };
             let mut capture = capture.lock().expect("creation watch poisoned");
-            if !capture.invalidated && capture.first.is_none() && name == Some(&watch.name) {
+            if !capture.lost && capture.first.is_none() && name == Some(capture.name.as_str()) {
                 capture.first = Some(identity.clone());
             }
             true
@@ -142,18 +181,19 @@ impl Ledger {
             return;
         }
         if let Some(identity) = self.links.remove(&link.header.index) {
-            identity.invalidate();
+            identity.invalidate(Invalidation::Deleted);
         }
     }
 
-    fn invalidate(&mut self) {
+    /// Notifications were lost: nothing captured so far can be proved.
+    fn lose(&mut self) {
         for identity in self.links.values() {
-            identity.invalidate();
+            identity.invalidate(Invalidation::Lost);
         }
         self.links.clear();
         for watch in self.watches.drain(..) {
             if let Some(capture) = watch.capture.upgrade() {
-                capture.lock().expect("creation watch poisoned").invalidated = true;
+                capture.lock().expect("creation watch poisoned").lost = true;
             }
         }
     }
@@ -166,13 +206,22 @@ impl Ledger {
                 self.delete_link(link)
             }
             NetlinkPayload::Overrun(_) | NetlinkPayload::Error(_) => {
-                self.invalidate();
+                self.lose();
                 return false;
             }
             _ => {}
         }
         true
     }
+}
+
+fn link_name(link: &LinkMessage) -> Option<&str> {
+    link.attributes
+        .iter()
+        .find_map(|attribute| match attribute {
+            LinkAttribute::IfName(name) => Some(name.as_str()),
+            _ => None,
+        })
 }
 
 type Messages = BoxStream<'static, (NetlinkMessage<RouteNetlinkMessage>, SocketAddr)>;
@@ -194,6 +243,7 @@ impl Subscription {
         let (connection, handle, messages) = crate::netlink::multicast_connection(
             &[MulticastGroup::Link],
             "session lifetime monitor",
+            None,
         )
         .map_err(|e| {
             Error::Other(format!(
@@ -223,18 +273,20 @@ impl Subscription {
         })
     }
 
-    async fn find(&mut self, index: u32) -> Result<Option<LinkMessage>> {
+    async fn find(&mut self, index: u32) -> Result<Lookup> {
         let mut links = self.handle.link().get().match_index(index).execute();
-        let result = tokio::time::timeout(Duration::from_secs(5), links.try_next())
-            .await
-            .map_err(|_| Error::Other("session device lookup timed out".into()))?;
+        let Ok(result) = tokio::time::timeout(Duration::from_secs(5), links.try_next()).await
+        else {
+            return Ok(Lookup::Unanswered);
+        };
         match result {
-            Ok(link) => Ok(link),
+            Ok(Some(link)) => Ok(Lookup::Found(link)),
+            Ok(None) => Ok(Lookup::Missing),
             Err(e)
                 if super::is_netlink_errno(&e, libc::ENODEV)
                     || super::is_netlink_errno(&e, libc::ENXIO) =>
             {
-                Ok(None)
+                Ok(Lookup::Missing)
             }
             Err(e) => Err(Error::Other(format!(
                 "failed to validate session device index {index}: {e}"
@@ -254,7 +306,7 @@ impl Subscription {
                     }
                 }
                 Some(None) => {
-                    ledger.invalidate();
+                    ledger.lose();
                     return false;
                 }
                 None => return true,
@@ -263,12 +315,21 @@ impl Subscription {
     }
 }
 
+/// The outcome of looking a device up on the subscription socket.
+enum Lookup {
+    Found(LinkMessage),
+    Missing,
+    /// No reply came within the timeout. The kernel drops a reply when the
+    /// socket's queue is full, and such a queue has lost notifications too.
+    Unanswered,
+}
+
 enum Command {
     Arm(String, oneshot::Sender<Result<CreationWatch>>),
     Finish(
         Arc<Mutex<Capture>>,
         Option<u32>,
-        oneshot::Sender<Result<LinkIdentity>>,
+        oneshot::Sender<Result<std::result::Result<LinkIdentity, Invalidation>>>,
     ),
     Validate(LinkIdentity, oneshot::Sender<Result<LinkStatus>>),
 }
@@ -301,20 +362,34 @@ impl Worker {
         }
     }
 
-    async fn barrier(&mut self) -> Result<()> {
-        self.ensure_socket().await?;
-        let result = self
-            .socket
-            .as_mut()
-            .expect("subscription exists")
-            // Any indexed reply, including ENODEV, is an ordering barrier.
-            // Only initialization needs a full dump to seed existing links.
-            .find(1)
-            .await
-            .map(|_| ());
+    /// Looks a device up on the subscription, which also orders the lookup
+    /// after every notification queued before it. A reply that never comes
+    /// means the socket was congested, so its notifications are taken as
+    /// lost and the subscription is reopened at the next use.
+    async fn lookup(&mut self, index: u32) -> Result<Lookup> {
+        let Some(socket) = self.socket.as_mut() else {
+            return Ok(Lookup::Unanswered);
+        };
+        let result = socket.find(index).await;
         self.drain();
-        result?;
-        if self.socket.is_none() {
+        if matches!(result, Ok(Lookup::Unanswered)) {
+            log::warn!(
+                "the session device lifetime subscription stopped answering; its link notifications are taken as lost"
+            );
+            self.ledger.lose();
+            self.socket = None;
+        }
+        result
+    }
+
+    async fn barrier(&mut self) -> Result<()> {
+        // A loss already queued is noticed now, rather than by waiting for
+        // the reply an overflowed socket cannot deliver.
+        self.drain();
+        self.ensure_socket().await?;
+        // Any indexed reply, including ENODEV, is an ordering barrier.
+        // Only initialization needs a full dump to seed existing links.
+        if matches!(self.lookup(1).await?, Lookup::Unanswered) || self.socket.is_none() {
             return Err(Error::Other(
                 "session device lifetime subscription lost".into(),
             ));
@@ -323,25 +398,57 @@ impl Worker {
     }
 
     async fn validate(&mut self, identity: LinkIdentity) -> Result<LinkStatus> {
-        if !identity.is_live() {
-            return Ok(LinkStatus::Invalidated);
+        if let Some(why) = identity.invalidation() {
+            return Ok(LinkStatus::Invalidated(why));
         }
-        let Some(socket) = self.socket.as_mut() else {
-            identity.invalidate();
-            return Ok(LinkStatus::Invalidated);
-        };
-        let result = socket.find(identity.index).await;
         self.drain();
-        if !identity.is_live() {
-            return Ok(LinkStatus::Invalidated);
+        if let Some(why) = identity.invalidation() {
+            return Ok(LinkStatus::Invalidated(why));
         }
-        match result? {
-            Some(link) => Ok(LinkStatus::Live(link)),
-            None => {
-                identity.invalidate();
+        if self.socket.is_none() {
+            identity.invalidate(Invalidation::Lost);
+            return Ok(LinkStatus::Invalidated(Invalidation::Lost));
+        }
+        let result = self.lookup(identity.index).await?;
+        if let Some(why) = identity.invalidation() {
+            return Ok(LinkStatus::Invalidated(why));
+        }
+        match result {
+            Lookup::Found(link) => Ok(LinkStatus::Live(link)),
+            Lookup::Missing => {
+                identity.invalidate(Invalidation::Deleted);
                 self.ledger.links.remove(&identity.index);
-                Ok(LinkStatus::Invalidated)
+                Ok(LinkStatus::Invalidated(Invalidation::Deleted))
             }
+            Lookup::Unanswered => {
+                identity.invalidate(Invalidation::Lost);
+                Ok(LinkStatus::Invalidated(Invalidation::Lost))
+            }
+        }
+    }
+
+    /// Identifies a creation after its capture was lost or disagreed with
+    /// the registration index: the device at `index` is the one created if
+    /// it still bears the creation name. Its ledger entry, seeded or
+    /// inserted now, carries its lifetime from here on.
+    async fn recover_creation(
+        &mut self,
+        index: u32,
+        name: &str,
+    ) -> Result<std::result::Result<LinkIdentity, Invalidation>> {
+        match self.lookup(index).await? {
+            Lookup::Found(link) if link_name(&link) == Some(name) => {
+                log::info!(
+                    "identified the interface created as {name} at index {index} by its name, link notifications having been lost"
+                );
+                Ok(Ok(self
+                    .ledger
+                    .links
+                    .entry(index)
+                    .or_insert_with(|| LinkIdentity::new(index))
+                    .clone()))
+            }
+            _ => Ok(Err(Invalidation::Lost)),
         }
     }
 
@@ -353,27 +460,25 @@ impl Worker {
             }
             Command::Finish(capture, expected_index, reply) => {
                 let result = self.barrier().await;
-                let capture = capture.lock().expect("creation watch poisoned");
-                let result = if let Some(identity) = &capture.first {
-                    if expected_index.is_some_and(|index| index != identity.index) {
-                        Err(Error::Other(
-                            "session creation index differs from its observed lifetime".into(),
-                        ))
-                    } else {
-                        // Return an invalidated first capture as well, so cleanup
-                        // can explicitly skip a now-unprovable session ID.
-                        Ok(identity.clone())
+                let (first, name) = {
+                    let capture = capture.lock().expect("creation watch poisoned");
+                    (capture.first.clone(), capture.name.clone())
+                };
+                let result = match (result, first) {
+                    (Err(error), _) => Err(error),
+                    // The capture by name and the registration index agree.
+                    (Ok(()), Some(identity))
+                        if identity.is_live()
+                            && expected_index.is_none_or(|index| index == identity.index) =>
+                    {
+                        Ok(Ok(identity))
                     }
-                } else {
-                    result.and_then(|()| {
-                        Err(Error::Other(
-                        if capture.invalidated {
-                            "session device lifetime was lost before creation could be identified"
-                        } else {
-                            "session device creation has not been observed"
-                        }.into()
-                    ))
-                    })
+                    // The registration broadcast named the index; the device
+                    // there is the one created if it still has its name.
+                    (Ok(()), _) => match expected_index {
+                        Some(index) => self.recover_creation(index, &name).await,
+                        None => Ok(Err(Invalidation::Lost)),
+                    },
                 };
                 let _ = reply.send(result);
             }
@@ -397,7 +502,7 @@ impl Worker {
                             Some((message, address)) => {
                                 address.port_number() != 0 || self.ledger.message(message)
                             }
-                            None => { self.ledger.invalidate(); false }
+                            None => { self.ledger.lose(); false }
                         };
                         if !healthy { self.socket = None; }
                     }
@@ -409,7 +514,7 @@ impl Worker {
                 self.command(command).await;
             }
         }
-        self.ledger.invalidate();
+        self.ledger.lose();
     }
 }
 
@@ -441,11 +546,14 @@ impl LinkIdentityMonitor {
         response.await.map_err(|_| monitor_closed())?
     }
 
+    /// The identity of the device created under the armed name. The outer
+    /// error is a netlink failure, worth retrying; the inner one means the
+    /// creation cannot be identified any more.
     pub(super) async fn finish_creation(
         &self,
         watch: &CreationWatch,
         expected_index: Option<u32>,
-    ) -> Result<LinkIdentity> {
+    ) -> Result<std::result::Result<LinkIdentity, Invalidation>> {
         let (reply, response) = oneshot::channel();
         self.commands
             .send(Command::Finish(
@@ -500,6 +608,10 @@ mod tests {
             .expect("creation captured")
     }
 
+    fn is_lost(watch: &CreationWatch) -> bool {
+        watch.capture.lock().unwrap().lost
+    }
+
     #[test]
     fn only_a_new_device_captures_creation_and_renames_preserve_identity() {
         let mut ledger = Ledger::default();
@@ -524,10 +636,13 @@ mod tests {
         let first = captured(&watch);
         ledger.delete_link(link(2, "session"));
         ledger.new_link(link(2, "session"));
-        assert!(!first.is_live());
-        assert!(!captured(&watch).is_live());
+        assert_eq!(first.invalidation(), Some(Invalidation::Deleted));
+        assert_eq!(captured(&watch).invalidation(), Some(Invalidation::Deleted));
         assert!(ledger.links[&2].is_live());
-        assert!(watch.is_invalidated());
+        assert!(!is_lost(&watch));
+        // A later loss cannot turn an observed deletion into a loss.
+        ledger.lose();
+        assert_eq!(first.invalidation(), Some(Invalidation::Deleted));
     }
 
     #[test]
@@ -555,8 +670,11 @@ mod tests {
         )));
         ledger.seed([link(2, "session")]);
         ledger.new_link(link(3, "next"));
-        assert!(first.is_invalidated());
-        assert!(missing.is_invalidated());
+        assert_eq!(captured(&first).invalidation(), Some(Invalidation::Lost));
+        assert!(is_lost(&first));
+        assert!(is_lost(&missing));
         assert!(missing.capture.lock().unwrap().first.is_none());
+        // The reseeded entry is a fresh, live identity.
+        assert!(ledger.links[&2].is_live());
     }
 }

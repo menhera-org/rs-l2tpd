@@ -63,15 +63,28 @@ their addresses nor their routes.
 Keep the session parent in the daemon's network namespace. Moving or
 deleting the parent invalidates its tracked identity; the daemon must not
 modify a replacement that reuses its index. Link notification loss also
-invalidates identities that can no longer be proved. Notification loss
-itself does not stop existing traffic or underlay reconnection, but the
-daemon refuses further MAC or name changes on those sessions. Removing an
-unverifiable session from the
-configuration forgets it without deleting a potentially foreign object;
-an original session may remain until its owned tunnel is torn down.
-Restoring management of those sessions requires controlled tunnel
-recreation or a daemon restart, which also removes dependent children.
-New sessions acquire fresh tracked identities after the monitor reopens.
+invalidates identities that can no longer be proved. Neither stops existing
+traffic or underlay reconnection. A name or MAC change requested for such
+a session is skipped and reported once; the reload completes, and every
+other entry is applied. New sessions acquire fresh tracked identities after
+the monitor reopens.
+
+What removing or re-creating such a session does depends on how its
+identity was lost. After an observed removal from the namespace, the
+daemon forgets the session without deleting a potentially foreign object
+that reuses its identifiers; the original session may remain until its
+owned tunnel is torn down. After a loss of notifications, the kernel's own
+record decides: a session the kernel still reports under the interface
+name it was given at creation is the daemon's own and is deleted, so that
+its re-creation with new cookies, or its removal, succeeds. The same
+record lets a session whose notifications were lost while it was still
+being prepared be deleted and created again, when its device cannot be
+identified again at its registration index by its temporary name, so that
+readiness is reached even when a burst of link changes overflows the
+monitor during startup.
+Restoring management of a session that was moved or whose device was
+replaced requires controlled tunnel recreation or a daemon restart, which
+also removes dependent children.
 
 Linux cannot atomically validate the recorded lifetime and then change or
 delete the session. A privileged manager deleting and replacing it during

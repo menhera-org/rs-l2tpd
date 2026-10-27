@@ -250,10 +250,16 @@ run_case() {
     for side in left right; do
         kill -TERM "$(cat "/run/$side.pid")"
     done
+    # A 0.1.5 daemon waits for each kernel tunnel deletion in turn, which
+    # can take several seconds on a loaded host.
     attempts=0
     while [ -e /run/left.pid ] || [ -e /run/right.pid ]; do
         attempts=$((attempts + 1))
-        [ "$attempts" -lt 50 ] || return 1
+        [ "$attempts" -lt 200 ] || {
+            echo "shutdown did not finish in time" >&2
+            cat /tmp/left-daemon.log /tmp/right-daemon.log >&2
+            return 1
+        }
         sleep 0.1
     done
     for side in left right; do

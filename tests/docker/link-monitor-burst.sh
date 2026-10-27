@@ -116,8 +116,15 @@ if [ "$MODE" = burst ]; then
     if ip link show "$original_name" >/dev/null 2>&1; then fail 'normal burst prevented individual removal'; fi
     echo 'PASS ordinary burst preserves individual session removal'
 else
-    [ "$(cat /sys/class/net/pseudowire0/ifindex)" = "$original_index" ] || fail 'unprovable original session was deleted'
-    echo 'PASS unprovable original session retained until owned-tunnel teardown'
+    # The kernel still reports the session under its creation-time name,
+    # which proves it is the daemon's own: it is deleted.
+    n=0
+    while ip link show pseudowire0 >/dev/null 2>&1; do
+        n=$((n+1)); [ "$n" -lt 50 ] || fail 'session proved by its creation-time name was not deleted'; sleep 0.1
+    done
+    grep -Fq 'deleting session_id=1001 in tunnel_id=1001 although link notifications were lost' /tmp/daemon.log ||
+        fail 'deletion through the kernel record was not logged'
+    echo 'PASS removal after overflow deletes the session proved by its creation-time name'
 fi
 kill -TERM "$daemon_pid"
 n=0

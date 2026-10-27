@@ -27,7 +27,7 @@ cargo build --locked --target x86_64-unknown-linux-musl \
     --manifest-path /tmp/rs-l2tpd-baseline/Cargo.toml
 ```
 
-Run all eighteen privileged library tests, substituting an absolute
+Run all twenty-one privileged library tests, substituting an absolute
 artifacts directory for `/path/to/artifacts`:
 
 ```sh
@@ -36,7 +36,7 @@ docker run --rm --network none --cap-add NET_ADMIN --cap-add NET_RAW \
     alpine:3.22 sh -c 'set -eu
         cp /artifacts/kernel-tests /tmp/kernel-tests
         chmod 755 /tmp/kernel-tests
-        exec timeout 30 /tmp/kernel-tests state::tests::privileged_ \
+        exec timeout 90 /tmp/kernel-tests privileged_ \
             --ignored --nocapture --test-threads=1'
 ```
 
@@ -44,10 +44,12 @@ These assert exact IPv4-mapped and IPv6 local/remote endpoints, peer changes,
 source removal and replacement, disconnect/retry recovery, interface identity
 after rename and name reuse, VRF source selection, session MAC/link state,
 session cookies as reported back by the kernel, the null device routing
-the discard address in the main table and in a VRF table with an
+both discard addresses in the main table and in a VRF table with an
 unreachable default route, source reselection after a discard peer, ownership
-checks when cleaning up null devices, and kernel cleanup. IPv4 source verification
-rejects `::ffff:0.0.0.0` as well as the native wildcards.
+checks when cleaning up null devices, native `AF_INET` sockets as used on a
+kernel without IPv6, the selected source as the daemon reads it back, the
+kernel-side notification filter, and kernel cleanup. IPv4 source
+verification rejects `::ffff:0.0.0.0` as well as the native wildcards.
 
 Run the daemon interoperability matrix:
 
@@ -106,10 +108,9 @@ the agreed cookies re-creates the session again and traffic must flow.
 
 On Linux 6.8.0-147-generic, validation on 2026-10-22 passed all eleven
 privileged library tests, all eighteen compatibility cases and the
-MAC-changing check. On 2026-10-27, on the same kernel, the thirteen
-privileged library tests, the eighteen compatibility cases, the MAC-changing check, the
-cookie check, the four address-notification cases and the ten
-degraded-start cases below all passed.
+MAC-changing check. On 2026-10-27, on the same kernel, the twenty-one
+privileged library tests, the eighteen compatibility cases, the MAC-changing
+check, the cookie check and every container test described below passed.
 
 The tests establish behavior on the kernel and topologies exercised. They do
 not establish universal compatibility across all kernels or routing setups.
@@ -387,10 +388,11 @@ docker run --rm --network none --cap-add NET_ADMIN --cap-add NET_RAW \
 Add `--env MODE=overflow` to send 50,000 MTU changes and deliberately exceed
 the enlarged receive queues. This mode requires source recovery and foreign
 device preservation, while refusing MAC and rename operations on sessions
-whose registration continuity can no longer be proved. Removing such a
-session from configuration leaves its kernel device until the owned tunnel
-is torn down. Shutdown must clean up that tunnel and preserve the foreign
-dummy. `NOISE_LINKS` overrides the number of changes, up to 200,000.
+whose registration continuity can no longer be proved; the reloads that
+request them must complete rather than fail. Removing such a session from
+the configuration must delete it, since the kernel still reports it under
+its creation-time name. Shutdown must clean up that tunnel and preserve the
+foreign dummy. `NOISE_LINKS` overrides the number of changes, up to 200,000.
 
 Burst capacity depends on the kernel's receive-buffer limit and permission
 to exceed it. In the tested Docker environment the larger request was capped
@@ -422,15 +424,17 @@ and an unparsable drop-in. `--check` must print the three tunnels and four
 sessions that would be applied, the contradicting tunnel with the discard
 address `100::` as its peer and the session without its hardware address,
 name each problem, exit 1 and touch nothing. The namespace routes neither
-the far peer nor `100::`: the daemon must not become ready while the far
-tunnel cannot be created, and must meanwhile be waiting for a route to
-`100::` without having created the null device yet. Once the far peer has
-a route and the grace period has passed it must have created
-`rsl2tpnull0`, routed `100::` to it and reached readiness with every
-entry, the unusable endpoint connected to `100::` and the session carrying
-the kernel's address, and frames sent into the pseudowire without a peer
-must count as transmitted on the null device. It must keep the previous configuration when a reload still has
-the unparsable drop-in. A reload that breaks the valid tunnel's identifier
+the far peer nor `100::`: the daemon must not become ready before the
+discard address is routable, and must meanwhile be waiting for a route to
+`100::` without having created the null device yet. Once the grace period
+has passed it must have created `rsl2tpnull0`, routed `100::` to it and
+reached readiness with every entry, the unusable endpoint and the far
+tunnel connected to `100::`, the far peer reported as pending, and the
+session carrying the kernel's address. Giving the far peer a route must
+connect it within seconds, in place. Frames sent into the pseudowire
+without a peer must count as transmitted on the null device. The daemon
+must keep the previous configuration when a reload still has the
+unparsable drop-in. A reload that breaks the valid tunnel's identifier
 must keep that tunnel's previous values and leave the new broken tunnel
 out, applying the rest; a reload correcting the identifiers must create
 the missing entries; a reload correcting the endpoint and the hardware
@@ -439,3 +443,61 @@ interfaces keeping their indexes throughout. Shutdown must remove every
 tunnel and the null device. A configuration with nothing usable and an
 empty one must both start and reach readiness with no tunnels and without
 creating the null device.
+
+## Sources, unroutable peers and identifier conflicts
+
+`source-and-peers.sh` runs like `address-changes.sh`, mounted at
+`/opt/source-and-peers.sh` with a 200-second timeout. Its three cases:
+
+- `unbound`: unbound IPv6 and IPv4 tunnels keep their sources through
+  unrelated address changes, reconnect to a replacement when the address
+  they selected is removed, and retry when it is removed before a
+  replacement exists; sockets and session interfaces stay the same.
+- `literal`: a literal peer without a route does not delay readiness. The
+  tunnel and its session exist, connected to `100::`, the pending peer is
+  reported once, and a route connects it in place within seconds. A reload
+  to another unroutable peer moves the tunnel back to `100::` rather than
+  leaving it with the old peer.
+- `conflict`: a foreign UDP tunnel holds session identifier 100. The daemon
+  retries ten times, reports the conflict, leaves that session out and
+  becomes ready with the rest. Freeing the identifier lets the periodic
+  retry create the session, with the foreign objects untouched throughout.
+
+Use `--env CASES=...` to select cases.
+
+## A host with IPv6 disabled
+
+`ipv6-disabled.sh` runs like `address-changes.sh` with two sysctls added to
+the `docker run` command, a 200-second timeout and the script mounted at
+`/opt/ipv6-disabled.sh`:
+
+```sh
+    --sysctl net.ipv6.conf.all.disable_ipv6=1 \
+    --sysctl net.ipv6.conf.default.disable_ipv6=1 \
+```
+
+With only an IPv4 address, five tunnels must exist after the grace period:
+an IPv4 literal connected to its peer, an IPv4 host name and an IPv6 host
+name on the IPv4 discard address `192.0.0.8`, an IPv6 literal and an
+unroutable IPv4 literal on that address too, with `rsl2tpnull0` routing it.
+Both unreachable peers are reported as pending; the IPv4 one must be
+connected in place once routed, and the IPv4 host name once it resolves
+through the normal refresh. The IPv6 discard route, which the host cannot
+install, must be reported once rather than retried loudly. Shutdown must
+remove the tunnels and the null device.
+
+## Notification loss during staging
+
+`staging-loss.sh` runs in the networkd image with the same `docker run`
+command as `networkd-sessions.sh`, with a 150-second timeout. The daemon's
+netlink receives are delayed with strace, it is paused when its session's
+device exists under its temporary name, and the link monitors are
+overflowed with 50,000 MTU changes. Readiness must still be reached: the
+staged device must be identified again at its registration index by its
+temporary name, or the session re-created through the kernel's record; the
+second session must be created, and no temporary device left behind. A
+second overflow
+with the sessions established must leave a rename refused with the reload
+completing, allow a cookie change to re-create the session through the
+kernel's record, and delete a session removed from the configuration.
+`NOISE_LINKS` overrides the number of changes.

@@ -221,8 +221,16 @@ impl Service {
                     .handle_local_address_family_change(if_index, ip_version)
                     .await;
             }
+            ControlEvent::LocalAddressRemoved { if_index, address } => {
+                self.runtime
+                    .handle_local_address_removed(if_index, address)
+                    .await;
+            }
             ControlEvent::ReconnectRequested { if_index } => {
                 self.runtime.handle_reconnect_request(if_index).await;
+            }
+            ControlEvent::PeerRetryRequested => {
+                self.runtime.handle_peer_retry().await;
             }
             ControlEvent::VrfChanged { if_index } => {
                 self.runtime.handle_vrf_change(if_index).await;
@@ -233,7 +241,9 @@ impl Service {
             ControlEvent::NetworkResyncRequested => {
                 self.runtime.handle_network_resync().await;
             }
-            ControlEvent::ReloadRequested | ControlEvent::ShutdownRequested => {}
+            ControlEvent::ReloadRequested
+            | ControlEvent::ShutdownRequested
+            | ControlEvent::ReconcileRequested => {}
         }
     }
 
@@ -318,6 +328,11 @@ impl Service {
                 ControlEvent::ShutdownRequested => {
                     info!("shutdown requested");
                     break;
+                }
+                ControlEvent::ReconcileRequested => {
+                    // An entry left out earlier gets another chance with the
+                    // configuration in force, at the next retry tick.
+                    reconcile_pending = true;
                 }
                 event => self.dispatch_runtime_event(event).await,
             }

@@ -7,6 +7,7 @@ mod link_identity;
 
 use crate::config::{Cookie, HwAddr, IpVersion, TunnelConfig};
 use crate::error::{Error, Result};
+pub(crate) use link_identity::Invalidation;
 use link_identity::{CreationWatch, LinkIdentity, LinkIdentityMonitor, LinkStatus};
 
 use futures_util::{StreamExt, TryStreamExt};
@@ -26,7 +27,7 @@ use tokio::task::JoinHandle;
 use std::{
     collections::{BTreeMap, BTreeSet},
     hash::BuildHasher,
-    net::{IpAddr, Ipv6Addr},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
     sync::Arc,
 };
@@ -72,15 +73,24 @@ impl Rtnl {
     /// device `oif` (a VRF, say), or for an unbound one. The lookup is the
     /// one `connect` would do, so a reject route (blackhole, unreachable,
     /// prohibit) counts as no route: it refuses connections just the same.
-    async fn routes(&self, destination: Ipv6Addr, oif: Option<u32>) -> Result<bool> {
+    async fn routes(&self, destination: IpAddr, oif: Option<u32>) -> Result<bool> {
         let mut message = RouteMessage::default();
-        message.header.address_family = AddressFamily::Inet6;
-        message.header.destination_prefix_length = 128;
-        message
-            .attributes
-            .push(RouteAttribute::Destination(RouteAddress::Inet6(
-                destination,
-            )));
+        match destination {
+            IpAddr::V4(addr) => {
+                message.header.address_family = AddressFamily::Inet;
+                message.header.destination_prefix_length = 32;
+                message
+                    .attributes
+                    .push(RouteAttribute::Destination(RouteAddress::Inet(addr)));
+            }
+            IpAddr::V6(addr) => {
+                message.header.address_family = AddressFamily::Inet6;
+                message.header.destination_prefix_length = 128;
+                message
+                    .attributes
+                    .push(RouteAttribute::Destination(RouteAddress::Inet6(addr)));
+            }
+        }
         if let Some(oif) = oif {
             message.attributes.push(RouteAttribute::Oif(oif));
         }
@@ -132,16 +142,53 @@ impl Rtnl {
             .map_err(|e| Error::Other(format!("failed to install test route: {e}")))
     }
 
-    /// Adds only the daemon's discard route, preserving every existing route.
-    /// Callers supply an owned null device and an explicitly tracked table.
-    async fn install_discard_route(&self, index: u32, table: u32) -> Result<()> {
-        let destination = TunnelConfig::NO_PEER_ADDR;
-        let message = RouteMessageBuilder::<Ipv6Addr>::new()
-            .destination_prefix(destination, 128)
+    #[cfg(test)]
+    async fn route_to_device_v4(
+        &self,
+        destination: Ipv4Addr,
+        index: u32,
+        table: u32,
+    ) -> Result<()> {
+        let message = RouteMessageBuilder::<Ipv4Addr>::new()
+            .destination_prefix(destination, 32)
             .output_interface(index)
             .table_id(table)
             .build();
-        let result = self.handle.route().add(message).execute().await;
+        self.handle
+            .route()
+            .add(message)
+            .replace()
+            .execute()
+            .await
+            .map_err(|e| Error::Other(format!("failed to install test route: {e}")))
+    }
+
+    /// Adds only the daemon's discard route, preserving every existing route.
+    /// Callers supply an owned null device and an explicitly tracked table.
+    async fn install_discard_route(
+        &self,
+        index: u32,
+        table: u32,
+        destination: IpAddr,
+    ) -> Result<()> {
+        let result = match destination {
+            IpAddr::V4(addr) => {
+                let message = RouteMessageBuilder::<Ipv4Addr>::new()
+                    .destination_prefix(addr, 32)
+                    .output_interface(index)
+                    .table_id(table)
+                    .build();
+                self.handle.route().add(message).execute().await
+            }
+            IpAddr::V6(addr) => {
+                let message = RouteMessageBuilder::<Ipv6Addr>::new()
+                    .destination_prefix(addr, 128)
+                    .output_interface(index)
+                    .table_id(table)
+                    .build();
+                self.handle.route().add(message).execute().await
+            }
+        };
         match result {
             Ok(()) => Ok(()),
             Err(e) if is_netlink_errno(&e, libc::EEXIST) => Ok(()),
@@ -206,8 +253,8 @@ impl LinkOps for SessionLinkOps<'_> {
         }
         match self.monitor.validate(self.identity).await? {
             LinkStatus::Live(link) => Ok(link),
-            LinkStatus::Invalidated => Err(Error::Other(format!(
-                "session interface index {index} lost verifiable ownership continuity (device removal, namespace move, or missed link notifications)"
+            LinkStatus::Invalidated(why) => Err(Error::Other(format!(
+                "session interface index {index} can no longer be managed: {why}"
             ))),
         }
     }
@@ -397,11 +444,19 @@ impl DiscardRouteContext {
     }
 }
 
+/// A discard route this State installed: the table it went into and the
+/// discard address of one family.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct DiscardRoute {
+    context: DiscardRouteContext,
+    destination: IpAddr,
+}
+
 #[derive(Default)]
 struct DiscardResources {
     devices: Vec<NullDevice>,
-    /// Fallbacks requested by this State, including an incomplete installation.
-    routes: Vec<DiscardRouteContext>,
+    /// Routes this State installed, to be repaired when they disappear.
+    routes: Vec<DiscardRoute>,
 }
 
 /// The main routing table.
@@ -468,6 +523,19 @@ pub(crate) enum HwAddrApply {
     /// The device is up, and an `l2tpeth` device only accepts a new address
     /// while it is down. The change is applied once the device is down.
     Deferred,
+    /// The session's device can no longer be proved to be the one created
+    /// (removed from this namespace, or link notifications were lost), so
+    /// it was left alone. See [`State::session_unmanageable`].
+    Unmanageable,
+}
+
+/// What became of a session interface rename.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SessionRename {
+    /// The device bears the name.
+    Applied,
+    /// The device was left alone; see [`HwAddrApply::Unmanageable`].
+    Unmanageable,
 }
 
 /// Sets the hardware address of the interface with index `index` to
@@ -617,6 +685,60 @@ pub(crate) fn to_ipv6_mapped(addr: IpAddr) -> Ipv6Addr {
     }
 }
 
+/// The family of a tunnel socket.
+///
+/// Normally an `AF_INET6` L2TP/IP socket carries either family, IPv4 peers
+/// as IPv4-mapped addresses, so a tunnel can move between families without
+/// being re-created. A host whose kernel has IPv6 disabled (`ipv6.disable=1`)
+/// cannot open such a socket; its tunnels use `AF_INET` sockets, with native
+/// IPv4 addresses, the IPv4 form of the L2TP/IP socket address and the IPv4
+/// socket options, and can have no IPv6 peer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SocketFamily {
+    DualStack,
+    Ipv4,
+}
+
+impl SocketFamily {
+    fn local(self) -> l2tp::IpEndpoint {
+        match self {
+            Self::DualStack => l2tp::IpEndpoint::v6(Ipv6Addr::UNSPECIFIED),
+            Self::Ipv4 => l2tp::IpEndpoint::V4(Ipv4Addr::UNSPECIFIED),
+        }
+    }
+
+    /// The endpoint `addr` takes on a socket of this family.
+    fn endpoint(self, addr: IpAddr) -> Result<l2tp::IpEndpoint> {
+        match (self, addr.to_canonical()) {
+            (Self::DualStack, _) => Ok(l2tp::IpEndpoint::v6(to_ipv6_mapped(addr))),
+            (Self::Ipv4, IpAddr::V4(addr)) => Ok(l2tp::IpEndpoint::V4(addr)),
+            (Self::Ipv4, IpAddr::V6(_)) => Err(Error::L2tp(l2tp::Error::AddressFamilyMismatch)),
+        }
+    }
+}
+
+/// Whether a socket could not be created because the kernel has no IPv6.
+fn is_no_ipv6_error(error: &l2tp::Error) -> bool {
+    matches!(
+        error.raw_os_error(),
+        Some(libc::EAFNOSUPPORT) | Some(libc::EPFNOSUPPORT) | Some(libc::EPROTONOSUPPORT)
+    )
+}
+
+/// Whether the kernel still reports the session under the interface name it
+/// gave it at creation: this daemon's session, then, even when its device
+/// cannot be told from a replacement. Another session with the same
+/// identifiers would have been created under another name.
+async fn kernel_session_is_ours(handle: &l2tp::SessionHandle) -> bool {
+    let Some(created_as) = handle.ifname() else {
+        return false;
+    };
+    match handle.get().await {
+        Ok(info) => info.ifname.as_ref() == Some(created_as),
+        Err(_) => false,
+    }
+}
+
 pub(crate) struct SessionState {
     /// Index of the session's l2tpeth device, from the kernel's registration
     /// broadcast. Renames keep it; names do not survive them.
@@ -629,8 +751,10 @@ pub(crate) struct SessionState {
     /// attempt was deferred (device up) or failed. Retried on every
     /// reconcile and whenever the device changes, until it is applied.
     hwaddr_pending: bool,
+    /// Whether an unmanageable device was reported already, so that it is
+    /// logged once rather than on every change.
+    unmanageable_reported: bool,
     // Keep session handle alive for the session lifecycle even when we don't call methods on it.
-    #[allow(dead_code)]
     handle: l2tp::SessionHandle,
 }
 
@@ -647,6 +771,20 @@ struct PendingSession {
     initial_hwaddr: Option<Option<HwAddr>>,
 }
 
+/// Why an incomplete session could not be prepared.
+enum Staging {
+    /// Its device can no longer be identified; it has to be created again.
+    Unproven(Invalidation),
+    /// A failure worth retrying on the same session.
+    Failed(Error),
+}
+
+impl From<Error> for Staging {
+    fn from(error: Error) -> Self {
+        Self::Failed(error)
+    }
+}
+
 impl PendingSession {
     fn matches_creation(&self, config: &l2tp::SessionConfig) -> bool {
         self.config.peer_session_id == config.peer_session_id
@@ -657,6 +795,7 @@ impl PendingSession {
 
 pub(crate) struct TunnelState {
     remote_addr: RwLock<IpAddr>,
+    family: SocketFamily,
     handle: l2tp::TunnelHandle,
     // Last successfully applied device, retained across disconnects for retries.
     // The write lock serializes binding and the entire reconnect sequence.
@@ -674,6 +813,9 @@ pub(crate) struct TunnelState {
 pub(crate) struct State {
     handle: l2tp::L2tpHandle,
     link_identities: LinkIdentityMonitor,
+    /// Set once the kernel refused an `AF_INET6` socket: every tunnel is
+    /// then created on an `AF_INET` socket.
+    ipv4_sockets: AtomicBool,
 
     /// tunnel_id to TunnelState
     tunnels: RwLock<BTreeMap<u32, TunnelState>>,
@@ -699,8 +841,9 @@ fn verify_reconnected_endpoint(
 ) -> Result<()> {
     let reason = match encapsulation {
         l2tp::Encapsulation::Ip { local, .. } => {
-            // IPv4 uses a dual-stack socket, so a failed source selection can
-            // be reported as ::ffff:0.0.0.0 rather than the IPv6 wildcard.
+            // IPv4 normally uses a dual-stack socket, so a failed source
+            // selection can be reported as ::ffff:0.0.0.0 rather than the
+            // IPv6 wildcard; an AF_INET socket reports 0.0.0.0.
             if !local.ip().to_canonical().is_unspecified() {
                 return Ok(());
             }
@@ -775,10 +918,27 @@ impl State {
         Ok(Self {
             handle,
             link_identities,
+            ipv4_sockets: AtomicBool::new(false),
             tunnels,
             pending_sessions: RwLock::new(BTreeMap::new()),
             discard_resources: Mutex::new(DiscardResources::default()),
         })
+    }
+
+    /// The family new tunnel sockets get.
+    pub(crate) fn socket_family(&self) -> SocketFamily {
+        if self.ipv4_sockets.load(Ordering::Acquire) {
+            SocketFamily::Ipv4
+        } else {
+            SocketFamily::DualStack
+        }
+    }
+
+    /// Makes every further tunnel use an `AF_INET` socket, as on a kernel
+    /// without IPv6.
+    #[cfg(test)]
+    pub(crate) fn use_ipv4_sockets(&self) {
+        self.ipv4_sockets.store(true, Ordering::Release);
     }
 
     pub(crate) async fn has_tunnel(&self, tunnel_id: u32) -> bool {
@@ -826,32 +986,49 @@ impl State {
     }
 
     /// Whether a socket bound to the VRF with index `vrf`, or an unbound
-    /// one, can be connected to [`TunnelConfig::NO_PEER_ADDR`]: the kernel
-    /// routes it, and not through a reject route.
-    pub(crate) async fn discard_route_exists(vrf: Option<u32>) -> Result<bool> {
+    /// one, can be connected to the discard address of `ip_version`
+    /// ([`TunnelConfig::no_peer_addr`]): the kernel routes it, and not
+    /// through a reject route.
+    pub(crate) async fn discard_route_exists(
+        vrf: Option<u32>,
+        ip_version: IpVersion,
+    ) -> Result<bool> {
         Rtnl::connect()?
-            .routes(TunnelConfig::NO_PEER_ADDR, vrf)
+            .routes(TunnelConfig::no_peer_addr(ip_version), vrf)
             .await
     }
 
-    /// Routes [`TunnelConfig::NO_PEER_ADDR`] to an owned null device,
-    /// creating it or bringing it up as needed, in the
-    /// table of the VRF with index `vrf` or the main one: the last resort
-    /// for a host that does not route the address itself. Existing routes,
-    /// including reject routes, are always preserved.
-    pub(crate) async fn route_discard_to_null_device(&self, vrf: Option<u32>) -> Result<()> {
+    /// Routes the discard address of `ip_version` to an owned null device,
+    /// creating it or bringing it up as needed, in the table of the VRF
+    /// with index `vrf` or the main one: the last resort for a host that
+    /// does not route the address itself. Existing routes, including reject
+    /// routes, are always preserved. A route installed here is repaired by
+    /// [`restore_discard_routes`](Self::restore_discard_routes) when it
+    /// disappears.
+    pub(crate) async fn route_discard_to_null_device(
+        &self,
+        vrf: Option<u32>,
+        ip_version: IpVersion,
+    ) -> Result<()> {
         let mut resources = self.discard_resources.lock().await;
         let rtnl = Rtnl::connect()?;
         let context = DiscardRouteContext::from_vrf(&rtnl, vrf).await?;
-        if !resources.routes.contains(&context) {
-            resources.routes.push(context);
-        }
+        let destination = TunnelConfig::no_peer_addr(ip_version);
         let index = Self::null_device(&rtnl, &mut resources.devices).await?;
         let table = context.table(&rtnl).await?;
-        rtnl.install_discard_route(index, table).await
+        rtnl.install_discard_route(index, table, destination)
+            .await?;
+        let route = DiscardRoute {
+            context,
+            destination,
+        };
+        if !resources.routes.contains(&route) {
+            resources.routes.push(route);
+        }
+        Ok(())
     }
 
-    /// Repairs only previously requested fallback routes. Existing routes are
+    /// Repairs only previously installed fallback routes. Existing routes are
     /// preserved, and every recorded VRF is resolved by its current name/table.
     /// A missing VRF remains pending without blocking repairs in other tables.
     pub(crate) async fn restore_discard_routes(&self) -> Result<()> {
@@ -861,11 +1038,12 @@ impl State {
         }
         let rtnl = Rtnl::connect()?;
         let mut first_error = None;
-        for context in resources.routes.clone() {
+        for route in resources.routes.clone() {
             let restored = async {
                 let index = Self::null_device(&rtnl, &mut resources.devices).await?;
-                let table = context.table(&rtnl).await?;
-                rtnl.install_discard_route(index, table).await
+                let table = route.context.table(&rtnl).await?;
+                rtnl.install_discard_route(index, table, route.destination)
+                    .await
             }
             .await;
             if let Err(error) = restored {
@@ -975,6 +1153,64 @@ impl State {
         Some(remote_addr)
     }
 
+    /// The source address the tunnel socket selected, in canonical form
+    /// (an IPv4 source of a dual-stack socket as the IPv4 address), or
+    /// `None` when the tunnel is unknown or its socket is not connected.
+    pub(crate) async fn tunnel_local_addr(&self, tunnel_id: u32) -> Option<IpAddr> {
+        let tunnels = self.tunnels.read().await;
+        let tunnel = tunnels.get(&tunnel_id)?;
+        let socket = tunnel.handle.socket()?;
+        let local = socket.local_addr_ip().ok()?.ip().to_canonical();
+        (!local.is_unspecified()).then_some(local)
+    }
+
+    /// Whether the tunnel socket is bound to a device (`SO_BINDTODEVICE`),
+    /// even one whose configured name no longer identifies it.
+    pub(crate) async fn tunnel_is_bound(&self, tunnel_id: u32) -> bool {
+        let tunnels = self.tunnels.read().await;
+        match tunnels.get(&tunnel_id) {
+            Some(tunnel) => tunnel.bound_interface.read().await.is_some(),
+            None => false,
+        }
+    }
+
+    /// Creates the tunnel socket, connected to `remote_addr`, on a socket of
+    /// the family in use. The first refusal of an `AF_INET6` socket by the
+    /// kernel switches every tunnel to `AF_INET`.
+    fn tunnel_socket_for(
+        &self,
+        tunnel_id: u32,
+        peer_tunnel_id: u32,
+        remote_addr: IpAddr,
+        if_name: Option<&L2tpIfName>,
+    ) -> Result<(SocketFamily, l2tp::TunnelConfig, l2tp::TunnelSocket)> {
+        let mut family = self.socket_family();
+        loop {
+            let config = l2tp::TunnelConfig::new(
+                l2tp::TunnelId(tunnel_id),
+                l2tp::TunnelId(peer_tunnel_id),
+                l2tp::Encapsulation::Ip {
+                    local: family.local(),
+                    remote: family.endpoint(remote_addr)?,
+                },
+            )
+            .map_err(Error::L2tp)?;
+            // Binds with tunnel_id and connects with peer_tunnel_id as the
+            // L2TP/IP connection IDs; a missing device is reported as ENODEV.
+            match l2tp::TunnelSocket::for_config(&config, if_name) {
+                Ok(socket) => return Ok((family, config, socket)),
+                Err(error) if family == SocketFamily::DualStack && is_no_ipv6_error(&error) => {
+                    warn!(
+                        "the kernel has no IPv6 ({error}); tunnel sockets use AF_INET from now on, and no tunnel can have an IPv6 peer"
+                    );
+                    self.ipv4_sockets.store(true, Ordering::Release);
+                    family = SocketFamily::Ipv4;
+                }
+                Err(error) => return Err(Error::L2tp(error)),
+            }
+        }
+    }
+
     pub(crate) async fn add_tunnel(
         &self,
         tunnel_id: u32,
@@ -986,25 +1222,14 @@ impl State {
             return Err(Error::Other("Duplicate tunnel_id".to_string()));
         }
 
-        let local = l2tp::IpEndpoint::v6(Ipv6Addr::UNSPECIFIED);
-        let remote = l2tp::IpEndpoint::v6(to_ipv6_mapped(remote_addr));
-
-        let config = l2tp::TunnelConfig::new(
-            l2tp::TunnelId(tunnel_id),
-            l2tp::TunnelId(peer_tunnel_id),
-            l2tp::Encapsulation::Ip { local, remote },
-        )
-        .map_err(Error::L2tp)?;
-
-        // Binds with tunnel_id and connects with peer_tunnel_id as the
-        // L2TP/IP connection IDs; a missing device is reported as ENODEV.
         // Capture the device index for address events; every subsequent
         // binding resolves this configured name again.
         let before = if_name
             .map(|name| name.index())
             .transpose()
             .map_err(Error::L2tp)?;
-        let socket = l2tp::TunnelSocket::for_config(&config, if_name).map_err(Error::L2tp)?;
+        let (family, config, socket) =
+            self.tunnel_socket_for(tunnel_id, peer_tunnel_id, remote_addr, if_name)?;
         let bound = match (if_name, before) {
             (Some(name), Some(before)) => {
                 let after = name.index().map_err(Error::L2tp)?;
@@ -1032,6 +1257,7 @@ impl State {
 
         let tunnel = TunnelState {
             remote_addr: RwLock::new(remote_addr),
+            family,
             handle,
             bound_interface: RwLock::new(bound),
             connected: AtomicBool::new(true),
@@ -1065,9 +1291,12 @@ impl State {
                 None => false,
             }
         };
+        // An IPv6 peer can never be reached from an AF_INET socket; say so
+        // before touching the connection.
+        let new_remote = tunnel.family.endpoint(remote_addr)?;
         if !tunnel.connected.load(Ordering::Acquire)
             || binding_changed
-            || previous_remote == IpAddr::V6(TunnelConfig::NO_PEER_ADDR)
+            || TunnelConfig::is_no_peer_addr(previous_remote)
             || previous_remote.to_canonical().is_ipv4() != remote_addr.to_canonical().is_ipv4()
         {
             // A dual-stack socket retains its selected source across connect.
@@ -1089,7 +1318,6 @@ impl State {
                 return Err(error);
             }
         } else {
-            let new_remote = l2tp::IpEndpoint::v6(to_ipv6_mapped(remote_addr));
             tunnel
                 .handle
                 .reconnect_ip(&new_remote)
@@ -1117,6 +1345,7 @@ impl State {
     ) -> Result<()> {
         let mut bound_interface = tunnel.bound_interface.write().await;
         let socket = tunnel_socket(tunnel)?;
+        let remote = tunnel.family.endpoint(remote_addr)?;
 
         // A missing configured name leaves this attempt incomplete, even
         // when the previous connection still works. Check before disconnect
@@ -1138,7 +1367,6 @@ impl State {
             *bound_interface = Some(rebind_socket_to_device(socket, device)?);
         }
 
-        let remote = l2tp::IpEndpoint::v6(to_ipv6_mapped(remote_addr));
         tunnel.handle.reconnect_ip(&remote).map_err(Error::L2tp)?;
 
         let info = tunnel.handle.get().await.map_err(Error::L2tp)?;
@@ -1256,39 +1484,93 @@ impl State {
         Ok(())
     }
 
+    /// Removes an incomplete session. Its device's lifetime is verified
+    /// first; when it cannot be, the kernel's own record decides: the
+    /// session is deleted if it is still reported under the name it was
+    /// created with, and forgotten otherwise, so that identifiers reused by
+    /// another session are never deleted.
     async fn delete_pending_session(&self, session: &PendingSession) -> Result<()> {
-        let identity = match &session.identity {
-            Some(identity) => identity.clone(),
+        let live = match &session.identity {
+            Some(identity) => matches!(
+                self.link_identities.validate(identity).await?,
+                LinkStatus::Live(_)
+            ),
             None => match self
                 .link_identities
                 .finish_creation(&session.creation, session.handle.ifindex())
-                .await
+                .await?
             {
-                Ok(identity) => identity,
-                Err(_) if session.creation.is_invalidated() => {
-                    warn!("forgetting an incomplete session whose device ownership was lost");
-                    return Ok(());
-                }
-                Err(error) => return Err(error),
+                Ok(identity) => matches!(
+                    self.link_identities.validate(&identity).await?,
+                    LinkStatus::Live(_)
+                ),
+                Err(_) => false,
             },
         };
-        if matches!(
-            self.link_identities.validate(&identity).await?,
-            LinkStatus::Invalidated
-        ) {
-            warn!("forgetting incomplete session_id={} in tunnel_id={} because its device lifetime could not be verified; its IDs may have been reused",
-                session.config.session_id.0, session.config.tunnel_id.0);
-            return Ok(());
+        let what = format!(
+            "incomplete session_id={} in tunnel_id={}",
+            session.config.session_id.0, session.config.tunnel_id.0
+        );
+        if live || kernel_session_is_ours(&session.handle).await {
+            deletion_result(
+                &what,
+                self.handle
+                    .delete_session(session.config.tunnel_id, session.config.session_id)
+                    .await,
+            )
+        } else {
+            warn!("forgetting {what}: its device lifetime could not be verified and the kernel no longer reports it as this daemon's session");
+            Ok(())
         }
-        deletion_result(
-            &format!(
-                "incomplete session_id={} in tunnel_id={}",
-                session.config.session_id.0, session.config.tunnel_id.0
-            ),
-            self.handle
-                .delete_session(session.config.tunnel_id, session.config.session_id)
-                .await,
-        )
+    }
+
+    /// An incomplete session whose device can no longer be identified is
+    /// deleted when the kernel still reports it under its creation-time
+    /// name, and forgotten otherwise; the caller re-creates it either way.
+    async fn discard_unproven_pending(
+        &self,
+        session: PendingSession,
+        why: Invalidation,
+    ) -> Result<()> {
+        let what = format!(
+            "incomplete session_id={} in tunnel_id={}",
+            session.config.session_id.0, session.config.tunnel_id.0
+        );
+        if kernel_session_is_ours(&session.handle).await {
+            info!("re-creating {what}: {why} before its device could be identified");
+            deletion_result(
+                &what,
+                self.handle
+                    .delete_session(session.config.tunnel_id, session.config.session_id)
+                    .await,
+            )
+        } else {
+            warn!("forgetting {what}: {why} before its device could be identified, and the kernel no longer reports it as this daemon's session");
+            Ok(())
+        }
+    }
+
+    /// Whether the session's device can no longer be proved to be the one
+    /// created; reported once per session.
+    async fn session_unmanageable(
+        &self,
+        tunnel_id: u32,
+        session_id: u32,
+        session: &mut SessionState,
+    ) -> Result<Option<Invalidation>> {
+        match self.link_identities.validate(&session.identity).await? {
+            LinkStatus::Live(_) => Ok(None),
+            LinkStatus::Invalidated(why) => {
+                if !session.unmanageable_reported {
+                    session.unmanageable_reported = true;
+                    warn!(
+                        "session_id={session_id} in tunnel_id={tunnel_id}: {why}; its interface (index {}) is left alone from now on, and name or hardware address changes are skipped until the session is re-created or the daemon restarts",
+                        session.index
+                    );
+                }
+                Ok(Some(why))
+            }
+        }
     }
 
     async fn sessions_of(
@@ -1354,35 +1636,84 @@ impl State {
             self.delete_pending_session(&pending[&key]).await?;
             pending.remove(&key);
         }
-        if let std::collections::btree_map::Entry::Vacant(entry) = pending.entry(key) {
-            // There is no cancellation point between receiving the handle
-            // and retaining ownership in the map.
-            let (handle, creation) = self
-                .create_session_handle(config.clone(), hwaddr.is_some())
-                .await?;
-            entry.insert(PendingSession {
-                handle,
-                creation,
-                identity: None,
-                staged: hwaddr.is_some(),
-                config,
-                initial_hwaddr: None,
-            });
+        // A session whose device can no longer be identified, because link
+        // notifications were lost while it was being prepared, is created
+        // again, once; transient failures are retried by the caller.
+        for _ in 0..2 {
+            if let std::collections::btree_map::Entry::Vacant(entry) = pending.entry(key) {
+                // There is no cancellation point between receiving the handle
+                // and retaining ownership in the map.
+                let (handle, creation) = self
+                    .create_session_handle(config.clone(), hwaddr.is_some())
+                    .await?;
+                entry.insert(PendingSession {
+                    handle,
+                    creation,
+                    identity: None,
+                    staged: hwaddr.is_some(),
+                    config: config.clone(),
+                    initial_hwaddr: None,
+                });
+            }
+            let session = pending.get_mut(&key).expect("pending session exists");
+            match self.stage_pending_session(session, if_name, hwaddr).await {
+                Ok((identity, initial_hwaddr, outcome)) => {
+                    // Acquire the destination lock before taking ownership
+                    // out of pending.
+                    let mut sessions = sessions.write().await;
+                    let pending = pending.remove(&key).expect("pending session exists");
+                    sessions.insert(
+                        session_id,
+                        SessionState {
+                            index: identity.index(),
+                            identity,
+                            initial_hwaddr,
+                            hwaddr_pending: outcome == HwAddrApply::Deferred,
+                            unmanageable_reported: false,
+                            handle: pending.handle,
+                        },
+                    );
+                    return Ok(outcome);
+                }
+                Err(Staging::Unproven(why)) => {
+                    let session = pending.remove(&key).expect("pending session exists");
+                    self.discard_unproven_pending(session, why).await?;
+                }
+                Err(Staging::Failed(error)) => return Err(error),
+            }
         }
-        let session = pending.get_mut(&key).expect("pending session exists");
+        Err(Error::Other(format!(
+            "session_id={session_id} in tunnel_id={tunnel_id} could not be identified after being created again"
+        )))
+    }
+
+    /// Identifies the device of an incomplete session and prepares it: its
+    /// hardware address, then its configured name.
+    async fn stage_pending_session(
+        &self,
+        session: &mut PendingSession,
+        if_name: &L2tpIfName,
+        hwaddr: Option<&HwAddr>,
+    ) -> std::result::Result<(LinkIdentity, Option<HwAddr>, HwAddrApply), Staging> {
         if session.identity.is_none() {
-            session.identity = Some(
-                self.link_identities
-                    .finish_creation(&session.creation, session.handle.ifindex())
-                    .await?,
-            );
+            match self
+                .link_identities
+                .finish_creation(&session.creation, session.handle.ifindex())
+                .await?
+            {
+                Ok(identity) => session.identity = Some(identity),
+                Err(why) => return Err(Staging::Unproven(why)),
+            }
         }
         let identity = session
             .identity
-            .as_ref()
+            .clone()
             .expect("session identity was captured");
+        if let LinkStatus::Invalidated(why) = self.link_identities.validate(&identity).await? {
+            return Err(Staging::Unproven(why));
+        }
         let index = identity.index();
-        let rtnl = SessionLinkOps::new(&self.link_identities, identity)?;
+        let rtnl = SessionLinkOps::new(&self.link_identities, &identity)?;
         if session.initial_hwaddr.is_none() {
             session.initial_hwaddr = Some(link_hwaddr(&rtnl.get_link(index).await?));
         }
@@ -1398,22 +1729,7 @@ impl State {
             }
             HwAddrApply::Applied
         };
-
-        // Acquire the destination lock before taking ownership out of pending.
-        let mut sessions = sessions.write().await;
-        let pending = pending.remove(&key).expect("pending session exists");
-
-        let session = SessionState {
-            index,
-            identity: pending.identity.expect("session identity was captured"),
-            initial_hwaddr,
-            hwaddr_pending: outcome == HwAddrApply::Deferred,
-            handle: pending.handle,
-        };
-
-        sessions.insert(session_id, session);
-
-        Ok(outcome)
+        Ok((identity, initial_hwaddr, outcome))
     }
 
     async fn create_session_handle(
@@ -1484,24 +1800,34 @@ impl State {
         Ok((session.index, session.initial_hwaddr))
     }
 
+    /// Renames the session's device, unless it can no longer be proved to
+    /// be the one created, in which case it is left alone.
     pub(crate) async fn modify_session(
         &self,
         tunnel_id: u32,
         session_id: u32,
         ifname: &L2tpIfName,
-    ) -> Result<()> {
+    ) -> Result<SessionRename> {
         let sessions = self
             .sessions_of(tunnel_id)
             .await
             .ok_or_else(|| Error::Other(format!("No such tunnel: {tunnel_id}")))?;
-        let sessions = sessions.read().await;
-        let session = sessions.get(&session_id).ok_or_else(|| {
+        let mut sessions = sessions.write().await;
+        let session = sessions.get_mut(&session_id).ok_or_else(|| {
             Error::Other(format!(
                 "No such session {session_id} in tunnel {tunnel_id}"
             ))
         })?;
+        if self
+            .session_unmanageable(tunnel_id, session_id, session)
+            .await?
+            .is_some()
+        {
+            return Ok(SessionRename::Unmanageable);
+        }
         let rtnl = SessionLinkOps::new(&self.link_identities, &session.identity)?;
-        rename_interface_with(&rtnl, session.index, ifname).await
+        rename_interface_with(&rtnl, session.index, ifname).await?;
+        Ok(SessionRename::Applied)
     }
 
     /// Whether the session's configured hardware address still has to be
@@ -1518,7 +1844,9 @@ impl State {
 
     /// Sets the session device's hardware address, or restores the address
     /// the kernel assigned at creation when `hwaddr` is `None`. A running
-    /// device is left alone and the change is reported as deferred.
+    /// device is left alone and the change is reported as deferred; so is
+    /// a device that can no longer be proved to be the one created, which
+    /// is reported as unmanageable and not retried.
     pub(crate) async fn set_session_hwaddr(
         &self,
         tunnel_id: u32,
@@ -1536,6 +1864,14 @@ impl State {
             ))
         })?;
         session.hwaddr_pending = true;
+        if self
+            .session_unmanageable(tunnel_id, session_id, session)
+            .await?
+            .is_some()
+        {
+            session.hwaddr_pending = false;
+            return Ok(HwAddrApply::Unmanageable);
+        }
         let result = match hwaddr.copied().or(session.initial_hwaddr) {
             Some(target) => {
                 let rtnl = SessionLinkOps::new(&self.link_identities, &session.identity)?;
@@ -1559,19 +1895,25 @@ impl State {
         };
         let sessions = self.sessions_of(tunnel_id).await.ok_or_else(not_found)?;
 
-        let identity = sessions
-            .read()
-            .await
-            .get(&session_id)
-            .ok_or_else(not_found)?
-            .identity
-            .clone();
-
-        if matches!(
-            self.link_identities.validate(&identity).await?,
-            LinkStatus::Invalidated
-        ) {
-            warn!("forgetting session_id={session_id} in tunnel_id={tunnel_id} because its device lifetime could not be verified; its IDs may have been reused");
+        // A session whose device was seen leaving this namespace may have
+        // had its identifiers reused since: it is forgotten, not deleted.
+        // After a loss of notifications the kernel's own record decides.
+        let unprovable = {
+            let sessions = sessions.read().await;
+            let session = sessions.get(&session_id).ok_or_else(not_found)?;
+            match self.link_identities.validate(&session.identity).await? {
+                LinkStatus::Live(_) => None,
+                LinkStatus::Invalidated(Invalidation::Lost)
+                    if kernel_session_is_ours(&session.handle).await =>
+                {
+                    info!("deleting session_id={session_id} in tunnel_id={tunnel_id} although link notifications were lost: the kernel still reports it under its creation-time name");
+                    None
+                }
+                LinkStatus::Invalidated(why) => Some(why),
+            }
+        };
+        if let Some(why) = unprovable {
+            warn!("forgetting session_id={session_id} in tunnel_id={tunnel_id} without deleting it: {why}, and its identifiers may have been reused");
             sessions.write().await.remove(&session_id);
             return Ok(());
         }
@@ -1602,7 +1944,7 @@ mod tests {
         deletion_result, interface_index, remove_if_delete_succeeded, verify_reconnected_endpoint,
         SessionCookies, State,
     };
-    use crate::config::{Cookie, HwAddr};
+    use crate::config::{Cookie, HwAddr, IpVersion, TunnelConfig};
     use futures_util::TryStreamExt;
     use l2tp::{Encapsulation, IpEndpoint, L2tpIfName, L2tpIfNameExt};
     use std::collections::{BTreeMap, BTreeSet};
@@ -2770,14 +3112,23 @@ mod tests {
             .await
             .unwrap();
         let foreign_mac = current_hwaddr(index).await;
-        assert!(state
-            .modify_session(id, session_id, &renamed)
-            .await
-            .is_err());
-        assert!(state
-            .set_session_hwaddr(id, session_id, Some(&"02:00:5e:00:53:04".parse().unwrap()))
-            .await
-            .is_err());
+        // The observed removal makes the session unmanageable: changes
+        // are skipped rather than failed, and the replacement is untouched.
+        assert_eq!(
+            state
+                .modify_session(id, session_id, &renamed)
+                .await
+                .unwrap(),
+            super::SessionRename::Unmanageable
+        );
+        assert_eq!(
+            state
+                .set_session_hwaddr(id, session_id, Some(&"02:00:5e:00:53:04".parse().unwrap()))
+                .await
+                .unwrap(),
+            super::HwAddrApply::Unmanageable
+        );
+        assert!(!state.session_hwaddr_pending(id, session_id).await);
         assert_eq!(foreign_name.index().unwrap(), index);
         assert_eq!(current_hwaddr(index).await, foreign_mac);
 
@@ -3137,20 +3488,54 @@ mod tests {
             matches!(&err, crate::Error::L2tp(l2tp::Error::Io(e)) if e.raw_os_error() == Some(libc::ENETUNREACH)),
             "{err}"
         );
-        assert!(!State::discard_route_exists(None).await.unwrap());
-        state.route_discard_to_null_device(None).await.unwrap();
+        assert!(!State::discard_route_exists(None, IpVersion::V6)
+            .await
+            .unwrap());
+        state
+            .route_discard_to_null_device(None, IpVersion::V6)
+            .await
+            .unwrap();
         let index = interface_index(&null).await.unwrap().expect("null device");
         let rtnl = super::Rtnl::connect().unwrap();
         let link = rtnl.get_link(index).await.unwrap();
         assert!(super::link_is_dummy(&link));
         assert!(super::link_is_up(&link));
         // Now the host routes it; routing it again is harmless.
-        assert!(State::discard_route_exists(None).await.unwrap());
-        state.route_discard_to_null_device(None).await.unwrap();
+        assert!(State::discard_route_exists(None, IpVersion::V6)
+            .await
+            .unwrap());
+        state
+            .route_discard_to_null_device(None, IpVersion::V6)
+            .await
+            .unwrap();
         state
             .add_tunnel(id, id + 1, discard, None)
             .await
             .expect("tunnel to the discard address through the null device");
+
+        // The IPv4 discard address gets its own route on the same device,
+        // and a dual-stack socket reaches it as an IPv4-mapped peer even
+        // though the namespace has no IPv4 address: the source is then the
+        // unspecified one, which is enough for frames that are dropped.
+        let discard_v4 = IpAddr::V4(TunnelConfig::NO_PEER_ADDR_V4);
+        assert!(!State::discard_route_exists(None, IpVersion::V4)
+            .await
+            .unwrap());
+        state
+            .route_discard_to_null_device(None, IpVersion::V4)
+            .await
+            .unwrap();
+        assert!(State::discard_route_exists(None, IpVersion::V4)
+            .await
+            .unwrap());
+        assert_eq!(interface_index(&null).await.unwrap(), Some(index));
+        state
+            .add_tunnel(id + 6, id + 7, discard_v4, None)
+            .await
+            .expect("tunnel to the IPv4 discard address through the null device");
+        assert_eq!(state.tunnel_ip_version(id + 6).await, Some(IpVersion::V4));
+        assert_eq!(state.tunnel_local_addr(id + 6).await, None);
+        state.delete_tunnel(id + 6).await.unwrap();
         let Encapsulation::Ip { local, remote } = tunnel_info(&state, id).await.encapsulation
         else {
             panic!("expected IP encapsulation");
@@ -3224,20 +3609,55 @@ mod tests {
             .execute()
             .await
             .expect("unreachable default route in the VRF table");
+        // Without an IPv4 one, a VRF lookup falls through to the main
+        // table, which routes the IPv4 discard address already.
+        rtnl.handle
+            .route()
+            .add(
+                RouteMessageBuilder::<Ipv4Addr>::new()
+                    .destination_prefix(Ipv4Addr::UNSPECIFIED, 0)
+                    .kind(RouteType::Unreachable)
+                    .table_id(table)
+                    .build(),
+            )
+            .execute()
+            .await
+            .expect("unreachable IPv4 default route in the VRF table");
         assert!(state
             .add_tunnel(id + 2, id + 3, discard, Some(&ifname(vrf_name)))
             .await
             .is_err());
-        assert!(!State::discard_route_exists(Some(vrf_index)).await.unwrap());
+        assert!(!State::discard_route_exists(Some(vrf_index), IpVersion::V6)
+            .await
+            .unwrap());
         state
-            .route_discard_to_null_device(Some(vrf_index))
+            .route_discard_to_null_device(Some(vrf_index), IpVersion::V6)
             .await
             .unwrap();
-        assert!(State::discard_route_exists(Some(vrf_index)).await.unwrap());
+        assert!(State::discard_route_exists(Some(vrf_index), IpVersion::V6)
+            .await
+            .unwrap());
         state
             .add_tunnel(id + 2, id + 3, discard, Some(&ifname(vrf_name)))
             .await
             .expect("tunnel in the VRF through the null device");
+        // The IPv4 discard route in the VRF table serves a VRF-bound
+        // socket as well, through the non-member null device.
+        assert!(!State::discard_route_exists(Some(vrf_index), IpVersion::V4)
+            .await
+            .unwrap());
+        state
+            .route_discard_to_null_device(Some(vrf_index), IpVersion::V4)
+            .await
+            .unwrap();
+        assert!(State::discard_route_exists(Some(vrf_index), IpVersion::V4)
+            .await
+            .unwrap());
+        state
+            .add_tunnel(id + 8, id + 9, discard_v4, Some(&ifname(vrf_name)))
+            .await
+            .expect("IPv4 discard tunnel in the VRF through the null device");
+        state.delete_tunnel(id + 8).await.unwrap();
 
         state.delete_tunnel(id).await.unwrap();
         state.delete_tunnel(id + 2).await.unwrap();
@@ -3323,14 +3743,20 @@ mod tests {
             .unwrap();
         add_test_address(&rtnl, foreign, address).await;
         let before = rtnl.get_link(foreign).await.unwrap();
-        state.route_discard_to_null_device(None).await.unwrap();
+        state
+            .route_discard_to_null_device(None, IpVersion::V6)
+            .await
+            .unwrap();
         let owned = ifname("rsl2tpnull1").index().unwrap();
         assert_ne!(owned, foreign);
         assert_eq!(
             super::link_is_up(&rtnl.get_link(foreign).await.unwrap()),
             super::link_is_up(&before)
         );
-        state.route_discard_to_null_device(None).await.unwrap();
+        state
+            .route_discard_to_null_device(None, IpVersion::V6)
+            .await
+            .unwrap();
         assert_eq!(ifname("rsl2tpnull1").index().unwrap(), owned);
 
         // Renaming the owned device does not transfer ownership to a new
@@ -3339,7 +3765,10 @@ mod tests {
             .await
             .unwrap();
         let replacement = add_test_dummy(&rtnl, "rsl2tpnull1").await;
-        state.route_discard_to_null_device(None).await.unwrap();
+        state
+            .route_discard_to_null_device(None, IpVersion::V6)
+            .await
+            .unwrap();
         assert_eq!(state.discard_resources.lock().await.devices.len(), 1);
         state.remove_null_device().await.unwrap();
         assert!(rtnl.find_link(owned).await.unwrap().is_none());
@@ -3361,7 +3790,10 @@ mod tests {
 
         // A deleted owned link can be replaced before shutdown. The new link
         // must survive too; reusing the index does not match the creation MAC.
-        state.route_discard_to_null_device(None).await.unwrap();
+        state
+            .route_discard_to_null_device(None, IpVersion::V6)
+            .await
+            .unwrap();
         let gone = ifname("rsl2tpnull2").index().unwrap();
         rtnl.handle.link().del(gone).execute().await.unwrap();
         rtnl.handle
@@ -3467,7 +3899,10 @@ mod tests {
         state.restore_discard_routes().await.unwrap();
         assert_eq!(interface_index(&null_name).await.unwrap(), None);
 
-        state.route_discard_to_null_device(None).await.unwrap();
+        state
+            .route_discard_to_null_device(None, IpVersion::V6)
+            .await
+            .unwrap();
         let original = null_name.index().unwrap();
         remove_discard_routes(&rtnl, table).await;
         assert!(discard_routes_in_table(&rtnl, table).await.is_empty());
@@ -3485,9 +3920,12 @@ mod tests {
             .unwrap();
         state.restore_discard_routes().await.unwrap();
         assert_discard_route_device(&rtnl, table, foreign).await;
-        state.route_discard_to_null_device(None).await.unwrap();
+        state
+            .route_discard_to_null_device(None, IpVersion::V6)
+            .await
+            .unwrap();
         assert_discard_route_device(&rtnl, table, foreign).await;
-        assert!(rtnl.routes(unrelated, None).await.unwrap());
+        assert!(rtnl.routes(IpAddr::V6(unrelated), None).await.unwrap());
 
         // Both initial installation and repair respect a reject route.
         remove_discard_routes(&rtnl, table).await;
@@ -3504,7 +3942,10 @@ mod tests {
             .await
             .unwrap();
         state.restore_discard_routes().await.unwrap();
-        state.route_discard_to_null_device(None).await.unwrap();
+        state
+            .route_discard_to_null_device(None, IpVersion::V6)
+            .await
+            .unwrap();
         let preserved = discard_routes_in_table(&rtnl, table).await;
         assert_eq!(preserved.len(), 1);
         assert_eq!(
@@ -3524,8 +3965,135 @@ mod tests {
         state.restore_discard_routes().await.unwrap();
         assert_eq!(interface_index(&null_name).await.unwrap(), None);
         assert!(discard_routes_in_table(&rtnl, table).await.is_empty());
-        assert!(rtnl.routes(unrelated, None).await.unwrap());
+        assert!(rtnl.routes(IpAddr::V6(unrelated), None).await.unwrap());
         rtnl.handle.link().del(foreign).execute().await.unwrap();
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy, l2tp_eth and IPv4 L2TP support"]
+    async fn privileged_ipv4_sockets_use_native_endpoints_and_refuse_ipv6_peers() {
+        // As on a kernel with ipv6.disable=1, every tunnel gets an AF_INET
+        // socket: native IPv4 endpoints go to the kernel, and an IPv6 peer
+        // is refused before any socket call, so the previous peer stays.
+        let rtnl = super::Rtnl::connect().unwrap();
+        let index = add_test_dummy(&rtnl, "rsl2tp-v4only").await;
+        let local: IpAddr = "192.0.2.21".parse().unwrap();
+        let peer: IpAddr = "192.0.2.22".parse().unwrap();
+        let other_peer: IpAddr = "192.0.2.23".parse().unwrap();
+        add_test_address(&rtnl, index, local).await;
+        let state = State::new().await.unwrap();
+        state.use_ipv4_sockets();
+        assert_eq!(state.socket_family(), super::SocketFamily::Ipv4);
+        let id = 1_700_000_000 + (std::process::id() % 100_000) * 8;
+        state
+            .add_tunnel(id, id + 1, peer, Some(&ifname("rsl2tp-v4only")))
+            .await
+            .unwrap();
+        let info = tunnel_info(&state, id).await;
+        assert_eq!(
+            info.encapsulation,
+            Encapsulation::Ip {
+                local: IpEndpoint::V4("192.0.2.21".parse().unwrap()),
+                remote: IpEndpoint::V4("192.0.2.22".parse().unwrap()),
+            }
+        );
+        assert_eq!(state.tunnel_local_addr(id).await, Some(local));
+        assert_eq!(state.tunnel_ip_version(id).await, Some(IpVersion::V4));
+        assert!(state.tunnel_is_bound(id).await);
+
+        let session_id = id + 2;
+        let session_name = ifname("rsl2tp-v4s");
+        state
+            .add_session(
+                id,
+                session_id,
+                session_id,
+                &session_name,
+                None,
+                SessionCookies::default(),
+            )
+            .await
+            .unwrap();
+        let device = state.session_device(id, session_id).await.unwrap();
+
+        let err = state
+            .modify_tunnel(id, "2001:db8:170::2".parse().unwrap())
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(err, crate::Error::L2tp(l2tp::Error::AddressFamilyMismatch)),
+            "{err}"
+        );
+        assert!(state.tunnel_is_connected(id).await);
+        assert_eq!(
+            tunnel_info(&state, id).await.encapsulation,
+            info.encapsulation
+        );
+
+        state.modify_tunnel(id, other_peer).await.unwrap();
+        state.reconnect_tunnel(id).await.unwrap();
+        let info = tunnel_info(&state, id).await;
+        assert_eq!(
+            info.encapsulation,
+            Encapsulation::Ip {
+                local: IpEndpoint::V4("192.0.2.21".parse().unwrap()),
+                remote: IpEndpoint::V4("192.0.2.23".parse().unwrap()),
+            }
+        );
+        assert_eq!(state.session_device(id, session_id).await.unwrap(), device);
+
+        // The IPv4 discard address is a native peer too.
+        let discard_v4 = IpAddr::V4(TunnelConfig::NO_PEER_ADDR_V4);
+        rtnl.route_to_device_v4(TunnelConfig::NO_PEER_ADDR_V4, index, super::RT_TABLE_MAIN)
+            .await
+            .unwrap();
+        state.modify_tunnel(id, discard_v4).await.unwrap();
+        assert_eq!(state.tunnel_remote_addr(id).await, Some(discard_v4));
+        assert_eq!(state.tunnel_ip_version(id).await, Some(IpVersion::V4));
+        state.modify_tunnel(id, peer).await.unwrap();
+        assert_eq!(state.tunnel_local_addr(id).await, Some(local));
+
+        state.delete_tunnel(id).await.unwrap();
+        assert_kernel_tunnel_deleted(&state, id).await;
+        assert_interface_deleted(&session_name).await;
+        rtnl.handle.link().del(index).execute().await.unwrap();
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy and IPv6 L2TP support"]
+    async fn privileged_local_address_follows_the_selected_source() {
+        let rtnl = super::Rtnl::connect().unwrap();
+        let index = add_test_dummy(&rtnl, "rsl2tp-lsrc").await;
+        let first: IpAddr = "2001:db8:171::1".parse().unwrap();
+        let second: IpAddr = "2001:db8:171::3".parse().unwrap();
+        let peer: IpAddr = "2001:db8:171::2".parse().unwrap();
+        let old_address = add_test_address(&rtnl, index, first).await;
+        let (state, id) = privileged_state_at(peer, None).await;
+        assert!(!state.tunnel_is_bound(id).await);
+        assert_eq!(state.tunnel_local_addr(id).await, Some(first));
+        // The kernel keeps the selected source while it exists on the host
+        // and after its removal: that is what the runtime reconnects for.
+        rtnl.handle
+            .address()
+            .del(old_address)
+            .execute()
+            .await
+            .unwrap();
+        assert_eq!(state.tunnel_local_addr(id).await, Some(first));
+        add_test_address(&rtnl, index, second).await;
+        state.reconnect_tunnel(id).await.unwrap();
+        assert_eq!(state.tunnel_local_addr(id).await, Some(second));
+        assert_kernel_endpoints(&state, id, second, peer).await;
+        // IPv4 sources of the dual-stack socket are reported as IPv4.
+        let v4_local: IpAddr = "192.0.2.31".parse().unwrap();
+        let v4_peer: IpAddr = "192.0.2.32".parse().unwrap();
+        add_test_address(&rtnl, index, v4_local).await;
+        state.modify_tunnel(id, v4_peer).await.unwrap();
+        assert_eq!(state.tunnel_local_addr(id).await, Some(v4_local));
+        assert_eq!(state.tunnel_remote_addr(id).await, Some(v4_peer));
+        state.delete_tunnel(id).await.unwrap();
+        assert_kernel_tunnel_deleted(&state, id).await;
+        rtnl.handle.link().del(index).execute().await.unwrap();
     }
 
     #[tokio::test]
@@ -3550,10 +4118,13 @@ mod tests {
         // Record the VRF first, so a failed repair there cannot prevent the
         // later main-table repair from running.
         state
-            .route_discard_to_null_device(Some(original))
+            .route_discard_to_null_device(Some(original), IpVersion::V6)
             .await
             .unwrap();
-        state.route_discard_to_null_device(None).await.unwrap();
+        state
+            .route_discard_to_null_device(None, IpVersion::V6)
+            .await
+            .unwrap();
         let null_index = ifname(super::NULL_DEVICE).index().unwrap();
         rtnl.handle.link().del(original).execute().await.unwrap();
         remove_discard_routes(&rtnl, old_table).await;
