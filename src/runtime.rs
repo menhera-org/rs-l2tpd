@@ -18,6 +18,7 @@ use log::{debug, info, warn};
 use rtnetlink::packet_core::NetlinkPayload;
 use rtnetlink::packet_route::{
     link::{LinkAttribute, LinkMessage},
+    route::{RouteAddress, RouteAttribute},
     AddressFamily, RouteNetlinkMessage,
 };
 use rtnetlink::{new_multicast_connection, MulticastGroup};
@@ -109,6 +110,12 @@ pub enum ControlEvent {
         /// The controller index observed before or after the link change.
         if_index: u32,
     },
+    /// A discard route was removed, or the route monitor needs a resync.
+    /// Only fallback routes previously requested by this runtime are restored.
+    DiscardRouteChanged,
+    /// The monitor started or lost events; re-read bindings and refresh
+    /// their sources as well as the daemon's own fallback routes.
+    NetworkResyncRequested,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -231,6 +238,8 @@ pub(crate) trait StateOps: Send + Sync {
     /// Routes the discard address to the null device for that context,
     /// creating the device as needed: the last resort.
     async fn route_discard_to_null_device(&self, vrf: Option<u32>) -> Result<()>;
+    /// Restores missing fallback routes in their current routing contexts.
+    async fn restore_discard_routes(&self) -> Result<()>;
     /// Removes only null devices created and still owned by this state.
     async fn remove_null_device(&self) -> Result<()>;
 }
@@ -372,6 +381,10 @@ impl StateOps for state::State {
 
     async fn remove_null_device(&self) -> Result<()> {
         state::State::remove_null_device(self).await
+    }
+
+    async fn restore_discard_routes(&self) -> Result<()> {
+        state::State::restore_discard_routes(self).await
     }
 }
 
@@ -600,6 +613,8 @@ pub struct Runtime {
     discard_route_wait: Option<Instant>,
     /// How long to wait for the host to route the discard address itself.
     discard_route_grace: Duration,
+    /// One retry worker until all previously installed routes are restored.
+    discard_route_retry: Option<JoinHandle<()>>,
 }
 
 impl Runtime {
@@ -624,6 +639,7 @@ impl Runtime {
             interface_worker,
             discard_route_wait: None,
             discard_route_grace: DISCARD_ROUTE_GRACE,
+            discard_route_retry: None,
         }
     }
 
@@ -644,6 +660,7 @@ impl Runtime {
             interface_worker,
             discard_route_wait: None,
             discard_route_grace: DISCARD_ROUTE_GRACE,
+            discard_route_retry: None,
         }
     }
 
@@ -1058,12 +1075,31 @@ impl Runtime {
         }
     }
 
+    /// Recovers address and routing changes missed while the monitor was
+    /// unavailable. An unchanged name/index can still have a new source.
+    pub async fn handle_network_resync(&mut self) {
+        let previous = self.bound_interface_indexes().await;
+        self.handle_interface_change(None).await;
+        if self.tunnel_specs.is_empty() {
+            self.handle_discard_route_change().await;
+        }
+        // Newly bound devices were refreshed by handle_interface_change.
+        for index in previous.intersection(&self.bound_interface_indexes().await) {
+            self.reconnect_bound_tunnels(*index, None, false).await;
+        }
+    }
+
     /// Binds tunnel sockets whose bind interface was absent, now that an
     /// interface appeared or changed. None also checks every recorded
     /// binding, recovering removals missed while the monitor was disconnected.
     /// Session devices whose configured hardware address is still pending
     /// get another attempt, which succeeds once the device is down.
     pub async fn handle_interface_change(&mut self, changed_if_name: Option<&L2tpIfName>) {
+        // A VRF can be recreated under its configured name with a different
+        // table even when the old table retained its discard route.
+        if !self.tunnel_specs.is_empty() {
+            self.handle_discard_route_change().await;
+        }
         self.apply_pending_hwaddrs(changed_if_name).await;
 
         for desired in self.tunnel_specs.values() {
@@ -1388,16 +1424,53 @@ impl Runtime {
         }
     }
 
+    /// Restores fallback routes removed by a network manager. A routing
+    /// context may be temporarily absent while its VRF is being recreated;
+    /// retry until it is available without relying on another route event.
+    pub async fn handle_discard_route_change(&mut self) {
+        match self.state.restore_discard_routes().await {
+            Ok(()) => {
+                if let Some(retry) = self.discard_route_retry.take() {
+                    retry.abort();
+                }
+            }
+            Err(e) => {
+                warn!("failed to restore discard routes: {e}; will retry");
+                if self.discard_route_retry.is_none() {
+                    let control_tx = self.control_tx.clone();
+                    self.discard_route_retry = Some(tokio::spawn(async move {
+                        loop {
+                            tokio::time::sleep(Duration::from_secs(1)).await;
+                            if control_tx
+                                .send(ControlEvent::DiscardRouteChanged)
+                                .await
+                                .is_err()
+                            {
+                                break;
+                            }
+                        }
+                    }));
+                }
+            }
+        }
+    }
+
     /// Removes every tunnel and session, and any null devices this state
     /// created. Each tunnel deletion may wait up to about two seconds for
     /// the kernel.
     pub async fn shutdown(&mut self) -> Result<()> {
+        if let Some(retry) = self.discard_route_retry.take() {
+            retry.abort();
+        }
         let result = self.reconcile(&Config::default()).await;
         // Creation may have succeeded even when installing its route failed.
         // State tracks actual ownership, so cleanup is safe without a prior
         // successful route or tunnel creation.
         if let Err(e) = self.state.remove_null_device().await {
             warn!("{e}");
+        }
+        if let Some(retry) = self.discard_route_retry.take() {
+            retry.abort();
         }
         result
     }
@@ -1572,6 +1645,9 @@ impl Runtime {
 impl Drop for Runtime {
     fn drop(&mut self) {
         self.interface_worker.abort();
+        if let Some(retry) = self.discard_route_retry.take() {
+            retry.abort();
+        }
         for retry in self.reconnect_retries.values() {
             retry.abort();
         }
@@ -1589,6 +1665,7 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
                 MulticastGroup::Link,
                 MulticastGroup::Ipv4Ifaddr,
                 MulticastGroup::Ipv6Ifaddr,
+                MulticastGroup::Ipv6Route,
             ]) {
                 Ok(parts) => parts,
                 Err(e) => {
@@ -1613,7 +1690,7 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
             };
 
             if control_tx
-                .send(ControlEvent::InterfaceChanged { if_name: None })
+                .send(ControlEvent::NetworkResyncRequested)
                 .await
                 .is_err()
             {
@@ -1761,7 +1838,18 @@ fn control_event_for_netlink_payload(
                 ip_version,
             })
         }
-        NetlinkPayload::Overrun(_) => Some(ControlEvent::InterfaceChanged { if_name: None }),
+        NetlinkPayload::Overrun(_) => Some(ControlEvent::NetworkResyncRequested),
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelRoute(route))
+            if route.header.address_family == AddressFamily::Inet6
+                && route.header.destination_prefix_length == 128
+                && route.attributes.iter().any(|attr| {
+                    matches!(attr,
+                    RouteAttribute::Destination(RouteAddress::Inet6(address))
+                    if *address == crate::config::TunnelConfig::NO_PEER_ADDR)
+                }) =>
+        {
+            Some(ControlEvent::DiscardRouteChanged)
+        }
         _ => None,
     }
 }
@@ -2098,6 +2186,9 @@ mod tests {
         null_device_needed: bool,
         null_device_present: bool,
         fail_discard_route: bool,
+        fail_restore_discard_routes: bool,
+        tracked_discard_route: bool,
+        discard_route_restores: u32,
         discard_route_calls: Vec<Option<u32>>,
         null_device_removals: u32,
     }
@@ -2618,6 +2709,7 @@ mod tests {
         async fn route_discard_to_null_device(&self, vrf: Option<u32>) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
             inner.null_device_present = true;
+            inner.tracked_discard_route = true;
             if inner.fail_discard_route {
                 return Err(Error::Other("injected route installation failure".into()));
             }
@@ -2625,8 +2717,22 @@ mod tests {
             Ok(())
         }
 
+        async fn restore_discard_routes(&self) -> Result<()> {
+            let mut inner = self.inner.lock().expect("lock poisoned");
+            if !inner.tracked_discard_route {
+                return Ok(());
+            }
+            inner.discard_route_restores += 1;
+            if inner.fail_restore_discard_routes {
+                return Err(Error::Other("injected route restoration failure".into()));
+            }
+            inner.null_device_present = true;
+            Ok(())
+        }
+
         async fn remove_null_device(&self) -> Result<()> {
             let mut inner = self.inner.lock().expect("lock poisoned");
+            inner.tracked_discard_route = false;
             if inner.null_device_present {
                 inner.null_device_removals += 1;
                 inner.null_device_present = false;
@@ -3539,6 +3645,119 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn discard_route_notifications_ignore_unrelated_routes_and_additions() {
+        use rtnetlink::RouteMessageBuilder;
+        for (destination, prefix, family, expected) in [
+            ("100::", 128, AddressFamily::Inet6, true),
+            ("100::", 64, AddressFamily::Inet6, false),
+            ("2001:db8::1", 128, AddressFamily::Inet6, false),
+            ("100::", 128, AddressFamily::Inet, false),
+        ] {
+            let mut route = RouteMessageBuilder::<Ipv6Addr>::new()
+                .destination_prefix(destination.parse().unwrap(), prefix)
+                .build();
+            route.header.address_family = family;
+            let addition =
+                NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewRoute(route.clone()));
+            assert!(control_event_for_netlink_payload(addition).is_none());
+            let removal = NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelRoute(route));
+            assert_eq!(
+                matches!(
+                    control_event_for_netlink_payload(removal),
+                    Some(ControlEvent::DiscardRouteChanged)
+                ),
+                expected
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn monitor_resync_refreshes_sources_without_interface_identity_changes() {
+        let mock = Arc::new(MockState::default());
+        mock.add_interface("underlay0");
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        let cfg = test_config(
+            vec![
+                (
+                    "v4",
+                    10,
+                    10,
+                    IpVersion::V4,
+                    "192.0.2.2".parse().unwrap(),
+                    Some("underlay0"),
+                ),
+                (
+                    "v6",
+                    11,
+                    11,
+                    IpVersion::V6,
+                    "2001:db8::2".parse().unwrap(),
+                    Some("underlay0"),
+                ),
+            ],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+        let before4 = mock.reconnect_count(10);
+        let before6 = mock.reconnect_count(11);
+        // An address removal can be lost while the multicast socket is full.
+        // The name and index still match, and connected=true is stale too.
+        runtime.handle_network_resync().await;
+        assert_eq!(mock.reconnect_count(10), before4 + 1);
+        assert_eq!(mock.reconnect_count(11), before6 + 1);
+        assert!(runtime.reconnect_retries.is_empty());
+        assert!(!mock.inner.lock().unwrap().null_device_present);
+    }
+
+    #[tokio::test]
+    async fn discard_route_restoration_retries_until_recovery() {
+        let mock = Arc::new(MockState::default());
+        {
+            let mut inner = mock.inner.lock().unwrap();
+            inner.tracked_discard_route = true;
+            inner.fail_restore_discard_routes = true;
+        }
+        let (tx, mut rx) = mpsc::channel(16);
+        let mut runtime = Runtime::new_with_state_ops(mock.clone(), tx);
+        runtime.handle_discard_route_change().await;
+        let retry = runtime.discard_route_retry.as_ref().unwrap().id();
+        runtime.handle_discard_route_change().await;
+        assert_eq!(runtime.discard_route_retry.as_ref().unwrap().id(), retry);
+        let event = tokio::time::timeout(Duration::from_secs(2), rx.recv())
+            .await
+            .unwrap();
+        assert!(matches!(event, Some(ControlEvent::DiscardRouteChanged)));
+        mock.inner.lock().unwrap().fail_restore_discard_routes = false;
+        runtime.handle_discard_route_change().await;
+        assert!(runtime.discard_route_retry.is_none());
+        assert!(mock.inner.lock().unwrap().null_device_present);
+        assert_eq!(mock.inner.lock().unwrap().discard_route_restores, 3);
+        assert!(tokio::time::timeout(Duration::from_millis(1100), rx.recv())
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn shutdown_cancels_discard_route_restoration_and_queued_events_are_harmless() {
+        let mock = Arc::new(MockState::default());
+        {
+            let mut inner = mock.inner.lock().unwrap();
+            inner.tracked_discard_route = true;
+            inner.null_device_present = true;
+            inner.fail_restore_discard_routes = true;
+        }
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        runtime.handle_discard_route_change().await;
+        assert!(runtime.discard_route_retry.is_some());
+        runtime.shutdown().await.unwrap();
+        assert!(runtime.discard_route_retry.is_none());
+        runtime.handle_discard_route_change().await;
+        assert!(runtime.discard_route_retry.is_none());
+        assert!(!mock.inner.lock().unwrap().null_device_present);
+        assert_eq!(mock.inner.lock().unwrap().discard_route_restores, 1);
     }
 
     #[tokio::test]

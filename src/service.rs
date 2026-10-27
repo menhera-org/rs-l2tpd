@@ -227,6 +227,12 @@ impl Service {
             ControlEvent::VrfChanged { if_index } => {
                 self.runtime.handle_vrf_change(if_index).await;
             }
+            ControlEvent::DiscardRouteChanged => {
+                self.runtime.handle_discard_route_change().await;
+            }
+            ControlEvent::NetworkResyncRequested => {
+                self.runtime.handle_network_resync().await;
+            }
             ControlEvent::ReloadRequested | ControlEvent::ShutdownRequested => {}
         }
     }

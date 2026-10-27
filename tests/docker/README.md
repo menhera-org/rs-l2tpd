@@ -27,7 +27,7 @@ cargo build --locked --target x86_64-unknown-linux-musl \
     --manifest-path /tmp/rs-l2tpd-baseline/Cargo.toml
 ```
 
-Run all fifteen privileged library tests, substituting an absolute
+Run all eighteen privileged library tests, substituting an absolute
 artifacts directory for `/path/to/artifacts`:
 
 ```sh
@@ -188,7 +188,8 @@ The four cases check:
 - A preexisting `rsl2tpnull0` dummy, its address and an administrator-installed
   route survive daemon startup and shutdown.
 - A daemon-created fallback device is removed and a different device receives
-  the same name. Shutdown preserves the replacement, its address and route.
+  the same name. Route repair allocates another owned device, and both repair
+  and shutdown preserve the replacement, its address and route.
 
 Both peer-recovery cases require the same tunnel socket, daemon PID, session
 interface index, session IDs and inner interface addresses throughout. The
@@ -197,6 +198,95 @@ unowned devices and their configuration. Each case also checks tunnel and
 session cleanup. Use `--env CASES=dns`, `fallback`, `existing`, or `replacement`
 to run one case. The full run includes the normal fallback grace periods and
 DNS refresh interval; all filesystem and network changes stay in the container.
+
+## Route repair with systemd-networkd
+
+`networkd-routes.sh` runs a real networkd instance with a configuration that
+matches the daemon's fallback devices. Its separate Debian image provides
+networkd, networkctl and a container-local D-Bus; it does not use the host's
+systemd installation or network configuration.
+
+```sh
+docker build --progress=plain -f tests/docker/Dockerfile.networkd \
+    -t rs-l2tpd-networkd-test:local tests/docker
+docker run --rm --network none \
+    --cap-add NET_ADMIN --cap-add NET_RAW --cap-add NET_BROADCAST \
+    --cap-add BPF --cap-add SYS_ADMIN \
+    --mount type=bind,source=/path/to/artifacts,target=/artifacts,readonly \
+    --entrypoint timeout rs-l2tpd-networkd-test:local 180 sh /opt/networkd-routes.sh
+```
+
+The main-table and VRF cases let networkd remove the daemon's `100::/128`
+route during initial configuration, reload/reconfiguration and restart.
+Each removal must be repaired, as must three successive explicit deletions.
+The VRF case also replaces the configured VRF with the same name, a new
+interface index and a different routing table: repair must follow the new
+table, leave an unrelated table unchanged, and stop restoring the old table.
+Both cases require the same daemon, tunnel socket, session interface, IDs and
+inner addresses throughout. Shutdown with a repair pending must remove the
+owned device and routes without recreating them.
+
+Use `--env CASES=main` or `--env CASES=vrf` for one case. `NETWORKD` and
+`NETWORKCTL` can select alternate executable paths in a prepared container.
+The extra capabilities allow networkd to establish its normal capability set;
+the test retains Docker's isolated network namespace and default filesystem
+protections. All configuration changes and the D-Bus instance stay inside
+the disposable container.
+
+## Session preparation with systemd-networkd
+
+The same image includes `networkd-sessions.sh`, which checks configured
+session MAC addresses against a final-name match, the exact
+`[Match] Type=l2tpeth` rule, and a match on the configured `MACAddress`.
+It runs real networkd and udevd, and delays the
+daemon's netlink receives by 100 ms with strace to expose startup races.
+The type-match case also pauses the daemon immediately after creation until
+networkd has configured the temporary link, then resumes it. This makes the
+preparation race reproducible; cleanup always resumes it before termination.
+The MAC-match case instead pauses after the address is set, allowing networkd
+to configure and bring up the staged link before its final rename.
+
+```sh
+docker run --rm --network none \
+    --cap-add NET_ADMIN --cap-add NET_RAW --cap-add NET_BROADCAST \
+    --cap-add BPF --cap-add SYS_ADMIN --cap-add SYS_PTRACE \
+    --security-opt apparmor=unconfined \
+    --mount type=bind,source=/path/to/artifacts,target=/artifacts,readonly \
+    --entrypoint timeout rs-l2tpd-networkd-test:local 150 sh /opt/networkd-sessions.sh
+```
+
+The final interface name must never appear with an unconfigured MAC. In the
+type-match case, recorded netlink events must prove networkd brought up and
+assigned IPv4 and IPv6 addresses and routes to the temporary interface before
+MAC preparation. Both addresses and routes must converge on the published
+interface afterward, and shutdown must remove the tunnel and session.
+The MAC-match case requires the same staged interface to survive this later
+race and retain both address families and routes after publication.
+Use `--env CASES=name`, `type`, or `mac` to select one case.
+
+The test needs udev's genuine `DEVTYPE=l2tpeth` metadata. Networkd skips udev
+when the `/sys` root filesystem is read-only, so `networkd-sysfs.sh` puts a
+private tmpfs at that root and bind-mounts the original sysfs directories
+under it read-only. Actual kernel attributes remain read-only; no host
+`/sys`, `/run`, or device directories are mounted into the container.
+The AppArmor override permits these container-local mount operations;
+`SYS_PTRACE` permits the scheduling delay. The ordinary route-repair test
+does not need either addition.
+
+## Route-monitor overflow recovery
+
+`monitor-resync.sh` pauses the daemon, queues 3,000 unrelated address events,
+replaces its bound source address, and resumes it. It requires a logged
+buffer overflow and monitor reopen, then the new source with the original
+tunnel socket, session interface, inner addresses and IDs. Shutdown must
+clean up the tunnel and session.
+
+```sh
+docker run --rm --network none --cap-add NET_ADMIN --cap-add NET_RAW \
+    --mount type=bind,source=/path/to/artifacts,target=/artifacts,readonly \
+    --mount type=bind,source=/path/to/rs-l2tpd/tests/docker/monitor-resync.sh,target=/opt/monitor-resync.sh,readonly \
+    --entrypoint timeout rs-l2tpd-network-test:local 45 sh /opt/monitor-resync.sh
+```
 
 ## Degraded start
 

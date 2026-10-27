@@ -1,0 +1,6 @@
+title: rs-l2tpd
+description: Linux L2TPv3 daemon and Rust library
+plugins:
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-relative-links

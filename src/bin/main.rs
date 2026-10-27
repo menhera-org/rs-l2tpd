@@ -959,6 +959,11 @@ fn run_command_checked(cmd: &mut Command, description: &str) -> Result<()> {
 /// Capabilities are not restricted: the kernel autoloads the L2TP modules
 /// and resolves names on the daemon's behalf, and the exact set differs
 /// between kernels.
+///
+/// Early startup is a compatibility requirement: the ready network stack
+/// can depend on our session interfaces. Never order this service after
+/// network-online.target or a wait-online service, or require either one.
+/// See docs/operation.md for the readiness and kernel-route prerequisites.
 #[cfg(feature = "setup")]
 fn systemd_unit_text() -> String {
     format!(
@@ -1729,6 +1734,27 @@ mod tests {
             "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK",
         ] {
             assert!(unit.lines().any(|l| l == line), "missing {line}");
+        }
+        // The dependency must point from network readiness to this daemon.
+        // Reversing it can prevent creation of the interfaces needed to make
+        // the network ready in the first place.
+        for line in unit.lines() {
+            let Some((directive, dependencies)) = line.split_once('=') else {
+                continue;
+            };
+            let directive = directive.trim();
+            if matches!(
+                directive,
+                "After" | "Requires" | "Wants" | "Requisite" | "BindsTo"
+            ) {
+                for dependency in dependencies.split_whitespace() {
+                    assert!(
+                        dependency != "network-online.target"
+                            && !dependency.contains("wait-online"),
+                        "early-start contract forbids {directive}={dependency}"
+                    );
+                }
+            }
         }
     }
 }

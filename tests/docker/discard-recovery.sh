@@ -28,6 +28,7 @@ stop_daemon() {
 
 cleanup() {
     if [ -f /run/discard-daemon.pid ]; then
+        kill -CONT "$(cat /run/discard-daemon.pid)" 2>/dev/null || :
         kill -TERM "$(cat /run/discard-daemon.pid)" 2>/dev/null || :
     fi
 }
@@ -205,9 +206,29 @@ for test_case in $CASES; do
             null_name=$(ip -6 route get 100:: | awk '{ for (i = 1; i <= NF; i++) if ($i == "dev") { print $(i + 1); exit } }')
             [ -n "$null_name" ] || fail 'discard route has no output device'
             old_index=$(ifindex "$null_name")
+            # Queue the removal and replacement together. Otherwise automatic
+            # repair can legitimately reclaim the free name before this fixture.
+            kill -STOP "$daemon_pid"
+            attempts=0
+            until grep -q '^State:.*T' "/proc/$daemon_pid/status"; do
+                attempts=$((attempts + 1))
+                [ "$attempts" -lt 50 ] || fail 'daemon did not stop for replacement'
+                sleep 0.1
+            done
             ip link delete "$null_name"
             add_admin_device "$null_name"
             [ "$protected_index" != "$old_index" ] || fail 'replacement device reused the old interface index'
+            kill -CONT "$daemon_pid"
+            attempts=0
+            while :; do
+                repaired_name=$(ip -6 route show exact 100::/128 |
+                    awk '{ for (i = 1; i <= NF; i++) if ($i == "dev") { print $(i + 1); exit } }')
+                if [ -n "$repaired_name" ] && [ "$repaired_name" != "$null_name" ]; then break; fi
+                attempts=$((attempts + 1))
+                [ "$attempts" -lt 100 ] || fail 'discard route was not repaired through a fresh owned device'
+                sleep 0.1
+            done
+            check_admin_device "$null_name"
             check_shutdown
             check_admin_device "$null_name"
             ;;

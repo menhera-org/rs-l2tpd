@@ -1,0 +1,7 @@
+FROM debian:trixie-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends systemd udev dbus iproute2 coreutils strace \
+    && rm -rf /var/lib/apt/lists/*
+COPY networkd-routes.sh /opt/networkd-routes.sh
+COPY networkd-sessions.sh networkd-sysfs.sh /opt/
+ENTRYPOINT ["sh", "/opt/networkd-routes.sh"]

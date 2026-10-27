@@ -112,8 +112,8 @@ impl Rtnl {
         Ok(false)
     }
 
-    /// Routes `destination` to the device `index` in `table`, replacing
-    /// a route of the same prefix and metric there.
+    /// Test fixture for creating an existing route owned by another manager.
+    #[cfg(test)]
     async fn route_to_device(&self, destination: Ipv6Addr, index: u32, table: u32) -> Result<()> {
         let message = RouteMessageBuilder::<Ipv6Addr>::new()
             .destination_prefix(destination, 128)
@@ -126,11 +126,26 @@ impl Rtnl {
             .replace()
             .execute()
             .await
-            .map_err(|e| {
-                Error::Other(format!(
-                    "failed to route {destination} to interface index {index} in table {table}: {e}"
-                ))
-            })
+            .map_err(|e| Error::Other(format!("failed to install test route: {e}")))
+    }
+
+    /// Adds only the daemon's discard route, preserving every existing route.
+    /// Callers supply an owned null device and an explicitly tracked table.
+    async fn install_discard_route(&self, index: u32, table: u32) -> Result<()> {
+        let destination = TunnelConfig::NO_PEER_ADDR;
+        let message = RouteMessageBuilder::<Ipv6Addr>::new()
+            .destination_prefix(destination, 128)
+            .output_interface(index)
+            .table_id(table)
+            .build();
+        let result = self.handle.route().add(message).execute().await;
+        match result {
+            Ok(()) => Ok(()),
+            Err(e) if is_netlink_errno(&e, libc::EEXIST) => Ok(()),
+            Err(e) => Err(Error::Other(format!(
+                "failed to route {destination} to interface index {index} in table {table}: {e}"
+            ))),
+        }
     }
 }
 
@@ -222,6 +237,17 @@ fn link_vrf_table(link: &LinkMessage) -> Option<u32> {
 /// host, no neighbour discovery runs.
 pub(crate) const NULL_DEVICE: &str = "rsl2tpnull0";
 
+/// The configured name is published only after a new session's MAC is ready.
+/// A bounded allocation loop handles collisions with any existing interfaces.
+fn next_session_staging_name() -> Result<L2tpIfName> {
+    static NEXT_NAME: AtomicUsize = AtomicUsize::new(0);
+    let number = NEXT_NAME
+        .fetch_add(1, Ordering::Relaxed)
+        .wrapping_add(std::process::id() as usize)
+        & 0x00ff_ffff;
+    L2tpIfName::from_name(format!("rsl2tp-t{number:06x}")).map_err(Error::L2tp)
+}
+
 /// The random MAC is installed atomically with creation. An index alone can be
 /// reused after deletion, and a name can be assigned to somebody else's link.
 struct NullDevice {
@@ -278,6 +304,55 @@ impl NullDevice {
         }
         Ok(None)
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DiscardRouteContext {
+    Main,
+    Vrf(L2tpIfName),
+}
+
+impl DiscardRouteContext {
+    async fn from_vrf(rtnl: &Rtnl, vrf: Option<u32>) -> Result<Self> {
+        let Some(index) = vrf else {
+            return Ok(Self::Main);
+        };
+        let link = rtnl.get_link(index).await?;
+        if !link_is_vrf(&link) || link_vrf_table(&link).is_none() {
+            return Err(Error::Other(format!(
+                "interface index {index} is not a VRF"
+            )));
+        }
+        let name = link_name(&link)
+            .ok_or_else(|| Error::Other(format!("VRF index {index} has no interface name")))?;
+        Ok(Self::Vrf(name))
+    }
+
+    /// A VRF may be replaced with another index and routing table. Resolve
+    /// its name immediately before installation, without falling back to main.
+    async fn table(&self, rtnl: &Rtnl) -> Result<u32> {
+        let Self::Vrf(name) = self else {
+            return Ok(RT_TABLE_MAIN);
+        };
+        let index = interface_index(name)
+            .await?
+            .ok_or_else(|| Error::Other(format!("VRF {name} is missing")))?;
+        let link = rtnl.get_link(index).await?;
+        if link_name(&link).as_ref() != Some(name) || !link_is_vrf(&link) {
+            return Err(Error::Other(format!(
+                "interface {name} is no longer the requested VRF"
+            )));
+        }
+        link_vrf_table(&link)
+            .ok_or_else(|| Error::Other(format!("VRF {name} has no routing table")))
+    }
+}
+
+#[derive(Default)]
+struct DiscardResources {
+    devices: Vec<NullDevice>,
+    /// Fallbacks requested by this State, including an incomplete installation.
+    routes: Vec<DiscardRouteContext>,
 }
 
 /// The main routing table.
@@ -383,6 +458,60 @@ async fn apply_hwaddr_with(rtnl: &impl LinkOps, index: u32, target: HwAddr) -> R
             current.map_or_else(|| "<none>".to_string(), |a| a.to_string())
         ))),
     }
+}
+
+/// Prepare only a newly owned, unpublished session. Network managers may
+/// activate its temporary name, including when its new MAC first matches.
+/// Retrying this same device lets that initial configuration settle without
+/// recreating it and triggering the same activation on every reconciliation.
+async fn prepare_staged_session_with(
+    rtnl: &impl LinkOps,
+    index: u32,
+    target: HwAddr,
+    final_name: &L2tpIfName,
+    mut restore_up: bool,
+) -> Result<()> {
+    let name = final_name
+        .to_str()
+        .map_err(|_| Error::Other(format!("non-UTF-8 interface name {final_name:?}")))?;
+    for _ in 0..4 {
+        let current = rtnl.get_link(index).await?;
+        if link_is_up(&current) {
+            restore_up = true;
+            match rtnl
+                .set_link(LinkUnspec::new_with_index(index).down().build())
+                .await
+            {
+                Ok(()) => {}
+                Err(e) if is_netlink_errno(&e, libc::EBUSY) => continue,
+                Err(e) => {
+                    return Err(Error::Other(format!(
+                        "failed to prepare staged session interface index {index}: {e}"
+                    )))
+                }
+            }
+        }
+        if apply_hwaddr_with(rtnl, index, target).await? == HwAddrApply::Deferred {
+            continue;
+        }
+        // Linux renames before applying flags under the same RTNL lock.
+        // Publish the name and observed UP state together so a final-name
+        // manager's policy cannot be overridden by a later daemon UP request.
+        let publish = LinkUnspec::new_with_index(index).name(name);
+        let publish = if restore_up { publish.up() } else { publish };
+        match rtnl.set_link(publish.build()).await {
+            Ok(()) => return Ok(()),
+            Err(e) if is_netlink_errno(&e, libc::EBUSY) => continue,
+            Err(e) => {
+                return Err(Error::Other(format!(
+                    "failed to publish prepared session interface {final_name}: {e}"
+                )))
+            }
+        }
+    }
+    Err(Error::Other(format!(
+        "staged session interface index {index} kept being activated before publication"
+    )))
 }
 
 /// Resolves `if_name` in the daemon's own network namespace.
@@ -503,8 +632,8 @@ pub(crate) struct State {
     /// Sessions created in the kernel whose preparation has not completed.
     /// Keep ownership until rollback is acknowledged, including across errors.
     pending_sessions: RwLock<BTreeMap<(u32, u32), l2tp::SessionHandle>>,
-    /// Only links created by this State; route insertion can fail after creation.
-    null_devices: Mutex<Vec<NullDevice>>,
+    /// Serializes fallback creation, route repair, and shutdown cleanup.
+    discard_resources: Mutex<DiscardResources>,
 }
 
 fn tunnel_socket(tunnel: &TunnelState) -> Result<&l2tp::TunnelSocket> {
@@ -596,7 +725,7 @@ impl State {
             handle,
             tunnels,
             pending_sessions: RwLock::new(BTreeMap::new()),
-            null_devices: Mutex::new(Vec::new()),
+            discard_resources: Mutex::new(DiscardResources::default()),
         })
     }
 
@@ -656,20 +785,45 @@ impl State {
     /// Routes [`TunnelConfig::NO_PEER_ADDR`] to an owned null device,
     /// creating it or bringing it up as needed, in the
     /// table of the VRF with index `vrf` or the main one: the last resort
-    /// for a host that does not route the address itself. A reject route of
-    /// the same prefix there, which would refuse the connection, is
-    /// replaced.
+    /// for a host that does not route the address itself. Existing routes,
+    /// including reject routes, are always preserved.
     pub(crate) async fn route_discard_to_null_device(&self, vrf: Option<u32>) -> Result<()> {
+        let mut resources = self.discard_resources.lock().await;
         let rtnl = Rtnl::connect()?;
-        let table = match vrf {
-            Some(index) => link_vrf_table(&rtnl.get_link(index).await?)
-                .ok_or_else(|| Error::Other(format!("interface index {index} is not a VRF")))?,
-            None => RT_TABLE_MAIN,
-        };
-        let mut devices = self.null_devices.lock().await;
-        let index = Self::null_device(&rtnl, &mut devices).await?;
-        rtnl.route_to_device(TunnelConfig::NO_PEER_ADDR, index, table)
-            .await
+        let context = DiscardRouteContext::from_vrf(&rtnl, vrf).await?;
+        if !resources.routes.contains(&context) {
+            resources.routes.push(context);
+        }
+        let index = Self::null_device(&rtnl, &mut resources.devices).await?;
+        let table = context.table(&rtnl).await?;
+        rtnl.install_discard_route(index, table).await
+    }
+
+    /// Repairs only previously requested fallback routes. Existing routes are
+    /// preserved, and every recorded VRF is resolved by its current name/table.
+    /// A missing VRF remains pending without blocking repairs in other tables.
+    pub(crate) async fn restore_discard_routes(&self) -> Result<()> {
+        let mut resources = self.discard_resources.lock().await;
+        if resources.routes.is_empty() {
+            return Ok(());
+        }
+        let rtnl = Rtnl::connect()?;
+        let mut first_error = None;
+        for context in resources.routes.clone() {
+            let restored = async {
+                let index = Self::null_device(&rtnl, &mut resources.devices).await?;
+                let table = context.table(&rtnl).await?;
+                rtnl.install_discard_route(index, table).await
+            }
+            .await;
+            if let Err(error) = restored {
+                first_error.get_or_insert(error);
+            }
+        }
+        match first_error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
     }
 
     /// Reuses a verified owned link, or allocates an unused name. Existing
@@ -729,12 +883,15 @@ impl State {
     /// Removes only verified owned null devices, and with them their routes.
     /// Renames are harmless; a deleted device's replacement is never owned.
     pub(crate) async fn remove_null_device(&self) -> Result<()> {
-        let mut devices = self.null_devices.lock().await;
-        if devices.is_empty() {
+        let mut resources = self.discard_resources.lock().await;
+        // Clear intent first, including when deleting a device later fails.
+        // A queued repair after shutdown must not recreate links or routes.
+        resources.routes.clear();
+        if resources.devices.is_empty() {
             return Ok(());
         }
         let rtnl = Rtnl::connect()?;
-        while let Some(device) = devices.last_mut() {
+        while let Some(device) = resources.devices.last_mut() {
             if let Some(link) = device.find(&rtnl).await? {
                 let index = link.header.index;
                 match rtnl.handle.link().del(index).execute().await {
@@ -753,7 +910,7 @@ impl State {
                         .unwrap_or_default()
                 );
             }
-            devices.pop();
+            resources.devices.pop();
         }
         Ok(())
     }
@@ -1103,11 +1260,7 @@ impl State {
         // Acquire ownership storage before kernel creation, so there is no
         // cancellation point between receiving the handle and retaining it.
         let mut pending = self.pending_sessions.write().await;
-        let mut handle = self
-            .handle
-            .create_session(config)
-            .await
-            .map_err(Error::L2tp)?;
+        let mut handle = self.create_session_handle(config, hwaddr.is_some()).await?;
 
         handle.set_auto_delete(false);
 
@@ -1127,15 +1280,14 @@ impl State {
                     "interface {if_name} of session {session_id} in tunnel {tunnel_id} cannot be identified"
                 )));
             };
-            let initial_hwaddr = link_hwaddr(&Rtnl::connect()?.get_link(index).await?);
-            // The device was just created, so it is down and the address
-            // applies at once; Deferred only if something brought it up
-            // within these few milliseconds.
-            let outcome = match hwaddr {
-                Some(hwaddr) => apply_hwaddr(index, *hwaddr).await?,
-                None => HwAddrApply::Applied,
-            };
-            Ok((index, initial_hwaddr, outcome))
+            let rtnl = Rtnl::connect()?;
+            let initial = rtnl.get_link(index).await?;
+            let initial_hwaddr = link_hwaddr(&initial);
+            if let Some(hwaddr) = hwaddr {
+                prepare_staged_session_with(&rtnl, index, *hwaddr, if_name, link_is_up(&initial))
+                    .await?;
+            }
+            Ok((index, initial_hwaddr, HwAddrApply::Applied))
         }
         .await;
 
@@ -1174,6 +1326,38 @@ impl State {
         sessions.insert(session_id, session);
 
         Ok(outcome)
+    }
+
+    async fn create_session_handle(
+        &self,
+        mut config: l2tp::SessionConfig,
+        stage: bool,
+    ) -> Result<l2tp::SessionHandle> {
+        if !stage {
+            return self
+                .handle
+                .create_session(config)
+                .await
+                .map_err(Error::L2tp);
+        }
+        let final_name = config.ifname;
+        for _ in 0..32 {
+            let name = next_session_staging_name()?;
+            if Some(name) == final_name {
+                continue;
+            }
+            config.ifname = Some(name);
+            match self.handle.create_session(config.clone()).await {
+                Ok(handle) => return Ok(handle),
+                Err(error)
+                    if error.raw_os_error() == Some(libc::EEXIST)
+                        && interface_index(&name).await?.is_some() => {}
+                Err(error) => return Err(Error::L2tp(error)),
+            }
+        }
+        Err(Error::Other(
+            "could not allocate a temporary session interface name".to_string(),
+        ))
     }
 
     async fn session_device(
@@ -1298,6 +1482,9 @@ mod tests {
         link: super::LinkMessage,
         fail_address: usize,
         set_requests: usize,
+        activate_before_address: usize,
+        activate_after_address: bool,
+        publish_error: Option<i32>,
     }
 
     fn netlink_error(code: i32) -> rtnetlink::Error {
@@ -1347,6 +1534,10 @@ mod tests {
                 super::LinkAttribute::Address(address) => Some(address.clone()),
                 _ => None,
             }) {
+                if state.activate_before_address > 0 {
+                    state.activate_before_address -= 1;
+                    state.link.header.flags.insert(super::LinkFlags::Up);
+                }
                 if super::link_is_up(&state.link) {
                     return Err(netlink_error(libc::EBUSY));
                 }
@@ -1354,11 +1545,37 @@ mod tests {
                     state.fail_address -= 1;
                     return Err(netlink_error(libc::ENOMEM));
                 }
-                state.link.attributes = vec![super::LinkAttribute::Address(address)];
-            } else if super::link_is_up(&message) {
-                state.link.header.flags.insert(super::LinkFlags::Up);
-            } else {
-                state.link.header.flags.remove(super::LinkFlags::Up);
+                state
+                    .link
+                    .attributes
+                    .retain(|attr| !matches!(attr, super::LinkAttribute::Address(_)));
+                state
+                    .link
+                    .attributes
+                    .push(super::LinkAttribute::Address(address));
+                if state.activate_after_address {
+                    state.link.header.flags.insert(super::LinkFlags::Up);
+                }
+                return Ok(());
+            }
+            if let Some(name) = super::link_name(&message) {
+                if let Some(errno) = state.publish_error {
+                    return Err(netlink_error(errno));
+                }
+                state
+                    .link
+                    .attributes
+                    .retain(|attr| !matches!(attr, super::LinkAttribute::IfName(_)));
+                state.link.attributes.push(super::LinkAttribute::IfName(
+                    name.to_str().unwrap().to_string(),
+                ));
+            }
+            if message.header.change_mask.contains(super::LinkFlags::Up) {
+                state
+                    .link
+                    .header
+                    .flags
+                    .set(super::LinkFlags::Up, super::link_is_up(&message));
             }
             Ok(())
         }
@@ -1371,11 +1588,68 @@ mod tests {
         }
         link.attributes
             .push(super::LinkAttribute::Address(vec![2, 0, 0, 0, 0, 1]));
+        link.attributes
+            .push(super::LinkAttribute::IfName("staged0".to_string()));
         Mutex::new(MockLink {
             link,
             fail_address,
             set_requests: 0,
+            activate_before_address: 0,
+            activate_after_address: false,
+            publish_error: None,
         })
+    }
+
+    #[tokio::test]
+    async fn staged_session_recovers_activation_around_mac_change_on_the_same_device() {
+        let target = "02:00:00:00:00:02".parse().unwrap();
+        let final_name = ifname("pseudowire0");
+        for (before, after) in [(1, false), (0, true), (1, true)] {
+            let link = mock_link(false, 0);
+            {
+                let mut state = link.lock().unwrap();
+                state.activate_before_address = before;
+                state.activate_after_address = after;
+            }
+            super::prepare_staged_session_with(&link, 1, target, &final_name, false)
+                .await
+                .unwrap();
+            let state = link.lock().unwrap();
+            assert_eq!(super::link_name(&state.link), Some(final_name));
+            assert_eq!(super::link_hwaddr(&state.link), Some(target));
+            assert!(
+                super::link_is_up(&state.link),
+                "activation after the initial lookup must also be restored"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn staged_session_bounds_activation_retries_and_reports_other_errors() {
+        let target = "02:00:00:00:00:02".parse().unwrap();
+        let final_name = ifname("pseudowire0");
+        let link = mock_link(false, 0);
+        link.lock().unwrap().activate_before_address = usize::MAX;
+        assert!(
+            super::prepare_staged_session_with(&link, 1, target, &final_name, false)
+                .await
+                .is_err()
+        );
+        assert_eq!(
+            super::link_name(&link.lock().unwrap().link),
+            Some(ifname("staged0"))
+        );
+
+        let link = mock_link(false, 0);
+        link.lock().unwrap().publish_error = Some(libc::EEXIST);
+        assert!(
+            super::prepare_staged_session_with(&link, 1, target, &final_name, false)
+                .await
+                .is_err()
+        );
+        let state = link.lock().unwrap();
+        assert_eq!(super::link_name(&state.link), Some(ifname("staged0")));
+        assert_eq!(state.set_requests, 2, "a name collision is not retried");
     }
 
     #[tokio::test]
@@ -2347,6 +2621,11 @@ mod tests {
         let initial = initial.expect("l2tpeth devices get a random address");
         assert_ne!(initial, first);
         assert_eq!(current_hwaddr(index).await, Some(first));
+        assert_eq!(interface_index(&name).await.unwrap(), Some(index));
+        let staging = session_info(&state, id, session_id).await.ifname.unwrap();
+        assert_ne!(staging, name);
+        assert!(staging.to_str().unwrap().starts_with("rsl2tp-t"));
+        assert_eq!(interface_index(&staging).await.unwrap(), None);
         assert!(!state.session_hwaddr_pending(id, session_id).await);
 
         // A running device is left alone: the change is deferred.
@@ -2416,6 +2695,95 @@ mod tests {
         assert_interface_deleted(&name).await;
         state.delete_tunnel(id).await.unwrap();
         assert_kernel_tunnel_deleted(&state, id).await;
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy, l2tp_eth and IPv6 L2TP support"]
+    async fn privileged_staged_session_preserves_colliding_devices_and_rolls_back() {
+        let (state, id) = privileged_state(None).await;
+        let rtnl = super::Rtnl::connect().unwrap();
+        let session_id = id + 2;
+        let final_name = ifname("rsl2tp-publish");
+        let target: HwAddr = "02:00:5e:00:53:03".parse().unwrap();
+
+        // Reserve the next staging candidate. The ignored kernel suite runs
+        // sequentially; allocation must skip this foreign interface on EEXIST.
+        let previous = super::next_session_staging_name().unwrap();
+        let number = usize::from_str_radix(
+            previous.to_str().unwrap().strip_prefix("rsl2tp-t").unwrap(),
+            16,
+        )
+        .unwrap();
+        let occupied = ifname(&format!("rsl2tp-t{:06x}", (number + 1) & 0x00ff_ffff));
+        let foreign_staging = add_test_dummy(&rtnl, occupied.to_str().unwrap()).await;
+        let foreign_final = add_test_dummy(&rtnl, final_name.to_str().unwrap()).await;
+        let before = current_hwaddr(foreign_final).await;
+        assert!(state
+            .add_session(
+                id,
+                session_id,
+                session_id,
+                &final_name,
+                Some(&target),
+                SessionCookies::default()
+            )
+            .await
+            .is_err());
+        assert!(!state.has_session(id, session_id).await);
+        assert!(state.pending_sessions.read().await.is_empty());
+        assert_eq!(occupied.index().unwrap(), foreign_staging);
+        assert_eq!(final_name.index().unwrap(), foreign_final);
+        assert_eq!(current_hwaddr(foreign_final).await, before);
+        tokio::time::timeout(std::time::Duration::from_secs(3), async {
+            while !state
+                .handle
+                .list_sessions(l2tp::TunnelId(id))
+                .await
+                .unwrap()
+                .is_empty()
+            {
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("failed staged session must be removed from the kernel");
+
+        // The same IDs can be retried after the final-name collision ends.
+        rtnl.handle
+            .link()
+            .del(foreign_final)
+            .execute()
+            .await
+            .unwrap();
+        assert_eq!(
+            state
+                .add_session(
+                    id,
+                    session_id,
+                    session_id,
+                    &final_name,
+                    Some(&target),
+                    SessionCookies::default()
+                )
+                .await
+                .unwrap(),
+            super::HwAddrApply::Applied
+        );
+        let (index, _) = session_device(&state, id, session_id).await;
+        assert_eq!(final_name.index().unwrap(), index);
+        assert_eq!(current_hwaddr(index).await, Some(target));
+        let staging = session_info(&state, id, session_id).await.ifname.unwrap();
+        assert_eq!(interface_index(&staging).await.unwrap(), None);
+        state.delete_tunnel(id).await.unwrap();
+        assert_interface_deleted(&final_name).await;
+        assert_kernel_tunnel_deleted(&state, id).await;
+        assert_eq!(occupied.index().unwrap(), foreign_staging);
+        rtnl.handle
+            .link()
+            .del(foreign_staging)
+            .execute()
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -2695,7 +3063,7 @@ mod tests {
             .unwrap();
         let replacement = add_test_dummy(&rtnl, "rsl2tpnull1").await;
         state.route_discard_to_null_device(None).await.unwrap();
-        assert_eq!(state.null_devices.lock().await.len(), 1);
+        assert_eq!(state.discard_resources.lock().await.devices.len(), 1);
         state.remove_null_device().await.unwrap();
         assert!(rtnl.find_link(owned).await.unwrap().is_none());
         assert_eq!(ifname("rsl2tpnull1").index().unwrap(), replacement);
@@ -2737,8 +3105,10 @@ mod tests {
 
         // Ownership starts at creation, independently of route installation.
         let uninstalled = {
-            let mut devices = state.null_devices.lock().await;
-            State::null_device(&rtnl, &mut devices).await.unwrap()
+            let mut resources = state.discard_resources.lock().await;
+            State::null_device(&rtnl, &mut resources.devices)
+                .await
+                .unwrap()
         };
         assert!(rtnl
             .route_to_device(
@@ -2754,6 +3124,203 @@ mod tests {
         for index in [foreign, replacement, replacement2] {
             rtnl.handle.link().del(index).execute().await.unwrap();
         }
+    }
+
+    async fn discard_routes_in_table(rtnl: &super::Rtnl, table: u32) -> Vec<super::RouteMessage> {
+        use rtnetlink::packet_route::route::{RouteAddress, RouteAttribute};
+
+        let mut dump = rtnl
+            .handle
+            .route()
+            .get(rtnetlink::RouteMessageBuilder::<Ipv6Addr>::new().build())
+            .execute();
+        let mut routes = Vec::new();
+        while let Some(route) = dump.try_next().await.unwrap() {
+            let current_table = route
+                .attributes
+                .iter()
+                .find_map(|attr| match attr {
+                    RouteAttribute::Table(table) => Some(*table),
+                    _ => None,
+                })
+                .unwrap_or(u32::from(route.header.table));
+            if current_table == table
+                && route.header.destination_prefix_length == 128
+                && route.attributes.iter().any(|attr| {
+                    matches!(attr, RouteAttribute::Destination(RouteAddress::Inet6(address))
+                        if *address == crate::config::TunnelConfig::NO_PEER_ADDR)
+                })
+            {
+                routes.push(route);
+            }
+        }
+        routes
+    }
+
+    async fn remove_discard_routes(rtnl: &super::Rtnl, table: u32) {
+        for route in discard_routes_in_table(rtnl, table).await {
+            rtnl.handle.route().del(route).execute().await.unwrap();
+        }
+    }
+
+    async fn assert_discard_route_device(rtnl: &super::Rtnl, table: u32, index: u32) {
+        let routes = discard_routes_in_table(rtnl, table).await;
+        assert_eq!(
+            routes.len(),
+            1,
+            "exactly one discard route in table {table}"
+        );
+        assert!(
+            routes[0].attributes.iter().any(|attr| {
+                matches!(attr, super::RouteAttribute::Oif(current) if *current == index)
+            }),
+            "discard route in table {table} must use interface index {index}"
+        );
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN and dummy support"]
+    async fn privileged_discard_route_repair_preserves_foreign_routes_and_stops_after_cleanup() {
+        let rtnl = super::Rtnl::connect().unwrap();
+        let state = State::new().await.unwrap();
+        let null_name = ifname(super::NULL_DEVICE);
+        let table = super::RT_TABLE_MAIN;
+        let discard = crate::config::TunnelConfig::NO_PEER_ADDR;
+        // A route event before fallback was needed must create nothing.
+        state.restore_discard_routes().await.unwrap();
+        assert_eq!(interface_index(&null_name).await.unwrap(), None);
+
+        state.route_discard_to_null_device(None).await.unwrap();
+        let original = null_name.index().unwrap();
+        remove_discard_routes(&rtnl, table).await;
+        assert!(discard_routes_in_table(&rtnl, table).await.is_empty());
+        state.restore_discard_routes().await.unwrap();
+        assert_discard_route_device(&rtnl, table, original).await;
+
+        // Another manager's replacement for the same prefix/metric wins.
+        // A separate real-peer route must also remain untouched.
+        let foreign = add_test_dummy(&rtnl, "rsl2tp-rforeign").await;
+        let unrelated: Ipv6Addr = "2001:db8:161::99".parse().unwrap();
+        remove_discard_routes(&rtnl, table).await;
+        rtnl.route_to_device(discard, foreign, table).await.unwrap();
+        rtnl.route_to_device(unrelated, foreign, table)
+            .await
+            .unwrap();
+        state.restore_discard_routes().await.unwrap();
+        assert_discard_route_device(&rtnl, table, foreign).await;
+        state.route_discard_to_null_device(None).await.unwrap();
+        assert_discard_route_device(&rtnl, table, foreign).await;
+        assert!(rtnl.routes(unrelated, None).await.unwrap());
+
+        // Both initial installation and repair respect a reject route.
+        remove_discard_routes(&rtnl, table).await;
+        rtnl.handle
+            .route()
+            .add(
+                rtnetlink::RouteMessageBuilder::<Ipv6Addr>::new()
+                    .destination_prefix(discard, 128)
+                    .table_id(table)
+                    .kind(rtnetlink::packet_route::route::RouteType::Unreachable)
+                    .build(),
+            )
+            .execute()
+            .await
+            .unwrap();
+        state.restore_discard_routes().await.unwrap();
+        state.route_discard_to_null_device(None).await.unwrap();
+        let preserved = discard_routes_in_table(&rtnl, table).await;
+        assert_eq!(preserved.len(), 1);
+        assert_eq!(
+            preserved[0].header.kind,
+            rtnetlink::packet_route::route::RouteType::Unreachable
+        );
+
+        // If the owned link disappeared too, allocate a fresh owned device.
+        remove_discard_routes(&rtnl, table).await;
+        rtnl.handle.link().del(original).execute().await.unwrap();
+        state.restore_discard_routes().await.unwrap();
+        let replacement = null_name.index().unwrap();
+        assert_ne!(replacement, original);
+        assert_discard_route_device(&rtnl, table, replacement).await;
+
+        state.remove_null_device().await.unwrap();
+        state.restore_discard_routes().await.unwrap();
+        assert_eq!(interface_index(&null_name).await.unwrap(), None);
+        assert!(discard_routes_in_table(&rtnl, table).await.is_empty());
+        assert!(rtnl.routes(unrelated, None).await.unwrap());
+        rtnl.handle.link().del(foreign).execute().await.unwrap();
+    }
+
+    #[tokio::test]
+    #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy and VRF support"]
+    async fn privileged_discard_route_repair_resolves_replacement_vrf_names_and_tables() {
+        let rtnl = super::Rtnl::connect().unwrap();
+        let state = State::new().await.unwrap();
+        let name = ifname("rsl2tp-rvrf");
+        let old_table = 4_242_160;
+        let new_table = old_table + 1;
+        rtnl.handle
+            .link()
+            .add(
+                rtnetlink::LinkVrf::new(name.to_str().unwrap(), old_table)
+                    .up()
+                    .build(),
+            )
+            .execute()
+            .await
+            .unwrap();
+        let original = name.index().unwrap();
+        // Record the VRF first, so a failed repair there cannot prevent the
+        // later main-table repair from running.
+        state
+            .route_discard_to_null_device(Some(original))
+            .await
+            .unwrap();
+        state.route_discard_to_null_device(None).await.unwrap();
+        let null_index = ifname(super::NULL_DEVICE).index().unwrap();
+        rtnl.handle.link().del(original).execute().await.unwrap();
+        remove_discard_routes(&rtnl, old_table).await;
+        remove_discard_routes(&rtnl, super::RT_TABLE_MAIN).await;
+        assert!(state.restore_discard_routes().await.is_err());
+        assert_discard_route_device(&rtnl, super::RT_TABLE_MAIN, null_index).await;
+        assert!(discard_routes_in_table(&rtnl, old_table).await.is_empty());
+
+        // The same name occupied by a non-VRF must remain an error, never
+        // quietly selecting the main table or forgetting the pending VRF.
+        let wrong_kind = add_test_dummy(&rtnl, name.to_str().unwrap()).await;
+        remove_discard_routes(&rtnl, super::RT_TABLE_MAIN).await;
+        assert!(state.restore_discard_routes().await.is_err());
+        assert_discard_route_device(&rtnl, super::RT_TABLE_MAIN, null_index).await;
+        assert!(discard_routes_in_table(&rtnl, old_table).await.is_empty());
+        rtnl.handle.link().del(wrong_kind).execute().await.unwrap();
+
+        rtnl.handle
+            .link()
+            .add(
+                rtnetlink::LinkVrf::new(name.to_str().unwrap(), new_table)
+                    .up()
+                    .build(),
+            )
+            .execute()
+            .await
+            .unwrap();
+        let replacement = name.index().unwrap();
+        assert_ne!(replacement, original);
+        state.restore_discard_routes().await.unwrap();
+        assert_discard_route_device(&rtnl, new_table, null_index).await;
+        assert!(discard_routes_in_table(&rtnl, old_table).await.is_empty());
+
+        state.remove_null_device().await.unwrap();
+        state.restore_discard_routes().await.unwrap();
+        assert!(discard_routes_in_table(&rtnl, new_table).await.is_empty());
+        assert!(discard_routes_in_table(&rtnl, super::RT_TABLE_MAIN)
+            .await
+            .is_empty());
+        assert_eq!(
+            interface_index(&ifname(super::NULL_DEVICE)).await.unwrap(),
+            None
+        );
+        rtnl.handle.link().del(replacement).execute().await.unwrap();
     }
 
     use rtnetlink::LinkUnspec;
