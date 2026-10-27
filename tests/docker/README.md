@@ -75,12 +75,18 @@ Add `--env MAC_RELOAD=1` to the matrix command to change the current daemon's
 session MAC during reload. This is a separate check of a feature introduced
 after 0.1.5, rather than the unchanged-config compatibility matrix.
 
+The daemon never takes a running session interface down to change its MAC:
+on this kernel that removes the interface's configured IPv6 addresses (and
+its routes), which an earlier version of this check demonstrated as an IPv6
+`Network unreachable` after the reload. A change on an up interface is
+deferred instead. The check therefore verifies that the MAC is unchanged and
+traffic intact right after the reload, then takes the interface down, waits
+for the daemon to apply the new MAC on the link-change notification, brings
+the interface back up, restores the test's IPv6 address and checks traffic
+again.
+
 On Linux 6.8.0-147-generic, validation on 2026-10-22 passed all eleven privileged
-library tests and all eighteen compatibility cases. The MAC-changing check
-**failed**: taking the session interface down to change its MAC removes its
-configured IPv6 addresses under the default kernel settings. IPv4 traffic
-continues, but the subsequent IPv6 ping fails with `Network unreachable`.
-The reproducer remains available; this failure is not counted as a pass.
+library tests, all eighteen compatibility cases and the MAC-changing check.
 
 The tests establish behavior on the kernel and topologies exercised. They do
 not establish universal compatibility across all kernels or routing setups.

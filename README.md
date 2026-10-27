@@ -35,11 +35,15 @@ interface_name = "l2tp0"
 interface_hwaddr = "02:00:5e:00:53:01"   # optional, unicast
 ```
 
-`interface_hwaddr` is applied through rtnetlink when the session is created
-and whenever it changes. An `l2tpeth` device only accepts a new address while
-it is down, so changing the address of a running interface takes it down and
-brings it back up. Removing the key restores the address the kernel assigned
-at creation.
+`interface_hwaddr` is applied through rtnetlink when the session is created,
+before anything can bring the interface up, and whenever it changes. An
+`l2tpeth` device only accepts a new address while it is down, and taking a
+running interface down would drop its IPv6 addresses, routes and neighbour
+state, so the daemon never does that: a change to a running interface is
+logged and deferred, and applied as soon as the interface is seen down (for
+example after `ip link set <name> down`). Until then the interface keeps its
+current address. Removing the key restores the address the kernel assigned
+at creation, under the same rule.
 
 ## Early readiness during boot
 

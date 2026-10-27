@@ -120,92 +120,59 @@ async fn rename_interface(index: u32, new: &L2tpIfName) -> Result<()> {
         })
 }
 
+/// What became of a hardware address change.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum HwAddrApply {
+    /// The device carries the address.
+    Applied,
+    /// The device is up, and an `l2tpeth` device only accepts a new address
+    /// while it is down. The change is applied once the device is down.
+    Deferred,
+}
+
 /// Sets the hardware address of the interface with index `index` to
 /// `target` and verifies the result.
 ///
-/// An `l2tpeth` device only accepts a new address while it is down. If the
-/// device is up, it is taken down for the change and brought up again, so
-/// that the configured address is applied rather than silently skipped.
-async fn apply_hwaddr(index: u32, target: HwAddr, restore_up: &mut bool) -> Result<()> {
+/// A running device is never taken down for this: on Linux that drops its
+/// IPv6 addresses, its routes and its neighbour state, which would break
+/// traffic the configuration never asked to interrupt. The change is
+/// deferred instead and repeated when the device is seen down.
+async fn apply_hwaddr(index: u32, target: HwAddr) -> Result<HwAddrApply> {
     let rtnl = Rtnl::connect()?;
-    apply_hwaddr_with(&rtnl, index, target, restore_up).await
+    apply_hwaddr_with(&rtnl, index, target).await
 }
 
-async fn apply_hwaddr_with(
-    rtnl: &impl LinkOps,
-    index: u32,
-    target: HwAddr,
-    restore_up: &mut bool,
-) -> Result<()> {
+async fn apply_hwaddr_with(rtnl: &impl LinkOps, index: u32, target: HwAddr) -> Result<HwAddrApply> {
     let link = rtnl.get_link(index).await?;
-    if link_hwaddr(&link) == Some(target) && !*restore_up {
-        return Ok(());
+    if link_hwaddr(&link) == Some(target) {
+        return Ok(HwAddrApply::Applied);
+    }
+    if link_is_up(&link) {
+        return Ok(HwAddrApply::Deferred);
     }
 
-    let address_message = || {
-        LinkUnspec::new_with_index(index)
-            .address(target.octets().to_vec())
-            .build()
-    };
-    let failure = |e: rtnetlink::Error| {
-        Error::Other(format!(
-            "failed to set hardware address {target} on interface index {index}: {e}"
-        ))
-    };
-
-    let changed = if link_hwaddr(&link) == Some(target) {
-        Ok(())
-    } else {
-        match rtnl.set_link(address_message()).await {
-            Ok(()) => Ok(()),
-            Err(e) if is_netlink_errno(&e, libc::EBUSY) && link_is_up(&link) => {
-                info!("interface index {index} is up; taking it down to set hardware address {target}");
-                // Retain this obligation across errors and cancellation. A retry
-                // must restore UP even if the address was already changed.
-                *restore_up = true;
-                let down = rtnl
-                    .set_link(LinkUnspec::new_with_index(index).down().build())
-                    .await;
-                match down {
-                    Ok(()) => rtnl.set_link(address_message()).await.map_err(failure),
-                    Err(e) => Err(Error::Other(format!(
-                        "failed to take interface index {index} down for a hardware address change: {e}"
-                    ))),
-                }
-            }
-            Err(e) => Err(failure(e)),
+    let message = LinkUnspec::new_with_index(index)
+        .address(target.octets().to_vec())
+        .build();
+    match rtnl.set_link(message).await {
+        Ok(()) => {}
+        // Brought up between the lookup and the change.
+        Err(e) if is_netlink_errno(&e, libc::EBUSY) => return Ok(HwAddrApply::Deferred),
+        Err(e) => {
+            return Err(Error::Other(format!(
+                "failed to set hardware address {target} on interface index {index}: {e}"
+            )))
         }
-    };
-
-    // Restore the original link state even when setting the address failed.
-    let restored = restore_link_up(rtnl, index, restore_up).await;
-    changed?;
-    restored?;
+    }
 
     let link = rtnl.get_link(index).await?;
     match link_hwaddr(&link) {
-        Some(current) if current == target => Ok(()),
+        Some(current) if current == target => Ok(HwAddrApply::Applied),
         current => Err(Error::Other(format!(
             "interface index {index} reports hardware address {} after setting {target}",
             current.map_or_else(|| "<none>".to_string(), |a| a.to_string())
         ))),
     }
-}
-
-async fn restore_link_up(rtnl: &impl LinkOps, index: u32, restore_up: &mut bool) -> Result<()> {
-    if !*restore_up {
-        return Ok(());
-    }
-    rtnl.set_link(LinkUnspec::new_with_index(index).up().build())
-        .await
-        .map_err(|e| {
-            warn!("failed to bring interface index {index} back up: {e}");
-            Error::Other(format!(
-                "failed to bring interface index {index} back up after a hardware address change: {e}"
-            ))
-        })?;
-    *restore_up = false;
-    Ok(())
 }
 
 /// Resolves `if_name` in the daemon's own network namespace.
@@ -312,10 +279,9 @@ pub(crate) struct SessionState {
     /// The hardware address the kernel assigned at creation, restored when
     /// the configuration stops naming one.
     initial_hwaddr: Option<HwAddr>,
-    /// A MAC change took the device down and still owes it an UP request.
-    restore_up: bool,
-    /// Retry against the next desired configuration even if its stored
-    /// specification matches the value from before a partial update.
+    /// The configured hardware address is not on the device yet: the last
+    /// attempt was deferred (device up) or failed. Retried on every
+    /// reconcile and whenever the device changes, until it is applied.
     hwaddr_pending: bool,
     // Keep session handle alive for the session lifecycle even when we don't call methods on it.
     #[allow(dead_code)]
@@ -682,7 +648,7 @@ impl State {
         peer_session_id: u32,
         if_name: &L2tpIfName,
         hwaddr: Option<&HwAddr>,
-    ) -> Result<()> {
+    ) -> Result<HwAddrApply> {
         self.cleanup_pending_sessions().await?;
         if self.has_session(tunnel_id, session_id).await {
             return Err(Error::Other(format!(
@@ -739,15 +705,18 @@ impl State {
                 )));
             };
             let initial_hwaddr = link_hwaddr(&Rtnl::connect()?.get_link(index).await?);
-            if let Some(hwaddr) = hwaddr {
-                let mut restore_up = false;
-                apply_hwaddr(index, *hwaddr, &mut restore_up).await?;
-            }
-            Ok((index, initial_hwaddr))
+            // The device was just created, so it is down and the address
+            // applies at once; Deferred only if something brought it up
+            // within these few milliseconds.
+            let outcome = match hwaddr {
+                Some(hwaddr) => apply_hwaddr(index, *hwaddr).await?,
+                None => HwAddrApply::Applied,
+            };
+            Ok((index, initial_hwaddr, outcome))
         }
         .await;
 
-        let (index, initial_hwaddr) = match prepared {
+        let (index, initial_hwaddr, outcome) = match prepared {
             Ok(prepared) => prepared,
             Err(e) => {
                 if let Err(cleanup) = self.cleanup_pending_sessions().await {
@@ -775,14 +744,13 @@ impl State {
         let session = SessionState {
             index,
             initial_hwaddr,
-            restore_up: false,
-            hwaddr_pending: false,
+            hwaddr_pending: outcome == HwAddrApply::Deferred,
             handle,
         };
 
         sessions.insert(session_id, session);
 
-        Ok(())
+        Ok(outcome)
     }
 
     async fn session_device(
@@ -812,7 +780,8 @@ impl State {
         rename_interface(index, ifname).await
     }
 
-    /// Whether a partial MAC update still needs convergence.
+    /// Whether the session's configured hardware address still has to be
+    /// applied (deferred while the device is up, or failed).
     pub(crate) async fn session_hwaddr_pending(&self, tunnel_id: u32, session_id: u32) -> bool {
         let Some(sessions) = self.sessions_of(tunnel_id).await else {
             return false;
@@ -823,13 +792,15 @@ impl State {
             .is_some_and(|session| session.hwaddr_pending)
     }
 
-    /// Applies the desired address and any outstanding link-state restoration.
+    /// Sets the session device's hardware address, or restores the address
+    /// the kernel assigned at creation when `hwaddr` is `None`. A running
+    /// device is left alone and the change is reported as deferred.
     pub(crate) async fn set_session_hwaddr(
         &self,
         tunnel_id: u32,
         session_id: u32,
         hwaddr: Option<&HwAddr>,
-    ) -> Result<()> {
+    ) -> Result<HwAddrApply> {
         let sessions = self
             .sessions_of(tunnel_id)
             .await
@@ -842,16 +813,11 @@ impl State {
         })?;
         session.hwaddr_pending = true;
         let result = match hwaddr.copied().or(session.initial_hwaddr) {
-            Some(target) => apply_hwaddr(session.index, target, &mut session.restore_up).await,
-            // Even without a usable creation-time address, a previous MAC
-            // update may still owe the device its original UP state.
-            None if session.restore_up => {
-                let rtnl = Rtnl::connect()?;
-                restore_link_up(&rtnl, session.index, &mut session.restore_up).await
-            }
-            None => Ok(()),
+            Some(target) => apply_hwaddr(session.index, target).await,
+            // No configured address and no usable creation-time address.
+            None => Ok(HwAddrApply::Applied),
         };
-        if result.is_ok() {
+        if matches!(result, Ok(HwAddrApply::Applied)) {
             session.hwaddr_pending = false;
         }
         result
@@ -906,9 +872,8 @@ mod tests {
 
     struct MockLink {
         link: super::LinkMessage,
-        fail_up: usize,
-        fail_address_down: usize,
-        up_requests: usize,
+        fail_address: usize,
+        set_requests: usize,
     }
 
     fn netlink_error(code: i32) -> rtnetlink::Error {
@@ -928,6 +893,7 @@ mod tests {
             message: super::LinkMessage,
         ) -> std::result::Result<(), rtnetlink::Error> {
             let mut state = self.lock().unwrap();
+            state.set_requests += 1;
             if let Some(address) = message.attributes.iter().find_map(|attr| match attr {
                 super::LinkAttribute::Address(address) => Some(address.clone()),
                 _ => None,
@@ -935,17 +901,12 @@ mod tests {
                 if super::link_is_up(&state.link) {
                     return Err(netlink_error(libc::EBUSY));
                 }
-                if state.fail_address_down > 0 {
-                    state.fail_address_down -= 1;
+                if state.fail_address > 0 {
+                    state.fail_address -= 1;
                     return Err(netlink_error(libc::ENOMEM));
                 }
                 state.link.attributes = vec![super::LinkAttribute::Address(address)];
             } else if super::link_is_up(&message) {
-                state.up_requests += 1;
-                if state.fail_up > 0 {
-                    state.fail_up -= 1;
-                    return Err(netlink_error(libc::ENOMEM));
-                }
                 state.link.header.flags.insert(super::LinkFlags::Up);
             } else {
                 state.link.header.flags.remove(super::LinkFlags::Up);
@@ -954,7 +915,7 @@ mod tests {
         }
     }
 
-    fn mock_link(up: bool, fail_up: usize, fail_address_down: usize) -> Mutex<MockLink> {
+    fn mock_link(up: bool, fail_address: usize) -> Mutex<MockLink> {
         let mut link = super::LinkMessage::default();
         if up {
             link.header.flags.insert(super::LinkFlags::Up);
@@ -963,113 +924,62 @@ mod tests {
             .push(super::LinkAttribute::Address(vec![2, 0, 0, 0, 0, 1]));
         Mutex::new(MockLink {
             link,
-            fail_up,
-            fail_address_down,
-            up_requests: 0,
+            fail_address,
+            set_requests: 0,
         })
     }
 
     #[tokio::test]
-    async fn hwaddr_retry_restores_up_after_the_address_already_changed() {
-        let link = mock_link(true, 2, 0);
+    async fn hwaddr_change_on_an_up_device_is_deferred_without_touching_it() {
+        let link = mock_link(true, 0);
+        let original = "02:00:00:00:00:01".parse().unwrap();
         let target = "02:00:00:00:00:02".parse().unwrap();
-        let mut restore_up = false;
-        for _ in 0..2 {
-            assert!(super::apply_hwaddr_with(&link, 1, target, &mut restore_up)
-                .await
-                .is_err());
-            assert!(restore_up);
+        assert_eq!(
+            super::apply_hwaddr_with(&link, 1, target).await.unwrap(),
+            super::HwAddrApply::Deferred
+        );
+        let state = link.lock().unwrap();
+        assert_eq!(state.set_requests, 0, "a running device is never modified");
+        assert!(super::link_is_up(&state.link));
+        assert_eq!(super::link_hwaddr(&state.link), Some(original));
+    }
+
+    #[tokio::test]
+    async fn hwaddr_change_on_a_down_device_is_applied_and_verified() {
+        let link = mock_link(false, 0);
+        let target = "02:00:00:00:00:02".parse().unwrap();
+        assert_eq!(
+            super::apply_hwaddr_with(&link, 1, target).await.unwrap(),
+            super::HwAddrApply::Applied
+        );
+        {
             let state = link.lock().unwrap();
             assert_eq!(super::link_hwaddr(&state.link), Some(target));
             assert!(!super::link_is_up(&state.link));
+            assert_eq!(state.set_requests, 1);
         }
-        super::apply_hwaddr_with(&link, 1, target, &mut restore_up)
-            .await
-            .unwrap();
-        assert!(!restore_up);
-        assert!(super::link_is_up(&link.lock().unwrap().link));
-        super::apply_hwaddr_with(&link, 1, target, &mut restore_up)
-            .await
-            .unwrap();
-        assert_eq!(link.lock().unwrap().up_requests, 3);
-    }
-
-    #[tokio::test]
-    async fn hwaddr_retry_recovers_when_address_and_up_both_fail() {
-        let link = mock_link(true, 1, 1);
-        let target = "02:00:00:00:00:02".parse().unwrap();
-        let mut restore_up = false;
-        assert!(super::apply_hwaddr_with(&link, 1, target, &mut restore_up)
-            .await
-            .is_err());
-        assert!(restore_up);
-        assert_ne!(super::link_hwaddr(&link.lock().unwrap().link), Some(target));
-        super::apply_hwaddr_with(&link, 1, target, &mut restore_up)
-            .await
-            .unwrap();
-        let state = link.lock().unwrap();
-        assert_eq!(super::link_hwaddr(&state.link), Some(target));
-        assert!(super::link_is_up(&state.link));
-        assert!(!restore_up);
-    }
-
-    #[tokio::test]
-    async fn hwaddr_retry_can_revert_to_the_previous_desired_address() {
-        let link = mock_link(true, 1, 0);
-        let original = "02:00:00:00:00:01".parse().unwrap();
-        let changed = "02:00:00:00:00:02".parse().unwrap();
-        let mut restore_up = false;
-        assert!(super::apply_hwaddr_with(&link, 1, changed, &mut restore_up)
-            .await
-            .is_err());
+        // The address being in place already is a no-op, even when up.
+        link.lock()
+            .unwrap()
+            .link
+            .header
+            .flags
+            .insert(super::LinkFlags::Up);
         assert_eq!(
-            super::link_hwaddr(&link.lock().unwrap().link),
-            Some(changed)
+            super::apply_hwaddr_with(&link, 1, target).await.unwrap(),
+            super::HwAddrApply::Applied
         );
-        // A reload can withdraw the failed change before its next retry.
-        super::apply_hwaddr_with(&link, 1, original, &mut restore_up)
-            .await
-            .unwrap();
-        let state = link.lock().unwrap();
-        assert_eq!(super::link_hwaddr(&state.link), Some(original));
-        assert!(super::link_is_up(&state.link));
-        assert!(!restore_up);
+        assert_eq!(link.lock().unwrap().set_requests, 1);
     }
 
     #[tokio::test]
-    async fn hwaddr_change_preserves_an_initially_down_device() {
-        let link = mock_link(false, 0, 0);
-        let mut restore_up = false;
-        super::apply_hwaddr_with(
-            &link,
-            1,
-            "02:00:00:00:00:02".parse().unwrap(),
-            &mut restore_up,
-        )
-        .await
-        .unwrap();
-        let state = link.lock().unwrap();
-        assert!(!super::link_is_up(&state.link));
-        assert_eq!(state.up_requests, 0);
-    }
-
-    #[tokio::test]
-    async fn pending_up_restoration_needs_no_hardware_address_target() {
-        let link = mock_link(false, 1, 0);
-        let mut restore_up = true;
-        assert!(super::restore_link_up(&link, 1, &mut restore_up)
-            .await
-            .is_err());
-        assert!(restore_up);
-        super::restore_link_up(&link, 1, &mut restore_up)
-            .await
-            .unwrap();
-        assert!(!restore_up);
-        let state = link.lock().unwrap();
-        assert!(super::link_is_up(&state.link));
+    async fn hwaddr_change_reports_kernel_failures() {
+        let link = mock_link(false, 1);
+        let target = "02:00:00:00:00:02".parse().unwrap();
+        assert!(super::apply_hwaddr_with(&link, 1, target).await.is_err());
         assert_eq!(
-            super::link_hwaddr(&state.link),
-            Some("02:00:00:00:00:01".parse().unwrap())
+            super::apply_hwaddr_with(&link, 1, target).await.unwrap(),
+            super::HwAddrApply::Applied
         );
     }
 
@@ -1717,38 +1627,82 @@ mod tests {
         let first: HwAddr = "02:00:5e:00:53:01".parse().unwrap();
         let second: HwAddr = "02:00:5e:00:53:02".parse().unwrap();
 
-        state
-            .add_session(id, session_id, session_id, &name, Some(&first))
-            .await
-            .expect("create session with hardware address");
+        use super::HwAddrApply;
+
+        assert_eq!(
+            state
+                .add_session(id, session_id, session_id, &name, Some(&first))
+                .await
+                .expect("create session with hardware address"),
+            HwAddrApply::Applied
+        );
         let (index, initial) = session_device(&state, id, session_id).await;
         let initial = initial.expect("l2tpeth devices get a random address");
         assert_ne!(initial, first);
         assert_eq!(current_hwaddr(index).await, Some(first));
+        assert!(!state.session_hwaddr_pending(id, session_id).await);
 
-        // Changing the address while the device is up takes it down and up.
+        // A running device is left alone: the change is deferred.
         let rtnl = super::Rtnl::connect().unwrap();
         rtnl.set_link(LinkUnspec::new_with_index(index).up().build())
             .await
             .expect("bring the device up");
-        state
-            .set_session_hwaddr(id, session_id, Some(&second))
-            .await
-            .expect("change the address of an up device");
-        assert_eq!(current_hwaddr(index).await, Some(second));
+        assert_eq!(
+            state
+                .set_session_hwaddr(id, session_id, Some(&second))
+                .await
+                .unwrap(),
+            HwAddrApply::Deferred
+        );
+        assert_eq!(current_hwaddr(index).await, Some(first));
         assert!(super::link_is_up(&rtnl.get_link(index).await.unwrap()));
+        assert!(state.session_hwaddr_pending(id, session_id).await);
 
-        // Setting the current address again is a no-op.
-        state
-            .set_session_hwaddr(id, session_id, Some(&second))
+        // Once the device is down, the deferred change applies.
+        rtnl.set_link(LinkUnspec::new_with_index(index).down().build())
+            .await
+            .expect("take the device down");
+        assert_eq!(
+            state
+                .set_session_hwaddr(id, session_id, Some(&second))
+                .await
+                .unwrap(),
+            HwAddrApply::Applied
+        );
+        assert_eq!(current_hwaddr(index).await, Some(second));
+        assert!(!state.session_hwaddr_pending(id, session_id).await);
+
+        // Setting the current address again is a no-op, up or down.
+        rtnl.set_link(LinkUnspec::new_with_index(index).up().build())
             .await
             .unwrap();
+        assert_eq!(
+            state
+                .set_session_hwaddr(id, session_id, Some(&second))
+                .await
+                .unwrap(),
+            HwAddrApply::Applied
+        );
 
-        // Dropping the configured address restores the kernel's choice.
-        state
-            .set_session_hwaddr(id, session_id, None)
+        // Dropping the configured address restores the kernel's choice,
+        // again only while the device is down.
+        assert_eq!(
+            state
+                .set_session_hwaddr(id, session_id, None)
+                .await
+                .unwrap(),
+            HwAddrApply::Deferred
+        );
+        rtnl.set_link(LinkUnspec::new_with_index(index).down().build())
             .await
-            .expect("restore the initial address");
+            .unwrap();
+        assert_eq!(
+            state
+                .set_session_hwaddr(id, session_id, None)
+                .await
+                .expect("restore the initial address"),
+            HwAddrApply::Applied
+        );
         assert_eq!(current_hwaddr(index).await, Some(initial));
 
         state.delete_session(id, session_id).await.unwrap();

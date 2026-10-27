@@ -130,7 +130,8 @@ run_case() {
 
     # The compatibility matrix reloads an unchanged 0.1.5 configuration.
     # MAC_RELOAD=1 additionally exercises the newer MAC-changing behavior.
-    expected_mac=02:00:5e:00:53:01
+    original_mac=02:00:5e:00:53:01
+    expected_mac=$original_mac
     if [ "$MAC_RELOAD" = 1 ] && [ "$left_binary" = current ]; then
         expected_mac=02:00:5e:00:53:11
     fi
@@ -143,11 +144,29 @@ run_case() {
         [ "$attempts" -lt 50 ] || return 1
         sleep 0.1
     done
+    # A running interface is never taken down for a MAC change: right after
+    # the reload it still carries its original MAC and its addresses, and
+    # traffic is intact.
     if [ "$left_binary" = current ]; then
-        netip left -o link show pseudowire0 | grep -q "$expected_mac"
+        netip left -o link show pseudowire0 | grep -q "$original_mac"
     fi
     netip left -6 address show dev pseudowire0
     traffic
+    if [ "$expected_mac" != "$original_mac" ]; then
+        # The deferred change applies on the link-change notification once
+        # the interface is down. Taking it down drops its IPv6 address, as
+        # the kernel does for any interface; the test restores it.
+        netip left link set pseudowire0 down
+        attempts=0
+        until netip left -o link show pseudowire0 | grep -q "$expected_mac"; do
+            attempts=$((attempts + 1))
+            [ "$attempts" -lt 50 ] || return 1
+            sleep 0.1
+        done
+        netip left link set pseudowire0 up
+        netip left address replace fd00:2::1/64 dev pseudowire0 nodad
+        traffic
+    fi
 
     for side in left right; do
         kill -TERM "$(cat "/run/$side.pid")"

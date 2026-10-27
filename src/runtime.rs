@@ -30,7 +30,7 @@ use std::time::Duration;
 
 use crate::config::{Config, HwAddr, IpVersion};
 use crate::error::{Error, Result};
-use crate::state;
+use crate::state::{self, HwAddrApply};
 
 pub(crate) type TunnelId = u32;
 pub(crate) type SessionId = u32;
@@ -147,6 +147,8 @@ pub(crate) trait StateOps: Send + Sync {
     /// The current name of the interface with `index`, `None` when it is gone.
     async fn interface_name(&self, index: u32) -> Result<Option<L2tpIfName>>;
     async fn has_session(&self, tunnel_id: u32, session_id: u32) -> bool;
+    /// Creates the session; the outcome tells whether its hardware address
+    /// (if configured) is on the device or deferred until it is down.
     async fn add_session(
         &self,
         tunnel_id: u32,
@@ -154,19 +156,21 @@ pub(crate) trait StateOps: Send + Sync {
         peer_session_id: u32,
         if_name: &L2tpIfName,
         hwaddr: Option<&HwAddr>,
-    ) -> Result<()>;
+    ) -> Result<HwAddrApply>;
     async fn modify_session(
         &self,
         tunnel_id: u32,
         session_id: u32,
         ifname: &L2tpIfName,
     ) -> Result<()>;
+    /// Applies (or, with `None`, restores) the device's hardware address;
+    /// deferred while the device is up.
     async fn set_session_hwaddr(
         &self,
         tunnel_id: u32,
         session_id: u32,
         hwaddr: Option<&HwAddr>,
-    ) -> Result<()>;
+    ) -> Result<HwAddrApply>;
     async fn delete_session(&self, tunnel_id: u32, session_id: u32) -> Result<()>;
 }
 
@@ -241,7 +245,7 @@ impl StateOps for state::State {
         peer_session_id: u32,
         if_name: &L2tpIfName,
         hwaddr: Option<&HwAddr>,
-    ) -> Result<()> {
+    ) -> Result<HwAddrApply> {
         state::State::add_session(
             self,
             tunnel_id,
@@ -267,7 +271,7 @@ impl StateOps for state::State {
         tunnel_id: u32,
         session_id: u32,
         hwaddr: Option<&HwAddr>,
-    ) -> Result<()> {
+    ) -> Result<HwAddrApply> {
         state::State::set_session_hwaddr(self, tunnel_id, session_id, hwaddr).await
     }
 
@@ -777,11 +781,17 @@ impl Runtime {
                     .interface_hwaddr
                     .map_or_else(|| "<kernel default>".to_string(), |a| a.to_string())
             );
-            try_apply!(
-                self.state
-                    .set_session_hwaddr(*tunnel_id, *session_id, desired.interface_hwaddr.as_ref())
-                    .await
-            );
+            match self
+                .state
+                .set_session_hwaddr(*tunnel_id, *session_id, desired.interface_hwaddr.as_ref())
+                .await
+            {
+                Ok(HwAddrApply::Applied) => {}
+                Ok(HwAddrApply::Deferred) => log_deferred_hwaddr(*tunnel_id, *session_id, desired),
+                Err(e) => try_apply!(Err::<(), Error>(e)),
+            }
+            // Recorded as applied either way: a deferred change is retried
+            // through the session's pending flag, not through the plan.
             if let Some(applied) = applied_session_specs.get_mut(&(*tunnel_id, *session_id)) {
                 applied.interface_hwaddr = desired.interface_hwaddr;
             }
@@ -806,17 +816,21 @@ impl Runtime {
                 "adding session tunnel_id={} session_id={} interface_name={}",
                 tunnel_id, session_id, desired.interface_name
             );
-            try_apply!(
-                self.state
-                    .add_session(
-                        *tunnel_id,
-                        *session_id,
-                        desired.peer_session_id,
-                        &desired.interface_name,
-                        desired.interface_hwaddr.as_ref(),
-                    )
-                    .await
-            );
+            match self
+                .state
+                .add_session(
+                    *tunnel_id,
+                    *session_id,
+                    desired.peer_session_id,
+                    &desired.interface_name,
+                    desired.interface_hwaddr.as_ref(),
+                )
+                .await
+            {
+                Ok(HwAddrApply::Applied) => {}
+                Ok(HwAddrApply::Deferred) => log_deferred_hwaddr(*tunnel_id, *session_id, desired),
+                Err(e) => try_apply!(Err::<(), Error>(e)),
+            }
             applied_session_specs.insert((*tunnel_id, *session_id), desired.clone());
         }
 
@@ -895,7 +909,11 @@ impl Runtime {
     /// Binds tunnel sockets whose bind interface was absent, now that an
     /// interface appeared or changed. None also checks every recorded
     /// binding, recovering removals missed while the monitor was disconnected.
+    /// Session devices whose configured hardware address is still pending
+    /// get another attempt, which succeeds once the device is down.
     pub async fn handle_interface_change(&mut self, changed_if_name: Option<&L2tpIfName>) {
+        self.apply_pending_hwaddrs(changed_if_name).await;
+
         for desired in self.tunnel_specs.values() {
             let Some(if_name) = desired.bind_interface else {
                 continue;
@@ -982,6 +1000,41 @@ impl Runtime {
         // addresses or routes are not ready yet.
         for index in rebound_interfaces {
             self.handle_local_address_change(index).await;
+        }
+    }
+
+    /// Retries deferred or failed hardware address changes on the session
+    /// devices called `changed_if_name` (all of them for `None`).
+    async fn apply_pending_hwaddrs(&self, changed_if_name: Option<&L2tpIfName>) {
+        for (key, desired) in &self.session_specs {
+            if changed_if_name.is_some_and(|changed| *changed != desired.interface_name) {
+                continue;
+            }
+            if !self.state.session_hwaddr_pending(key.0, key.1).await {
+                continue;
+            }
+            match self
+                .state
+                .set_session_hwaddr(key.0, key.1, desired.interface_hwaddr.as_ref())
+                .await
+            {
+                Ok(HwAddrApply::Applied) => info!(
+                    "applied deferred hardware address {} to session interface {} (tunnel_id={} session_id={})",
+                    describe_hwaddr(desired),
+                    desired.interface_name,
+                    key.0,
+                    key.1
+                ),
+                Ok(HwAddrApply::Deferred) => {}
+                Err(e) => warn!(
+                    "failed to apply hardware address {} to session interface {} (tunnel_id={} session_id={}): {}; will retry",
+                    describe_hwaddr(desired),
+                    desired.interface_name,
+                    key.0,
+                    key.1,
+                    e
+                ),
+            }
         }
     }
 
@@ -1241,6 +1294,22 @@ fn control_event_for_netlink_payload(
         NetlinkPayload::Overrun(_) => Some(ControlEvent::InterfaceChanged { if_name: None }),
         _ => None,
     }
+}
+
+fn describe_hwaddr(desired: &DesiredSession) -> String {
+    desired
+        .interface_hwaddr
+        .map_or_else(|| "<kernel default>".to_string(), |a| a.to_string())
+}
+
+fn log_deferred_hwaddr(tunnel_id: u32, session_id: u32, desired: &DesiredSession) {
+    info!(
+        "session interface {} (tunnel_id={} session_id={}) is up; hardware address {} will be applied when the interface is down",
+        desired.interface_name,
+        tunnel_id,
+        session_id,
+        describe_hwaddr(desired)
+    );
 }
 
 fn record_tunnel_bind_interface(
@@ -1507,7 +1576,8 @@ mod tests {
         fail_reconnect_tunnel_for: Option<u32>,
         fail_add_session_for: Option<(u32, u32)>,
         fail_set_hwaddr_for: Option<(u32, u32)>,
-        fail_restore_up_for: Option<(u32, u32)>,
+        /// Sessions whose device is "up": hardware address changes defer.
+        up_devices: BTreeSet<SessionKey>,
         pending_hwaddr: BTreeSet<SessionKey>,
         pending_cleanup_for: Option<TunnelId>,
         fail_pending_cleanup: bool,
@@ -1561,6 +1631,15 @@ mod tests {
                 .lock()
                 .expect("lock poisoned")
                 .fail_set_hwaddr_for = key;
+        }
+
+        fn set_device_up(&self, key: (u32, u32), up: bool) {
+            let mut inner = self.inner.lock().expect("lock poisoned");
+            if up {
+                inner.up_devices.insert(key);
+            } else {
+                inner.up_devices.remove(&key);
+            }
         }
 
         /// Creates an interface with a fresh index and returns the index.
@@ -1824,7 +1903,7 @@ mod tests {
             _peer_session_id: u32,
             if_name: &L2tpIfName,
             hwaddr: Option<&HwAddr>,
-        ) -> Result<()> {
+        ) -> Result<HwAddrApply> {
             let mut inner = self.inner.lock().expect("lock poisoned");
             if !inner.tunnels.contains_key(&tunnel_id) {
                 return Err(Error::Other(format!("No such tunnel: {}", tunnel_id)));
@@ -1842,6 +1921,7 @@ mod tests {
             {
                 return Err(Error::Other(format!("interface exists: {}", if_name)));
             }
+            // A freshly created device is down: the address always applies.
             if hwaddr.is_some() {
                 inner.hwaddr_sets += 1;
             }
@@ -1852,7 +1932,7 @@ mod tests {
                     hwaddr: hwaddr.copied(),
                 },
             );
-            Ok(())
+            Ok(HwAddrApply::Applied)
         }
 
         async fn modify_session(
@@ -1894,30 +1974,33 @@ mod tests {
             tunnel_id: u32,
             session_id: u32,
             hwaddr: Option<&HwAddr>,
-        ) -> Result<()> {
+        ) -> Result<HwAddrApply> {
+            let key = (tunnel_id, session_id);
             let mut inner = self.inner.lock().expect("lock poisoned");
-            if inner.fail_set_hwaddr_for == Some((tunnel_id, session_id)) {
+            if !inner.sessions.contains_key(&key) {
+                return Err(Error::Other(format!(
+                    "No such session {} in tunnel {}",
+                    session_id, tunnel_id
+                )));
+            }
+            // Like the real state: pending until the address is in place.
+            inner.pending_hwaddr.insert(key);
+            if inner.fail_set_hwaddr_for == Some(key) {
                 return Err(Error::Other(
                     "injected set_session_hwaddr failure".to_string(),
                 ));
             }
-            inner.hwaddr_sets += 1;
-            let session = inner
-                .sessions
-                .get_mut(&(tunnel_id, session_id))
-                .ok_or_else(|| {
-                    Error::Other(format!(
-                        "No such session {} in tunnel {}",
-                        session_id, tunnel_id
-                    ))
-                })?;
-            session.hwaddr = hwaddr.copied();
-            if inner.fail_restore_up_for == Some((tunnel_id, session_id)) {
-                inner.pending_hwaddr.insert((tunnel_id, session_id));
-                return Err(Error::Other("injected restore UP failure".to_string()));
+            if inner.sessions[&key].hwaddr == hwaddr.copied() {
+                inner.pending_hwaddr.remove(&key);
+                return Ok(HwAddrApply::Applied);
             }
-            inner.pending_hwaddr.remove(&(tunnel_id, session_id));
-            Ok(())
+            if inner.up_devices.contains(&key) {
+                return Ok(HwAddrApply::Deferred);
+            }
+            inner.hwaddr_sets += 1;
+            inner.sessions.get_mut(&key).expect("session exists").hwaddr = hwaddr.copied();
+            inner.pending_hwaddr.remove(&key);
+            Ok(HwAddrApply::Applied)
         }
 
         async fn delete_session(&self, tunnel_id: u32, session_id: u32) -> Result<()> {
@@ -3079,7 +3162,77 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn reload_reverting_partial_mac_change_restores_previous_address() {
+    async fn hwaddr_change_on_an_up_device_is_deferred_until_it_is_down() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        let tunnel = (
+            "bound",
+            10,
+            10,
+            IpVersion::V6,
+            IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+            None,
+        );
+        let initial = test_config(
+            vec![tunnel.clone()],
+            vec![("lan", "bound", 100, 100, "l2tp0", None)],
+        );
+        runtime.reconcile(&initial).await.unwrap();
+        mock.set_device_up((10, 100), true);
+
+        // The reload succeeds; the running device keeps its address and
+        // the change stays pending.
+        let changed = test_config(
+            vec![tunnel.clone()],
+            vec![("lan", "bound", 100, 100, "l2tp0", Some("02:00:00:00:00:02"))],
+        );
+        runtime.reconcile(&changed).await.unwrap();
+        assert_eq!(mock.session_hwaddr(10, 100), None);
+        assert!(mock.session_hwaddr_pending(10, 100).await);
+        assert_eq!(
+            runtime.session_specs[&(10, 100)].interface_hwaddr,
+            Some(hwaddr("02:00:00:00:00:02"))
+        );
+
+        // Link events for other devices, and for this one while it is still
+        // up, change nothing.
+        runtime
+            .handle_interface_change(Some(&ifname("other0")))
+            .await;
+        runtime
+            .handle_interface_change(Some(&ifname("l2tp0")))
+            .await;
+        assert_eq!(mock.session_hwaddr(10, 100), None);
+        assert!(mock.session_hwaddr_pending(10, 100).await);
+
+        // The device going down is reported as a link change: now it applies.
+        mock.set_device_up((10, 100), false);
+        runtime
+            .handle_interface_change(Some(&ifname("l2tp0")))
+            .await;
+        assert_eq!(
+            mock.session_hwaddr(10, 100),
+            Some(hwaddr("02:00:00:00:00:02"))
+        );
+        assert!(!mock.session_hwaddr_pending(10, 100).await);
+
+        // Reverting while up defers again; a reconcile after the device went
+        // down restores the kernel default.
+        mock.set_device_up((10, 100), true);
+        runtime.reconcile(&initial).await.unwrap();
+        assert_eq!(
+            mock.session_hwaddr(10, 100),
+            Some(hwaddr("02:00:00:00:00:02"))
+        );
+        assert!(mock.session_hwaddr_pending(10, 100).await);
+        mock.set_device_up((10, 100), false);
+        runtime.reconcile(&initial).await.unwrap();
+        assert_eq!(mock.session_hwaddr(10, 100), None);
+        assert!(!mock.session_hwaddr_pending(10, 100).await);
+    }
+
+    #[tokio::test]
+    async fn failed_hwaddr_change_is_retried_on_link_events() {
         let mock = Arc::new(MockState::default());
         let mut runtime = runtime_with_mock_state(mock.clone());
         let tunnel = (
@@ -3096,21 +3249,21 @@ mod tests {
         );
         runtime.reconcile(&initial).await.unwrap();
 
+        mock.inject_set_hwaddr_failure(Some((10, 100)));
         let changed = test_config(
             vec![tunnel],
             vec![("lan", "bound", 100, 100, "l2tp0", Some("02:00:00:00:00:02"))],
         );
-        mock.inner.lock().unwrap().fail_restore_up_for = Some((10, 100));
         assert!(runtime.reconcile(&changed).await.is_err());
+        assert!(mock.session_hwaddr_pending(10, 100).await);
+        assert_eq!(runtime.session_specs[&(10, 100)].interface_hwaddr, None);
+
+        mock.inject_set_hwaddr_failure(None);
+        runtime.reconcile(&changed).await.unwrap();
         assert_eq!(
             mock.session_hwaddr(10, 100),
             Some(hwaddr("02:00:00:00:00:02"))
         );
-        assert_eq!(runtime.session_specs[&(10, 100)].interface_hwaddr, None);
-
-        mock.inner.lock().unwrap().fail_restore_up_for = None;
-        runtime.reconcile(&initial).await.unwrap();
-        assert_eq!(mock.session_hwaddr(10, 100), None);
         assert!(!mock.session_hwaddr_pending(10, 100).await);
     }
 
