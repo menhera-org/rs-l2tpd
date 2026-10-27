@@ -226,7 +226,7 @@ attempt never causes a burst.
 | Disconnected tunnel with a real peer: connect retry | 1 s, one shared timer |
 | Conflict retries before an entry is left out | 10 attempts, a second apart, the first attempt counted |
 | Retry of left-out entries | 30 s, and every reload |
-| Resolver refresh | 30 s; answers polled every 1 s ([V4](resolvers.md#queries-and-answers)) |
+| Resolver refresh | 30 s after the previous lookup returned; a lookup is bounded per kind; answers polled every 1 s ([V4](resolvers.md#queries-and-answers)) |
 | Resolver host-defect retry | 30 s ([V12](resolvers.md#dhcpv6-information-request)) |
 | Wait for a deleted tunnel to leave the kernel | up to 2 s |
 | Host tunable re-check | at every socket creation and every reconcile ([P25](process.md#host-tunables)) |

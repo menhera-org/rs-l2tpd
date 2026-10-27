@@ -87,7 +87,7 @@ RFC, IANA, kernel documentation, Linux man-pages, and systemd documentation were
 
 **Severity: High. Type: Contradiction; kernel-dependent prerequisite.**
 
-**Evidence:** [R4](docs/spec/requirements.md#the-host), line 20; [H15](docs/spec/hosts.md#missing-kernel-support-and-privilege), lines 116–122; [G5](docs/spec/promises.md#unconditional-promises), line 19; [T10–T13](docs/spec/tunnels.md#bind-devices), lines 77–102.
+**Evidence:** [R4](../docs/spec/requirements.md#the-host), line 20; [H15](../docs/spec/hosts.md#missing-kernel-support-and-privilege), lines 116–122; [G5](../docs/spec/promises.md#unconditional-promises), line 19; [T10–T13](../docs/spec/tunnels.md#bind-devices), lines 77–102.
 
 R4 and H15 prescribe an unbound tunnel after a binding privilege failure. G5 forbids a bound configuration from sending through another device. A host with a usable main-table route therefore has two incompatible prescribed outcomes. T13's missing-device rule does not resolve failures when the device exists but binding fails. Changing the configured binding to a missing device also lacks an explicit transition rule.
 
@@ -103,7 +103,7 @@ Linux v6.12's `sock_bindtoindex_locked` checks CAP_NET_RAW when the socket alrea
 
 **Severity: High. Type: Invalid ownership proof.**
 
-**Evidence:** [S19–S24](docs/spec/sessions.md#identity-loss), lines 139–180; [A17](docs/spec/architecture.md#why-this-shape), lines 151–153; [M9–M10](docs/spec/model.md#ownership), lines 93–102.
+**Evidence:** [S19–S24](../docs/spec/sessions.md#identity-loss), lines 139–180; [A17](../docs/spec/architecture.md#why-this-shape), lines 151–153; [M9–M10](../docs/spec/model.md#ownership), lines 93–102.
 
 S22 assumes a foreign session reusing identifiers must have another creation-time name. The specification imposes no enforceable uniqueness across time. During notification loss, an administrator can delete a session and create another with the same identifiers and original name. S22 then authorizes deletion of the foreign session. S23 likewise treats an old index plus a matching temporary name as enough to re-identify a staged device, conflicting with S19's lost proof and S24's prohibition on touching replacements.
 
@@ -119,7 +119,7 @@ The kernel copies the device name into `session->ifname` at registration and ret
 
 **Severity: High. Type: Invalid ownership proof.**
 
-**Evidence:** [D7–D10](docs/spec/discard.md#the-null-device), lines 57–78; [M9–M10](docs/spec/model.md#ownership), lines 93–102; [R33](docs/spec/requirements.md#other-network-managers), line 70.
+**Evidence:** [D7–D10](../docs/spec/discard.md#the-null-device), lines 57–78; [M9–M10](../docs/spec/model.md#ownership), lines 93–102; [R33](../docs/spec/requirements.md#other-network-managers), line 70.
 
 D9 says ownership is proved by the assigned hardware address, yet also says a replacement with the old index or name is foreign. A replacement dummy can be assigned the same MAC. An owned dummy can also have its MAC changed, or be deleted and reappear after a monitor gap. The specified MAC predicate cannot distinguish these cases.
 
@@ -135,7 +135,7 @@ Linux's dummy driver accepts an explicitly supplied valid MAC and uses the ordin
 
 **Severity: High. Type: Impossible unconditional guarantee.**
 
-**Evidence:** [G2 and G9](docs/spec/promises.md#unconditional-promises), lines 16 and 23; [S21, S26](docs/spec/sessions.md#identity-loss), lines 156–161 and 188–190; [P16](docs/spec/process.md#shutdown), lines 104–112.
+**Evidence:** [G2 and G9](../docs/spec/promises.md#unconditional-promises), lines 16 and 23; [S21, S26](../docs/spec/sessions.md#identity-loss), lines 156–161 and 188–190; [P16](../docs/spec/process.md#shutdown), lines 104–112.
 
 S21 already admits that an unmanageable or moved session remains only until its tunnel is torn down. P16 nevertheless says an unprovable session is left alone, while G2 universally forbids deleting foreign objects. Another privileged manager can attach a new session to an owned tunnel or replace a deleted session within it. Closing that tunnel necessarily removes those sessions too.
 
@@ -151,7 +151,7 @@ Linux v6.12's `l2tp_tunnel_closeall` schedules deletion of every session on the 
 
 **Severity: High. Type: Incorrect standards claim; ambiguous traffic guarantee.**
 
-**Evidence:** [D1–D6](docs/spec/discard.md#addresses), lines 12–53; [H1](docs/spec/hosts.md#address-families), lines 11–12; [G5](docs/spec/promises.md#unconditional-promises), line 19.
+**Evidence:** [D1–D6](../docs/spec/discard.md#addresses), lines 12–53; [H1](../docs/spec/hosts.md#address-families), lines 11–12; [G5](../docs/spec/promises.md#unconditional-promises), line 19.
 
 D1 says both addresses are reserved for this use and never answer or get forwarded. RFC 7600 allocates 192.0.0.8 as a dummy **source** for synthesized ICMP errors; IANA marks it invalid as a destination. It is not an IPv4 equivalent of the IPv6 discard prefix. [RFC 7600 §4.8](https://www.rfc-editor.org/rfc/rfc7600.html#section-4.8), [IANA IPv4 registry](https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml). RFC 6666's prefix still relies on routing/filtering policy to discard traffic. [RFC 6666](https://www.rfc-editor.org/rfc/rfc6666.html).
 
@@ -167,7 +167,7 @@ D6 and H1 intentionally accept an ordinary default route. Consequently, payload 
 
 **Severity: High. Type: Missing ownership and lifecycle rules.**
 
-**Evidence:** [M9–M10](docs/spec/model.md#ownership), lines 93–102; [A11](docs/spec/architecture.md#state), lines 106–114; [D8, D11–D12](docs/spec/discard.md#the-null-device), lines 64–68 and 82–95; [P16](docs/spec/process.md#shutdown), lines 104–107.
+**Evidence:** [M9–M10](../docs/spec/model.md#ownership), lines 93–102; [A11](../docs/spec/architecture.md#state), lines 106–114; [D8, D11–D12](../docs/spec/discard.md#the-null-device), lines 64–68 and 82–95; [P16](../docs/spec/process.md#shutdown), lines 104–107.
 
 Devices have proposed ownership predicates, but routes only have the phrase “the daemon installed.” The spec does not define the full route identity, metric, protocol, output device, table, or how ownership changes after an external replacement. A route once installed can be removed and recreated by another manager at the same prefix and metric; remembering the successful original installation is not proof that the current route is owned.
 
@@ -183,7 +183,7 @@ D11 also leaves an old VRF table alone after table migration, whereas P16 requir
 
 **Severity: High. Type: Contradictory operation ordering.**
 
-**Evidence:** [M6](docs/spec/model.md#reconciliation), lines 58–62; [A8](docs/spec/architecture.md#concurrency), lines 90–93; [C14](docs/spec/configuration.md#semantics-of-changes), lines 114–121; [S26](docs/spec/sessions.md#removal), lines 188–190; [P16](docs/spec/process.md#shutdown), lines 104–112.
+**Evidence:** [M6](../docs/spec/model.md#reconciliation), lines 58–62; [A8](../docs/spec/architecture.md#concurrency), lines 90–93; [C14](../docs/spec/configuration.md#semantics-of-changes), lines 114–121; [S26](../docs/spec/sessions.md#removal), lines 188–190; [P16](../docs/spec/process.md#shutdown), lines 104–112.
 
 M6 orders tunnel deletions before session deletions. S26 and P16 require session deletions first, and P16 implements shutdown by applying an empty configuration, which is itself a reconcile. Both sequences cannot govern that operation.
 
@@ -199,7 +199,7 @@ M6 also puts session renames before session deletions. If session B is removed w
 
 **Severity: High. Type: Contradiction.**
 
-**Evidence:** [M2, M3, M5](docs/spec/model.md#reconciliation), lines 38–56; [G18](docs/spec/promises.md#conditional-promises), line 39; [E17](docs/spec/events.md#operator-events), lines 113–117; [T25](docs/spec/tunnels.md#identifier-conflicts), lines 191–199.
+**Evidence:** [M2, M3, M5](../docs/spec/model.md#reconciliation), lines 38–56; [G18](../docs/spec/promises.md#conditional-promises), line 39; [E17](../docs/spec/events.md#operator-events), lines 113–117; [T25](../docs/spec/tunnels.md#identifier-conflicts), lines 191–199.
 
 M2 and E17 say an unchanged configuration reload causes no kernel change at all. T25 requires every reload to retry omitted entries. If a conflicting identifier becomes free and the operator reloads identical files, creation is both required and forbidden. The same conflict occurs when a previous reconcile stopped after a failed operation and the next identical reconcile must continue it.
 
@@ -215,7 +215,7 @@ Idempotence means an already satisfied state remains unchanged when relevant inp
 
 **Severity: High. Type: Contradictory readiness and existence definitions.**
 
-**Evidence:** [Model terms](docs/spec/model.md#terms), lines 7–10 and 26–27; [P6–P8](docs/spec/process.md#readiness), lines 36–51; [G8, G15–G16](docs/spec/promises.md), lines 22 and 36–37; [C13](docs/spec/configuration.md#reload), lines 107–110.
+**Evidence:** [Model terms](../docs/spec/model.md#terms), lines 7–10 and 26–27; [P6–P8](../docs/spec/process.md#readiness), lines 36–51; [G8, G15–G16](../docs/spec/promises.md), lines 22 and 36–37; [C13](../docs/spec/configuration.md#reload), lines 107–110.
 
 P6 and the model define readiness as every applied entry existing. G8/P7/T25 allow readiness after conflict retries with entries missing. C13 retains the accepted configuration as the next reload's base, and T25 needs the omitted entries to remain available for retry. It is therefore unclear whether “applied configuration” includes desired-but-omitted entries. G16 adds a conditional continuous-existence promise, but its relationship to the deliberately degraded readiness state is left implicit; it should not be read as covering failures outside its prerequisites.
 
@@ -231,7 +231,7 @@ A staged session with a temporary name technically exists, but S6 still calls pu
 
 **Severity: High. Type: Kernel-source-confirmed host incompatibility.**
 
-**Evidence:** [T3–T5](docs/spec/tunnels.md#address-families), lines 32–50; [H1–H3](docs/spec/hosts.md#address-families), lines 11–27; [G10](docs/spec/promises.md#unconditional-promises), line 24.
+**Evidence:** [T3–T5](../docs/spec/tunnels.md#address-families), lines 32–50; [H1–H3](../docs/spec/hosts.md#address-families), lines 11–27; [G10](../docs/spec/promises.md#unconditional-promises), line 24.
 
 T3 requires IPv4-mapped operation whenever an IPv6 L2TP socket can be opened. T5 forbids changing socket defaults except device binding. These requirements conflict on a host with `net.ipv6.bindv6only=1`: socket creation succeeds, but IPv4-mapped connection is refused. T4 does not apply because creation did not return either listed error.
 
@@ -247,7 +247,7 @@ In Linux v6.12, `inet6_create` initializes the socket's IPv6-only flag from that
 
 **Severity: High. Type: Kernel-source-confirmed security-boundary error.**
 
-**Evidence:** [H7](docs/spec/hosts.md#vrfs), lines 46–53; [T10](docs/spec/tunnels.md#bind-devices), lines 77–81; [R24–R25](docs/spec/requirements.md#the-peers), lines 53–54; [C8](docs/spec/configuration.md#tunnel-entries), line 60.
+**Evidence:** [H7](../docs/spec/hosts.md#vrfs), lines 46–53; [T10](../docs/spec/tunnels.md#bind-devices), lines 77–81; [R24–R25](../docs/spec/requirements.md#the-peers), lines 53–54; [C8](../docs/spec/configuration.md#tunnel-entries), line 60.
 
 H7 says a VRF-bound tunnel sends and receives through the VRF's table. This can be read as an ingress isolation guarantee from SO_BINDTODEVICE. The kernel data path does not justify that claim.
 
@@ -263,7 +263,7 @@ In Linux v6.12, both `l2tp_ip_recv` and `l2tp_ip6_recv` dispatch a nonzero-sessi
 
 **Severity: Medium. Type: Ambiguous reload validation precedence.**
 
-**Evidence:** [C9, C12–C13](docs/spec/configuration.md#reload), lines 67–68 and 92–110; [G7](docs/spec/promises.md#unconditional-promises), line 21.
+**Evidence:** [C9, C12–C13](../docs/spec/configuration.md#reload), lines 67–68 and 92–110; [G7](../docs/spec/promises.md#unconditional-promises), line 21.
 
 C9 makes the later name the loser in a collision. C12 preserves old values for erroneous existing entries but rejects a whole reload when preserved values no longer fit. The order in which new values and retained old values enter the uniqueness checks changes the result.
 
@@ -281,7 +281,7 @@ Likewise, retaining a session while its old tunnel is intentionally removed need
 
 **Severity: Medium. Type: Missing lifecycle and security rules.**
 
-**Evidence:** [P4, P6, P10–P11, P16–P17](docs/spec/process.md), lines 24–28, 36–40, 60–70 and 104–117; [O7](docs/spec/observability.md#exit-codes), lines 35–39.
+**Evidence:** [P4, P6, P10–P11, P16–P17](../docs/spec/process.md), lines 24–28, 36–40, 60–70 and 104–117; [O7](../docs/spec/observability.md#exit-codes), lines 35–39.
 
 P10 specifies careful creation and an inode check for in-place updates. P11 merely says to remove the file. It does not say what happens if the pathname now denotes another instance's PID file, a replacement inode, or a file renamed into place after publication. Non-overlapping instances are otherwise not forbidden, yet the default PID pathname is shared.
 
@@ -297,7 +297,7 @@ The ordering of PID publication and the parent-success notification is also not 
 
 **Severity: Medium. Type: Contradictory recovery policy.**
 
-**Evidence:** [T4](docs/spec/tunnels.md#address-families), lines 38–46; [M7–M8, M12](docs/spec/model.md), lines 66–89 and 114–117; [R27](docs/spec/requirements.md#the-peers), line 56; [H15](docs/spec/hosts.md#missing-kernel-support-and-privilege), lines 116–122.
+**Evidence:** [T4](../docs/spec/tunnels.md#address-families), lines 38–46; [M7–M8, M12](../docs/spec/model.md), lines 66–89 and 114–117; [R27](../docs/spec/requirements.md#the-peers), line 56; [H15](../docs/spec/hosts.md#missing-kernel-support-and-privilege), lines 116–122.
 
 T4 permanently remembers one IPv6-socket refusal and uses AF_INET for later tunnels. M8 requires automatic promotion when an obstacle disappears, while R27 describes an IPv6 peer as pending only while the host remains incapable. If the missing IPv6 L2TP module becomes available later, the specified latch prevents recovery even for newly created tunnels.
 
@@ -313,7 +313,7 @@ Existing AF_INET sockets also cannot become AF_INET6 sockets in place, so M12's 
 
 **Severity: Medium. Type: Incorrect routing model; unresolved fallback.**
 
-**Evidence:** [D4, D7–D8](docs/spec/discard.md#routes), lines 37–41 and 57–68; [H7](docs/spec/hosts.md#vrfs), lines 46–53; [T10, T13](docs/spec/tunnels.md#bind-devices), lines 77–102.
+**Evidence:** [D4, D7–D8](../docs/spec/discard.md#routes), lines 37–41 and 57–68; [H7](../docs/spec/hosts.md#vrfs), lines 46–53; [T10, T13](../docs/spec/tunnels.md#bind-devices), lines 77–102.
 
 D4 equates unbound or ordinary-device sockets with the main table and VRF-bound sockets with the VRF table. Linux routing policy can select another table; even VRF routing can be overridden by higher-priority rules. [Linux VRF documentation](https://docs.kernel.org/networking/vrf.html).
 
@@ -329,7 +329,7 @@ More importantly, a socket bound to an ordinary physical device has an output-in
 
 **Severity: Medium. Type: Missing state transition.**
 
-**Evidence:** [D6, D11–D12](docs/spec/discard.md), lines 48–53 and 82–95; [E9, E13](docs/spec/events.md), lines 65–72 and 95–98; [H8](docs/spec/hosts.md#routers), lines 57–62; [T18](docs/spec/tunnels.md#peers-that-cannot-be-reached), lines 141–143.
+**Evidence:** [D6, D11–D12](../docs/spec/discard.md), lines 48–53 and 82–95; [E9, E13](../docs/spec/events.md), lines 65–72 and 95–98; [H8](../docs/spec/hosts.md#routers), lines 57–62; [T18](../docs/spec/tunnels.md#peers-that-cannot-be-reached), lines 141–143.
 
 Consider a tunnel with a tolerated invalid endpoint, connected to a discard address using the host's default route. The default route disappears. E9/H8 deliberately ignore that change; no owned route exists for D11 to repair; D12 forbids creating a previously uninstalled route during repair. With no pending real peer, E13 need not run, and T18 excludes address-driven reconnects.
 
@@ -345,7 +345,7 @@ The specification does not say whether this remains an acceptable degraded state
 
 **Severity: Medium. Type: Contradictory state definitions.**
 
-**Evidence:** [T1, T16, T20–T21](docs/spec/tunnels.md), lines 19–23, 127–135 and 160–171; [H5](docs/spec/hosts.md#address-families), lines 34–36; [E13](docs/spec/events.md#timers), lines 95–98.
+**Evidence:** [T1, T16, T20–T21](../docs/spec/tunnels.md), lines 19–23, 127–135 and 160–171; [H5](../docs/spec/hosts.md#address-families), lines 34–36; [E13](../docs/spec/events.md#timers), lines 95–98.
 
 T1 requires a connected socket to have a specified source still present on the host. H5 explicitly accepts an unspecified IPv4 source for a discard connection. Without an exception, the promised IPv6-only-host fallback never reaches T1's right state.
 
@@ -363,7 +363,7 @@ Linux v6.12's L2TP transmit path drops frames on a userspace-managed socket that
 
 **Severity: Medium. Type: Ambiguous peer selection and freshness.**
 
-**Evidence:** [T14–T17](docs/spec/tunnels.md#peers), lines 106–139; [E10–E11](docs/spec/events.md#dns-events), lines 76–88; [A9](docs/spec/architecture.md#concurrency), lines 95–97.
+**Evidence:** [T14–T17](../docs/spec/tunnels.md#peers), lines 106–139; [E10–E11](../docs/spec/events.md#dns-events), lines 76–88; [A9](../docs/spec/architecture.md#concurrency), lines 95–97.
 
 “The first usable answer” does not say whether usable means syntactically valid, family-compatible, or successfully connectable. An answer list containing an unreachable address followed by a reachable one therefore has no deterministic selection rule. T14 also says an invalid answer keeps the current peer, without defining whether later valid answers are considered.
 
@@ -379,7 +379,7 @@ T15 retains an old answer for the same hostname, while T17 says an unreachable p
 
 **Severity: Medium. Type: Incomplete creation algorithm.**
 
-**Evidence:** [S4–S7](docs/spec/sessions.md#creation), lines 27–54; [H12](docs/spec/hosts.md#other-network-managers), lines 94–99; [P6–P8](docs/spec/process.md#readiness), lines 36–51.
+**Evidence:** [S4–S7](../docs/spec/sessions.md#creation), lines 27–54; [H12](../docs/spec/hosts.md#other-network-managers), lines 94–99; [P6–P8](../docs/spec/process.md#readiness), lines 36–51.
 
 S4 stages only sessions with a configured hardware address; others are created directly under the configured name. S7/H12 promise that a name collision preserves the session under a temporary name. For the direct-creation branch, no such session or temporary name exists yet. Linux registers the requested netdevice as part of Ethernet session creation and unwinds the session when device registration fails. [Kernel source](https://github.com/torvalds/linux/blob/v6.12/net/l2tp/l2tp_eth.c#L223-L305).
 
@@ -395,7 +395,7 @@ The spec also needs to qualify S4's promise that a configured-name observer neve
 
 **Severity: Medium. Type: Overbroad invariant.**
 
-**Evidence:** [G3–G4](docs/spec/promises.md#unconditional-promises), lines 17–18; [M8, M11–M12](docs/spec/model.md), lines 87–89 and 106–117; [C14](docs/spec/configuration.md#semantics-of-changes), lines 114–121; [S17, S23](docs/spec/sessions.md), lines 120–124 and 173–177; [P14, P16](docs/spec/process.md), lines 89–96 and 104–112.
+**Evidence:** [G3–G4](../docs/spec/promises.md#unconditional-promises), lines 17–18; [M8, M11–M12](../docs/spec/model.md), lines 87–89 and 106–117; [C14](../docs/spec/configuration.md#semantics-of-changes), lines 114–121; [S17, S23](../docs/spec/sessions.md), lines 120–124 and 173–177; [P14, P16](../docs/spec/process.md), lines 89–96 and 104–112.
 
 G3/M11 allow identity changes only for specified kernel-immutable parameters. C14 requires recreation merely for renaming a configuration key; S17 also recreates for changing tunnel_name; S23 recreates a staged session after identity loss. Shutdown and explicit removal are further obvious exceptions. M8's absolute ban on identity change while degrading does not account for these recovery paths.
 
@@ -411,7 +411,7 @@ G4/S2's “never undoes” manager changes similarly needs the documented except
 
 **Severity: Medium. Type: Contradictory desired-state model.**
 
-**Evidence:** [G19](docs/spec/promises.md#conditional-promises), line 40; [M1, M7–M8](docs/spec/model.md), lines 31–36 and 66–89; [S1, S10, S12, S20](docs/spec/sessions.md), lines 7–13, 74–79, 88–98 and 150–154.
+**Evidence:** [G19](../docs/spec/promises.md#conditional-promises), line 40; [M1, M7–M8](../docs/spec/model.md), lines 31–36 and 66–89; [S1, S10, S12, S20](../docs/spec/sessions.md), lines 7–13, 74–79, 88–98 and 150–154.
 
 G19 requires configured names and MACs whenever the host permits them. S10 accepts an external rename indefinitely; S12 does not reassert a MAC another manager changes. Those outcomes are possible on a host that fully permits the configured values. S20 marks a skipped update applied even though the device never received it, and S19 says a lost identity cannot necessarily be recovered.
 
@@ -427,7 +427,7 @@ The right state therefore depends on prior accepted operations and external-mana
 
 **Severity: Medium. Type: Ambiguous monitor-loss scope.**
 
-**Evidence:** [A5, A7](docs/spec/architecture.md), lines 69–70 and 83–88; [S19](docs/spec/sessions.md#identity-loss), lines 139–148; [E20](docs/spec/events.md#monitor-loss), lines 128–137.
+**Evidence:** [A5, A7](../docs/spec/architecture.md), lines 69–70 and 83–88; [S19](../docs/spec/sessions.md#identity-loss), lines 139–148; [E20](../docs/spec/events.md#monitor-loss), lines 128–137.
 
 The dedicated lifetime subscription exists to establish identity independently of the ordinary event monitor. S19 ties identity loss to that subscription losing notifications. E20 instead says that when “a subscription” fails, all earlier session identities are marked lost.
 
@@ -443,7 +443,7 @@ An overflow solely in the filtered event monitor can therefore either trigger on
 
 **Severity: Medium. Type: Incomplete concurrency contract.**
 
-**Evidence:** [A6–A7, A13–A14](docs/spec/architecture.md), lines 75–88 and 123–131; [M15](docs/spec/model.md#timing), lines 156–158; [L6](docs/spec/library.md#the-service), lines 43–47.
+**Evidence:** [A6–A7, A13–A14](../docs/spec/architecture.md), lines 75–88 and 123–131; [M15](../docs/spec/model.md#timing), lines 156–158; [L6](../docs/spec/library.md#the-service), lines 43–47.
 
 A6 says every producer, including the lifetime task, only sends into one channel and the reconciler owns all state. A7 requires the lifetime reader never to be starved by a busy reconciler. L6 establishes that the queue can fill. If that producer waits for room, it stops reading; if it drops messages, identity proofs require explicit invalidation. A proof lookup awaited by the reconciler also needs a response path that cannot wait behind messages only that reconciler can drain.
 
@@ -459,7 +459,7 @@ No queue capacity, coalescing rule, loss marker, producer shutdown behavior, or 
 
 **Severity: Medium. Type: Contradictory performance guarantee.**
 
-**Evidence:** [R6, R35](docs/spec/requirements.md), lines 22 and 72; [G12, G23](docs/spec/promises.md), lines 26 and 44; [M16](docs/spec/model.md#scale), lines 162–168; [E2, E9](docs/spec/events.md), lines 19–25 and 65–72; [H8, H17](docs/spec/hosts.md), lines 57–62 and 133–136.
+**Evidence:** [R6, R35](../docs/spec/requirements.md), lines 22 and 72; [G12, G23](../docs/spec/promises.md), lines 26 and 44; [M16](../docs/spec/model.md#scale), lines 162–168; [E2, E9](../docs/spec/events.md), lines 19–25 and 65–72; [H8, H17](../docs/spec/hosts.md), lines 57–62 and 133–136.
 
 R6 permits continuing without the socket filter and acknowledges route-churn buffer pressure. G12/E9/H8 nonetheless promise that route churn never reaches userspace or overflows the monitor. Those statements cannot remain unconditional when filter attachment fails.
 
@@ -475,7 +475,7 @@ E2 requires reevaluating every binding on a rename, while M16/H17 claim cost pro
 
 **Severity: Medium. Type: Unachievable bounds; unspecified timing semantics.**
 
-**Evidence:** [G15, G20 and convergence bounds](docs/spec/promises.md#conditional-promises), lines 36–41 and 48–66; [A9, A14](docs/spec/architecture.md), lines 95–97 and 130–131; [M14](docs/spec/model.md#timing), lines 141–154; [H6, H16](docs/spec/hosts.md), lines 38–42 and 126–129; [P17](docs/spec/process.md#shutdown), lines 114–117.
+**Evidence:** [G15, G20 and convergence bounds](../docs/spec/promises.md#conditional-promises), lines 36–41 and 48–66; [A9, A14](../docs/spec/architecture.md), lines 95–97 and 130–131; [M14](../docs/spec/model.md#timing), lines 141–154; [H6, H16](../docs/spec/hosts.md), lines 38–42 and 126–129; [P17](../docs/spec/process.md#shutdown), lines 114–117.
 
 A one-second retry cadence does not guarantee a pending peer is connected within one second. Queueing, sequential kernel operations, resolver duration, and callback execution also consume time. A resolver explicitly allowed to hang contradicts an unconditional “thirty seconds to notice, one more to apply.” P17 bounds waiting for deletion; G20 instead guarantees identifiers are free within that time. Kernel L2TP deletion uses workqueues, with no corresponding two-second completion contract. [Kernel source](https://github.com/torvalds/linux/blob/v6.12/net/l2tp/l2tp_core.c#L1713-L1734).
 
@@ -491,7 +491,7 @@ A one-second retry cadence does not guarantee a pending peer is connected within
 
 **Severity: Medium. Type: Incomplete validation grammar; factual omission.**
 
-**Evidence:** [C5–C8](docs/spec/configuration.md#documents), lines 30–65; [L4](docs/spec/library.md#configuration-types), lines 28–32.
+**Evidence:** [C5–C8](../docs/spec/configuration.md#documents), lines 30–65; [L4](../docs/spec/library.md#configuration-types), lines 28–32.
 
 C7 lists length, slash, whitespace, dot, and dot-dot restrictions, but omits colon and embedded NUL. For example, “eth:1” passes the enumerated rules but is rejected by Linux's `dev_valid_name`; an embedded NUL cannot represent the requested full C-string name. Kernel name allocation also gives percent patterns special meaning, which needs a policy if names are intended to be exact. [Kernel validation/allocation source](https://github.com/torvalds/linux/blob/v6.12/net/core/dev.c#L1058-L1180).
 
@@ -507,7 +507,7 @@ The remote_addr grammar also leaves “host name” undefined: single-label name
 
 **Severity: Medium. Type: Contradictory conversion rules.**
 
-**Evidence:** [C6, C15](docs/spec/configuration.md), lines 38–41 and 125–130; [O7–O8](docs/spec/observability.md), lines 35–47.
+**Evidence:** [C6, C15](../docs/spec/configuration.md), lines 38–41 and 125–130; [O7–O8](../docs/spec/observability.md), lines 35–47.
 
 C6 says unknown keys MUST be ignored for forward compatibility and SHOULD be reported as document problems. C15 says strict conversion fails on the first problem of any kind, including direct deserialization. One reading accepts a future field; another rejects it because its warning is a problem. The specification does not state whether strict parsing, strict completion, and check-mode diagnostics have distinct acceptance rules.
 
@@ -523,7 +523,7 @@ C15 also promises each lenient problem carries an entry kind and name, although 
 
 **Severity: Medium. Type: Contradictory library event contract.**
 
-**Evidence:** [L9–L10](docs/spec/library.md#the-reconciler), lines 60–72; [R39](docs/spec/requirements.md#programs-embedding-the-library), line 85; [A21](docs/spec/architecture.md#extension), lines 170–174.
+**Evidence:** [L9–L10](../docs/spec/library.md#the-reconciler), lines 60–72; [R39](../docs/spec/requirements.md#programs-embedding-the-library), line 85; [A21](../docs/spec/architecture.md#extension), lines 170–174.
 
 L10 requires forwarding every event and forbids dropping any. Its prescribed wildcard arm for new variants does nothing, which drops exactly those events. A21 says new behaviors arrive through new event variants and handlers, so silently ignoring a required new variant can prevent convergence even while an embedding program follows the documented pattern.
 
@@ -539,7 +539,7 @@ Non-exhaustiveness allows source-compatible matching; it does not automatically 
 
 **Severity: Medium. Type: Incomplete library lifecycle and boundary contract.**
 
-**Evidence:** [G14](docs/spec/promises.md#unconditional-promises), line 28; [P5](docs/spec/process.md#start-up), lines 30–32; [L1, L5, L8–L9](docs/spec/library.md), lines 11–15, 36–41 and 53–67; [R7, R37–R40](docs/spec/requirements.md), lines 23 and 83–86.
+**Evidence:** [G14](../docs/spec/promises.md#unconditional-promises), line 28; [P5](../docs/spec/process.md#start-up), lines 30–32; [L1, L5, L8–L9](../docs/spec/library.md), lines 11–15, 36–41 and 53–67; [R7, R37–R40](../docs/spec/requirements.md), lines 23 and 83–86.
 
 The daemon must retry kernel-interface opening indefinitely, while library constructors open those interfaces and the errors section promises kernel refusals as error values. It is unclear whether construction returns immediately, retries, or creates a service that cannot yet converge.
 
@@ -557,7 +557,7 @@ L1's absolute “reads no file” also conflicts with the declared procfs depend
 
 **Severity: Medium. Type: Unimplementable request-count guarantee; shutdown ambiguity.**
 
-**Evidence:** [P9, P12–P13](docs/spec/process.md), lines 53–56 and 74–85; [A13–A14](docs/spec/architecture.md#failure-containment), lines 123–131; [L6–L7](docs/spec/library.md#the-service), lines 43–51.
+**Evidence:** [P9, P12–P13](../docs/spec/process.md), lines 53–56 and 74–85; [A13–A14](../docs/spec/architecture.md#failure-containment), lines 123–131; [L6–L7](../docs/spec/library.md#the-service), lines 43–51.
 
 P12 says reload requests cannot be lost and are processed in order. Standard SIGHUP signals coalesce while pending, so counting every signal as a separate ordered request cannot be guaranteed. Waiting for application queue capacity only protects requests already observed by the signal reader. [Linux signal documentation](https://www.man7.org/linux/man-pages/man7/signal.7.html).
 
@@ -573,7 +573,7 @@ P9 intentionally ignores pre-readiness reloads. A handler waiting to enqueue a r
 
 **Severity: Medium. Type: Contradictory deployment requirements.**
 
-**Evidence:** [P21](docs/spec/process.md#the-supplied-systemd-unit), lines 141–149; [R16](docs/spec/requirements.md#the-operator), line 40; [A5](docs/spec/architecture.md#layers), line 71.
+**Evidence:** [P21](../docs/spec/process.md#the-supplied-systemd-unit), lines 141–149; [R16](../docs/spec/requirements.md#the-operator), line 40; [A5](../docs/spec/architecture.md#layers), line 71.
 
 P21 requires confinement to “netlink and IP sockets” while preserving hostname resolution. A supported host resolver can use AF_UNIX: systemd's nss-resolve communicates with systemd-resolved using a Unix socket. A literal implementation of the prescribed family allowlist breaks that resolver. [systemd nss-resolve documentation](https://www.freedesktop.org/software/systemd/man/latest/nss-resolve.html).
 
@@ -589,7 +589,7 @@ The precise requirements also depend on whether the binary uses a libc/NSS resol
 
 **Severity: Medium. Type: Competing normative authorities.**
 
-**Evidence:** [Specification introduction](docs/spec/README.md), lines 5–14 and 51–63; [T22](docs/spec/tunnels.md#changes-applied-in-place), lines 175–179; [G22](docs/spec/promises.md#conditional-promises), line 43; [Contracts](docs/contracts.md), lines 5–9, 18–24, 35–41 and 49–58.
+**Evidence:** [Specification introduction](../docs/spec/README.md), lines 5–14 and 51–63; [T22](../docs/spec/tunnels.md#changes-applied-in-place), lines 175–179; [G22](../docs/spec/promises.md#conditional-promises), line 43; [Contracts](../docs/contracts.md), lines 5–9, 18–24, 35–41 and 49–58.
 
 The contracts describe themselves as rules every change must keep and allow bind-device changes to recreate a session. T22 and G3 prohibit that recreation and classify it as an implementation defect. Contract readiness requires every entry to exist without stating the conflict exception; specification G8 expressly permits missing entries. Startup-rejection severity also differs.
 
@@ -605,7 +605,7 @@ G22's absolute ban on any connectivity regression from 0.1.5 needs scope: correc
 
 **Severity: Medium. Type: Kernel-source-confirmed overstatement.**
 
-**Evidence:** [E20–E21](docs/spec/events.md#monitor-loss), lines 128–142; [A7](docs/spec/architecture.md#concurrency), lines 83–88.
+**Evidence:** [E20–E21](../docs/spec/events.md#monitor-loss), lines 128–142; [A7](../docs/spec/architecture.md#concurrency), lines 83–88.
 
 E21 states that a lookup on an overflowed subscription times out “rather than failing.” Linux can both drop the reply and report receive-buffer overflow through ENOBUFS. The exact observed result depends on queue state and socket options; timeout is one possible symptom, not the only one.
 
@@ -621,7 +621,7 @@ In Linux v6.12, `netlink_overrun` sets the socket error to ENOBUFS unless that r
 
 **Severity: Low. Type: Ambiguous document semantics.**
 
-**Evidence:** [C1–C5](docs/spec/configuration.md#files), lines 7–36; [C12](docs/spec/configuration.md#reload), lines 92–105.
+**Evidence:** [C1–C5](../docs/spec/configuration.md#files), lines 7–36; [C12](../docs/spec/configuration.md#reload), lines 92–105.
 
 C2 describes later “values” replacing earlier values without explicitly saying that merging recurses through both top-level maps and individual entries. Replacing the whole tunnels table is different from merging only one tunnel field. C5 suggests the latter, but an implementer should not have to infer it.
 
@@ -637,7 +637,7 @@ C2 describes later “values” replacing earlier values without explicitly sayi
 
 **Severity: Low. Type: Contradictory exit-code policy.**
 
-**Evidence:** [L7](docs/spec/library.md#the-service), lines 49–51; [P13](docs/spec/process.md#signals-and-requests), lines 80–85; [O7](docs/spec/observability.md#exit-codes), lines 35–39.
+**Evidence:** [L7](../docs/spec/library.md#the-service), lines 49–51; [P13](../docs/spec/process.md#signals-and-requests), lines 80–85; [O7](../docs/spec/observability.md#exit-codes), lines 35–39.
 
 L7 keeps the old configuration after a callback error and terminates only for a panic. P13 also singles out panic. O7 says the daemon exits non-zero when “the reload callback failed,” without distinguishing an ordinary returned error from panic. It could mean immediate exit, or remembering a recoverable error until later shutdown; neither is specified elsewhere.
 
@@ -651,7 +651,7 @@ L7 keeps the old configuration after a callback error and terminates only for a 
 
 **Severity: Low. Type: Contradictory diagnostics.**
 
-**Evidence:** [C10, C12](docs/spec/configuration.md), lines 75–80 and 95–101; [O2–O4](docs/spec/observability.md#logging), lines 10–24; [G13](docs/spec/promises.md#unconditional-promises), line 27.
+**Evidence:** [C10, C12](../docs/spec/configuration.md), lines 75–80 and 95–101; [O2–O4](../docs/spec/observability.md#logging), lines 10–24; [G13](../docs/spec/promises.md#unconditional-promises), line 27.
 
 O2 calls a configuration entry left out an error, but also calls a left-out entry a warning. C10 uses error for startup rejection and C12 warning for a new invalid reload entry. That distinction is plausible but absent from O2's categorical wording. O4 requires every entry message to include identifiers even when the problem is a missing or invalid identifier.
 
@@ -667,7 +667,7 @@ O2 calls a configuration entry left out an error, but also calls a left-out entr
 
 **Severity: Low. Type: Incorrect uniqueness scope.**
 
-**Evidence:** [R11, R14, R21](docs/spec/requirements.md), lines 27, 38 and 45; [C8](docs/spec/configuration.md#tunnel-entries), line 60; [T7](docs/spec/tunnels.md#creation-and-identifiers), lines 59–61; [H9](docs/spec/hosts.md#containers-and-namespaces), lines 66–72.
+**Evidence:** [R11, R14, R21](../docs/spec/requirements.md), lines 27, 38 and 45; [C8](../docs/spec/configuration.md#tunnel-entries), line 60; [T7](../docs/spec/tunnels.md#creation-and-identifiers), lines 59–61; [H9](../docs/spec/hosts.md#containers-and-namespaces), lines 66–72.
 
 Several clauses say tunnel/session identifiers must be unique on the host and that the kernel refuses any second use. R11/R21 and H9 explicitly support independent network namespaces. Linux stores L2TP tunnel/session registries per network namespace, so the same identifiers can be used in separate namespaces. The important additional rule for IP encapsulation is session-ID uniqueness across tunnels within that namespace. [Kernel registration source](https://github.com/torvalds/linux/blob/v6.12/net/l2tp/l2tp_core.c#L552-L623).
 
@@ -715,20 +715,20 @@ The following are logic/contract tests and do not require privileged execution:
 
 | Page reviewed | Principal findings |
 |---|---|
-| [README](docs/spec/README.md) | F19, F34; distinguish a target contract from its known implementation gaps |
-| [Requirements](docs/spec/requirements.md) | F01, F23, F25, F29, F32, F37 |
-| [Promises](docs/spec/promises.md) | F01–F10, F12, F19–F20, F23–F24, F34 |
-| [Architecture](docs/spec/architecture.md) | F02, F07, F17, F21–F24, F28 |
-| [Model](docs/spec/model.md) | F02–F10, F13, F19–F20, F23–F24 |
-| [Process](docs/spec/process.md) | F04, F07, F10–F11, F19, F24, F29–F32 |
-| [Configuration](docs/spec/configuration.md) | F05, F07–F10, F19, F25–F27, F33, F37 |
-| [Tunnels](docs/spec/tunnels.md) | F01, F09, F12–F17, F19, F36–F37 |
-| [Discard](docs/spec/discard.md) | F03, F05–F06, F14–F16 |
-| [Sessions](docs/spec/sessions.md) | F02, F04, F07, F10, F18–F21 |
-| [Events](docs/spec/events.md) | F09, F15–F17, F21–F24, F31, F35 |
-| [Hosts](docs/spec/hosts.md) | F01, F05, F12, F14–F16, F18, F23–F24, F36–F37 |
-| [Observability](docs/spec/observability.md) | F11, F27, F30, F33 |
-| [Library](docs/spec/library.md) | F22, F25, F27–F30 |
+| [README](../docs/spec/README.md) | F19, F34; distinguish a target contract from its known implementation gaps |
+| [Requirements](../docs/spec/requirements.md) | F01, F23, F25, F29, F32, F37 |
+| [Promises](../docs/spec/promises.md) | F01–F10, F12, F19–F20, F23–F24, F34 |
+| [Architecture](../docs/spec/architecture.md) | F02, F07, F17, F21–F24, F28 |
+| [Model](../docs/spec/model.md) | F02–F10, F13, F19–F20, F23–F24 |
+| [Process](../docs/spec/process.md) | F04, F07, F10–F11, F19, F24, F29–F32 |
+| [Configuration](../docs/spec/configuration.md) | F05, F07–F10, F19, F25–F27, F33, F37 |
+| [Tunnels](../docs/spec/tunnels.md) | F01, F09, F12–F17, F19, F36–F37 |
+| [Discard](../docs/spec/discard.md) | F03, F05–F06, F14–F16 |
+| [Sessions](../docs/spec/sessions.md) | F02, F04, F07, F10, F18–F21 |
+| [Events](../docs/spec/events.md) | F09, F15–F17, F21–F24, F31, F35 |
+| [Hosts](../docs/spec/hosts.md) | F01, F05, F12, F14–F16, F18, F23–F24, F36–F37 |
+| [Observability](../docs/spec/observability.md) | F11, F27, F30, F33 |
+| [Library](../docs/spec/library.md) | F22, F25, F27–F30 |
 
 Several investigated kernel assumptions were **not** reported as errors: the specified cookie send/receive direction matches the inspected source; disconnect clearing device binding is supported; the inspected l2tpeth MAC setter rejects changing the address while running; and renaming an up device is not categorically forbidden by the inspected v6.12/v6.6 device-rename paths. These checks avoid turning remembered behavior from another protocol or older kernel into an audit finding.
 

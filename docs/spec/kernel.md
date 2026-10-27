@@ -29,7 +29,7 @@ statement about older kernels.
 | K11 | `net.ipv6.bindv6only = 0` in the daemon's namespace | IPv4 peers on `AF_INET6` sockets | only while a tunnel carries IPv4 peers on an `AF_INET6` socket; otherwise `AF_INET` sockets ([T26](tunnels.md#hosts-with-bindv6only)) | `IPV6_V6ONLY` is fixed at socket creation ([K13](#facts)) |
 | K12 | `procfs` at `/proc` | the namespace identity of the current library dependency ([R7](requirements.md#the-host)) | only while that dependency is used | — |
 | K13 | `CAP_NET_BIND_SERVICE`, or `net.ipv4.ip_unprivileged_port_start` at or below 546 (Docker sets it to 0 in its containers) | resolvers with `method = "dhcpv6"` or `"ipv6"` ([V12](resolvers.md#dhcpv6-information-request), [V14](resolvers.md#the-unified-ipv6-method)) | only when such a resolver is configured; an `ipv6` resolver works without it through its RDNSS servers | `net/ipv4/af_inet.c:508-510`, `include/net/ip.h:374-377` |
-| K14 | Router-advertisement user options delivered on `RTNLGRP_ND_USEROPT` | an additional source of RDNSS servers for resolvers with `method = "ra"` or `"ipv6"` ([V10](resolvers.md#router-advertisements)) | only when such a resolver is configured, and only useful where `accept_ra` is enabled on the interface ([K40](#facts)); never relied upon alone | `net/ipv6/ndisc.c:1189-1235` |
+| K14 | Router-advertisement user options delivered on `RTNLGRP_ND_USEROPT` | the fallback source of RDNSS servers for resolvers with `method = "ra"` or `"ipv6"` when the raw socket of K39 cannot be opened ([V10](resolvers.md#router-advertisements)) | only when such a resolver is configured and `CAP_NET_RAW` is missing, and only useful where `accept_ra` is enabled on the interface ([K40](#facts)) | `net/ipv6/ndisc.c:1189-1235` |
 | K39 | `CAP_NET_RAW` in the daemon's namespace, for a raw ICMPv6 socket | receiving and soliciting router advertisements ([V10](resolvers.md#router-advertisements)) | required whenever a resolver with `method = "ra"` or `"ipv6"` is configured; not needed otherwise | `net/ipv6/af_inet6.c:180-182` |
 
 Not required: the `dummy` driver, any route, any route lookup, the route
@@ -75,11 +75,10 @@ depends on a fact that is not here is wrong.
 
 Every fact above was reproduced on Linux `6.8.0-147-generic` on 2026-10-27
 in privileged containers, except K21 (reproduced on the host) and K35
-(source only). The procedures are in
-[`SPEC_AUDIT_2026-10-27_2.md`](../../SPEC_AUDIT_2026-10-27_2.md) and, for
+(source only). The procedures are in the
+repository's `audit/` directory: `SPEC_AUDIT_2026-10-27_2.md` and, for
 the mechanisms of K13, K14, K16's deletion by name, K23's write-and-recreate
-sequence and K36, in
-[`SPEC_FEASIBILITY_2026-10-27.md`](../../SPEC_FEASIBILITY_2026-10-27.md),
+sequence and K36, `SPEC_FEASIBILITY_2026-10-27.md`,
 which also showed the descriptor hand-over of [P14](process.md#restart)
 and the re-exec of [P26](process.md#restart) on a live tunnel (K37). The tests of roadmap step 6 MUST repeat them against the
 live kernel.

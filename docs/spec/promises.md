@@ -58,7 +58,7 @@ does not count ([M14](model.md#timing)).
 | An address is added to or removed from a bind device or VRF member | One reconnect; one second per failed reconnect thereafter |
 | The source of an unbound tunnel is removed | One reconnect; one second per failure |
 | A disconnected tunnel's peer becomes reachable | At most one second |
-| A resolver's answer changes | At most thirty seconds to notice, one more to apply |
+| A resolver's answer changes | Thirty seconds after the previous lookup returned, plus the lookup's own bound ([V4](resolvers.md#queries-and-answers)); one more second to apply |
 | A tolerated configuration mistake is corrected by reload | The reload |
 | Held identifiers become free | At most thirty seconds, or the next reload |
 | A session device is seen down with a deferred hardware-address change | The event's delivery |

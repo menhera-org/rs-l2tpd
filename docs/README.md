@@ -3,7 +3,8 @@
 [![crates.io](https://img.shields.io/crates/v/rs-l2tpd.svg)](https://crates.io/crates/rs-l2tpd)
 
 rs-l2tpd provides Linux kernel L2TPv3 Ethernet pseudowires and a Rust library
-for managing them.
+for managing them. The source, the issue tracker and the audit reports are
+in the [GitHub repository](https://github.com/menhera-org/rs-l2tpd).
 
 | Guide | Contents |
 |---|---|

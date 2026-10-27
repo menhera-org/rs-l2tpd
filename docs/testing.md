@@ -8,7 +8,7 @@ settings require both peers to agree, and changes to previously broken
 configuration handling are described in the
 [configuration guide](configuration.md#mistakes).
 
-The repository's [Docker validation guide](https://github.com/menhera-org/rs-l2tpd/blob/HEAD/tests/docker/README.md)
+The repository's Docker validation guide (`tests/docker/README.md`)
 contains complete build and run commands for privileged kernel and daemon
 validation. These tests use static musl artifacts and disposable container
 network namespaces.

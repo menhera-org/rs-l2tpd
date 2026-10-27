@@ -16,7 +16,8 @@ is not bound to it is reconnected ([T21](tunnels.md#source-addresses)) and
 so bound to it ([T12](tunnels.md#bind-devices)); a tunnel that was
 disconnected because its device was absent gets its real peer
 ([T13](tunnels.md#bind-devices)). A resolver whose bind device has that
-name starts querying ([V9](resolvers.md#binding)).
+name needs nothing from the daemon: its next lookup binds to the device
+([V9](resolvers.md#binding)).
 
 E2. **A device is renamed**: the daemon looks the old and the new name up
 among the configured bind names and the owned indexes: a tunnel bound to
@@ -34,7 +35,8 @@ like any device. A session device that disappears ends its identity proof
 as an observed removal ([S19](sessions.md#identity-loss)) and, when the
 kernel no longer has the session, the session is created again
 ([S27](sessions.md#external-deletion)). A resolver whose bind device
-disappears stops querying.
+disappears needs nothing from the daemon: its lookups fail until a device
+of the name exists, and its answers stay in force ([V9](resolvers.md#binding)).
 
 E4. **A device changes state** (up, down, flags, MTU, controller): a
 session device seen down gets its deferred hardware-address change
@@ -84,23 +86,25 @@ be connected to leaves the tunnel disconnected with the address pending
 and retried every second ([T15](tunnels.md#peers)). An answer for a host
 name, family or resolver the configuration no longer names is discarded.
 
-E11. Queries are refreshed every thirty seconds and their results polled
-every second; a failed query and a negative answer keep the answer in
-force ([V6](resolvers.md#queries-and-answers)). Replacing a tunnel's host
+E11. Queries are refreshed thirty seconds after the previous lookup
+returned, each lookup bounded per kind ([V4](resolvers.md#queries-and-answers)),
+and their results polled every second; a failed query and a negative
+answer keep the answer in force ([V6](resolvers.md#queries-and-answers)). Replacing a tunnel's host
 name, family or resolver discards its answers, so an old answer can
 never be applied to a new name.
 
-E23. **A router advertisement with RDNSS options** arrives, on the
-resolver's raw ICMPv6 socket or as an additional source on
-`RTNLGRP_ND_USEROPT`, for the bind interface of a router-advertisement
-resolver: its servers are recorded with their lifetimes
-([V10](resolvers.md#router-advertisements)); advertisements for other
-interfaces, and other user options, are dropped by comparison; the same
-advertisement seen on both sources is recorded once.
+E23. **A router advertisement with RDNSS options** arrives on a
+router-advertisement resolver's own socket: its raw ICMPv6 socket, or its
+`RTNLGRP_ND_USEROPT` socket when the raw one could not be opened
+([V10](resolvers.md#router-advertisements)). The resolver records the
+servers with their lifetimes and drops advertisements for other
+interfaces and other user options; the daemon's event monitor neither
+receives nor needs the advertisement, and does nothing.
 
-E24. The event monitor's filter MUST pass `RTM_NEWNDUSEROPT` messages
-whenever a resolver using router advertisements (`ra` or `ipv6`) is configured, and MAY drop them
-otherwise; the filter never applies to the sockets requests are sent on
+E24. Removed: the event monitor does not subscribe to
+`RTNLGRP_ND_USEROPT`; a resolver's netlink fallback is a socket of its
+own ([V10](resolvers.md#router-advertisements), [K14](kernel.md#requirements)).
+The monitor's filter never applies to the sockets requests are sent on
 ([K29](kernel.md#facts), [A5](architecture.md#layers)).
 
 ## Timers

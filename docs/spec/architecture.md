@@ -72,8 +72,8 @@ A5. The **kernel interfaces**, each used for what only it can give:
 | L2TP generic netlink | Create, delete and query tunnels and sessions; the creation-time interface name as ownership proof and as the key of a deletion ([K16](kernel.md#facts)) |
 | rtnetlink requests, on a socket of their own | Resolve names to indexes, rename, set hardware addresses, read a device's Ethernet address for a DHCPv6 resolver's DUID ([V12](resolvers.md#dhcpv6-information-request)), dump for resync. Never on the filtered monitor ([K29](kernel.md#facts)) |
 | Link-lifetime subscription | A dedicated `RTNLGRP_LINK` socket whose sole job is to prove identities: opened before the first session, read continuously, consulted with ordered lookups, never filtered |
-| Event monitor | One subscription to the link and address groups, and to `RTNLGRP_ND_USEROPT` when a resolver using router advertisements (`ra` or `ipv6`) is configured, filtered in the kernel to the events the reconciler needs when the host allows a filter ([K10](kernel.md#requirements)). No route group ([K7](kernel.md#requirements)) |
-| Resolvers | The system resolver and the configured resolvers ([resolvers](resolvers.md)), in the background, one task per resolver, answers polled by the reconciler; a router-advertisement resolver owns a raw ICMPv6 socket on its bind interface ([K39](kernel.md#requirements)), a DHCPv6 one a UDP socket on port 546 |
+| Event monitor | One subscription to the link and address groups, filtered in the kernel to the events the reconciler needs when the host allows a filter ([K10](kernel.md#requirements)). No route group ([K7](kernel.md#requirements)) and no `RTNLGRP_ND_USEROPT`: a resolver's advertisements arrive on its own sockets ([E23](events.md#resolver-events)) |
+| Resolvers | The system resolver and the configured resolvers ([resolvers](resolvers.md)), in the background on threads of their own ([V15](resolvers.md#resources)), answers polled by the reconciler; a router-advertisement resolver owns a raw ICMPv6 socket on its bind interface ([K39](kernel.md#requirements)) or, without `CAP_NET_RAW`, a netlink socket of its own ([K14](kernel.md#requirements)); a DHCPv6 one a UDP socket on port 546 |
 
 ## Concurrency
 
@@ -108,8 +108,9 @@ concurrently where they share no identifier and no name; a session's
 operations always follow its tunnel's.
 
 A9. A resolver never blocks the loop: answers are polled every second
-and queries refreshed every thirty, and a resolver that hangs costs
-nothing but a stale answer ([V4–V6](resolvers.md#queries-and-answers)).
+and queries refreshed thirty seconds after the previous one returned,
+every lookup is bounded, and a slow resolver costs nothing but a stale
+answer ([V4–V6](resolvers.md#queries-and-answers)).
 
 ## State
 

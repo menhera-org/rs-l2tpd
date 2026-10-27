@@ -5,9 +5,8 @@
 This is the normative description of rs-l2tpd: what it requires, what it
 promises, how it is built, and what it must do in every condition it can
 meet. It is written from the intent behind the [contracts](../contracts.md),
-from the kernel's source, and from two audits
-([first](../../SPEC_AUDIT_2026-10-27.md), [second](../../SPEC_AUDIT_2026-10-27_2.md)),
-not from the code. The implementation is measured against it; where the two
+from the kernel's source, and from two audits (the reports in the
+repository's `audit/` directory), not from the code. The implementation is measured against it; where the two
 differ the specification is right and the difference is listed under
 [known gaps](#known-gaps). Where this specification and
 [contracts](../contracts.md) differ, this specification is right.
@@ -17,7 +16,7 @@ meanings. Requirements are numbered per page (R3, G5, A7, M1, T7, ...) so
 that tests and changes can cite them. A number is never reused: a rule that
 is withdrawn keeps its number and says "removed". Every kernel-dependent
 rule cites a fact of the [kernel page](kernel.md), and every claim on every
-page is meant to be tested ([contributing](../../CONTRIBUTING.md)).
+page is meant to be tested (`CONTRIBUTING.md` in the repository).
 
 ## Pages
 
@@ -64,8 +63,8 @@ not create.
 Behaviour the specification requires that the implementation does not
 provide. Each is a defect of the implementation, not of the specification.
 This table is provisional: it holds what the audits established without
-inspecting the code, and roadmap step 2 ([contributing](../../CONTRIBUTING.md))
-re-derives it from the code.
+inspecting the code, and roadmap step 2 of the repository's
+`CONTRIBUTING.md` re-derives it from the code.
 
 | Requirement | Specification | Current behaviour |
 |---|---|---|
@@ -78,5 +77,5 @@ re-derives it from the code.
 | [S27](sessions.md#external-deletion) | A session the kernel no longer has (deleted by an operator) is created again. | It is noticed only at the next reload that changes it, or at restart. |
 | [P14](process.md#restart) | A restart or upgrade keeps session interfaces where the init system offers a descriptor store. | Every restart tears the tunnels down and creates them again. |
 | [C6](configuration.md#documents) | Unknown keys are reported. | They are ignored silently. |
-| [V1–V14](resolvers.md#model) | Configured resolvers: by address, by router advertisements, by DHCPv6 Information-Request, or both (`ipv6`), with bind interfaces; provided by `iphost` 0.4.0. | Only the system resolver exists. |
+| [V1–V15](resolvers.md#model) | Configured resolvers: by address, by router advertisements, by DHCPv6 Information-Request, or both (`ipv6`), with bind interfaces; provided by `iphost` 0.4.0. | Only the system resolver exists. |
 | [E20](events.md#monitor-loss), [K10](kernel.md#requirements) | The monitor subscribes to link and address groups only. | It also subscribes to the route groups and filters them for discard routes. |

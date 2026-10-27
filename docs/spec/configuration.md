@@ -88,15 +88,17 @@ C16. Fields of a resolver entry ([resolvers](resolvers.md)):
 
 | Field | Rule |
 |---|---|
-| `addresses` | A non-empty list of name-server addresses: an IPv4 or IPv6 literal as for `remote_addr`, optionally with a port (`192.0.2.53:5353`, `[2001:db8::53]:5353`), port 53 by default. Exclusive with `method`. |
-| `method` | `"ra"`, `"dhcpv6"` or `"ipv6"` (both, DHCPv6 first, [V14](resolvers.md#the-unified-ipv6-method)), either case. Exclusive with `addresses`; requires `bind_interface`. |
+| `addresses` | A non-empty list of name-server addresses: an IPv4 or IPv6 literal as for `remote_addr`, optionally with a port (`192.0.2.53:5353`, `[2001:db8::53]:5353`), port 53 by default. A link-local IPv6 server needs a zone in its address unless `bind_interface` names a link (not a VRF). Exclusive with `method`. |
+| `method` | `"ra"`, `"dhcpv6"` or `"ipv6"` (both, DHCPv6 preferred, [V14](resolvers.md#the-unified-ipv6-method)), either case. Exclusive with `addresses`; requires `bind_interface`, which must then be a link, not a VRF ([V9](resolvers.md#binding)). |
 | `bind_interface` | An interface name as for a tunnel. Required with `method`, optional with `addresses`. |
-| `dhcpv6_identity` | `"link-layer"` (default) or `"anonymous"`, either case: the DHCPv6 client identifier. `"link-layer"` is a DUID-LL (DUID type 3, RFC 8415 section 11.4) with hardware type 1 (Ethernet) and the bind interface's six-byte address, stable across restarts of the daemon because it derives from the device. `"anonymous"` is a random identifier per RFC 7844, new at every start of the resolver. See [V12](resolvers.md#dhcpv6-information-request). Meaningful with `method = "dhcpv6"` or `"ipv6"`; ignored with a warning otherwise. |
+| `dhcpv6_identity` | `"link-layer"` (default), `"anonymous"` or `"random"`, either case: the DHCPv6 client identifier. `"link-layer"` is a DUID-LL (DUID type 3, RFC 8415 section 11.4) with hardware type 1 (Ethernet) and the bind interface's six-byte address, stable across restarts of the daemon because it derives from the device. `"anonymous"` sends no Client Identifier (RFC 7844 anonymity profile). `"random"` is a DUID-LL from a random locally administered address, new at every start of the resolver. See [V12](resolvers.md#dhcpv6-information-request). Meaningful with `method = "dhcpv6"` or `"ipv6"`; ignored with a warning otherwise. |
+| `dhcpv6_duid` | Optional. An exact Client Identifier as 6 to 260 hexadecimal digits (3 to 130 bytes), for a network that expects a registered DUID; exclusive with `dhcpv6_identity`. |
 
 An entry with neither `addresses` nor `method`, with both, with `method`
-and no `bind_interface`, with an unknown `method` or `dhcpv6_identity`
-value, or with `"link-layer"` identity on a device without a hardware
-address, is a hard mistake.
+and no `bind_interface` or with a VRF as `bind_interface`, with an
+unknown `method` or `dhcpv6_identity` value, with both `dhcpv6_identity`
+and `dhcpv6_duid`, with an invalid `dhcpv6_duid`, or with `"link-layer"`
+identity on a device without a hardware address, is a hard mistake.
 
 ## Host settings
 
