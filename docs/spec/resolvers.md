@@ -112,7 +112,25 @@ timing until a Reply arrives. The servers of the Reply are in force until
 the next Reply; the request is repeated at the Information Refresh Time
 the server gave, or every 24 hours when it gave none, and never more
 often than every 10 minutes (RFC 8415 section 21.23). Nothing else is
-taken from DHCPv6. Port 546 needs [K13](kernel.md#requirements); without
+taken from DHCPv6. The client identifier is a DUID-LL (RFC 8415 section
+11.4) built from the bind interface's hardware address: the daemon reads
+the address and the hardware type over rtnetlink (`RTM_GETLINK`,
+`IFLA_ADDRESS` and `ifi_type`, [A5](architecture.md#layers)) when the
+resolver starts and hands the resolver the real address, never a DUID;
+the resolver forms the DUID from it. The identifier is kept for the
+resolver's lifetime, so a later change of the device's address does not
+change it.
+Alternatively the entry's `dhcpv6_identity = "anonymous"`
+([C16](configuration.md#resolver-entries)) selects the anonymity profile
+of RFC 7844: a random identifier generated when the resolver starts, no
+other identifying option, nothing read from the device; the identifier
+is kept for the resolver's lifetime and never written to disk. With the
+default `"link-layer"`, a bind interface without a hardware address
+(`ARPHRD_NONE`, as a point-to-point tunnel device) cannot form a DUID-LL:
+a `dhcpv6` resolver on it is a hard mistake of the entry, and an `ipv6`
+resolver on it uses router advertisements only
+([V14](#the-unified-ipv6-method)); with `"anonymous"` such a device is
+fine. Port 546 needs [K13](kernel.md#requirements); without
 it a `dhcpv6` resolver is reported once as a host defect, retried every
 thirty seconds, and its tunnels stay disconnected, while an `ipv6`
 resolver falls back to its RDNSS servers ([V14](#the-unified-ipv6-method));

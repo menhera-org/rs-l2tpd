@@ -91,10 +91,12 @@ C16. Fields of a resolver entry ([resolvers](resolvers.md)):
 | `addresses` | A non-empty list of name-server addresses: an IPv4 or IPv6 literal as for `remote_addr`, optionally with a port (`192.0.2.53:5353`, `[2001:db8::53]:5353`), port 53 by default. Exclusive with `method`. |
 | `method` | `"ra"`, `"dhcpv6"` or `"ipv6"` (both, DHCPv6 first, [V14](resolvers.md#the-unified-ipv6-method)), either case. Exclusive with `addresses`; requires `bind_interface`. |
 | `bind_interface` | An interface name as for a tunnel. Required with `method`, optional with `addresses`. |
+| `dhcpv6_identity` | `"link-layer"` (default) or `"anonymous"`, either case: the DHCPv6 client identifier, a DUID-LL from the bind interface's hardware address or a random identifier per RFC 7844 ([V12](resolvers.md#dhcpv6-information-request)). Meaningful with `method = "dhcpv6"` or `"ipv6"`; ignored with a warning otherwise. |
 
 An entry with neither `addresses` nor `method`, with both, with `method`
-and no `bind_interface`, or with a method the implementation does not
-support, is a hard mistake.
+and no `bind_interface`, with an unknown `method` or `dhcpv6_identity`
+value, or with `"link-layer"` identity on a device without a hardware
+address, is a hard mistake.
 
 ## Host settings
 
