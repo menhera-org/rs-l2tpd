@@ -58,6 +58,7 @@ done
 
 for test_case in $CASES; do
     printf 'CASE networkd session %s\n' "$test_case"
+    published_mac=$expected_mac
     : > /tmp/daemon.log
     : > /tmp/networkd.log
     : > /tmp/link-events.log
@@ -138,6 +139,9 @@ CONFIG
         done
         kill -STOP "$paused_pid"
         staged_index=$(cat "/sys/class/net/$staged_name/ifindex")
+        if [ "$test_case" = type ]; then
+            published_mac=$(cat "/sys/class/net/$staged_name/address")
+        fi
         if [ "$test_case" = type ] &&
             ip -o link show dev "$staged_name" | grep -Fq "link/ether $expected_mac"; then
             fail 'scheduling pause occurred after MAC preparation'
@@ -168,10 +172,10 @@ CONFIG
         [ "$attempts" -lt 150 ] || fail 'networkd addresses or routes did not converge'
         sleep 0.1
     done
-    ip -o link show dev pseudowire0 | grep -Fq "link/ether $expected_mac" || fail 'configured MAC was not applied'
+    ip -o link show dev pseudowire0 | grep -Fq "link/ether $published_mac" || fail 'unexpected MAC after publication'
     grep -F ' pseudowire0:' /tmp/link-events.log > /tmp/published-links || fail 'no final-name publication was observed'
-    if grep -vF "link/ether $expected_mac" /tmp/published-links >/dev/null; then
-        fail 'final interface name was published before its configured MAC'
+    if grep -vF "link/ether $published_mac" /tmp/published-links >/dev/null; then
+        fail 'publication changed the expected MAC'
     fi
     grep -Fxq 'NETWORK_FILE=/etc/systemd/network/10-session.network' "/run/systemd/netif/links/$session_index" ||
         fail 'networkd did not manage the session interface'
@@ -200,6 +204,12 @@ CONFIG
             }
             END { exit !(up && v4 && v6 && r4 && r6) }
         ' /tmp/link-events.log || fail 'staged link was not fully configured before MAC preparation'
+        awk -v link_index="$session_index:" '
+            $1 == link_index && /link\/ether/ {
+                if (/[<,]UP[,>]/) active = 1
+                else if (active) exit 1
+            }
+        ' /tmp/link-events.log || fail 'daemon lowered an externally activated session'
     elif [ "$test_case" = mac ]; then
         awk -v name="$staged_name" -v mac="$expected_mac" '
             / pseudowire0:/ && /link\/ether/ { published = 1 }

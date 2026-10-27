@@ -9,7 +9,7 @@ for managing them.
 |---|---|
 | [Installation](installation.md) | Building, kernel and procfs requirements, systemd setup |
 | [Configuration](configuration.md) | TOML example, merging, validation and degraded operation |
-| [Sessions](sessions.md) | Interface identity, MAC preparation and session cookies |
+| [Sessions](sessions.md) | Interface identity, child namespaces, MAC preparation and session cookies |
 | [Operation](operation.md) | Readiness, source selection, discard routing, reload and shutdown |
 | [Library](library.md) | Features, asynchronous and blocking services, control handles |
 | [Testing](testing.md) | Compatibility expectations and validation suites |

@@ -5,11 +5,14 @@ set -eu
 
 cp /artifacts/current /opt/current
 chmod 755 /opt/current
-NOISE_ADDRESSES=${NOISE_ADDRESSES:-3000}
+NOISE_ADDRESSES=${NOISE_ADDRESSES:-50000}
 case "$NOISE_ADDRESSES" in
     ''|*[!0-9]*) echo 'NOISE_ADDRESSES must be a positive integer' >&2; exit 1 ;;
 esac
-[ "$NOISE_ADDRESSES" -gt 0 ] || exit 1
+[ "$NOISE_ADDRESSES" -gt 0 ] && [ "$NOISE_ADDRESSES" -le 200000 ] || {
+    echo 'NOISE_ADDRESSES must be between 1 and 200000' >&2
+    exit 1
+}
 : > /tmp/resync-daemon.log
 
 fail() {
@@ -82,6 +85,7 @@ for device in underlay0 noise0; do
     ip link set "$device" up
 done
 ip address add 2001:db8:1::1/64 dev underlay0 nodad
+ip address add fd00:ffff::1/128 dev noise0 nodad
 mkdir -p /etc/rs-l2tpd.toml.d
 cat > /etc/rs-l2tpd.toml <<'CONFIG'
 [tunnels.uplink]
@@ -123,8 +127,10 @@ socket_identities > /tmp/resync-sockets-original
 # DELADDR/NEWADDR must be recovered from current kernel state after reopening,
 # rather than relying on their individual notifications being delivered.
 awk -v count="$NOISE_ADDRESSES" 'BEGIN {
-    for (i = 1; i <= count; i++)
-        printf "address add fd00:ffff::%x/128 dev noise0 nodad\n", i
+    for (i = 1; i <= count; i++) {
+        print "address add fd00:ffff::2/128 dev noise0 nodad"
+        print "address delete fd00:ffff::2/128 dev noise0"
+    }
 }' > /tmp/resync-addresses
 ip -6 -batch /tmp/resync-addresses
 ip address delete 2001:db8:1::1/64 dev underlay0

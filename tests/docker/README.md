@@ -255,11 +255,13 @@ docker run --rm --network none \
     --entrypoint timeout rs-l2tpd-networkd-test:local 150 sh /opt/networkd-sessions.sh
 ```
 
-The final interface name must never appear with an unconfigured MAC. In the
-type-match case, recorded netlink events must prove networkd brought up and
-assigned IPv4 and IPv6 addresses and routes to the temporary interface before
-MAC preparation. Both addresses and routes must converge on the published
-interface afterward, and shutdown must remove the tunnel and session.
+The name-match case must publish the final name with the configured MAC. In
+the type-match case, recorded netlink events must prove networkd brought up
+and assigned IPv4 and IPv6 addresses and routes to the temporary interface
+before preparation. The daemon must preserve that active link's original MAC
+and defer the requested change, without lowering the link. Both addresses and
+routes must remain on the published interface, and shutdown must remove the
+tunnel and session.
 The MAC-match case requires the same staged interface to survive this later
 race and retain both address families and routes after publication.
 Use `--env CASES=name`, `type`, or `mac` to select one case.
@@ -273,9 +275,82 @@ The AppArmor override permits these container-local mount operations;
 `SYS_PTRACE` permits the scheduling delay. The ordinary route-repair test
 does not need either addition.
 
+## Session children and external renames
+
+`session-children.sh` uses the same real networkd/udev image and permissions.
+It lets an exact `Type=l2tpeth` rule activate the temporary parent and create
+VLAN and macvlan children before daemon readiness. One child of each type is
+moved into a separate network namespace and configured there, as with a
+container manager. The daemon must preserve their interface identities,
+IPv4/IPv6 addresses and routes while publishing the parent and deferring its
+MAC change. Lowering the parent would permanently remove the guest VLAN's
+IPv6 configuration, which host networkd cannot restore.
+The test also temporarily occupies the final name with a foreign dummy:
+publication must fail safely, retain the original session and children, then
+complete in place when the name becomes available. Use
+`--env PUBLICATION_CONFLICT=0` to omit that phase when comparing with 0.1.5,
+which creates the session directly under its final name.
+
+```sh
+docker run --rm --network none \
+    --cap-add NET_ADMIN --cap-add NET_RAW --cap-add NET_BROADCAST \
+    --cap-add BPF --cap-add SYS_ADMIN --cap-add SYS_PTRACE \
+    --security-opt apparmor=unconfined \
+    --mount type=bind,source=/path/to/artifacts,target=/artifacts,readonly \
+    --entrypoint timeout rs-l2tpd-networkd-test:local 90 sh /opt/session-children.sh
+```
+
+After readiness, the script externally renames the parent, reloads unchanged
+configuration, changes the peer, and requests another MAC. Each operation
+must preserve the renamed parent and all children. An intentional daemon
+shutdown must remove the parent and its dependent children in both namespaces.
+These checks cover device and configuration preservation; the two-peer matrix
+above covers packet delivery. The staging pause and cleanup behavior are the
+same as in `networkd-sessions.sh`.
+
+## Session identity after removal or namespace moves
+
+`session-identity.sh` checks that an external rename still permits an in-place
+configured rename and MAC update. It then moves a parent into another network
+namespace, or deletes it, and allocates a foreign dummy with the original
+interface index. Reloads must preserve the dummy's name, MAC and addresses.
+The deletion case also creates a foreign session with the original tunnel and
+session IDs: removing the daemon's old session configuration must leave that
+replacement intact. Intentional shutdown of the owned tunnel still removes
+its sessions, including a parent moved into another namespace.
+
+```sh
+docker run --rm --network none \
+    --cap-add NET_ADMIN --cap-add NET_RAW --cap-add SYS_ADMIN \
+    --security-opt apparmor=unconfined \
+    --mount type=bind,source=/path/to/artifacts,target=/artifacts,readonly \
+    --mount type=bind,source=/path/to/rs-l2tpd/tests/docker/session-identity.sh,target=/opt/session-identity.sh,readonly \
+    --entrypoint timeout rs-l2tpd-network-test:local 90 sh /opt/session-identity.sh
+```
+
+Use `--env CASES=rename`, `moved`, or `deleted` for one case. The extra
+capability only creates and enters the disposable guest network namespace.
+
+## Tunnel ownership after external replacement
+
+`tunnel-ownership.sh` externally removes the daemon's managed tunnel, then
+creates an unrelated UDP tunnel and session reusing the same numeric IDs.
+Shutdown must close only the daemon's original socket and preserve the
+replacement tunnel, session, interface and configured IPv4 address.
+This verifies cleanup only; external replacement of a managed tunnel is
+[unsupported during operation](../../docs/operation.md#ownership-of-kernel-tunnels).
+
+```sh
+docker run --rm --network none --cap-add NET_ADMIN --cap-add NET_RAW \
+    --mount type=bind,source=/path/to/artifacts,target=/artifacts,readonly \
+    --mount type=bind,source=/path/to/rs-l2tpd/tests/docker/tunnel-ownership.sh,target=/opt/tunnel-ownership.sh,readonly \
+    --entrypoint timeout rs-l2tpd-network-test:local 30 sh /opt/tunnel-ownership.sh
+```
+
 ## Route-monitor overflow recovery
 
-`monitor-resync.sh` pauses the daemon, queues 3,000 unrelated address events,
+`monitor-resync.sh` pauses the daemon, performs 50,000 unrelated address
+add/delete pairs,
 replaces its bound source address, and resumes it. It requires a logged
 buffer overflow and monitor reopen, then the new source with the original
 tunnel socket, session interface, inner addresses and IDs. Shutdown must
@@ -287,6 +362,44 @@ docker run --rm --network none --cap-add NET_ADMIN --cap-add NET_RAW \
     --mount type=bind,source=/path/to/rs-l2tpd/tests/docker/monitor-resync.sh,target=/opt/monitor-resync.sh,readonly \
     --entrypoint timeout rs-l2tpd-network-test:local 45 sh /opt/monitor-resync.sh
 ```
+
+The same temporary address is reused, so the flood does not leave thousands
+of addresses or routes installed. `NOISE_ADDRESSES` sets the number of pairs
+(maximum 200,000) if another kernel needs a different count to force overflow.
+
+## Link-monitor bursts and deliberate overflow
+
+`link-monitor-burst.sh` pauses the daemon and queues 128 MTU changes on an
+unrelated dummy interface. The normal mode requires no receive overflow:
+the existing session must still accept MAC changes, renames and individual
+removal afterward. A bound underlay source is also replaced during the pause,
+and the tunnel must reconnect to the new source. A second session is deleted
+and its interface index reused by a foreign dummy while notifications are
+queued; that replacement must remain untouched.
+
+```sh
+docker run --rm --network none --cap-add NET_ADMIN --cap-add NET_RAW \
+    --mount type=bind,source=/path/to/artifacts,target=/artifacts,readonly \
+    --mount type=bind,source=/path/to/rs-l2tpd/tests/docker/link-monitor-burst.sh,target=/opt/link-monitor-burst.sh,readonly \
+    --entrypoint timeout rs-l2tpd-network-test:local 90 sh /opt/link-monitor-burst.sh
+```
+
+Add `--env MODE=overflow` to send 50,000 MTU changes and deliberately exceed
+the enlarged receive queues. This mode requires source recovery and foreign
+device preservation, while refusing MAC and rename operations on sessions
+whose registration continuity can no longer be proved. Removing such a
+session from configuration leaves its kernel device until the owned tunnel
+is torn down. Shutdown must clean up that tunnel and preserve the foreign
+dummy. `NOISE_LINKS` overrides the number of changes, up to 200,000.
+
+Burst capacity depends on the kernel's receive-buffer limit and permission
+to exceed it. In the tested Docker environment the larger request was capped
+at 425,984 effective bytes, and forcing the requested size was denied despite
+the container's existing `NET_ADMIN` capability. The old 212,992-byte queues
+overflowed at 128 paused MTU changes. With the enlarged queues, 128 passed
+but 192 still overflowed. The normal test checks the extra headroom available
+under that cap; it does not promise that 3,000 queued changes fit on every host.
+The tests never change host sysctls or request additional privileges.
 
 ## Degraded start
 

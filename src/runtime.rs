@@ -10,6 +10,7 @@
 //! its configured interface name afresh, accepting replacements whose index
 //! differs from the previous binding.
 
+use crate::netlink::multicast_connection;
 use async_trait::async_trait;
 use futures_util::{StreamExt, TryStreamExt};
 use iphost::{AutoIpHostResolver, IpHost, IpHostResolver};
@@ -21,7 +22,7 @@ use rtnetlink::packet_route::{
     route::{RouteAddress, RouteAttribute},
     AddressFamily, RouteNetlinkMessage,
 };
-use rtnetlink::{new_multicast_connection, MulticastGroup};
+use rtnetlink::MulticastGroup;
 use tokio::task::JoinHandle;
 
 /// Tokio's bounded channel, whose [`Sender`](mpsc::Sender) a [`Runtime`] is
@@ -166,7 +167,7 @@ struct SessionPlan {
 /// substitute a mock.
 #[async_trait]
 pub(crate) trait StateOps: Send + Sync {
-    async fn cleanup_pending_sessions(&self) -> Result<()> {
+    async fn retain_pending_sessions(&self, _desired: &BTreeSet<SessionKey>) -> Result<()> {
         Ok(())
     }
     async fn session_hwaddr_pending(&self, _tunnel_id: u32, _session_id: u32) -> bool {
@@ -246,8 +247,8 @@ pub(crate) trait StateOps: Send + Sync {
 
 #[async_trait]
 impl StateOps for state::State {
-    async fn cleanup_pending_sessions(&self) -> Result<()> {
-        state::State::cleanup_pending_sessions(self).await
+    async fn retain_pending_sessions(&self, desired: &BTreeSet<SessionKey>) -> Result<()> {
+        state::State::retain_pending_sessions(self, desired).await
     }
 
     async fn session_hwaddr_pending(&self, tunnel_id: u32, session_id: u32) -> bool {
@@ -504,14 +505,9 @@ impl ResolverRuntime {
             *version = desired.ip_version;
         }
         self.active.store(true, Ordering::Relaxed);
-        self.dns_event_pending.store(false, Ordering::Relaxed);
-        if let Ok(mut queued) = self.last_queued_addr.write() {
-            if self.use_discard_until_dns.load(Ordering::Acquire) {
-                *queued = None;
-            } else {
-                *queued = Self::current_remote_addr_for(&self.resolver, desired.ip_version);
-            }
-        }
+        // Reconciliation has not necessarily applied the resolver's current
+        // cached answer. Preserve queued/unobserved changes and failed-apply
+        // retries; the watcher also observes a changed address family itself.
     }
 
     fn deactivate(&self) {
@@ -601,6 +597,8 @@ pub struct Runtime {
     state: Arc<dyn StateOps>,
     tunnel_specs: DesiredTunnelMap,
     session_specs: DesiredSessionMap,
+    /// Advances across reconciles so a full collision batch cannot stall retries.
+    temp_interface_counter: u32,
     pending_bind_interfaces: BTreeMap<TunnelId, L2tpIfName>,
     resolvers: BTreeMap<TunnelId, ResolverRuntime>,
     /// One queued reconnect retry per interface index, so that a burst of
@@ -632,6 +630,7 @@ impl Runtime {
             state,
             tunnel_specs: BTreeMap::new(),
             session_specs: BTreeMap::new(),
+            temp_interface_counter: 0,
             pending_bind_interfaces: BTreeMap::new(),
             resolvers: BTreeMap::new(),
             reconnect_retries: BTreeMap::new(),
@@ -653,6 +652,7 @@ impl Runtime {
             state,
             tunnel_specs: BTreeMap::new(),
             session_specs: BTreeMap::new(),
+            temp_interface_counter: 0,
             pending_bind_interfaces: BTreeMap::new(),
             resolvers: BTreeMap::new(),
             reconnect_retries: BTreeMap::new(),
@@ -678,11 +678,14 @@ impl Runtime {
 
         macro_rules! try_apply {
             ($result:expr) => {
-                if let Err(e) = $result {
-                    self.tunnel_specs = applied_tunnel_specs;
-                    self.session_specs = applied_session_specs;
-                    self.pending_bind_interfaces = applied_pending_bind_interfaces;
-                    return Err(e);
+                match $result {
+                    Ok(value) => value,
+                    Err(e) => {
+                        self.tunnel_specs = applied_tunnel_specs;
+                        self.session_specs = applied_session_specs;
+                        self.pending_bind_interfaces = applied_pending_bind_interfaces;
+                        return Err(e);
+                    }
                 }
             };
         }
@@ -705,7 +708,12 @@ impl Runtime {
             applied_session_specs.retain(|(tid, _), _| tid != tunnel_id);
         }
 
-        try_apply!(self.state.cleanup_pending_sessions().await);
+        let desired_session_keys = desired_sessions.keys().copied().collect();
+        try_apply!(
+            self.state
+                .retain_pending_sessions(&desired_session_keys)
+                .await
+        );
 
         for tunnel_id in &tunnel_plan.to_add {
             let desired = desired_tunnels
@@ -889,12 +897,15 @@ impl Runtime {
             .map(|s| s.interface_name)
             .collect();
         reserved_interface_names.extend(desired_sessions.values().map(|s| s.interface_name));
-        let mut temp_interface_counter: u32 = 0;
 
         for (tunnel_id, session_id) in &session_plan.to_modify {
-            let temp_ifname = allocate_temp_interface_name(
-                &mut reserved_interface_names,
-                &mut temp_interface_counter,
+            let temp_ifname = try_apply!(
+                allocate_unused_temp_interface_name(
+                    self.state.as_ref(),
+                    &mut reserved_interface_names,
+                    &mut self.temp_interface_counter,
+                )
+                .await
             );
             info!(
                 "renaming session interface tunnel_id={} session_id={} to temporary {}",
@@ -1100,7 +1111,7 @@ impl Runtime {
         if !self.tunnel_specs.is_empty() {
             self.handle_discard_route_change().await;
         }
-        self.apply_pending_hwaddrs(changed_if_name).await;
+        self.apply_pending_hwaddrs().await;
 
         for desired in self.tunnel_specs.values() {
             let Some(if_name) = desired.bind_interface else {
@@ -1192,13 +1203,12 @@ impl Runtime {
         }
     }
 
-    /// Retries deferred or failed hardware address changes on the session
-    /// devices called `changed_if_name` (all of them for `None`).
-    async fn apply_pending_hwaddrs(&self, changed_if_name: Option<&L2tpIfName>) {
+    /// Retries pending hardware addresses on every tracked session. A link
+    /// event carries its current name, which may differ from the configured
+    /// name after an external rename. State uses the session's device identity
+    /// and leaves running devices deferred.
+    async fn apply_pending_hwaddrs(&self) {
         for (key, desired) in &self.session_specs {
-            if changed_if_name.is_some_and(|changed| *changed != desired.interface_name) {
-                continue;
-            }
             if !self.state.session_hwaddr_pending(key.0, key.1).await {
                 continue;
             }
@@ -1661,12 +1671,15 @@ fn spawn_interface_watcher(control_tx: mpsc::Sender<ControlEvent>) -> JoinHandle
                 break;
             }
 
-            let (connection, handle, mut messages) = match new_multicast_connection(&[
-                MulticastGroup::Link,
-                MulticastGroup::Ipv4Ifaddr,
-                MulticastGroup::Ipv6Ifaddr,
-                MulticastGroup::Ipv6Route,
-            ]) {
+            let (connection, handle, mut messages) = match multicast_connection(
+                &[
+                    MulticastGroup::Link,
+                    MulticastGroup::Ipv4Ifaddr,
+                    MulticastGroup::Ipv6Ifaddr,
+                    MulticastGroup::Ipv6Route,
+                ],
+                "rtnetlink event monitor",
+            ) {
                 Ok(parts) => parts,
                 Err(e) => {
                     warn!("failed to open rtnetlink link monitor: {}", e);
@@ -1757,6 +1770,9 @@ fn interface_controller(link: &LinkMessage) -> Option<u32> {
 }
 
 fn remember_interface_controller(controllers: &mut BTreeMap<u32, u32>, link: &LinkMessage) {
+    if link.header.interface_family != AddressFamily::Unspec {
+        return;
+    }
     match interface_controller(link) {
         Some(controller) => {
             controllers.insert(link.header.index, controller);
@@ -1787,12 +1803,16 @@ fn controller_changes_for_netlink_payload(
     payload: &NetlinkPayload<RouteNetlinkMessage>,
 ) -> BTreeSet<u32> {
     let (previous, current) = match payload {
-        NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link)) => {
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link))
+            if link.header.interface_family == AddressFamily::Unspec =>
+        {
             let previous = controllers.get(&link.header.index).copied();
             remember_interface_controller(controllers, link);
             (previous, interface_controller(link))
         }
-        NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelLink(link)) => {
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelLink(link))
+            if link.header.interface_family == AddressFamily::Unspec =>
+        {
             let previous = controllers
                 .remove(&link.header.index)
                 .or_else(|| interface_controller(link));
@@ -1810,7 +1830,9 @@ fn control_event_for_netlink_payload(
     payload: NetlinkPayload<RouteNetlinkMessage>,
 ) -> Option<ControlEvent> {
     match payload {
-        NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link)) => {
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link))
+            if link.header.interface_family == AddressFamily::Unspec =>
+        {
             Some(ControlEvent::InterfaceChanged {
                 // A name the kernel reports that fails validation cannot be
                 // one from the configuration; None re-checks every pending
@@ -1821,7 +1843,9 @@ fn control_event_for_netlink_payload(
                 }),
             })
         }
-        NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelLink(link)) => {
+        NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelLink(link))
+            if link.header.interface_family == AddressFamily::Unspec =>
+        {
             Some(ControlEvent::InterfaceRemoved {
                 if_index: link.header.index,
             })
@@ -1965,14 +1989,31 @@ fn plan_session_changes(current: &DesiredSessionMap, desired: &DesiredSessionMap
     plan
 }
 
+async fn allocate_unused_temp_interface_name(
+    state: &dyn StateOps,
+    used_names: &mut BTreeSet<L2tpIfName>,
+    counter: &mut u32,
+) -> Result<L2tpIfName> {
+    for _ in 0..32 {
+        let candidate = allocate_temp_interface_name(used_names, counter);
+        if state.interface_index(&candidate).await?.is_none() {
+            return Ok(candidate);
+        }
+    }
+    Err(Error::Other(
+        "could not allocate a temporary session rename interface name".to_string(),
+    ))
+}
+
 fn allocate_temp_interface_name(
     used_names: &mut BTreeSet<L2tpIfName>,
     counter: &mut u32,
 ) -> L2tpIfName {
     loop {
-        // "rsl2tp" plus eight hex digits is 14 bytes, always a valid name.
-        let candidate = format!("rsl2tp{:08x}", *counter);
-        *counter = counter.wrapping_add(1);
+        // A daemon-specific prefix avoids common network-manager name matches.
+        // Eight prefix bytes plus six hex digits stays below IFNAMSIZ.
+        let candidate = format!("rsl2tp-r{:06x}", *counter & 0x00ff_ffff);
+        *counter = counter.wrapping_add(1) & 0x00ff_ffff;
         let Ok(candidate) = L2tpIfName::from_name(&candidate) else {
             continue;
         };
@@ -2173,14 +2214,16 @@ mod tests {
         /// Sessions whose device is "up": hardware address changes defer.
         up_devices: BTreeSet<SessionKey>,
         pending_hwaddr: BTreeSet<SessionKey>,
-        pending_cleanup_for: Option<TunnelId>,
+        pending_cleanup_for: Option<SessionKey>,
         fail_pending_cleanup: bool,
+        pending_session_resumes: u32,
         reconnect_counts: BTreeMap<u32, u32>,
         hwaddr_sets: u32,
         /// VRF master and VRF kind lookups, each of which costs the real
         /// state a netlink connection.
         vrf_lookups: u32,
         session_creations: u32,
+        session_renames: Vec<(SessionKey, L2tpIfName)>,
         /// Whether the host lacks a route to the discard address, so that
         /// the null device is used.
         null_device_needed: bool,
@@ -2362,12 +2405,17 @@ mod tests {
 
     #[async_trait]
     impl StateOps for MockState {
-        async fn cleanup_pending_sessions(&self) -> Result<()> {
+        async fn retain_pending_sessions(&self, desired: &BTreeSet<SessionKey>) -> Result<()> {
             let mut inner = self.inner.lock().unwrap();
-            if inner.pending_cleanup_for.is_some() && inner.fail_pending_cleanup {
-                return Err(Error::Other("injected pending cleanup failure".to_string()));
+            if inner
+                .pending_cleanup_for
+                .is_some_and(|key| !desired.contains(&key))
+            {
+                if inner.fail_pending_cleanup {
+                    return Err(Error::Other("injected pending cleanup failure".to_string()));
+                }
+                inner.pending_cleanup_for = None;
             }
-            inner.pending_cleanup_for = None;
             Ok(())
         }
 
@@ -2523,7 +2571,10 @@ mod tests {
                 .remove(&tunnel_id)
                 .ok_or_else(|| Error::Other(format!("Tunnel not found: {}", tunnel_id)))?;
             inner.sessions.retain(|(tid, _), _| *tid != tunnel_id);
-            if inner.pending_cleanup_for == Some(tunnel_id) {
+            if inner
+                .pending_cleanup_for
+                .is_some_and(|key| key.0 == tunnel_id)
+            {
                 inner.pending_cleanup_for = None;
             }
             Ok(())
@@ -2588,6 +2639,15 @@ mod tests {
             if !inner.tunnels.contains_key(&tunnel_id) {
                 return Err(Error::Other(format!("No such tunnel: {}", tunnel_id)));
             }
+            if inner.pending_cleanup_for == Some((tunnel_id, session_id)) {
+                if inner.fail_pending_cleanup {
+                    return Err(Error::Other(
+                        "injected pending preparation failure".to_string(),
+                    ));
+                }
+                inner.pending_cleanup_for = None;
+                inner.pending_session_resumes += 1;
+            }
             if inner.fail_add_session_for == Some((tunnel_id, session_id)) {
                 return Err(Error::Other("injected add_session failure".to_string()));
             }
@@ -2638,9 +2698,11 @@ mod tests {
             if current_ifname == *ifname {
                 return Ok(());
             }
-            if inner.sessions.iter().any(|(key, session)| {
-                *key != (tunnel_id, session_id) && session.interface_name == *ifname
-            }) {
+            if inner.interfaces.contains_key(ifname)
+                || inner.sessions.iter().any(|(key, session)| {
+                    *key != (tunnel_id, session_id) && session.interface_name == *ifname
+                })
+            {
                 return Err(Error::Other(format!("interface exists: {}", ifname)));
             }
             inner
@@ -2648,6 +2710,9 @@ mod tests {
                 .get_mut(&(tunnel_id, session_id))
                 .expect("session exists")
                 .interface_name = *ifname;
+            inner
+                .session_renames
+                .push(((tunnel_id, session_id), *ifname));
             Ok(())
         }
 
@@ -2844,6 +2909,86 @@ mod tests {
             .expect("delete reconcile");
         assert!(runtime.resolvers.is_empty());
         assert!(runtime.tunnel_specs.is_empty());
+    }
+
+    #[tokio::test]
+    async fn session_rename_skips_foreign_temporary_names() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        let tunnel = (
+            "tun0",
+            10,
+            10,
+            IpVersion::V6,
+            IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+            None,
+        );
+        let initial = test_config(
+            vec![tunnel.clone()],
+            vec![("lan", "tun0", 100, 100, "l2tp0", None)],
+        );
+        runtime.reconcile(&initial).await.unwrap();
+        let foreign_index = mock.add_interface("rsl2tp-r000000");
+        let renamed = test_config(vec![tunnel], vec![("lan", "tun0", 100, 100, "l2tp1", None)]);
+        runtime.reconcile(&renamed).await.unwrap();
+        assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp1")));
+        assert_eq!(
+            mock.interface_index(&ifname("rsl2tp-r000000"))
+                .await
+                .unwrap(),
+            Some(foreign_index),
+        );
+        assert_eq!(
+            mock.inner.lock().unwrap().session_renames,
+            vec![
+                ((10, 100), ifname("rsl2tp-r000001")),
+                ((10, 100), ifname("l2tp1"))
+            ],
+        );
+        assert_eq!(mock.session_creations(), 1);
+    }
+
+    #[tokio::test]
+    async fn temporary_name_collision_batches_advance_across_retries() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        let tunnel = (
+            "tun0",
+            10,
+            10,
+            IpVersion::V6,
+            IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+            None,
+        );
+        let initial = test_config(
+            vec![tunnel.clone()],
+            vec![("lan", "tun0", 100, 100, "l2tp0", None)],
+        );
+        runtime.reconcile(&initial).await.unwrap();
+        let foreign: Vec<_> = (0..32)
+            .map(|number| {
+                let name = format!("rsl2tp-r{number:06x}");
+                let index = mock.add_interface(&name);
+                (name, index)
+            })
+            .collect();
+        let renamed = test_config(vec![tunnel], vec![("lan", "tun0", 100, 100, "l2tp1", None)]);
+        assert!(runtime.reconcile(&renamed).await.is_err());
+        assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp0")));
+        assert!(mock.inner.lock().unwrap().session_renames.is_empty());
+        runtime.reconcile(&renamed).await.unwrap();
+        assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp1")));
+        for (name, index) in foreign {
+            assert_eq!(
+                mock.interface_index(&ifname(&name)).await.unwrap(),
+                Some(index)
+            );
+        }
+        assert_eq!(
+            mock.inner.lock().unwrap().session_renames[0].1,
+            ifname("rsl2tp-r000020")
+        );
+        assert_eq!(mock.session_creations(), 1);
     }
 
     #[tokio::test]
@@ -3168,6 +3313,115 @@ mod tests {
             mock.tunnel_remote_addr(10),
             Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 1)))
         );
+    }
+
+    fn set_cached_resolver_answer(resolver: &ResolverRuntime, answer: IpHost) {
+        // A literal sets iphost's cache immediately, without external DNS or
+        // waiting for its 30-second refresh. Its worker may briefly hold the lock.
+        for _ in 0..100 {
+            if resolver.resolver.replace_ip_host(answer.clone()).is_ok() {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        panic!("resolver cache stayed busy");
+    }
+
+    #[tokio::test]
+    async fn unchanged_reload_preserves_dns_changes_inflight_events_and_retries() {
+        let mock = Arc::new(MockState::default());
+        let (tx, mut rx) = mpsc::channel(16);
+        let mut runtime = Runtime::new_with_state_ops(mock.clone(), tx);
+        let first: IpAddr = "192.0.2.1".parse().unwrap();
+        let second: IpAddr = "192.0.2.2".parse().unwrap();
+        let third: IpAddr = "192.0.2.3".parse().unwrap();
+        let cfg = test_config(
+            vec![(
+                "tun0",
+                10,
+                10,
+                IpVersion::V4,
+                "192.0.2.1".parse().unwrap(),
+                None,
+            )],
+            vec![],
+        );
+        runtime.reconcile(&cfg).await.unwrap();
+
+        // Model a changed DNS answer arriving just before unchanged SIGHUP,
+        // before the one-second watcher has noticed the cache change.
+        set_cached_resolver_answer(&runtime.resolvers[&10], "192.0.2.2".parse().unwrap());
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(mock.tunnel_remote_addr(10), Some(first));
+        assert_eq!(
+            *runtime.resolvers[&10].last_queued_addr.read().unwrap(),
+            Some(first)
+        );
+        let event = tokio::time::timeout(Duration::from_secs(3), rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(matches!(event, ControlEvent::DnsChanged { tunnel_id: 10 }));
+
+        // A reload must also retain the bookkeeping of an already queued event.
+        runtime.reconcile(&cfg).await.unwrap();
+        assert!(runtime.resolvers[&10]
+            .dns_event_pending
+            .load(Ordering::Acquire));
+        runtime.handle_dns_change(10).await;
+        assert_eq!(mock.tunnel_remote_addr(10), Some(second));
+
+        set_cached_resolver_answer(&runtime.resolvers[&10], "192.0.2.3".parse().unwrap());
+        let event = tokio::time::timeout(Duration::from_secs(3), rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(matches!(event, ControlEvent::DnsChanged { tunnel_id: 10 }));
+        mock.inject_modify_tunnel_failure(10);
+        runtime.handle_dns_change(10).await;
+        assert_eq!(mock.tunnel_remote_addr(10), Some(second));
+        runtime.reconcile(&cfg).await.unwrap();
+        assert_eq!(
+            *runtime.resolvers[&10].last_queued_addr.read().unwrap(),
+            None
+        );
+        mock.clear_modify_tunnel_failure();
+        let event = tokio::time::timeout(Duration::from_secs(3), rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(matches!(event, ControlEvent::DnsChanged { tunnel_id: 10 }));
+        runtime.handle_dns_change(10).await;
+        assert_eq!(mock.tunnel_remote_addr(10), Some(third));
+    }
+
+    #[tokio::test]
+    async fn dns_family_retarget_keeps_the_new_family_answer_observable() {
+        let (tx, mut rx) = mpsc::channel(16);
+        let mut desired = DesiredTunnel {
+            tunnel_id: 10,
+            peer_tunnel_id: 10,
+            ip_version: IpVersion::V4,
+            remote_addr: "192.0.2.1".parse().unwrap(),
+            bind_interface: None,
+        };
+        let mut resolver = ResolverRuntime::new(10, &desired, tx);
+        // Supply a controlled cache for an unchanged hostname so this test
+        // needs neither DNS service nor host-specific localhost mappings.
+        desired.remote_addr = "unchanged.example.invalid".parse().unwrap();
+        resolver.remote_addr = desired.remote_addr.clone();
+        desired.ip_version = IpVersion::V6;
+        set_cached_resolver_answer(&resolver, "2001:db8::2".parse().unwrap());
+        resolver.apply_tunnel_config(&desired);
+        assert_eq!(
+            resolver.current_remote_addr(),
+            Some("2001:db8::2".parse().unwrap())
+        );
+        let event = tokio::time::timeout(Duration::from_secs(3), rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(matches!(event, ControlEvent::DnsChanged { tunnel_id: 10 }));
     }
 
     #[tokio::test]
@@ -3504,6 +3758,43 @@ mod tests {
                 controller.filter(|index| *index != 0)
             );
         }
+    }
+
+    #[test]
+    fn protocol_link_metadata_does_not_remove_devices_or_change_vrf_membership() {
+        let mut controllers = BTreeMap::from([(42, 10)]);
+        for family in [AddressFamily::Bridge, AddressFamily::Inet6] {
+            let mut link = LinkMessage::default();
+            link.header.index = 42;
+            link.header.interface_family = family;
+            link.attributes
+                .push(LinkAttribute::IfName("underlay0".to_string()));
+            // Protocol-specific records can omit the real VRF controller.
+            remember_interface_controller(&mut controllers, &link);
+            for message in [
+                RouteNetlinkMessage::NewLink(link.clone()),
+                RouteNetlinkMessage::DelLink(link.clone()),
+            ] {
+                let payload = NetlinkPayload::InnerMessage(message);
+                assert!(
+                    controller_changes_for_netlink_payload(&mut controllers, &payload).is_empty()
+                );
+                assert!(control_event_for_netlink_payload(payload).is_none());
+                assert_eq!(controllers.get(&42), Some(&10));
+            }
+        }
+        // The later real device removal still refreshes the former VRF.
+        let mut removed = LinkMessage::default();
+        removed.header.index = 42;
+        let payload = NetlinkPayload::InnerMessage(RouteNetlinkMessage::DelLink(removed));
+        assert_eq!(
+            controller_changes_for_netlink_payload(&mut controllers, &payload),
+            BTreeSet::from([10])
+        );
+        assert!(matches!(
+            control_event_for_netlink_payload(payload),
+            Some(ControlEvent::InterfaceRemoved { if_index: 42 })
+        ));
     }
 
     #[test]
@@ -4215,13 +4506,23 @@ mod tests {
 
     #[test]
     fn temp_interface_names_are_valid_and_unique() {
-        let mut used = BTreeSet::from([ifname("rsl2tp00000000")]);
+        let mut used = BTreeSet::from([ifname("rsl2tp-r000000")]);
         let mut counter = 0;
         let first = allocate_temp_interface_name(&mut used, &mut counter);
         let second = allocate_temp_interface_name(&mut used, &mut counter);
-        assert_eq!(first, ifname("rsl2tp00000001"));
-        assert_eq!(second, ifname("rsl2tp00000002"));
-        assert_eq!(used.len(), 3);
+        assert_eq!(first, ifname("rsl2tp-r000001"));
+        assert_eq!(second, ifname("rsl2tp-r000002"));
+        counter = 0x00ff_ffff;
+        assert_eq!(
+            allocate_temp_interface_name(&mut used, &mut counter),
+            ifname("rsl2tp-rffffff")
+        );
+        assert_eq!(counter, 0);
+        assert_eq!(
+            allocate_temp_interface_name(&mut used, &mut counter),
+            ifname("rsl2tp-r000003")
+        );
+        assert_eq!(used.len(), 5);
     }
 
     #[tokio::test]
@@ -4891,6 +5192,85 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn renamed_session_link_events_apply_pending_hwaddr_without_disturbing_up_siblings() {
+        let mock = Arc::new(MockState::default());
+        let mut runtime = runtime_with_mock_state(mock.clone());
+        let tunnel = (
+            "bound",
+            10,
+            10,
+            IpVersion::V6,
+            IpHost::V6Addr(Ipv6Addr::LOCALHOST),
+            None,
+        );
+        let initial = test_config(
+            vec![tunnel.clone()],
+            vec![
+                ("lan", "bound", 100, 100, "l2tp0", None),
+                ("other", "bound", 101, 101, "l2tp1", None),
+            ],
+        );
+        runtime.reconcile(&initial).await.unwrap();
+        // An external rename changes the tracked device, not its configured name.
+        mock.modify_session(10, 100, &ifname("renamed0"))
+            .await
+            .unwrap();
+        mock.set_device_up((10, 100), true);
+        mock.set_device_up((10, 101), true);
+        let changed = test_config(
+            vec![tunnel],
+            vec![
+                ("lan", "bound", 100, 100, "l2tp0", Some("02:00:00:00:00:02")),
+                (
+                    "other",
+                    "bound",
+                    101,
+                    101,
+                    "l2tp1",
+                    Some("02:00:00:00:00:03"),
+                ),
+            ],
+        );
+        runtime.reconcile(&changed).await.unwrap();
+        assert!(mock.session_hwaddr_pending(10, 100).await);
+        assert!(mock.session_hwaddr_pending(10, 101).await);
+        assert_eq!(mock.hwaddr_sets(), 0);
+
+        mock.set_device_up((10, 100), false);
+        runtime
+            .handle_interface_change(Some(&ifname("renamed0")))
+            .await;
+        assert_eq!(mock.session_name(10, 100), Some(ifname("renamed0")));
+        assert_eq!(
+            mock.session_hwaddr(10, 100),
+            Some(hwaddr("02:00:00:00:00:02"))
+        );
+        assert!(!mock.session_hwaddr_pending(10, 100).await);
+        assert_eq!(mock.session_hwaddr(10, 101), None);
+        assert!(mock.session_hwaddr_pending(10, 101).await);
+        assert!(mock.inner.lock().unwrap().up_devices.contains(&(10, 101)));
+        assert_eq!(mock.session_creations(), 2);
+
+        // MAC updates generate more link events; completed changes are not repeated.
+        runtime
+            .handle_interface_change(Some(&ifname("renamed0")))
+            .await;
+        assert_eq!(mock.hwaddr_sets(), 1);
+        assert!(mock.session_hwaddr_pending(10, 101).await);
+
+        mock.set_device_up((10, 101), false);
+        runtime
+            .handle_interface_change(Some(&ifname("l2tp1")))
+            .await;
+        assert_eq!(
+            mock.session_hwaddr(10, 101),
+            Some(hwaddr("02:00:00:00:00:03"))
+        );
+        assert!(!mock.session_hwaddr_pending(10, 101).await);
+        assert_eq!(mock.hwaddr_sets(), 2);
+    }
+
+    #[tokio::test]
     async fn failed_hwaddr_change_is_retried_on_link_events() {
         let mock = Arc::new(MockState::default());
         let mut runtime = runtime_with_mock_state(mock.clone());
@@ -4927,7 +5307,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn pending_session_cleanup_precedes_creation_but_not_parent_teardown() {
+    async fn pending_session_is_resumed_and_parent_teardown_removes_it() {
         let mock = Arc::new(MockState::default());
         let mut runtime = runtime_with_mock_state(mock.clone());
         let tunnel = (
@@ -4945,11 +5325,11 @@ mod tests {
             vec![("lan", "bound", 100, 100, "l2tp0", None)],
         );
 
-        // A previous session creation reached the kernel but setup and its
-        // first rollback failed. The state retains that unfinished deletion.
+        // A previous creation reached the kernel, but preparation failed.
+        // Retain the desired session so add_session can resume that device.
         {
             let mut inner = mock.inner.lock().unwrap();
-            inner.pending_cleanup_for = Some(10);
+            inner.pending_cleanup_for = Some((10, 100));
             inner.fail_pending_cleanup = true;
         }
         assert!(runtime.reconcile(&desired).await.is_err());
@@ -4960,12 +5340,26 @@ mod tests {
         runtime.reconcile(&desired).await.unwrap();
         assert_eq!(mock.session_name(10, 100), Some(ifname("l2tp0")));
         assert!(mock.inner.lock().unwrap().pending_cleanup_for.is_none());
+        assert_eq!(mock.inner.lock().unwrap().pending_session_resumes, 1);
+
+        // An unfinished session omitted from the desired configuration is
+        // removed; it must not remain indefinitely or block later creation.
+        {
+            let mut inner = mock.inner.lock().unwrap();
+            inner.pending_cleanup_for = Some((10, 200));
+            inner.fail_pending_cleanup = true;
+        }
+        assert!(runtime.reconcile(&desired).await.is_err());
+        mock.inner.lock().unwrap().fail_pending_cleanup = false;
+        runtime.reconcile(&desired).await.unwrap();
+        assert!(mock.inner.lock().unwrap().pending_cleanup_for.is_none());
+        assert_eq!(mock.inner.lock().unwrap().pending_session_resumes, 1);
 
         // Removing the parent tunnel also removes its incomplete sessions;
         // a failing per-session cleanup must not prevent that teardown.
         {
             let mut inner = mock.inner.lock().unwrap();
-            inner.pending_cleanup_for = Some(10);
+            inner.pending_cleanup_for = Some((10, 100));
             inner.fail_pending_cleanup = true;
         }
         runtime.shutdown().await.unwrap();

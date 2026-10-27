@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2021"
 rust-version = "1.89"
 authors = ["metastable-void"]
-description = "Simple L2TPv3 daemon for Linux-based systems, and the library it is built on"
+description = "Simple but resilient L2TPv3 daemon for Linux-based systems, and the library it is built on"
 license = "Apache-2.0 OR MPL-2.0"
 readme = "README.md"
 repository = "https://github.com/menhera-org/rs-l2tpd"
@@ -31,6 +31,7 @@ rtnetlink = "0.23.0"
 futures-util = "0.3"
 log = "0.4.29"
 libc = "0.2"
+nix = { version = "0.30", default-features = false, features = ["socket"] }
 
 # `serde` feature
 serde = { version = "1", features = ["derive"], optional = true }

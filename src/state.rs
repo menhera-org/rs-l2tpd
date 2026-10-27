@@ -3,8 +3,11 @@
 //! This module is private; [`crate::runtime::Runtime`] owns the only
 //! instance and decides when each operation runs.
 
+mod link_identity;
+
 use crate::config::{Cookie, HwAddr, IpVersion, TunnelConfig};
 use crate::error::{Error, Result};
+use link_identity::{CreationWatch, LinkIdentity, LinkIdentityMonitor, LinkStatus};
 
 use futures_util::{StreamExt, TryStreamExt};
 use l2tp::{L2tpIfName, L2tpIfNameExt};
@@ -21,7 +24,7 @@ use tokio::sync::{Mutex, RwLock};
 use tokio::task::JoinHandle;
 
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     hash::BuildHasher,
     net::{IpAddr, Ipv6Addr},
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -159,6 +162,9 @@ impl Drop for Rtnl {
 trait LinkOps: Sync {
     async fn get_link(&self, index: u32) -> Result<LinkMessage>;
     async fn set_link(&self, message: LinkMessage) -> std::result::Result<(), rtnetlink::Error>;
+    async fn verify_identity(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
@@ -169,6 +175,49 @@ impl LinkOps for Rtnl {
 
     async fn set_link(&self, message: LinkMessage) -> std::result::Result<(), rtnetlink::Error> {
         Rtnl::set_link(self, message).await
+    }
+}
+
+/// Device operations tied to the registration lifetime of one owned session.
+/// A cached index alone may now refer to a replacement in this namespace.
+struct SessionLinkOps<'a> {
+    rtnl: Rtnl,
+    monitor: &'a LinkIdentityMonitor,
+    identity: &'a LinkIdentity,
+}
+
+impl<'a> SessionLinkOps<'a> {
+    fn new(monitor: &'a LinkIdentityMonitor, identity: &'a LinkIdentity) -> Result<Self> {
+        Ok(Self {
+            rtnl: Rtnl::connect()?,
+            monitor,
+            identity,
+        })
+    }
+}
+
+#[async_trait::async_trait]
+impl LinkOps for SessionLinkOps<'_> {
+    async fn get_link(&self, index: u32) -> Result<LinkMessage> {
+        if index != self.identity.index() {
+            return Err(Error::Other(
+                "session interface index does not match its ownership record".into(),
+            ));
+        }
+        match self.monitor.validate(self.identity).await? {
+            LinkStatus::Live(link) => Ok(link),
+            LinkStatus::Invalidated => Err(Error::Other(format!(
+                "session interface index {index} lost verifiable ownership continuity (device removal, namespace move, or missed link notifications)"
+            ))),
+        }
+    }
+
+    async fn set_link(&self, message: LinkMessage) -> std::result::Result<(), rtnetlink::Error> {
+        self.rtnl.set_link(message).await
+    }
+
+    async fn verify_identity(&self) -> Result<()> {
+        self.get_link(self.identity.index()).await.map(|_| ())
     }
 }
 
@@ -371,8 +420,13 @@ fn is_netlink_errno(err: &rtnetlink::Error, errno: i32) -> bool {
 /// interface name only once, at creation, so the name reported later never
 /// follows a rename. A rename to the name the device already bears is a
 /// no-op.
+#[cfg(test)]
 async fn rename_interface(index: u32, new: &L2tpIfName) -> Result<()> {
     let rtnl = Rtnl::connect()?;
+    rename_interface_with(&rtnl, index, new).await
+}
+
+async fn rename_interface_with(rtnl: &impl LinkOps, index: u32, new: &L2tpIfName) -> Result<()> {
     let link = rtnl.get_link(index).await?;
     if link_name(&link).as_ref() == Some(new) {
         return Ok(());
@@ -381,6 +435,7 @@ async fn rename_interface(index: u32, new: &L2tpIfName) -> Result<()> {
     let name = new
         .to_str()
         .map_err(|_| Error::Other(format!("non-UTF-8 interface name {new:?}")))?;
+    rtnl.verify_identity().await?;
     rtnl.set_link(LinkUnspec::new_with_index(index).name(name).build())
         .await
         .map_err(|e| {
@@ -422,11 +477,6 @@ pub(crate) enum HwAddrApply {
 /// IPv6 addresses, its routes and its neighbour state, which would break
 /// traffic the configuration never asked to interrupt. The change is
 /// deferred instead and repeated when the device is seen down.
-async fn apply_hwaddr(index: u32, target: HwAddr) -> Result<HwAddrApply> {
-    let rtnl = Rtnl::connect()?;
-    apply_hwaddr_with(&rtnl, index, target).await
-}
-
 async fn apply_hwaddr_with(rtnl: &impl LinkOps, index: u32, target: HwAddr) -> Result<HwAddrApply> {
     let link = rtnl.get_link(index).await?;
     if link_hwaddr(&link) == Some(target) {
@@ -439,6 +489,7 @@ async fn apply_hwaddr_with(rtnl: &impl LinkOps, index: u32, target: HwAddr) -> R
     let message = LinkUnspec::new_with_index(index)
         .address(target.octets().to_vec())
         .build();
+    rtnl.verify_identity().await?;
     match rtnl.set_link(message).await {
         Ok(()) => {}
         // Brought up between the lookup and the change.
@@ -460,58 +511,32 @@ async fn apply_hwaddr_with(rtnl: &impl LinkOps, index: u32, target: HwAddr) -> R
     }
 }
 
-/// Prepare only a newly owned, unpublished session. Network managers may
-/// activate its temporary name, including when its new MAC first matches.
-/// Retrying this same device lets that initial configuration settle without
-/// recreating it and triggering the same activation on every reconciliation.
+/// Prepare a newly owned session without lowering it. A network manager may
+/// already have attached children, including VLANs moved to another namespace,
+/// before the temporary name is published. Lowering their parent would remove
+/// their IPv6 configuration, which this daemon cannot safely restore.
 async fn prepare_staged_session_with(
     rtnl: &impl LinkOps,
     index: u32,
     target: HwAddr,
     final_name: &L2tpIfName,
-    mut restore_up: bool,
-) -> Result<()> {
+) -> Result<HwAddrApply> {
     let name = final_name
         .to_str()
         .map_err(|_| Error::Other(format!("non-UTF-8 interface name {final_name:?}")))?;
-    for _ in 0..4 {
-        let current = rtnl.get_link(index).await?;
-        if link_is_up(&current) {
-            restore_up = true;
-            match rtnl
-                .set_link(LinkUnspec::new_with_index(index).down().build())
-                .await
-            {
-                Ok(()) => {}
-                Err(e) if is_netlink_errno(&e, libc::EBUSY) => continue,
-                Err(e) => {
-                    return Err(Error::Other(format!(
-                        "failed to prepare staged session interface index {index}: {e}"
-                    )))
-                }
-            }
-        }
-        if apply_hwaddr_with(rtnl, index, target).await? == HwAddrApply::Deferred {
-            continue;
-        }
-        // Linux renames before applying flags under the same RTNL lock.
-        // Publish the name and observed UP state together so a final-name
-        // manager's policy cannot be overridden by a later daemon UP request.
-        let publish = LinkUnspec::new_with_index(index).name(name);
-        let publish = if restore_up { publish.up() } else { publish };
-        match rtnl.set_link(publish.build()).await {
-            Ok(()) => return Ok(()),
-            Err(e) if is_netlink_errno(&e, libc::EBUSY) => continue,
-            Err(e) => {
-                return Err(Error::Other(format!(
-                    "failed to publish prepared session interface {final_name}: {e}"
-                )))
-            }
-        }
-    }
-    Err(Error::Other(format!(
-        "staged session interface index {index} kept being activated before publication"
-    )))
+    let outcome = apply_hwaddr_with(rtnl, index, target).await?;
+    // Publish even when an early manager activation deferred the MAC change.
+    // Leave all flags to its policy; the normal pending-MAC path will finish
+    // the address change if that device is subsequently observed down.
+    rtnl.verify_identity().await?;
+    rtnl.set_link(LinkUnspec::new_with_index(index).name(name).build())
+        .await
+        .map_err(|e| {
+            Error::Other(format!(
+                "failed to publish prepared session interface {final_name}: {e}"
+            ))
+        })?;
+    Ok(outcome)
 }
 
 /// Resolves `if_name` in the daemon's own network namespace.
@@ -596,6 +621,7 @@ pub(crate) struct SessionState {
     /// Index of the session's l2tpeth device, from the kernel's registration
     /// broadcast. Renames keep it; names do not survive them.
     index: u32,
+    identity: LinkIdentity,
     /// The hardware address the kernel assigned at creation, restored when
     /// the configuration stops naming one.
     initial_hwaddr: Option<HwAddr>,
@@ -606,6 +632,27 @@ pub(crate) struct SessionState {
     // Keep session handle alive for the session lifecycle even when we don't call methods on it.
     #[allow(dead_code)]
     handle: l2tp::SessionHandle,
+}
+
+struct PendingSession {
+    handle: l2tp::SessionHandle,
+    creation: CreationWatch,
+    identity: Option<LinkIdentity>,
+    staged: bool,
+    /// The desired creation-only parameters. Names and MACs can change while
+    /// this same kernel session waits for publication.
+    config: l2tp::SessionConfig,
+    /// None until the first successful link lookup; Some(None) records that
+    /// the original device carried no usable Ethernet address.
+    initial_hwaddr: Option<Option<HwAddr>>,
+}
+
+impl PendingSession {
+    fn matches_creation(&self, config: &l2tp::SessionConfig) -> bool {
+        self.config.peer_session_id == config.peer_session_id
+            && self.config.cookie == config.cookie
+            && self.config.peer_cookie == config.peer_cookie
+    }
 }
 
 pub(crate) struct TunnelState {
@@ -626,12 +673,14 @@ pub(crate) struct TunnelState {
 
 pub(crate) struct State {
     handle: l2tp::L2tpHandle,
+    link_identities: LinkIdentityMonitor,
 
     /// tunnel_id to TunnelState
     tunnels: RwLock<BTreeMap<u32, TunnelState>>,
     /// Sessions created in the kernel whose preparation has not completed.
-    /// Keep ownership until rollback is acknowledged, including across errors.
-    pending_sessions: RwLock<BTreeMap<(u32, u32), l2tp::SessionHandle>>,
+    /// Keep the same device across setup errors: another manager may already
+    /// have attached children, even before its final name is published.
+    pending_sessions: RwLock<BTreeMap<(u32, u32), PendingSession>>,
     /// Serializes fallback creation, route repair, and shutdown cleanup.
     discard_resources: Mutex<DiscardResources>,
 }
@@ -700,6 +749,7 @@ fn remove_if_delete_succeeded<K: Ord, V>(
 }
 
 /// Deletion borrows each handle's owner; an error must not consume it.
+#[cfg(test)]
 async fn cleanup_pending_entries<K, V, F, Fut>(
     entries: &mut BTreeMap<K, V>,
     mut delete: F,
@@ -720,9 +770,11 @@ where
 impl State {
     pub(crate) async fn new() -> Result<Self> {
         let handle = l2tp::L2tpHandle::new().await.map_err(Error::L2tp)?;
+        let link_identities = LinkIdentityMonitor::new().await?;
         let tunnels = RwLock::new(BTreeMap::new());
         Ok(Self {
             handle,
+            link_identities,
             tunnels,
             pending_sessions: RwLock::new(BTreeMap::new()),
             discard_resources: Mutex::new(DiscardResources::default()),
@@ -1164,24 +1216,18 @@ impl State {
     }
 
     pub(crate) async fn delete_tunnel(&self, tunnel_id: u32) -> Result<()> {
-        if !self.has_tunnel(tunnel_id).await {
-            return Err(Error::Other(format!("Tunnel not found: {}", tunnel_id)));
-        }
-
-        let delete_result = deletion_result(
-            &format!("tunnel_id={tunnel_id}"),
-            self.handle.delete_tunnel(l2tp::TunnelId(tunnel_id)).await,
-        );
-
-        // Dropping the TunnelState closes the managed socket, which tears the
-        // tunnel down even if the netlink deletion is still pending.
+        // Closing our managed socket removes only its own kernel tunnel.
+        // An ID-only TUNNEL_DELETE could instead remove a foreign replacement
+        // if another administrator already deleted and reused this ID.
         let removed = {
             let mut tunnels = self.tunnels.write().await;
-            remove_if_delete_succeeded(&mut tunnels, &tunnel_id, delete_result)?
+            let tunnel = tunnels
+                .get(&tunnel_id)
+                .ok_or_else(|| Error::Other(format!("Tunnel not found: {tunnel_id}")))?;
+            tunnel_socket(tunnel)?;
+            tunnels.remove(&tunnel_id)
         };
-        if removed.is_none() {
-            return Err(Error::Other(format!("Tunnel not found: {}", tunnel_id)));
-        }
+        drop(removed);
 
         self.pending_sessions
             .write()
@@ -1191,17 +1237,58 @@ impl State {
         Ok(())
     }
 
-    pub(crate) async fn cleanup_pending_sessions(&self) -> Result<()> {
+    /// Remove only incomplete sessions no longer requested by the caller.
+    /// Still-desired sessions retain their devices and children for retry.
+    pub(crate) async fn retain_pending_sessions(
+        &self,
+        desired: &BTreeSet<(u32, u32)>,
+    ) -> Result<()> {
         let mut pending = self.pending_sessions.write().await;
-        cleanup_pending_entries(&mut pending, |(tunnel_id, session_id)| async move {
-            deletion_result(
-                &format!("incomplete session_id={session_id} in tunnel_id={tunnel_id}"),
-                self.handle
-                    .delete_session(l2tp::TunnelId(tunnel_id), l2tp::SessionId(session_id))
-                    .await,
-            )
-        })
-        .await
+        let removed: Vec<_> = pending
+            .keys()
+            .filter(|key| !desired.contains(key))
+            .copied()
+            .collect();
+        for key in removed {
+            self.delete_pending_session(&pending[&key]).await?;
+            pending.remove(&key);
+        }
+        Ok(())
+    }
+
+    async fn delete_pending_session(&self, session: &PendingSession) -> Result<()> {
+        let identity = match &session.identity {
+            Some(identity) => identity.clone(),
+            None => match self
+                .link_identities
+                .finish_creation(&session.creation, session.handle.ifindex())
+                .await
+            {
+                Ok(identity) => identity,
+                Err(_) if session.creation.is_invalidated() => {
+                    warn!("forgetting an incomplete session whose device ownership was lost");
+                    return Ok(());
+                }
+                Err(error) => return Err(error),
+            },
+        };
+        if matches!(
+            self.link_identities.validate(&identity).await?,
+            LinkStatus::Invalidated
+        ) {
+            warn!("forgetting incomplete session_id={} in tunnel_id={} because its device lifetime could not be verified; its IDs may have been reused",
+                session.config.session_id.0, session.config.tunnel_id.0);
+            return Ok(());
+        }
+        deletion_result(
+            &format!(
+                "incomplete session_id={} in tunnel_id={}",
+                session.config.session_id.0, session.config.tunnel_id.0
+            ),
+            self.handle
+                .delete_session(session.config.tunnel_id, session.config.session_id)
+                .await,
+        )
     }
 
     async fn sessions_of(
@@ -1229,7 +1316,6 @@ impl State {
         hwaddr: Option<&HwAddr>,
         cookies: SessionCookies,
     ) -> Result<HwAddrApply> {
-        self.cleanup_pending_sessions().await?;
         if self.has_session(tunnel_id, session_id).await {
             return Err(Error::Other(format!(
                 "Session exists: {}, tunnel: {}",
@@ -1257,70 +1343,72 @@ impl State {
             ifname: Some(*if_name),
         };
 
-        // Acquire ownership storage before kernel creation, so there is no
-        // cancellation point between receiving the handle and retaining it.
-        let mut pending = self.pending_sessions.write().await;
-        let mut handle = self.create_session_handle(config, hwaddr.is_some()).await?;
-
-        handle.set_auto_delete(false);
-
-        let index = handle.ifindex();
         let key = (tunnel_id, session_id);
-        pending.insert(key, handle);
-        drop(pending);
-
-        // Until the session is recorded, every failure removes it again so
-        // that reconcile can retry. Failed rollback retains the owned handle
-        // and is retried before the next reconciliation or creation.
-        let prepared = async {
-            let Some(index) = index else {
-                // Only if the registration notification was lost and the name
-                // lookup failed too.
-                return Err(Error::Other(format!(
-                    "interface {if_name} of session {session_id} in tunnel {tunnel_id} cannot be identified"
-                )));
-            };
-            let rtnl = Rtnl::connect()?;
-            let initial = rtnl.get_link(index).await?;
-            let initial_hwaddr = link_hwaddr(&initial);
-            if let Some(hwaddr) = hwaddr {
-                prepare_staged_session_with(&rtnl, index, *hwaddr, if_name, link_is_up(&initial))
-                    .await?;
-            }
-            Ok((index, initial_hwaddr, HwAddrApply::Applied))
+        // Keep an incomplete session through retries. Publication failures
+        // must not tear down children which another manager already created.
+        let mut pending = self.pending_sessions.write().await;
+        if pending
+            .get(&key)
+            .is_some_and(|session| !session.matches_creation(&config))
+        {
+            self.delete_pending_session(&pending[&key]).await?;
+            pending.remove(&key);
         }
-        .await;
-
-        let (index, initial_hwaddr, outcome) = match prepared {
-            Ok(prepared) => prepared,
-            Err(e) => {
-                if let Err(cleanup) = self.cleanup_pending_sessions().await {
-                    warn!(
-                        "failed to remove session {} in tunnel {} after a setup failure: {}",
-                        session_id, tunnel_id, cleanup
-                    );
-                }
-                return Err(e);
+        if let std::collections::btree_map::Entry::Vacant(entry) = pending.entry(key) {
+            // There is no cancellation point between receiving the handle
+            // and retaining ownership in the map.
+            let (handle, creation) = self
+                .create_session_handle(config.clone(), hwaddr.is_some())
+                .await?;
+            entry.insert(PendingSession {
+                handle,
+                creation,
+                identity: None,
+                staged: hwaddr.is_some(),
+                config,
+                initial_hwaddr: None,
+            });
+        }
+        let session = pending.get_mut(&key).expect("pending session exists");
+        if session.identity.is_none() {
+            session.identity = Some(
+                self.link_identities
+                    .finish_creation(&session.creation, session.handle.ifindex())
+                    .await?,
+            );
+        }
+        let identity = session
+            .identity
+            .as_ref()
+            .expect("session identity was captured");
+        let index = identity.index();
+        let rtnl = SessionLinkOps::new(&self.link_identities, identity)?;
+        if session.initial_hwaddr.is_none() {
+            session.initial_hwaddr = Some(link_hwaddr(&rtnl.get_link(index).await?));
+        }
+        let initial_hwaddr = session.initial_hwaddr.flatten();
+        let target = hwaddr
+            .copied()
+            .or_else(|| session.staged.then_some(initial_hwaddr).flatten());
+        let outcome = if let Some(target) = target {
+            prepare_staged_session_with(&rtnl, index, target, if_name).await?
+        } else {
+            if session.staged || session.config.ifname.as_ref() != Some(if_name) {
+                rename_interface_with(&rtnl, index, if_name).await?;
             }
+            HwAddrApply::Applied
         };
 
+        // Acquire the destination lock before taking ownership out of pending.
         let mut sessions = sessions.write().await;
-        let handle = self
-            .pending_sessions
-            .write()
-            .await
-            .remove(&key)
-            .ok_or_else(|| {
-                Error::Other(format!(
-                    "session {session_id} in tunnel {tunnel_id} disappeared during preparation"
-                ))
-            })?;
+        let pending = pending.remove(&key).expect("pending session exists");
 
         let session = SessionState {
             index,
+            identity: pending.identity.expect("session identity was captured"),
             initial_hwaddr,
             hwaddr_pending: outcome == HwAddrApply::Deferred,
-            handle,
+            handle: pending.handle,
         };
 
         sessions.insert(session_id, session);
@@ -1332,13 +1420,24 @@ impl State {
         &self,
         mut config: l2tp::SessionConfig,
         stage: bool,
-    ) -> Result<l2tp::SessionHandle> {
+    ) -> Result<(l2tp::SessionHandle, CreationWatch)> {
         if !stage {
-            return self
+            let creation = self
+                .link_identities
+                .arm_creation(
+                    config
+                        .ifname
+                        .as_ref()
+                        .expect("session creation always names its device"),
+                )
+                .await?;
+            let mut handle = self
                 .handle
                 .create_session(config)
                 .await
-                .map_err(Error::L2tp);
+                .map_err(Error::L2tp)?;
+            handle.set_auto_delete(false);
+            return Ok((handle, creation));
         }
         let final_name = config.ifname;
         for _ in 0..32 {
@@ -1347,8 +1446,12 @@ impl State {
                 continue;
             }
             config.ifname = Some(name);
+            let creation = self.link_identities.arm_creation(&name).await?;
             match self.handle.create_session(config.clone()).await {
-                Ok(handle) => return Ok(handle),
+                Ok(mut handle) => {
+                    handle.set_auto_delete(false);
+                    return Ok((handle, creation));
+                }
                 Err(error)
                     if error.raw_os_error() == Some(libc::EEXIST)
                         && interface_index(&name).await?.is_some() => {}
@@ -1360,6 +1463,7 @@ impl State {
         ))
     }
 
+    #[cfg(test)]
     async fn session_device(
         &self,
         tunnel_id: u32,
@@ -1374,6 +1478,9 @@ impl State {
         let sessions = self.sessions_of(tunnel_id).await.ok_or_else(not_found)?;
         let sessions = sessions.read().await;
         let session = sessions.get(&session_id).ok_or_else(not_found)?;
+        SessionLinkOps::new(&self.link_identities, &session.identity)?
+            .verify_identity()
+            .await?;
         Ok((session.index, session.initial_hwaddr))
     }
 
@@ -1383,8 +1490,18 @@ impl State {
         session_id: u32,
         ifname: &L2tpIfName,
     ) -> Result<()> {
-        let (index, _) = self.session_device(tunnel_id, session_id).await?;
-        rename_interface(index, ifname).await
+        let sessions = self
+            .sessions_of(tunnel_id)
+            .await
+            .ok_or_else(|| Error::Other(format!("No such tunnel: {tunnel_id}")))?;
+        let sessions = sessions.read().await;
+        let session = sessions.get(&session_id).ok_or_else(|| {
+            Error::Other(format!(
+                "No such session {session_id} in tunnel {tunnel_id}"
+            ))
+        })?;
+        let rtnl = SessionLinkOps::new(&self.link_identities, &session.identity)?;
+        rename_interface_with(&rtnl, session.index, ifname).await
     }
 
     /// Whether the session's configured hardware address still has to be
@@ -1420,7 +1537,10 @@ impl State {
         })?;
         session.hwaddr_pending = true;
         let result = match hwaddr.copied().or(session.initial_hwaddr) {
-            Some(target) => apply_hwaddr(session.index, target).await,
+            Some(target) => {
+                let rtnl = SessionLinkOps::new(&self.link_identities, &session.identity)?;
+                apply_hwaddr_with(&rtnl, session.index, target).await
+            }
             // No configured address and no usable creation-time address.
             None => Ok(HwAddrApply::Applied),
         };
@@ -1439,8 +1559,21 @@ impl State {
         };
         let sessions = self.sessions_of(tunnel_id).await.ok_or_else(not_found)?;
 
-        if !sessions.read().await.contains_key(&session_id) {
-            return Err(not_found());
+        let identity = sessions
+            .read()
+            .await
+            .get(&session_id)
+            .ok_or_else(not_found)?
+            .identity
+            .clone();
+
+        if matches!(
+            self.link_identities.validate(&identity).await?,
+            LinkStatus::Invalidated
+        ) {
+            warn!("forgetting session_id={session_id} in tunnel_id={tunnel_id} because its device lifetime could not be verified; its IDs may have been reused");
+            sessions.write().await.remove(&session_id);
+            return Ok(());
         }
 
         let delete_result = deletion_result(
@@ -1472,7 +1605,7 @@ mod tests {
     use crate::config::{Cookie, HwAddr};
     use futures_util::TryStreamExt;
     use l2tp::{Encapsulation, IpEndpoint, L2tpIfName, L2tpIfNameExt};
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, BTreeSet};
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
     use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
     use std::sync::atomic::{AtomicU32, Ordering};
@@ -1601,37 +1734,50 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn staged_session_recovers_activation_around_mac_change_on_the_same_device() {
+    async fn staged_session_preserves_activation_before_or_after_mac_change() {
         let target = "02:00:00:00:00:02".parse().unwrap();
+        let original = "02:00:00:00:00:01".parse().unwrap();
         let final_name = ifname("pseudowire0");
-        for (before, after) in [(1, false), (0, true), (1, true)] {
-            let link = mock_link(false, 0);
+        for (initial_up, before, after) in [(true, 0, false), (false, 1, false), (false, 0, true)] {
+            let link = mock_link(initial_up, 0);
             {
                 let mut state = link.lock().unwrap();
                 state.activate_before_address = before;
                 state.activate_after_address = after;
             }
-            super::prepare_staged_session_with(&link, 1, target, &final_name, false)
+            let outcome = super::prepare_staged_session_with(&link, 1, target, &final_name)
                 .await
                 .unwrap();
             let state = link.lock().unwrap();
             assert_eq!(super::link_name(&state.link), Some(final_name));
-            assert_eq!(super::link_hwaddr(&state.link), Some(target));
+            let deferred = initial_up || before > 0;
+            assert_eq!(
+                outcome,
+                if deferred {
+                    super::HwAddrApply::Deferred
+                } else {
+                    super::HwAddrApply::Applied
+                }
+            );
+            assert_eq!(
+                super::link_hwaddr(&state.link),
+                Some(if deferred { original } else { target })
+            );
             assert!(
                 super::link_is_up(&state.link),
-                "activation after the initial lookup must also be restored"
+                "the manager's activation must remain untouched"
             );
+            assert_eq!(state.set_requests, if initial_up { 1 } else { 2 });
         }
     }
 
     #[tokio::test]
-    async fn staged_session_bounds_activation_retries_and_reports_other_errors() {
+    async fn staged_session_reports_setup_errors_without_lowering_the_device() {
         let target = "02:00:00:00:00:02".parse().unwrap();
         let final_name = ifname("pseudowire0");
-        let link = mock_link(false, 0);
-        link.lock().unwrap().activate_before_address = usize::MAX;
+        let link = mock_link(false, 1);
         assert!(
-            super::prepare_staged_session_with(&link, 1, target, &final_name, false)
+            super::prepare_staged_session_with(&link, 1, target, &final_name)
                 .await
                 .is_err()
         );
@@ -1640,16 +1786,17 @@ mod tests {
             Some(ifname("staged0"))
         );
 
-        let link = mock_link(false, 0);
+        let link = mock_link(true, 0);
         link.lock().unwrap().publish_error = Some(libc::EEXIST);
         assert!(
-            super::prepare_staged_session_with(&link, 1, target, &final_name, false)
+            super::prepare_staged_session_with(&link, 1, target, &final_name)
                 .await
                 .is_err()
         );
         let state = link.lock().unwrap();
         assert_eq!(super::link_name(&state.link), Some(ifname("staged0")));
-        assert_eq!(state.set_requests, 2, "a name collision is not retried");
+        assert!(super::link_is_up(&state.link));
+        assert_eq!(state.set_requests, 1, "a name collision is not retried");
     }
 
     #[tokio::test]
@@ -2003,6 +2150,23 @@ mod tests {
         let message = request.message_mut().clone();
         request.execute().await.expect("add test source address");
         message
+    }
+
+    async fn test_address_exists(rtnl: &super::Rtnl, index: u32, address: IpAddr) -> bool {
+        let mut addresses = rtnl
+            .handle
+            .address()
+            .get()
+            .set_link_index_filter(index)
+            .execute();
+        while let Some(message) = addresses.try_next().await.unwrap() {
+            if message.attributes.iter().any(|attr| {
+                matches!(attr, rtnetlink::packet_route::address::AddressAttribute::Address(value) if *value == address)
+            }) {
+                return true;
+            }
+        }
+        false
     }
 
     async fn exercise_source_reselection(name: &str, addresses: [&str; 4]) {
@@ -2584,12 +2748,65 @@ mod tests {
             )
             .await
             .expect("recreate the deleted session");
-        assert!(interface_index(&created).await.unwrap().is_some());
-        // Deleting the parent must also remove this retained child interface.
+        let index = created.index().unwrap();
+
+        // An external deletion can free the index while State still retains
+        // its handle. Neither that index nor its session IDs prove ownership.
+        state
+            .handle
+            .delete_session(l2tp::TunnelId(id), l2tp::SessionId(session_id))
+            .await
+            .unwrap();
+        let rtnl = super::Rtnl::connect().unwrap();
+        let foreign_name = ifname("rsl2tp-foreign");
+        rtnl.handle
+            .link()
+            .add(
+                rtnetlink::LinkDummy::new(foreign_name.to_str().unwrap())
+                    .index(index)
+                    .build(),
+            )
+            .execute()
+            .await
+            .unwrap();
+        let foreign_mac = current_hwaddr(index).await;
+        assert!(state
+            .modify_session(id, session_id, &renamed)
+            .await
+            .is_err());
+        assert!(state
+            .set_session_hwaddr(id, session_id, Some(&"02:00:5e:00:53:04".parse().unwrap()))
+            .await
+            .is_err());
+        assert_eq!(foreign_name.index().unwrap(), index);
+        assert_eq!(current_hwaddr(index).await, foreign_mac);
+
+        let mut foreign_config = l2tp::SessionConfig::eth(
+            l2tp::TunnelId(id),
+            l2tp::SessionId(session_id),
+            l2tp::SessionId(session_id),
+        );
+        // Even the creation-time name and IDs can be reused; the registration
+        // lifetime must distinguish this foreign replacement.
+        foreign_config.ifname = Some(created);
+        let mut foreign = state.handle.create_session(foreign_config).await.unwrap();
+        foreign.set_auto_delete(false);
+        state.delete_session(id, session_id).await.unwrap();
+        assert!(!state.has_session(id, session_id).await);
+        foreign
+            .get()
+            .await
+            .expect("foreign session must survive stale-handle cleanup");
+        assert_eq!(foreign_name.index().unwrap(), index);
+
+        // Intentional removal of our parent tunnel closes its owned socket
+        // and removes every session still attached to that tunnel.
         state.delete_tunnel(id).await.unwrap();
         assert!(!state.has_tunnel(id).await);
         assert_interface_deleted(&created).await;
         assert_kernel_tunnel_deleted(&state, id).await;
+        assert_eq!(foreign_name.index().unwrap(), index);
+        rtnl.handle.link().del(index).execute().await.unwrap();
     }
 
     #[tokio::test]
@@ -2699,7 +2916,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires an isolated netns, CAP_NET_ADMIN, dummy, l2tp_eth and IPv6 L2TP support"]
-    async fn privileged_staged_session_preserves_colliding_devices_and_rolls_back() {
+    async fn privileged_staged_session_retains_children_across_publication_failures() {
         let (state, id) = privileged_state(None).await;
         let rtnl = super::Rtnl::connect().unwrap();
         let session_id = id + 2;
@@ -2730,25 +2947,47 @@ mod tests {
             .await
             .is_err());
         assert!(!state.has_session(id, session_id).await);
-        assert!(state.pending_sessions.read().await.is_empty());
+        let staged_index = state.pending_sessions.read().await[&(id, session_id)]
+            .handle
+            .ifindex()
+            .unwrap();
         assert_eq!(occupied.index().unwrap(), foreign_staging);
         assert_eq!(final_name.index().unwrap(), foreign_final);
         assert_eq!(current_hwaddr(foreign_final).await, before);
-        tokio::time::timeout(std::time::Duration::from_secs(3), async {
-            while !state
-                .handle
-                .list_sessions(l2tp::TunnelId(id))
+        let child_name = ifname("rsl2tp-child");
+        rtnl.handle
+            .link()
+            .add(rtnetlink::LinkVlan::new(child_name.to_str().unwrap(), staged_index, 37).build())
+            .execute()
+            .await
+            .unwrap();
+        let child_index = child_name.index().unwrap();
+        for index in [staged_index, child_index] {
+            rtnl.set_link(LinkUnspec::new_with_index(index).up().build())
                 .await
-                .unwrap()
-                .is_empty()
-            {
-                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
-            }
-        })
-        .await
-        .expect("failed staged session must be removed from the kernel");
+                .unwrap();
+        }
+        let child_address = "2001:db8:37::1".parse().unwrap();
+        add_test_address(&rtnl, child_index, child_address).await;
+        state
+            .retain_pending_sessions(&std::collections::BTreeSet::from([(id, session_id)]))
+            .await
+            .unwrap();
+        assert!(state
+            .add_session(
+                id,
+                session_id,
+                session_id,
+                &final_name,
+                Some(&target),
+                SessionCookies::default()
+            )
+            .await
+            .is_err());
+        assert_eq!(child_name.index().unwrap(), child_index);
+        assert!(test_address_exists(&rtnl, child_index, child_address).await);
 
-        // The same IDs can be retried after the final-name collision ends.
+        // The same device can be published after the final-name collision ends.
         rtnl.handle
             .link()
             .del(foreign_final)
@@ -2770,12 +3009,50 @@ mod tests {
             super::HwAddrApply::Applied
         );
         let (index, _) = session_device(&state, id, session_id).await;
+        assert_eq!(index, staged_index);
         assert_eq!(final_name.index().unwrap(), index);
         assert_eq!(current_hwaddr(index).await, Some(target));
+        assert_eq!(child_name.index().unwrap(), child_index);
+        assert!(test_address_exists(&rtnl, child_index, child_address).await);
         let staging = session_info(&state, id, session_id).await.ifname.unwrap();
         assert_eq!(interface_index(&staging).await.unwrap(), None);
-        state.delete_tunnel(id).await.unwrap();
+        state.delete_session(id, session_id).await.unwrap();
         assert_interface_deleted(&final_name).await;
+        assert_interface_deleted(&child_name).await;
+
+        // Withdrawing an incomplete session still removes its owned device,
+        // while keeping the unrelated final-name occupant and parent tunnel.
+        let foreign_final = add_test_dummy(&rtnl, final_name.to_str().unwrap()).await;
+        assert!(state
+            .add_session(
+                id,
+                session_id,
+                session_id,
+                &final_name,
+                Some(&target),
+                SessionCookies::default()
+            )
+            .await
+            .is_err());
+        let unpublished = *state.pending_sessions.read().await[&(id, session_id)]
+            .handle
+            .ifname()
+            .unwrap();
+        state
+            .retain_pending_sessions(&BTreeSet::new())
+            .await
+            .unwrap();
+        assert!(state.pending_sessions.read().await.is_empty());
+        assert_interface_deleted(&unpublished).await;
+        assert_eq!(final_name.index().unwrap(), foreign_final);
+        assert!(state.has_tunnel(id).await);
+        rtnl.handle
+            .link()
+            .del(foreign_final)
+            .execute()
+            .await
+            .unwrap();
+        state.delete_tunnel(id).await.unwrap();
         assert_kernel_tunnel_deleted(&state, id).await;
         assert_eq!(occupied.index().unwrap(), foreign_staging);
         rtnl.handle

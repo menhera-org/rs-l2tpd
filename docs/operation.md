@@ -34,6 +34,10 @@ exists in the kernel, including those connected to the discard address
 With the supplied systemd unit, this also releases `network-online.target`.
 Kernel creation failures are retried every second until then.
 
+A MAC change deferred because another manager activated the interface does
+not delay readiness. See the [MAC activation race](sessions.md#hardware-addresses)
+when a particular MAC is required before activation.
+
 Readiness does not wait for a host name to resolve or for an absent bind
 device to appear. A literal address needs a route when its tunnel is
 created, as in 0.1.5, so a literal peer without one delays readiness.
@@ -50,6 +54,16 @@ device was replaced under the same name. Source addresses are refreshed
 after relevant IPv4 and IPv6 address changes, including changes on VRF slaves.
 If the netlink monitor loses events, a resync rereads current bindings and
 refreshes bound tunnel sources.
+
+Both netlink monitors request 8 MiB receive buffers before subscribing to
+events. Linux accounts twice the requested size, allocated as messages
+arrive. A per-socket override is attempted when the ordinary request is
+clamped; if the kernel denies it, the daemon continues with the available
+buffer. This changes no global kernel setting and adds no mandatory
+capability. Indexed session checks also avoid repeated full-interface dumps.
+Buffers remain finite: loss of link-lifetime notifications has the
+[session-management limits](sessions.md#child-interfaces-and-other-managers)
+described separately from source-address resynchronization.
 
 When a tunnel gets a real peer after a discard peer, its source is selected
 again through its configured bind device, including when both peers use
@@ -92,6 +106,21 @@ alone.
 which removes the daemon's tunnels and sessions and cleans up its owned
 null devices. See [configuration](configuration.md#mistakes) for what a
 failed reload preserves.
+
+## Ownership of kernel tunnels
+
+Do not externally delete or replace a tunnel while rs-l2tpd manages it.
+Stop the daemon before such administrative changes. The kernel creates a
+session using only its parent's numeric tunnel ID and exposes no reliable
+way to verify that the current tunnel still belongs to the daemon's
+original socket. If another process deletes that tunnel and reuses its ID,
+a later reload adding sessions can attach them to the replacement. This
+case is unsupported; closing the daemon's own socket protects shutdown
+cleanup but cannot protect a subsequent ID-based creation request.
+
+This restriction concerns kernel tunnel objects. Supported interface
+renames, child interfaces and child namespace moves are described under
+[session lifecycles](sessions.md#child-interfaces-and-other-managers).
 
 ## PID files
 

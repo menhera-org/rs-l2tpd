@@ -643,25 +643,44 @@ mod unix_daemon {
     }
 }
 
-/// Lists the configuration files to merge: `file` if it exists, then every
-/// regular `.toml` file in `dir` in lexicographic order. A missing
-/// directory is not an error.
-fn list_toml_files_at(file: &Path, dir: &Path) -> Result<Vec<PathBuf>> {
+/// Lists configuration files without disguising failed metadata lookups as
+/// intentional removals. Startup can use every discoverable file; reload
+/// must preserve its previous configuration if any lookup failed.
+fn list_toml_files_at(file: &Path, dir: &Path) -> (Vec<PathBuf>, Vec<String>) {
+    fn collect_file(path: &Path, files: &mut Vec<PathBuf>, errors: &mut Vec<String>) {
+        match fs::metadata(path) {
+            Ok(metadata) if metadata.is_file() => files.push(path.to_path_buf()),
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => errors.push(format!("failed to inspect {}: {e}", path.display())),
+        }
+    }
+
+    let mut files = Vec::new();
+    let mut errors = Vec::new();
+    collect_file(file, &mut files, &mut errors);
     let mut dropins = Vec::new();
 
     match fs::read_dir(dir) {
         Ok(entries) => {
             for entry in entries {
-                let path = entry
-                    .map_err(|e| Error::Other(format!("failed to read directory entry: {e}")))?
-                    .path();
+                let path = match entry {
+                    Ok(entry) => entry.path(),
+                    Err(e) => {
+                        errors.push(format!(
+                            "failed to read directory entry in {}: {e}",
+                            dir.display()
+                        ));
+                        continue;
+                    }
+                };
                 let is_toml = path
                     .extension()
                     .and_then(|s| s.to_str())
                     .map(|ext| ext.eq_ignore_ascii_case("toml"))
                     .unwrap_or(false);
-                if path.is_file() && is_toml {
-                    dropins.push(path);
+                if is_toml {
+                    collect_file(&path, &mut dropins, &mut errors);
                 }
             }
         }
@@ -669,21 +688,14 @@ fn list_toml_files_at(file: &Path, dir: &Path) -> Result<Vec<PathBuf>> {
             // directory does not exist -> not an error
         }
         Err(e) => {
-            return Err(Error::Other(format!(
-                "failed to read {}: {e}",
-                dir.display()
-            )))
+            errors.push(format!("failed to read {}: {e}", dir.display()));
         }
     }
 
     dropins.sort(); // lexicographic order among drop-ins only
 
-    let mut files = Vec::with_capacity(dropins.len() + 1);
-    if file.is_file() {
-        files.push(file.to_path_buf());
-    }
     files.extend(dropins);
-    Ok(files)
+    (files, errors)
 }
 
 fn parse_toml_config(path: &Path) -> Result<PartialConfig> {
@@ -717,22 +729,7 @@ struct LoadedConfig {
 /// cannot be listed and files that cannot be read or parsed are reported
 /// and skipped.
 fn read_partial_config(file: &Path, dir: &Path) -> (PartialConfig, Vec<String>) {
-    let mut errors = Vec::new();
-    let files = match list_toml_files_at(file, dir) {
-        Ok(files) => files,
-        Err(e) => {
-            errors.push(format!(
-                "{}; using {} alone",
-                config_problem(&e),
-                file.display()
-            ));
-            if file.is_file() {
-                vec![file.to_path_buf()]
-            } else {
-                Vec::new()
-            }
-        }
-    };
+    let (files, mut errors) = list_toml_files_at(file, dir);
     let mut partial = PartialConfig::default();
     for path in files {
         match parse_toml_config(&path) {
@@ -1228,7 +1225,8 @@ mod tests {
         let dropin_dir = temp_dir.join("rs-l2tpd.toml.d");
 
         fs::write(&main_file, b"[tunnels]\n").expect("write main config");
-        let files = list_toml_files_at(&main_file, &dropin_dir).expect("list files");
+        let (files, errors) = list_toml_files_at(&main_file, &dropin_dir);
+        assert!(errors.is_empty(), "{errors:?}");
 
         assert_eq!(files, vec![main_file.clone()]);
         fs::remove_dir_all(temp_dir).expect("cleanup temp dir");
@@ -1246,7 +1244,8 @@ mod tests {
         fs::write(dropin_dir.join("10-base.toml"), b"[tunnels]\n").expect("write dropin");
         fs::write(dropin_dir.join("README.txt"), b"ignore\n").expect("write non toml");
 
-        let files = list_toml_files_at(&main_file, &dropin_dir).expect("list files");
+        let (files, errors) = list_toml_files_at(&main_file, &dropin_dir);
+        assert!(errors.is_empty(), "{errors:?}");
 
         let expected = vec![
             main_file.clone(),
@@ -1268,11 +1267,51 @@ mod tests {
         fs::write(&main_file, b"[tunnels]\n").expect("write main config");
         fs::write(dropin_dir.join("00-first.toml"), b"[tunnels]\n").expect("write dropin");
 
-        let files = list_toml_files_at(&main_file, &dropin_dir).expect("list files");
+        let (files, errors) = list_toml_files_at(&main_file, &dropin_dir);
+        assert!(errors.is_empty(), "{errors:?}");
         let expected = vec![main_file.clone(), dropin_dir.join("00-first.toml")];
         assert_eq!(files, expected);
 
         fs::remove_dir_all(temp_dir).expect("cleanup temp dir");
+    }
+
+    #[test]
+    fn config_discovery_errors_keep_reload_state_and_usable_startup_files() {
+        use std::os::unix::fs::symlink;
+
+        let temp_dir = unique_temp_dir("config-discovery-error");
+        let main_file = temp_dir.join("rs-l2tpd.toml");
+        let dropin_dir = temp_dir.join("rs-l2tpd.toml.d");
+        fs::create_dir_all(&dropin_dir).unwrap();
+        let original = "[tunnels.original]\ntunnel_id = 10\nremote_addr = \"::1\"\n";
+        fs::write(&main_file, original).unwrap();
+        let previous = load_config_for_reload_at(&main_file, &dropin_dir, &Config::new()).unwrap();
+        fs::write(
+            dropin_dir.join("10-valid.toml"),
+            "[tunnels.valid]\ntunnel_id = 11\nremote_addr = \"::1\"\n",
+        )
+        .unwrap();
+
+        // Path::is_file hides lookup failures as false. A symlink loop must
+        // not look like an intentional deletion of the configuration file.
+        fs::remove_file(&main_file).unwrap();
+        symlink(&main_file, &main_file).unwrap();
+        assert!(load_config_for_reload_at(&main_file, &dropin_dir, &previous).is_err());
+        let loaded = load_config_lenient_at(&main_file, &dropin_dir);
+        assert_eq!(loaded.errors.len(), 1);
+        assert!(loaded.errors[0].contains("rs-l2tpd.toml"));
+        assert!(loaded.config.tunnels().contains_key("valid"));
+
+        fs::remove_file(&main_file).unwrap();
+        fs::write(&main_file, original).unwrap();
+        let broken = dropin_dir.join("20-broken.toml");
+        symlink(&broken, &broken).unwrap();
+        assert!(load_config_for_reload_at(&main_file, &dropin_dir, &previous).is_err());
+        let loaded = load_config_lenient_at(&main_file, &dropin_dir);
+        assert_eq!(loaded.errors.len(), 1);
+        assert!(loaded.errors[0].contains("20-broken.toml"));
+        assert_eq!(loaded.config.tunnels().len(), 2);
+        fs::remove_dir_all(temp_dir).unwrap();
     }
 
     #[test]

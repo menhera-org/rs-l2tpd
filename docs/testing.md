@@ -52,6 +52,11 @@ Coverage includes:
   of null devices.
 - Session MAC changes, cookies, and preparation while real
   systemd-networkd matches a temporary session by `Type=l2tpeth`.
+- External parent renames and child VLAN/macvlan interfaces moved into a
+  guest network namespace, preserving their addresses and routes through
+  publication retries, reloads and reconnection.
+- Reused interface indices after a session parent leaves its namespace,
+  and preservation of unrelated replacement devices.
 - Fallback route restoration after networkd reconfiguration, without
   replacing existing routes.
 
@@ -59,3 +64,10 @@ Tests require the documented Docker capabilities and host-kernel support;
 they do not use host networking. The current procfs prerequisite and the
 supplied systemd unit's path restrictions are described under
 [installation](installation.md).
+
+The child tests reproduce the kernel operations used by container
+managers; they do not run LXD or Incus themselves. These regressions cover
+specific observed races, not every possible kernel or manager behavior.
+The [session lifecycle constraints](sessions.md#child-interfaces-and-other-managers)
+and [kernel tunnel ownership requirement](operation.md#ownership-of-kernel-tunnels)
+also apply when coordinating with other network software.

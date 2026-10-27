@@ -48,8 +48,12 @@ See [sessions](sessions.md) for MAC and cookie behavior, and
 | Unusable endpoint: `remote_addr` missing, neither an address nor a host name, not unicast or of the wrong family; `ip_version` invalid, or missing for a host name | The tunnel and its sessions are created, connected to the discard address `100::`, where frames are dropped; warning | The same; a correction reconnects the tunnel in place |
 | `interface_hwaddr` not a unicast address | The session is created with the kernel's address; warning | The same; a correction applies the address in place |
 | Any other mistake in an entry: a missing, zero or duplicate identifier, an invalid interface name or cookie | The entry is left out, a tunnel with its sessions; warning | The entry keeps the values in force; a new entry is left out; warning |
-| A file that cannot be read or parsed | The file is skipped; warning | The previous configuration is kept as a whole |
+| A file that cannot be inspected, read or parsed, or a configuration directory that cannot be listed | Discoverable, readable files are used; warning | The previous configuration is kept as a whole |
 | An entry's previous values no longer fit the rest, such as an identifier now taken by another entry | | The previous configuration is kept as a whole |
 
 For comparison, 0.1.5 accepted a wrong-family literal and retried the
 tunnel forever, and it ignores the cookie keys silently.
+
+An absent file or directory is allowed. A failed lookup, such as a
+permission error or symlink loop, is an error rather than a request to
+remove its configuration.

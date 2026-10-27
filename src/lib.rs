@@ -63,6 +63,7 @@
 pub mod blocking;
 pub mod config;
 pub mod error;
+mod netlink;
 pub mod runtime;
 pub mod service;
 mod state;

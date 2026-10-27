@@ -4,4 +4,5 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 COPY networkd-routes.sh /opt/networkd-routes.sh
 COPY networkd-sessions.sh networkd-sysfs.sh /opt/
+COPY session-children.sh /opt/session-children.sh
 ENTRYPOINT ["sh", "/opt/networkd-routes.sh"]
