@@ -120,7 +120,7 @@ Defects against rules that hold under either design:
 | [C6](configuration.md#documents), [O5](observability.md#logging), [G11](promises.md#unconditional-promises) | Cookies never appear in logs. | A rejected cookie's text is part of the error message; the public `PartialConfig` prints cookie strings in its `Debug` output. |
 | [C7](configuration.md#tunnel-entries) | An IPv4-mapped literal is an IPv4 literal; a host name is 1 to 253 ASCII bytes. | A mapped literal is treated as IPv6; `""` and `"."` are accepted as the root name and non-ASCII names are punycoded. |
 | [C10](configuration.md#start-up) | An out-of-range identifier leaves out its entry. | It fails the whole document: the file's other entries are lost at start-up and a reload is refused. |
-| [C1](configuration.md#files), [C8](configuration.md#session-entries) | Non-UTF-8 drop-in names are ignored with a warning; a hardware address is six pairs of hex digits. | Non-UTF-8 names are read and merged silently; a `+` sign in a hardware address is accepted. |
+| [C8](configuration.md#session-entries) | A hardware address is six pairs of hex digits. | A `+` sign in a hardware address is accepted. |
 | [V5](resolvers.md#queries-and-answers) | IPv4-mapped answers are unusable for an IPv6 tunnel; unusable addresses are skipped. | Mapped answers are used over IPv4; an answer whose first address is unusable is rejected whole. |
 | [V6](resolvers.md#queries-and-answers), [V7](resolvers.md#queries-and-answers) | A resolver outage never disconnects a working tunnel; stale answers are retained. | A tunnel re-creation drops its resolver and its answer; `retain_stale_values` is off, so a transient negative answer clears the cached address. |
 | [T12](tunnels.md#bind-devices), [E3](events.md#link-events) | A removed bind device disconnects its tunnels. | Only the daemon's record of the binding is forgotten; the socket stays connected with the stale binding. |
@@ -139,3 +139,5 @@ For roadmap step 3 to decide:
 |---|---|---|
 | [C14](configuration.md#semantics-of-changes), [M17](model.md#identity-matrix) | A configuration entry renamed with unchanged identifiers is a removal and an addition. | The reconciler keys entries by identifier, so the kernel objects are kept. |
 | [S12](sessions.md#hardware-addresses) | A deferred hardware-address change is reported once. | It is logged on every reconcile that carries it. |
+| [C1](configuration.md#files) | A drop-in whose name is not UTF-8 is ignored with a warning. | It is read like any other drop-in. Decided on 2026-10-28: names are byte strings wherever UTF-8 is not required, so the specification changes. |
+| [C1](configuration.md#files) | (to be added) Drop-ins whose name starts with `.` are ignored; both configuration paths can be changed at build time and at runtime. | `.foo.toml` is read; both paths can be changed at build time (`CONFIG_FILE_PATH`, `CONFIG_DIR_PATH`) but there is no runtime option. Decided on 2026-10-28. |

@@ -423,7 +423,7 @@ Severity is the effect on a running host. Unless marked "live" or "probe", the e
 | N4 | C7, C10 | `remote_addr = ""` and `"."` are accepted as the root name, which is then resolved forever with no warning. Non-ASCII names are punycoded and accepted (live). `fqdn` 0.5.2 maps an empty name to the root. | `fqdn` `punycode.rs:15-16` | medium |
 | N5 | C10 | An out-of-range identifier (above 2^32-1, or negative) fails the whole document, not just its entry, because the fields are `Option<u32>`. At start-up the drop-in's other valid entries are lost (live); a reload is refused as a whole. | `src/config.rs:531-532`, `643-644` | high |
 | N6 | O5, G11 | Cookie values reach the logs. A rejected cookie's text goes into the error (`invalid cookie "00112233445566778"`, live), which is logged at start-up, on reload and by `--check`, so a one-digit typo prints the whole intended cookie. The public `PartialConfig` derives `Debug` with the cookie strings. | `src/config.rs:254-257`, `640-649`; `src/bin/main.rs:1111`, `799` | high |
-| N7 | C1 | A drop-in with a non-UTF-8 name (`\377x.toml`) is read and merged with no warning (live): `Path::extension()` of such a name is still the UTF-8 `toml`. A file named exactly `.toml` is skipped. | `src/bin/main.rs:677-681` | low |
+| N7 | C1 | A drop-in with a non-UTF-8 name (`\377x.toml`) is read and merged with no warning (live): `Path::extension()` of such a name is still the UTF-8 `toml`. A file named exactly `.toml` is skipped. **Reclassified by decision 8:** reading it is right, and C1 changes. | `src/bin/main.rs:677-681` | — (spec change) |
 | N8 | C8 | A hardware address with a sign (`+2:00:5e:00:53:01`) is accepted (live); the cookie parser guards against this, `HwAddr` does not. | `src/config.rs:143-146` | low |
 | N9 | A6, E20, G23 | The event monitor's connection comes from `rtnetlink::new_connection`, whose `netlink-proto` 0.13 connection task drains the kernel socket into an **unbounded** channel. When the 256-slot event channel is full, the monitor waits in `send`. The kernel buffer then never overflows and no resync happens; memory and latency grow without bound during an event storm. | `src/netlink.rs:32`; `src/runtime.rs:2292`, `2320`, `2326`; `netlink-proto` `lib.rs:229`, `280` | medium |
 | N10 | L7, P13 | Shutdown waits for a reload callback that is blocked, for example on a hung network mount. The `spawn_blocking` result is awaited outside the `select!` on shutdown, and dropping the runtime waits for the blocking task too. | `src/service.rs:293-297` | medium |
@@ -457,6 +457,24 @@ Partial rows the second pass adds, not counted as defects:
    - The supplied systemd unit MUST supply every required capability explicitly.
    - The daemon warns prominently, once for each one that is unavailable, and degrades gracefully instead of failing.
    - Step 4 writes both into the specification (R3/R4, K22/K39, P21, H15, O2).
+8. **Byte strings (user, 2026-10-28):** wherever UTF-8 is not required, the code uses OS strings (`OsStr`, `Path`) or nul-terminated C strings (`CStr`), not `str`.
+   - This reverses N7 as far as the encoding goes. A drop-in whose name is not UTF-8 but ends in `.toml` (ASCII case-insensitive, compared on bytes) is a valid drop-in, and C1's "ignored with a warning" is what changes, in step 4. Names starting with `.` are settled by decision 9.
+   - The code already follows the rule for configuration paths (`src/bin/main.rs:54-58`, `190-195`) and interface names (`L2tpIfName` is a 16-byte array; `to_str` is only used where text is unavoidable).
+   - **Text is unavoidable** in two places, neither reachable in practice:
+     - `rtnetlink`'s `LinkUnspec::name` takes `&str`, so a rename or publication refuses a non-UTF-8 name (`src/state.rs:490-492`, `592-594`). Only configured names reach these calls, and TOML makes those UTF-8. A foreign device's non-UTF-8 name is never passed to them.
+     - Serialising a name to TOML needs UTF-8 (`src/config.rs:55-58`), and TOML requires it anyway.
+   - Logging uses `to_string_lossy`, which is fine for display.
+   - If step 5 ever needs a non-UTF-8 rename, it goes upstream to `rtnetlink`, or through a byte-based helper in the `l2tp` crate.
+9. **Drop-in names and configuration paths (user, 2026-10-28):**
+   - **Names starting with `.` are ignored**: hidden files, editor and package-manager leftovers.
+     - Today `.toml` alone is already skipped, because `Path::extension` sees no extension.
+     - But `.foo.toml` is read (`src/bin/main.rs:677-681`), which is a defect under this rule.
+     - C1 gains the rule in step 4.
+   - **The main file and drop-in directory paths stay configurable, at build time and at runtime.**
+     - Build time conforms: `CONFIG_FILE_PATH` and `CONFIG_DIR_PATH` (`build.rs:4-19`). C1 says "unless built otherwise" only for the main file.
+     - Runtime is **missing**: the command line has `--verbose`, `--check`, `--pidfile` and `--setup` only (`src/bin/main.rs:32-46`).
+     - Step 4 adds both paths to C1, and the runtime options to the process contract (P23) and to `--check`.
+     - The library is unaffected, because it never reads files.
 
 ### Not checked (second pass)
 
