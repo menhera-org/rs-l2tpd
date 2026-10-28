@@ -67,7 +67,8 @@ Coverage includes:
 - Reused interface indices after a session parent leaves its namespace,
   and preservation of unrelated replacement devices.
 - Fallback route restoration after networkd reconfiguration, without
-  replacing existing routes.
+  replacing existing routes. This tests the retired discard-address design
+  and goes with it.
 
 Tests require the documented Docker capabilities and host-kernel support;
 they do not use host networking. The current procfs prerequisite and the
@@ -88,7 +89,7 @@ Facts that cost time once and shape how the tests are written:
 
 - The kernel never echoes a route notification to the netlink port that
   requested the change. A test listening for `RTM_DELROUTE` must make the
-  change on a second connection, as the daemon itself does.
+  change on a second connection.
 - A VRF whose table has no IPv4 `unreachable default` route falls through
   to the main table for IPv4 lookups, so a route in the main table makes a
   peer routable inside the VRF too.

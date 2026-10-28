@@ -5,7 +5,9 @@
 A Linux L2TPv3 daemon written in Rust, and the `rs_l2tpd` library it is built on.
 The kernel carries Ethernet pseudowires over IPv4 or IPv6.
 
-- Peers can be addresses or host names, with interface or VRF binding.
+- Peers can be addresses or host names, resolved by the system resolver or
+  by configured resolvers (fixed servers, router advertisements, DHCPv6),
+  with interface or VRF binding.
 - Address changes, late bind devices and replacements under the same name
   are handled without recreating working session interfaces.
 - Sessions support optional fixed MAC addresses and cookies.
@@ -16,7 +18,8 @@ The kernel carries Ethernet pseudowires over IPv4 or IPv6.
   depend on daemon-created session interfaces, without any route to a peer.
 - Hosts without IPv6, with IPv6 disabled, and routers with large routing
   tables are supported.
-- The daemon works with any init system and includes a systemd installer.
+- The daemon works with any init system and includes a systemd installer;
+  `SIGUSR2` restarts it onto a new binary without re-creating its tunnels.
 
 ## Quick start
 

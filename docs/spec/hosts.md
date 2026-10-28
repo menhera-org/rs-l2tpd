@@ -54,9 +54,18 @@ member is routed in the VRF's table by the kernel ([K28](kernel.md#facts)).
 
 ## Routers
 
-H8. A router with large routing tables, or with routes that change
-constantly, MUST NOT cost the daemon anything: route notifications are
-not subscribed to ([K7](kernel.md#requirements)).
+H8. The daemon MUST NOT assume a host whose routing is a default route.
+No default route, a default route only, specific routes only, policy
+routing over several tables and VRFs, and a router in the default-free
+zone (DFZ: the full Internet table in each family and no default route)
+are all supported alike, because routing
+is the kernel's decision at connect time: a peer is reachable exactly
+when the kernel accepts the connect ([T16](tunnels.md#peers-that-cannot-be-reached)).
+The daemon never reads, dumps, looks up, installs or repairs a route
+([kernel](kernel.md#requirements)). A router with large routing tables,
+or with routes that change constantly, MUST NOT cost the daemon anything:
+route notifications are not subscribed to ([K7](kernel.md#requirements)),
+and no cost of the daemon depends on the size of a routing table.
 
 ## Containers and namespaces
 

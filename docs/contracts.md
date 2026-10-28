@@ -70,6 +70,11 @@ Guards: `tests/docker/network.sh` (current against 0.1.5), the
   keeps the values in force, a new broken entry is left out, and only an
   unparsable file, an unlistable directory or previous values that no
   longer fit keep the whole previous configuration.
+- The main file and the drop-in directory have build-time defaults and can
+  be changed at build time and on the command line; drop-ins whose name
+  starts with `.` are ignored, and file and interface names are byte
+  strings, never required to be UTF-8 unless a text format needs it
+  ([C1](spec/configuration.md#files), [A22](spec/architecture.md#names)).
 - `ip_version` is optional for a literal address and required for a host
   name. Tunnel identifiers, session identifiers and interface names are
   unique in the namespace; session identifiers cannot repeat across tunnels.
@@ -112,11 +117,15 @@ privileged socket tests.
   reconnect when the address they selected is removed, and all connected
   ones on a monitor resync. Disconnected tunnels are not reconnected for
   address events.
-- Device bindings are set by index on an unbound socket; `CAP_NET_RAW` is
-  not needed for them. `CAP_NET_RAW` is required only by resolvers that use
-  router advertisements, which receive and solicit them from a raw ICMPv6
-  socket because networkd-managed interfaces usually have `accept_ra` off
-  ([K39](spec/kernel.md#requirements), [K40](spec/kernel.md#facts)).
+- Device bindings are set by index on a socket without a binding, after
+  the disconnect that clears the previous one; that order needs no
+  capability and holds whether or not the daemon has `CAP_NET_RAW`.
+  `CAP_NET_RAW` is required nonetheless ([R4](spec/requirements.md#the-host)):
+  resolvers that use router advertisements receive and solicit them from a
+  raw ICMPv6 socket because networkd-managed interfaces usually have
+  `accept_ra` off ([K39](spec/kernel.md#requirements),
+  [K40](spec/kernel.md#facts)), and the kernel accepts a binding on a
+  socket that still has one only with it.
 
 Guards: the privileged socket tests, `address-changes.sh`,
 `source-and-peers.sh`, `ipv6-disabled.sh`, `monitor-resync.sh`.
@@ -160,11 +169,13 @@ tests.
 
 ## Library API
 
-- The library owns no configuration file and no process policy: it reads
-  no configuration file, writes to no terminal, installs no signal handler,
-  writes no kernel tunable and assumes no serialisation format; serde
+- The library owns no configuration and no process policy: it does no
+  standard I/O and no file I/O, reads no configuration and no environment
+  variable, installs no signal handler, writes no kernel tunable and
+  assumes no serialisation format; kernel interfaces (sockets, netlink,
+  `/proc`) are its business, and the system resolver is the libc's. Serde
   support is an optional feature, and TOML, clap and env_logger belong to
-  the binary.
+  the binary ([L1](spec/library.md#boundaries)).
 - The library logs through the `log` facade; the binary hosts env_logger
   and drives reloads and shutdowns from signals through `Control`.
 - Consumers must not need Tokio: `blocking::Service` runs its own runtime
@@ -186,7 +197,11 @@ and without `serde`, `cargo doc -D warnings`.
 - Tunnels, sessions and devices the daemon does not own are never modified:
   foreign devices under an owned name are left alone, foreign sessions
   reusing freed identifiers survive.
-- The daemon needs `CAP_NET_ADMIN`, and `CAP_NET_BIND_SERVICE` only for a
-  DHCPv6 resolver, and nothing more; it changes no kernel setting except
+- Every capability needed for healthy operation is required:
+  `CAP_NET_ADMIN`, `CAP_NET_RAW` and `CAP_NET_BIND_SERVICE`, and nothing
+  more ([R49](spec/requirements.md#the-host)). The supplied unit grants all
+  three explicitly; each one missing is reported once at start-up and the
+  daemon runs on fallbacks that are not guaranteed to work in every case,
+  never failing for it. The daemon changes no kernel setting except
   `net.ipv6.bindv6only`, which it sets to 0 in its own namespace unless
   the operator opted out; panics are avoided as denial of service.

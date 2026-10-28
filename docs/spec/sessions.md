@@ -232,5 +232,7 @@ as opposed to moved. The two observations may arrive in either order
 ([K18](kernel.md#facts)); the daemon queries the kernel after the removal
 and acts on the answer. A device moved to another namespace, whose
 session the kernel still has, is not re-created. This is a
-[known gap](README.md#known-gaps): today the daemon notices such a
-deletion only when the session's configuration changes or at restart.
+[known gap](README.md#known-gaps): today the daemon does not re-create
+such a session. It marks the device as no longer manageable, skips its
+renames and hardware-address changes, and creates the session again only
+when a reload changes a field that re-creates it, or at restart.

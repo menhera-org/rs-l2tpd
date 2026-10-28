@@ -8,14 +8,18 @@ in the [GitHub repository](https://github.com/menhera-org/rs-l2tpd).
 
 | Guide | Contents |
 |---|---|
-| [Installation](installation.md) | Building, kernel and procfs requirements, systemd setup |
-| [Configuration](configuration.md) | TOML example, merging, validation and degraded operation |
+| [Installation](installation.md) | Building, kernel requirements, capabilities, procfs, systemd and other init systems |
+| [Configuration](configuration.md) | TOML example, files and merging, resolvers, validation and degraded operation |
 | [Sessions](sessions.md) | Interface identity, child namespaces, MAC preparation and session cookies |
-| [Operation](operation.md) | Readiness, source selection, discard routing, reload and shutdown |
+| [Operation](operation.md) | Readiness, disconnected tunnels, source selection, bindv6only, reload, restart and shutdown |
 | [Library](library.md) | Features, asynchronous and blocking services, control handles |
 | [Testing](testing.md) | Compatibility expectations, validation suites, kernel test pitfalls |
 | [Contracts](contracts.md) | The rules every change must keep, and the tests that guard them |
 | [Specification](spec/README.md) | Requirements, promises, architecture and the normative behaviour in every condition, with the known gaps of the implementation |
+
+The guides describe the behaviour the specification defines. Where the
+current release still differs, the specification's
+[known gaps](spec/README.md#known-gaps) list it.
 
 These pages use relative Markdown links, so navigation works in a checkout
 and on GitHub. The directory can also be used as the `/docs` source for

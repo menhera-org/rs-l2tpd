@@ -7,19 +7,23 @@
 Session interfaces are tracked by their link lifetime, so renames by udev
 or networkd are supported without confusing a reused index with the old
 device. A session interface is recreated only when its session must
-change in the kernel: its peer identifier or cookies, or its tunnel's
-identifiers or bind device. Other configuration changes, including
-mistakes, preserve the interface. The daemon never takes a session
-interface down to apply a MAC change, including during initial creation.
+change in the kernel: its identifiers, its peer identifier, its cookies or
+its `tunnel_name`, or its tunnel's identifiers; and when its
+configuration entry is removed or renamed. Other configuration changes,
+including mistakes and a changed `bind_interface` of its tunnel, preserve
+the interface. The daemon never takes a session interface down to apply a
+MAC change, including during initial creation.
 
 ## Hardware addresses
 
-When `interface_hwaddr` is configured, a new session is created under a
-temporary name with the project-specific prefix `rsl2tp-t`. Temporary names
-used to resolve rename cycles use `rsl2tp-r`. Both use hexadecimal suffixes,
-check for collisions, and stay within Linux's 15-byte name limit; neither
-uses generic prefixes such as `v`. Ordinarily, the daemon applies and
-verifies its MAC before publishing the configured name. A network manager
+Every new session is created under a temporary name with the
+project-specific prefix `rsl2tp-t`, followed by six hexadecimal digits
+from a random source, and published under its configured name only once
+it is ready, with or without `interface_hwaddr`. Temporary names used to
+resolve rename cycles use `rsl2tp-r`. Both check for collisions and stay
+within Linux's 15-byte name limit; neither uses generic prefixes such as
+`v`. Ordinarily, the daemon applies and verifies a configured MAC before
+publishing the configured name. A network manager
 can activate even the temporary device through a match such as
 `Type=l2tpeth`. If it does, the daemon preserves the active interface and
 defers its MAC change until the
@@ -36,10 +40,13 @@ type or other properties; making that request faster cannot eliminate the
 race. See the kernel's [L2TP attributes](https://github.com/torvalds/linux/blob/master/include/uapi/linux/l2tp.h)
 and [Ethernet pseudowire driver](https://github.com/torvalds/linux/blob/master/net/l2tp/l2tp_eth.c).
 
-Preparation or publication errors, including an occupied final name, are
-retried on the same pending session. They do not delete an interface that
-another manager may already be using. Removing that session from the
-configuration or changing a kernel creation parameter still removes it.
+Preparation or publication errors, including a final name occupied by a
+foreign device, are retried every second on the same pending session,
+which stays under its temporary name meanwhile and counts for readiness.
+They do not delete an interface that another manager may already be
+using, and the foreign device is never touched. Removing that session
+from the configuration or changing a kernel creation parameter still
+removes it.
 
 `ip link` shows the current name. `ip l2tp show session` may retain the
 temporary name because the kernel records that name at creation.
@@ -71,27 +78,31 @@ the monitor reopens.
 
 What removing or re-creating such a session does depends on how its
 identity was lost. After an observed removal from the namespace, the
-daemon forgets the session without deleting a potentially foreign object
-that reuses its identifiers; the original session may remain until its
-owned tunnel is torn down. After a loss of notifications, the kernel's own
+daemon asks the kernel: a session the kernel no longer has was deleted,
+and it is created again, as any configured object the kernel lacks; a
+session the kernel still has was moved (its device lives in another
+namespace), and it is left alone, never deleted through identifiers a
+foreign object may reuse. After a loss of notifications, the kernel's own
 record decides: a session the kernel still reports under the interface
-name it was given at creation is the daemon's own and is deleted, so that
-its re-creation with new cookies, or its removal, succeeds. The same
+name it was given at creation is the daemon's own and is deleted by that
+name, in one operation with the check, so that its re-creation with new
+cookies, or its removal, succeeds. The same
 record lets a session whose notifications were lost while it was still
 being prepared be deleted and created again, when its device cannot be
 identified again at its registration index by its temporary name, so that
 readiness is reached even when a burst of link changes overflows the
 monitor during startup.
-Restoring management of a session that was moved or whose device was
-replaced requires controlled tunnel recreation or a daemon restart, which
-also removes dependent children.
+Restoring management of a session whose device was moved away requires
+controlled tunnel recreation or a daemon stop and start, which also
+removes dependent children.
 
 Linux cannot atomically validate the recorded lifetime and then change or
 delete the session. A privileged manager deleting and replacing it during
 that gap remains outside this guarantee.
 
 Explicit session removal, changes requiring recreation and daemon shutdown
-delete the parent. Linux can then delete its dependent children, including
+delete the parent; a `SIGUSR2` restart does not
+([restart](operation.md#restart)). Linux can then delete its dependent children, including
 children moved to other namespaces. Arrange container and network-manager
 lifecycles accordingly; moving a child does not make it independent of
 its parent.
