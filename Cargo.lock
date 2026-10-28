@@ -193,9 +193,9 @@ dependencies = [
 
 [[package]]
 name = "l2tp"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f95a548c7da53ea4dbd8cb6e82a487c9deb8fa39c518ecd149ca599739477bc5"
+checksum = "ad9c8165c50a157022f1f8531a63b862926412d50f3b6068a46f8380ba0987ff"
 dependencies = [
  "futures",
  "genetlink",

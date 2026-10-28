@@ -69,10 +69,11 @@ specification differ, the specification is right and this page is wrong.
    thread and zone parsing are the daemon's ([dependencies](dependencies.md#upstream-needs)).
    The one item that was missing upstream, a constructor for a bound,
    unconnected tunnel socket (the disconnected state of T1), is
-   in `l2tp` 0.4.2, published and pinned on 2026-10-28. The sender-validation bug and bounded event/request requirements are
-   recorded in the dependency table. Existing upstream contracts stay
-   unchanged; the selected bounded raw adapter supplies daemon-specific
-   queue/deadline requirements before Phase 2 can close.
+   in `l2tp` 0.4.2, published and pinned on 2026-10-28; 0.4.3 (same day,
+   pinned) fixed the sender validation of E22 and added the bounded event
+   subscription `events_bounded` that G23 needs. What remains daemon-side
+   is the request deadline: the generic-netlink request adapter of
+   phase 2 ([dependencies](dependencies.md#upstream-needs)).
 2. The version stays **0.2.0**: it was never released, so the API
    changes of L5, L6 and L13 break nothing published; the configuration
    format of 0.1.5, the last release, keeps working (G22).

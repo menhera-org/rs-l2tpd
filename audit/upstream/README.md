@@ -1,4 +1,7 @@
-# l2tp 0.4.2 event sender fix
+# l2tp 0.4.2 event sender fix (superseded by the 0.4.3 release)
+
+`l2tp` 0.4.3, published 2026-10-28, carries this fix (and `BoundedEvents`);
+the manifest pins it. The patch below is kept as the reproduction.
 
 `l2tp-kernel-event-sender.patch` is the only upstream change prepared here.
 It was developed in an isolated clone at commit

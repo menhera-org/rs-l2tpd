@@ -26,7 +26,7 @@ src/
     linux/
       mod.rs        LinuxKernel: owns the request socket, the genl handle, the subscriptions
       socket.rs     tunnel sockets over l2tp::TunnelSocket + socket2 (T3–T6, T10, T21, T26, K22–K26)
-      l2tp.rs       bounded generic-netlink requests/subscription over netlink-sys (K16–K20, K35, K41)
+      l2tp.rs       bounded generic-netlink requests over netlink-sys; the K41 subscription is l2tp::BoundedEvents (K16–K20, K35, K41)
       rtnl.rs       rtnetlink requests over netlink-sys (K32, A5)
       monitor.rs    the event monitor: groups, cBPF filter, ENOBUFS (A5, K10, K29, E20–E22)
       lifetime.rs   the link-lifetime subscription and ordered lookups (A7, S8, S9, M18)
@@ -331,14 +331,17 @@ the stored descriptors' names (P14) and the path it was started with
   kernel socket into an unbounded queue, which is the A6 defect of the
   known gaps; `netlink-sys` on `AsyncFd` gives the kernel's own buffer and
   `ENOBUFS` back.
-- **`l2tp` kept for socket operations and shared types.** Generic-netlink
-  requests and events use the daemon's `netlink-sys` adapter with the
-  existing packet codecs. Its request socket has at most one request in
-  flight, an absolute five-second deadline and sequence/sender validation.
-  It reopens after a failed or uncertain request; it never drains into an
-  unbounded user-space queue. The dedicated event socket similarly has
-  finite buffers and the persistent loss flag of E20. This avoids changing
-  `l2tp`'s default queue or timeout semantics for one consumer.
+- **`l2tp` kept for socket operations, the event subscription and shared
+  types.** Generic-netlink requests use the daemon's `netlink-sys` adapter
+  with the existing packet codecs, because the upstream handles carry no
+  deadline: its request socket has at most one request in flight, an
+  absolute five-second deadline and sequence/sender validation, and it
+  reopens after a failed or uncertain request. The K41 subscription is
+  `L2tpHandle::events_bounded` (0.4.3): it reads the kernel socket
+  directly, so memory is bounded by `SO_RCVBUF`, which the daemon sets
+  through its `AsFd`; `ENOBUFS` arrives as an error item ahead of the
+  queued notifications and feeds the persistent loss flag of E20; sender
+  port 0 is checked before decoding (E22).
   Three details of its use: a tunnel is created on
   `TunnelSocket::ip_unconnected` (0.4.2) with the `TunnelConfig` that
   `TunnelConfig::for_socket` derives from it (the unspecified remote,
@@ -355,13 +358,12 @@ the stored descriptors' names (P14) and the path it was started with
   deletes by identifier, which is not the daemon's ownership policy.
   Session devices' indexes come from the daemon's lifetime subscription
   (S8), not from `SessionHandle::ifindex`, whose own monitor is opened
-  per creation and falls back to a lookup by name. The K41 path must be bounded from the socket reader onward,
-  preserve a persistent loss marker, and check recvmsg sender port zero
-  before decoding. A bounded forwarding queue after the existing
-  unbounded `EventIter` is insufficient. Default upstream behavior is
-  not changed merely to satisfy this daemon; the chosen raw-netlink
-  boundary supplies these requirements. All request paths obey the total
-  deadline and uncertain-mutation rules above.
+  per creation and falls back to a lookup by name. The K41 path is
+  bounded from the socket reader onward only with `events_bounded`; the
+  unbounded `events`/`EventIter` is for fixtures, and a bounded
+  forwarding queue behind it would not bound the upstream queue. All
+  request paths obey the total deadline and uncertain-mutation rules
+  above.
 - **Random names from the `getrandom` crate.** S4 wants the kernel's
   random source; the library may neither read `/dev/urandom` (L1) nor
   call `getrandom(2)` through `libc` (L2), and `std` exposes no stable
