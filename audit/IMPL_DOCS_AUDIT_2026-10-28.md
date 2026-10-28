@@ -67,6 +67,23 @@ and the control handle. A6's "one task" is that thread.
 - Interface, testing layout, phases and exit criteria need no change
   beyond the two notes above.
 
+## Resumed after `l2tp` 0.4.2 was published
+
+0.4.2 is pinned and the tree builds. The remaining pass looked at the
+handle types the daemon will hold, since those are where a crate's
+defaults can contradict a specification silently. Findings, all written
+into `architecture.md` and `dependencies.md`:
+
+| | Finding | Rule |
+|---|---|---|
+| A1 | `TunnelHandle` and `SessionHandle` default to `auto_delete = true` and, on drop, spawn a netlink deletion **by identifier** onto the current runtime. T8 forbids deleting a tunnel by identifier (a foreign replacement could be removed), and M6 orders session deletions explicitly. The daemon sets `set_auto_delete(false)` on every handle at once; dropping the tunnel handle still closes the socket, which is the T8 deletion, and the daemon polls `get_tunnel` for `ENODEV` for the two-second wait instead of `delete_tunnel`, which deletes by identifier | T8, M6 |
+| A2 | The descriptor for the store and for the re-exec is a duplicate from `TunnelHandle::socket().try_clone_fd()`; the binary clears close-on-exec on the duplicate only, and the original closes with the exec as T6 wants. No upstream change needed | P14, P26, T6 |
+| A3 | `create_session` opens an `RTNLGRP_LINK` socket of its own per creation to capture the device index and falls back to a lookup by name when its notifications were lost. The daemon ignores `SessionHandle::ifindex` and takes the index from its generation-tracked lifetime subscription, as S8 requires; the extra socket is short-lived and harmless | S8 |
+| A4 | The K41 stream from the blocking handle is a blocking `EventIter`; it is read on a thread that forwards with `try_send` and marks a resync when the channel is full, the same contract as the event monitor | A6, E27 |
+| A5 | Requests through the blocking handle have no timeout. Accepted: generic netlink replies are synchronous, and E21's five-second timeout belongs to the lifetime socket, which the daemon owns | E21 |
+
+Nothing else was found. The phases can start.
+
 ## Not audited
 
 The specification itself (reviewed on 2026-10-28 in

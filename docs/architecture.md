@@ -309,7 +309,19 @@ the stored descriptors' names (P14) and the path it was started with
   an adopted IPv4 L2TP/IP socket is taken with `from_fd_with_peer`,
   because the kernel reports no peer connection id for it. IPv4 peers
   on an `AF_INET6` socket are passed to `reconnect_ip` as IPv4-mapped
-  `IpEndpoint::V6`.
+  `IpEndpoint::V6`. Every `TunnelHandle` and `SessionHandle` gets
+  `set_auto_delete(false)` at once: their drop would otherwise delete
+  by identifier, which T8 forbids and M6 orders differently; a tunnel is
+  deleted by dropping its handle, which closes the socket, followed by
+  the daemon's own two-second `get_tunnel` poll for `ENODEV` (T8).
+  Session devices' indexes come from the daemon's lifetime subscription
+  (S8), not from `SessionHandle::ifindex`, whose own monitor is opened
+  per creation and falls back to a lookup by name. The K41 stream is
+  the blocking handle's `EventIter`, read on a thread that forwards
+  with `try_send` and a resync flag like the monitor. Requests through
+  the blocking handle carry no timeout; the kernel answers generic
+  netlink synchronously, and E21's timeout belongs to the lifetime
+  socket, which is the daemon's own.
 - **Random names from the `getrandom` crate.** S4 wants the kernel's
   random source; the library may neither read `/dev/urandom` (L1) nor
   call `getrandom(2)` through `libc` (L2), and `std` exposes no stable
