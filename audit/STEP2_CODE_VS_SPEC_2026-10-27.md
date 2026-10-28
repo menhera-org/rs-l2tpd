@@ -5,6 +5,7 @@
 | Code | `main` at `6dfa2a9` (`src/` last changed before the specification work; 16,400 lines in `src/`, plus `build.rs`) |
 | Specification | `docs/spec/` as committed in `6dfa2a9` ("docs(spec): finish the specs"), with the resolver-page and link fixes made the same day |
 | Method | Every source file was read in full (`lib.rs`, `error.rs`, `config.rs`, `service.rs`, `blocking.rs`, `runtime.rs`, `state.rs`, `state/link_identity.rs`, `netlink.rs`, `bin/main.rs` without its tests, `build.rs`) and compared with every numbered rule of every page. The `l2tp` 0.4.0 and `iphost` 0.3.3 sources in the cargo registry were read where a rule depends on them. `cargo test --all-features` was run (114 library tests, 18 binary tests, 1 doctest pass; 21 privileged tests ignored). Two throwaway unit tests were added, run and reverted: one confirms the name-takeover deadlock below, the other that `%` passes interface-name validation. Every Docker suite of `tests/docker/README.md` was then re-run on this tree with freshly built x86_64 musl binaries (current 0.2.0, baseline 0.1.5, the privileged test binary): the 21 privileged kernel tests, the 18-case interoperability matrix plain, with `MAC_RELOAD=1` and with `COOKIES=1`, address-changes (4 cases), discard-recovery (4), networkd-routes (2), networkd-sessions (3), session-children, session-identity (3), tunnel-ownership, monitor-resync, link-monitor-burst normal and `MODE=overflow`, degraded-start (10), source-and-peers (3), ipv6-disabled (4) and staging-loss (2). All passed on Linux 6.8.0-147. They test the current design, so they corroborate rather than contradict the rows below: degraded-start asserts that readiness waits for a route to `100::` and that the null device appears after the grace period (P7, G8); source-and-peers asserts the ten conflict retries (P8); link-monitor-burst and staging-loss show the identity rules of S19–S24 holding. |
+| Second pass | 2026-10-28, same code (`741117b` changes no source file): an independent re-audit that did not consult this report, then a check of every finding below. See [Second pass](#second-pass-2026-10-28) at the end; rows it overturns carry a "Second pass" note. |
 | Verdicts | **conforms**: the code does what the rule says. **differs**: it does something else. **missing**: the rule's mechanism does not exist. **partial**: the rule holds in some cases. A verdict says what the code does, not whether the code or the rule should change; step 3 decides that. |
 
 ## Summary
@@ -35,7 +36,7 @@ Two places where the code is stricter or safer than the rule, for step 3 to deci
 |---|---|---|---|
 | R1 | partial | Operations fail and are retried every second with readiness withheld; but a failure to open the kernel interfaces at start-up exits the daemon (see P5). | `src/bin/main.rs:1147`, `src/service.rs:136-148` |
 | R3 | conforms | `CAP_NET_ADMIN` is needed for the netlink operations; no other capability is used. | — |
-| R4 | conforms | `SO_BINDTODEVICE` is only ever applied to a socket without a binding: at creation, after a disconnect, or on a socket created unbound. The crate doc and `src/lib.rs:27-28` still say `CAP_NET_RAW` is needed; that is a documentation error. | `src/state.rs:652-669`, `1341-1370`, `1405-1421` |
+| R4 | conforms (**second pass: differs**, N1) | `SO_BINDTODEVICE` is only ever applied to a socket without a binding: at creation, after a disconnect, or on a socket created unbound. The crate doc and `src/lib.rs:27-28` still say `CAP_NET_RAW` is needed; that is a documentation error. **Second pass:** not so; after `forget_tunnel_binding` the still-bound socket is re-bound without a disconnect, which needs `CAP_NET_RAW`. | `src/state.rs:652-669`, `1341-1370`, `1405-1421` |
 | R5 | differs | The monitor subscribes to the link, both address and **both route** groups; the kernel filter keeps only link and address messages and the removal of a discard route. No `RTNLGRP_ND_USEROPT`. | `src/runtime.rs:2255-2262`, `src/netlink.rs:157-171` |
 | R6 | conforms | The classic BPF filter is attached; a failure is a warning and the monitor runs unfiltered. | `src/netlink.rs:61-68` |
 | R7 | conforms | Through the `l2tp` crate's namespace handling. | — |
@@ -48,7 +49,7 @@ Two places where the code is stricter or safer than the rule, for step 3 to deci
 | R16 | partial | Only the system resolver (libc through `iphost` 0.3.3). | `src/runtime.rs:496-499` |
 | R17, R18 | conforms | Foreign replacements are never deleted; see S21/S22. | `src/state.rs:1446-1466`, `1889-1937` |
 | R19 | conforms | `rsl2tp-t…` and `rsl2tp-r…` names are the daemon's; a foreign device under one is skipped. | `src/state.rs:338-345`, `src/runtime.rs:2619-2651` |
-| R21, R22 | conforms | PID file path is an argument; a kill leaves nothing behind. | `src/bin/main.rs:40-42` |
+| R21, R22 | conforms (**second pass: R22 differs**, N13) | PID file path is an argument; a kill leaves nothing behind. **Second pass:** the null device and its routes survive a kill. | `src/bin/main.rs:40-42` |
 | R23 | conforms | — | `src/state.rs:103-115` (S12) |
 | R24–R27 | conforms | `AF_INET` sockets refuse IPv6 peers before any socket call. | `src/state.rs:702-717` |
 | R28–R31, R34–R36 | conforms | See the S and T rows. | — |
@@ -72,7 +73,7 @@ Two places where the code is stricter or safer than the rule, for step 3 to deci
 | G8 | differs | Readiness waits for a session's publication under its configured name (a staging failure returns an error, so `converge` loops) and for a route to a discard address. | `src/service.rs:170-198`, `src/runtime.rs:1997-2087`, `src/state.rs:586-608` |
 | G9 | conforms, no exception | No hand-over exists, so every restart tears down and re-creates. | — |
 | G10 | partial | `CAP_NET_ADMIN` only; no `bpf()`; no tunable is written. But the null device needs the `dummy` driver and the daemon installs routes, which the kernel page lists as not required. | `src/state.rs:1061-1111` |
-| G11 | conforms | Cookie `Debug` gives the length; logs print "set"/"none". | `src/config.rs:242-246`, `src/runtime.rs:2515-2522` |
+| G11 | conforms (**second pass: differs**, N6) | Cookie `Debug` gives the length; logs print "set"/"none". **Second pass:** a rejected cookie's text is in the error message, and `PartialConfig`'s `Debug` prints cookie strings. | `src/config.rs:242-246`, `src/runtime.rs:2515-2522` |
 | G12 | differs | Route groups are subscribed to (filtered to discard route removals); an address event on a device no tunnel is bound to still costs a VRF-master lookup when any tunnel is bound; every link event re-installs the recorded discard routes. | `src/runtime.rs:1774-1798`, `1586-1588` |
 | G13 | differs | Failed reconnects are logged at warning level on every retry; so is an incomplete reconcile ("will retry") every second. | `src/runtime.rs:1894-1897`, `1286-1290`; `src/service.rs:181`, `278` |
 | G14 | partial | See L5, L8, L10. | — |
@@ -104,7 +105,7 @@ Two places where the code is stricter or safer than the rule, for step 3 to deci
 | A1 | partial | The binary owns files, logging, daemonisation, the readiness pipe, the PID file and signals; no tunable write, no hand-over. | `src/bin/main.rs` |
 | A2–A4 | conforms | — | `src/service.rs`, `src/runtime.rs`, `src/state.rs` |
 | A5 | partial | Requests on sockets of their own, never on the monitor: conforms. The lifetime subscription is a dedicated unfiltered `RTNLGRP_LINK` socket read by its own task: conforms. The monitor subscribes to route groups: differs. Resolvers: system only. | `src/state/link_identity.rs:242-260`, `src/runtime.rs:2255-2262` |
-| A6 | differs | The channel is bounded (256) but the monitor task awaits `send` when it is full instead of dropping the event and marking a resync; loss then shows up as a kernel-side overflow. Shutdown has its own persistent flag: conforms. | `src/runtime.rs:2320`, `src/service.rs:24`, `112-116` |
+| A6 | differs | The channel is bounded (256) but the monitor task awaits `send` when it is full instead of dropping the event and marking a resync; loss then shows up as a kernel-side overflow (**second pass: it does not**, N9: the `netlink-proto` connection drains the kernel socket into an unbounded queue, so nothing overflows and memory grows instead). Shutdown has its own persistent flag: conforms. | `src/runtime.rs:2320`, `src/service.rs:24`, `112-116` |
 | A7 | conforms | Own socket, own task, request-reply through a oneshot, proofs kept in the worker. | `src/state/link_identity.rs:521-577` |
 | A8 | partial | Operations are sequential; ordering differs from M6 (see M6). | — |
 | A9 | conforms | 30 s refresh, 1 s poll, nothing blocks the loop. | `src/runtime.rs:53-54`, `520-565` |
@@ -171,16 +172,16 @@ Two places where the code is stricter or safer than the rule, for step 3 to deci
 
 | Rule | Verdict | The code | Evidence |
 |---|---|---|---|
-| C1 | partial | Main file first, drop-ins by byte order, `.toml` case-insensitively. A non-UTF-8 name is skipped silently, not with a warning. | `src/bin/main.rs:649-699` |
+| C1 | partial | Main file first, drop-ins by byte order, `.toml` case-insensitively. A non-UTF-8 name is skipped silently, not with a warning. **Second pass:** it is read and merged silently (N7). | `src/bin/main.rs:649-699` |
 | C2, C3 | conforms | — | `src/config.rs:496-505`, `src/bin/main.rs:745-815` |
 | C4 | differs | A dangling symbolic link is treated as an absent file (`fs::metadata` reports it as not found), not as an error; a loop is an error. | `src/bin/main.rs:650-657` |
 | C5 | missing | Only `tunnels` and `sessions`; no `resolvers`, no `host`. | `src/config.rs:483-490` |
 | C6 | differs | Unknown keys are ignored silently (no `deny_unknown_fields`, no reporting); `--check` cannot report them. | `src/config.rs:483-490` |
 | C7 | partial | `tunnel_id`, `peer_tunnel_id`, `ip_version` conform. `remote_addr`: no zone syntax (a zoned literal is an unusable endpoint), no link-local rule; `resolver_name` absent. Interface names: `%` and non-ASCII bytes are accepted (probe), against the rule's "no `%`". | `src/config.rs:593-614`, `1076-1097`; `l2tp-0.4.0/src/types.rs` |
-| C8 | conforms | — | `src/config.rs:132-152`, `253-269`, `876-908` |
+| C8 | conforms (**second pass: partial**, N8) | — **Second pass:** a hardware address with a `+` sign is accepted. | `src/config.rs:132-152`, `253-269`, `876-908` |
 | C16, C17 | missing | — | — |
 | C9 | conforms | Name order, the later entry loses. | `src/config.rs:790-849` |
-| C10 | conforms | An unusable endpoint gets the discard address of the family chosen as C10 says; the rest matches. | `src/config.rs:551-590`, `src/bin/main.rs:745-770` |
+| C10 | conforms (**second pass: differs**, N5) | An unusable endpoint gets the discard address of the family chosen as C10 says; the rest matches. **Second pass:** an out-of-range identifier fails the whole document, not the entry. | `src/config.rs:551-590`, `src/bin/main.rs:745-770` |
 | C11 | conforms | — | `src/runtime.rs:885-918` |
 | C12 | differs | One pass in name order: a retained entry inserted early blocks a later new valid entry, which is then retained or rejected itself; the specification's two passes would refuse the reload naming the retained entry. The other rows conform (file problem refuses; new broken entry left out; previous values that no longer fit refuse). | `src/config.rs:790-849`, `src/bin/main.rs:780-815` |
 | C13 | conforms | — | `src/service.rs:77-81` |
@@ -200,7 +201,7 @@ Two places where the code is stricter or safer than the rule, for step 3 to deci
 | T8 | partial | Deleted by closing the socket, never by identifier: conforms. The two-second wait: not done. | `src/state.rs:1446-1466` |
 | T9 | conforms | — | — |
 | T10 | differs | `SO_BINDTODEVICE` by name with an index check before and after (known gap). | `src/state.rs:652-669` |
-| T11 | differs | A renamed-away device is noticed and the binding marked invalid, but the socket is not disconnected until the next reconnect. | `src/runtime.rs:1598-1608`, `src/state.rs:1436-1444` |
+| T11 | differs | A renamed-away device is noticed and the binding marked invalid, but the socket is not disconnected until the next reconnect. **Second pass:** worse; see confirmation item 4. | `src/runtime.rs:1598-1608`, `src/state.rs:1436-1444` |
 | T12 | conforms | — | `src/runtime.rs:1717-1736` |
 | T13 | differs | Created unbound and connected when the device is absent (known gap). | `src/runtime.rs:2089-2113` |
 | T14 | conforms | — | `src/runtime.rs:649-661` |
@@ -226,9 +227,9 @@ Two places where the code is stricter or safer than the rule, for step 3 to deci
 | V1, V2, V9–V15 | missing | System resolver only. | — |
 | V3 | conforms | `iphost` 0.3.3 resolves through the libc. | — |
 | V4 | conforms | 30 s refresh, 1 s poll, lookups on a thread of the resolver. | `src/runtime.rs:53-54` |
-| V5 | conforms | `iphost` 0.3.3 keeps the previously selected address while the answer still contains it and takes the first one otherwise (its "stable resolution" loop); unusable addresses are skipped with a warning. | `src/runtime.rs:644-654`, `1170-1182`; `iphost-0.3.3/src/lib.rs` |
-| V6 | conforms in effect | `retain_stale_values` is not enabled (the 0.3.3 default is off), so a negative answer clears the cached family address; the daemon then ignores the empty answer and keeps the peer, so the tunnel's state matches the rule. The MUST on the option is not met. | `src/runtime.rs:496-499`, `1170-1182` |
-| V7, V8 | conforms | A changed host name gets a new resolver; a changed family re-targets; readiness never waits. | `src/runtime.rs:580-597` |
+| V5 | conforms (**second pass: differs**, N11) | `iphost` 0.3.3 keeps the previously selected address while the answer still contains it and takes the first one otherwise (its "stable resolution" loop); unusable addresses are skipped with a warning. | `src/runtime.rs:644-654`, `1170-1182`; `iphost-0.3.3/src/lib.rs` |
+| V6 | conforms in effect (**second pass: differs**, N12) | `retain_stale_values` is not enabled (the 0.3.3 default is off), so a negative answer clears the cached family address; the daemon then ignores the empty answer and keeps the peer, so the tunnel's state matches the rule. The MUST on the option is not met. | `src/runtime.rs:496-499`, `1170-1182` |
+| V7, V8 | conforms (**second pass: V7 partial**, N12) | A changed host name gets a new resolver; a changed family re-targets; readiness never waits. | `src/runtime.rs:580-597` |
 
 ## Sessions (S)
 
@@ -255,7 +256,7 @@ Two places where the code is stricter or safer than the rule, for step 3 to deci
 | Rule | Verdict | The code | Evidence |
 |---|---|---|---|
 | E1 | conforms | — | `src/runtime.rs:1583-1679` |
-| E2 | partial | Follows the name; does not disconnect at once (T11). | — |
+| E2 | partial (**second pass: differs**) | Follows the name; does not disconnect at once (T11). **Second pass:** a rename away is not even noticed on its own event (confirmation item 4). | — |
 | E3 | partial | Bind device removal conforms; session device removal ends the proof but does not re-create (S27). | `src/runtime.rs:1717-1736` |
 | E4, E5 | conforms | — | `src/runtime.rs:1685-1713`, `2416-2460` |
 | E6, E7 | conforms | — | `src/runtime.rs:1774-1798`, `1235-1239` |
@@ -265,7 +266,7 @@ Two places where the code is stricter or safer than the rule, for step 3 to deci
 | E12–E14 | conforms | — | `src/service.rs:272-281`, `src/runtime.rs:1540-1576` |
 | E15, E16 | differs | A grace period and route repair exist. | `src/runtime.rs:55-58`, `1925-1961` |
 | E17–E19 | conforms | — | `src/service.rs:291-327` |
-| E20 | conforms | Monitor loss reopens, seeds, resyncs bindings and connected tunnels and re-checks deferred addresses; lifetime loss ends the generation only. The channel overflow row does not apply (A6). | `src/runtime.rs:2242-2348`, `1218-1229` |
+| E20 | conforms (**second pass: partial**, N9, N18) | Monitor loss reopens, seeds, resyncs bindings and connected tunnels and re-checks deferred addresses; lifetime loss ends the generation only. The channel overflow row does not apply (A6). | `src/runtime.rs:2242-2348`, `1218-1229` |
 | E21 | partial | `ENOBUFS`/stream end, missing reply and socket error are each a loss; `NETLINK_NO_ENOBUFS` unset. The lookup timeout is five seconds, not two. | `src/state/link_identity.rs:262-281` |
 | E22 | conforms | — | `src/runtime.rs:2309-2315` |
 | E23–E26 | missing | — | — |
@@ -294,7 +295,7 @@ Two places where the code is stricter or safer than the rule, for step 3 to deci
 | O2 | partial | Start-up left-out: error; tolerated: warning; reload kept/left out: warning; whole reload refused: logged at warning, not error. | `src/service.rs:304` |
 | O3 | differs | Reconnect retries and incomplete-reconcile retries are logged at warning level every second. | see G13 |
 | O4 | partial | Messages carry identifiers; configuration names appear only in configuration problems, not in runtime messages. | — |
-| O5 | conforms | — | — |
+| O5 | conforms (**second pass: differs**, N6) | — | — |
 | O6 | partial | Errors are passed through with their text ("File exists (os error 17)"), not with errno names. | — |
 | O7 | conforms | — | `src/bin/main.rs:1142-1196` |
 | O8 | conforms | — | `src/bin/main.rs:1116-1126` |
@@ -329,3 +330,136 @@ Each of these is a case where the code and the rule disagree and the rule could 
 ## Not checked
 
 The exact kernel behaviour of a socket left connected with an unspecified source (T20), which the specification's disconnected state makes moot; a `%` name end to end on a live kernel (its validation step is confirmed, the rest follows from the code); the suites were run on this host's kernel 6.8.0-147 only, as their guide says.
+
+## Second pass (2026-10-28)
+
+### Method and independence
+
+Five auditors each took a group of pages: P/G/R, T/H/K, S/M, C/L/O and E/V/A. They read those pages and the code paths their rules reach (`src/`, the `l2tp` 0.4.0, `iphost` 0.3.3, `fqdn` 0.5.2, `netlink-packet-l2tp` 0.4.0 and `netlink-proto` 0.13.0 sources). They were barred from `audit/`, from the "Known gaps" table of the specification index, from the diff of the step 2 commit, and from the session notes that summarise the first pass. Their rule-by-rule tables are kept in `STEP2_SECOND_PASS_TABLES_2026-10-28.md`, which has about 400 rows.
+
+There were two small leaks. The P/G/R auditor's search printed two "Known gaps" rows (bindv6only, restart), both plain from the code. The T/H/K auditor's search printed the first pass's R4 row without opening the file, and reached the opposite verdict (N1). The person merging the results knew this report's headline findings in advance; they did not read the report until all five tables were finished.
+
+What was run:
+
+- `cargo test --lib` passed: 114 tests, the privileged ones ignored.
+- Two mock probes in a throwaway copy of the tree: the name takeover (item 1 below) and the blocked later session (item 2).
+- `rs-l2tpd --check` against throwaway configurations, for every configuration result marked "live" below.
+- No privileged or Docker suite was re-run. Item 1 is confirmed against the mock layer, not a live kernel.
+
+Every defect below was traced in the code by the merger as well. Each item says when its evidence is reasoning rather than a run.
+
+### Confirmation of the first pass's findings
+
+Every summary-level finding of the first pass was found again independently, except where noted. Three need correcting: item 4's rename-away case, R4, and the description of C1. The individual rows follow under [Row-by-row confirmation](#row-by-row-confirmation).
+
+| # | First-pass finding | Second pass | Result |
+|---|---|---|---|
+| 1 | Name takeover from a removed session never converges | Found again. A mock probe ran 5 reconciles, all failing `interface exists`, and the survivor got a new `rsl2tp-r…` name each second. It flaps under its temporary name, which managers matching names will see. | **Confirmed** |
+| 2 | One failing entry blocks every later entry; conflicts do the same for 9 refusals | Found by four auditors. A probe shows session (10,101) never created while (10,100) fails. More causes reach the same abort: a tunnel add failure, a failed cleanup of a stale pending session (`src/runtime.rs:811`), and the 10 s discard-route grace. Every tunnel re-creation also meets the deleted tunnel's identifier still registered (K17, `EEXIST`) and stops the whole configuration for a tick. | **Confirmed**, wider |
+| 3 | Readiness waits for publication under a held name and for a discard route | Found again. Without the `dummy` driver (a container that cannot load modules), readiness never comes and no session ever exists. On an IPv4-only host, one IPv6 tunnel with an unreachable peer delays every entry by 10 s (H2). `degraded-start.sh` and `session-children.sh:152-175` assert the current behaviour. | **Confirmed**, wider |
+| 4 | Tunnel left on a peer nobody names: unreachable resolver answer, reload to an unreachable peer, renamed-away bind device | The first two are confirmed (`src/state.rs:1308-1325`, `src/runtime.rs:1193-1201`, `1413-1421`). The third is **worse than reported**, for two reasons. (a) The rename is not noticed on its own event: the `NEWLINK` carries the new name, and every tunnel configured for another name is skipped (`src/runtime.rs:1595-1597`). (b) No later reconnect disconnects either: `reconnect_tunnel_to` fails at the configured-name check *before* the disconnect (`src/state.rs:1353-1356`). The socket stays bound to the renamed device and connected until a device takes the configured name, while the daemon's flag says disconnected. `privileged_reconnect_resolves_configured_name_after_rename_and_replacement` asserts this state (`src/state.rs:2596-2605`). | **Confirmed**, corrected |
+| 5 | Unstaged session; foreign name holder counted as an identifier conflict | Found again (`src/state.rs:1647`, `1740-1757`; `src/runtime.rs:2227-2240`). After the 10th refusal readiness is reported without the session. | **Confirmed** |
+| 6 | Kernel-interface failure at start-up exits | Found again (`src/runtime.rs:721-724` → `src/service.rs:139` → `src/bin/main.rs:1147`). | **Confirmed** |
+| 7 | PID file removed unconditionally; publication failure exits 1 | Found again. The published inode is never recorded, so the P11 check cannot be written as the code stands. New, related: N14. | **Confirmed** |
+| 8 | `%` passes interface-name validation | Found again, live (`--check` accepts `l2tp%d`). The same applies to `bind_interface`. For a staged session the kernel expands the name at the publication rename. | **Confirmed**, wider |
+| — | Logging every retry (G13, O3) | Found again. The unbound-reconnect retry also warns every second (`src/runtime.rs:1284-1307`). | **Confirmed** |
+| — | Per-event kernel lookups (M16) | Found again. Every link event also does a lifetime lookup and opens an rtnetlink socket for each session with a deferred hardware address (`src/runtime.rs:1589`, `src/state.rs:1877`). The lifetime ledger keeps an entry for every link on the host (`src/state/link_identity.rs:133-177`). | **Confirmed**, wider |
+| — | `AF_INET` latch (T4) | Found again (`src/state.rs:1206`). | **Confirmed** |
+| — | Bare `connect` on same-family peer changes (T28) | Found again. The privileged test asserts that the source is kept (`src/state.rs:2523-2526`). | **Confirmed** |
+| — | Deletion by identifiers after a loss (S22) | Found again. Any `get` error also counts as "not ours" (`src/state.rs:732-740`), so a transient genetlink error makes the daemon forget the session and leak it. | **Confirmed**, wider |
+| — | Deterministic temporary names (S4) | Found again (`src/state.rs:338-345`); they are not checked before use either. | **Confirmed** |
+| — | Lifetime lookup timeout 5 s, not 2 s (E21) | Found again. | **Confirmed** |
+| — | L5, L8, L10 | Found again: `run` without `converge` applies nothing, a dropped `blocking::Service` gets no ordered shutdown, and there is no `handle_event`. | **Confirmed** |
+| — | Entry rename with unchanged identifiers keeps the objects | Found again (`src/runtime.rs:2735`, `2781`). | **Confirmed** |
+| — | `bind_interface` change re-creates the tunnel | Found again. The re-creation also throws away the tunnel's resolver and its answer (N12). | **Confirmed**, wider |
+| — | Step 3 decisions 1-5 | 1 is the rename row above. 2: the deferral is logged on every reconcile (`src/runtime.rs:941-948`, `1041`). 3: the E21 timeout above. 4: the P/G/R auditor found R10's order unremarkable; the result is the same. 5: P2's order is also flagged minor. | **Confirmed** |
+| — | R4 "conforms" | Wrong: see N1. | **Refuted** |
+| — | C1 "a non-UTF-8 name is skipped silently" | Wrong: the file is read and merged with no warning (N7). | **Refuted** (still a C1 defect) |
+| — | A6 "loss shows up as a kernel-side overflow" | Wrong mechanism: see N9. | **Corrected** |
+
+### Row-by-row confirmation
+
+Every first-pass row from R to L was compared with the second pass's tables, and each disagreement was settled from the code. This covered every row that is not plain "conforms", and every "conforms" row the second pass marks partial or defect. The rows settled above were left out. The full comparison is the last part of `STEP2_SECOND_PASS_TABLES_2026-10-28.md`.
+
+- **105 rows agree.**
+- **3 rows the second pass did not judge.**
+  - G3 and C14 are confirmed (`src/runtime.rs:2564-2565`, `2735`, `2781`, `990-1066`).
+  - R18 is **wrong in the first pass**. Its "when not met" effect is re-creating the session (S27), which the first pass itself lists as missing.
+- **7 rows where the first pass is right**: R10, K12, A7, A8, T29, S13, S15. On R10 the second pass had the order of `SO_RCVBUF` and `SO_RCVBUFFORCE` backwards (`src/netlink.rs:102-116`).
+- **56 rows where the second pass is right.** About 30 are "conforms" rows for a defect the first pass reports under another rule: G6, P8, T13, T22, C6, M16, R4, R22 and the discard design. Those verdicts were inconsistent, but nothing was missed.
+
+The rest add substance to the first pass:
+
+| Rule | First pass | Correction | Evidence |
+|---|---|---|---|
+| T12, E3, H13, G17 | conforms | A bind device that disappears never disconnects the tunnel; only the binding record is forgotten, and the kernel keeps the stale binding. | `src/runtime.rs:1717-1736`; `src/state.rs:1432-1435` |
+| T21 | conforms | A reconnect returns before its disconnect when the bound name is missing (confirmation item 4). | `src/state.rs:1353-1362` |
+| E1 | conforms | A device that appears is bound in place before the reconnect, not through T21 (N1). | `src/runtime.rs:1655` |
+| E13 | conforms | The peer retry goes through `modify_tunnel`, a bare `connect` on a connected same-family socket (T28). | `src/runtime.rs:1547`; `src/state.rs:1320-1325` |
+| T19, E4 | conforms | A bind device's own VRF enslavement is ignored (N21). | `src/runtime.rs:1600`, `1815-1818` |
+| H1–H3 | conforms in shape | For an IPv6 tunnel the discard-route grace aborts creation before `192.0.0.8` is tried, so H2's "its sessions exist" fails. | `src/runtime.rs:1324-1326`, `2059-2067` |
+| H7 | conforms | An unreachable VRF default route gets a null-device route in the VRF table. | `src/runtime.rs:2008-2012`, `2069-2072` |
+| P10 | conforms | The published inode is never remembered (`write_pid_file` returns `()`). | `src/bin/main.rs:185` |
+| P13, L7, A14 | partial or conforms | N10. | `src/service.rs:293-297` |
+| E24 | missing | The seed dump goes over the filtered monitor socket. | `src/runtime.rs:2279`, `2373-2384` |
+| S23 | conforms | N20. | `src/state.rs:1712-1713` |
+| V4 | conforms | An `ip_version` change triggers no new lookup, and one resolver per tunnel looks up a shared host name several times at once. | `src/runtime.rs:590-592` |
+| V8 | conforms | A resolver that never answers is not reported; the tunnel silently gets a discard address. | `src/runtime.rs:2709-2711` |
+| V11, V13, V15 | missing | Partly applicable to the system resolver. V11 conforms; V13 inherits T15/T28; V15 runs one thread per tunnel, literal tunnels included. | `src/runtime.rs:1218-1229` |
+| K6 | missing | Used: connect, disconnect and reconnect all exist. The missing part is K5's disconnected state. | `src/state.rs:1341-1380` |
+| L3 | conforms | `IpVersion` lacks `#[non_exhaustive]`. | `src/config.rs:302-311` |
+| O8 | conforms | `--check` renders a peerless tunnel as `remote_addr = "100::"`. | — |
+| A4 | conforms | The state layer holds policy, such as the rollback to the previous peer. | `src/state.rs:1308-1318` |
+
+### Defects new in the second pass
+
+Severity is the effect on a running host. Unless marked "live" or "probe", the evidence is a reading of the code that the merger traced.
+
+| # | Rules | Defect | Evidence | Severity |
+|---|---|---|---|---|
+| N1 | R4, K22, T10, T13 | A bind device is renamed away or removed, then a device takes the configured name. The daemon only marks the binding invalid (`forget_tunnel_binding`) and then calls `SO_BINDTODEVICE` on a socket that is still bound, without a disconnect. Without `CAP_NET_RAW` the kernel refuses with `EPERM`. The bind is retried on every matching link event with the same result. Nothing else recovers the tunnel: the reconnect loops skip it, because the invalid binding hides its index and it still counts as bound. It stays bound to the dead or renamed device until a peer change or a restart. The supplied unit runs as root with every capability, so this shows only where capabilities are reduced. The mock models a forgotten binding as unbound, and the privileged tests run as root, so neither catches it. | `src/runtime.rs:1598-1608`, `1655-1669`; `src/state.rs:1408-1422`, `1436-1444`, `657` | high where `CAP_NET_RAW` is dropped |
+| N2 | C6, C15, O7, O8 | Unknown keys are ignored. A misspelt `cokie` runs the session **without a cookie** and `--check` exits 0 (live). The first pass listed C6; this is the security consequence. | `src/config.rs:484`, `529`, `640`, `719` | high |
+| N3 | C7 | An IPv4-mapped literal is treated as IPv6, against "an IPv4-mapped IPv6 literal is an IPv4 literal". Without `ip_version` it gives a V6 tunnel; with `"V4"` it becomes a no-peer mistake (live). Test `literal_remote_addr_must_match_ip_version` encodes this. | `src/config.rs:315-321`, `1084-1090` | medium |
+| N4 | C7, C10 | `remote_addr = ""` and `"."` are accepted as the root name, which is then resolved forever with no warning. Non-ASCII names are punycoded and accepted (live). `fqdn` 0.5.2 maps an empty name to the root. | `fqdn` `punycode.rs:15-16` | medium |
+| N5 | C10 | An out-of-range identifier (above 2^32-1, or negative) fails the whole document, not just its entry, because the fields are `Option<u32>`. At start-up the drop-in's other valid entries are lost (live); a reload is refused as a whole. | `src/config.rs:531-532`, `643-644` | high |
+| N6 | O5, G11 | Cookie values reach the logs. A rejected cookie's text goes into the error (`invalid cookie "00112233445566778"`, live), which is logged at start-up, on reload and by `--check`, so a one-digit typo prints the whole intended cookie. The public `PartialConfig` derives `Debug` with the cookie strings. | `src/config.rs:254-257`, `640-649`; `src/bin/main.rs:1111`, `799` | high |
+| N7 | C1 | A drop-in with a non-UTF-8 name (`\377x.toml`) is read and merged with no warning (live): `Path::extension()` of such a name is still the UTF-8 `toml`. A file named exactly `.toml` is skipped. | `src/bin/main.rs:677-681` | low |
+| N8 | C8 | A hardware address with a sign (`+2:00:5e:00:53:01`) is accepted (live); the cookie parser guards against this, `HwAddr` does not. | `src/config.rs:143-146` | low |
+| N9 | A6, E20, G23 | The event monitor's connection comes from `rtnetlink::new_connection`, whose `netlink-proto` 0.13 connection task drains the kernel socket into an **unbounded** channel. When the 256-slot event channel is full, the monitor waits in `send`. The kernel buffer then never overflows and no resync happens; memory and latency grow without bound during an event storm. | `src/netlink.rs:32`; `src/runtime.rs:2292`, `2320`, `2326`; `netlink-proto` `lib.rs:229`, `280` | medium |
+| N10 | L7, P13 | Shutdown waits for a reload callback that is blocked, for example on a hung network mount. The `spawn_blocking` result is awaited outside the `select!` on shutdown, and dropping the runtime waits for the blocking task too. | `src/service.rs:293-297` | medium |
+| N11 | V5 | An IPv4-mapped AAAA answer is canonicalised and used by a V6 tunnel, which then runs over IPv4. An answer whose first address is unusable (`[0.0.0.0, 192.0.2.1]`) makes iphost select the unusable one, and the runtime rejects the whole answer instead of taking the next address. A tunnel that never had an answer stays without a peer, with no warning. | `src/config.rs:292-296`; `src/runtime.rs:649-654`; `iphost` `lib.rs:291-303` | medium (rare answers) |
+| N12 | V6, V7 | Re-creating an FQDN tunnel (a `bind_interface` or `peer_tunnel_id` change) drops its resolver and starts a new one. The tunnel sits on the discard address until the new lookup answers, and through a whole DNS outage if one is under way. Separately, `retain_stale_values` is off and cannot be turned on in 0.3.3. A transient AAAA NODATA then clears the cached answer, the next answer can select a different address (a needless reconnect), and a family change on reload in that window falls back to the discard address. | `src/runtime.rs:503-506`, `804`, `826-830`; `iphost` 0.3.3 `auto.rs:95` | medium |
+| N13 | R22, P18, G10 | The null device and its routes survive a kill. A leftover `rsl2tpnull0` is foreign to the next start (`discard-recovery.sh` case `existing` asserts that such a device is kept), so a new null device is created; each crash leaks one more. Not reproduced. | `src/state.rs:1008-1090` | medium (goes away with the design change) |
+| N14 | G1, P11 | If the parent dies before readiness (Ctrl-C, a wrapper `timeout`, an OOM kill), the readiness write fails with `EPIPE` (Rust ignores `SIGPIPE`). The converged daemon then shuts everything down and exits. | `src/bin/main.rs:1177-1183` | medium |
+| N15 | P12, P26, G1 | `SIGUSR2` has no handler, so its default action kills the daemon: no ordered shutdown, a stale PID file, and the null device left behind (N13). Under the unit, systemd counts it as a failure. Several `SIGHUP`s during a long reload each queue a reload instead of coalescing into one (P12). | `src/bin/main.rs:837-868`, `843-850` | high (restart signal), low (coalescing) |
+| N16 | P21 | Besides the first pass's items, `ProtectSystem=full` leaves `/var`, `/srv` and `/opt` writable, against "a read-only system except the PID file". The unit test (`src/bin/main.rs:1762`) checks none of P21's keys. | `src/bin/main.rs:965-1001` | low |
+| N17 | T13, G5 | Besides creation with the device absent, a bind device that vanishes between the lookup and the bind also leaves the socket unbound and connected to the real peer. | `src/runtime.rs:1367-1379` | high (same class as T13) |
+| N18 | E20, E12 | An overrun causes two full resyncs, the first before the new socket is seeded. During `converge` every event triggers a full reconcile instead of at most one per second. | `src/runtime.rs:2452`, `2290-2299`; `src/service.rs:172-196` | low |
+| N19 | T6, T20, H5 | A tunnel whose creation-time connect leaves the source unspecified (IPv4 peer on an IPv6-only host) is recorded as connected. Only reconnects check the source. Needs a live test. | `src/state.rs:1214-1270` | low-medium |
+| N20 | S23 | A staging session whose captured identity is lost goes straight to deletion and re-creation, skipping the re-identification S23 asks for first. | `src/state.rs:1712-1714` | low |
+| N21 | E4 | Enslaving a bind device itself into a VRF does not reconnect its tunnels; only a bound VRF's index is refreshed. The spec wording is ambiguous on this case. | `src/runtime.rs:1815-1824` | low |
+| N22 | T26, H18 | Concrete failure of the bindv6only gap: every IPv4 tunnel falls back to the `100::` discard address and warns "cannot reach its peer", never naming `IPV6_V6ONLY`. | — | high on such hosts |
+
+Partial rows the second pass adds, not counted as defects:
+
+- `IpVersion` is not `#[non_exhaustive]` (L3).
+- `converge` returns no list of entries left out (L5).
+- The monitor's seed dump is sent on the filtered monitor socket and has no timeout (A5, E24).
+- After a loss, the lifetime subscription reopens only on its next use.
+
+### Decisions added for step 3
+
+6. **Capabilities (user, 2026-10-28):** every capability the daemon needs for healthy operation is specified as **REQUIRED**. Fallbacks for a missing one are available but not guaranteed to always work correctly.
+   - `CAP_NET_RAW` is therefore REQUIRED, and the daemon uses it. For example, N1's rebind of a still-bound socket can then happen in place.
+   - The fallback without it (disconnect, rebind, connect, and the `RTNLGRP_ND_USEROPT` route for router advertisements) is kept, best effort.
+   - This replaces R4's "not needed for device bindings", K39's "not needed otherwise", and the kernel page's "not required" list.
+7. **The bundled unit and missing capabilities (user, 2026-10-28):**
+   - The supplied systemd unit MUST supply every required capability explicitly.
+   - The daemon warns prominently, once for each one that is unavailable, and degrades gracefully instead of failing.
+   - Step 4 writes both into the specification (R3/R4, K22/K39, P21, H15, O2).
+
+### Not checked (second pass)
+
+- No privileged or Docker suite was re-run. The first pass's runs stand, and they test the current design.
+- N1 relies on K22 and on the kernel not clearing `sk_bound_dev_if` when a device is unregistered. It needs a live test with `CAP_NET_RAW` dropped.
+- N13 and N19 are inferred from the code and the existing fixtures, not reproduced.

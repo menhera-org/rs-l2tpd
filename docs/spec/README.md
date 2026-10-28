@@ -61,7 +61,8 @@ not create.
 ## Known gaps
 
 Behaviour the specification requires that the implementation does not
-provide, re-derived from the code on 2026-10-27 (roadmap step 2 of the
+provide, re-derived from the code on 2026-10-27 and checked by an
+independent second pass on 2026-10-28 (roadmap step 2 of the
 repository's `CONTRIBUTING.md`; the rule-by-rule comparison is the step 2
 report in the repository's `audit/` directory). Each is a defect of the
 implementation, not of the specification, except the last two rows, which
@@ -93,7 +94,7 @@ Defects against rules that hold under either design:
 | [M4](model.md#reconciliation), [G6](promises.md#unconditional-promises), [P8](process.md#readiness) | One entry's failure never keeps another from being applied. | The first error other than a counted conflict ends the reconcile; entries after it in identifier order wait for the next one, and a conflict does the same for its first nine attempts. |
 | [P7](process.md#readiness), [G8](promises.md#unconditional-promises), [G15](promises.md#conditional-promises) | Readiness never waits for a session's publication or for a route to a peer. | It waits while a foreign device holds a configured name, and for a route to a discard address. |
 | [G5](promises.md#unconditional-promises), [T15](tunnels.md#peers), [T17](tunnels.md#peers-that-cannot-be-reached) | A tunnel is never connected to a peer the configuration or the resolver no longer names. | An unreachable resolver answer leaves the previous peer connected; a reload to an unreachable peer whose discard addresses are unreachable too keeps the old peer. |
-| [T11](tunnels.md#bind-devices), [E2](events.md#link-events) | A bind device renamed away disconnects the tunnel at once. | The binding is marked invalid; frames keep leaving through the renamed device until the next reconnect. |
+| [T11](tunnels.md#bind-devices), [E2](events.md#link-events) | A bind device renamed away disconnects the tunnel at once. | The rename is not noticed on its own event (the event carries the new name), and a later reconnect fails at the configured-name check before it disconnects: frames keep leaving through the renamed device until some device takes the configured name. |
 | [S4](sessions.md#creation), [S7](sessions.md#creation), [H12](hosts.md#other-network-managers) | Every session is staged; a configured name held by a foreign device is a transient publication failure. | Sessions without a configured hardware address are created under their final name; the kernel's refusal is counted as an identifier conflict: ten retries, then left out. |
 | [P5](process.md#start-up), [H15](hosts.md#missing-kernel-support-and-privilege), [M13](model.md#failure-classes), [G1](promises.md#unconditional-promises) | Kernel interfaces that cannot be opened are a host defect: retried, readiness withheld. | The daemon exits and the parent exits 1. |
 | [P11](process.md#pid-file) | The PID file is removed only while it is the published inode; a publication failure keeps the daemon running and the parent exits 0. | Removed unconditionally; a failure shuts the daemon down and the parent exits 1. |
@@ -110,12 +111,27 @@ Defects against rules that hold under either design:
 | [S4](sessions.md#creation) | Temporary names come from a random source. | A counter plus the process identifier. |
 | [T25](tunnels.md#identifier-conflicts) | A left-out entry's eventual creation is reported. | Created silently. |
 | [E21](events.md#monitor-loss) | A lifetime lookup times out after two seconds. | Five seconds. |
-| [A6](architecture.md#concurrency) | The monitor drops an event when the channel is full and marks a resync. | The monitor task waits for room; loss then shows as a kernel-side overflow. |
+| [A6](architecture.md#concurrency) | The monitor drops an event when the channel is full and marks a resync. | The monitor task waits for room while its netlink connection keeps draining the kernel socket into an unbounded queue: nothing overflows, no resync happens, and memory and latency grow. |
 | [O2](observability.md#logging) | A refused reload is logged at error level. | At warning level. |
 | [O4](observability.md#logging), [O6](observability.md#logging) | Messages carry the configuration name and errno names. | Runtime messages carry identifiers only, and the kernel's error text. |
 | [L5](library.md#the-service) | `run` without `converge` converges first. | `run` applies nothing until a reload. |
 | [L7](library.md#the-service), [L8](library.md#the-service), [P13](process.md#signals-and-requests) | A callback panic and a dropped blocking service remove everything in order. | The sockets close with the runtime; nothing is deleted in order and the null device survives. |
-| [R4](requirements.md#the-host) | No `CAP_NET_RAW` is needed. | The code conforms; the crate's documentation still says it is needed. |
+| [R4](requirements.md#the-host), [K22](kernel.md#facts), [T21](tunnels.md#source-addresses) | A device binding is only ever set on a socket that has none. | After a bind device is renamed away or removed, the still-bound socket is bound again without a disconnect, which fails with `EPERM` without `CAP_NET_RAW`; the tunnel stays on the old device until a peer change or restart. (Roadmap step 4 makes `CAP_NET_RAW` required; the fallback must still work.) |
+| [C6](configuration.md#documents), [O5](observability.md#logging), [G11](promises.md#unconditional-promises) | Cookies never appear in logs. | A rejected cookie's text is part of the error message; the public `PartialConfig` prints cookie strings in its `Debug` output. |
+| [C7](configuration.md#tunnel-entries) | An IPv4-mapped literal is an IPv4 literal; a host name is 1 to 253 ASCII bytes. | A mapped literal is treated as IPv6; `""` and `"."` are accepted as the root name and non-ASCII names are punycoded. |
+| [C10](configuration.md#start-up) | An out-of-range identifier leaves out its entry. | It fails the whole document: the file's other entries are lost at start-up and a reload is refused. |
+| [C1](configuration.md#files), [C8](configuration.md#session-entries) | Non-UTF-8 drop-in names are ignored with a warning; a hardware address is six pairs of hex digits. | Non-UTF-8 names are read and merged silently; a `+` sign in a hardware address is accepted. |
+| [V5](resolvers.md#queries-and-answers) | IPv4-mapped answers are unusable for an IPv6 tunnel; unusable addresses are skipped. | Mapped answers are used over IPv4; an answer whose first address is unusable is rejected whole. |
+| [V6](resolvers.md#queries-and-answers), [V7](resolvers.md#queries-and-answers) | A resolver outage never disconnects a working tunnel; stale answers are retained. | A tunnel re-creation drops its resolver and its answer; `retain_stale_values` is off, so a transient negative answer clears the cached address. |
+| [T12](tunnels.md#bind-devices), [E3](events.md#link-events) | A removed bind device disconnects its tunnels. | Only the daemon's record of the binding is forgotten; the socket stays connected with the stale binding. |
+| [T13](tunnels.md#bind-devices) | (as above) | Also when the bind device vanishes between the lookup and the bind. |
+| [L7](library.md#the-service), [P13](process.md#signals-and-requests) | Shutdown proceeds while a reload callback is still running. | Shutdown waits for a blocked reload callback. |
+| [G1](promises.md#unconditional-promises), [P11](process.md#pid-file) | The daemon keeps running whatever happens to other processes. | If the parent dies before readiness, the readiness write fails and the converged daemon shuts down. |
+| [P12](process.md#signals-and-requests) | `SIGUSR2` restarts; several `SIGHUP`s cause one reload. | `SIGUSR2`'s default action kills the daemon; each `SIGHUP` during a reload queues another reload. |
+| [P21](process.md#the-supplied-systemd-unit) | A read-only system except the PID file; the bindv6only write allowed; hand-over keys present. | `ProtectSystem=full` leaves `/var` writable; `ProtectKernelTunables=yes`; no `NotifyAccess` or `FileDescriptorStoreMax`. |
+| [R22](requirements.md#the-operator), [P18](process.md#crashes) | A crash leaves nothing behind. | The null device and its routes survive; the next start treats them as foreign and adds another. |
+| [E20](events.md#monitor-loss), [E12](events.md#timers) | One resync per loss; at most one reconcile per second. | An overrun causes two resyncs; during start-up every event causes a reconcile. |
+| [S23](sessions.md#identity-loss) | A lost proof is first re-identified. | A staging session whose captured proof is lost is deleted and re-created at once. |
 
 For roadmap step 3 to decide:
 
