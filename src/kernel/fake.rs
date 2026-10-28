@@ -893,8 +893,9 @@ impl Kernel for FakeKernel {
             .links
             .get_mut(&index)
             .ok_or(io::Error::from_raw_os_error(Errno::ENODEV as i32))?;
-        // kernel: refused while up on an l2tpeth device (K31)
-        if link.l2tpeth && link.info.up {
+        // kernel: a change is refused while up on an l2tpeth device; the
+        // same address is not a change (K31, dev_set_mac_address)
+        if link.l2tpeth && link.info.up && link.hwaddr != Some(addr) {
             return fail(Errno::EBUSY);
         }
         link.hwaddr = Some(addr);

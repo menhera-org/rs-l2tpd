@@ -302,10 +302,13 @@ pub fn a_hardware_address_needs_the_device_down(f: &mut dyn Fixture) {
     f.k().set_hwaddr(registration.index, addr).unwrap();
     assert_eq!(f.k().ether_addr(registration.index).unwrap(), Some(addr));
     f.set_up(registration.index, true);
+    let other = HwAddr::new([0x02, 0, 0x5e, 0, 0x53, 0x92]).unwrap();
     assert_eq!(
-        errno(f.k().set_hwaddr(registration.index, addr)),
+        errno(f.k().set_hwaddr(registration.index, other)),
         nix::libc::EBUSY
     );
+    // The same address is no change (net/core/dev.c, dev_set_mac_address).
+    f.k().set_hwaddr(registration.index, addr).unwrap();
     f.k()
         .rename(registration.index, &name("conf-mac-up"))
         .unwrap();
