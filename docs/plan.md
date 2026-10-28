@@ -192,6 +192,19 @@ event loss scans, sender validation, and missing-reply deadlines with
 uncertain mutations. A source assertion does not count as a passing live
 test. The fake is the only kernel the Phase 3 behavioral tests use.
 
+**Status: items 1–4 in place on 2026-10-28, exit not yet met.** The trait
+is in `src/kernel/mod.rs`, the fake in `kernel::fake`, the real kernel in
+`kernel::linux` (0 functions without a `// kernel:` citation; K13, K14,
+K33, K38, K40 uncited, being resolver and address facts it does not
+use). The 14 shared cases of `tests/kernel/conformance.rs` pass on the
+fake and, with the 6 method-level live tests, on 6.8.0-147 in a
+privileged container. Open for the exit: live cases that force a
+lifetime overflow, a missing reply at the deadline, a foreign sender port
+and index reuse within a generation; the QEMU kernels; the three
+upstream needs recorded in [dependencies](dependencies.md#upstream-needs)
+(adopted socket identifiers, cookies of every length, and the raw `l2tp`
+group socket used instead of `events_bounded`).
+
 ### Phase 3 — the reconciler
 
 Implements [model](spec/model.md), [tunnels](spec/tunnels.md),
