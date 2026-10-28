@@ -65,9 +65,10 @@ provide, re-derived from the code on 2026-10-27, checked by an independent
 second pass on 2026-10-28, and every row re-confirmed against the code at
 commit `741117b` (roadmap step 2 of the repository's `CONTRIBUTING.md`;
 the rule-by-rule comparison is the step 2 report in the repository's
-`audit/` directory). The first two tables are defects of the
-implementation, not of the specification; the third lists the cases
-roadmap step 3 decides.
+`audit/` directory). Both tables are defects of the implementation, not
+of the specification: every row was confirmed on 2026-10-28 (roadmap
+steps 3 and 4), when the cases the implementation's behaviour could
+have been right about were decided.
 
 The design the code still implements:
 
