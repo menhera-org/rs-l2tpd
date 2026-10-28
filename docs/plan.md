@@ -62,8 +62,11 @@ specification differ, the specification is right and this page is wrong.
    provides sockets from and into descriptors, `disconnect`, session
    lookup and deletion by interface name, cookies in `SessionInfo` and
    the `l2tp` multicast events; it needs `/proc` for the namespace (R7,
-   accepted). `iphost` 0.4.0 provides configured resolvers, the `ipv6`
-   method and `retain_stale_values`.
+   accepted). `iphost` 0.4.0 (read in `../iphost`) provides the four
+   resolver kinds, the DUID choices, the raw and netlink RA sources and
+   the shared DHCPv6 socket; answer selection, retention, the refresh
+   thread and zone parsing are the daemon's ([dependencies](dependencies.md#upstream-needs)).
+   Nothing is missing upstream.
 2. The version stays **0.2.0**: it was never released, so the API
    changes of L5, L6 and L13 break nothing published; the configuration
    format of 0.1.5, the last release, keeps working (G22).

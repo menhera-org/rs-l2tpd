@@ -77,14 +77,14 @@ unreachable, error, timeout) and a negative answer (no record of the
 family) both keep the previous answer in force, so that a working tunnel
 is never disconnected by a resolver outage; the condition is reported once
 when it begins and once when it ends ([O3](observability.md#logging)).
-Keeping a family's address through a negative answer is an option of the
-resolver library and MUST be enabled (`retain_stale_values`); keeping the
-cache through a failed lookup is its default, and a lookup in which one
-family's query fails while the other's succeeds keeps the failed family's
-address whatever the option, because only a negative answer settles a
-family. A tunnel that never had an
-answer has no real peer and is disconnected
-([T16](tunnels.md#peers-that-cannot-be-reached)).
+The daemon keeps the answer in force itself, from the list of addresses
+each lookup returns; it does not rely on the resolver library's own
+cache or its retention options. A lookup in which one family's query
+fails while the other's succeeds is a failed lookup for that family
+only, because only a negative answer settles a family; the system
+resolver cannot tell the two apart and its empty family counts as a
+negative answer. A tunnel that never had an answer has no real peer and
+is disconnected ([T16](tunnels.md#peers-that-cannot-be-reached)).
 
 V7. Answers belong to a host name, a family and a resolver. A changed
 host name, a changed `ip_version` or a changed `resolver_name` on reload
@@ -122,9 +122,10 @@ source, hop limit 255 and arrival on the bind interface, and takes their
 RDNSS options. The socket is bound to the interface (`SO_BINDTODEVICE`),
 filtered in the kernel to type 134 (`ICMP6_FILTER`), because a raw
 ICMPv6 socket otherwise receives every ICMPv6 packet of the namespace,
-and reads the hop limit and the arrival interface from ancillary data
-(`IPV6_RECVHOPLIMIT`, `IPV6_RECVPKTINFO`), which is the only way the
-three checks can be made. And it **solicits**, sending Router Solicitations (type
+reads the hop limit from ancillary data (`IPV6_RECVHOPLIMIT`), and takes
+the arrival interface from the scope of the link-local source address,
+which the kernel sets to the ingress device; the binding is set again
+whenever the interface is re-created. And it **solicits**, sending Router Solicitations (type
 133, to `ff02::2`, hop limit 255) up to three times four seconds apart
 until the first advertisement arrives, again whenever the interface is
 created or re-created, so that servers are learned at once instead of at

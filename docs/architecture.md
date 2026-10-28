@@ -283,9 +283,13 @@ the stored descriptors' names (P14) and the path it was started with
 - **`l2tp` crate kept for sockets and generic netlink.** It already
   implements the attributes, the deletion wait and the descriptor
   conversions, and its `L2tpHandle::events` is the K41 subscription.
-- **`iphost` kept for every resolver.** The four kinds, the retention
-  option and the threads are what V1–V15 describe; the reconciler only
-  selects and retains.
+- **`iphost` kept for every resolver, used through `IpHostResolver::resolve`.**
+  The four kinds, the DUIDs, the RA and DHCPv6 sources and their threads
+  are what V9–V15 describe. The reconciler's `resolvers.rs` runs one
+  refresh thread per host name, takes the address list each `resolve`
+  returns, selects and retains by V5–V6 itself, and parses zones itself;
+  `iphost`'s own cache, `AutoIpHostResolver` and the `broadcast` and
+  `tracing` features are not used.
 - **The fake kernel is not a mock.** It is a model of the kernel facts,
   shared by every behavioural test, and itself tested against the
   kernel; a test never scripts kernel replies by hand.
