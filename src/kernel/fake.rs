@@ -577,6 +577,9 @@ impl Kernel for FakeKernel {
     }
 
     fn connect(&mut self, socket: SocketId, peer: &Peer) -> io::Result<IpAddr> {
+        // An attempt is an operation, whatever its outcome.
+        self.ops
+            .push(format!("connect {} {}", socket.0, peer.addr.to_canonical()));
         self.injected("connect")?;
         let zone = peer.zone.as_ref().map(|z| self.by_name(z));
         let s = self
@@ -641,7 +644,6 @@ impl Kernel for FakeKernel {
         s.peer = Some(addr);
         s.source = Some(source);
         s.bound = bound;
-        self.ops.push(format!("connect {} {addr}", socket.0));
         Ok(mapped(source))
     }
 

@@ -2,6 +2,7 @@
 //! module per specification page. No test sleeps: time is the fake's.
 //! Phase 3 is in progress: only the first cases exist so far.
 
+mod sessions;
 mod tunnels;
 
 use std::collections::BTreeMap;
