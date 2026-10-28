@@ -51,6 +51,10 @@ serde = { version = "1", features = ["derive"], optional = true }
 toml = { version = "1.1", optional = true }
 libc = { version = "0.2", optional = true }
 
+[dev-dependencies]
+# The configuration tests write their documents in TOML.
+toml = "1.1"
+
 [features]
 default = ["bin"]
 # Serialize/Deserialize for the configuration types.

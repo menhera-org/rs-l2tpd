@@ -127,6 +127,14 @@ unknown keys at every depth. No kernel is involved.
 Exit: every C rule and L3–L4 mapped to a passing test; `cargo doc`
 clean.
 
+**Status: started on 2026-10-28.** Items 1–3 are in `src/config/`, with
+unit tests citing every C rule except C1, C3 and C4, the file layer of
+phase 5. On the library side, item 4 is `PartialConfig::set_source`
+(names the file in its unknown-key problems) and `merge`. The phase
+stays open on questions to the specification: checks that C16 and T27
+call hard mistakes depend on the host's devices, and C10 does not list
+the `dhcpv6_identity` tolerance of C16.
+
 ### Phase 2 — the kernel boundary
 
 Implements the kernel interfaces of A5 and the facts of
