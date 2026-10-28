@@ -191,7 +191,10 @@ Ethernet, then the address) built from the bind interface's Ethernet
 address, so it is the same at every start while the device keeps its
 address: the daemon reads
 the address over rtnetlink (`RTM_GETLINK`, `IFLA_ADDRESS`,
-[A5](architecture.md#layers)) when the resolver starts and hands the
+[A5](architecture.md#layers)) when the resolver starts, retrying with
+the resolver's thirty-second timer while the device does not exist or
+reports no six-byte address, during which the resolver has no DHCPv6
+half and an `ipv6` resolver uses advertisements only, and hands the
 resolver the real six-byte address, never a DUID; the resolver forms the
 DUID from it and always uses the Ethernet hardware type. A device whose
 address is not a six-byte Ethernet address (`ifi_type` other than

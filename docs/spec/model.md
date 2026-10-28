@@ -234,7 +234,10 @@ attempt never causes a burst.
 M15. The daemon MUST NOT poll where it can be notified, and MUST NOT loop
 without delay. Every timer is bounded in number: one per bound device, one
 for unbound reconnects, one for disconnected tunnels and left-out
-entries, one per resolver.
+entries, one per resolver. One tick of one second drives the reconcile
+retry, the pending-peer retry and the unbound-reconnect retry while any
+of them is armed; the bound-device retries and the thirty-second
+left-out retry have timers of their own.
 
 ## Scale
 

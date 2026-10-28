@@ -60,7 +60,11 @@ foreign device is a transient failure of publication, retried every
 second, with the session kept under its temporary name meanwhile; the
 foreign device is never touched. A temporary name occupied by a foreign
 device at creation makes the kernel refuse the creation without leaving a
-session behind ([K20](kernel.md#facts)); the daemon picks another.
+session behind ([K20](kernel.md#facts)); the daemon picks another, up to
+eight draws in one attempt, after which the creation is a transient
+failure retried at the next reconcile (eight collisions among sixteen
+million names mean a namespace full of foreign `rsl2tp-t` devices, which
+[R19](requirements.md#the-operator) forbids).
 
 ## Identity
 
@@ -100,11 +104,13 @@ failure. The kernel allows renaming a device that is up
 ([K31](kernel.md#facts)).
 
 S11. Several sessions may exchange names in one reload, and a removed
-session's name may be taken by a surviving one. Renames go through
-temporary names (`rsl2tp-r` followed by six hexadecimal digits, unused in
-the namespace) so that no step collides, under the ordering rules of
-[M6](model.md#reconciliation); a collision batch advances past foreign
-devices occupying candidate names.
+session's name may be taken by a surviving one. A rename whose target
+name is held by another owned session of the same reconcile (a swap or a
+cycle) goes through a temporary name (`rsl2tp-r` followed by six
+hexadecimal digits, unused in the namespace) so that no step collides,
+under the ordering rules of [M6](model.md#reconciliation); every other
+rename is one operation. A collision batch advances past foreign devices
+occupying candidate names.
 
 ## Hardware addresses
 
@@ -268,3 +274,31 @@ session the kernel still has, is not re-created. This is a
 such a session. It marks the device as no longer manageable, skips its
 renames and hardware-address changes, and creates the session again only
 when a reload changes a field that re-creates it, or at restart.
+
+S29. The kernel multicasts every tunnel and session deletion commanded
+over netlink on the `l2tp` group ([K41](kernel.md#facts)), naming the
+identifiers; the daemon subscribes to it
+([E27](events.md#l2tp-events)), so an operator's deletion is noticed by
+identifiers for every session, with or without a device proof, and S27
+needs no device event for it. A session's device disappearing without
+such an event (a namespace move, or a deletion the daemon did not see
+announced) is still handled as S27 says, by querying the kernel.
+
+## Adopted tunnels
+
+S28. A tunnel adopted from the descriptor store ([P14](process.md#restart))
+is owned through its socket, but the new instance knows neither the
+device indexes nor the creation-time names of its sessions, so neither
+the proof of [S9](#identity) nor that of [S22](#identity-loss) exists
+for them. Each session the kernel reports on the tunnel is matched to
+the configuration by `session_id`, `peer_session_id`, `cookie` and
+`peer_cookie`, which the kernel reports. A match whose device bears the
+configured name is adopted as published and unmanageable
+([S20](#identity-loss)). A match whose device bears any other name (a
+session caught mid-staging, or renamed by a manager), and every session
+that matches no entry, is deleted by identifier within the adopted
+tunnel and, when configured, created again as at start-up: a session on
+an owned tunnel is either the daemon's or one an operator made by hand,
+which [R17–R18](requirements.md#the-operator) forbid. The identifiers of
+a deleted session are free at once or after the wait of
+[K18](kernel.md#facts).

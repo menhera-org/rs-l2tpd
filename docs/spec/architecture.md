@@ -11,7 +11,7 @@ their responsibilities and the interfaces between them, not their code.
  operator ──signals, files──▶ ┌──────────────────────────────────────┐
                               │ binary: process, files, PID file,    │
                               │ logging sink, signals, host tunables,│
-                              │ descriptor hand-over, installer      │
+                              │ descriptor hand-over                 │
                               └──────────────┬───────────────────────┘
                                              │ Config, Control
                               ┌──────────────▼───────────────────────┐
@@ -40,8 +40,8 @@ line, configuration files and their merging, the logging sink,
 daemonisation, the readiness pipe, the PID file, signal handling, the
 writing of the host tunable of [P25](process.md#host-tunables) when the
 service asks for it, the descriptor hand-over of
-[P14](process.md#restart) where the init system offers one, and the
-installer. It contains no kernel logic; it hands a configuration and a
+[P14](process.md#restart) where the init system offers one. It contains
+no kernel logic; it hands a configuration and a
 reload callback to the service and drives it through the control handle
 ([library](library.md#boundaries)). None of this depends on systemd or on
 a particular libc ([P22–P24](process.md#the-process-contract)).
@@ -72,7 +72,8 @@ A5. The **kernel interfaces**, each used for what only it can give:
 | L2TP generic netlink | Create, delete and query tunnels and sessions; the creation-time interface name as ownership proof and as the key of a deletion ([K16](kernel.md#facts)) |
 | rtnetlink requests, on a socket of their own | Resolve names to indexes, rename, set hardware addresses, read a device's Ethernet address for a DHCPv6 resolver's DUID ([V12](resolvers.md#dhcpv6-information-request)), dump for resync. Never on the filtered monitor ([K29](kernel.md#facts)) |
 | Link-lifetime subscription | A dedicated `RTNLGRP_LINK` socket whose sole job is to prove identities: opened before the first session, read continuously, consulted with ordered lookups, never filtered |
-| Event monitor | One subscription to the link and address groups, filtered in the kernel to the events the reconciler needs when the host allows a filter ([K10](kernel.md#requirements)). No route group ([K7](kernel.md#requirements)) and no `RTNLGRP_ND_USEROPT`: a resolver's advertisements arrive on its own sockets ([E23](events.md#resolver-events)) |
+| Event monitor | One subscription to the link and address groups, filtered in the kernel when the host allows a filter ([K10](kernel.md#requirements)): the classic BPF program passes `RTM_NEWLINK` and `RTM_DELLINK` whose `ifi_family` is `AF_UNSPEC` ([E5](events.md#link-events)) and `RTM_NEWADDR` and `RTM_DELADDR`, and drops every other message type and every link message of another family; matching by name or index stays in the loop. No route group ([K7](kernel.md#requirements)) and no `RTNLGRP_ND_USEROPT`: a resolver's advertisements arrive on its own sockets ([E23](events.md#resolver-events)) |
+| L2TP event subscription | The generic-netlink socket joins the `l2tp` multicast group ([K41](kernel.md#facts)) and delivers tunnel and session deletions commanded over netlink to the reconciler by identifiers ([E27](events.md#l2tp-events)) |
 | Resolvers | The system resolver and the configured resolvers ([resolvers](resolvers.md)), in the background on threads of their own ([V15](resolvers.md#resources)), answers polled by the reconciler; a router-advertisement resolver owns a raw ICMPv6 socket on its bind interface ([K39](kernel.md#requirements)) or, without `CAP_NET_RAW`, a netlink socket of its own ([K14](kernel.md#requirements)); a DHCPv6 one a UDP socket on port 546 |
 
 ## Concurrency

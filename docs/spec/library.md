@@ -4,8 +4,8 @@
 
 The crate is a library with a thin binary on top. Everything the binary
 does with the kernel, the library does; the binary adds files, logging
-output, signals, daemonisation, the PID file, the host tunable write, the
-descriptor hand-over and the installer.
+output, signals, daemonisation, the PID file, the host tunable write and
+the descriptor hand-over.
 
 ## Boundaries
 
@@ -48,9 +48,12 @@ effect and error ([C15](configuration.md#library-conversions)).
 ## The service
 
 L5. `Service` is the daemon minus process management: created with a
-configuration, it opens the kernel interfaces and returns an error at once
-when it cannot, leaving the retry of [P5](process.md#start-up) to the
-caller; `converge` applies the configuration, retrying every second until
+configuration and an optional list of adopted descriptors (each an
+`OwnedFd` with the tunnel identifier the program read from
+`LISTEN_FDNAMES`, [P14](process.md#restart)), it opens the kernel
+interfaces and returns an error at once when it cannot, leaving the
+retry of [P5](process.md#start-up) to the caller, and verifies each
+adopted descriptor as P14 says; `converge` applies the configuration, retrying every second until
 every eligible entry exists or a shutdown is requested, handling kernel
 and resolver events meanwhile and ignoring reloads, and returns with the
 list of entries left out for conflicts; `run` then handles events,
@@ -61,9 +64,13 @@ first converges first.
 L6. `Control` is a cloneable handle usable from any thread: `reload` never
 waits and fails when the queue is full, `reload_wait` waits for room,
 `shutdown` never fails for lack of room because it is a separate persistent
-request that wins over queued reloads. Requests accepted through the
-handle are processed in order of acceptance, one at a time. `config`
-returns the accepted configuration.
+request that wins over queued reloads. `restart` requests the restart of
+[P26](process.md#restart): the service finishes the operation in
+progress, stops its timers and calls the program's restart callback with
+the tunnel descriptors to hand over; the program execs, and if the
+callback returns (the exec failed) the service resumes. Requests accepted
+through the handle are processed in order of acceptance, one at a time.
+`config` returns the accepted configuration.
 
 L7. The reload callback runs on a thread that may block; its error is
 logged and the previous configuration kept; its panic ends the service with
@@ -100,6 +107,16 @@ event naming the tunable and the value; the program (the binary, in the
 daemon) performs the write and reports the outcome through the control
 handle; until it does, or when it reports failure, the runtime proceeds
 as with the option off ([T26](tunnels.md#hosts-with-bindv6only)).
+
+L13. The runtime never speaks to a descriptor store. It sends
+`StoreSocket { tunnel_id, fd }` when a tunnel exists and
+`ForgetSocket { tunnel_id }` before it closes a tunnel's socket; the
+program (the binary, in the daemon) performs the store operation of
+[P14](process.md#restart) where a store exists and reports the outcome
+through the control handle. The close of a socket waits for the answer
+to its `ForgetSocket`, bounded by the two seconds of
+[T8](tunnels.md#creation-and-identifiers); without a store the program
+answers at once.
 
 ## Errors
 

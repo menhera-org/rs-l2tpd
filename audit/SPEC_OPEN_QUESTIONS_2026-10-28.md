@@ -3,7 +3,7 @@
 | Detail | Value |
 |---|---|
 | Scope | `docs/spec/` at commit `5a1ce2d`, read for behaviour an implementer would have to invent |
-| Deliverable | Each item with a recommended default; nothing applied to the pages yet |
+| Deliverable | Each item with a recommended default. The maintainer approved every default on 2026-10-28 and all 22 were applied to the pages: Q1 S28, Q2 S11, Q3 S7, Q4 A5, Q5 K41/E27/S29/R5/A5, Q6 L5/L13, Q7 L6, Q8 P27/P4, Q9 P10, Q10 P21, Q11 O1, Q12 A1/L1/P23, Q13 P26, Q14 P14, Q15 P4/P12, Q16 O8, Q17 C5, Q18 O7, Q19 P13/E19, Q20 V12, Q21 E25, Q22 M15 |
 | Severity | **A** the rewrite cannot start without a decision; **B** the decision shapes the public interface (command line, unit, library API) and is hard to change later; **C** a default a test must pin |
 
 Kernel facts cited were read in the `Ubuntu-6.8.0-147.147` tree.

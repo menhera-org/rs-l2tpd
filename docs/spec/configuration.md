@@ -45,7 +45,10 @@ treated as absent.
 
 C5. A document has four optional tables: `tunnels`, `sessions` and
 `resolvers`, each a map from configuration name to entry, and `host`, a
-table of settings ([C17](#host-settings)). Every field of an entry is
+table of settings ([C17](#host-settings)). A configuration name is any
+non-empty TOML key of at most 64 bytes without control characters; a
+longer name or one with a control character is a hard mistake of the
+entry, so that log lines stay readable. Every field of an entry is
 optional in a document, so that documents can be merged before
 validation. Values that have a textual form (addresses, host names, names
 of interfaces, hardware addresses, cookies, the address family, resolver

@@ -27,9 +27,15 @@ device, no tunable, no PID file ([O8](observability.md#check-mode)).
 
 P4. The daemon double-forks. The grandchild applies the configuration; the
 original parent waits and exits 0 when the grandchild reports readiness,
-or 1 when it reports failure or dies. The intermediate child exits at once.
-The grandchild uses a restrictive umask and creates only its PID file and
-the directories of that file. Descriptors the init system passed
+or 1 when it reports failure or dies. The intermediate child calls
+`setsid` and exits at once. The grandchild reopens standard input on
+`/dev/null`, keeps standard output and standard error (the supervisor's
+journal is behind them), uses umask `077`, and creates only its PID file
+(mode `0644`, set explicitly so that the supervisor can read it) and the
+directories of that file (mode `0755`). With `--foreground`
+([P27](#command-line)) there is no fork, no PID file and no readiness
+report: the process simply runs, as `Type=simple` units and container
+entry points expect. Descriptors the init system passed
 ([P14](#restart)) survive both forks and are adopted by the grandchild,
 which accepts a `LISTEN_PID` equal to the PID of its original parent,
 the process the init system executed; every other inherited descriptor
@@ -70,8 +76,10 @@ readiness.
 
 ## PID file
 
-P10. The PID file is published only after readiness, as a fresh inode owned
-by the daemon user, replacing any previous file atomically. Its directories
+P10. The PID file, `/run/rs-l2tpd.pid` unless the build (`PID_FILE_PATH`)
+or `--pid-file` says otherwise, is published only after readiness, as a
+fresh inode owned by the daemon user, replacing any previous file
+atomically. Its directories
 MUST be owned by root or the daemon user; the daemon MUST NOT change their
 permissions and only warns when other users could replace the file. In a
 directory it cannot write to, a pre-created file is updated in place only
@@ -91,7 +99,8 @@ the kernel, not about the file.
 ## Signals and requests
 
 P12. `SIGHUP` requests a reload, `SIGTERM` and `SIGINT` a shutdown,
-`SIGUSR2` a restart ([P26](#restart)). A signal is a request to reload
+`SIGUSR2` a restart ([P26](#restart)); `SIGPIPE` is ignored, so that a
+parent gone before readiness is an `EPIPE` the daemon logs, not a death. A signal is a request to reload
 the latest files, to shut down or to restart, not a counted event: several `SIGHUP`s before the daemon acts cause one reload
 of the files as they are then. A reload request the signal thread has
 observed MUST NOT be lost: the thread waits for queue capacity, and a
@@ -106,7 +115,9 @@ P13. A reload reads the files again, converts them against the accepted
 configuration ([C12](configuration.md#reload)), replaces the accepted
 configuration if the result is acceptable, and reconciles. A reload whose
 reconcile is incomplete is retried every second until complete; a new
-reload replaces it. The reload callback runs on a thread that may block;
+reload replaces it. A reload callback already running is never cancelled:
+it runs to completion, its result is discarded when a later request
+superseded it, and the latest request runs next. The reload callback runs on a thread that may block;
 a shutdown during a blocked callback proceeds without waiting for it, and
 its result, if it ever returns, is discarded. A reload callback that
 returns an error keeps the previous configuration and is logged; one that
@@ -147,10 +158,10 @@ configuration, and the kernel reports that tunnel with the configured
 peer identifier; one that fails any check is closed. The kernel cannot
 say that the tunnel is registered on this very socket; that residual is
 accepted because the only process that hands sockets over is the daemon
-itself. Sessions on an adopted tunnel keep working; their devices'
-identities cannot be proved by the new instance and they are managed as
-after a loss of notifications ([S20](sessions.md#identity-loss)) until
-re-created.
+itself. A stored socket is named `t` followed by the decimal tunnel
+identifier (`FDNAME=t17`); a descriptor under any other name in
+`LISTEN_FDNAMES` is closed unread. Sessions on an adopted tunnel keep
+working and are handled by [S28](sessions.md#adopted-tunnels).
 
 P26. On every host, with or without a descriptor store, the daemon
 provides a **restart** operation of its own, so that a new binary on disk
@@ -166,8 +177,9 @@ the same `LISTEN_FDS`, `LISTEN_PID` and `LISTEN_FDNAMES` protocol as
   with, or the path given on the command line, never `/proc/self/exe`,
   which names the old inode once the file on disk was replaced.
 - Before the exec the daemon runs the target once as a child with
-  `--adopt-version` and proceeds only when it prints a hand-over protocol
-  version the daemon speaks; a target that does not (an older version, a
+  `--adopt-version` and proceeds only when it prints exactly
+  `rs-l2tpd-adopt 1` and a newline on standard output and exits 0, the
+  version being one the daemon speaks; a target that does not (an older version, a
   foreign program) would inherit the sockets with close-on-exec cleared
   and hold the tunnels alive without knowing it, so the request is
   refused with a report and nothing changes.
@@ -260,10 +272,35 @@ the kernel's own helper and needs nothing of the process
 ([K21](kernel.md#facts)); what blocks it is a host policy
 ([R1](requirements.md#the-host)), not the unit. It MUST grant every required capability explicitly
 ([R49](requirements.md#the-host)): `CAP_NET_ADMIN`, `CAP_NET_RAW` and
-`CAP_NET_BIND_SERVICE`. An operator who removes one gets the start-up
-report of R49 and the fallbacks, which are not guaranteed to work in every
-case. Using the unit is optional; the process contract below is
+`CAP_NET_BIND_SERVICE`: it runs the daemon as root with
+`CapabilityBoundingSet=` and `AmbientCapabilities=` limited to those
+three and `NoNewPrivileges=yes`. The daemon never changes user itself;
+"the daemon user" of this specification is whoever starts it, and a
+later `User=` with the same ambient capabilities works unchanged, since
+a process holding `CAP_NET_ADMIN` in a namespace's user namespace may
+write that namespace's network sysctls. An operator who removes one
+capability gets the start-up report of R49 and the fallbacks, which are
+not guaranteed to work in every case. Using the unit is optional; the process contract below is
 what the daemon promises every init system.
+
+## Command line
+
+P27. The binary's command line is:
+
+```
+rs-l2tpd [--config FILE] [--config-dir DIR] [--pid-file FILE] [--verbose]
+         [--check | --foreground | --restart | --adopt-version | --version]
+```
+
+`--config` and `--config-dir` replace the built-in paths of
+[C1](configuration.md#files); `--pid-file` that of [P10](#pid-file);
+`--verbose` raises logging to debug ([O1](observability.md#logging)).
+The modes are exclusive: `--check` ([P3](#start-up)); `--foreground`
+([P4](#start-up)); `--restart`, which sends `SIGUSR2` to the PID in the
+PID file and exits 0 when the signal was delivered and 1 otherwise;
+`--adopt-version` ([P26](#restart)); `--version`, which prints the crate
+version. With no mode the daemon starts. An unknown option, a missing
+argument or two modes exits 2 with the usage on standard error.
 
 ## The process contract
 
@@ -280,8 +317,8 @@ This is sufficient for OpenRC, busybox init, sysvinit, runit, s6 or a
 container entry point, with no other file or service.
 
 P23. The daemon MUST NOT depend on `/run/systemd`, the journal, D-Bus,
-`sysctl.d`, `tmpfiles.d`, the XDG or freedesktop.org layout, or the
-installer, and MUST NOT link against libsystemd or any D-Bus library; the
+`sysctl.d`, `tmpfiles.d` or the XDG or freedesktop.org layout, and MUST
+NOT link against libsystemd or any D-Bus library; the
 descriptor hand-over of [P14](#restart) is used only when the init system
 offers it, with the protocol implemented in the daemon. Of the filesystem it needs its
 own files, `/proc` ([K12](kernel.md#requirements)) and nothing else; it

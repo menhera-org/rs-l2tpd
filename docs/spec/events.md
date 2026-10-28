@@ -112,6 +112,18 @@ own ([V10](resolvers.md#router-advertisements), [K14](kernel.md#requirements)).
 The monitor's filter never applies to the sockets requests are sent on
 ([K29](kernel.md#facts), [A5](architecture.md#layers)).
 
+## L2TP events
+
+E27. **A session or tunnel deletion is announced** on the `l2tp`
+multicast group ([K41](kernel.md#facts)): a session of the configuration
+whose identifiers it names, in its tunnel, is created again
+([S27](sessions.md#external-deletion), [S29](sessions.md#external-deletion));
+a tunnel of the configuration whose identifier it names was deleted by
+hand ([T9](tunnels.md#creation-and-identifiers)) and is reported once,
+nothing else being done; an announcement naming no entry costs a
+comparison. Only announcements from the kernel are acted on
+([E22](#monitor-loss)).
+
 ## Timers
 
 E12. **Reconcile retry** (every second while a reconcile is incomplete):
@@ -144,7 +156,9 @@ owned is removed ([P16](process.md#shutdown)); a shutdown during a slow
 start-up removes what was created so far.
 
 E19. **A reload while a reload is incomplete** replaces it; the last
-configuration received wins.
+configuration received wins. A reload callback already running is not
+cancelled: it completes, its result is discarded, and the latest request
+runs next ([P13](process.md#signals-and-requests)).
 
 E26. **Restart** (`SIGUSR2` or the control handle): the daemon finishes
 the operation in progress, hands its tunnel sockets to the binary on disk
@@ -198,4 +212,7 @@ reports `IPV6_V6ONLY=1`, or the scratch check at a reconcile, is the
 event that the tunable flipped ([T26](tunnels.md#hosts-with-bindv6only));
 with `host.fix_bindv6only` on, the tunable is set back to 0 and logged
 ([P25](process.md#host-tunables)); sockets created before the flip are
-unaffected ([K23](kernel.md#facts)).
+unaffected ([K23](kernel.md#facts)). A scratch socket the kernel refuses
+(`EAFNOSUPPORT`, `EPROTONOSUPPORT`) means the host has no `AF_INET6`
+sockets ([T4](tunnels.md#address-families)); the tunable is then
+irrelevant and nothing is reported.
