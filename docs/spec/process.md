@@ -103,8 +103,10 @@ P12. `SIGHUP` requests a reload, `SIGTERM` and `SIGINT` a shutdown,
 parent gone before readiness is an `EPIPE` the daemon logs, not a death. A signal is a request to reload
 the latest files, to shut down or to restart, not a counted event: several `SIGHUP`s before the daemon acts cause one reload
 of the files as they are then. A reload request the signal thread has
-observed MUST NOT be lost: the thread waits for queue capacity, and a
-shutdown request bypasses that wait through the persistent flag
+observed MUST NOT be lost: it sets a coalescing pending flag and wakes a
+forwarder that may wait for capacity. The signal collector itself keeps
+calling `sigwait` and never blocks on that queue. Shutdown sets the
+persistent shutdown flag and wakes the loop independently
 ([A6](architecture.md#concurrency)). A shutdown request takes precedence
 over queued reloads; a second shutdown request during shutdown changes
 nothing. Reloads are serialised: one at a time, in order of acceptance.
@@ -171,7 +173,19 @@ command-line form that signals the PID of the PID file), the daemon
 executes the binary again in the same process, with its tunnel sockets
 inherited as descriptors 3 and up and announced to the new program through
 the same `LISTEN_FDS`, `LISTEN_PID` and `LISTEN_FDNAMES` protocol as
-[P14](#restart), which is the indirection between the two programs. Rules:
+[P14](#restart), which is the descriptor protocol between the programs.
+An additional internal `RS_L2TPD_REEXEC=1:<pid>` marker distinguishes this
+path from a fresh process receiving stored descriptors. Set it only for
+exec, check its version and PID, consume and remove it on entry, and
+require it even with zero tunnels. LISTEN variables alone never suppress
+daemonisation or fresh-start readiness. Preserve original options,
+foreground mode and the resolved executable path through the exec argv.
+Pass the PID-file path and its recorded device/inode identity in versioned
+internal handover state; the new instance verifies that identity before
+retaining removal authority. If it no longer matches, leave the file
+alone and report it. An invalid marker/state is a startup error, not a
+reason to fork unexpectedly. Extend `--adopt-version` when changing this
+protocol. Rules:
 
 - The program executed is the one at the path the daemon was started
   with, or the path given on the command line, never `/proc/self/exe`,
@@ -263,8 +277,9 @@ P21. When the supplied unit is used, it MUST order the service
 and a `FileDescriptorStoreMax=` large enough for the tunnels so that the
 hand-over of [P14](#restart) works. It MUST NOT depend on, or be ordered
 after, `network-online.target` or any wait-online service.
-It MUST confine the service to netlink and IP sockets plus the socket
-families the host's resolver needs, a read-only system except the PID
+It MUST allow `AF_UNIX` for `NOTIFY_SOCKET`, `AF_NETLINK`, `AF_INET` and
+`AF_INET6`, plus any additional socket families the host's resolver needs,
+while restricting other socket families, a read-only system except the PID
 file, no new privileges and no access to home directories or logs, and
 MUST allow writing `net.ipv6.bindv6only` for [P25](#host-tunables). It
 MAY set `ProtectKernelModules=yes`: autoload of the L2TP modules runs in

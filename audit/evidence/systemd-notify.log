@@ -1,0 +1,15 @@
+Running as unit: rs-l2tpd-audit-notify-1980350-ok.service; invocation ID: 5615a934dc404a7cb1646ee4e56aac29
+1
+0
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
+               Service runtime: 77ms
+             CPU time consumed: 36ms
+                   Memory peak: 2.2M (swap: 0B)
+Running as unit: rs-l2tpd-audit-notify-1980350-denied.service; invocation ID: ca7fefbc609b4bca8eb0628f1ef0cddf
+Failed to notify init system: Address family not supported by protocol
+          Finished with result: exit-code
+Main processes terminated with: code=exited, status=1/FAILURE
+               Service runtime: 44ms
+             CPU time consumed: 23ms
+                   Memory peak: 2.1M (swap: 0B)

@@ -84,13 +84,13 @@ sends messages into one bounded channel the loop reads, so that no lock
 orders state changes and every event is applied in arrival order against
 a consistent record. The channel has a fixed capacity. The kernel-facing
 and timer producers never block on it: when the channel is full, the
-event monitor drops the event and records that a resync is needed, which
-the loop performs when it next reads the marker
+kernel event producer drops the event and sets its own persistent loss
+flag outside the channel, which the loop consumes before waiting
 ([E20](events.md#monitor-loss)); resolvers and timers keep their latest
-state and send it again at their next tick. The operator-facing producers
-may wait for room, because their requests must not be lost: the signal
-thread ([P12](process.md#signals-and-requests)) and `reload_wait`
-([L6](library.md#the-service)) wait; `reload` fails instead. The control
+state and send it again at their next tick. Operator calls to `reload_wait` ([L6](library.md#the-service)) may wait
+for room; `reload` fails instead. The signal collector never waits for
+queue capacity: it coalesces pending reload/restart requests separately
+and keeps receiving shutdown signals (P12). The control
 handle sends into the same channel plus one persistent shutdown flag, so
 that a shutdown is never lost to a full queue and never waits behind a
 reload.
@@ -101,8 +101,8 @@ lookup sent on that socket is answered after every notification the
 kernel queued before it, and a subscription that is read continuously is
 never starved by a busy reconciler. It MUST NOT share a socket with
 requests that could delay its reading. It keeps the identity proofs
-itself (the set of indexes seen registered and not seen removed, and the
-loss generation, [M18](model.md#monitor-generations)) and answers the
+itself (each registration's distinct incarnation, even when an index is
+reused within one generation, and the loss generation, [M18](model.md#monitor-generations)) and answers the
 reconciler's identity questions through a dedicated request-reply path
 that does not pass through the event channel, so that a full channel can
 neither block a proof nor silently retain a stale one. This is the one
@@ -151,7 +151,12 @@ entries. A resolver that fails keeps its last answer. The signal thread is
 independent of the loop and cannot be blocked by it.
 
 A14. Every retry is a message or a timer in the loop, never a nested wait,
-so that shutdown can interrupt anything within one iteration.
+so shutdown is observed before the next operation and wakes an idle
+receiver independently of queue capacity. A synchronous in-flight kernel
+request has a five-second total deadline; shutdown responsiveness is
+bounded by that remaining deadline, not instantaneous interruption.
+Cleanup may require multiple operations, each bounded; failed cleanup is
+reported and cannot cause an unbounded wait.
 
 ## Why this shape
 

@@ -42,7 +42,9 @@ one-second retry ([E13](events.md#timers)).
 
 ## VRFs
 
-H7. A tunnel bound to a VRF sends and receives through the VRF's table.
+H7. A tunnel bound to a VRF sends through the VRF's table.
+This does not isolate received L2TP/IP data: delivery follows session
+identifiers and cookies, not the tunnel's binding ([K15](kernel.md#facts)).
 Its source is selected from the VRF domain ([K28](kernel.md#facts),
 [K34](kernel.md#facts)); a member's address change or a membership change
 reconnects it. A VRF replaced under the same name with another index is

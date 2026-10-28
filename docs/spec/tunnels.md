@@ -266,15 +266,22 @@ until it is re-created for another reason ([M17](model.md#identity-matrix)).
 
 T27. A link-local IPv6 peer needs an interface: the zone of the literal
 (`fe80::1%eth0`), or the tunnel's `bind_interface`. The zone and the bind
-device, when both are given, MUST name the same device, or the zone a
-member of the bind VRF ([K27](kernel.md#facts)); otherwise the entry has
-a hard mistake. Connecting to such a peer binds the socket to the zone's
+device, when both are given, must resolve at runtime to the same device,
+or the zone to a member of the bind VRF ([K27](kernel.md#facts)). Static
+validation checks the names' syntax only. An absent device or invalid
+membership leaves the tunnel disconnected with its peer pending; retry
+on relevant link events and the pending-peer timer. Never fall back to
+another routing domain. Connecting to such a peer binds the socket to the zone's
 device ([K27](kernel.md#facts)): on a VRF-bound tunnel the binding is
 then the member device, not the VRF, and every reconnect ends the same
 way, so for as long as the peer is a zoned link-local address the
 binding in force is the zone's device. The daemon resolves the zone name
-to an index at every reconnect, records that index as the binding in
-force, and matches address events against it
+to an index at every reconnect, records that registration as the effective
+binding, and separately tracks the configured bind device or VRF. Both
+names, both lifetimes and the membership relationship are dependencies;
+a rename, removal, replacement or invalid membership disconnects the
+tunnel until the relationship is valid again. Address events match the
+effective binding
 ([E6](events.md#address-events), [E7](events.md#address-events)); the
 race between the lookup and the connect is the one of
 [T10](#bind-devices) and is accepted the same way.

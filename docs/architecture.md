@@ -26,7 +26,7 @@ src/
     linux/
       mod.rs        LinuxKernel: owns the request socket, the genl handle, the subscriptions
       socket.rs     tunnel sockets over l2tp::TunnelSocket + socket2 (T3–T6, T10, T21, T26, K22–K26)
-      l2tp.rs       generic netlink over l2tp::L2tpHandle (K16–K20, K35, K41)
+      l2tp.rs       bounded generic-netlink requests/subscription over netlink-sys (K16–K20, K35, K41)
       rtnl.rs       rtnetlink requests over netlink-sys (K32, A5)
       monitor.rs    the event monitor: groups, cBPF filter, ENOBUFS (A5, K10, K29, E20–E22)
       lifetime.rs   the link-lifetime subscription and ordered lookups (A7, S8, S9, M18)
@@ -59,7 +59,7 @@ src/
     restart.rs      the --adopt-version probe and the execve (P26)
     caps.rs         the capability report (R49)
 contrib/
-  rs-l2tpd.service  the supplied unit (P21)
+  rs-l2tpd.service.in  unit template rendered per installation path (P21)
 ```
 
 Sizes aimed at: `config` 1,200 lines, `kernel` 1,800 (of which `fake`
@@ -92,11 +92,11 @@ pub trait Kernel {
     // L2TP generic netlink (K16–K20, K35, K41)
     fn register_tunnel(&mut self, s: SocketId, tunnel_id: u32, peer_tunnel_id: u32) -> Result<()>; // EEXIST (K19)
     fn tunnel(&self, tunnel_id: u32) -> Result<Option<TunnelInfo>>;
-    fn create_session(&mut self, c: &SessionCreate) -> Result<()>;       // name taken: refused (K20); EEXIST (K19)
+    fn create_session(&mut self, c: &SessionCreate) -> Result<Registration>;       // name taken: refused (K20); EEXIST (K19)
     fn session(&self, tunnel_id: u32, session_id: u32) -> Result<Option<SessionInfo>>; // ifname, cookies
-    fn sessions_of(&self, tunnel_id: u32) -> Result<Vec<SessionInfo>>;   // S28
+    fn scan_sessions(&self, tunnel_id: Option<u32>, visit: &mut dyn FnMut(&SessionInfo)) -> Result<()>; // S4, S22, S28; streamed complete dump
     fn delete_session(&mut self, tunnel_id: u32, session_id: u32) -> Result<()>;
-    fn delete_session_by_name(&mut self, ifname: &IfName) -> Result<()>; // S22, one operation (K16)
+    fn delete_session_by_name(&mut self, ifname: &IfName) -> Result<()>; // raw name-only primitive; S22 requires prior uniqueness/identity checks
 
     // rtnetlink requests, on the request socket (A5)
     fn link_by_name(&self, name: &IfName) -> Result<Option<LinkInfo>>;   // index, kind, flags, master
@@ -112,22 +112,42 @@ pub trait Kernel {
 }
 ```
 
-`Lifetime` adds `fn lookup(&mut self, index: u32) -> Proof`, answered
-after every notification queued before it (A7), and `fn generation(&self)
--> Generation` (M18). A `Subscription` yields events and, as its own
-items, `Loss` (`ENOBUFS`, a timeout, a socket error: E21), so that loss is
-data the reconciler handles like any event, never an error that
-unwinds (A13).
+A `Registration` contains the index, lifetime generation and a unique
+registration incarnation captured from the registration broadcast (S8).
+Before sending a create request, arm capture for the reserved temporary
+name on the continuously read lifetime subscription; completion correlates
+the broadcast with the acknowledged session creation. If capture or the
+reply is lost, return an uncertain creation outcome and reconcile the
+stored record; never guess an index by current name.
+
+`Lifetime::lookup(registration)` verifies that exact incarnation after
+draining notifications preceding its ordered lookup reply (A7). A removed
+index reappearing in the same generation never revives the old proof.
+Retain proofs only for armed captures and tracked dependencies, not every
+foreign index. Session dumps stream into bounded checks/reservations;
+never collect all foreign sessions into a namespace-sized `Vec`. A failed
+or interrupted dump cannot establish uniqueness or absence.
+A `Subscription` exposes loss separately from its bounded event queue,
+so a full queue cannot drop the loss marker (E20). Loss is handled as
+state, never an error that unwinds the reconciler (A13).
 
 The trait is object-safe and synchronous, and the reconciler that uses
 it runs on **a thread of its own**, not on a Tokio task: the real
-implementation makes blocking round trips (`l2tp::blocking::L2tpHandle`,
-which hosts the crate's own runtime on a worker thread, and
-`netlink-sys` request sockets with a five-second `SO_RCVTIMEO`, the
-backstop of E21), and a blocking call on a Tokio worker would stall the
-subscriptions. A request on a netlink socket is answered in microseconds
-by a healthy kernel; the one slow operation, waiting for a deleted
-tunnel to leave, is a timer, not a wait (A14). The Tokio runtime hosts
+implementation makes bounded round trips. Both rtnetlink and generic
+netlink must have a five-second total request deadline, including family
+resolution, multipart responses and acknowledgements. A receive timeout
+alone is insufficient if unrelated traffic keeps arriving. The existing
+`l2tp::blocking::L2tpHandle` has no such contract and cannot be used
+unchanged for these requests. Phase 2 uses the daemon's bounded raw-netlink adapter, reusing the
+`netlink-packet-generic` and `netlink-packet-l2tp` codecs already in the
+lockfile. This keeps upstream's existing default contracts unchanged.
+It must not abandon one blocked worker per timeout.
+
+After a timed-out mutation, the outcome is unknown: retain socket
+ownership and name reservations, reopen the failed request transport, and
+query local state before retrying or releasing identifiers. Never assume
+timeout means no mutation occurred or delete a replacement by ID.
+Waiting for a deleted tunnel to leave is a timer, not a nested wait (A14). The Tokio runtime hosts
 only what must be asynchronous: the three subscriptions on `AsyncFd`,
 the timers, the resolver polling, and the control handle; they send
 into the reconciler thread's channel, and the thread answers the
@@ -158,11 +178,12 @@ proves the fake against the kernel.
 specification's subtleties:
 
 ```rust
-enum Binding { None, Index { index: u32, name: IfName }, Invalid { name: IfName } } // T10–T13
+// Track configured bind and effective zone devices separately, including membership (T27).
+struct Binding { configured: Option<DeviceDependency>, zone: Option<DeviceDependency>, effective: Option<Registration> }
 enum Connection { Disconnected { pending: Option<Peer> }, Connected { peer: Peer, source: SourceAddr } } // T1, T16–T20
 enum Identity {                       // S8, S9, S19–S23, S28
-    Proved { index: u32, generation: Generation, created_as: IfName },
-    Staged { index: u32, generation: Generation, temp: IfName },
+    Proved { registration: Registration, created_as: IfName },
+    Staged { registration: Registration, temp: IfName },
     Removed,                          // observed removal: forgotten, never deleted by id
     Lost { created_as: IfName },      // loss of notifications: the kernel's record decides (S22)
     Adopted,                          // S28: identifiers only
@@ -172,9 +193,11 @@ enum Enforced<T> { Configured(T), Deferred(T), Skipped(T), Overridden { kept: T 
 
 Each tunnel record carries `conflicts: u8` and `left_out: bool` (T25);
 each session `name: Enforced<IfName>` and `hwaddr: Enforced<HwAddr>`.
-Records change only after the kernel confirmed an operation, and every
-partial state above (a tunnel bound but not connected, a session staged
-but not published) is a state the next reconcile continues from (A12).
+Applied state changes only after kernel confirmation. Record in-flight
+intent before sending a mutation and retain it as uncertain on timeout;
+that uncertainty must survive to the next local verification rather than
+being recorded as either success or no change. Every partial state above
+(a tunnel bound but not connected, a session staged but not published) is a state the next reconcile continues from (A12).
 
 ## The planner
 
@@ -192,8 +215,10 @@ host: &HostView) -> Plan`. It never touches the kernel. It:
    parents; then renames to temporary names for swaps (S11); then
    creations (tunnels before their sessions); then final renames,
    hardware-address changes and reconnects. Operations on different
-   tunnels carry no ordering edge (A8); a failed operation marks its
-   entry incomplete and the plan continues (M3, M4).
+   tunnels carry an edge when they share a namespace-wide session ID or
+   device name (A8). A release-before-claim edge remains pending until
+   asynchronous deletion is confirmed, not merely requested. Unrelated
+   entries proceed after a failure (M3, M4).
 
 `Reconciler::reconcile` runs the plan against the kernel, updates the
 records from each confirmed operation, classifies each failure (M13) and
@@ -229,25 +254,34 @@ emits a re-creating operation.
 ```
 
 - The reconciler loop is a `std::thread` that owns the `Reconciler` and
-  the `Kernel` and reads the channel with `blocking_recv`; the services
-  spawn it and join it at shutdown.
-- The channel is a `tokio::sync::mpsc` of capacity 1,024. The monitor
-  and `l2tp` tasks use `try_send`; on a full channel the monitor sets its
-  resync flag and drops the event (A6, E20). Timers and resolvers keep
-  state and send again next tick. `Control::reload` is `try_send`,
-  `reload_wait` is `send`, and shutdown is an `AtomicBool` plus a
-  `Notify` the loop checks before every event (A6, L6, P12).
-- The lifetime task owns its socket and the set of live indexes per
-  generation (A7). Proofs go through a `oneshot` request-reply: the
-  reconciler sends `(index, reply)`, the task sends `RTM_GETLINK` on the
-  lifetime socket, reads until the reply arrives (handling the
-  notifications it passes on the way), and answers `Proved`, `Removed`
-  or `Lost(generation)`; a two-second deadline is a loss (E21).
-- The resolvers are `iphost` resolvers on their own threads (V15); the
-  runtime polls their answers once a second from the tick and forwards
-  changes as `Answer` events (V4, A9).
-- Shutdown is one iteration away from anything (A14): every wait in the
-  loop is a `select!` with the shutdown notify.
+  `Kernel`. A small current-thread Tokio runtime on that thread uses
+  `block_on` only for the idle `select!` between `rx.recv()` and the
+  shutdown notification. Kernel operations run outside that wait.
+  Subscriptions stay on the service runtime and continue reading during
+  those operations. Services spawn and join the reconciler thread.
+- The channel is a `tokio::sync::mpsc` of capacity 1,024. Monitor and
+  L2TP tasks use `try_send`; each has a persistent atomic loss flag
+  outside the queue. They wake the loop when setting it. The loop
+  consumes flags before waiting and after every operation; a loss during
+  a resync remains pending. Timers and resolvers retain latest state.
+  `Control::reload` is `try_send`, `reload_wait` is `send`.
+- Shutdown sets an `AtomicBool` before `Notify::notify_one`. The loop
+  creates its notified future before checking the flag, then selects
+  it alongside receive. The stored notification permit covers the
+  check/wait race. Check shutdown before dequeuing more work.
+  Signal collection coalesces reload/restart in separate pending flags
+  and wakes a forwarding task; it never blocks on channel capacity.
+- The lifetime task owns its socket and registration incarnations, not
+  merely a set of live indexes. Capture is armed before session creation.
+  Proof requests carry a complete `Registration` and answer
+  `Proved`, `Removed` or `Lost(generation)` after ordered lookups.
+  The deadline is five seconds (E21), independent of the two-second
+  tunnel-deletion retry window.
+- Resolver results carry the resolver configuration incarnation (V7);
+  runtime validates every resolver bind link as non-VRF before starting
+  queries/discovery and after link replacement (V9).
+- Shutdown wakes an idle loop immediately; an in-flight synchronous
+  request may consume its remaining five-second deadline (A14).
 
 ## Runtime, services, binary
 
@@ -297,9 +331,14 @@ the stored descriptors' names (P14) and the path it was started with
   kernel socket into an unbounded queue, which is the A6 defect of the
   known gaps; `netlink-sys` on `AsyncFd` gives the kernel's own buffer and
   `ENOBUFS` back.
-- **`l2tp` crate kept for sockets and generic netlink.** It already
-  implements the attributes, the deletion wait and the descriptor
-  conversions, and its `L2tpHandle::events` is the K41 subscription.
+- **`l2tp` kept for socket operations and shared types.** Generic-netlink
+  requests and events use the daemon's `netlink-sys` adapter with the
+  existing packet codecs. Its request socket has at most one request in
+  flight, an absolute five-second deadline and sequence/sender validation.
+  It reopens after a failed or uncertain request; it never drains into an
+  unbounded user-space queue. The dedicated event socket similarly has
+  finite buffers and the persistent loss flag of E20. This avoids changing
+  `l2tp`'s default queue or timeout semantics for one consumer.
   Three details of its use: a tunnel is created on
   `TunnelSocket::ip_unconnected` (0.4.2) with the `TunnelConfig` that
   `TunnelConfig::for_socket` derives from it (the unspecified remote,
@@ -309,19 +348,20 @@ the stored descriptors' names (P14) and the path it was started with
   an adopted IPv4 L2TP/IP socket is taken with `from_fd_with_peer`,
   because the kernel reports no peer connection id for it. IPv4 peers
   on an `AF_INET6` socket are passed to `reconnect_ip` as IPv4-mapped
-  `IpEndpoint::V6`. Every `TunnelHandle` and `SessionHandle` gets
-  `set_auto_delete(false)` at once: their drop would otherwise delete
-  by identifier, which T8 forbids and M6 orders differently; a tunnel is
-  deleted by dropping its handle, which closes the socket, followed by
-  the daemon's own two-second `get_tunnel` poll for `ENODEV` (T8).
+  `IpEndpoint::V6`. The daemon owns the socket directly; deletion closes
+  it and schedules the two-second T8 verification window. If an upstream
+  `TunnelHandle` or `SessionHandle` is used in a fixture or alternative
+  adapter, call `set_auto_delete(false)` immediately: its default drop
+  deletes by identifier, which is not the daemon's ownership policy.
   Session devices' indexes come from the daemon's lifetime subscription
   (S8), not from `SessionHandle::ifindex`, whose own monitor is opened
-  per creation and falls back to a lookup by name. The K41 stream is
-  the blocking handle's `EventIter`, read on a thread that forwards
-  with `try_send` and a resync flag like the monitor. Requests through
-  the blocking handle carry no timeout; the kernel answers generic
-  netlink synchronously, and E21's timeout belongs to the lifetime
-  socket, which is the daemon's own.
+  per creation and falls back to a lookup by name. The K41 path must be bounded from the socket reader onward,
+  preserve a persistent loss marker, and check recvmsg sender port zero
+  before decoding. A bounded forwarding queue after the existing
+  unbounded `EventIter` is insufficient. Default upstream behavior is
+  not changed merely to satisfy this daemon; the chosen raw-netlink
+  boundary supplies these requirements. All request paths obey the total
+  deadline and uncertain-mutation rules above.
 - **Random names from the `getrandom` crate.** S4 wants the kernel's
   random source; the library may neither read `/dev/urandom` (L1) nor
   call `getrandom(2)` through `libc` (L2), and `std` exposes no stable

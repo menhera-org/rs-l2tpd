@@ -74,7 +74,9 @@ order of the tables of [C7](configuration.md#tunnel-entries),
 and [C17](configuration.md#host-settings); defaults the files did not
 write are not printed; and reports every problem on
 standard error in the same words the daemon would log at start-up. It
-makes no kernel request and writes no tunable.
+makes no kernel request and writes no tunable. Thus it reports static
+configuration problems only; device kind, availability, MAC and VRF
+membership conditions are evaluated and reported at runtime (C16, T27).
 
 ## State visible on the host
 

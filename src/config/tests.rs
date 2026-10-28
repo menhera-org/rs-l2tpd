@@ -1293,3 +1293,40 @@ fn cookies_are_never_formatted() {
         "HwAddr(02:00:5e:00:53:01)"
     );
 }
+
+/// Static validation must not infer a device kind, MAC or membership from a name.
+/// spec: C16, T27, L4
+#[test]
+fn host_dependent_conditions_are_not_parse_errors() {
+    for fields in [
+        "method = \"ra\"",
+        "method = \"dhcpv6\"",
+        "method = \"ipv6\"",
+        "addresses = [\"192.0.2.53\"]",
+    ] {
+        let (config, problems) = resolver(&format!("{fields}\nbind_interface = \"vrf-missing\""));
+        assert!(config.is_some());
+        assert!(problems.is_empty());
+    }
+    let (config, problems) = tunnel(
+        "tunnel_id = 1\nremote_addr = \"fe80::1%absent-zone\"\nbind_interface = \"absent-vrf\"",
+    );
+    assert!(config.is_some());
+    assert!(problems.is_empty());
+}
+
+/// Irrelevant valid fields are tolerated; malformed values remain errors.
+/// spec: C10, C11, C16
+#[test]
+fn irrelevant_dhcpv6_fields_still_validate_their_values() {
+    for fields in [
+        "method = \"ra\"\nbind_interface = \"wan0\"",
+        "addresses = [\"192.0.2.53\"]",
+    ] {
+        for (key, value) in [("dhcpv6_identity", "unknown"), ("dhcpv6_duid", "xyz")] {
+            let (config, problems) = resolver(&format!("{fields}\n{key} = \"{value}\""));
+            assert!(config.is_none());
+            assert_eq!(problems, left_out(key));
+        }
+    }
+}

@@ -88,8 +88,12 @@ is disconnected ([T16](tunnels.md#peers-that-cannot-be-reached)).
 
 V7. Answers belong to a host name, a family and a resolver. A changed
 host name, a changed `ip_version` or a changed `resolver_name` on reload
-discards the answers in force and queries anew; nothing else does. An
-answer of the other family is never used.
+discards the answers in force and queries anew. A change of the named
+resolver's configuration does the same, even when its name is unchanged.
+Each lookup carries the incarnation of the resolver configuration and the
+host name/family it serves; a result from an earlier incarnation is
+ignored. No other change discards answers. An answer of the other family
+is never used.
 
 V8. Readiness never waits for a resolver ([P7](process.md#readiness)); a
 resolver that never answers leaves its tunnels disconnected and reported
@@ -101,16 +105,30 @@ V9. A resolver with `bind_interface` sends its queries from sockets bound
 to that device by name, a fresh socket per query, so that the kernel
 resolves the name inside the bind, the configured name stays
 authoritative ([T11](tunnels.md#bind-devices)), and no capability is
-needed ([K22](kernel.md#facts)). For the address kind the device may be
-a VRF, which routes the queries in the VRF's table
-([K28](kernel.md#facts)); a link-local name server then needs a zone in
-its address, because only a link supplies a scope. For `ra`, `dhcpv6`
-and `ipv6` the bind interface MUST be a link (an interface that carries
-advertisements and DHCPv6 traffic, which may be a VRF member), never a
-VRF device; the resolver's sockets are tied to that link, so it works on
-a VRF member without the `l3mdev_accept` sysctls. While the device does
-not exist the resolver's lookups fail and its tunnels keep their answers
-in force ([V6](#queries-and-answers)); the device may appear later.
+needed ([K22](kernel.md#facts)). For every kind, including the address kind, the bind interface MUST be
+a link, never a VRF device. The daemon checks the device kind before
+starting the resolver and after a replacement; it opens no resolver
+socket on a VRF. A link may itself be a VRF member: the sockets are tied
+to that link, so discovery works without the `l3mdev_accept` sysctls.
+A link-local name server uses its explicit zone, or the bind link as its
+scope; a configured zone must refer to that same link when a bind link
+is given. An explicit zone also must resolve to a non-VRF link when no
+bind interface is configured. Track these zone dependencies like bind
+links. Device kind and scope are runtime checks made before using the
+affected server; an invalid zone is not passed to the resolver library. While the device is absent,
+while any resolver's bind or zone device is a VRF, while the zone does not refer to the configured bind
+link, or while a link-local
+server has neither an explicit zone nor a bind link supplying its scope,
+the affected resolver operation waits and is retried every thirty seconds;
+its tunnels keep their answers in force ([V6](#queries-and-answers)).
+These conditions are reported once per episode and never remove an
+accepted entry; a suitable device may appear later. A resolver whose
+previously valid bind link disappears or is replaced by a VRF stops its
+queries and discovery sockets, retaining only answers in force. The
+daemon retries device validation every thirty seconds and on relevant
+link events; it never deliberately selects a VRF device for the resolver
+library. As with T10, lookup and socket binding are not atomic against
+external replacement (M10); revalidate after a replacement is observed.
 
 ## Router advertisements
 
@@ -211,8 +229,8 @@ and `dhcpv6_duid` gives an exact DUID (3 to 130 bytes) for a network
 that expects a registered one. With the default `"link-layer"`, a bind
 interface without a hardware address (`ARPHRD_NONE`, as a point-to-point
 tunnel device) cannot form a DUID-LL: a `dhcpv6` resolver on it is a
-hard mistake of the entry, and an `ipv6` resolver on it uses router
-advertisements only ([V14](#the-unified-ipv6-method)); with any other
+runtime condition retried every thirty seconds, and an `ipv6` resolver
+on it uses router advertisements only ([V14](#the-unified-ipv6-method)); with any other
 value such a device is fine. Port 546 needs [K13](kernel.md#requirements); without
 it a `dhcpv6` resolver is reported once as a host defect, retried every
 thirty seconds, and its tunnels stay disconnected, while an `ipv6`
@@ -257,7 +275,7 @@ V13. Events concerning resolvers and what they cause:
 | An answer in force changes | The tunnels using it are reconnected to the selected address ([T15](tunnels.md#peers), [T28](tunnels.md#peer-changes)) |
 | A resolver's configuration changes on reload | Its answers are discarded and queried anew ([V7](#queries-and-answers)) |
 | A resolver named by a tunnel is removed from the configuration | The tunnel's entry has a hard mistake whose values in force still name the resolver, so the reload is refused as a whole, naming the tunnel ([C12](configuration.md#reload)) |
-| The bind device of a resolver appears or disappears | Nothing is done by the daemon: lookups bind to the device when it exists and fail while it does not ([V9](#binding)); answers in force are kept |
+| The bind device appears, disappears, is renamed or replaced | Revalidate its lifetime and non-VRF kind before starting queries or discovery; stop them while absent or a VRF. Retry as V9 requires; retain answers in force |
 | An RDNSS lifetime expires | The server is used only while no unexpired server exists ([V10](#router-advertisements)); answers in force are kept ([V6](#queries-and-answers)) |
-| Notifications are lost | Nothing: the resolvers own their sockets and keep their servers and answers ([V11](#router-advertisements)) |
+| Monitor notifications are lost | Revalidate every resolver's bind device before further queries; retain answers. Discovery-source lifetimes still follow V11 |
 | Shutdown | Queries are abandoned; nothing is removed, because resolvers create no kernel object |

@@ -4,9 +4,9 @@
 
 What an operator or an embedding program sees after the rewrite. Every
 item is fixed by the specification; the rule numbers point at the
-normative text. The current tree differs where the
-[known gaps](spec/README.md#known-gaps) say so; 0.1.5 is the last
-release.
+normative text. The current binary is a rewrite stub that exits 2;
+[known gaps](spec/README.md#known-gaps) describe the historical `741117b`
+implementation. 0.1.5 is the last release.
 
 ## Configuration files
 
@@ -110,7 +110,8 @@ except a deferred hardware-address change, logged at every reconcile
 bounding and ambient sets limited to `CAP_NET_ADMIN`, `CAP_NET_RAW` and
 `CAP_NET_BIND_SERVICE`, `NoNewPrivileges=yes`, a read-only system
 except the PID file, `ProtectHome=yes`, `PrivateTmp=yes`, address
-families restricted to netlink and IP, and the `net.ipv6.bindv6only`
+`RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6` (`AF_UNIX`
+for the descriptor-store notification socket, independent of resolver needs), and the `net.ipv6.bindv6only`
 write allowed. It is one integration: the process contract (P22) is
 what every init system gets, and a container entry point uses
 `--foreground`.
@@ -136,7 +137,8 @@ at start-up. Hosts without IPv6, with `disable_ipv6`, with
 ```toml
 [dependencies]
 rs-l2tpd = { version = "0.2", default-features = false }               # no TOML, no serde
-rs-l2tpd = { version = "0.2", default-features = false, features = ["serde"] }
+# Or use this alternative instead of the line above:
+# rs-l2tpd = { version = "0.2", default-features = false, features = ["serde"] }
 ```
 
 - `config`: `Config` is always valid (L4); `PartialConfig` offers the

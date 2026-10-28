@@ -33,12 +33,15 @@ is therefore **staged**: created under a temporary name (`rsl2tp-t`
 followed by six hexadecimal digits, unique, chosen from the kernel's
 random source (`getrandom`, never a counter, the time or the process
 identifier, because the proof of [S22](#identity-loss) rests on the name
-being unpredictable), checked against the namespace's device names and
-within the kernel's length limit), given its configured address while it is down when one is
+being unpredictable), checked against the namespace's device names, all
+stored session creation names, and the daemon's reserved names, and within
+the kernel's length limit), given its configured address while it is down when one is
 configured, and only then renamed to its configured name, so that a
 manager matching the configured name never sees the device with the
 wrong address. One creation path serves sessions with and without a
-configured address.
+configured address. Reserve the creation name until the session is confirmed
+gone, even after publication; seed reservations from adopted sessions.
+A rename-swap name is not a new creation name.
 
 S5. A manager can match the temporary device nonetheless (by type, by the
 random address) and bring it up or attach children before the daemon has
@@ -87,7 +90,9 @@ proves before every change that the index still refers to the device
 created: the subscription saw no removal of that index since the
 registration, and a lookup on the same socket, ordered after every
 notification queued before it, finds the device. The proof belongs to the
-subscription's generation ([M18](model.md#monitor-generations)). Linux
+subscription's generation and that registration's distinct incarnation
+([M18](model.md#monitor-generations)); an index removed and registered
+again in the same generation cannot satisfy the old proof. Linux
 cannot make this proof and the change atomic; the interval is kept
 minimal.
 
@@ -152,8 +157,8 @@ in every frame; a session exposed to untrusted senders SHOULD use 8-byte
 cookies.
 
 S15. The kernel cannot change a session's cookies: a change re-creates the
-session. The new device is created under the configured name once the old
-one is gone, and the identifiers are reused; a refusal meanwhile is a
+session. The replacement uses the ordinary staging and publication path of S4–S7
+once the old one is gone, and the identifiers are reused; a refusal meanwhile is a
 transient conflict ([T25](tunnels.md#identifier-conflicts), [K18](kernel.md#facts)).
 
 S16. Cookie values are never logged.
@@ -163,8 +168,9 @@ S16. Cookie values are never logged.
 S17. `interface_name` and `interface_hwaddr` change in place, as does
 anything about the tunnel that changes in place. `session_id` (a removal
 and an addition), `peer_session_id`, `cookie`, `peer_cookie` and
-`tunnel_name` re-create the session; a re-creation of the tunnel re-creates
-its sessions ([M17](model.md#identity-matrix)). Those fields, with the
+a change of the referenced tunnel's kernel identity re-create the session;
+changing only `tunnel_name` to name that same kernel tunnel keeps it.
+A re-creation of the tunnel re-creates its sessions ([M17](model.md#identity-matrix)). Those fields, with the
 tunnel's own kernel identity ([T23](tunnels.md#changes-applied-in-place)),
 are the session's **kernel identity**: a session entry of a reload is the
 same session as an entry of the accepted configuration when its tunnel
@@ -224,21 +230,23 @@ now; the kernel object, if any, remains until its tunnel is torn down,
 which removes it ([K17](kernel.md#facts)). A re-creation that the kernel
 then refuses is a conflict and is handled as one.
 
-S22. After a loss of notifications, the kernel's own record decides: the
-session is deleted if, and only if, the kernel still reports it under the
-interface name the daemon gave it at creation ([K16](kernel.md#facts)),
-and the deletion names that interface name (`L2TP_ATTR_IFNAME`) rather
-than the identifiers, so that the check and the deletion are one kernel
-operation. That makes removal and re-creation with new cookies work, and
-lets a session whose notifications were lost while it was still staged
-be identified again or deleted and created again, so that readiness is
-reached even when a burst of link changes overflows the subscription at
-boot. The limit of this proof is stated and accepted: a foreign session
-created during the loss with the same identifiers and the same
-creation-time name is indistinguishable from the daemon's own and would
-be deleted; the temporary names of [S4](#creation) and [S11](#names) make
-such a collision require deliberate imitation, and [R17–R18](requirements.md#the-operator)
-forbid it.
+S22. After a loss of notifications, deletion uses the stored creation name
+([K16](kernel.md#facts)), with a fresh namespace-wide session dump first.
+The dump must complete without loss and contain exactly one session with
+that name, matching the expected tunnel ID, session ID, peer IDs and
+cookies. Refuse deletion on ambiguity, mismatch or failed verification.
+Only then delete by `L2TP_ATTR_IFNAME`. Supplying IDs alongside the name
+does not add an identity check: the kernel's name lookup ignores them.
+
+This is not an atomic conditional delete. A foreign writer can replace
+or duplicate the record between the dump and deletion; that race is
+accepted under [M10](model.md#ownership) and the operator restrictions
+[R17–R18](requirements.md#the-operator). A foreign session imitating the
+complete record cannot be distinguished. Lifetime reservation of names
+(S4) prevents the daemon itself from causing ordinary name reuse.
+On refusal, keep the object unmanageable and report the conflict rather
+than deleting by identifiers. This path also permits safely verified
+staged sessions to be removed and re-created after notification loss.
 
 S23. A session still being prepared whose device can no longer be proved
 is first re-identified at the index the registration broadcast reported,
@@ -269,11 +277,9 @@ reporting no session with its identifiers, is the proof that it is gone,
 as opposed to moved. The two observations may arrive in either order
 ([K18](kernel.md#facts)); the daemon queries the kernel after the removal
 and acts on the answer. A device moved to another namespace, whose
-session the kernel still has, is not re-created. This is a
-[known gap](README.md#known-gaps): today the daemon does not re-create
-such a session. It marks the device as no longer manageable, skips its
-renames and hardware-address changes, and creates the session again only
-when a reload changes a field that re-creates it, or at restart.
+session the kernel still has, is not re-created. The pre-rewrite implementation did not perform this recovery; the rewrite
+must implement it. After L2TP event loss, E20 also queries sessions with
+no device proof.
 
 S29. The kernel multicasts every tunnel and session deletion commanded
 over netlink on the `l2tp` group ([K41](kernel.md#facts)), naming the
@@ -287,18 +293,18 @@ announced) is still handled as S27 says, by querying the kernel.
 ## Adopted tunnels
 
 S28. A tunnel adopted from the descriptor store ([P14](process.md#restart))
-is owned through its socket, but the new instance knows neither the
-device indexes nor the creation-time names of its sessions, so neither
-the proof of [S9](#identity) nor that of [S22](#identity-loss) exists
-for them. Each session the kernel reports on the tunnel is matched to
-the configuration by `session_id`, `peer_session_id`, `cookie` and
-`peer_cookie`, which the kernel reports. A match whose device bears the
-configured name is adopted as published and unmanageable
-([S20](#identity-loss)). A match whose device bears any other name (a
-session caught mid-staging, or renamed by a manager), and every session
-that matches no entry, is deleted by identifier within the adopted
-tunnel and, when configured, created again as at start-up: a session on
-an owned tunnel is either the daemon's or one an operator made by hand,
-which [R17–R18](requirements.md#the-operator) forbid. The identifiers of
-a deleted session are free at once or after the wait of
-[K18](kernel.md#facts).
+is owned through its socket. Match each reported session by
+`session_id`, `peer_session_id`, `cookie` and `peer_cookie` within
+the matching tunnel identity. Preserve every match as adopted and
+unmanageable ([S20](#identity-loss)), regardless of its stored name.
+The kernel reports a creation-time name, not a current device index or
+name; finding a link under the configured name cannot prove association.
+This preserves manager-renamed devices and also preserves a session
+caught mid-staging; report that publication cannot be proved or repaired.
+
+Keep the stored creation names reserved (S4), but do not infer a device
+proof from them. Unmatched sessions on the owned tunnel are deleted by
+identifier and configured replacements use ordinary staging (S4–S7).
+This authority depends on [R17–R18](requirements.md#the-operator), which
+forbid foreign sessions in owned tunnels. Wait for deletion completion
+before identifier reuse ([K18](kernel.md#facts)).

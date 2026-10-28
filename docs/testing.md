@@ -17,7 +17,7 @@ src/**            unit tests next to the code (config, planner, ladder, report)
 tests/
   rules/          behavioural tests over the fake kernel, one file per spec page (tunnels.rs, sessions.rs, ...)
   properties/     property tests of the promises (G3, G5, G6, G18) over random reload sequences
-  kernel/         the conformance suite: one test per K fact, run against the fake and the real kernel
+  kernel/         shared operation cases plus live-only fixture/source checks for K facts
   binary/         the binary's unit-level tests (args, files, check rendering, pid file, logger)
   scenarios/      the scenario suite: whole-daemon tests in containers, one per H rule and G promise
   docker/         the runner: Dockerfiles, the scenario driver, the QEMU matrix driver
@@ -40,20 +40,25 @@ Every test names the rules it guards in its doc comment,
 
 ### The conformance suite
 
-Each K fact is one test written against the `Kernel` trait, so the same
-body runs against `FakeKernel` and `LinuxKernel`. Example: K31 creates a
-session, brings the device up, sets a hardware address and expects
-`EBUSY`; K17 closes a socket and expects its sessions gone within the
-deletion wait; K29 shrinks a subscription's buffer, floods it and expects
-`Loss`. A fact that the fake gets wrong is caught here, not in a
-behavioural test, which is why behavioural tests may trust the fake. The
+Each K fact has an evidence row naming its source and applicable tests.
+Operations exposed by `Kernel` share test bodies between `FakeKernel`
+and `LinuxKernel`. A test-only fixture supplies host controls and
+observations the daemon must not expose: bring links up/down, inject and
+observe frames/counters, create foreign objects/namespaces, delay replies
+and force queue loss. K31 uses that fixture to bring a session up before
+testing `EBUSY`; K5 must actually transmit and observe drops, not merely
+create an unconnected socket. K17 observes asynchronous cleanup and K29
+forces buffer loss. Source-only assertions and host/module requirements
+are listed separately and never counted as executed shared cases.
+A fact that the fake gets wrong must fail its corresponding live case. The
 real run also records the kernel version it ran on, and the QEMU matrix
 runs it on every release from v6.8 to the newest (the verified range of
 [kernel](spec/kernel.md)).
 
 ### The rules suites
 
-One test per numbered rule, against the fake. Determinism comes from the
+At least one behavioral test per numbered rule, with separate cases for
+each clause and table row; a single citation is not case coverage. Determinism comes from the
 fake's virtual clock (a test advances it; M14 intervals are asserted
 exactly), its seeded random source (S4 names are reproducible), and its
 explicit notification delivery (a test says when the kernel's
@@ -86,10 +91,16 @@ IPv6) run under QEMU.
 | Gate | Tool | Threshold |
 |---|---|---|
 | Coverage | `cargo llvm-cov` over unit, rules, properties, the fake conformance run and the container runs (profiles merged) | 100 % lines and branches of `src/`; exclusions only in `kernel::linux` for branches no kernel of the range reaches, each marked `// coverage: unreachable on <range>, <reason>` |
-| Rule map | `tests/tools/rulemap.rs` reads every rule definition of `docs/spec/*.md`, which is a line starting with `X1.` or a table row starting with `\| X1 \|` (letters `A`, `C`, `D`, `E`, `G`, `H`, `K`, `L`, `M`, `O`, `P`, `R`, `S`, `T`, `V`), and every `spec:` comment of `tests/` and `src/` | every rule has at least one test; rules whose text begins with "Removed" are exempt |
+| Rule map | `tests/tools/rulemap.rs` reads every rule definition of `docs/spec/*.md`, which is a line starting with `X1.` or a table row starting with `\| X1 \|` (letters `A`, `C`, `D`, `E`, `G`, `H`, `K`, `L`, `M`, `O`, `P`, `R`, `S`, `T`, `V`), and `/// spec:` comments attached to `#[test]` or `#[tokio::test]` declarations in `tests/` and `src/` | every active rule has a test declaration citation with path, line and function; removed rules exempt. Lexical traceability only: it does not prove execution, feature selection or semantic coverage |
 | Source link | `tests/tools/srclink.rs` reads every `// kernel:` comment of `src/kernel/linux/` | every function cites a K fact; every K fact is cited |
 | Determinism | CI runs the fake suites ten times with different seeds and the container suite three times | zero flakes before a gate is enabled |
-| Warnings | `cargo clippy -D warnings`, `cargo doc -D warnings`, builds with no default features and with `serde` | clean |
+| Warnings | `cargo clippy --all-targets --all-features -- -D warnings`, `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps`, builds with no default features and with `serde` | clean |
+
+Required suites separately record the selected features, ignored/live test
+execution and results. Keep explicit per-clause/table-case coverage;
+a green rule map alone cannot close a phase. The runner layout below is
+the Phase 6 target, not an assertion that those runners already exist.
+Current review probes and exact commands are in `tests/kernel/README.md`.
 
 ## Running
 

@@ -16,7 +16,7 @@ specification differ, the specification is right and this page is wrong.
 
 ## Rules of the rewrite
 
-- **Nothing is kept for its own sake.** The current tree (17,000 lines,
+- **Nothing is kept for its own sake.** The pre-rewrite baseline `741117b` (17,000 lines,
   of which `runtime.rs` 6,600 and `state.rs` 4,200) is read for the
   kernel facts it learned, not for its structure; the target is under
   7,000 lines of library and 1,500 of binary, excluding tests.
@@ -27,9 +27,10 @@ specification differ, the specification is right and this page is wrong.
   deterministically; every kernel fact and every real implementation is
   tested against the live kernel.
 - **Every rule has a number, every test names one.** A test that guards
-  rule T21 carries `#[spec("T21")]`-style markers in its name or doc
-  comment (`// spec: T21`), and a check in CI fails when a rule of the
-  specification has no test naming it ([testing](testing.md#gates)).
+  rule T21 carries `/// spec: T21` immediately before its test declaration.
+  The rule map lists identifiable test locations; it is traceability,
+  not proof of execution or coverage. Required suite results and explicit
+  per-clause cases establish that evidence ([testing](testing.md#gates)).
 - **Stop at the upstream boundary.** When a step needs something of the
   `l2tp` or `iphost` crate that they do not provide, the step stops, the
   need is written down in [dependencies](dependencies.md#upstream-needs),
@@ -46,7 +47,7 @@ specification differ, the specification is right and this page is wrong.
 | Phase | Deliverable | Depends on |
 |---|---|---|
 | 0 | Upstream check, version plan, empty crate skeleton with features and CI gates | — |
-| 1 | Configuration: types, validation, lenient conversions, serde, TOML merging in the binary | 0 |
+| 1 | Configuration: types, validation, lenient conversions, serde, in-memory document merging | 0 |
 | 2 | Kernel boundary: the `Kernel` trait, the fake kernel, the real kernel with its live tests | 0 |
 | 3 | Reconciler: records, planner, tunnel and session operations, the degradation ladder, timers, event handlers, resolvers | 1, 2 |
 | 4 | Runtime, services, control handle, library API and documentation | 3 |
@@ -68,8 +69,10 @@ specification differ, the specification is right and this page is wrong.
    thread and zone parsing are the daemon's ([dependencies](dependencies.md#upstream-needs)).
    The one item that was missing upstream, a constructor for a bound,
    unconnected tunnel socket (the disconnected state of T1), is
-   in `l2tp` 0.4.2, published and pinned on 2026-10-28. Nothing is
-   missing upstream.
+   in `l2tp` 0.4.2, published and pinned on 2026-10-28. The sender-validation bug and bounded event/request requirements are
+   recorded in the dependency table. Existing upstream contracts stay
+   unchanged; the selected bounded raw adapter supplies daemon-specific
+   queue/deadline requirements before Phase 2 can close.
 2. The version stays **0.2.0**: it was never released, so the API
    changes of L5, L6 and L13 break nothing published; the configuration
    format of 0.1.5, the last release, keeps working (G22).
@@ -98,8 +101,9 @@ with a message until phase 5. Next: phase 1.
 
 ### Phase 1 — configuration
 
-Implements [configuration](spec/configuration.md) C1–C17 and the
-library types of L3–L4.
+Implements the static [configuration](spec/configuration.md) rules C2,
+C5–C17 and library types L3–L4. File handling (C1, C3, C4) is designed
+here and implemented in Phase 5.
 
 1. `config::Config`, `TunnelConfig`, `SessionConfig`, `ResolverConfig`,
    `HostConfig`: private fields, builders, getters; every constructor and
@@ -124,16 +128,19 @@ merging examples of C2 and C12, the name rules of C5 and K32, the host
 name and literal rules of C7 including the IPv4-mapped and zone cases,
 unknown keys at every depth. No kernel is involved.
 
-Exit: every C rule and L3–L4 mapped to a passing test; `cargo doc`
-clean.
+Exit: C2, C5–C17 and L3–L4 have passing static configuration tests,
+including each field/table case. C1, C3 and C4 file discovery/read errors
+are explicitly Phase 5 exit requirements; runtime device checks from
+C16/T27 belong to Phases 2–3. `cargo doc` is clean.
 
 **Status: started on 2026-10-28.** Items 1–3 are in `src/config/`, with
 unit tests citing every C rule except C1, C3 and C4, the file layer of
 phase 5. On the library side, item 4 is `PartialConfig::set_source`
 (names the file in its unknown-key problems) and `merge`. The phase
-stays open on questions to the specification: checks that C16 and T27
-call hard mistakes depend on the host's devices, and C10 does not list
-the `dhcpv6_identity` tolerance of C16.
+now distinguishes static validation from runtime device conditions
+(C16, T27) and includes the C16 ignored-field tolerance in C10. Verify
+the static case matrix before closing Phase 1; runtime enforcement is
+required before Phases 2–3 close.
 
 ### Phase 2 — the kernel boundary
 
@@ -161,8 +168,9 @@ Implements the kernel interfaces of A5 and the facts of
    can be told to overflow a subscription (E20, E21) or to drop
    notifications.
 3. `kernel::linux`: the real implementation over `l2tp::TunnelSocket`
-   (`ip_unconnected`, 0.4.2), `l2tp::blocking::L2tpHandle` (the trait is
-   synchronous and runs on the reconciler's own thread,
+   (`ip_unconnected`, 0.4.2), a bounded generic-netlink request/event
+   adapter meeting the upstream-needs table (the trait is synchronous
+   and runs on the reconciler's own thread,
    [architecture](architecture.md#the-kernel-boundary)), and `netlink-sys` sockets with
    `netlink-packet-route` for the rtnetlink requests and the two
    subscriptions; the event monitor attaches the classic BPF program of
@@ -171,12 +179,17 @@ Implements the kernel interfaces of A5 and the facts of
    a loss (E21); only port 0 is accepted (E22). Every function cites the
    kernel source lines of the fact it relies on, in the form the
    source-link check reads (`// kernel: net/l2tp/l2tp_ip.c:333-334 (K22)`).
-4. Live tests (`tests/kernel/`), one per K fact, run against the real
-   kernel in a privileged container and against the fake; the same test
-   body for both (the conformance suite of [testing](testing.md#the-conformance-suite)).
+4. Live tests (`tests/kernel/`) cover each applicable K fact with the
+   production operations plus test-only fixture controls; operation
+   cases share their body between real and fake implementations (the conformance suite of [testing](testing.md#the-conformance-suite)).
 
-Exit: every K fact has a conformance test passing on the fake and on the
-running kernel; the fake is the only kernel the phase 3 tests use.
+Exit: each K fact has an explicit evidence row: shared operation test,
+live-only host test or source/requirement assertion. Applicable operation
+cases pass on the fake and running kernel, including index reuse within
+a generation, ambiguous creation names, foreign-namespace events,
+event loss scans, sender validation, and missing-reply deadlines with
+uncertain mutations. A source assertion does not count as a passing live
+test. The fake is the only kernel the Phase 3 behavioral tests use.
 
 ### Phase 3 — the reconciler
 
@@ -224,8 +237,13 @@ tests for the planner: any sequence of reloads converges, no operation
 is issued on a converged entry (M2, G18), and a session's index never
 changes except by a matrix row (G3).
 
-Exit: every M, T, S, V, E, G rule mapped to a passing deterministic
-test; the reconciler has no `tokio` dependency except the channel types.
+Exit: M, T, S, V and E policy cases pass deterministically, as do G3,
+G5–G7 and G18 planner properties. Include cross-tunnel name swaps and
+session-ID reuse delayed by deletion, resolver config generations and
+non-VRF validation, and dual zone/bind dependencies. G14 library behavior
+and actual channel/wakeup concurrency close in Phase 4; G15–G23 process,
+timing and resource promises require Phase 5–6 end-to-end tests. No
+unimplemented service/process promise is claimed from a planner test.
 
 ### Phase 4 — runtime and services
 
@@ -246,7 +264,7 @@ A6–A7, A13–A14.
    a thread that may block (L7); the restart callback (L6); adopted
    descriptors into the constructors (L5).
 4. Library documentation: the crate-level example, one example per
-   service, `cargo doc -D warnings`.
+   service, `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps`.
 
 Tests: the service tests of L5–L13 against the fake kernel (converge
 with a conflict, run then reload, a full queue, a callback panic, drop
@@ -254,7 +272,7 @@ without shutdown, adopted descriptors verified and refused); doc tests;
 a `#[non_exhaustive]` and re-export check (L3).
 
 Exit: every L rule tested; the library builds with no default features,
-with `serde`, and under `cargo doc -D warnings`.
+with `serde`, and under `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps`.
 
 ### Phase 5 — the binary
 
@@ -283,8 +301,10 @@ Implements [process](spec/process.md) P1–P27 and
    with, signal mask reset in the new instance.
 10. Capability report (R49): `capget(2)` for the effective set, no
     `/proc`; report each missing one once.
-11. The systemd unit (P21) shipped as `contrib/rs-l2tpd.service`, with a
-    test that parses it for every required key.
+11. The systemd unit (P21), rendered from `contrib/rs-l2tpd.service.in`
+    per installation path (packaging), with a
+    test that parses it for every required key and a live notification
+    test under its actual address-family restrictions.
 12. `--setup-systemd` behind the `setup-systemd` feature
     ([packaging](packaging.md#--setup-systemd-feature-setup-systemd)):
     atomic copy of the binary, the unit unless edited, the configuration
@@ -297,7 +317,7 @@ service on the fake kernel); container tests for daemonisation,
 readiness, the PID file, the store protocol against a tiny notify-socket
 listener, the restart exec, and the capability report.
 
-Exit: every P and O rule tested; the binary runs on glibc and musl
+Exit: every P and O rule and the deferred C1, C3, C4 file cases tested; the binary runs on glibc and musl
 targets (P24).
 
 ### Phase 6 — proof
@@ -320,7 +340,9 @@ targets (P24).
    `// kernel:` citation that names a K fact, and every K fact is cited
    by at least one function.
 5. The rule map: every numbered rule of every page appears in at least
-   one test; the report lists the tests per rule.
+   one test declaration; the report lists locations per rule. This is
+   traceability only: required feature/ignored/live suites must separately
+   execute successfully, and multi-clause rules retain explicit case lists.
 6. Determinism: the fake-kernel suite runs with a seeded random source
    and a virtual clock; the container suite waits on events, never on
    sleeps of fixed length; each suite is run ten times in CI without a

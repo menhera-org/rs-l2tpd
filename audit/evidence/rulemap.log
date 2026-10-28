@@ -1,0 +1,375 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+     Running tests/tools/rulemap.rs (target/x86_64-unknown-linux-musl/debug/deps/rulemap-c60aee368f06a0a6)
+
+running 3 tests
+test definitions_are_recognised ... ok
+test only_doc_comments_attached_to_tests_are_citations ... ok
+rule map: 339 rules (329 active), 38 linked to test declarations, 291 without citations
+without test citation: A1
+without test citation: A10
+without test citation: A11
+without test citation: A12
+without test citation: A13
+without test citation: A14
+without test citation: A15
+without test citation: A16
+without test citation: A17
+without test citation: A18
+without test citation: A19
+without test citation: A2
+without test citation: A20
+without test citation: A21
+without test citation: A22
+without test citation: A3
+without test citation: A4
+without test citation: A5
+without test citation: A6
+without test citation: A7
+without test citation: A8
+without test citation: A9
+without test citation: C1
+without test citation: C3
+without test citation: C4
+without test citation: E1
+without test citation: E10
+without test citation: E11
+without test citation: E12
+without test citation: E13
+without test citation: E14
+without test citation: E17
+without test citation: E18
+without test citation: E19
+without test citation: E2
+without test citation: E20
+without test citation: E21
+without test citation: E22
+without test citation: E23
+without test citation: E25
+without test citation: E26
+without test citation: E3
+without test citation: E4
+without test citation: E5
+without test citation: E6
+without test citation: E7
+without test citation: E8
+without test citation: G1
+without test citation: G10
+without test citation: G11
+without test citation: G12
+without test citation: G13
+without test citation: G14
+without test citation: G15
+without test citation: G16
+without test citation: G17
+without test citation: G18
+without test citation: G19
+without test citation: G2
+without test citation: G20
+without test citation: G21
+without test citation: G23
+without test citation: G3
+without test citation: G4
+without test citation: G5
+without test citation: G6
+without test citation: G7
+without test citation: G8
+without test citation: G9
+without test citation: H1
+without test citation: H10
+without test citation: H11
+without test citation: H12
+without test citation: H13
+without test citation: H14
+without test citation: H15
+without test citation: H16
+without test citation: H17
+without test citation: H18
+without test citation: H19
+without test citation: H2
+without test citation: H3
+without test citation: H4
+without test citation: H5
+without test citation: H6
+without test citation: H7
+without test citation: H8
+without test citation: H9
+without test citation: K1
+without test citation: K10
+without test citation: K11
+without test citation: K13
+without test citation: K14
+without test citation: K15
+without test citation: K2
+without test citation: K20
+without test citation: K21
+without test citation: K22
+without test citation: K23
+without test citation: K24
+without test citation: K25
+without test citation: K26
+without test citation: K27
+without test citation: K28
+without test citation: K29
+without test citation: K3
+without test citation: K30
+without test citation: K31
+without test citation: K33
+without test citation: K34
+without test citation: K35
+without test citation: K36
+without test citation: K38
+without test citation: K39
+without test citation: K4
+without test citation: K40
+without test citation: K6
+without test citation: K7
+without test citation: K8
+without test citation: K9
+without test citation: L1
+without test citation: L10
+without test citation: L11
+without test citation: L12
+without test citation: L13
+without test citation: L2
+without test citation: L3
+without test citation: L5
+without test citation: L6
+without test citation: L7
+without test citation: L8
+without test citation: L9
+without test citation: M1
+without test citation: M10
+without test citation: M11
+without test citation: M12
+without test citation: M13
+without test citation: M14
+without test citation: M15
+without test citation: M16
+without test citation: M17
+without test citation: M18
+without test citation: M19
+without test citation: M2
+without test citation: M3
+without test citation: M4
+without test citation: M5
+without test citation: M6
+without test citation: M7
+without test citation: M8
+without test citation: M9
+without test citation: O1
+without test citation: O2
+without test citation: O3
+without test citation: O4
+without test citation: O6
+without test citation: O7
+without test citation: O9
+without test citation: P1
+without test citation: P10
+without test citation: P11
+without test citation: P12
+without test citation: P13
+without test citation: P14
+without test citation: P15
+without test citation: P16
+without test citation: P17
+without test citation: P18
+without test citation: P19
+without test citation: P2
+without test citation: P20
+without test citation: P21
+without test citation: P22
+without test citation: P23
+without test citation: P24
+without test citation: P25
+without test citation: P26
+without test citation: P27
+without test citation: P3
+without test citation: P4
+without test citation: P5
+without test citation: P6
+without test citation: P7
+without test citation: P8
+without test citation: P9
+without test citation: R1
+without test citation: R10
+without test citation: R11
+without test citation: R12
+without test citation: R13
+without test citation: R14
+without test citation: R15
+without test citation: R16
+without test citation: R17
+without test citation: R18
+without test citation: R19
+without test citation: R21
+without test citation: R22
+without test citation: R23
+without test citation: R24
+without test citation: R25
+without test citation: R26
+without test citation: R27
+without test citation: R28
+without test citation: R29
+without test citation: R3
+without test citation: R30
+without test citation: R31
+without test citation: R34
+without test citation: R35
+without test citation: R36
+without test citation: R37
+without test citation: R38
+without test citation: R39
+without test citation: R4
+without test citation: R40
+without test citation: R41
+without test citation: R42
+without test citation: R43
+without test citation: R44
+without test citation: R45
+without test citation: R46
+without test citation: R48
+without test citation: R49
+without test citation: R5
+without test citation: R6
+without test citation: R8
+without test citation: R9
+without test citation: S1
+without test citation: S10
+without test citation: S11
+without test citation: S12
+without test citation: S13
+without test citation: S14
+without test citation: S15
+without test citation: S16
+without test citation: S18
+without test citation: S19
+without test citation: S2
+without test citation: S20
+without test citation: S21
+without test citation: S23
+without test citation: S24
+without test citation: S25
+without test citation: S26
+without test citation: S27
+without test citation: S29
+without test citation: S3
+without test citation: S5
+without test citation: S6
+without test citation: S7
+without test citation: S8
+without test citation: S9
+without test citation: T1
+without test citation: T10
+without test citation: T11
+without test citation: T12
+without test citation: T13
+without test citation: T14
+without test citation: T15
+without test citation: T16
+without test citation: T17
+without test citation: T18
+without test citation: T19
+without test citation: T2
+without test citation: T20
+without test citation: T21
+without test citation: T22
+without test citation: T24
+without test citation: T25
+without test citation: T26
+without test citation: T28
+without test citation: T29
+without test citation: T3
+without test citation: T4
+without test citation: T5
+without test citation: T6
+without test citation: T7
+without test citation: T8
+without test citation: T9
+without test citation: V10
+without test citation: V11
+without test citation: V14
+without test citation: V15
+without test citation: V3
+without test citation: V4
+without test citation: V5
+without test citation: V6
+without test citation: V7
+without test citation: V8
+without test citation: V9
+C10: /home/dev/rs-l2tpd/src/config/tests.rs:283 (tunnel_ip_version)
+C10: /home/dev/rs-l2tpd/src/config/tests.rs:435 (session_hardware_addresses)
+C10: /home/dev/rs-l2tpd/src/config/tests.rs:716 (start_up_leaves_out_and_takes_dependents)
+C10: /home/dev/rs-l2tpd/src/config/tests.rs:752 (an_empty_result_is_valid)
+C10: /home/dev/rs-l2tpd/src/config/tests.rs:1321 (irrelevant_dhcpv6_fields_still_validate_their_values)
+C11: /home/dev/rs-l2tpd/src/config/tests.rs:803 (a_reload_corrects_tolerated_mistakes_in_place)
+C11: /home/dev/rs-l2tpd/src/config/tests.rs:1321 (irrelevant_dhcpv6_fields_still_validate_their_values)
+C12: /home/dev/rs-l2tpd/src/config/tests.rs:762 (reload_keeps_values_in_force)
+C12: /home/dev/rs-l2tpd/src/config/tests.rs:827 (reload_refused_when_values_in_force_no_longer_fit)
+C12: /home/dev/rs-l2tpd/src/config/tests.rs:869 (reload_refused_when_a_dependency_is_removed)
+C12: /home/dev/rs-l2tpd/src/config/tests.rs:900 (new_valid_entries_collide_among_themselves_first)
+C13: /home/dev/rs-l2tpd/src/config/tests.rs:941 (accepted_configuration_reads_back)
+C14: /home/dev/rs-l2tpd/src/config/tests.rs:803 (a_reload_corrects_tolerated_mistakes_in_place)
+C14: /home/dev/rs-l2tpd/src/config/tests.rs:987 (kernel_identities)
+C15: /home/dev/rs-l2tpd/src/config/tests.rs:128 (unknown_keys_at_every_depth)
+C15: /home/dev/rs-l2tpd/src/config/tests.rs:1025 (strict_conversion)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:505 (resolver_addresses)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:564 (resolver_methods)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:595 (resolver_dhcpv6_identities)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:1070 (builders_and_insertions_validate)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:1300 (host_dependent_conditions_are_not_parse_errors)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:1321 (irrelevant_dhcpv6_fields_still_validate_their_values)
+C17: /home/dev/rs-l2tpd/src/config/tests.rs:651 (host_settings)
+C2: /home/dev/rs-l2tpd/src/config/tests.rs:103 (documents_are_merged_before_validation)
+C2: /home/dev/rs-l2tpd/src/config/tests.rs:917 (merging)
+C5: /home/dev/rs-l2tpd/src/config/tests.rs:87 (configuration_names)
+C5: /home/dev/rs-l2tpd/src/config/tests.rs:103 (documents_are_merged_before_validation)
+C6: /home/dev/rs-l2tpd/src/config/tests.rs:113 (a_value_of_the_wrong_type_fails_the_document)
+C6: /home/dev/rs-l2tpd/src/config/tests.rs:128 (unknown_keys_at_every_depth)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:173 (tunnel_identifiers)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:199 (tunnel_literals)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:243 (tunnel_host_names)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:283 (tunnel_ip_version)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:332 (interface_names)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:360 (tunnel_resolver_name)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:1070 (builders_and_insertions_validate)
+C8: /home/dev/rs-l2tpd/src/config/tests.rs:377 (session_fields)
+C8: /home/dev/rs-l2tpd/src/config/tests.rs:435 (session_hardware_addresses)
+C8: /home/dev/rs-l2tpd/src/config/tests.rs:466 (session_cookies)
+C8: /home/dev/rs-l2tpd/src/config/tests.rs:1070 (builders_and_insertions_validate)
+C9: /home/dev/rs-l2tpd/src/config/tests.rs:669 (uniqueness_in_byte_order_of_names)
+C9: /home/dev/rs-l2tpd/src/config/tests.rs:827 (reload_refused_when_values_in_force_no_longer_fit)
+C9: /home/dev/rs-l2tpd/src/config/tests.rs:1070 (builders_and_insertions_validate)
+E27: /home/dev/rs-l2tpd/tests/kernel/review.rs:138 (foreign_namespace_deletion_does_not_delete_local_session)
+G22: /home/dev/rs-l2tpd/src/config/tests.rs:1056 (format_of_0_1_5)
+K16: /home/dev/rs-l2tpd/tests/kernel/review.rs:70 (creation_name_is_not_current_or_unique)
+K17: /home/dev/rs-l2tpd/tests/kernel/review.rs:121 (unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate)
+K18: /home/dev/rs-l2tpd/tests/kernel/review.rs:225 (session_identifier_reuse_waits_for_deletion)
+K19: /home/dev/rs-l2tpd/tests/kernel/review.rs:225 (session_identifier_reuse_waits_for_deletion)
+K32: /home/dev/rs-l2tpd/src/config/tests.rs:332 (interface_names)
+K37: /home/dev/rs-l2tpd/tests/kernel/review.rs:121 (unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate)
+K41: /home/dev/rs-l2tpd/tests/kernel/review.rs:138 (foreign_namespace_deletion_does_not_delete_local_session)
+K5: /home/dev/rs-l2tpd/tests/kernel/review.rs:121 (unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate)
+K5: /home/dev/rs-l2tpd/tests/kernel/review.rs:186 (unconnected_tunnel_drops_outbound_frames)
+L4: /home/dev/rs-l2tpd/src/config/tests.rs:1070 (builders_and_insertions_validate)
+L4: /home/dev/rs-l2tpd/src/config/tests.rs:1300 (host_dependent_conditions_are_not_parse_errors)
+O5: /home/dev/rs-l2tpd/src/config/tests.rs:466 (session_cookies)
+O5: /home/dev/rs-l2tpd/src/config/tests.rs:1279 (cookies_are_never_formatted)
+O8: /home/dev/rs-l2tpd/src/config/tests.rs:941 (accepted_configuration_reads_back)
+O8: /home/dev/rs-l2tpd/src/config/tests.rs:965 (check_mode_rendering_order)
+R47: /home/dev/rs-l2tpd/src/config/tests.rs:199 (tunnel_literals)
+S17: /home/dev/rs-l2tpd/src/config/tests.rs:987 (kernel_identities)
+S22: /home/dev/rs-l2tpd/tests/kernel/review.rs:70 (creation_name_is_not_current_or_unique)
+S28: /home/dev/rs-l2tpd/tests/kernel/review.rs:70 (creation_name_is_not_current_or_unique)
+S4: /home/dev/rs-l2tpd/tests/kernel/review.rs:70 (creation_name_is_not_current_or_unique)
+T23: /home/dev/rs-l2tpd/src/config/tests.rs:987 (kernel_identities)
+T27: /home/dev/rs-l2tpd/src/config/tests.rs:199 (tunnel_literals)
+T27: /home/dev/rs-l2tpd/src/config/tests.rs:1300 (host_dependent_conditions_are_not_parse_errors)
+V1: /home/dev/rs-l2tpd/src/config/tests.rs:360 (tunnel_resolver_name)
+V12: /home/dev/rs-l2tpd/src/config/tests.rs:595 (resolver_dhcpv6_identities)
+V13: /home/dev/rs-l2tpd/src/config/tests.rs:869 (reload_refused_when_a_dependency_is_removed)
+V2: /home/dev/rs-l2tpd/src/config/tests.rs:505 (resolver_addresses)
+V2: /home/dev/rs-l2tpd/src/config/tests.rs:564 (resolver_methods)
+test every_rule_has_a_test_citation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

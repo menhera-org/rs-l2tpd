@@ -1,5 +1,8 @@
 # Documentation re-review before Phase 2 — 2026-10-28
 
+**Follow-up:** [Remediation and executed tests](PHASE1_REMEDIATION_2026-10-28.md)
+record the subsequent fixes. This report below preserves the original findings.
+
 **What this change does:** This report reviews the implementation plan against the authoritative specification and checks the specification for internal contradictions. It identifies decisions that must be settled before implementing the kernel boundary and the later runtime; it changes no implementation or specification file.
 
 | Review detail | Value |

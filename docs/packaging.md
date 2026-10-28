@@ -23,7 +23,7 @@ What it does, in order, and all it does:
 |---|---|---|
 | 1 | Refuses unless running as root (or `--prefix` is given, for tests) | exit 1 |
 | 2 | Copies the running executable to `<prefix>/usr/local/sbin/rs-l2tpd`: written to a temporary name in the same directory, `fsync`ed, then `rename`d over the old file, so that the path always holds a complete binary and a daemon running from the old one keeps its inode | atomic |
-| 3 | Installs the unit `contrib/rs-l2tpd.service` (embedded at build time) at `<prefix>/etc/systemd/system/rs-l2tpd.service` the same way, **unless** a unit exists there that differs from any version this binary ever installed; then it is left alone and reported, because the operator changed it | never overwrites an edit |
+| 3 | Renders the embedded `contrib/rs-l2tpd.service.in` with `ExecStart=/usr/local/sbin/rs-l2tpd` and installs it at `<prefix>/etc/systemd/system/rs-l2tpd.service` the same way, **unless** a unit exists there that differs byte-for-byte from every known shipped installer unit embedded with this release; then it is left alone and reported, because the operator changed it | never overwrites an edit |
 | 4 | Creates `<prefix>/etc/rs-l2tpd.toml.d/` and, when no main file exists, `<prefix>/etc/rs-l2tpd.toml` containing the commented example of [interface](interface.md#configuration-files); an existing main file is never touched | never overwrites configuration |
 | 5 | Runs `systemctl daemon-reload`; on a first installation (the unit was not enabled before) runs `systemctl enable --now rs-l2tpd`; on a re-run it does **not** restart or reload the service | the operator restarts: `rs-l2tpd --restart` keeps the tunnels (P26), `systemctl restart` re-creates them |
 | 6 | Prints each step's outcome on standard output; any failure exits 1 after the steps that did not depend on it | idempotent: a second run changes nothing |
@@ -37,7 +37,16 @@ installer, not part of the process contract.
 Tests: with `--prefix` pointing at a temporary directory the mode
 performs steps 2 to 4 and skips `systemctl`; the tests check the atomic
 replacement (a reader holding the old file still reads it), the
-untouched edited unit, the untouched main file, and idempotence.
+untouched edited unit, the untouched main file, and idempotence. Embed
+prior shipped installer unit texts alongside the current template so an
+unedited old unit upgrades; unknown variants are preserved and reported.
+Test an old unedited unit, an edited old unit and an unknown unit.
+
+Both installation paths render the same unit template with an absolute
+binary path: installer `/usr/local/sbin/rs-l2tpd`, package
+`/usr/sbin/rs-l2tpd`. Test each with both binaries present. The installer
+unit in `/etc` overrides the package unit in `/lib`; installing a package
+does not silently switch an existing installer service to the other binary.
 
 ## `musl-deb`: a minimal Debian package
 
@@ -77,7 +86,7 @@ Contents of a package:
 | Path | From |
 |---|---|
 | `/usr/sbin/rs-l2tpd` | the musl binary for the architecture (`--features bin`, without `setup-systemd`, since the package is the installer) |
-| `/lib/systemd/system/rs-l2tpd.service` | `contrib/rs-l2tpd.service` |
+| `/lib/systemd/system/rs-l2tpd.service` | `contrib/rs-l2tpd.service.in` rendered with `ExecStart=/usr/sbin/rs-l2tpd` |
 | `/etc/rs-l2tpd.toml` | the commented example, a conffile: `dpkg` keeps the operator's version on upgrade |
 | `/etc/rs-l2tpd.toml.d/` | empty directory |
 | `/usr/share/doc/rs-l2tpd/` | `README.md`, `LICENSE-APACHE`, `LICENSE-MPL`, this page |

@@ -16,8 +16,14 @@ is not bound to it is reconnected ([T21](tunnels.md#source-addresses)) and
 so bound to it ([T12](tunnels.md#bind-devices)); a tunnel that was
 disconnected because its device was absent gets its real peer
 ([T13](tunnels.md#bind-devices)). A resolver whose bind device has that
-name needs nothing from the daemon: its next lookup binds to the device
-([V9](resolvers.md#binding)).
+name is revalidated as a non-VRF link before its lookups or discovery
+sockets start ([V9](resolvers.md#binding)).
+
+For zoned peers, E1–E4 track both the configured bind name and the zone
+name and their registration lifetimes (T27). Changes revalidate both
+and VRF membership before reconnecting. A zone-only peer is tracked even
+without an explicit bind interface. Resolver bind names and explicit server zone names are also tracked;
+a replacement or rename requires V9 validation before further queries.
 
 E2. **A device is renamed**: the daemon looks the old and the new name up
 among the configured bind names and the owned indexes: a tunnel bound to
@@ -35,8 +41,8 @@ like any device. A session device that disappears ends its identity proof
 as an observed removal ([S19](sessions.md#identity-loss)) and, when the
 kernel no longer has the session, the session is created again
 ([S27](sessions.md#external-deletion)). A resolver whose bind device
-disappears needs nothing from the daemon: its lookups fail until a device
-of the name exists, and its answers stay in force ([V9](resolvers.md#binding)).
+disappears stops lookups and discovery, retains its answers, and waits
+for a non-VRF link of the name ([V9](resolvers.md#binding)).
 
 E4. **A device changes state** (up, down, flags, MTU, controller): a
 session device seen down gets its deferred hardware-address change
@@ -48,7 +54,7 @@ tunnels bound to a VRF, when any device's controller becomes or stops
 being that VRF, because the VRF's set of addresses changed. A controller
 change to or from a bridge or bond reconnects nothing. Nothing else is
 done, and nothing is looked up in the kernel for a device no tunnel is
-bound to and no session owns.
+bound to, no zone depends on, no resolver uses and no session owns.
 
 E5. Link events carry the protocol family `AF_UNSPEC` when they describe a
 device's lifetime; events of other families (`AF_BRIDGE`, `AF_INET6`)
@@ -89,14 +95,15 @@ E10. **An answer in force changes** for the family a tunnel uses
 selected address ([T28](tunnels.md#peer-changes)); an address that cannot
 be connected to leaves the tunnel disconnected with the address pending
 and retried every second ([T15](tunnels.md#peers)). An answer for a host
-name, family or resolver the configuration no longer names is discarded.
+name, family, resolver or resolver configuration incarnation no longer
+in force is discarded, including a late result from before reload.
 
 E11. Queries are refreshed thirty seconds after the previous lookup
 returned, each lookup bounded per kind ([V4](resolvers.md#queries-and-answers)),
 and their results polled every second; a failed query and a negative
 answer keep the answer in force ([V6](resolvers.md#queries-and-answers)). Replacing a tunnel's host
-name, family or resolver discards its answers, so an old answer can
-never be applied to a new name.
+name, family, resolver or that resolver's configuration discards its
+answers and invalidates outstanding lookup results (V7).
 
 E23. **A router advertisement with RDNSS options** arrives on a
 router-advertisement resolver's own socket: its raw ICMPv6 socket, or its
@@ -115,14 +122,22 @@ The monitor's filter never applies to the sockets requests are sent on
 ## L2TP events
 
 E27. **A session or tunnel deletion is announced** on the `l2tp`
-multicast group ([K41](kernel.md#facts)): a session of the configuration
-whose identifiers it names, in its tunnel, is created again
-([S27](sessions.md#external-deletion), [S29](sessions.md#external-deletion));
-a tunnel of the configuration whose identifier it names was deleted by
-hand ([T9](tunnels.md#creation-and-identifiers)) and is reported once,
-nothing else being done; an announcement naming no entry costs a
-comparison. Only announcements from the kernel are acted on
-([E22](#monitor-loss)).
+multicast group ([K41](kernel.md#facts)): match its identifiers to the
+configuration, then query the current local namespace. Announcements
+are advisory: they may come from another namespace, be delayed from an
+older incarnation, or precede actual removal. A local session confirmed
+absent is re-created (S27, S29); a local tunnel confirmed absent is
+reported as T9 requires. A still-present object is preserved. While a
+suspected deletion is pending, retain one coalesced verification task per
+configured identity and retry local queries on the one-second timer until
+absence or a different incarnation is confirmed, or that configuration
+identity is removed. A present record alone cannot distinguish a foreign
+announcement from a local deletion still queued in the kernel. This may
+keep verification queries pending after a foreign same-ID event; it must
+not withhold readiness, mutate the live object, or run a full reconcile.
+The number of pending tasks is bounded by configured identities.
+Unmatched announcements cost only a comparison. Accept only kernel
+senders (E22); sender validation does not establish namespace identity.
 
 ## Timers
 
@@ -183,8 +198,18 @@ and seeded, and session identities captured in the old generation are
 marked as lost ([S19](sessions.md#identity-loss)); the event monitor is
 not resynced for that. The first subscription of the daemon's life,
 opened before anything exists, misses nothing and causes no resync. The
-event channel of [A6](architecture.md#concurrency) overflowing is handled
-as a loss on the event monitor.
+event channel of [A6](architecture.md#concurrency) overflowing records a
+persistent loss flag for the producer that dropped the event.
+
+Loss on the **L2TP subscription** reopens that subscription and queries
+all configured tunnels and sessions in the local namespace, including
+adopted and unmanageable sessions without a device proof. Confirmed
+missing sessions enter S27 recovery; missing tunnels enter T9 reporting.
+A failed or incomplete scan stays pending and retries; clear the loss flag
+only after a complete scan, retaining any loss that occurred during it.
+This is recovery triggered by loss, not periodic reconciliation of a
+converged configuration. Separate persistent monitor and L2TP loss flags
+cannot themselves be dropped when the event queue is full.
 
 E21. A loss shows in three ways, and each is treated as a loss of
 notifications on that socket: a receive that fails with `ENOBUFS`

@@ -1,0 +1,4 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+   Compiling serde v1.0.229
+   Compiling iphost v0.4.0
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.25s

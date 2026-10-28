@@ -56,10 +56,11 @@ everything applied before stays applied and recorded, and the next
 reconcile continues from there. Nothing is rolled back to make a failure
 look clean.
 
-M4. Entries are independent. A failure of one entry MUST NOT keep another
-entry from being applied in the same reconcile, with one exception: a
-session cannot be applied before its tunnel. A tunnel that cannot be
-applied takes its sessions with it, and only them.
+M4. Entries without a shared dependency are independent. A failure MUST
+NOT block unrelated work. A session waits for its tunnel, and an operation
+claiming an identifier or name waits for its release under M6, including
+across tunnels. A failed release blocks only operations depending on that
+resource; other entries continue.
 
 M5. A reconcile is triggered by: start-up, a reload, the retry timer while
 an earlier reconcile left something unapplied, and the periodic retry of
@@ -145,7 +146,7 @@ operation needs a reason the kernel imposes ([A21](architecture.md#extension)).
 | `remote_addr`, `ip_version`, `resolver_name`, `bind_interface` changed; endpoint mistake corrected; peer, source or connected state changed | kept | kept | in place ([T22](tunnels.md#changes-applied-in-place)) |
 | `interface_name`, `interface_hwaddr` changed or corrected; rename or address set by another manager | — | kept | in place ([S17](sessions.md#changes-applied-in-place)) |
 | `tunnel_id` or `peer_tunnel_id` changed | re-created | re-created | the kernel cannot change them ([T23](tunnels.md#changes-applied-in-place)) |
-| `session_id`, `peer_session_id`, `cookie`, `peer_cookie`, `tunnel_name` changed | kept | re-created | the kernel cannot change them ([S17](sessions.md#changes-applied-in-place)) |
+| `session_id`, `peer_session_id`, `cookie`, `peer_cookie`, or the referenced tunnel's kernel identity changed | kept, unless the tunnel itself changes | re-created | the kernel cannot change them ([S17](sessions.md#changes-applied-in-place)); changing only `tunnel_name` to refer to the same kernel tunnel keeps the session |
 | A tunnel or session entry renamed in the configuration, its kernel identity unchanged | kept | kept | entries are matched by kernel identity, not by name ([C14](configuration.md#semantics-of-changes), [T23](tunnels.md#changes-applied-in-place), [S17](sessions.md#changes-applied-in-place)) |
 | An entry removed from the configuration; shutdown | removed | removed | explicit ([C12](configuration.md#reload), [P16](process.md#shutdown)) |
 | A session deleted in the kernel by an operator | — | re-created | the object is gone ([S27](sessions.md#external-deletion)) |
@@ -161,9 +162,11 @@ subscription. A generation begins when the subscription is opened and
 seeded, and ends when it overflows or its socket fails
 ([E20](events.md#monitor-loss)). A proof from an ended generation is
 invalid; a session created in the new generation gets a proof of the new
-generation. Loss on the event monitor, which is a different socket, ends
-no generation: it causes a resync of bindings and connected tunnels and
-nothing else. Loss on the lifetime subscription ends the generation and
+generation. Each proof also records the individual registration
+incarnation: reusing an index within that generation cannot revive it.
+Loss on the event monitor, which is a different socket, ends
+no generation: it revalidates bindings, resolver devices and deferred
+changes and reconnects connected tunnels as E20 specifies. Loss on the lifetime subscription ends the generation and
 makes every identity captured in it unprovable, whether or not the event
 monitor lost anything.
 
@@ -203,8 +206,10 @@ M13. Every failure the daemon meets is one of:
   tunable. Retried every second, reported once, readiness withheld
   because the interfaces the network depends on cannot exist; a defect
   that affects only a resolver withholds nothing ([V12](resolvers.md#dhcpv6-information-request)).
-- **Configuration mistake**: handled at load time, never at apply time
-  ([configuration](configuration.md)).
+- **Configuration mistake**: a static syntax, value or reference error,
+  handled at load time, never at apply time ([configuration](configuration.md)).
+  Host-dependent resolver or zone restrictions are transient runtime
+  conditions; they never invalidate the accepted configuration.
 - **Defect of the daemon**: an outcome the kernel gives only to a wrong
   sequence of operations (`EAFNOSUPPORT` from a connect,
   [K24](kernel.md#facts); `EPERM` from a device binding,

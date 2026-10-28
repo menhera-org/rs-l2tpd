@@ -38,10 +38,15 @@ not a breaking change.
 
 ## Configuration types
 
-L4. A `Config` is always valid: every constructor and insertion validates
-([configuration](configuration.md)), so a configuration obtained in code,
-by strict deserialisation or by lenient conversion satisfies the same
-rules. The lenient conversions return every problem with its kind, name,
+L4. A `Config` always satisfies the static configuration rules: every
+constructor and insertion validates syntax, uniqueness and references
+([configuration](configuration.md)), so configurations obtained in code,
+by strict deserialisation or by lenient conversion have the same
+invariants. This includes the explicitly peerless tunnel produced by
+lenient conversion. Validity does not assert host availability, device
+kind, hardware address or VRF membership; those are runtime conditions,
+and no constructor or conversion queries the host. The lenient conversions
+return every problem with its kind, name,
 effect and error ([C15](configuration.md#library-conversions)).
 
 ## The service

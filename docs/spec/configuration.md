@@ -95,17 +95,26 @@ C16. Fields of a resolver entry ([resolvers](resolvers.md)):
 
 | Field | Rule |
 |---|---|
-| `addresses` | A non-empty list of name-server addresses: an IPv4 or IPv6 literal as for `remote_addr`, optionally with a port (`192.0.2.53:5353`, `[2001:db8::53]:5353`), port 53 by default. A link-local IPv6 server needs a zone in its address unless `bind_interface` names a link (not a VRF). Exclusive with `method`. |
+| `addresses` | A non-empty list of name-server addresses: an IPv4 or IPv6 literal as for `remote_addr`, optionally with a port (`192.0.2.53:5353`, `[2001:db8::53]:5353`), port 53 by default. A link-local IPv6 server needs a zone in its address unless `bind_interface` names a link (not a VRF). Explicit zone devices also must be non-VRF links, checked at runtime (V9). Exclusive with `method`. |
 | `method` | `"ra"`, `"dhcpv6"` or `"ipv6"` (both, DHCPv6 preferred, [V14](resolvers.md#the-unified-ipv6-method)), either case. Exclusive with `addresses`; requires `bind_interface`, which must then be a link, not a VRF ([V9](resolvers.md#binding)). |
-| `bind_interface` | An interface name as for a tunnel. Required with `method`, optional with `addresses`. |
+| `bind_interface` | An interface name as for a tunnel. Required with `method`, optional with `addresses`. For every resolver kind the device MUST be a link, never a VRF; its kind is checked at runtime before opening resolver sockets ([V9](resolvers.md#binding)). |
 | `dhcpv6_identity` | `"link-layer"` (default), `"anonymous"` or `"random"`, either case: the DHCPv6 client identifier. `"link-layer"` is a DUID-LL (DUID type 3, RFC 8415 section 11.4) with hardware type 1 (Ethernet) and the bind interface's six-byte address, stable across restarts of the daemon because it derives from the device. `"anonymous"` sends no Client Identifier (RFC 7844 anonymity profile). `"random"` is a DUID-LL from a random locally administered address, new at every start of the resolver. See [V12](resolvers.md#dhcpv6-information-request). Meaningful with `method = "dhcpv6"` or `"ipv6"`; ignored with a warning otherwise. |
-| `dhcpv6_duid` | Optional. An exact Client Identifier as 6 to 260 hexadecimal digits (3 to 130 bytes), for a network that expects a registered DUID; exclusive with `dhcpv6_identity`. |
+| `dhcpv6_duid` | Optional. An exact Client Identifier as 6 to 260 hexadecimal digits (3 to 130 bytes), for a network that expects a registered DUID; exclusive with `dhcpv6_identity`. Like `dhcpv6_identity`, a valid value is ignored with a warning outside `method = "dhcpv6"` or `"ipv6"`. |
 
 An entry with neither `addresses` nor `method`, with both, with `method`
-and no `bind_interface` or with a VRF as `bind_interface`, with an
-unknown `method` or `dhcpv6_identity` value, with both `dhcpv6_identity`
-and `dhcpv6_duid`, with an invalid `dhcpv6_duid`, or with `"link-layer"`
-identity on a device without a hardware address, is a hard mistake.
+and no `bind_interface`, with an unknown `method` or `dhcpv6_identity`
+value, with both `dhcpv6_identity` and `dhcpv6_duid`, or with an invalid
+`dhcpv6_duid`, is a hard mistake. Invalid values remain hard mistakes
+even when the field would otherwise be ignored.
+
+Validation checks syntax and relationships within the configuration; it
+never queries the host. Whether a device exists, is a link or VRF, has
+an Ethernet address, or belongs to a VRF is checked at runtime under
+[V9](resolvers.md#binding), [V12](resolvers.md#dhcpv6-information-request)
+and [T27](tunnels.md#link-local-peers). Those conditions do not remove an
+entry from the accepted configuration. In particular, any resolver
+bound to a VRF waits for a suitable link; missing Ethernet
+identity disables the DHCPv6 half while the `ipv6` method may still use RA.
 
 ## Host settings
 
@@ -131,15 +140,16 @@ entry is one of:
 | Unusable endpoint: `remote_addr` missing or neither a literal nor a host name; `ip_version` invalid, or missing for a host name; a literal that is not unicast or of the other family | Applied without a peer: the tunnel is created disconnected and its sessions exist ([T16](tunnels.md#peers-that-cannot-be-reached)). The family is the one `ip_version` names if it parses, else the literal's if it parses, else IPv6. Reported as a warning. |
 | Unusable `interface_hwaddr` | Applied with the hardware address the kernel assigns. Reported as a warning. |
 | `resolver_name` on a literal address | Applied, the key ignored. Reported as a warning. |
+| Valid `dhcpv6_identity` or `dhcpv6_duid` outside a DHCPv6 method | Applied, the key ignored. Reported as a warning. |
 | Any other mistake: a missing, zero, out-of-range or duplicate identifier, a missing or invalid name, an invalid cookie, an unknown `tunnel_name` or `resolver_name`, a link-local literal without a zone on an unbound tunnel, an invalid resolver entry, a tunnel or resolver that was left out | Left out, and a left-out tunnel takes its sessions with it; a left-out resolver leaves the tunnels that name it out. Reported as an error. |
 
 The result MAY be empty; that is a valid configuration. The daemon never
 refuses to start because of a configuration.
 
-C11. Tolerated mistakes (the second, third and fourth rows) are corrected
-in place when a later reload fixes them: the tunnel is connected to the
-corrected peer, the hardware address is applied once the interface is
-down, and the interface keeps its identity.
+C11. Tolerated mistakes are the rows of C10 that apply a corrected entry
+or ignore a field. A later correction connects the tunnel to its peer,
+applies the hardware address once the interface is down, or enables the
+now-relevant resolver field, while preserving every session's identity.
 
 ## Reload
 
@@ -168,8 +178,10 @@ cannot both be honoured. Example: `a` had identifier 10 and `b` had 20; the
 reload gives `a` a hard mistake and `b` identifier 10; the reload is
 refused, naming `a`.
 
-So a mistake made while the daemon runs never takes a running tunnel or
-session down, and a reload that cannot be made sense of changes nothing.
+A hard mistake retains the entry's previous values or refuses the reload.
+A tolerated endpoint mistake can disconnect a working tunnel, but keeps
+its socket and session interfaces; an unusable hardware address follows
+C10 and S12. A refused reload changes nothing.
 
 C13. The accepted configuration, as reported by the control handle and
 used as the base of the next reload, is the result of the last accepted

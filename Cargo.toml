@@ -31,6 +31,10 @@ path = "tests/tools/rulemap.rs"
 name = "srclink"
 path = "tests/tools/srclink.rs"
 
+[[test]]
+name = "review-kernel"
+path = "tests/kernel/review.rs"
+
 [dependencies]
 # Library (docs/dependencies.md)
 l2tp = "0.4.2"

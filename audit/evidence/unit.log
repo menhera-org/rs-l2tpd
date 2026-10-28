@@ -1,0 +1,81 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-a5e7a029239c84da)
+
+running 35 tests
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::host_settings ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::configuration_names ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::merging ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::strict_conversion ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test config::tests::resolver_methods ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test config::tests::tunnel_resolver_name ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::session_fields ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::interface_names ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::session_cookies ... ok
+test config::tests::tunnel_literals ... ok
+test config::tests::tunnel_host_names ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/bin/rs-l2tpd/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-f874a2a017240ede)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/kernel/review.rs (target/x86_64-unknown-linux-musl/debug/deps/review_kernel-fe9bab7def36bf6f)
+
+running 5 tests
+test creation_name_is_not_current_or_unique ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test foreign_namespace_deletion_does_not_delete_local_session ... ignored, isolated network namespace with L2TP modules and permission to unshare a child netns
+test session_identifier_reuse_waits_for_deletion ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test unconnected_tunnel_drops_outbound_frames ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+
+test result: ok. 0 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/tools/rulemap.rs (target/x86_64-unknown-linux-musl/debug/deps/rulemap-c60aee368f06a0a6)
+
+running 3 tests
+test definitions_are_recognised ... ok
+test only_doc_comments_attached_to_tests_are_citations ... ok
+test every_rule_has_a_test_citation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/tools/srclink.rs (target/x86_64-unknown-linux-musl/debug/deps/srclink-97a85a9274ff1837)
+
+running 1 test
+test kernel_code_cites_the_facts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests rs_l2tpd
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

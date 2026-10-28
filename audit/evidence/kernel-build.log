@@ -1,0 +1,3 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.71s
+  Executable tests/kernel/review.rs (target/x86_64-unknown-linux-musl/debug/deps/review_kernel-fe9bab7def36bf6f)

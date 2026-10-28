@@ -62,7 +62,10 @@ not create.
 
 ## Known gaps
 
-Behaviour the specification requires that the implementation does not
+Historical gaps of the pre-rewrite implementation at `741117b`, removed
+in Phase 0. The current rewrite has configuration code and later-phase
+skeletons, not that daemon. The following comparison is historical:
+behaviour the specification required that that implementation did not
 provide, re-derived from the code on 2026-10-27, checked by an independent
 second pass on 2026-10-28, and every row re-confirmed against the code at
 commit `741117b` (roadmap step 2 of the repository's `CONTRIBUTING.md`;
@@ -109,7 +112,7 @@ Defects against rules that hold under either design:
 | [P13](process.md#signals-and-requests), [L7](library.md#the-service), [L8](library.md#the-service) | Shutdown proceeds while a reload callback runs; a callback panic and a dropped blocking service remove everything in order. | Shutdown waits for a blocked reload callback; after a callback panic, or when a blocking service is dropped without running, the sockets just close with the runtime: nothing is deleted in order and the null device survives. |
 | [P16](process.md#shutdown), [P17](process.md#shutdown), [S26](sessions.md#removal), [G20](promises.md#conditional-promises) | Provable sessions are deleted before their tunnel; each tunnel deletion is waited for up to two seconds. | Tunnel sockets are closed first and the sessions go with them; nothing is waited for. |
 | [P21](process.md#the-supplied-systemd-unit) | A read-only system except the PID file; the `bindv6only` write allowed; hand-over keys present. | `ProtectSystem=full` leaves `/var` writable; `ProtectKernelTunables=yes` forbids the write; no `NotifyAccess` or `FileDescriptorStoreMax`. |
-| [S22](sessions.md#identity-loss) | Deletion after a loss names the creation-time interface name, in one operation with the check. | The check and a deletion by identifiers are two operations, and any error of the check counts as "not ours", so the session is forgotten without being deleted. |
+| [S22](sessions.md#identity-loss) | Deletion after a loss first verifies a unique matching stored creation name, then deletes by that name, accepting the documented check/delete race (S22). | The check and a deletion by identifiers are two operations, and any error of the check counts as "not ours", so the session is forgotten without being deleted. |
 | [S23](sessions.md#identity-loss) | A lost proof is first re-identified. | A staging session whose captured proof is lost is deleted and re-created at once. |
 | [T4](tunnels.md#address-families), [H4](hosts.md#address-families) | The `AF_INET6` refusal is probed at every tunnel creation. | One refusal latches every later tunnel to `AF_INET` for the daemon's life. |
 | [T20](tunnels.md#source-addresses), [H5](hosts.md#address-families) | A connect that leaves the source unspecified counts as failed and the tunnel is disconnected. | After a reconnect it counts as failed in the daemon's view, but the socket stays connected with that source; a creation-time connect is not checked at all (not reproduced). |

@@ -1,0 +1,23 @@
+   Compiling l2tp v0.4.2 (/tmp/rs-l2tpd-upstream-review)
+    Building [=========================> ] 69/70: l2tp(test)                  
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.91s
+     Running unittests src/lib.rs (/tmp/rs-l2tpd-upstream-target/x86_64-unknown-linux-musl/debug/deps/l2tp-939d2a7f3618670f)
+
+running 1 test
+test event::tests::stream_ignores_non_kernel_senders ... FAILED
+
+failures:
+
+---- event::tests::stream_ignores_non_kernel_senders stdout ----
+
+thread 'event::tests::stream_ignores_non_kernel_senders' (1971304) panicked at src/event.rs:263:9:
+assertion failed: events.next().await.is_none()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    event::tests::stream_ignores_non_kernel_senders
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 127 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`
