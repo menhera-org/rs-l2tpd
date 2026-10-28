@@ -212,6 +212,51 @@ pub struct SessionIdentity {
     peer_cookie: Option<Cookie>,
 }
 
+impl TunnelIdentity {
+    /// The identity of a kernel tunnel, as an adopted one reports it (S28).
+    pub(crate) fn new(tunnel_id: u32, peer_tunnel_id: u32) -> Self {
+        TunnelIdentity {
+            tunnel_id,
+            peer_tunnel_id,
+        }
+    }
+
+    /// The tunnel identifier.
+    pub fn tunnel_id(&self) -> u32 {
+        self.tunnel_id
+    }
+}
+
+impl SessionIdentity {
+    /// The identity of a kernel session in `tunnel`, `peer_cookie` as the
+    /// kernel holds it (S28).
+    pub(crate) fn new(
+        tunnel: TunnelIdentity,
+        session_id: u32,
+        peer_session_id: u32,
+        cookie: Option<Cookie>,
+        peer_cookie: Option<Cookie>,
+    ) -> Self {
+        SessionIdentity {
+            tunnel,
+            session_id,
+            peer_session_id,
+            cookie,
+            peer_cookie,
+        }
+    }
+
+    /// The tunnel's identity.
+    pub fn tunnel(&self) -> TunnelIdentity {
+        self.tunnel
+    }
+
+    /// The session identifier.
+    pub fn session_id(&self) -> u32 {
+        self.session_id
+    }
+}
+
 /// A tunnel entry (C7). Built with [`TunnelConfig::builder`].
 ///
 /// A tunnel without a peer (`remote_addr` absent) is valid: it is what an

@@ -41,6 +41,12 @@ name = "kernel-fake"
 path = "tests/kernel/fake.rs"
 required-features = ["fake-kernel"]
 
+# The behavioural rules (docs/testing.md) on the fake kernel.
+[[test]]
+name = "rules"
+path = "tests/rules/main.rs"
+required-features = ["fake-kernel", "serde"]
+
 [dependencies]
 # Library (docs/dependencies.md)
 l2tp = "0.4.3"
