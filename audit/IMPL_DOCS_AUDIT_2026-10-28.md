@@ -2,7 +2,7 @@
 
 | Detail | Value |
 |---|---|
-| Scope | `docs/README.md`, `plan.md`, `architecture.md`, `interface.md`, `dependencies.md`, `testing.md` at commit `6c0a2f2`, read against the specification and against the sources of `../l2tp-rs` 0.4.1, `socket2` 0.6.5, `nix` 0.30.1 and the local registry |
+| Scope | `docs/README.md`, `plan.md`, `architecture.md`, `interface.md`, `dependencies.md`, `testing.md` at commit `ddb01bc`, read against the specification and against the sources of `../l2tp-rs` 0.4.1, `socket2` 0.6.5, `nix` 0.30.1 and the local registry |
 | Question | What would stop an implementer, and what is missing that the implementation needs |
 | Outcome | 2 blocking issues (one needs an upstream release), 7 missing items; all written into the pages, the upstream one into `../l2tp-rs/UNCONNECTED.md` |
 
