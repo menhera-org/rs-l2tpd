@@ -35,6 +35,12 @@ path = "tests/tools/srclink.rs"
 name = "review-kernel"
 path = "tests/kernel/review.rs"
 
+# The conformance suite (docs/testing.md) on the fake kernel.
+[[test]]
+name = "kernel-fake"
+path = "tests/kernel/fake.rs"
+required-features = ["fake-kernel"]
+
 [dependencies]
 # Library (docs/dependencies.md)
 l2tp = "0.4.3"

@@ -186,8 +186,12 @@ pub trait Kernel: Send {
     /// A socket of `family`, bound to the unspecified address with
     /// `tunnel_id` as its connection identifier, unconnected, close-on-exec
     /// (T1, T6). `EAFNOSUPPORT`, `EPROTONOSUPPORT` (T4); `EADDRINUSE` (T7).
-    fn create_socket(&mut self, family: Family, tunnel_id: u32, peer_tunnel_id: u32)
-    -> io::Result<SocketId>;
+    fn create_socket(
+        &mut self,
+        family: Family,
+        tunnel_id: u32,
+        peer_tunnel_id: u32,
+    ) -> io::Result<SocketId>;
     /// Whether an `AF_INET6` socket is IPv6-only (K23, T26).
     fn only_v6(&self, socket: SocketId) -> io::Result<bool>;
     /// The scratch check of E25: whether a new `AF_INET6` L2TP/IP socket
@@ -209,8 +213,12 @@ pub trait Kernel: Send {
     fn adopt(&mut self, fd: OwnedFd) -> io::Result<Adopted>;
 
     /// Registers the tunnel on its socket. `EEXIST` (K19).
-    fn register_tunnel(&mut self, socket: SocketId, tunnel_id: u32, peer_tunnel_id: u32)
-    -> io::Result<()>;
+    fn register_tunnel(
+        &mut self,
+        socket: SocketId,
+        tunnel_id: u32,
+        peer_tunnel_id: u32,
+    ) -> io::Result<()>;
     /// The kernel's tunnel, if any.
     fn tunnel(&mut self, tunnel_id: u32) -> io::Result<Option<TunnelInfo>>;
     /// Creates a session and captures its device's registration (S3, S8).
