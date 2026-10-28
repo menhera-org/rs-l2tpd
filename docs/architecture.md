@@ -301,12 +301,11 @@ the stored descriptors' names (P14) and the path it was started with
   implements the attributes, the deletion wait and the descriptor
   conversions, and its `L2tpHandle::events` is the K41 subscription.
   Three details of its use: a tunnel is created on
-  `TunnelSocket::ip_unconnected` (0.4.2, `../l2tp-rs/UNCONNECTED.md`)
-  with a `TunnelConfig` whose addresses are the unspecified address of
-  the family, which the kernel ignores for a descriptor-backed tunnel
-  (`l2tp_core.c`, `l2tp_tunnel_create`); the device binding is set by
-  index with `socket2::SockRef::bind_device_by_index_v6` on the
-  socket's descriptor (or `bind_to_device_index` once 0.4.2 has it);
+  `TunnelSocket::ip_unconnected` (0.4.2) with the `TunnelConfig` that
+  `TunnelConfig::for_socket` derives from it (the unspecified remote,
+  which the kernel ignores for a descriptor-backed tunnel,
+  `l2tp_core.c`, `l2tp_tunnel_create`); the device binding is set by
+  index with `TunnelSocket::bind_to_device_index` (0.4.2);
   an adopted IPv4 L2TP/IP socket is taken with `from_fd_with_peer`,
   because the kernel reports no peer connection id for it. IPv4 peers
   on an `AF_INET6` socket are passed to `reconnect_ip` as IPv4-mapped

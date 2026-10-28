@@ -22,9 +22,12 @@ ignores the address attributes of a descriptor-backed `TUNNEL_CREATE`
 `fd >= 0`), so placeholder addresses in `TunnelConfig` are fine.
 
 Resolution: `TunnelSocket::ip_unconnected` and `bind_to_device_index`
-in `l2tp` 0.4.2, instruction at `../l2tp-rs/UNCONNECTED.md`. Phases 0
-and 1 do not need it; phase 2 does. Recorded in `dependencies.md` and
-`plan.md`.
+in `l2tp` 0.4.2, from an instruction written for it. Implemented the
+same day in `../l2tp-rs` (commit `9877db4`), together with
+`udp_unconnected` for symmetry, which the maintainer added so that both
+socket kinds of that crate offer the same lifecycle; the instruction
+file was consumed. Phases 0 and 1 do not need it; phase 2 starts when
+0.4.2 is published. Recorded in `dependencies.md` and `plan.md`.
 
 ### B2 — a synchronous `Kernel` trait on an asynchronous crate
 

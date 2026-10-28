@@ -66,11 +66,10 @@ specification differ, the specification is right and this page is wrong.
    resolver kinds, the DUID choices, the raw and netlink RA sources and
    the shared DHCPv6 socket; answer selection, retention, the refresh
    thread and zone parsing are the daemon's ([dependencies](dependencies.md#upstream-needs)).
-   **One item is missing upstream and blocks phase 2:** `l2tp` has no
-   constructor for a bound, unconnected L2TP/IP socket, which the
-   disconnected state of T1 needs; the instruction is
-   `../l2tp-rs/UNCONNECTED.md` (target 0.4.2). Phases 0 and 1 proceed
-   meanwhile.
+   The one item that was missing upstream, a constructor for a bound,
+   unconnected tunnel socket (the disconnected state of T1), is
+   implemented in `l2tp` 0.4.2 (`../l2tp-rs`, commit `9877db4`); phase 2
+   starts once 0.4.2 is published and pinned.
 2. The version stays **0.2.0**: it was never released, so the API
    changes of L5, L6 and L13 break nothing published; the configuration
    format of 0.1.5, the last release, keeps working (G22).
