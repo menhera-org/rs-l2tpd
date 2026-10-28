@@ -1,0 +1,24 @@
+c[?7l[2J[    0.000000] Linux version 6.18.59-0-virt (buildozer@build-3-24-x86_64) (cc (Alpine 15.2.0) 15.2.0, GNU ld (GNU Binutils) 2.45.1) #1-Alpine SMP PREEMPT_DYNAMIC 2026-10-27 14:58:36
+[    4.220908] Run /init as init process
+[    4.523082] l2tp_core: L2TP core driver, V2.0
+[    4.539199] l2tp_netlink: L2TP netlink interface
+[    4.580803] l2tp_ip: L2TP IP encapsulation support (L2TPv3)
+[    4.621183] l2tp_ip6: L2TP IP encapsulation support for IPv6 (L2TPv3)
+[    4.655682] l2tp_eth: L2TP ethernet pseudowire support (L2TPv3)
+Linux (none) 6.18.59-0-virt #1-Alpine SMP PREEMPT_DYNAMIC 2026-10-27 14:58:36 x86_64 Linux
+
+running 5 tests
+test creation_name_is_not_current_or_unique ... [    5.004706] audit-first: renamed from rsl2tp-tabc123
+[    5.041065] audit-second: renamed from rsl2tp-tabc123
+ok
+test foreign_namespace_deletion_does_not_delete_local_session ... ok
+test session_identifier_reuse_waits_for_deletion ... identifier reuse: 0 EEXIST retries over 32 deletions
+ok
+test unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate ... ok
+test unconnected_tunnel_drops_outbound_frames ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.43s
+
+REVIEW_RESULT=0
+[    6.174418] ACPI: PM: Preparing to enter system sleep state S5
+[    6.176410] reboot: Power down

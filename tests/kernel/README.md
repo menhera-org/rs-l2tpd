@@ -3,8 +3,9 @@
 These probes test the kernel assumptions behind the documentation corrections,
 not the future reconciler's policy. They are ignored in ordinary Cargo runs.
 The five live tests cover duplicate stored creation names, cross-namespace
-deletion announcements, eventual session-ID reuse, socket-duplicate ownership,
-and outgoing drops on an unconnected tunnel. The reuse test tolerates immediate
+deletion announcements (delivered before 7.3, namespace-local from 7.3 on;
+the probe expects whichever its kernel does), eventual session-ID reuse,
+socket-duplicate ownership, and outgoing drops on an unconnected tunnel. The reuse test tolerates immediate
 or delayed release; a run with zero EEXIST retries does not prove synchronous
 deletion. Only the kernel source establishes the upstream v6.11/v6.12 boundary.
 

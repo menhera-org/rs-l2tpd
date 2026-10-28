@@ -130,28 +130,44 @@ fn unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate() {
     wait_absent(&handle, 8102, 81021);
 }
 
-/// A kernel sender does not identify the namespace whose object changed.
+/// Before 7.3 a kernel sender does not identify the namespace whose object
+/// changed (`genlmsg_multicast_allns`); from 7.3 the announcement stays in
+/// the tunnel's namespace (`genlmsg_multicast_netns`). Either way the
+/// local session survives.
 /// kernel: net/l2tp/l2tp_netlink.c (l2tp_session_notify).
 /// spec: K41, E27
 #[test]
 #[ignore = "isolated network namespace with L2TP modules and permission to unshare a child netns"]
 fn foreign_namespace_deletion_does_not_delete_local_session() {
+    let release = String::from_utf8(
+        Command::new("uname")
+            .arg("-r")
+            .output()
+            .expect("uname")
+            .stdout,
+    )
+    .unwrap();
+    let mut parts = release.trim().split(|c: char| !c.is_ascii_digit());
+    let major: u32 = parts.next().unwrap().parse().unwrap();
+    let minor: u32 = parts.next().unwrap().parse().unwrap();
+    let crosses_namespaces = (major, minor) < (7, 3);
     let handle = L2tpHandle::new().unwrap();
     let _tunnel = tunnel(&handle, 8103);
     let _session = session(&handle, 8103, 81031, "audit-local");
     let events = handle.events().unwrap();
     let (send, receive) = std::sync::mpsc::sync_channel(1);
-    let reader = std::thread::spawn(move || {
+    // The reader is leaked on purpose: the stream has no close, and the
+    // test ends before the process does.
+    std::thread::spawn(move || {
         for event in events {
             if let l2tp::L2tpEvent::SessionDeleted(info) = event.unwrap()
                 && info.tunnel_id == TunnelId(8103)
                 && info.session_id == SessionId(81031)
             {
-                send.send(()).unwrap();
+                let _ = send.send(());
                 return;
             }
         }
-        panic!("event stream ended");
     });
     let output = Command::new("unshare")
         .args([
@@ -171,10 +187,11 @@ ip l2tp del tunnel tunnel_id 8103",
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    receive
-        .recv_timeout(Duration::from_secs(5))
-        .expect("foreign deletion notification");
-    reader.join().unwrap();
+    let announced = receive.recv_timeout(Duration::from_secs(5)).is_ok();
+    assert_eq!(
+        announced, crosses_namespaces,
+        "foreign deletion announced on {release}: {announced}"
+    );
     assert!(handle.get_tunnel(TunnelId(8103)).is_ok());
     assert!(handle.get_session(TunnelId(8103), SessionId(81031)).is_ok());
 }

@@ -239,7 +239,10 @@ Only then delete by `L2TP_ATTR_IFNAME`. Supplying IDs alongside the name
 does not add an identity check: the kernel's name lookup ignores them.
 
 This is not an atomic conditional delete. A foreign writer can replace
-or duplicate the record between the dump and deletion; that race is
+or duplicate the record between the dump and deletion, and on kernels
+before 6.12 a foreign deletion between two batches of the dump can make
+the dump skip a session the daemon cannot know it missed
+([K16](kernel.md#facts)); that race is
 accepted under [M10](model.md#ownership) and the operator restrictions
 [R17–R18](requirements.md#the-operator). A foreign session imitating the
 complete record cannot be distinguished. Lifetime reservation of names

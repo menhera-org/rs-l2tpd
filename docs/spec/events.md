@@ -124,8 +124,9 @@ The monitor's filter never applies to the sockets requests are sent on
 E27. **A session or tunnel deletion is announced** on the `l2tp`
 multicast group ([K41](kernel.md#facts)): match its identifiers to the
 configuration, then query the current local namespace. Announcements
-are advisory: they may come from another namespace, be delayed from an
-older incarnation, or precede actual removal. A local session confirmed
+are advisory: they may come from another namespace (kernels before 7.3,
+[K41](kernel.md#facts)), be delayed from an older incarnation, or
+precede actual removal (every kernel). A local session confirmed
 absent is re-created (S27, S29); a local tunnel confirmed absent is
 reported as T9 requires. A still-present object is preserved. While a
 suspected deletion is pending, retain one coalesced verification task per

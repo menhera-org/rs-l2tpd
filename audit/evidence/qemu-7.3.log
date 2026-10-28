@@ -1,0 +1,41 @@
+c[?7l[2J[    0.000000] Linux version 7.3.0 (root@990e3654d491) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Wed Oct 28 08:43:59 UTC 2026
+[    2.978498] Run /init as init process
+Linux (none) 7.3.0 #1 SMP PREEMPT_DYNAMIC Wed Oct 28 08:43:59 UTC 2026 x86_64 Linux
+
+running 5 tests
+test creation_name_is_not_current_or_unique ... [    3.510084] audit-first: renamed from rsl2tp-tabc123
+[    3.516718] ip (89) used greatest stack depth: 12736 bytes left
+[    3.538486] audit-second: renamed from rsl2tp-tabc123
+ok
+test foreign_namespace_deletion_does_not_delete_local_session ... [    3.754360] ip (97) used greatest stack depth: 12144 bytes left
+
+thread 'foreign_namespace_deletion_does_not_delete_local_session' (93) panicked at tests/kernel/review.rs:176:10:
+foreign deletion notification: Timeout
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test session_identifier_reuse_waits_for_deletion ... identifier reuse: 0 EEXIST retries over 32 deletions
+ok
+test unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate ... ok
+test unconnected_tunnel_drops_outbound_frames ... [    9.506218] clocksource: Watchdog remote CPU 1 read timed out
+ok
+
+failures:
+
+failures:
+    foreign_namespace_deletion_does_not_delete_local_session
+
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.36s
+
+REVIEW_RESULT=101
+[    9.615999] ACPI: PM: Preparing to enter system sleep state S5
+[    9.618301] reboot: Power down
+
+== second run, probe taught the 7.3 behaviour ==
+Linux (none) 7.3.0 #1 SMP PREEMPT_DYNAMIC Wed Oct 28 08:43:59 UTC 2026 x86_64 Linux
+test creation_name_is_not_current_or_unique ... [    2.975465] audit-first: renamed from rsl2tp-tabc123
+test foreign_namespace_deletion_does_not_delete_local_session ... [    3.204226] ip (96) used greatest stack depth: 12616 bytes left
+test session_identifier_reuse_waits_for_deletion ... identifier reuse: 0 EEXIST retries over 32 deletions
+test unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate ... ok
+test unconnected_tunnel_drops_outbound_frames ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.10s
+REVIEW_RESULT=0
