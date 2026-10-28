@@ -122,8 +122,8 @@ tunnels and interfaces survive a crash and the next instance adopts them
 Linux of the verified range with `l2tp_core`, `l2tp_netlink`, `l2tp_ip`,
 `l2tp_eth` and, for IPv6 peers or dual-stack sockets, `l2tp_ip6`, loaded
 or loadable (R1); `CAP_NET_ADMIN`, `CAP_NET_RAW`, `CAP_NET_BIND_SERVICE`
-(R49, each missing one reported once and worked around); `/proc`
-mounted (R7). No `dummy` driver, no route, no address, no DNS, no IPv6
+(R49, each missing one reported once and worked around). No `/proc`
+except for the `bindv6only` write (P25), no `dummy` driver, no route, no address, no DNS, no IPv6
 at start-up. Hosts without IPv6, with `disable_ipv6`, with
 `ipv6.disable=1`, VRFs, routers without a default route, containers and
 `bindv6only=1` are covered by [hosts](spec/hosts.md).

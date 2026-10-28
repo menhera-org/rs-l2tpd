@@ -61,8 +61,8 @@ specification differ, the specification is right and this page is wrong.
    or patches for what they do not. Known at the start: `l2tp` 0.4.0
    provides sockets from and into descriptors, `disconnect`, session
    lookup and deletion by interface name, cookies in `SessionInfo` and
-   the `l2tp` multicast events; it needs `/proc` for the namespace (R7,
-   accepted). `iphost` 0.4.0 (read in `../iphost`) provides the four
+   the `l2tp` multicast events; 0.4.1 (published 2026-10-28, pinned in
+   the manifest) needs no `/proc`. `iphost` 0.4.0 (read in `../iphost`) provides the four
    resolver kinds, the DUID choices, the raw and netlink RA sources and
    the shared DHCPv6 socket; answer selection, retention, the refresh
    thread and zone parsing are the daemon's ([dependencies](dependencies.md#upstream-needs)).
@@ -259,8 +259,8 @@ Implements [process](spec/process.md) P1–P27 and
 9. Restart (P26, E26): the `--adopt-version` probe, close-on-exec cleared
    on the handed sockets only, `execve` of the path the daemon was started
    with, signal mask reset in the new instance.
-10. Capability report (R49): read `/proc/self/status` `CapEff` and report
-    each missing one once.
+10. Capability report (R49): `capget(2)` for the effective set, no
+    `/proc`; report each missing one once.
 11. The systemd unit (P21) shipped as `contrib/rs-l2tpd.service`, with a
     test that parses it for every required key.
 

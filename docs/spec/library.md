@@ -14,9 +14,8 @@ standard I/O (it reads no standard input and writes no standard output
 or standard error), no file I/O, reads no configuration and no
 environment variable, installs no signal handler, writes no kernel
 tunable, and assumes no serialisation format. Kernel interfaces are its
-business: sockets, netlink, and the kernel's special filesystems where a
-rule names them, which today is `/proc` through its namespace dependency
-([K12](kernel.md#requirements)). The one other exception is what the libc
+business: sockets and netlink, and no special filesystem (`l2tp` 0.4.1
+needs no `/proc`). The one exception is what the libc
 resolver reads for the system resolver ([V3](resolvers.md#model)), which
 is the libc's doing, not the library's. It is acceptable because even
 the most constrained hosts the daemon targets let the libc read it (a

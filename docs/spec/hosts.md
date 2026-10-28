@@ -71,8 +71,8 @@ and no cost of the daemon depends on the size of a routing table.
 
 H9. The daemon works in a network namespace that is not the initial one
 (a system container such as Incus, LXD or a Docker container), with the
-L2TP modules loaded by the host or loadable on demand, `CAP_NET_ADMIN`,
-and procfs mounted. The socket filter needs no capability and no `bpf()`
+L2TP modules loaded by the host or loadable on demand and
+`CAP_NET_ADMIN`; `/proc` need not be mounted. The socket filter needs no capability and no `bpf()`
 syscall, so it works under the containers' seccomp and user namespaces.
 Module autoload has no namespace gate in the kernel
 ([K21](kernel.md#facts)); a host may restrict it by policy, in which case
@@ -139,9 +139,8 @@ is changed only after a disconnect; without `CAP_NET_BIND_SERVICE`
 not reach 546, a `dhcpv6` resolver is reported once and withholds
 nothing, and an `ipv6` resolver falls back to router advertisements
 ([V12](resolvers.md#dhcpv6-information-request), [V14](resolvers.md#the-unified-ipv6-method)).
-These fallbacks are not guaranteed to work in every case. Without procfs the
-current library dependency cannot determine the namespace and the daemon
-reports it as a host defect.
+These fallbacks are not guaranteed to work in every case. Without `/proc`
+only the tunable write of [P25](process.md#host-tunables) is affected.
 
 ## Clocks
 

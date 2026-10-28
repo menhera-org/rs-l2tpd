@@ -24,7 +24,7 @@ required-features = ["bin"]
 [dependencies]
 # Library
 tokio = { version = "1", features = ["net", "io-util", "sync", "rt", "rt-multi-thread", "macros", "signal", "time"] }
-l2tp = "0.4.0"
+l2tp = "0.4.1"
 async-trait = "0.1"
 iphost = { version = "0.3.3", features = ["broadcast"] }
 rtnetlink = "0.23.0"

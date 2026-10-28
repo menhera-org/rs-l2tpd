@@ -320,9 +320,12 @@ P23. The daemon MUST NOT depend on `/run/systemd`, the journal, D-Bus,
 `sysctl.d`, `tmpfiles.d` or the XDG or freedesktop.org layout, and MUST
 NOT link against libsystemd or any D-Bus library; the
 descriptor hand-over of [P14](#restart) is used only when the init system
-offers it, with the protocol implemented in the daemon. Of the filesystem it needs its
-own files, `/proc` ([K12](kernel.md#requirements)) and nothing else; it
-MUST NOT read `/sys`.
+offers it, with the protocol implemented in the daemon. Of the filesystem
+it needs its own files and nothing else; `/proc/sys/net/ipv6/bindv6only`
+is opened only for the write of [P25](#host-tunables), and its absence is
+that write's failure; it MUST NOT read `/sys`. The capabilities of
+[R49](requirements.md#the-host) are read with `capget(2)`, not from
+`/proc`.
 
 P24. The daemon builds and runs against glibc and against musl. The system
 resolver is the libc's ([V3](resolvers.md#model)); no rule depends on which
