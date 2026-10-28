@@ -9,12 +9,21 @@ descriptor hand-over and the installer.
 
 ## Boundaries
 
-L1. The library owns no configuration file and no process policy: it
-reads no configuration file, writes to no terminal, installs no signal
-handler, writes no kernel tunable, and assumes no serialisation format.
-What it does touch of the filesystem is stated: `/proc` through its
-namespace dependency ([K12](kernel.md#requirements)) and whatever the
-libc resolver reads for the system resolver ([V3](resolvers.md#model)).
+L1. The library owns no configuration and no process policy. It does no
+standard I/O (it reads no standard input and writes no standard output
+or standard error), no file I/O, reads no configuration and no
+environment variable, installs no signal handler, writes no kernel
+tunable, and assumes no serialisation format. Kernel interfaces are its
+business: sockets, netlink, and the kernel's special filesystems where a
+rule names them, which today is `/proc` through its namespace dependency
+([K12](kernel.md#requirements)). The one other exception is what the libc
+resolver reads for the system resolver ([V3](resolvers.md#model)), which
+is the libc's doing, not the library's. It is acceptable because even
+the most constrained hosts the daemon targets let the libc read it (a
+statically linked musl binary reads `/etc/resolv.conf` even in an
+Android app's context), and because the configured resolvers
+([resolvers](resolvers.md)) are the alternative wherever the system
+resolver is unwanted or unusable.
 Configuration types deserialise through serde when the `serde` feature is
 on, from any format; TOML, the command line and the logger implementation
 belong to the binary behind the `bin` feature.

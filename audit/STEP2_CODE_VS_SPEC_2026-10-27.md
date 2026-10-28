@@ -449,6 +449,8 @@ Partial rows the second pass adds, not counted as defects:
 
 ### Decisions added for step 3
 
+Decisions 6–9 were written into the specification on 2026-10-28 (R4, R46, R49, K13, K39, G10, H15, P21, P22, O2, T10, C1, A22; L1 was tightened the same day at the user's request: no standard I/O, file I/O, configuration or environment variables in the library, kernel special I/O allowed). Their remaining code gaps are in the known-gaps table of the specification index.
+
 6. **Capabilities (user, 2026-10-28):** every capability the daemon needs for healthy operation is specified as **REQUIRED**. Fallbacks for a missing one are available but not guaranteed to always work correctly.
    - `CAP_NET_RAW` is therefore REQUIRED, and the daemon uses it. For example, N1's rebind of a still-bound socket can then happen in place.
    - The fallback without it (disconnect, rebind, connect, and the `RTNLGRP_ND_USEROPT` route for router advertisements) is kept, best effort.

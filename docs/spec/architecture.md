@@ -196,3 +196,12 @@ with defaults that keep the old behaviour; new substitutes go into the
 degradation ladder below the configured state and above "left out". A
 change that moves a kind of change from in place to re-creation needs a
 reason the kernel imposes, recorded in the [identity matrix](model.md#identity-matrix).
+
+## Names
+
+A22. Names that the kernel or the filesystem defines as nul-terminated
+byte strings (file names, paths, interface names) are handled as byte
+strings (OS strings, C strings) wherever no text format requires UTF-8;
+they are never required to be valid UTF-8 for that reason alone. TOML
+documents and the values in them are UTF-8 because the format is
+([C1](configuration.md#files)).

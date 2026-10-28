@@ -99,8 +99,10 @@ socket to that index with `SO_BINDTOIFINDEX` ([K22](kernel.md#facts)), so
 that a device that takes the name between the resolution and the bind
 cannot be bound to; it records the index. The binding is only ever set on
 a socket that has none, because every change of binding follows a
-disconnect, which clears it ([T21](#source-addresses)); no capability is
-needed for it ([K22](kernel.md#facts)).
+disconnect, which clears it ([T21](#source-addresses)); that order needs
+no capability ([K22](kernel.md#facts)), so it holds whether or not the
+daemon has `CAP_NET_RAW` ([R4](requirements.md#the-host)), with which the
+kernel would also accept a binding on a socket that still has one.
 
 T11. The configured name is authoritative. The daemon follows the name,
 not the device: when the device is renamed away and another device takes

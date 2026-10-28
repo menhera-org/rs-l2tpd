@@ -4,12 +4,16 @@
 
 ## Files
 
-C1. The daemon reads the main file (`/etc/rs-l2tpd.toml` unless built
-otherwise), then every file whose name ends in `.toml`, compared without
-regard to ASCII case, in the drop-in directory (`/etc/rs-l2tpd.toml.d/`),
-in ascending byte order of their file names. Other files in the directory
-are ignored. The main file is always first, whatever its name. A file
-whose name is not valid UTF-8 is ignored with a warning.
+C1. The daemon reads the main file, then every file in the drop-in
+directory whose name ends in `.toml`, compared without regard to ASCII
+case, in ascending byte order of their file names. The two paths default
+to `/etc/rs-l2tpd.toml` and `/etc/rs-l2tpd.toml.d/`; both can be changed
+at build time and at runtime, on the command line
+([P22](process.md#the-process-contract)). File names are byte strings
+([A22](architecture.md#names)): a name need not be valid UTF-8, and is
+compared and ordered as bytes. A file whose name starts with `.` is
+ignored, and so are other files in the directory. The main file is always
+first, whatever its name.
 
 C2. Each file is one TOML document. Documents are merged key by key and
 table by table, recursively: a value in a later document replaces the

@@ -67,8 +67,7 @@ commit `741117b` (roadmap step 2 of the repository's `CONTRIBUTING.md`;
 the rule-by-rule comparison is the step 2 report in the repository's
 `audit/` directory). The first two tables are defects of the
 implementation, not of the specification; the third lists the cases
-roadmap step 3 decides, including decisions already taken whose
-specification text roadmap step 4 writes.
+roadmap step 3 decides.
 
 The design the code still implements:
 
@@ -97,7 +96,7 @@ Defects against rules that hold under either design:
 | [G5](promises.md#unconditional-promises), [T15](tunnels.md#peers), [T17](tunnels.md#peers-that-cannot-be-reached) | A tunnel is never connected to a peer the configuration or the resolver no longer names. | An unreachable resolver answer leaves the previous peer connected; a reload to an unreachable peer whose discard addresses are unreachable too keeps the old peer. |
 | [T11](tunnels.md#bind-devices), [E2](events.md#link-events) | A bind device renamed away disconnects the tunnel at once. | The rename is not noticed on its own event (the event carries the new name), and a later reconnect fails at the configured-name check before it disconnects: frames keep leaving through the renamed device until some device takes the configured name. |
 | [T12](tunnels.md#bind-devices), [E3](events.md#link-events), [H13](hosts.md#other-network-managers), [G17](promises.md#conditional-promises) | A removed bind device disconnects its tunnels. | Only the daemon's record of the binding is forgotten; the socket stays connected with the stale binding. |
-| [R4](requirements.md#the-host), [K22](kernel.md#facts), [T21](tunnels.md#source-addresses), [E1](events.md#link-events) | A device binding is only ever set on a socket that has none. | When a device takes the configured name after the bind device was renamed away or removed, the still-bound socket is bound again without a disconnect; without `CAP_NET_RAW` the kernel refuses (`EPERM`) on every attempt and the tunnel stays on the old device until a peer change or a restart. `CAP_NET_RAW` becomes required (third table), but this fallback must still work. |
+| [R4](requirements.md#the-host), [K22](kernel.md#facts), [T21](tunnels.md#source-addresses), [E1](events.md#link-events) | A device binding is only ever set on a socket that has none. | When a device takes the configured name after the bind device was renamed away or removed, the still-bound socket is bound again without a disconnect; without `CAP_NET_RAW` the kernel refuses (`EPERM`) on every attempt and the tunnel stays on the old device until a peer change or a restart. `CAP_NET_RAW` is required, but the binding order of T10 and T21 must hold without it. |
 | [S4](sessions.md#creation), [S7](sessions.md#creation), [H12](hosts.md#other-network-managers) | Every session is staged; a configured name held by a foreign device is a transient publication failure. | Sessions without a configured hardware address are created under their final name; the kernel's refusal is counted as an identifier conflict: ten retries, then left out with a wrong diagnosis, and readiness is reported without it. |
 | [S4](sessions.md#creation) | Temporary names come from a random source. | A counter plus the process identifier (collisions are retried). |
 | [P5](process.md#start-up), [H15](hosts.md#missing-kernel-support-and-privilege), [M13](model.md#failure-classes), [G1](promises.md#unconditional-promises) | Kernel interfaces that cannot be opened are a host defect: retried, readiness withheld. | The daemon exits and the parent exits 1. |
@@ -133,8 +132,10 @@ Defects against rules that hold under either design:
 | [E20](events.md#monitor-loss), [E12](events.md#timers) | One resync per loss; at most one reconcile per second. | An overrun causes two resyncs; during start-up every event causes a reconcile. |
 | [L3](library.md#boundaries) | Public enums are `#[non_exhaustive]`. | `IpVersion` is not. |
 | [L5](library.md#the-service) | `run` without `converge` converges first. | `run` applies nothing until a reload. |
+| [R49](requirements.md#the-host), [P21](process.md#the-supplied-systemd-unit), [O2](observability.md#logging) | The supplied unit grants every required capability explicitly; each one the process lacks is reported once at start-up. | The unit runs as root with no capability set; nothing checks for or reports a missing capability. |
+| [C1](configuration.md#files), [P22](process.md#the-process-contract) | Drop-ins whose name starts with `.` are ignored; both configuration paths can be changed at build time and on the command line. | `.foo.toml` is read; the paths can be changed at build time (`CONFIG_FILE_PATH`, `CONFIG_DIR_PATH`) but not on the command line. |
 
-For roadmap step 3 to decide, or decided there and written by step 4:
+For roadmap step 3 to decide:
 
 | Requirement | Specification | Current behaviour |
 |---|---|---|
@@ -144,6 +145,3 @@ For roadmap step 3 to decide, or decided there and written by step 4:
 | [R10](requirements.md#the-host) | `SO_RCVBUFFORCE`, then `SO_RCVBUF`. | The other order, with the same result. |
 | [P2](process.md#start-up) | Logging starts before the command line is read. | The command line comes first, since it sets the log level. |
 | [E4](events.md#link-events) | (wording unclear) A bind device's own move into a VRF reconnects its tunnels. | Only a bound VRF's change is acted on. |
-| [R3](requirements.md#the-host), [R4](requirements.md#the-host), [K22](kernel.md#facts), [K39](kernel.md#requirements), [P21](process.md#the-supplied-systemd-unit), [H15](hosts.md#missing-kernel-support-and-privilege) | (to be written; decided on 2026-10-28) Every capability needed for healthy operation, `CAP_NET_RAW` included, is required; fallbacks without one are best effort. The supplied unit grants each explicitly; a missing one is warned about prominently, once, and the daemon degrades gracefully. | The unit runs as root with no capability set; nothing checks for or warns about a missing capability. |
-| [C1](configuration.md#files) | (to be changed; decided on 2026-10-28) Names are byte strings wherever UTF-8 is not required: a drop-in whose name is not UTF-8 is read. | It is read, as decided; the specification still says it is ignored with a warning. |
-| [C1](configuration.md#files), [P23](process.md#the-process-contract) | (to be added; decided on 2026-10-28) Drop-ins whose name starts with `.` are ignored; both configuration paths can be changed at build time and at runtime. | `.foo.toml` is read; both paths can be changed at build time (`CONFIG_FILE_PATH`, `CONFIG_DIR_PATH`) but there is no runtime option. |

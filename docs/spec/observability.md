@@ -13,6 +13,7 @@ O2. Severity is fixed by context and condition:
 |---|---|---|
 | Start-up | an entry left out for a hard mistake | error |
 | Start-up, reload | a tolerated mistake; an unknown key | warning |
+| Start-up | a required capability the process does not hold ([R49](requirements.md#the-host)), once per capability, naming it and what degrades | warning |
 | Reload | an entry with a hard mistake keeping its values; a new entry left out | warning |
 | Reload | the whole reload refused | error |
 | Any | a condition the daemon is working around: a disconnected tunnel with a pending peer, an absent bind device, an unmanageable device, a left-out entry, a lost subscription, a deferred change, a skipped change, a resolver that does not answer, a host tunable set back | warning |

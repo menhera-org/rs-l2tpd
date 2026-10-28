@@ -219,9 +219,11 @@ families the host's resolver needs, a read-only system except the PID
 file, no new privileges and no access to home directories or logs, and
 MUST allow writing `net.ipv6.bindv6only` for [P25](#host-tunables),
 without restricting the capabilities the kernel needs to autoload the
-L2TP modules. It grants `CAP_NET_RAW`, which resolvers using router
-advertisements require ([K39](kernel.md#requirements)); an operator who
-removes it loses only those resolvers' discovery where `accept_ra` is off. Using the unit is optional; the process contract below is
+L2TP modules. It MUST grant every required capability explicitly
+([R49](requirements.md#the-host)): `CAP_NET_ADMIN`, `CAP_NET_RAW` and
+`CAP_NET_BIND_SERVICE`. An operator who removes one gets the start-up
+report of R49 and the fallbacks, which are not guaranteed to work in every
+case. Using the unit is optional; the process contract below is
 what the daemon promises every init system.
 
 ## The process contract
@@ -232,7 +234,9 @@ publishes a PID file at the configured path ([P10](#pid-file)); it takes
 `SIGHUP`, `SIGTERM`, `SIGINT` and `SIGUSR2` ([P12](#signals-and-requests),
 [P26](#restart)); it logs
 to standard error ([O1](observability.md#logging)); and it reads its
-configuration from the documented paths ([C1](configuration.md#files)).
+configuration from the paths of [C1](configuration.md#files): the
+defaults it was built with, or the main file and drop-in directory given
+on its command line, which `--check` ([P3](#start-up)) accepts the same way.
 This is sufficient for OpenRC, busybox init, sysvinit, runit, s6 or a
 container entry point, with no other file or service.
 

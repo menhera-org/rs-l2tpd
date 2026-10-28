@@ -28,15 +28,15 @@ statement about older kernels.
 | K10 | Classic BPF socket filter (`SO_ATTACH_FILTER`) | reducing the monitor's traffic | optional: without it the monitor runs unfiltered ([R6](requirements.md#the-host)) | `net/core/filter.c`, built unconditionally; no `bpf()` syscall |
 | K11 | `net.ipv6.bindv6only = 0` in the daemon's namespace | IPv4 peers on `AF_INET6` sockets | only while a tunnel carries IPv4 peers on an `AF_INET6` socket; otherwise `AF_INET` sockets ([T26](tunnels.md#hosts-with-bindv6only)) | `IPV6_V6ONLY` is fixed at socket creation ([K13](#facts)) |
 | K12 | `procfs` at `/proc` | the namespace identity of the current library dependency ([R7](requirements.md#the-host)) | only while that dependency is used | — |
-| K13 | `CAP_NET_BIND_SERVICE`, or `net.ipv4.ip_unprivileged_port_start` at or below 546 (Docker sets it to 0 in its containers) | resolvers with `method = "dhcpv6"` or `"ipv6"` ([V12](resolvers.md#dhcpv6-information-request), [V14](resolvers.md#the-unified-ipv6-method)) | only when such a resolver is configured; an `ipv6` resolver works without it through its RDNSS servers | `net/ipv4/af_inet.c:508-510`, `include/net/ip.h:374-377` |
+| K13 | `CAP_NET_BIND_SERVICE` in the daemon's namespace | binding UDP port 546 for resolvers with `method = "dhcpv6"` or `"ipv6"` ([V12](resolvers.md#dhcpv6-information-request), [V14](resolvers.md#the-unified-ipv6-method)) | always required ([R46](requirements.md#the-host)); without it the port can be bound only where `net.ipv4.ip_unprivileged_port_start` is at or below 546 (Docker sets it to 0 in its containers), and an `ipv6` resolver otherwise falls back to its RDNSS servers | `net/ipv4/af_inet.c:508-510`, `include/net/ip.h:374-377` |
 | K14 | Router-advertisement user options delivered on `RTNLGRP_ND_USEROPT` | the fallback source of RDNSS servers for resolvers with `method = "ra"` or `"ipv6"` when the raw socket of K39 cannot be opened ([V10](resolvers.md#router-advertisements)) | only when such a resolver is configured and `CAP_NET_RAW` is missing, and only useful where `accept_ra` is enabled on the interface ([K40](#facts)) | `net/ipv6/ndisc.c:1189-1235` |
-| K39 | `CAP_NET_RAW` in the daemon's namespace, for a raw ICMPv6 socket | receiving and soliciting router advertisements ([V10](resolvers.md#router-advertisements)) | required whenever a resolver with `method = "ra"` or `"ipv6"` is configured; not needed otherwise | `net/ipv6/af_inet6.c:180-182` |
+| K39 | `CAP_NET_RAW` in the daemon's namespace | receiving and soliciting router advertisements from a raw ICMPv6 socket ([V10](resolvers.md#router-advertisements)); setting a device binding on a socket that already has one ([K22](#facts)) | always required ([R4](requirements.md#the-host)); without it router-advertisement resolvers fall back to K14, and a binding can be changed only after the disconnect that clears it ([T21](tunnels.md#source-addresses)) | `net/ipv6/af_inet6.c:180-182`; `net/core/sock.c:627-655` |
+
+Every capability of this table is required ([R49](requirements.md#the-host)):
+`CAP_NET_ADMIN` (K8), `CAP_NET_BIND_SERVICE` (K13) and `CAP_NET_RAW` (K39).
 
 Not required: the `dummy` driver, any route, any route lookup, the route
-multicast groups, `/sys`, and `CAP_NET_RAW` for anything but the
-router-advertisement resolvers of K39 (every change of a device binding
-follows a disconnect, which clears the binding; [K22](#facts)). The daemon
-MUST NOT depend on any of them.
+multicast groups and `/sys`. The daemon MUST NOT depend on any of them.
 
 ## Facts
 
