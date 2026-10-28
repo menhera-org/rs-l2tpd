@@ -87,6 +87,15 @@ specification differ, the specification is right and this page is wrong.
 Exit: the empty crate builds with and without features, CI is green, the
 rule map tool exists and reports every rule as untested.
 
+**Status: done on 2026-10-28.** The old tree and the shell scenarios are
+deleted; the skeleton of the [architecture](architecture.md#module-map)
+is in place with empty modules; `Cargo.toml` carries the
+[dependency list](dependencies.md) and the `serde`, `bin` and
+`fake-kernel` features; `build.rs` has the three paths; the rule-map and
+source-link tools run as `cargo test --test rulemap --test srclink`,
+lenient until phase 6; CI runs every gate. The binary builds and exits 2
+with a message until phase 5. Next: phase 1.
+
 ### Phase 1 — configuration
 
 Implements [configuration](spec/configuration.md) C1–C17 and the

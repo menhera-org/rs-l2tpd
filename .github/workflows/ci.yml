@@ -34,13 +34,18 @@ jobs:
       - name: Build library with serde
         run: cargo build --locked --lib --no-default-features --features serde
 
-      - name: Build daemon with the installer
-        run: cargo build --locked --features setup
+      - name: Build daemon
+        run: cargo build --locked
 
-      # The privileged tests (CAP_NET_ADMIN, l2tp_eth, l2tp_ip6) are marked
-      # #[ignore] and are not run here; the rest needs no L2TP support.
-      - name: Unit tests
+      # The real-kernel suites (docs/testing.md) run in privileged
+      # containers and under QEMU, not here.
+      - name: Unit, rules, properties and fake-kernel tests
         run: cargo test --locked --all-features
+
+      # docs/testing.md gates. Lenient until phase 6, which sets
+      # RULEMAP_STRICT=1 and SRCLINK_STRICT=1 here.
+      - name: Rule map and source links
+        run: cargo test --locked --all-features --test rulemap --test srclink -- --nocapture
 
       - name: Docs
         run: cargo doc --locked --no-deps --all-features

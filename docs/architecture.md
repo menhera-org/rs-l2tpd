@@ -45,7 +45,7 @@ src/
   runtime.rs        Runtime, ControlEvent, the channel and the tasks (L9, L10, L12, L13, A6, A7, A13, A14)
   service.rs        Service, Control (L5, L6, L7)
   blocking.rs       blocking::Service (L8)
-  bin/
+  bin/rs-l2tpd/     (one directory, so that Cargo sees one binary, not one per module)
     main.rs         entry: command line, modes (P27)
     args.rs         option parsing (P27)
     files.rs        reading and merging configuration files (C1–C4)

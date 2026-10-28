@@ -1,7 +1,7 @@
 [package]
 name = "rs-l2tpd"
 version = "0.2.0"
-edition = "2021"
+edition = "2024"
 rust-version = "1.89"
 authors = ["metastable-void"]
 description = "Simple but resilient L2TPv3 daemon for Linux-based systems, and the library it is built on"
@@ -18,38 +18,47 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "rs-l2tpd"
-path = "src/bin/main.rs"
+path = "src/bin/rs-l2tpd/main.rs"
 required-features = ["bin"]
 
+# The gates of docs/testing.md. Both run leniently (they report) until
+# phase 6 sets RULEMAP_STRICT=1 and SRCLINK_STRICT=1 in CI.
+[[test]]
+name = "rulemap"
+path = "tests/tools/rulemap.rs"
+
+[[test]]
+name = "srclink"
+path = "tests/tools/srclink.rs"
+
 [dependencies]
-# Library
-tokio = { version = "1", features = ["net", "io-util", "sync", "rt", "rt-multi-thread", "macros", "signal", "time"] }
+# Library (docs/dependencies.md)
 l2tp = "0.4.2"
-async-trait = "0.1"
-iphost = { version = "0.3.3", features = ["broadcast"] }
-rtnetlink = "0.23.0"
-futures-util = "0.3"
-log = "0.4.29"
-libc = "0.2"
-nix = { version = "0.30", default-features = false, features = ["socket"] }
+iphost = { version = "0.4.0", default-features = false, features = ["custom", "ra", "dhcpv6"] }
+netlink-sys = { version = "0.9", features = ["tokio_socket"] }
+netlink-packet-core = "0.9"
+netlink-packet-route = "0.33"
 socket2 = { version = "0.6", features = ["all"] }
+nix = { version = "0.30", default-features = false, features = ["socket", "process", "signal", "fs"] }
+tokio = { version = "1", default-features = false, features = ["rt", "sync", "time", "net"] }
+log = "0.4"
+getrandom = "0.3"
 
 # `serde` feature
 serde = { version = "1", features = ["derive"], optional = true }
 
 # `bin` feature
-clap = { version = "4", features = ["derive"], optional = true }
-toml = { version = "1.1.0", optional = true }
-env_logger = { version = "0.11.10", optional = true }
+toml = { version = "1.1", optional = true }
+libc = { version = "0.2", optional = true }
 
 [features]
 default = ["bin"]
 # Serialize/Deserialize for the configuration types.
 serde = ["dep:serde", "iphost/serde"]
 # Everything the `rs-l2tpd` binary needs on top of the library.
-bin = ["serde", "dep:clap", "dep:toml", "dep:env_logger"]
-# The `--setup` installer in the binary.
-setup = ["bin"]
+bin = ["serde", "dep:toml", "dep:libc"]
+# The in-memory kernel of the behavioural tests, exported for `tests/`.
+fake-kernel = []
 
 [package.metadata.docs.rs]
 all-features = true
