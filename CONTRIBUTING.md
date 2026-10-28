@@ -28,3 +28,8 @@ The final state must satisfy the following requirements:
 Currently, the latest two Ubuntu LTS kernels MUST be tested,
 in addition to mainline and vanilla equivalents of those Ubuntu
 kernels. We SHOULD aim for a broader support covering Ubuntu/Debian-ish stock kernels, vanilla Linux kernels, and RHEL-ish stock kernels.
+
+## Container support
+
+We must support running our daemon codes under unprivileged
+system containers under LXD/Incus.
