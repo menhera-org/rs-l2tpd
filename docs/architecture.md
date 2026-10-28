@@ -73,12 +73,18 @@ facts can be tested without the reconciler (plan, phase 2).
 
 ```rust
 pub trait Kernel {
+    // Time (M14): the real kernel reads CLOCK_MONOTONIC, the fake a counter the test advances
+    fn now(&self) -> Instant;
+
     // Tunnel sockets (T1, T3–T6, T10, T21, T26)
-    fn socket(&mut self, family: Family) -> Result<SocketId>;            // EAFNOSUPPORT, EPROTONOSUPPORT (T4)
+    fn create_socket(&mut self, family: Family, tunnel_id: u32, peer_tunnel_id: u32) -> Result<SocketId>;
+                                                                         // socket + bind of the connection id in one call, as
+                                                                         // l2tp::TunnelSocket::ip_unconnected does; EAFNOSUPPORT,
+                                                                         // EPROTONOSUPPORT (T4), EADDRINUSE (T7)
     fn only_v6(&self, s: SocketId) -> Result<bool>;                      // IPV6_V6ONLY read-back (K23, T26)
-    fn bind_conn_id(&mut self, s: SocketId, tunnel_id: u32) -> Result<()>; // EADDRINUSE (T7)
     fn bind_index(&mut self, s: SocketId, index: u32) -> Result<()>;     // SO_BINDTOIFINDEX (K22)
-    fn connect(&mut self, s: SocketId, peer: Peer) -> Result<SourceAddr>; // the T16 outcome table (K24–K27, K34)
+    fn connect(&mut self, s: SocketId, peer: Peer) -> Result<SourceAddr>; // the T16 outcome table (K24–K27, K34);
+                                                                         // an IPv4 peer on an AF_INET6 socket is passed IPv4-mapped
     fn disconnect(&mut self, s: SocketId) -> Result<()>;                 // connect(AF_UNSPEC) (K22, K24, K25)
     fn close(&mut self, s: SocketId);                                    // deletion queued (K17)
     fn into_fd(&mut self, s: SocketId) -> OwnedFd;  fn from_fd(&mut self, fd: OwnedFd) -> Result<SocketId>; // P14, P26, K37
@@ -113,12 +119,20 @@ items, `Loss` (`ENOBUFS`, a timeout, a socket error: E21), so that loss is
 data the reconciler handles like any event, never an error that
 unwinds (A13).
 
-The trait is object-safe and synchronous: the real implementation does
-blocking netlink round trips on the reconciler task, bounded by the
-two-second timeout of E21 (a request on a netlink socket is answered in
-microseconds by a healthy kernel; the one slow operation, waiting for a
-deleted tunnel to leave, is a timer, not a wait, A14). Subscriptions are
-the only asynchronous part and run on tasks of their own.
+The trait is object-safe and synchronous, and the reconciler that uses
+it runs on **a thread of its own**, not on a Tokio task: the real
+implementation makes blocking round trips (`l2tp::blocking::L2tpHandle`,
+which hosts the crate's own runtime on a worker thread, and
+`netlink-sys` request sockets with a five-second `SO_RCVTIMEO`, the
+backstop of E21), and a blocking call on a Tokio worker would stall the
+subscriptions. A request on a netlink socket is answered in microseconds
+by a healthy kernel; the one slow operation, waiting for a deleted
+tunnel to leave, is a timer, not a wait (A14). The Tokio runtime hosts
+only what must be asynchronous: the three subscriptions on `AsyncFd`,
+the timers, the resolver polling, and the control handle; they send
+into the reconciler thread's channel, and the thread answers the
+services over oneshots. This is the "one task" of A6 realised as one
+thread.
 
 ### The fake kernel
 
@@ -214,6 +228,9 @@ emits a re-creating operation.
             └──────────────┘
 ```
 
+- The reconciler loop is a `std::thread` that owns the `Reconciler` and
+  the `Kernel` and reads the channel with `blocking_recv`; the services
+  spawn it and join it at shutdown.
 - The channel is a `tokio::sync::mpsc` of capacity 1,024. The monitor
   and `l2tp` tasks use `try_send`; on a full channel the monitor sets its
   resync flag and drops the event (A6, E20). Timers and resolvers keep
@@ -283,6 +300,23 @@ the stored descriptors' names (P14) and the path it was started with
 - **`l2tp` crate kept for sockets and generic netlink.** It already
   implements the attributes, the deletion wait and the descriptor
   conversions, and its `L2tpHandle::events` is the K41 subscription.
+  Three details of its use: a tunnel is created on
+  `TunnelSocket::ip_unconnected` (0.4.2, `../l2tp-rs/UNCONNECTED.md`)
+  with a `TunnelConfig` whose addresses are the unspecified address of
+  the family, which the kernel ignores for a descriptor-backed tunnel
+  (`l2tp_core.c`, `l2tp_tunnel_create`); the device binding is set by
+  index with `socket2::SockRef::bind_device_by_index_v6` on the
+  socket's descriptor (or `bind_to_device_index` once 0.4.2 has it);
+  an adopted IPv4 L2TP/IP socket is taken with `from_fd_with_peer`,
+  because the kernel reports no peer connection id for it. IPv4 peers
+  on an `AF_INET6` socket are passed to `reconnect_ip` as IPv4-mapped
+  `IpEndpoint::V6`.
+- **Random names from the `getrandom` crate.** S4 wants the kernel's
+  random source; the library may neither read `/dev/urandom` (L1) nor
+  call `getrandom(2)` through `libc` (L2), and `std` exposes no stable
+  API for it. The crate is small and pure.
+- **A `Clock` behind `Kernel::now`.** The reconciler never reads the
+  clock itself, so the rules tests advance time deterministically.
 - **`iphost` kept for every resolver, used through `IpHostResolver::resolve`.**
   The four kinds, the DUIDs, the RA and DHCPv6 sources and their threads
   are what V9–V15 describe. The reconciler's `resolvers.rs` runs one

@@ -20,7 +20,12 @@ crates the `l2tp` crate already pulls.
 | `nix` (`socket` feature only) | `SO_RCVBUFFORCE`, `sendmsg` with `SCM_RIGHTS` (the latter used by the binary) | R10, P14 |
 | `tokio` (`rt`, `sync`, `time`, `net`) | The loop, the bounded channel, timers, `AsyncFd` | A6, M14 |
 | `log` | The facade | O1 |
+| `getrandom` | Temporary interface names from the kernel's random source, without file I/O or unsafe code | S4, L1, L2 |
 | `serde` (optional) | The `serde` feature | L1 |
+
+`netlink-packet-route` is pinned to the release that depends on
+`netlink-packet-core` 0.9, the version `l2tp` uses (0.33 in the local
+registry), so that one copy of the core crate is built.
 
 ## Binary (`bin` feature)
 
@@ -28,10 +33,11 @@ crates the `l2tp` crate already pulls.
 |---|---|---|
 | `toml` | Parsing the documents | C1 |
 | `serde` | With it | C5 |
+| `libc` | `capget(2)` for the capability report and `fork(2)` for daemonisation, the two calls `std` and `nix` do not wrap safely; the binary allows `unsafe` for them, the library denies it | R49, P4, L2 |
 
 Nothing else: the command line (nine options, P27) is parsed by hand,
-the logger is thirty lines over `log::Log` (O1), daemonisation, the PID
-file, signals and the store protocol are `std` and `nix` calls.
+the logger is thirty lines over `log::Log` (O1), the PID file, signals,
+`setsid` and the store protocol are `std` and `nix` calls.
 
 ## Removed
 
@@ -40,7 +46,7 @@ file, signals and the store protocol are `std` and `nix` calls.
 | `rtnetlink`, `netlink-proto`, `futures-util`, `async-trait` | `netlink-proto`'s connection drains the socket into an unbounded queue (the A6 known gap); the handful of requests the daemon makes are shorter to write directly than to adapt |
 | `clap` | 70 crates for nine options |
 | `env_logger` | Its format and its environment variable contradict O1 |
-| `libc` (direct) | Everything needed is in `socket2`, `nix` or `std` |
+| `libc` (library) | Everything the library needs is in `socket2`, `nix`, `getrandom` or `std`; the binary keeps it for `capget` and `fork` |
 | `setup` feature | The installer is gone (plan, phase 0) |
 
 ## Upstream needs
@@ -56,6 +62,7 @@ at phase 0; a missing item stops the rewrite until it ships upstream
 | `SessionInfo` reports cookies and peer identifiers (S28) | `l2tp` | in 0.4.0 |
 | `L2tpHandle::events` on the `l2tp` group (K41, E27) | `l2tp` | in 0.4.0 |
 | Session creation with an explicit name and no sublayer (S3) | `l2tp` | in 0.4.0 |
+| **A bound, unconnected L2TP/IP socket** (T1, T6, K5): `TunnelSocket::ip` binds and connects in one constructor (`socket.rs:269-323`), and the daemon's library may not build `sockaddr_l2tpip6` itself (L2) | `l2tp` | **missing; blocks phase 2.** Instruction written: `../l2tp-rs/UNCONNECTED.md` (`ip_unconnected`, `bind_to_device_index`; target 0.4.2). `from_fd`, `disconnect` and `reconnect_ip` already handle the unconnected state |
 | The K41 event stream (`L2tpHandle::events`) | `l2tp` (`../l2tp-rs`, read 2026-10-28) | present: `handle.rs:752-770` joins the `l2tp` group on a `netlink-proto` connection and forwards through an unbounded channel (`event.rs:253`). Used as is: the group carries only netlink-commanded deletions, so the queue grows at the operator's typing speed, and a lost announcement is covered by the kernel query of S27 at the next reconcile. The rtnetlink subscriptions, which carry the host's churn, stay on `netlink-sys` sockets of the daemon's own |
 | No `/proc` requirement (R7, K12) | `l2tp` 0.4.1 | **shipped 2026-10-28** and pinned: namespace identity comes from `SO_NETNS_COOKIE` (`net/core/sock.c:1981-1986` in 6.8, since 5.14), a descriptor is kept only when `/proc` is readable, and `NetNs::current` falls back to `PIDFD_GET_NET_NAMESPACE` on 6.11+. The daemon never calls `setns` and creates every socket on its own threads, so the descriptor is never needed. R7 and K12 are removed from the specification; the instruction that produced the release is `../l2tp-rs/NO_PROC.md` |
 | Configured resolvers: `Resolver::Static` with `BindDevice::Interface` or `Vrf`, `Resolver::Ra`, `Resolver::Dhcpv6`, `Resolver::Ipv6` (DHCPv6 first); `max_lookup_time` of 5 s × 2 attempts per server, 3 s discovery wait, at most 3 discovered servers (V2, V4, V9, V14) | `iphost` 0.4.0 (`../iphost`, read 2026-10-28) | present: `resolver.rs`, `custom.rs:14-22`, `ipv6.rs:121-127`. Features to enable: `custom`, `ra`, `dhcpv6`; `tracing` and `broadcast` off. The manifest must move from 0.3.3 to 0.4.0 |

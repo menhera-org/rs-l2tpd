@@ -66,7 +66,11 @@ specification differ, the specification is right and this page is wrong.
    resolver kinds, the DUID choices, the raw and netlink RA sources and
    the shared DHCPv6 socket; answer selection, retention, the refresh
    thread and zone parsing are the daemon's ([dependencies](dependencies.md#upstream-needs)).
-   Nothing is missing upstream.
+   **One item is missing upstream and blocks phase 2:** `l2tp` has no
+   constructor for a bound, unconnected L2TP/IP socket, which the
+   disconnected state of T1 needs; the instruction is
+   `../l2tp-rs/UNCONNECTED.md` (target 0.4.2). Phases 0 and 1 proceed
+   meanwhile.
 2. The version stays **0.2.0**: it was never released, so the API
    changes of L5, L6 and L13 break nothing published; the configuration
    format of 0.1.5, the last release, keeps working (G22).
@@ -140,8 +144,10 @@ Implements the kernel interfaces of A5 and the facts of
    K37, K41. The fake also delivers notifications in kernel order and
    can be told to overflow a subscription (E20, E21) or to drop
    notifications.
-3. `kernel::linux`: the real implementation over `l2tp::TunnelSocket`,
-   `l2tp::L2tpHandle`, and `netlink-sys` sockets with
+3. `kernel::linux`: the real implementation over `l2tp::TunnelSocket`
+   (`ip_unconnected`, 0.4.2), `l2tp::blocking::L2tpHandle` (the trait is
+   synchronous and runs on the reconciler's own thread,
+   [architecture](architecture.md#the-kernel-boundary)), and `netlink-sys` sockets with
    `netlink-packet-route` for the rtnetlink requests and the two
    subscriptions; the event monitor attaches the classic BPF program of
    A5 through `socket2`; `SO_RCVBUFFORCE` then `SO_RCVBUF` (R10); the

@@ -86,7 +86,7 @@ IPv6) run under QEMU.
 | Gate | Tool | Threshold |
 |---|---|---|
 | Coverage | `cargo llvm-cov` over unit, rules, properties, the fake conformance run and the container runs (profiles merged) | 100 % lines and branches of `src/`; exclusions only in `kernel::linux` for branches no kernel of the range reaches, each marked `// coverage: unreachable on <range>, <reason>` |
-| Rule map | `tests/tools/rulemap.rs` reads every `[A-Z]+[0-9]+\.` of `docs/spec/*.md` and every `spec:` comment of `tests/` and `src/` | every rule has at least one test; removed rules are exempt |
+| Rule map | `tests/tools/rulemap.rs` reads every rule definition of `docs/spec/*.md`, which is a line starting with `X1.` or a table row starting with `\| X1 \|` (letters `A`, `C`, `D`, `E`, `G`, `H`, `K`, `L`, `M`, `O`, `P`, `R`, `S`, `T`, `V`), and every `spec:` comment of `tests/` and `src/` | every rule has at least one test; rules whose text begins with "Removed" are exempt |
 | Source link | `tests/tools/srclink.rs` reads every `// kernel:` comment of `src/kernel/linux/` | every function cites a K fact; every K fact is cited |
 | Determinism | CI runs the fake suites ten times with different seeds and the container suite three times | zero flakes before a gate is enabled |
 | Warnings | `cargo clippy -D warnings`, `cargo doc -D warnings`, builds with no default features and with `serde` | clean |
