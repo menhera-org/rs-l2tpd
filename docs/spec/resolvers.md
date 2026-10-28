@@ -119,7 +119,12 @@ bind interface from a raw ICMPv6 socket, which needs `CAP_NET_RAW`
 ([K39](kernel.md#requirements)): it receives Router Advertisements
 (type 134, code 0) directly, accepting only those with a link-local
 source, hop limit 255 and arrival on the bind interface, and takes their
-RDNSS options; and it **solicits**, sending Router Solicitations (type
+RDNSS options. The socket is bound to the interface (`SO_BINDTODEVICE`),
+filtered in the kernel to type 134 (`ICMP6_FILTER`), because a raw
+ICMPv6 socket otherwise receives every ICMPv6 packet of the namespace,
+and reads the hop limit and the arrival interface from ancillary data
+(`IPV6_RECVHOPLIMIT`, `IPV6_RECVPKTINFO`), which is the only way the
+three checks can be made. And it **solicits**, sending Router Solicitations (type
 133, to `ff02::2`, hop limit 255) up to three times four seconds apart
 until the first advertisement arrives, again whenever the interface is
 created or re-created, so that servers are learned at once instead of at
@@ -165,8 +170,13 @@ interface and bound to the unspecified address, so that a system client
 bound to the interface's own address (systemd-networkd) keeps receiving
 its Replies ([K38](kernel.md#facts)); every resolver keeps only the
 Replies to its own transactions. Nothing else is
-taken from DHCPv6. The client socket is bound with `SO_REUSEADDR`, so
-that it binds beside another DHCPv6 client on the host: this method
+taken from DHCPv6. The client socket is bound with `SO_REUSEADDR` and
+`SO_BINDTODEVICE`, both set before `bind`, so that it binds beside
+another DHCPv6 client on the host that also set `SO_REUSEADDR`; the
+kernel's sharing needs the option on both sockets, and beside a client
+that did not set it the bind fails `EADDRINUSE`, which is handled exactly
+as the refused port below (reported once, retried every thirty seconds,
+an `ipv6` resolver falling back to its RDNSS servers). This method
 exists mainly for VRFs, where the system resolver breaks and where no
 system DHCPv6 client (systemd-networkd or the like) holds port 546, so the
 port is normally free. When a system client does hold it, that client is

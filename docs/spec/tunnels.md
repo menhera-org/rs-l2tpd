@@ -25,7 +25,12 @@ kernel state, derived from the configuration and the host:
   peer the kernel accepted a connect to and the bind device, when
   configured, is present. Otherwise the socket is **disconnected**: the
   tunnel and its sessions exist, the kernel drops every frame they send,
-  and nothing leaves the host ([K5](kernel.md#requirements)).
+  and nothing leaves the host ([K5](kernel.md#requirements)). Receiving
+  is unaffected by the socket's state: the kernel delivers every IP
+  protocol 115 packet by session identifier, whatever socket, binding,
+  source or device ([K15](kernel.md#facts)), so a disconnected tunnel's
+  sessions keep accepting frames from any sender their cookies admit
+  ([S14](sessions.md#cookies)). Disconnected means silent, not closed.
 
 T2. The daemon MUST converge the kernel state to this state at every
 reconcile and at every event that changes one of its inputs
@@ -216,7 +221,11 @@ its sessions: `remote_addr`, `ip_version`, `resolver_name`,
 
 T23. The following changes re-create the tunnel, and with it its sessions
 and their interfaces, because the kernel cannot change them: `tunnel_id`
-(which is a removal and an addition) and `peer_tunnel_id`.
+(which is a removal and an addition) and `peer_tunnel_id`. These two
+fields are the tunnel's **kernel identity**: a tunnel entry of a reload
+is the same tunnel as an entry of the accepted configuration when both
+are unchanged, whatever the entry's configuration name
+([C14](configuration.md#semantics-of-changes)).
 
 T24. A re-creation deletes the old tunnel first, waits for the kernel to
 release its identifier ([T8](#creation-and-identifiers)), then creates the
@@ -261,8 +270,14 @@ device, when both are given, MUST name the same device, or the zone a
 member of the bind VRF ([K27](kernel.md#facts)); otherwise the entry has
 a hard mistake. Connecting to such a peer binds the socket to the zone's
 device ([K27](kernel.md#facts)): on a VRF-bound tunnel the binding is
-then the member device, and the daemon records that index as the
-binding in force until the next reconnect restores the configured one.
+then the member device, not the VRF, and every reconnect ends the same
+way, so for as long as the peer is a zoned link-local address the
+binding in force is the zone's device. The daemon resolves the zone name
+to an index at every reconnect, records that index as the binding in
+force, and matches address events against it
+([E6](events.md#address-events), [E7](events.md#address-events)); the
+race between the lookup and the connect is the one of
+[T10](#bind-devices) and is accepted the same way.
 An unbound tunnel with a link-local literal without a zone is a hard
 mistake ([C7](configuration.md#tunnel-entries)); an answer of a resolver
 that is a link-local address without a zone on an unbound tunnel is
@@ -275,7 +290,11 @@ leaving the disconnected state, a corrected endpoint), is a reconnect
 ([T21](#source-addresses)): never a bare connect. The source address the
 daemon records for a tunnel ([E7](events.md#address-events)) is read from
 the socket only after such a reconnect, because after a bare connect the
-socket reports a stale source ([K24](kernel.md#facts)).
+socket reports a stale source ([K24](kernel.md#facts)). It is read with
+`getsockname` on the tunnel socket, which reports the address the kernel
+selected at connect; an unspecified address there (`0.0.0.0`, `::`)
+means no source was selected ([K34](kernel.md#facts)) and is the failed
+connect of [T20](#source-addresses).
 
 T29. The kernel's record of a disconnected tunnel shows the previous peer
 and an empty source ([K25](kernel.md#facts)); the daemon's own view, not

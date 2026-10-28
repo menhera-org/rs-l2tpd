@@ -134,14 +134,13 @@ Defects against rules that hold under either design:
 | [L5](library.md#the-service) | `run` without `converge` converges first. | `run` applies nothing until a reload. |
 | [R49](requirements.md#the-host), [P21](process.md#the-supplied-systemd-unit), [O2](observability.md#logging) | The supplied unit grants every required capability explicitly; each one the process lacks is reported once at start-up. | The unit runs as root with no capability set; nothing checks for or reports a missing capability. |
 | [C1](configuration.md#files), [P22](process.md#the-process-contract) | Drop-ins whose name starts with `.` are ignored; both configuration paths can be changed at build time and on the command line. | `.foo.toml` is read; the paths can be changed at build time (`CONFIG_FILE_PATH`, `CONFIG_DIR_PATH`) but not on the command line. |
-
-For roadmap step 3 to decide:
-
-| Requirement | Specification | Current behaviour |
-|---|---|---|
-| [C14](configuration.md#semantics-of-changes), [M17](model.md#identity-matrix) | A configuration entry renamed with unchanged identifiers is a removal and an addition. | The reconciler keys entries by identifier, so the kernel objects are kept. |
-| [S12](sessions.md#hardware-addresses) | A deferred hardware-address change is reported once. | It is logged on every reconcile that carries it. |
-| [E21](events.md#monitor-loss) | A lifetime lookup times out after two seconds. | Five seconds. |
 | [R10](requirements.md#the-host) | `SO_RCVBUFFORCE`, then `SO_RCVBUF`. | The other order, with the same result. |
-| [P2](process.md#start-up) | Logging starts before the command line is read. | The command line comes first, since it sets the log level. |
-| [E4](events.md#link-events) | (wording unclear) A bind device's own move into a VRF reconnects its tunnels. | Only a bound VRF's change is acted on. |
+| [E4](events.md#link-events) | A bind device's own move into or out of a VRF reconnects the tunnels bound to it; a member's move reconnects the tunnels bound to the VRF. | Only a bound VRF's membership changes are acted on. |
+
+The cases roadmap step 3 had to decide (an entry renamed in the
+configuration, the deferred-change report, the lookup timeout, the
+buffer-option order, the start-up order, the wording of E4) were decided
+on 2026-10-28 and the pages changed accordingly; the decisions and their
+reasons are in `audit/SPEC_REVIEW_2026-10-28.md`, which also records the
+review of the specification itself (one corrected kernel fact, K29, and
+the conditions the design is safe under).

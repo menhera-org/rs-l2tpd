@@ -81,13 +81,18 @@ A6. All state is owned by one task, the reconciler loop. Every other task
 (the event monitor, the resolvers, the timers, the signal thread) only
 sends messages into one bounded channel the loop reads, so that no lock
 orders state changes and every event is applied in arrival order against
-a consistent record. The channel has a fixed capacity. A producer never
-blocks on it: when the channel is full, the event monitor drops the event
-and records that a resync is needed, which the loop performs when it next
-reads the marker ([E20](events.md#monitor-loss)); resolvers and timers
-keep their latest state and send it again at their next tick. The control
+a consistent record. The channel has a fixed capacity. The kernel-facing
+and timer producers never block on it: when the channel is full, the
+event monitor drops the event and records that a resync is needed, which
+the loop performs when it next reads the marker
+([E20](events.md#monitor-loss)); resolvers and timers keep their latest
+state and send it again at their next tick. The operator-facing producers
+may wait for room, because their requests must not be lost: the signal
+thread ([P12](process.md#signals-and-requests)) and `reload_wait`
+([L6](library.md#the-service)) wait; `reload` fails instead. The control
 handle sends into the same channel plus one persistent shutdown flag, so
-that a shutdown is never lost to a full queue.
+that a shutdown is never lost to a full queue and never waits behind a
+reload.
 
 A7. The link-lifetime subscription has its own socket and its own task
 because its ordering guarantee is what makes identities provable: a

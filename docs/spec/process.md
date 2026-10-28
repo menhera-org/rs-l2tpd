@@ -12,8 +12,10 @@ tunnels and session interfaces ([degradation ladder](model.md#the-degradation-la
 a tunnel that cannot reach its peer is created disconnected
 ([T16](tunnels.md#peers-that-cannot-be-reached)).
 
-P2. Start-up order: change directory to `/`, initialise logging, parse the
-command line, load the configuration leniently
+P2. Start-up order: change directory to `/`, parse the command line,
+initialise logging (the command line sets its level; a command line that
+cannot be parsed is reported on standard error without the logger and is
+the only thing that can fail before it), load the configuration leniently
 ([C10](configuration.md#start-up)), report every problem, then daemonise
 and apply. A configuration problem never prevents start-up; an empty
 configuration is valid and makes the daemon ready at once.
@@ -27,7 +29,11 @@ P4. The daemon double-forks. The grandchild applies the configuration; the
 original parent waits and exits 0 when the grandchild reports readiness,
 or 1 when it reports failure or dies. The intermediate child exits at once.
 The grandchild uses a restrictive umask and creates only its PID file and
-the directories of that file.
+the directories of that file. Descriptors the init system passed
+([P14](#restart)) survive both forks and are adopted by the grandchild,
+which accepts a `LISTEN_PID` equal to the PID of its original parent,
+the process the init system executed; every other inherited descriptor
+from 3 up is closed before anything else is opened.
 
 P5. The kernel interfaces (netlink, L2TP generic netlink) are opened before
 the configuration is applied, and the host tunable of [P25](#host-tunables)
@@ -111,23 +117,40 @@ removed.
 
 P14. Stopping the daemon removes everything it owns ([P16](#shutdown)). A
 restart therefore re-creates every interface and with them their
-addresses, routes and children. Where the init system offers a
-descriptor store (systemd's `FDSTORE`), the daemon SHOULD, on a restart
-or upgrade, hand its tunnel sockets to the store on exit and adopt them
-again at the next start, so that the tunnels, the sessions and their
-interfaces survive; this is the one exception to [G9](promises.md#unconditional-promises)
-and the adoption the one exception to [G2](promises.md#unconditional-promises).
-The hand-over is used only when the init system announces the store to
-the process; it needs no configuration key, no systemd on hosts without
-it, and no file. The daemon speaks the protocol itself, through the
+addresses, routes and children; a restart that keeps them is the
+in-process re-exec of [P26](#restart). Where the init system offers a
+descriptor store (systemd's `FDSTORE`), the daemon SHOULD use it for
+what only it can give, survival of an **unplanned exit**: it pushes
+every tunnel socket into the store as soon as the tunnel exists
+(`FDSTORE=1` with the descriptor, named by the tunnel identifier in
+`FDNAME=`), withdraws it when the tunnel is deleted (`FDSTOREREMOVE=1`)
+and before closing the socket, since a tunnel lives while any
+descriptor of it is open ([K37](kernel.md#facts)), and withdraws all of
+them at an explicit shutdown before tearing down. The init system cannot
+tell the daemon whether a `SIGTERM` is a stop or a restart, and the
+daemon does not try: both tear down; after a crash the next instance
+finds the sockets in `LISTEN_FDS` and adopts them, so the tunnels, the
+sessions and their interfaces survive the crash. This is the one
+exception to [G9](promises.md#unconditional-promises) and the adoption
+the one exception to [G2](promises.md#unconditional-promises). The
+hand-over is used only when the init system announces the store to the
+process; it needs no configuration key, no systemd on hosts without it,
+and no file. The daemon speaks the protocol itself, through the
 `NOTIFY_SOCKET`, `LISTEN_FDS`, `LISTEN_PID` and `LISTEN_FDNAMES`
-environment variables and a datagram carrying `FDSTORE=1` with the
-descriptors, and MUST NOT link against libsystemd or any D-Bus library:
-the same binary runs on a host without systemd, where the hand-over is
-simply absent. An adopted socket is verified to carry the tunnel of the
-same identifiers before it is used; one that does not is closed. An
-explicit stop MUST still remove everything, and the store MUST be told to
-forget the sockets then (`FDSTOREREMOVE=1`).
+environment variables, and MUST NOT link against libsystemd or any D-Bus
+library: the same binary runs on a host without systemd, where the
+hand-over is simply absent. An adopted descriptor is verified before it
+is used: it is a socket of domain `AF_INET` or `AF_INET6`, type
+`SOCK_DGRAM` and protocol `IPPROTO_L2TP` (`SO_DOMAIN`, `SO_TYPE`,
+`SO_PROTOCOL`), `getsockname` reports the identifier of a tunnel of the
+configuration, and the kernel reports that tunnel with the configured
+peer identifier; one that fails any check is closed. The kernel cannot
+say that the tunnel is registered on this very socket; that residual is
+accepted because the only process that hands sockets over is the daemon
+itself. Sessions on an adopted tunnel keep working; their devices'
+identities cannot be proved by the new instance and they are managed as
+after a loss of notifications ([S20](sessions.md#identity-loss)) until
+re-created.
 
 P26. On every host, with or without a descriptor store, the daemon
 provides a **restart** operation of its own, so that a new binary on disk
@@ -142,6 +165,16 @@ the same `LISTEN_FDS`, `LISTEN_PID` and `LISTEN_FDNAMES` protocol as
 - The program executed is the one at the path the daemon was started
   with, or the path given on the command line, never `/proc/self/exe`,
   which names the old inode once the file on disk was replaced.
+- Before the exec the daemon runs the target once as a child with
+  `--adopt-version` and proceeds only when it prints a hand-over protocol
+  version the daemon speaks; a target that does not (an older version, a
+  foreign program) would inherit the sockets with close-on-exec cleared
+  and hold the tunnels alive without knowing it, so the request is
+  refused with a report and nothing changes.
+- The new instance closes every inherited descriptor from 3 up that
+  `LISTEN_FDS` does not announce, and resets the signal mask and the
+  dispositions it inherited before it installs its handlers, because
+  both survive `execve`.
 - Close-on-exec ([T6](tunnels.md#creation-and-identifiers)) is cleared
   only on the descriptors being handed over and only for this exec; every
   other descriptor (netlink, resolvers, the readiness pipe) closes with
@@ -173,7 +206,8 @@ change for the restart to succeed.
 P16. Shutdown, in order: stop every timer; apply the empty configuration
 under the ordering rules of [M6](model.md#reconciliation), which deletes
 every owned session the daemon can prove it owns and then every tunnel by
-closing its socket (or handing it over, [P14](#restart)); remove the PID
+withdrawing its socket from the descriptor store where one holds it and
+closing the socket ([P14](#restart)); remove the PID
 file ([P11](#pid-file)); exit. A session the daemon cannot prove it owns
 is left alone ([S22](sessions.md#identity-loss)), and a tunnel is never
 deleted by its identifier, so a foreign tunnel that reused the identifier
@@ -192,6 +226,9 @@ after logging it, and still performs every later step.
 P18. Tunnels are owned by sockets so that a crash leaves no kernel tunnel
 or session behind: the kernel removes them when the process dies. Nothing
 else survives a crash; nothing has to be cleaned up at the next start.
+Where a descriptor store holds the sockets ([P14](#restart)) the tunnels,
+their sessions and their interfaces survive the crash on purpose and the
+next instance adopts them; that is the store's job, not a leak.
 
 P19. The daemon MUST NOT panic on any input from the configuration, the
 kernel, a resolver or another process. Unexpected kernel replies are
@@ -217,9 +254,11 @@ after, `network-online.target` or any wait-online service.
 It MUST confine the service to netlink and IP sockets plus the socket
 families the host's resolver needs, a read-only system except the PID
 file, no new privileges and no access to home directories or logs, and
-MUST allow writing `net.ipv6.bindv6only` for [P25](#host-tunables),
-without restricting the capabilities the kernel needs to autoload the
-L2TP modules. It MUST grant every required capability explicitly
+MUST allow writing `net.ipv6.bindv6only` for [P25](#host-tunables). It
+MAY set `ProtectKernelModules=yes`: autoload of the L2TP modules runs in
+the kernel's own helper and needs nothing of the process
+([K21](kernel.md#facts)); what blocks it is a host policy
+([R1](requirements.md#the-host)), not the unit. It MUST grant every required capability explicitly
 ([R49](requirements.md#the-host)): `CAP_NET_ADMIN`, `CAP_NET_RAW` and
 `CAP_NET_BIND_SERVICE`. An operator who removes one gets the start-up
 report of R49 and the fallbacks, which are not guaranteed to work in every

@@ -178,9 +178,16 @@ text of the files.
 C14. Which configuration changes are applied in place and which re-create
 an object is defined in the [identity matrix](model.md#identity-matrix),
 [T22](tunnels.md#changes-applied-in-place) and
-[S17](sessions.md#changes-applied-in-place). Renaming a configuration
-entry while keeping its identifiers is a removal and an addition: the
-kernel objects are re-created. A reload MUST handle any mixture of
+[S17](sessions.md#changes-applied-in-place). Entries of a reload are
+matched to entries of the accepted configuration by **kernel identity**,
+the fields the kernel cannot change (a tunnel: `tunnel_id` and
+`peer_tunnel_id`; a session: its tunnel's identity, `session_id`,
+`peer_session_id`, `cookie` and `peer_cookie`, [T23](tunnels.md#changes-applied-in-place),
+[S17](sessions.md#changes-applied-in-place)), not by configuration name:
+renaming an entry while keeping that identity keeps the kernel objects,
+and every other field of the renamed entry is applied in place. The
+configuration name is still what messages and the control handle use,
+and the name of a kept object changes with the entry. A reload MUST handle any mixture of
 removals, additions and changes in one step, including swaps of interface
 names between sessions, swaps of identifiers between entries, and a
 removed session whose name a surviving session takes, under the ordering

@@ -30,9 +30,11 @@ tunnel is connected ([K5](kernel.md#requirements)).
 S4. The kernel assigns a random hardware address at creation and cannot
 take one as a creation parameter ([K31](kernel.md#facts)). Every session
 is therefore **staged**: created under a temporary name (`rsl2tp-t`
-followed by six hexadecimal digits, unique, chosen from a random source,
-checked against the namespace's device names and within the kernel's
-length limit), given its configured address while it is down when one is
+followed by six hexadecimal digits, unique, chosen from the kernel's
+random source (`getrandom`, never a counter, the time or the process
+identifier, because the proof of [S22](#identity-loss) rests on the name
+being unpredictable), checked against the namespace's device names and
+within the kernel's length limit), given its configured address while it is down when one is
 configured, and only then renamed to its configured name, so that a
 manager matching the configured name never sees the device with the
 wrong address. One creation path serves sessions with and without a
@@ -68,7 +70,13 @@ only once, at creation ([K16](kernel.md#facts)). The index is captured
 from the kernel's registration broadcast, observed by the link-lifetime
 subscription opened before the creation request, so that a manager
 renaming the device immediately cannot make the daemon address another
-device.
+device. The broadcast is matched to the creation request by the temporary
+name and nothing else: the name is unique at that instant because the
+kernel refuses a taken name ([K20](kernel.md#facts)), and the broadcast
+is sent while the kernel still holds the lock that a rename needs
+(`l2tp_eth_create` registers the device and copies its name under
+`rtnl`), so the first broadcast of that name is the device created. The
+index is never obtained by a lookup by name, which would race a rename.
 
 S9. The link-lifetime subscription, opened before the first session,
 proves before every change that the index still refers to the device
@@ -108,8 +116,10 @@ namespace. The daemon therefore never lowers a device: a configured
 address, a changed address, or the restoration of the creation-time
 address when the key is removed, is applied at once when the device is
 down and deferred when it is up, until the device is seen down. Readiness
-does not wait for a deferred change. The deferral is reported once; the
-eventual application once. The daemon applies the configured address at
+does not wait for a deferred change. The deferral is reported at every
+reconcile that carries it, an exception to [O3](observability.md#logging)
+so that a reload shows the operator why the address did not apply; the
+eventual application is reported once. The daemon applies the configured address at
 creation and when the configuration changes it; an address another
 manager sets afterwards is an acknowledged override and is not
 re-asserted, because two managers re-asserting would never converge.
@@ -129,7 +139,11 @@ control the kernel applies to data: a frame carrying a session's
 identifier is delivered whatever its source address or ingress device
 ([K15](kernel.md#facts)), so a session without `peer_cookie` accepts
 frames from anyone who can reach the host with IP protocol 115 and knows
-the identifier; anything stricter is the host's packet filter.
+the identifier, and does so whether or not its tunnel is connected
+([T1](tunnels.md#the-right-state-of-a-tunnel)); anything stricter is the
+host's packet filter. A 4-byte cookie is a 32-bit secret carried in clear
+in every frame; a session exposed to untrusted senders SHOULD use 8-byte
+cookies.
 
 S15. The kernel cannot change a session's cookies: a change re-creates the
 session. The new device is created under the configured name once the old
@@ -144,7 +158,14 @@ S17. `interface_name` and `interface_hwaddr` change in place, as does
 anything about the tunnel that changes in place. `session_id` (a removal
 and an addition), `peer_session_id`, `cookie`, `peer_cookie` and
 `tunnel_name` re-create the session; a re-creation of the tunnel re-creates
-its sessions ([M17](model.md#identity-matrix)).
+its sessions ([M17](model.md#identity-matrix)). Those fields, with the
+tunnel's own kernel identity ([T23](tunnels.md#changes-applied-in-place)),
+are the session's **kernel identity**: a session entry of a reload is the
+same session as an entry of the accepted configuration when its tunnel
+is the same tunnel and `session_id`, `peer_session_id`, `cookie` and
+`peer_cookie` are unchanged, an absent `peer_cookie` comparing as its
+default, whatever the entry's configuration name
+([C14](configuration.md#semantics-of-changes)).
 
 ## Children and other managers
 
@@ -164,7 +185,11 @@ S19. Two things end the proof of S9, and they are told apart:
 - **Observed removal**: the subscription saw the index leave the
   namespace, because the device was deleted, or moved to another namespace
   as a container manager's `physical` device. The index may now belong to
-  a replacement.
+  a replacement: the kernel never gives a freed index to a newly created
+  device before its 31-bit counter wraps, but a device moved in from
+  another namespace keeps its old index whenever that index is free here
+  (`__dev_change_net_namespace`), which is why [S24](#identity-loss) is
+  needed.
 - **Loss of notifications**: the lifetime subscription overflowed, or its
   socket stopped answering ([E21](events.md#monitor-loss)); the device may
   or may not still be the one created. A new generation is opened and
@@ -177,7 +202,14 @@ device: a requested rename or hardware-address change is skipped,
 recorded as applied ([M19](model.md#enforced-fields)) so that it is not
 attempted every second, and reported once per session with the reason.
 The reload completes; every other entry is applied. Existing traffic and
-underlay reconnection are unaffected.
+underlay reconnection are unaffected. The state is permanent for the
+session: nothing re-proves a published device, because the kernel's
+session record holds a name and no index ([K16](kernel.md#facts)) and a
+lookup by name is the race [S8](#identity) refuses. The session becomes
+manageable again only when it is created anew: by a re-creating change
+of its entry ([S17](#changes-applied-in-place)), or at the next start.
+The one report of this rule says so and names the change that would
+re-create the session.
 
 S21. After an observed removal, removing the session from the
 configuration or re-creating it forgets the session without deleting

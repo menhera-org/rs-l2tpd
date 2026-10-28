@@ -40,10 +40,15 @@ of the name exists, and its answers stay in force ([V9](resolvers.md#binding)).
 
 E4. **A device changes state** (up, down, flags, MTU, controller): a
 session device seen down gets its deferred hardware-address change
-applied; a bind device's VRF membership change, or a VRF slave's,
-reconnects the tunnels bound to the VRF. Nothing else is done, and nothing
-is looked up in the kernel for a device no tunnel is bound to and no
-session owns.
+applied. A change of a device's controller (`IFLA_MASTER`) reconnects
+tunnels in two cases: the tunnels bound to that device itself, when its
+controller becomes or stops being a VRF, because the device's L3 domain
+and so its source selection changed ([K28](kernel.md#facts)); and the
+tunnels bound to a VRF, when any device's controller becomes or stops
+being that VRF, because the VRF's set of addresses changed. A controller
+change to or from a bridge or bond reconnects nothing. Nothing else is
+done, and nothing is looked up in the kernel for a device no tunnel is
+bound to and no session owns.
 
 E5. Link events carry the protocol family `AF_UNSPEC` when they describe a
 device's lifetime; events of other families (`AF_BRIDGE`, `AF_INET6`)
@@ -169,11 +174,17 @@ as a loss on the event monitor.
 
 E21. A loss shows in three ways, and each is treated as a loss of
 notifications on that socket: a receive that fails with `ENOBUFS`
-([K29](kernel.md#facts)); a lookup whose reply does not arrive within its
-timeout of two seconds, with or without an acknowledgement; and an
-explicit socket error. A lookup on a socket known to have lost
-notifications is not repeated once per retry: the socket is reopened
-first. `NETLINK_NO_ENOBUFS` is not set, so that the error is seen.
+([K29](kernel.md#facts)), which is the detector, because the kernel raises
+it for every message it could not queue, a dropped reply as much as a
+dropped notification; a lookup whose reply does not arrive within its
+timeout of five seconds, with or without an acknowledgement, which is a
+backstop for a kernel that never answers and not a second detector (a
+short timeout would only make false losses, and a loss is permanent for
+published sessions, [S20](sessions.md#identity-loss)); and an explicit
+socket error. A lookup on a socket known to have lost notifications is
+not repeated once per retry: the socket is reopened first.
+`NETLINK_NO_ENOBUFS` is never set on the subscriptions, so that the error
+is seen.
 
 E22. Only the kernel's notifications (sender port 0) are acted on. This is
 defence in depth: no process without `CAP_NET_ADMIN` can unicast to the

@@ -146,7 +146,7 @@ operation needs a reason the kernel imposes ([A21](architecture.md#extension)).
 | `interface_name`, `interface_hwaddr` changed or corrected; rename or address set by another manager | — | kept | in place ([S17](sessions.md#changes-applied-in-place)) |
 | `tunnel_id` or `peer_tunnel_id` changed | re-created | re-created | the kernel cannot change them ([T23](tunnels.md#changes-applied-in-place)) |
 | `session_id`, `peer_session_id`, `cookie`, `peer_cookie`, `tunnel_name` changed | kept | re-created | the kernel cannot change them ([S17](sessions.md#changes-applied-in-place)) |
-| A tunnel or session entry renamed in the configuration | re-created | re-created | a removal and an addition ([C14](configuration.md#semantics-of-changes)) |
+| A tunnel or session entry renamed in the configuration, its kernel identity unchanged | kept | kept | entries are matched by kernel identity, not by name ([C14](configuration.md#semantics-of-changes), [T23](tunnels.md#changes-applied-in-place), [S17](sessions.md#changes-applied-in-place)) |
 | An entry removed from the configuration; shutdown | removed | removed | explicit ([C12](configuration.md#reload), [P16](process.md#shutdown)) |
 | A session deleted in the kernel by an operator | — | re-created | the object is gone ([S27](sessions.md#external-deletion)) |
 | A staged session whose identity was lost before publication | — | re-created at most once per attempt | nothing else can recover it ([S23](sessions.md#identity-loss)) |

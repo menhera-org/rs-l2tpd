@@ -27,7 +27,10 @@ ends, never on every retry. An episode is keyed by the entry and the
 condition; a reload that changes the entry's relevant values starts a new
 episode, a retry does not. In particular the one-second retries of
 pending peers, incomplete reconciles, failed reconnects and left-out
-entries are silent after their first report.
+entries are silent after their first report. One exception: a deferred
+hardware-address change ([S12](sessions.md#hardware-addresses)) is
+reported at every reconcile that carries it, so that an operator who
+reloads sees why the address did not apply.
 
 O4. Every message about an entry names it by its identifiers
 (`tunnel_id=`, `session_id=`) and by its configuration name; where it
