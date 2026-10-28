@@ -134,14 +134,14 @@ including each field/table case. C1, C3 and C4 file discovery/read errors
 are explicitly Phase 5 exit requirements; runtime device checks from
 C16/T27 belong to Phases 2–3. `cargo doc` is clean.
 
-**Status: started on 2026-10-28.** Items 1–3 are in `src/config/`, with
-unit tests citing every C rule except C1, C3 and C4, the file layer of
+**Status: done on 2026-10-28.** Items 1–3 are in `src/config/`, with
+35 unit tests citing every C rule except C1, C3 and C4, the file layer of
 phase 5. On the library side, item 4 is `PartialConfig::set_source`
 (names the file in its unknown-key problems) and `merge`. The phase
-now distinguishes static validation from runtime device conditions
-(C16, T27) and includes the C16 ignored-field tolerance in C10. Verify
-the static case matrix before closing Phase 1; runtime enforcement is
-required before Phases 2–3 close.
+distinguishes static validation from runtime device conditions
+(C16, T27) and includes the C16 ignored-field tolerance in C10; runtime
+enforcement is required before Phases 2–3 close. L3's re-export check
+is phase 4's.
 
 ### Phase 2 — the kernel boundary
 
