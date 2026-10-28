@@ -374,6 +374,8 @@ dependencies = [
  "libc",
  "log",
  "netlink-packet-core",
+ "netlink-packet-generic",
+ "netlink-packet-l2tp",
  "netlink-packet-route",
  "netlink-sys",
  "nix",

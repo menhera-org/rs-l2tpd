@@ -30,6 +30,11 @@ timeout 60 docker run --rm --network none \
   --ignored --test-threads=1 --nocapture
 ```
 
+The conformance suite and the method-level tests of `kernel::linux`
+(`tests/kernel/linux.rs`) run the same way: build `--test kernel-linux`
+instead and mount it as `/kernel-linux`. Each fixture unshares a network
+namespace of its own, which needs the same SYS_ADMIN and seccomp setting.
+
 Docker uses the host kernel. To test a different kernel without KVM or elevated
 host privileges, export that image into a disposable directory, copy the test
 executable to `root/review-kernel` and `init.sh` to `root/init` (mode 0755),

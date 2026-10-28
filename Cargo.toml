@@ -41,6 +41,12 @@ name = "kernel-fake"
 path = "tests/kernel/fake.rs"
 required-features = ["fake-kernel"]
 
+# The same suite and the method-level live tests on the real kernel;
+# ignored, run in a privileged container (tests/kernel/README.md).
+[[test]]
+name = "kernel-linux"
+path = "tests/kernel/linux.rs"
+
 # The behavioural rules (docs/testing.md) on the fake kernel.
 [[test]]
 name = "rules"
@@ -54,8 +60,10 @@ iphost = { version = "0.4.0", default-features = false, features = ["custom", "r
 netlink-sys = { version = "0.9", features = ["tokio_socket"] }
 netlink-packet-core = "0.9"
 netlink-packet-route = "0.33"
+netlink-packet-generic = "0.5"
+netlink-packet-l2tp = "0.4"
 socket2 = { version = "0.6", features = ["all"] }
-nix = { version = "0.30", default-features = false, features = ["socket", "process", "signal", "fs"] }
+nix = { version = "0.30", default-features = false, features = ["socket", "process", "signal", "fs", "poll"] }
 tokio = { version = "1", default-features = false, features = ["rt", "sync", "time", "net"] }
 log = "0.4"
 getrandom = "0.3"
@@ -70,6 +78,8 @@ libc = { version = "0.2", optional = true }
 [dev-dependencies]
 # The configuration tests write their documents in TOML.
 toml = "1.1"
+# The live kernel tests give each fixture a network namespace of its own.
+nix = { version = "0.30", default-features = false, features = ["sched"] }
 
 [features]
 default = ["bin"]
