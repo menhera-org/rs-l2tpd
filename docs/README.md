@@ -17,6 +17,7 @@ are in the [GitHub repository](https://github.com/menhera-org/rs-l2tpd).
 | [Interface](interface.md) | What the outside sees: configuration files, command line, signals, exit codes, logging, the systemd unit, the library API |
 | [Dependencies](dependencies.md) | The supply chain after the rewrite, each crate with its reason, and what was removed |
 | [Testing](testing.md) | How 100 % coverage, one test per specification claim, determinism and live-kernel proof are reached: the fake kernel, the conformance suite, the container and QEMU matrices, the rule map |
+| [Packaging](packaging.md) | The two installation paths besides distribution packages: `--setup-systemd` (feature `setup-systemd`) with its bounded scope, and the `musl-deb` static packages for `amd64` and `arm64` |
 | [Specification](spec/README.md) | The normative behaviour, with the known gaps of the current implementation that the rewrite closes |
 
 Version 0.2.0 has not been released; the rewrite ships under that

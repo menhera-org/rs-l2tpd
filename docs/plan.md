@@ -277,6 +277,11 @@ Implements [process](spec/process.md) P1–P27 and
     `/proc`; report each missing one once.
 11. The systemd unit (P21) shipped as `contrib/rs-l2tpd.service`, with a
     test that parses it for every required key.
+12. `--setup-systemd` behind the `setup-systemd` feature
+    ([packaging](packaging.md#--setup-systemd-feature-setup-systemd)):
+    atomic copy of the binary, the unit unless edited, the configuration
+    paths unless present, `daemon-reload`, `enable --now` once, never a
+    restart; `--prefix` for the tests.
 
 Tests: unit tests for the command line, the merging, the rendering, the
 PID-file rules (on a temporary directory), the signal merging (with the
@@ -318,7 +323,13 @@ Exit: all five gates green on the running kernel and the matrix.
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what
-shipped; tag 0.2.0; publish with `cargo publish --registry crates-io`.
+shipped; tag 0.2.0; publish with `cargo publish --registry crates-io`;
+build the `musl-deb` packages for `amd64` and `arm64`
+([packaging](packaging.md#musl-deb-a-minimal-debian-package)) and attach
+them to the release with the tarballs. The `musl-deb` directory itself
+(the build script, the control template, the maintainer scripts and
+their CI check) is written in this phase, since it only wraps the
+finished binary.
 
 ## What is removed
 
@@ -327,6 +338,6 @@ shipped; tag 0.2.0; publish with `cargo publish --registry crates-io`.
 | The discard addresses, null device, grace period and route repair | The disconnected state (K5, T1) |
 | `rtnetlink`, `netlink-proto`'s unbounded queue in the monitors, `futures-util`, `async-trait` | `netlink-sys` sockets on `tokio::io::unix::AsyncFd` ([dependencies](dependencies.md)) |
 | `clap`, `env_logger` | Hand-written option parsing (P27) and a thirty-line logger (O1) |
-| The `--setup` installer and the `setup` feature | Nothing: packaging installs the unit (`contrib/`) |
+| The `--setup` installer and the `setup` feature | `--setup-systemd` behind the `setup-systemd` feature, with the explicit, bounded scope of [packaging](packaging.md): not a substitute for packaging, which the `musl-deb` directory provides for Debian-family hosts |
 | Per-kind `handle_*` methods as the only dispatch | `handle_event` (L10) |
 | Twenty-one `privileged_` library tests and seventeen shell scenarios | The conformance suite and the scenario suite of [testing](testing.md) |

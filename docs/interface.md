@@ -52,7 +52,8 @@ interfaces (C14). The 0.1.5 format keeps working (G22).
 
 ```
 rs-l2tpd [--config FILE] [--config-dir DIR] [--pid-file FILE] [--verbose]
-         [--check | --foreground | --restart | --adopt-version | --version]
+         [--check | --foreground | --restart | --adopt-version | --version
+          | --setup-systemd [--prefix DIR]]
 ```
 
 | Mode | Does | Exit |
@@ -63,8 +64,10 @@ rs-l2tpd [--config FILE] [--config-dir DIR] [--pid-file FILE] [--verbose]
 | `--restart` | Sends `SIGUSR2` to the PID in the PID file (P26) | 0 delivered, 1 not |
 | `--adopt-version` | Prints `rs-l2tpd-adopt 1` (P26) | 0 |
 | `--version` | Prints the crate version | 0 |
+| `--setup-systemd` | Only in a binary built with the `setup-systemd` feature: installs this binary, the unit and the configuration paths on a systemd host, within the scope of [packaging](packaging.md#--setup-systemd-feature-setup-systemd) | 0 done, 1 a step failed |
 
-Misuse exits 2 with the usage on standard error (P27). The daemon exits
+Misuse exits 2 with the usage on standard error (P27); so does
+`--setup-systemd` in a binary built without the feature. The daemon exits
 0 after a complete shutdown, 1 when a shutdown step failed, 2 when the
 reload callback panicked (O7).
 

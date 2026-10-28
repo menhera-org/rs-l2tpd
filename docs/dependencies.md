@@ -35,7 +35,11 @@ registry), so that one copy of the core crate is built.
 | `serde` | With it | C5 |
 | `libc` | `capget(2)` for the capability report and `fork(2)` for daemonisation, the two calls `std` and `nix` do not wrap safely; the binary allows `unsafe` for them, the library denies it | R49, P4, L2 |
 
-Nothing else: the command line (nine options, P27) is parsed by hand,
+The `setup-systemd` feature ([packaging](packaging.md)) adds no crate:
+the unit is embedded with `include_str!`, the copy is `std`, and
+`systemctl` is run as a child process.
+
+Nothing else: the command line (P27) is parsed by hand,
 the logger is thirty lines over `log::Log` (O1), the PID file, signals,
 `setsid` and the store protocol are `std` and `nix` calls.
 

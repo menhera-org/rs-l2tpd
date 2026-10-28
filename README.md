@@ -58,6 +58,7 @@ Start with the [documentation index](docs/README.md):
 - [Interface](docs/interface.md): configuration, command line, signals, unit, library
 - [Dependencies](docs/dependencies.md): the supply chain and upstream needs
 - [Testing](docs/testing.md): the suites, the gates, kernel test pitfalls
+- [Packaging](docs/packaging.md): `--setup-systemd` and the `musl-deb` packages, and what they are not
 - [Specification](docs/spec/README.md): requirements, promises, architecture, behaviour in every condition
 
 The audit reports and reviews behind the specification are in

@@ -51,12 +51,19 @@ serde = { version = "1", features = ["derive"], optional = true }
 toml = { version = "1.1", optional = true }
 libc = { version = "0.2", optional = true }
 
+[dev-dependencies]
+# The configuration tests write their documents in TOML.
+toml = "1.1"
+
 [features]
 default = ["bin"]
 # Serialize/Deserialize for the configuration types.
 serde = ["dep:serde", "iphost/serde"]
 # Everything the `rs-l2tpd` binary needs on top of the library.
 bin = ["serde", "dep:toml", "dep:libc"]
+# The `--setup-systemd` installer in the binary (docs/packaging.md). Not a
+# substitute for packaging; see `musl-deb/` for that.
+setup-systemd = ["bin"]
 # The in-memory kernel of the behavioural tests, exported for `tests/`.
 fake-kernel = []
 

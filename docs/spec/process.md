@@ -299,8 +299,17 @@ The modes are exclusive: `--check` ([P3](#start-up)); `--foreground`
 ([P4](#start-up)); `--restart`, which sends `SIGUSR2` to the PID in the
 PID file and exits 0 when the signal was delivered and 1 otherwise;
 `--adopt-version` ([P26](#restart)); `--version`, which prints the crate
-version. With no mode the daemon starts. An unknown option, a missing
-argument or two modes exits 2 with the usage on standard error.
+version; and, only in a binary built with the `setup-systemd` feature,
+`--setup-systemd [--prefix DIR]`, an installer for systemd hosts whose
+scope is bounded by the documentation's packaging page: it copies the
+running binary atomically to `/usr/local/sbin`, installs the supplied
+unit unless the operator edited it, creates the configuration paths
+unless present, reloads systemd and enables and starts the unit once,
+and never restarts a running daemon; it is not a substitute for a
+package and the daemon never depends on it ([P23](#the-process-contract)).
+With no mode the daemon starts. An unknown option, a missing argument,
+two modes, or `--setup-systemd` in a binary without the feature exits 2
+with the usage on standard error.
 
 ## The process contract
 
