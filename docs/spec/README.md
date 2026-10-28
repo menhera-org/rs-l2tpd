@@ -4,12 +4,14 @@
 
 This is the normative description of rs-l2tpd: what it requires, what it
 promises, how it is built, and what it must do in every condition it can
-meet. It is written from the intent behind the [contracts](../contracts.md),
-from the kernel's source, and from two audits (the reports in the
-repository's `audit/` directory), not from the code. The implementation is measured against it; where the two
-differ the specification is right and the difference is listed under
-[known gaps](#known-gaps). Where this specification and
-[contracts](../contracts.md) differ, this specification is right.
+meet. It is written from the intent behind the original contracts of the
+project, from the kernel's source, and from the audits and reviews in
+the repository's `audit/` directory, not from the code. The
+implementation is measured against it; where the two differ the
+specification is right and the difference is listed under
+[known gaps](#known-gaps). The [documentation](../README.md) outside
+this directory is the plan for building the implementation; where it
+and this specification differ, this specification is right.
 
 The words MUST, MUST NOT, SHOULD, SHOULD NOT and MAY have their RFC 2119
 meanings. Requirements are numbered per page (R3, G5, A7, M1, T7, ...) so

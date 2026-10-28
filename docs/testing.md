@@ -1,121 +1,144 @@
-# Testing and compatibility
+# Testing
 
 [Documentation index](README.md)
 
-The 0.2.0 daemon is intended to preserve working 0.1.5 configurations and
-wire compatibility. Cookies remain disabled unless configured. New cookie
-settings require both peers to agree, and changes to previously broken
-configuration handling are described in the
-[configuration guide](configuration.md#mistakes).
+How roadmap step 6 is met: 100 % of code paths covered, every claim of
+the specification tested, every test deterministic, every kernel-facing
+function source-linked to the kernel, every kernel-relevant unit run
+against a live kernel. The design that makes this possible is the
+`Kernel` boundary of the [architecture](architecture.md#the-kernel-boundary):
+behaviour is tested against a fake kernel that models the kernel facts,
+and the fake is itself tested against the kernel.
 
-The repository's Docker validation guide (`tests/docker/README.md`)
-contains complete build and run commands for privileged kernel and daemon
-validation. These tests use static musl artifacts and disposable container
-network namespaces.
+## Layout
 
-## Startup invariants
+```
+src/**            unit tests next to the code (config, planner, ladder, report)
+tests/
+  rules/          behavioural tests over the fake kernel, one file per spec page (tunnels.rs, sessions.rs, ...)
+  properties/     property tests of the promises (G3, G5, G6, G18) over random reload sequences
+  kernel/         the conformance suite: one test per K fact, run against the fake and the real kernel
+  binary/         the binary's unit-level tests (args, files, check rendering, pid file, logger)
+  scenarios/      the scenario suite: whole-daemon tests in containers, one per H rule and G promise
+  docker/         the runner: Dockerfiles, the scenario driver, the QEMU matrix driver
+  tools/
+    rulemap.rs    the rule-map check
+    srclink.rs    the source-link check
+```
 
-The [early-start contract](operation.md#early-start-contract) is normative.
-When changing startup, reconnection, readiness or the service unit:
+Every test names the rules it guards in its doc comment,
+`/// spec: T21, K22`, which the rule map reads.
 
-- The daemon **MUST** be able to create the session interfaces needed to make
-  the network ready. It **MUST NOT** wait for `network-online.target`,
-  wait-online services, complete DNS setup or peer reachability first.
-- The supplied unit **MUST** retain `Before=network-online.target`,
-  `RequiredBy=network-online.target` and `Type=forking`. Do not add a
-  dependency that reverses this startup order.
-- Readiness **MUST** mean the applied kernel tunnels and sessions exist,
-  disconnected tunnels included. Unresolved names, absent bind devices,
-  unroutable peers and identifiers held by another tunnel or session must
-  not turn into a requirement for a ready network.
-- Actual kernel prerequisites still apply: the L2TP modules
-  ([kernel requirements](spec/kernel.md#requirements)). No route, discard
-  address or null device is needed: a tunnel without a reachable peer is
-  left disconnected and the kernel drops its frames.
+## The four suites
 
-Check these invariants with the runtime disconnected-tunnel, pending-peer,
-conflict and deferred-binding tests, the binary's
-`systemd_unit_keeps_its_contract_and_is_hardened` test,
-`tests/docker/degraded-start.sh`, `tests/docker/source-and-peers.sh` and
-`tests/docker/ipv6-disabled.sh`. The systemd-unit test guards ordering,
-including dependencies on wait-online services; the container tests verify
-actual kernel resources and daemon readiness with incomplete networking.
-Keep these checks when changing the implementation or packaging.
+| Suite | Kernel | Runs where | Guards |
+|---|---|---|---|
+| Unit and `rules/` | fake | `cargo test`, anywhere, no privilege | C, M, T, S, V, E, O, L rules |
+| `properties/` | fake | `cargo test` | G promises as invariants over random inputs |
+| `kernel/` conformance | fake **and** real | `cargo test` for the fake; a privileged container and the QEMU matrix for the real one | K facts, `kernel::linux` |
+| `scenarios/` | real | privileged containers; QEMU for `ipv6.disable=1` and other boot options | H rules, P rules, the unit, G15–G23 end to end |
 
-## Coverage
+### The conformance suite
 
-Coverage includes:
+Each K fact is one test written against the `Kernel` trait, so the same
+body runs against `FakeKernel` and `LinuxKernel`. Example: K31 creates a
+session, brings the device up, sets a hardware address and expects
+`EBUSY`; K17 closes a socket and expects its sessions gone within the
+deletion wait; K29 shrinks a subscription's buffer, floods it and expects
+`Loss`. A fact that the fake gets wrong is caught here, not in a
+behavioural test, which is why behavioural tests may trust the fake. The
+real run also records the kernel version it ran on, and the QEMU matrix
+runs it on every release from v6.8 to the newest (the verified range of
+[kernel](spec/kernel.md)).
 
-- Baseline/baseline, current/baseline and current/current peers over IPv4
-  and IPv6, unbound, bound to an interface, and bound to a VRF.
-- Payload delivery, unchanged-config reloads and shutdown cleanup.
-- Source removal, interface replacement, VRF membership changes and
-  recovery after lost netlink notifications, while preserving sockets
-  and session identities.
-- Degraded startup, late peers and disconnected tunnels of both families;
-  a host with IPv6 disabled by sysctl.
-- Unbound tunnels whose selected source is replaced, literal peers without
-  a route, and identifiers held by a foreign tunnel and session.
-- Loss of link notifications while a session is still being prepared, and
-  after it is established, with re-creation and removal through the
-  kernel's record; the kernel-side notification filter.
-- Session MAC changes, cookies, and preparation while real
-  systemd-networkd matches a temporary session by `Type=l2tpeth`.
-- External parent renames and child VLAN/macvlan interfaces moved into a
-  guest network namespace, preserving their addresses and routes through
-  publication retries, reloads and reconnection.
-- Reused interface indices after a session parent leaves its namespace,
-  and preservation of unrelated replacement devices.
-- Fallback route restoration after networkd reconfiguration, without
-  replacing existing routes. This tests the retired discard-address design
-  and goes with it.
+### The rules suites
 
-Tests require the documented Docker capabilities and host-kernel support;
-they do not use host networking. The current procfs prerequisite and the
-supplied systemd unit's path restrictions are described under
-[installation](installation.md).
+One test per numbered rule, against the fake. Determinism comes from the
+fake's virtual clock (a test advances it; M14 intervals are asserted
+exactly), its seeded random source (S4 names are reproducible), and its
+explicit notification delivery (a test says when the kernel's
+notifications arrive and in which order, which is how the S27 "either
+order" and the E21 loss cases are written). No test sleeps.
 
-The child tests reproduce the kernel operations used by container
-managers; they do not run LXD or Incus themselves. These regressions cover
-specific observed races, not every possible kernel or manager behavior.
-The [session lifecycle constraints](sessions.md#child-interfaces-and-other-managers)
-and [kernel tunnel ownership requirement](operation.md#ownership-of-kernel-tunnels)
-also apply when coordinating with other network software. The rules the
-tests guard are collected in [contracts](contracts.md).
+### Properties
+
+Random sequences of configurations are reloaded against the fake, with
+random host events between them; after each step the invariants are
+checked: G3 (an index changes only by a matrix row), G5 (no socket is
+connected to a peer the configuration does not name), G6 (an entry's
+failure left no other entry unapplied that the fake allowed), G18 (a
+converged entry received no operation on an identical reload), and that
+the planner's output is a fixed point (running it twice changes nothing).
+
+### The scenario suite
+
+Whole-daemon tests in Docker, one per row of [hosts](spec/hosts.md)
+and per conditional promise: the daemon binary, a configuration, a
+container network built with iproute2, assertions on `ip l2tp`, `ip
+link`, the daemon's log and frames delivered between two daemons. The
+driver waits on events (a log line, a device appearing, a counter
+changing), never on a fixed sleep, and each scenario has a hard timeout.
+Scenarios that need a boot option (`ipv6.disable=1`, a kernel without
+IPv6) run under QEMU.
+
+## Gates
+
+| Gate | Tool | Threshold |
+|---|---|---|
+| Coverage | `cargo llvm-cov` over unit, rules, properties, the fake conformance run and the container runs (profiles merged) | 100 % lines and branches of `src/`; exclusions only in `kernel::linux` for branches no kernel of the range reaches, each marked `// coverage: unreachable on <range>, <reason>` |
+| Rule map | `tests/tools/rulemap.rs` reads every `[A-Z]+[0-9]+\.` of `docs/spec/*.md` and every `spec:` comment of `tests/` and `src/` | every rule has at least one test; removed rules are exempt |
+| Source link | `tests/tools/srclink.rs` reads every `// kernel:` comment of `src/kernel/linux/` | every function cites a K fact; every K fact is cited |
+| Determinism | CI runs the fake suites ten times with different seeds and the container suite three times | zero flakes before a gate is enabled |
+| Warnings | `cargo clippy -D warnings`, `cargo doc -D warnings`, builds with no default features and with `serde` | clean |
+
+## Running
+
+```sh
+cargo test                                   # unit, rules, properties, fake conformance
+tests/docker/run.sh conformance              # real-kernel conformance in a privileged container
+tests/docker/run.sh scenarios                # the scenario suite
+tests/docker/run.sh matrix v6.8..v7.3        # QEMU kernel matrix (TCG, unprivileged)
+cargo llvm-cov --all-features -- --include-ignored   # with the container profiles mounted back
+```
+
+The container runs need `--cap-add NET_ADMIN --cap-add NET_RAW` (and
+`--privileged` for sysctls), host-kernel L2TP support, no host
+networking and no writable host mounts; the QEMU runs need only a user
+account and the kernel images the driver builds or fetches.
 
 ## Kernel test pitfalls
 
 Facts that cost time once and shape how the tests are written:
 
 - The kernel never echoes a route notification to the netlink port that
-  requested the change. A test listening for `RTM_DELROUTE` must make the
-  change on a second connection.
+  requested the change; a test listening for its own change needs a
+  second connection.
 - A VRF whose table has no IPv4 `unreachable default` route falls through
-  to the main table for IPv4 lookups, so a route in the main table makes a
-  peer routable inside the VRF too.
-- A socket bound to an ordinary device with no route to an IPv4 destination
-  still connects: the kernel assumes the destination is on-link and sends
-  ARP out of the device ([K28](spec/kernel.md#facts)). Do not use a
-  successful IPv4 connect as proof of a route.
+  to the main table for IPv4 lookups.
+- A socket bound to an ordinary device with no route to an IPv4
+  destination still connects: the kernel assumes the destination is
+  on-link and sends ARP out of the device (K28). A successful IPv4 connect
+  proves no route.
 - `ip netns exec` fails inside a Docker container (it cannot remount
-  sysfs); `nsenter --net=/var/run/netns/<name>` works. `nsenter --net` does
-  not switch `/sys`, so read a namespace's interface counters with
-  `ip -s link`, not from `/sys/class/net`.
-- Classic BPF loads multi-byte fields in network byte order, while netlink
+  sysfs); `nsenter --net=/run/netns/<name>` works, and does not switch
+  `/sys`, so read a namespace's counters with `ip -s link`.
+- iproute2 6.15 parses `ip link add a type dummy` as an address; write
+  `ip link add name a type dummy`.
+- Classic BPF loads multi-byte fields in network byte order while netlink
   headers are in host byte order: a message type is compared byte-swapped.
-- A process traced by strace reports `State: t` after `SIGSTOP`, not `T`.
-- The l2tpeth device of a session keeps the name the kernel recorded at
-  creation in `ip l2tp show session`, whatever its current name.
-- Deleting a session and creating one with the same identifiers at once can
-  be refused with `EEXIST` for a moment; tests wait for a retry.
-- A netlink socket whose receive queue is full loses unicast replies too.
-  Unless `NETLINK_NO_ENOBUFS` is set, the next receive fails with
-  `ENOBUFS` once; with it set, the reply is simply missing, and its
-  acknowledgement may still arrive without it. A test must accept all
-  three outcomes as "loss" ([E21](spec/events.md#monitor-loss)).
+- The `l2tpeth` device of a session keeps the name the kernel recorded at
+  creation in `ip l2tp show session`, whatever its current name (K16);
+  `ip link del` on such a device is refused `EOPNOTSUPP`, in any
+  namespace, and the device can be moved to another namespace while its
+  session stays in the origin one.
+- Deleting a session and creating one with the same identifiers at once
+  can be refused `EEXIST` for a moment (K18); tunnel deletion is
+  asynchronous on every kernel (K17).
+- A netlink socket whose queue is full loses kernel unicast replies and
+  raises `ENOBUFS` on the next receive (K29); with `NETLINK_NO_ENOBUFS`
+  the reply is simply missing. The subscriptions never set it.
 - A tunnel registered on an unconnected socket drops the frames of its
-  sessions (`tx_dropped` on the l2tpeth device) and still receives frames
-  from the peer; the kernel's own router solicitations on a fresh device
-  count as dropped frames before any test frame is sent.
-- Tunnel deletion is asynchronous on every kernel; re-creating the same
-  tunnel id right after closing the socket is refused for a moment.
+  sessions (`tx_dropped` on the device) and still receives frames from
+  the peer; the kernel's own router solicitations on a fresh device count
+  as dropped frames before any test frame is sent.
+- Two UDP sockets share a port only when both set `SO_REUSEADDR`.
