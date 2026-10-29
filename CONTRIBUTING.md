@@ -4,6 +4,27 @@
 
 - Respect and obey the [Menhera(R) Code of Conduct (CoC)](https://www.menhera.org/code-of-conduct/).
 
+## Committing and pushing
+
+Every commit MUST carry a `Signed-off-by` trailer and a GPG signature, and
+MUST be made with the repository's helper, never with `git commit` directly:
+
+```sh
+./commit.sh -m MSG [--include|--exclude] [FILE...]
+```
+
+`--include` (the default) stages the named files and commits only them;
+with no file it commits what is already staged. `--exclude` stages and
+commits everything except the named files. Never use `git add -A`: other
+contributors edit the same tree concurrently, so commit only your own
+changes.
+
+Push MUST go through `./sync.sh`, which fetches, rebases the current branch
+onto its upstream and pushes.
+
+Commits made before these helpers existed lack the trailer; they are not
+rewritten.
+
 ## Implementation
 
 The final state must satisfy the following requirements:
