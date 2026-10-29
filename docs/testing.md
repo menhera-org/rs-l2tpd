@@ -51,9 +51,28 @@ create an unconnected socket. K17 observes asynchronous cleanup and K29
 forces buffer loss. Source-only assertions and host/module requirements
 are listed separately and never counted as executed shared cases.
 A fact that the fake gets wrong must fail its corresponding live case. The
-real run also records the kernel version it ran on, and the QEMU matrix
-runs it on every release from v6.8 to the newest (the verified range of
-[kernel](spec/kernel.md)).
+real run also records the kernel version it ran on.
+
+### Kernel targets
+
+`CONTRIBUTING.md` fixes the kernels the live suites run on. Required:
+the stock kernels of the two latest Ubuntu LTS releases, mainline, and
+the vanilla release each Ubuntu kernel derives from. As of 2026-10-29
+that is:
+
+| Kernel | Why | How it runs |
+|---|---|---|
+| Ubuntu 24.04 `6.8.0-147-generic` | LTS stock kernel | the host kernel of CI, in a privileged container |
+| Ubuntu 26.04 `7.0.0-42-generic` (also 24.04's HWE kernel) | LTS stock kernel | QEMU, the `vmlinuz` and modules unpacked from the `linux-image` package of the `ubuntu:26.04` image |
+| vanilla `6.8.12` and the latest `7.0.x` | the releases those are built from | QEMU, built from the kernel.org tarball with `x86_64_defconfig` plus L2TP |
+| mainline, `v7.3` today | the newest release | QEMU, built the same way |
+
+Desired, not gating: every vanilla release between the oldest required
+one and mainline (the matrix below), Debian's stock kernels, and
+RHEL-ish stock kernels. The matrix driver takes a list of these targets;
+a run records `uname -r` next to its result, as the probes of
+`tests/kernel/README.md` do. The verified range of
+[kernel](spec/kernel.md) grows with what the matrix has run.
 
 ### The rules suites
 
@@ -86,6 +105,18 @@ changing), never on a fixed sleep, and each scenario has a hard timeout.
 Scenarios that need a boot option (`ipv6.disable=1`, a kernel without
 IPv6) run under QEMU.
 
+One scenario is an **unprivileged system container** under Incus or LXD
+(`security.privileged=false`: a user namespace, the container's own
+network namespace, `CAP_NET_ADMIN` only inside it, the L2TP modules
+loaded by the host), which `CONTRIBUTING.md` requires the daemon to
+support (H9). It checks what differs there from a privileged container:
+`SO_RCVBUFFORCE` refused with `EPERM` and the `SO_RCVBUF` fallback taken
+(K36, R10), module autoload left to the host (K21, R1), the `bindv6only`
+write succeeding in the container's own namespace (P25), and the
+descriptor hand-over through the container's systemd (P14). The driver
+needs an Incus or LXD host; where CI has none, the scenario is reported
+as skipped, never as passed.
+
 ## Gates
 
 | Gate | Tool | Threshold |
@@ -108,7 +139,9 @@ Current review probes and exact commands are in `tests/kernel/README.md`.
 cargo test --locked --all-features --target x86_64-unknown-linux-musl # unit, rules, fake conformance; properties when implemented
 tests/docker/run.sh conformance              # real-kernel conformance in a privileged container
 tests/docker/run.sh scenarios                # the scenario suite
-tests/docker/run.sh matrix v6.8..v7.3        # QEMU kernel matrix (TCG, unprivileged)
+tests/docker/run.sh matrix required          # the required kernels of "Kernel targets" (QEMU, TCG, unprivileged)
+tests/docker/run.sh matrix v6.8..v7.3        # every vanilla release of the range
+tests/docker/run.sh incus                    # the unprivileged system-container scenario, on an Incus/LXD host
 cargo llvm-cov --all-features -- --include-ignored   # with the container profiles mounted back
 ```
 

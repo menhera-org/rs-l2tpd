@@ -367,10 +367,16 @@ targets (P24).
    hosts, `disable_ipv6`, `ipv6.disable` (QEMU only), VRFs, routers with
    no default route, containers, networkd and udev renames, hot-plugged
    devices, address churn, missing modules and capabilities, clock jumps,
-   hundreds of sessions, `bindv6only`, the non-systemd contract.
-2. The QEMU kernel matrix: every release from v6.8 to the newest, booted
-   with TCG, running the conformance suite and the K5 sweep; a kernel
-   built without IPv6 for H4 and T4.
+   hundreds of sessions, `bindv6only`, the non-systemd contract, and the
+   unprivileged Incus/LXD system container that `CONTRIBUTING.md`
+   requires ([testing](testing.md#the-scenario-suite)).
+2. The QEMU kernel matrix over the [kernel targets](testing.md#kernel-targets)
+   of `CONTRIBUTING.md`: required are the stock kernels of the two latest
+   Ubuntu LTS releases (24.04's 6.8.0 and 26.04's 7.0.0 today), their
+   vanilla equivalents and mainline; desired are every release from v6.8
+   to the newest, Debian and RHEL-ish stock kernels. Each boots with TCG
+   and runs the conformance suite and the K5 sweep; a kernel built
+   without IPv6 serves H4 and T4.
 3. Coverage: `cargo llvm-cov` over unit, fake-kernel and container tests
    combined, gate at 100 % of lines and branches of `src/`, with the
    only allowed exclusions being the `kernel::linux` branches that a
@@ -387,7 +393,8 @@ targets (P24).
    sleeps of fixed length; each suite is run ten times in CI without a
    flake before the gate is enabled.
 
-Exit: all five gates green on the running kernel and the matrix.
+Exit: all five gates green on the running kernel and on every required
+kernel target; the Incus/LXD scenario run, not skipped.
 
 ### Phase 7 — release
 
