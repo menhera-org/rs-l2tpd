@@ -13,6 +13,7 @@ use std::io;
 use std::os::fd::RawFd;
 use std::time::Instant;
 
+use l2tp::KernelMessage;
 use netlink_packet_core::ParseableParametrized;
 use netlink_packet_generic::constants::GENL_HDRLEN;
 use netlink_packet_generic::ctrl::nlas::{GenlCtrlAttrs, McastGrpAttrs};
@@ -24,7 +25,7 @@ use nix::libc;
 
 use super::monitor::Feed;
 use super::request::{DEADLINE, Msg, Request, errno, subscribe};
-use crate::kernel::{Cookie, L2tpIfName, Notice, SessionCreate, SessionInfo, TunnelInfo};
+use crate::kernel::{L2tpIfName, Notice, ReportedCookie, SessionCreate, SessionInfo, TunnelInfo};
 
 /// The family's name and the name of its multicast group.
 const FAMILY: &str = "l2tp";
@@ -33,25 +34,21 @@ const FAMILY: &str = "l2tp";
 const L2SPEC_NONE: u8 = 0;
 
 // kernel: net/netlink/genetlink.c genl_rcv_msg, genlmsg_put (K1)
-/// The L2TP message of a reply or a notification.
+/// The L2TP message of a reply or a notification. `l2tp::KernelMessage`
+/// accepts the cookie lengths the kernel reports (K35), which
+/// `netlink-packet-l2tp` alone refuses.
 fn decode(payload: &[u8]) -> io::Result<L2tpMessage> {
     let proto = |_| errno(libc::EPROTO);
     let header = GenlHeader::parse(payload).map_err(proto)?;
-    L2tpMessage::parse_with_param(payload.get(GENL_HDRLEN..).unwrap_or_default(), header)
+    KernelMessage::parse_with_param(payload.get(GENL_HDRLEN..).unwrap_or_default(), header)
+        .map(|m| m.0)
         .map_err(proto)
 }
 
 // kernel: (K35) net/l2tp/l2tp_netlink.c:584-600, 733-736: any length up to 8,
 // put only when not empty
-/// A reported cookie. One that is not 4 or 8 bytes, which the kernel
-/// accepts from other managers, cannot be represented: `EPROTO`.
-fn cookie(bytes: &[u8]) -> io::Result<Option<Cookie>> {
-    if bytes.is_empty() {
-        return Ok(None);
-    }
-    Cookie::new(bytes)
-        .map(Some)
-        .map_err(|_| errno(libc::EPROTO))
+fn cookie(bytes: &[u8]) -> io::Result<ReportedCookie> {
+    ReportedCookie::new(bytes).map_err(|_| errno(libc::EPROTO))
 }
 
 // kernel: (K16, K35) net/l2tp/l2tp_netlink.c l2tp_nl_session_send (731-732: the
@@ -62,8 +59,8 @@ fn session_info(message: &L2tpMessage) -> io::Result<SessionInfo> {
         tunnel_id: 0,
         session_id: 0,
         peer_session_id: 0,
-        cookie: None,
-        peer_cookie: None,
+        cookie: ReportedCookie::default(),
+        peer_cookie: ReportedCookie::default(),
         ifname: None,
     };
     for attr in &message.attributes {
@@ -442,15 +439,24 @@ mod tests {
             (info.tunnel_id, info.session_id, info.peer_session_id),
             (1, 2, 3)
         );
+        let (cookie, peer_cookie) = info.cookies().unwrap();
         assert_eq!(
-            info.cookie.map(|c| c.as_bytes().to_vec()),
+            cookie.map(|c| c.as_bytes().to_vec()),
             Some(vec![1, 2, 3, 4])
         );
-        assert_eq!((info.peer_cookie, info.ifname), (None, Some(name)));
-        let mut odd = reply.clone();
-        odd.attributes[3] = L2tpAttribute::Cookie(vec![1, 2]);
-        let error = session_info(&odd).unwrap_err();
-        assert_eq!(error.raw_os_error(), Some(libc::EPROTO));
-        assert!(!format!("{error:?}").contains("[1, 2]"));
+        assert_eq!((peer_cookie, info.ifname), (None, Some(name)));
+        // A foreign 2-byte cookie, which the codec refuses to emit, is made
+        // by shortening the cookie attribute's length in the bytes
+        // (L2TP_ATTR_COOKIE is 15). It decodes (K35) but matches no
+        // configuration (C8), and is never printed (O5).
+        let genl = GenlMessage::from_payload(reply);
+        let mut out = vec![0; genl.buffer_len()];
+        genl.emit(&mut out);
+        let at = out.windows(4).position(|w| w == [8, 0, 15, 0]).unwrap();
+        out[at] = 6;
+        let foreign = session_info(&decode(&out).unwrap()).unwrap();
+        assert_eq!(foreign.cookie.0.as_bytes(), [1, 2]);
+        assert!(foreign.cookies().is_err());
+        assert!(!format!("{foreign:?}").contains("[1, 2]"));
     }
 }

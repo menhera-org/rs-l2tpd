@@ -74,6 +74,44 @@ pub struct SessionCreate {
     pub ifname: L2tpIfName,
 }
 
+/// A cookie as the kernel reported it (K35): any length up to 8 bytes,
+/// because a session created elsewhere may carry a length the
+/// configuration cannot (C8). `Debug` gives the length only (O5).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct ReportedCookie(l2tp::KernelCookie);
+
+impl ReportedCookie {
+    /// Fails above 8 bytes, which the kernel never reports.
+    pub fn new(bytes: &[u8]) -> crate::Result<Self> {
+        l2tp::KernelCookie::try_from(bytes)
+            .map(Self)
+            .map_err(|e| crate::Error::Other(e.to_string()))
+    }
+
+    /// As a configuration cookie: `Ok(None)` for no cookie, an error for a
+    /// length C8 forbids, so that such a session matches no entry.
+    pub fn configured(self) -> crate::Result<Option<Cookie>> {
+        if self.0.is_empty() {
+            return Ok(None);
+        }
+        Cookie::new(self.0.as_bytes()).map(Some)
+    }
+}
+
+impl From<Option<Cookie>> for ReportedCookie {
+    fn from(cookie: Option<Cookie>) -> Self {
+        cookie.map_or_else(Self::default, |c| {
+            Self::new(c.as_bytes()).expect("a configuration cookie is 4 or 8 bytes")
+        })
+    }
+}
+
+impl std::fmt::Debug for ReportedCookie {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ReportedCookie({} bytes)", self.0.len())
+    }
+}
+
 /// The kernel's record of a session (K16).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SessionInfo {
@@ -83,12 +121,20 @@ pub struct SessionInfo {
     pub session_id: u32,
     /// The peer session identifier.
     pub peer_session_id: u32,
-    /// The cookie, if any.
-    pub cookie: Option<Cookie>,
-    /// The peer cookie, if any.
-    pub peer_cookie: Option<Cookie>,
+    /// The cookie, empty when none.
+    pub cookie: ReportedCookie,
+    /// The peer cookie, empty when none.
+    pub peer_cookie: ReportedCookie,
     /// The creation-time interface name, not the current one (K16).
     pub ifname: Option<L2tpIfName>,
+}
+
+impl SessionInfo {
+    /// Both cookies as configuration cookies; an error when either has a
+    /// length the configuration cannot hold, so the session is foreign.
+    pub fn cookies(&self) -> crate::Result<(Option<Cookie>, Option<Cookie>)> {
+        Ok((self.cookie.configured()?, self.peer_cookie.configured()?))
+    }
 }
 
 /// A session device as its registration broadcast reported it (S8, M18).

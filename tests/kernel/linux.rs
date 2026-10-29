@@ -270,8 +270,8 @@ fn sessions_are_captured_scanned_and_deleted() {
     assert_eq!(seen.len(), 2);
     assert_eq!(seen[0].ifname, Some(name("live-sa")));
     assert_eq!(seen[0].peer_session_id, 93212);
-    assert_eq!(seen[0].cookie, first.cookie);
-    assert_eq!(seen[1].cookie, None);
+    assert_eq!(seen[0].cookie, first.cookie.into());
+    assert_eq!(seen[1].cookie, None.into());
     let mut all = 0;
     f.k().scan_sessions(None, &mut |_| all += 1).unwrap();
     assert!(all >= 2);

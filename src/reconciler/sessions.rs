@@ -125,15 +125,10 @@ impl<K: Kernel> Reconciler<K> {
         let scan = self.k.scan_sessions(None, &mut |s: &SessionInfo| {
             if s.ifname == Some(name) {
                 count += 1;
+                // A foreign cookie length (K35) matches no entry.
                 matched = (s.tunnel_id, s.session_id, s.peer_session_id) == want
-                    && tunnel.is_some_and(|t| {
-                        SessionIdentity::new(
-                            t,
-                            s.session_id,
-                            s.peer_session_id,
-                            s.cookie,
-                            s.peer_cookie,
-                        ) == identity
+                    && tunnel.zip(s.cookies().ok()).is_some_and(|(t, (c, p))| {
+                        SessionIdentity::new(t, s.session_id, s.peer_session_id, c, p) == identity
                     });
             }
         });

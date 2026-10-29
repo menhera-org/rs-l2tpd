@@ -111,19 +111,6 @@ pub(super) fn scratch_only_v6() -> io::Result<bool> {
     socket.only_v6()
 }
 
-// kernel: (K37) net/l2tp/l2tp_ip.c l2tp_ip_getname, l2tp_ip6.c l2tp_ip6_getname
-// (the bound connection id)
-/// The connection id a socket is bound with.
-///
-/// shortcut: read from the `Debug` form of `TunnelSocket`, because `l2tp`
-/// 0.4.3 keeps it crate-private and the library may not decode
-/// `sockaddr_l2tpip6` itself (L2); use an accessor once `l2tp` has one.
-fn conn_id(socket: &TunnelSocket) -> Option<u32> {
-    let text = format!("{socket:?}");
-    let (_, rest) = text.split_once(" conn_id: Some(")?;
-    rest.split_once(')')?.0.parse().ok()
-}
-
 // kernel: (K37) net/l2tp/l2tp_ip.c:236-246 (the tunnel lives as long as a
 // descriptor of its socket)
 /// Takes over a handed-over socket; `peer_of` asks the kernel for the
@@ -138,7 +125,12 @@ pub(super) fn adopt(
         _ => return Err(errno(libc::EAFNOSUPPORT)),
     };
     let socket = TunnelSocket::from_fd(fd).map_err(os)?;
-    let tunnel_id = conn_id(&socket).ok_or_else(|| errno(libc::EPROTONOSUPPORT))?;
+    // kernel: (K37) net/l2tp/l2tp_ip.c l2tp_ip_getname, l2tp_ip6.c
+    // l2tp_ip6_getname (the bound connection id, read by from_fd)
+    let tunnel_id = socket
+        .tunnel_id()
+        .map(|t| t.0)
+        .ok_or_else(|| errno(libc::EPROTONOSUPPORT))?;
     let peer = peer_of(tunnel_id)?;
     let socket = TunnelSocket::from_fd_with_peer(socket.into_fd(), TunnelId(peer)).map_err(os)?;
     Ok((Tunnel { socket, family }, tunnel_id, peer))

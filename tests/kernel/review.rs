@@ -6,7 +6,8 @@ use std::time::{Duration, Instant};
 
 use l2tp::blocking::{L2tpHandle, SessionHandle, TunnelHandle};
 use l2tp::{
-    IpEndpoint, L2tpIfName, SessionConfig, SessionId, TunnelConfig, TunnelId, TunnelSocket,
+    HandleConfig, IpEndpoint, L2tpIfName, SessionConfig, SessionId, TunnelConfig, TunnelId,
+    TunnelSocket,
 };
 
 fn ip(args: &[&str]) -> String {
@@ -68,7 +69,7 @@ fn wait_absent(handle: &L2tpHandle, tunnel: u32, session: u32) {
 #[test]
 #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
 fn creation_name_is_not_current_or_unique() {
-    let handle = L2tpHandle::new().unwrap();
+    let handle = L2tpHandle::new(HandleConfig::default()).unwrap();
     let _tunnel = tunnel(&handle, 8101);
     let temporary = name("rsl2tp-tabc123");
     let _first = session(&handle, 8101, 81011, "rsl2tp-tabc123");
@@ -119,7 +120,7 @@ fn creation_name_is_not_current_or_unique() {
 #[test]
 #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
 fn unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate() {
-    let handle = L2tpHandle::new().unwrap();
+    let handle = L2tpHandle::new(HandleConfig::default()).unwrap();
     let tunnel = tunnel(&handle, 8102);
     let _session = session(&handle, 8102, 81021, "audit-socket");
     let fd = tunnel.socket().unwrap().try_clone_fd().unwrap();
@@ -151,7 +152,7 @@ fn foreign_namespace_deletion_does_not_delete_local_session() {
     let major: u32 = parts.next().unwrap().parse().unwrap();
     let minor: u32 = parts.next().unwrap().parse().unwrap();
     let crosses_namespaces = (major, minor) < (7, 3);
-    let handle = L2tpHandle::new().unwrap();
+    let handle = L2tpHandle::new(HandleConfig::default()).unwrap();
     let _tunnel = tunnel(&handle, 8103);
     let _session = session(&handle, 8103, 81031, "audit-local");
     let events = handle.events().unwrap();
@@ -201,7 +202,7 @@ ip l2tp del tunnel tunnel_id 8103",
 #[test]
 #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
 fn unconnected_tunnel_drops_outbound_frames() {
-    let handle = L2tpHandle::new().unwrap();
+    let handle = L2tpHandle::new(HandleConfig::default()).unwrap();
     let _tunnel = tunnel(&handle, 8104);
     let _session = session(&handle, 8104, 81041, "audit-drop");
     ip(&["addr", "add", "192.0.2.1/24", "dev", "audit-drop"]);
@@ -240,7 +241,7 @@ fn unconnected_tunnel_drops_outbound_frames() {
 #[test]
 #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
 fn session_identifier_reuse_waits_for_deletion() {
-    let handle = L2tpHandle::new().unwrap();
+    let handle = L2tpHandle::new(HandleConfig::default()).unwrap();
     let _tunnel = tunnel(&handle, 8105);
     let _session = session(&handle, 8105, 81051, "audit-reuse");
     let mut pending = 0;

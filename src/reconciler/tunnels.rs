@@ -58,6 +58,17 @@ impl<K: Kernel> Reconciler<K> {
         self.k
             .scan_sessions(Some(tunnel_id), &mut |s| found.push(s.clone()))?;
         for s in found {
+            // A cookie the configuration cannot hold (K35, C8) can match no
+            // entry: deleted by identifier at once, as S28 does for the
+            // unmatched at the first reconcile.
+            let Ok((cookie, peer_cookie)) = s.cookies() else {
+                log::warn!(
+                    "{}: foreign cookie length on the adopted tunnel, deleted",
+                    report::session("", tunnel_id, s.session_id)
+                );
+                self.k.delete_session(tunnel_id, s.session_id)?;
+                continue;
+            };
             let ifname = s.ifname.unwrap_or(L2tpIfName::new(b"adopted").unwrap());
             let config = crate::config::SessionConfig::builder(String::new(), s.session_id, ifname)
                 .peer_session_id(s.peer_session_id)
@@ -69,8 +80,8 @@ impl<K: Kernel> Reconciler<K> {
                 identity,
                 s.session_id,
                 s.peer_session_id,
-                s.cookie,
-                s.peer_cookie,
+                cookie,
+                peer_cookie,
             );
             self.sessions.insert(
                 s.session_id,

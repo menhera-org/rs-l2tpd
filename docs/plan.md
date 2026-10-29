@@ -71,9 +71,12 @@ specification differ, the specification is right and this page is wrong.
    unconnected tunnel socket (the disconnected state of T1), is
    in `l2tp` 0.4.2, published and pinned on 2026-10-28; 0.4.3 (same day,
    pinned) fixed the sender validation of E22 and added the bounded event
-   subscription `events_bounded` that G23 needs. What remains daemon-side
-   is the request deadline: the generic-netlink request adapter of
-   phase 2 ([dependencies](dependencies.md#upstream-needs)).
+   subscription `events_bounded` that G23 needs; 0.5.0 (2026-10-29,
+   pinned, with breaking changes the daemon does not meet, since it uses
+   no handle) added the socket identifiers of P14, the lenient reply
+   parser for foreign cookies of K35 and the runtime-free `EventSocket`.
+   What remains daemon-side is the request deadline: the generic-netlink
+   request adapter of phase 2 ([dependencies](dependencies.md#upstream-needs)).
 2. The version stays **0.2.0**: it was never released, so the API
    changes of L5, L6 and L13 break nothing published; the configuration
    format of 0.1.5, the last release, keeps working (G22).
