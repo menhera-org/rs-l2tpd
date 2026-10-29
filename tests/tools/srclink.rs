@@ -7,6 +7,25 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
+fn function(line: &str) -> bool {
+    line.split_once("fn ").is_some_and(|(prefix, _)| {
+        prefix.split_whitespace().all(|word| {
+            matches!(
+                word,
+                "pub"
+                    | "pub(crate)"
+                    | "pub(super)"
+                    | "pub(self)"
+                    | "const"
+                    | "async"
+                    | "unsafe"
+                    | "extern"
+                    | "\"C\""
+            )
+        })
+    })
+}
+
 fn k_facts(kernel_md: &Path) -> BTreeSet<String> {
     fs::read_to_string(kernel_md)
         .expect("docs/spec/kernel.md")
@@ -51,10 +70,7 @@ fn scan(dir: &Path) -> (Vec<String>, BTreeSet<String>) {
                     }
                 }
                 pending = Some(cite.to_string());
-            } else if trimmed.starts_with("fn ")
-                || trimmed.starts_with("pub fn ")
-                || trimmed.starts_with("pub(crate) fn ")
-            {
+            } else if function(trimmed) {
                 if pending.take().is_none() {
                     uncited.push(format!(
                         "{}: {}",
@@ -69,6 +85,20 @@ fn scan(dir: &Path) -> (Vec<String>, BTreeSet<String>) {
         }
     }
     (uncited, facts)
+}
+
+#[test]
+fn scoped_and_qualified_functions_are_checked() {
+    for line in [
+        "fn f() {}",
+        "pub(super) fn f() {}",
+        "pub(crate) const fn f() {}",
+        "const fn f() {}",
+        "async fn f() {}",
+    ] {
+        assert!(function(line), "{line}");
+    }
+    assert!(!function("// fn f() is only a comment"));
 }
 
 #[test]

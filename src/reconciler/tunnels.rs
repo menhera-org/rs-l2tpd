@@ -7,12 +7,12 @@ use std::net::IpAddr;
 
 use nix::errno::Errno;
 
-use crate::config::{Family, L2tpIfName, TunnelConfig};
+use crate::config::{Family, TunnelConfig};
 use crate::kernel::{Kernel, Peer, errno};
 
 use super::ladder::Target;
 use super::records::{ConflictIdentity, Connection, TunnelRecord};
-use super::{DELETION_WAIT, RETRY, Reconciler, Request, report};
+use super::{DELETION_WAIT, RETRY, Reconciler, report};
 
 fn is(error: &io::Error, errnos: &[Errno]) -> bool {
     errnos.iter().any(|e| *e as i32 == errno(error))
@@ -41,14 +41,12 @@ impl<K: Kernel> Reconciler<K> {
     /// first reconcile keeps those the configuration has, by kernel
     /// identity, and deletes the others by identifier.
     pub fn adopt(&mut self, tunnel_id: u32, fd: std::os::fd::OwnedFd) -> crate::Result<()> {
-        let adopted = self.k.adopt(fd)?;
-        if adopted.tunnel_id != tunnel_id || self.tunnels.contains_key(&tunnel_id) {
-            self.k.close(adopted.socket);
-            return Err(crate::Error::Other(format!(
-                "the descriptor named t{tunnel_id} carries tunnel_id={}",
-                adopted.tunnel_id
-            )));
-        }
+        self.inherit(format!("t{tunnel_id}"), fd);
+        Ok(())
+    }
+
+    pub(super) fn record_adopted(&mut self, adopted: crate::kernel::Adopted) -> crate::Result<()> {
+        let tunnel_id = adopted.tunnel_id;
         let config = TunnelConfig::builder(tunnel_id)
             .peer_tunnel_id(adopted.peer_tunnel_id)
             .ip_version(adopted.family)
@@ -58,44 +56,44 @@ impl<K: Kernel> Reconciler<K> {
         self.k
             .scan_sessions(Some(tunnel_id), &mut |s| found.push(s.clone()))?;
         for s in found {
-            // A cookie the configuration cannot hold (K35, C8) can match no
-            // entry: deleted by identifier at once, as S28 does for the
-            // unmatched at the first reconcile.
-            let Ok((cookie, peer_cookie)) = s.cookies() else {
-                log::warn!(
-                    "{}: foreign cookie length on the adopted tunnel, deleted",
-                    report::session("", tunnel_id, s.session_id)
-                );
-                self.k.delete_session(tunnel_id, s.session_id)?;
-                continue;
-            };
-            let ifname = s.ifname.unwrap_or(L2tpIfName::new(b"adopted").unwrap());
-            let config = crate::config::SessionConfig::builder(String::new(), s.session_id, ifname)
-                .peer_session_id(s.peer_session_id)
-                .build()?;
             if let Some(name) = s.ifname {
                 self.reserved.insert(name, (tunnel_id, s.session_id));
             }
-            let identity = crate::config::SessionIdentity::new(
-                identity,
-                s.session_id,
-                s.peer_session_id,
-                cookie,
-                peer_cookie,
-            );
+            let reported = s.cookies().ok().map(|(cookie, peer_cookie)| {
+                crate::config::SessionIdentity::new(
+                    identity,
+                    s.session_id,
+                    s.peer_session_id,
+                    cookie,
+                    peer_cookie,
+                )
+            });
+            let matched = self.accepted.sessions().iter().find(|(name, _)| {
+                reported.is_some() && self.accepted.session_identity(name) == reported
+            });
+            let Some((name, config)) = matched else {
+                // Foreign cookie lengths and identifiers that a configuration
+                // cannot hold are unmatched too; never construct a fake config.
+                self.k.delete_session(tunnel_id, s.session_id)?;
+                log::info!(
+                    "{}: unmatched adopted session deleted (S28)",
+                    report::session("", tunnel_id, s.session_id)
+                );
+                continue;
+            };
             self.sessions.insert(
                 s.session_id,
                 super::records::SessionRecord {
-                    name: String::new(),
-                    config,
-                    identity,
+                    name: name.clone(),
+                    config: config.clone(),
+                    identity: reported.unwrap(),
                     tunnel_id,
                     state: super::records::Identity::Adopted,
                     created_as: s.ifname,
                     current_name: None,
-                    name_state: super::records::Enforce::Applied,
-                    hwaddr: None,
-                    hwaddr_state: super::records::Enforce::Applied,
+                    name_state: super::records::Enforce::Pending,
+                    hwaddr: config.interface_hwaddr(),
+                    hwaddr_state: super::records::Enforce::Pending,
                     kernel_hwaddr: None,
                     verify: false,
                 },
@@ -116,6 +114,7 @@ impl<K: Kernel> Reconciler<K> {
                 // Its connection is unknown: the first converge disconnects.
                 stale: true,
                 retry_at: None,
+                verify: false,
             },
         );
         log::info!(
@@ -132,6 +131,9 @@ impl<K: Kernel> Reconciler<K> {
         for id in ids {
             if let Some((name, config)) = self.tunnel_wanted(id) {
                 let record = self.tunnels.get_mut(&id).unwrap();
+                if record.name != name || record.config != config {
+                    self.report.forget(&report::tunnel(&record.name, id));
+                }
                 record.name = name;
                 record.config = config;
             }
@@ -160,11 +162,10 @@ impl<K: Kernel> Reconciler<K> {
             }
             let label = self.tunnel_label(id);
             let record = self.tunnels.remove(&id).unwrap();
-            // shortcut: the close does not wait for the program's answer to
-            // ForgetSocket (L13); the runtime handles requests in order.
-            self.requests.push(Request::ForgetSocket { tunnel_id: id });
-            self.k.close(record.socket);
-            self.departing.insert(id, self.k.now() + DELETION_WAIT);
+            if !self.withdraw_socket(id, record.socket) {
+                self.k.close(record.socket);
+                self.departing.insert(id, self.k.now() + DELETION_WAIT);
+            }
             self.resolvers.forget(id);
             self.report.forget(&label);
             log::info!("{label}: removed");
@@ -205,7 +206,7 @@ impl<K: Kernel> Reconciler<K> {
             .collect();
         for (name, config) in wanted {
             let id = config.tunnel_id();
-            if self.departing.contains_key(&id) {
+            if self.departing.contains_key(&id) || self.store.blocks(id) {
                 self.incomplete = true;
                 continue;
             }
@@ -222,6 +223,9 @@ impl<K: Kernel> Reconciler<K> {
                 Err(e) if is(&e, &[Errno::EEXIST, Errno::EADDRINUSE]) => {
                     self.conflict(false, id, identity, &label, &e)
                 }
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    self.incomplete = true;
+                }
                 Err(e) => {
                     self.incomplete = true;
                     self.report.begin_error(&label, "defect", || {
@@ -235,26 +239,41 @@ impl<K: Kernel> Reconciler<K> {
     /// A socket of the family T3, T4 and T26 select, the tunnel registered
     /// on it, unconnected.
     fn create_tunnel(&mut self, name: &str, config: &TunnelConfig) -> io::Result<()> {
+        if self.accepted.host().fix_bindv6only() && self.tunable_pending.is_some() {
+            return Err(io::Error::from(io::ErrorKind::WouldBlock));
+        }
         let (id, peer_id) = (config.tunnel_id(), config.peer_tunnel_id());
         let label = report::tunnel(name, id);
-        let (socket, family) = match self.k.create_socket(Family::V6, id, peer_id) {
-            Ok(socket) if self.k.only_v6(socket).unwrap_or(false) => {
+        let provisional = match self.k.create_socket(Family::V6, id, peer_id) {
+            Ok(socket) => match self.k.only_v6(socket) {
+                Ok(only) => Ok((socket, only)),
+                Err(error) => {
+                    self.k.close(socket);
+                    return Err(error);
+                }
+            },
+            Err(error) => Err(error),
+        };
+        let (socket, family) = match provisional {
+            Ok((socket, true)) => {
                 // T26: bindv6only is set; ask for the fix, and meanwhile a
                 // V4 tunnel takes an AF_INET socket.
-                if self.accepted.host().fix_bindv6only() {
+                if self.accepted.host().fix_bindv6only() && self.tunable.is_none() {
+                    self.k.close(socket);
                     self.request_tunable();
+                    return Err(io::Error::from(io::ErrorKind::WouldBlock));
                 }
+                self.report.begin(&label, "v6only", || {
+                    "IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)".into()
+                });
                 if config.family() == Family::V4 {
                     self.k.close(socket);
-                    self.report.begin(&label, "v6only", || {
-                        "IPv6 sockets are IPv6-only (bindv6only); using an AF_INET socket, so its peer cannot move to IPv6 in place".into()
-                    });
                     (self.k.create_socket(Family::V4, id, peer_id)?, Family::V4)
                 } else {
                     (socket, Family::V6)
                 }
             }
-            Ok(socket) => {
+            Ok((socket, false)) => {
                 self.inet6_refused = false;
                 (socket, Family::V6)
             }
@@ -270,6 +289,23 @@ impl<K: Kernel> Reconciler<K> {
             }
             Err(e) => return Err(e),
         };
+        let bind = match config
+            .bind_interface()
+            .map(|name| self.k.link_by_name(name))
+            .transpose()
+        {
+            Ok(link) => link.flatten().map(|link| link.index),
+            Err(error) => {
+                self.k.close(socket);
+                return Err(error);
+            }
+        };
+        if let Some(index) = bind
+            && let Err(error) = self.k.bind_index(socket, index)
+        {
+            self.k.close(socket);
+            return Err(error);
+        }
         if let Err(e) = self.k.register_tunnel(socket, id, peer_id) {
             self.k.close(socket);
             return Err(e);
@@ -282,18 +318,16 @@ impl<K: Kernel> Reconciler<K> {
                 identity: config.identity(),
                 socket,
                 family,
-                bound: None,
-                bind_index: None,
+                bound: bind,
+                bind_index: bind,
                 zone_index: None,
                 connection: Connection::Disconnected { pending: None },
                 stale: false,
                 retry_at: None,
+                verify: false,
             },
         );
-        if let Ok(fd) = self.k.clone_fd(socket) {
-            self.requests
-                .push(Request::StoreSocket { tunnel_id: id, fd });
-        }
+        self.store_socket(id, socket);
         log::info!("{label}: created");
         Ok(())
     }
@@ -301,6 +335,13 @@ impl<K: Kernel> Reconciler<K> {
     /// Converges one tunnel's binding and connection to its target (T1,
     /// T2). Returns false when something is left to retry.
     pub(super) fn converge_tunnel(&mut self, id: u32) -> bool {
+        self.unindex_tunnel(id);
+        let result = self.converge_tunnel_inner(id);
+        self.index_tunnel(id);
+        result
+    }
+
+    fn converge_tunnel_inner(&mut self, id: u32) -> bool {
         let label = self.tunnel_label(id);
         let target = match self.target(id) {
             Ok(target) => target,

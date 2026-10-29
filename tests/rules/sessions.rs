@@ -1,5 +1,6 @@
 //! Sessions (docs/spec/sessions.md) over the fake kernel.
 
+use rs_l2tpd::kernel::Kernel;
 use rs_l2tpd::kernel::fake::FakeKernel;
 use rs_l2tpd::reconciler::Reconciler;
 
@@ -22,7 +23,7 @@ fn with_session(extra: &str) -> String {
 
 /// A session is staged under an rsl2tp-t name, given its address while
 /// down, then published under its configured name (S4, S8).
-/// spec: S4, S8, S3, S12
+/// spec: S1, S4, S8, S3, S12
 #[test]
 fn a_session_is_staged_then_published() {
     let (mut r, _) = reconciler();
@@ -172,4 +173,264 @@ fn a_lost_identity_skips_changes() {
         r.kernel().link(index).unwrap().name.to_string_lossy(),
         "l2tp0"
     );
+}
+
+/// spec: S23, S24, S22, M18
+#[test]
+fn staged_loss_never_modifies_a_reused_index_and_name() {
+    for ambiguous in [false, true] {
+        let (mut r, _) = reconciler();
+        r.kernel_mut().add_link("l2tp0", false);
+        r.reconcile(config(&with_session("")));
+        let index = r.kernel().session_index(10, 100).unwrap();
+        let temp = r.kernel().link(index).unwrap().name;
+        r.kernel_mut().lose_lifetime();
+        r.kernel_mut().remove_link(index);
+        r.kernel_mut()
+            .add_link_at(index, &temp.to_string_lossy(), false);
+        if ambiguous {
+            let mut info = r.kernel_mut().session(10, 100).unwrap().unwrap();
+            info.tunnel_id = 99;
+            info.session_id = 999;
+            let foreign = r.kernel_mut().foreign_session(info);
+            r.kernel_mut().rename_link(foreign, "foreign");
+        }
+        ops(&mut r);
+        r.reconcile(config(&with_session(
+            "interface_hwaddr = '02:00:5e:00:53:99'",
+        )));
+        let operations = ops(&mut r);
+        assert!(
+            !operations
+                .iter()
+                .any(|o| o.starts_with("rename ") || o.starts_with("hwaddr ")),
+            "{operations:?}"
+        );
+        assert_eq!(r.kernel().link(index).unwrap().name, temp);
+        assert!(
+            r.kernel_mut().session(10, 100).unwrap().is_some(),
+            "absence not yet confirmed"
+        );
+        if ambiguous {
+            run_for(&mut r, 3);
+            assert!(r.kernel_mut().session(10, 100).unwrap().is_some());
+            assert!(
+                !ops(&mut r)
+                    .iter()
+                    .any(|o| o.starts_with("delete ") || o.starts_with("create "))
+            );
+        } else {
+            r.kernel_mut().tick();
+            r.reconcile(config(&with_session("")));
+            assert!(r.kernel_mut().session(10, 100).unwrap().is_none());
+            r.reconcile(config(&with_session("")));
+            assert!(r.kernel_mut().session(10, 100).unwrap().is_some());
+        }
+    }
+}
+
+/// spec: S23, S22
+#[test]
+fn failed_staged_verification_and_deletion_preserve_the_record() {
+    for operation in ["scan", "delete-name"] {
+        let (mut r, _) = reconciler();
+        r.kernel_mut().add_link("l2tp0", false);
+        r.reconcile(config(&with_session("")));
+        let index = r.kernel().session_index(10, 100).unwrap();
+        r.kernel_mut().lose_lifetime();
+        r.kernel_mut().fail_next(operation, nix::errno::Errno::EIO);
+        r.reconcile(config(&with_session("")));
+        assert_eq!(r.kernel().session_index(10, 100), Some(index));
+    }
+}
+
+/// spec: S4, S6, S12, M10
+#[test]
+fn failed_staging_address_is_retried_before_publication() {
+    let (mut r, _) = reconciler();
+    r.kernel_mut().fail_next("hwaddr", nix::errno::Errno::EIO);
+    r.reconcile(config(&with_session(
+        "interface_hwaddr='02:00:5e:00:53:01'",
+    )));
+    let index = r.kernel().session_index(10, 100).unwrap();
+    assert!(
+        r.kernel()
+            .link(index)
+            .unwrap()
+            .name
+            .to_string_lossy()
+            .starts_with("rsl2tp-t")
+    );
+    run_for(&mut r, 1);
+    assert_eq!(r.kernel().session_index(10, 100), Some(index));
+    assert_eq!(
+        r.kernel().link(index).unwrap().name.to_string_lossy(),
+        "l2tp0"
+    );
+}
+
+/// spec: S12, S13, M19
+#[test]
+fn removing_a_hardware_address_restores_the_creation_address_without_lowering() {
+    let (mut r, _) = reconciler();
+    r.reconcile(config(&with_session("")));
+    let index = r.kernel().session_index(10, 100).unwrap();
+    let original = r.kernel().hwaddr(index).unwrap();
+    r.reconcile(config(&with_session(
+        "interface_hwaddr='02:00:5e:00:53:99'",
+    )));
+    r.kernel_mut().set_up(index, true);
+    deliver(&mut r);
+    r.reconcile(config(&with_session("")));
+    assert_ne!(r.kernel().hwaddr(index), Some(original));
+    assert!(r.kernel().link(index).unwrap().up);
+    r.kernel_mut().set_up(index, false);
+    deliver(&mut r);
+    assert_eq!(r.kernel().hwaddr(index), Some(original));
+}
+
+/// spec: S11, M6
+#[test]
+fn acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt() {
+    let (mut r, _) = reconciler();
+    let two = |x: &str, y: &str| {
+        format!(
+            "{TUNNEL}\n[tunnels.b]\ntunnel_id=11\nremote_addr='192.0.2.3'\n[sessions.s]\ntunnel_name='a'\nsession_id=100\ninterface_name='{x}'\n[sessions.t]\ntunnel_name='b'\nsession_id=101\ninterface_name='{y}'"
+        )
+    };
+    r.reconcile(config(&two("x", "y")));
+    ops(&mut r);
+    assert!(r.reconcile(config(&two("y", "z"))));
+    assert!(!ops(&mut r).iter().any(|o| o.contains("rsl2tp-r")));
+    assert!(r.reconcile(config(&two("z", "y"))));
+    assert!(ops(&mut r).iter().any(|o| o.contains("rsl2tp-r")));
+}
+
+/// spec: S21, S24, M9
+#[test]
+fn a_moved_session_is_forgotten_without_deleting_a_replacement() {
+    let (mut r, _) = reconciler();
+    r.reconcile(config(&with_session("")));
+    let index = r.kernel().session_index(10, 100).unwrap();
+    r.kernel_mut().remove_link(index);
+    r.kernel_mut().add_link_at(index, "l2tp0", false);
+    deliver(&mut r);
+    ops(&mut r);
+    r.reconcile(config(TUNNEL));
+    assert!(!ops(&mut r).iter().any(|o| o.starts_with("delete ")));
+    assert!(r.kernel_mut().session(10, 100).unwrap().is_some());
+    assert_eq!(
+        r.kernel().link(index).unwrap().name.to_string_lossy(),
+        "l2tp0"
+    );
+}
+
+/// spec: S5, S12, S18, M19
+#[test]
+fn a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides() {
+    let (mut r, _) = reconciler();
+    r.kernel_mut().fail_next("hwaddr", nix::errno::Errno::EIO);
+    let text = with_session("interface_hwaddr='02:00:5e:00:53:01'");
+    r.reconcile(config(&text));
+    let index = r.kernel().session_index(10, 100).unwrap();
+    r.kernel_mut().set_up(index, true);
+    let child = r.kernel_mut().add_link("child", false);
+    r.kernel_mut().set_master(child, Some(index));
+    let address = "2001:db8::1".parse().unwrap();
+    r.kernel_mut().add_addr(child, address);
+    assert!(r.reconcile(config(&text)));
+    assert!(r.kernel().link(index).unwrap().up);
+    assert_eq!(
+        r.kernel().link(index).unwrap().name.to_string_lossy(),
+        "l2tp0"
+    );
+    r.kernel_mut().set_up(index, false);
+    deliver(&mut r);
+    let override_addr = rs_l2tpd::kernel::HwAddr::new([2, 0, 0x5e, 0, 0x53, 9]).unwrap();
+    r.kernel_mut().set_link_hwaddr(index, override_addr);
+    deliver(&mut r);
+    ops(&mut r);
+    r.reconcile(config(
+        &text
+            .replace("l2tp0", "l2tp1")
+            .replace("192.0.2.2", "192.0.2.3"),
+    ));
+    assert_eq!(r.kernel().hwaddr(index), Some(override_addr));
+    assert_eq!(r.kernel().link(child).unwrap().master, Some(index));
+    assert!(
+        r.kernel_mut()
+            .dump_addrs()
+            .unwrap()
+            .iter()
+            .any(|a| a.index == child && a.addr == address)
+    );
+    assert!(!ops(&mut r).iter().any(|op| op.starts_with("hwaddr ")));
+}
+
+/// spec: S15, S17, S25, S26, K18, M6
+#[test]
+fn session_identifier_reuse_waits_for_confirmed_deletion() {
+    let (mut r, _) = reconciler();
+    r.reconcile(config(&with_session("")));
+    let index = r.kernel().session_index(10, 100).unwrap();
+    ops(&mut r);
+    r.reconcile(config(&with_session("peer_session_id=200")));
+    let operations = ops(&mut r);
+    assert_eq!(operations, ["delete 10 100"]);
+    assert_eq!(r.kernel().session_index(10, 100), Some(index));
+    r.kernel_mut().tick();
+    run_for(&mut r, 1);
+    assert_ne!(r.kernel().session_index(10, 100), Some(index));
+    assert!(r.ready());
+}
+
+/// spec: S22, S23, S24, M18
+#[test]
+fn mismatched_stored_records_cannot_authorize_staged_recovery() {
+    let (mut r, _) = reconciler();
+    r.kernel_mut().add_link("l2tp0", false);
+    r.reconcile(config(&with_session("")));
+    let old = r.kernel().session_index(10, 100).unwrap();
+    let temp = r.kernel().link(old).unwrap().name;
+    r.kernel_mut().lose_lifetime();
+    r.kernel_mut().remove_link(old);
+    r.kernel_mut()
+        .add_link_at(old, &temp.to_string_lossy(), false);
+    let mut info = r.kernel_mut().session(10, 100).unwrap().unwrap();
+    info.peer_session_id += 1;
+    let foreign = r.kernel_mut().foreign_session(info);
+    r.kernel_mut().rename_link(foreign, "foreign");
+    ops(&mut r);
+    r.reconcile(config(&with_session(
+        "interface_hwaddr='02:00:5e:00:53:99'",
+    )));
+    run_for(&mut r, 3);
+    assert!(ops(&mut r).is_empty());
+    assert_eq!(r.kernel().link(old).unwrap().name, temp);
+    assert_eq!(
+        r.kernel_mut()
+            .session(10, 100)
+            .unwrap()
+            .unwrap()
+            .peer_session_id,
+        101
+    );
+}
+
+/// spec: M7, M8, S13, T16, C10
+#[test]
+fn tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address() {
+    let (mut r, _) = reconciler();
+    let text = with_session("interface_hwaddr='ff:ff:ff:ff:ff:ff'")
+        .replace("192.0.2.2", "224.0.0.1")
+        .replace("remote_addr", "ip_version='V4'\nremote_addr");
+    let partial: rs_l2tpd::config::PartialConfig = toml::from_str(&text).unwrap();
+    let (accepted, problems) = partial.into_config_lenient();
+    assert!(problems.len() >= 2);
+    assert!(r.reconcile(accepted));
+    assert!(r.ready());
+    assert!(!r.kernel().transmits(10));
+    let index = r.kernel().session_index(10, 100).unwrap();
+    assert!(r.kernel().hwaddr(index).is_some());
+    assert!(!ops(&mut r).iter().any(|op| op.starts_with("hwaddr ")));
 }

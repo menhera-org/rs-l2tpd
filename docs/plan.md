@@ -196,29 +196,37 @@ event loss scans, sender validation, and missing-reply deadlines with
 uncertain mutations. A source assertion does not count as a passing live
 test. The fake is the only kernel the Phase 3 behavioral tests use.
 
-**Status: items 1–4 in place on 2026-10-28, exit not yet met.** The trait
-is in `src/kernel/mod.rs`, the fake in `kernel::fake`, the real kernel in
-`kernel::linux` (0 functions without a `// kernel:` citation; K13, K14,
-K33, K38, K40 uncited, being resolver and address facts it does not
-use). The 14 shared cases of `tests/kernel/conformance.rs` pass on the
-fake and, with the 6 method-level live tests, on 6.8.0-147 in a
-privileged container. Open for the exit: live cases that force a
-lifetime overflow, a missing reply at the deadline, a foreign sender port
-and index reuse within a generation; the QEMU kernels. The socket-ID
-and foreign-cookie needs subsequently shipped in pinned `l2tp` 0.5.0;
-the production event subscription uses the raw `netlink-sys` adapter.
-Their availability does not close the live-test exit criteria.
+**Status: done on 2026-10-29.** The [kernel evidence map](kernel-evidence.md)
+classifies every K fact, including delegated resolver facts and source-only
+requirements. Fifteen shared operation cases pass on the fake and real
+implementations. The production adapter's live tests force lifetime queue
+overflow, a missing mutation acknowledgement, a foreign sender and index/name
+reuse in the same generation; they also read every foreign cookie length.
+The suites pass on 6.8.0-147 (container), 6.12.114, 6.18.59 and 7.3 (TCG QEMU).
+The QEMU runs found and fixed the newer kernel's namespace-wide session-ID
+lookup: replies are checked against the requested tunnel, and deletion verifies
+the pair within the same absolute deadline. No function in `kernel::linux`
+lacks a source citation, including `pub(super)` functions. The complete release
+matrix and strict global coverage/source gates remain Phase 6 requirements;
+these selected live runs do not claim them. Commands, results and limits are
+in the [verification record](../audit/PHASE23_VERIFICATION_2026-10-29.md).
 
 ### Phase 3 — the reconciler
 
-**Status: code exists; acceptance is open.** In particular the corrected
-S23 staging rule, L12 handshake, P14/L13 retirement path and V15 worker
-budgets must be reconciled with the implementation. V10's incremental
-RDNSS updates and V14's opt-in failure fallback shipped in `iphost`
-0.4.1 (pinned, the fallback enabled); their adapter cases in
-[testing](testing.md#contract-correction-acceptance-cases) are still to
-write. Do not call this phase complete
-from historical rule citations or from these documentation changes.
+**Status: done on 2026-10-29 for reconciler policy.** The fake-kernel suite
+includes the corrected S23 safe recovery, the five-second coalesced L12
+handshake, exact-name L13 retirement and separate process-wide V15 budgets.
+Blocked obsolete calls retain permits, current jobs/results coalesce, namespace
+ownership is preserved, and unused discovery resources are released. The
+released `iphost` 0.4.1 adapter is exercised with controlled RA, DHCPv6 and DNS
+peers; its own parser/transport regressions run separately. A real systemd
+manager holds a live tunnel reference until acknowledged withdrawal. Seeded
+reload sequences assert convergence, identity preservation, peer selection and
+the fixed point; ten fake-suite runs pass. See the
+[case/evidence record](../audit/PHASE23_VERIFICATION_2026-10-29.md).
+The service callback/wakeup portions of E19/E26 and L12/L13, process re-exec,
+shutdown orchestration and whole-daemon resource/timing promises still belong
+to Phases 4–6; the reconciler tests do not claim those implementations.
 
 Implements [model](spec/model.md), [tunnels](spec/tunnels.md),
 [sessions](spec/sessions.md), [resolvers](spec/resolvers.md) and

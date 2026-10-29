@@ -1,4 +1,74 @@
-# Phase 1 review probes
+# Kernel verification
+
+Phase 2–3 results and the per-K classification are in
+[the verification record](../../audit/PHASE23_VERIFICATION_2026-10-29.md)
+and [kernel evidence map](../../docs/kernel-evidence.md).
+
+Build every test executable, including the production adapter's private live
+cases in the library test executable:
+
+```sh
+cargo test --locked --all-features --target x86_64-unknown-linux-musl --no-run
+```
+
+Set `KERNEL_UNIT`, `KERNEL_TEST` and `REVIEW_TEST` to the absolute library,
+`kernel-linux` and `review-kernel` executable paths printed by Cargo. Run all
+three in an isolated container. `--privileged` also makes the namespace-local
+tunable writable; the narrower capability list below is insufficient for that
+particular test because Docker mounts `/proc/sys` read-only.
+
+```sh
+docker run --rm --network none --privileged \
+  --mount "type=bind,source=$KERNEL_UNIT,target=/kernel-unit,readonly" \
+  --mount "type=bind,source=$KERNEL_TEST,target=/kernel-linux,readonly" \
+  --mount "type=bind,source=$REVIEW_TEST,target=/review-kernel,readonly" \
+  --entrypoint sh rs-l2tpd-audit-vm:local -ec '
+    uname -r
+    /kernel-unit --ignored --test-threads=1 --nocapture
+    /kernel-linux --ignored --test-threads=1 --nocapture
+    /review-kernel --ignored --test-threads=1 --nocapture
+  '
+```
+
+For QEMU, copy those three executables to the same absolute guest paths and
+use `init.sh` below. For a kernel with built-in L2TP support, append
+`l2tp_builtin=1` to the boot command line. The full suite also needs VRF,
+IPv6 multiple tables, veth, dummy and network namespaces. Require the final
+`REVIEW_RESULT=0` marker and each suite's result, not merely a zero QEMU exit.
+
+## Real manager reference
+
+`store-kernel` has two ignored halves. The first runs in a user systemd notify
+service; the second owns a fresh network namespace inside the container.
+They transfer only one test socket over a read-only Unix-socket mount. The
+test proves that manager storage keeps the actual tunnel alive after local
+close, then acknowledged withdrawal releases it. It does not implement the
+Phase 5 binary's crash/re-exec protocol.
+
+Set `STORE_TEST` to Cargo's absolute `store-kernel` executable path:
+
+```sh
+transfer_dir=$(mktemp -d /tmp/rs-l2tpd-store.XXXXXX)
+unit=rs-l2tpd-store-$$
+systemd-run --user --no-pager --collect --unit="$unit" \
+  --property=Type=notify --property=NotifyAccess=all \
+  --property=FileDescriptorStoreMax=1 --property=NoNewPrivileges=yes \
+  --property=TimeoutStartSec=10s --property=RuntimeMaxSec=45s \
+  env TRANSFER_SOCKET="$transfer_dir/socket" "$STORE_TEST" \
+  --exact manager_bridge --ignored --nocapture
+docker run --rm --network none --privileged \
+  --mount "type=bind,source=$STORE_TEST,target=/store-kernel,readonly" \
+  --mount "type=bind,source=$transfer_dir/socket,target=/transfer,readonly" \
+  --env TRANSFER_SOCKET=/transfer --entrypoint /store-kernel \
+  rs-l2tpd-audit-vm:local --exact kernel_reference --ignored --nocapture
+journalctl --user --no-pager -n 60 -u "$unit.service"
+rmdir "$transfer_dir"
+```
+
+Both halves must report success. They need a `systemd-notify` with `--fd`
+and its default processing barrier; `--no-block` would invalidate the proof.
+
+## Phase 1 review probes
 
 These probes test the kernel assumptions behind the documentation corrections,
 not the future reconciler's policy. They are ignored in ordinary Cargo runs.

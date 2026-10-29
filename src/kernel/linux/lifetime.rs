@@ -335,7 +335,7 @@ impl Lifetime {
         }
     }
 
-    // kernel: (K29) net/core/rtnetlink.c rtnl_getlink, answered after every
+    // kernel: (K29, K42) net/core/rtnetlink.c rtnl_getlink, answered after every
     // notification queued before it; dev.c:11205-11224 (RTM_DELLINK)
     /// The ordered proof of S9: removed when a removal of the index was
     /// seen or the lookup finds no device; lost when the generation ended
@@ -507,5 +507,95 @@ mod tests {
         let generation = state.generation;
         state.end_generation();
         assert!(state.generation > generation && state.tracked.is_empty());
+    }
+
+    // kernel: net/netlink/af_netlink.c netlink_overrun (K29, K36);
+    // net/core/dev.c dev_change_flags broadcasts every link flag change
+    /// spec: E20, E21, M18, S9, S24, K29
+    #[test]
+    #[ignore = "isolated network namespace with CAP_NET_ADMIN"]
+    fn a_live_lifetime_overflow_ends_all_old_proofs() {
+        use super::super::request::Request;
+        use netlink_packet_route::link::LinkFlags;
+        use socket2::SockRef;
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let lifetime = Lifetime::new().unwrap();
+        let mut state = lifetime.shared.lock();
+        let socket = state.socket.as_ref().unwrap().clone();
+        SockRef::from(&*socket).set_recv_buffer_size(4096).unwrap();
+        let generation = state.generation;
+        state.tracked.insert(
+            1,
+            Tracked {
+                index: 1,
+                removed: false,
+            },
+        );
+        let registration = Registration {
+            index: 1,
+            generation,
+            incarnation: 1,
+        };
+        let mut request = Request::new(NETLINK_ROUTE).unwrap();
+        // Holding State pauses the reader after at most one datagram. The
+        // separate request socket drains each ACK while multicast fills.
+        for i in 0..256 {
+            let mut link = LinkMessage::default();
+            link.header.index = 1;
+            link.header.change_mask = LinkFlags::Up;
+            if i % 2 == 0 {
+                link.header.flags = LinkFlags::Up;
+            }
+            request
+                .run(
+                    RouteNetlinkMessage::NewLink(link),
+                    false,
+                    Instant::now() + DEADLINE,
+                    &mut |_, _| Ok(()),
+                )
+                .unwrap();
+        }
+        let deadline = Instant::now() + DEADLINE;
+        while state.generation == generation {
+            let (next, waited) = lifetime.shared.wait_until(state, deadline);
+            state = next;
+            assert!(waited, "actual queue overflow must end the generation");
+        }
+        drop(state);
+        assert_eq!(lifetime.prove(&registration), Proof::Lost);
+        assert!(lifetime.shared.lock().tracked.is_empty());
+    }
+
+    // kernel: net/netlink/af_netlink.c netlink_sendmsg (K30); port 0 is
+    // the only kernel sender (E22)
+    /// spec: E22, S9, K30
+    #[test]
+    #[ignore = "isolated network namespace with CAP_NET_ADMIN"]
+    fn a_live_foreign_sender_cannot_invalidate_a_registration() {
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let lifetime = Lifetime::new().unwrap();
+        let mut state = lifetime.shared.lock();
+        let socket = state.socket.as_ref().unwrap().clone();
+        state.tracked.insert(
+            1,
+            Tracked {
+                index: 1,
+                removed: false,
+            },
+        );
+        let registration = Registration {
+            index: 1,
+            generation: state.generation,
+            incarnation: 1,
+        };
+        let sender = super::super::request::open(NETLINK_ROUTE).unwrap();
+        let mut target = SocketAddr::new(0, 0);
+        socket.get_address(&mut target).unwrap();
+        sender
+            .send_to(&link(libc::RTM_DELLINK, 0, 1, b"lo"), &target, 0)
+            .unwrap();
+        drop(state);
+        // The ordered lookup is queued after the forged datagram.
+        assert_eq!(lifetime.prove(&registration), Proof::Proved);
     }
 }

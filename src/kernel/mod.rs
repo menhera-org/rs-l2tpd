@@ -35,7 +35,7 @@ pub struct Peer {
 }
 
 /// A tunnel socket handed over by a previous instance (P14, S28).
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Adopted {
     /// The socket, now held by the implementation.
     pub socket: SocketId,

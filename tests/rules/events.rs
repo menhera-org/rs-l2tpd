@@ -1,6 +1,8 @@
 //! Events (docs/spec/events.md) over the fake kernel.
 
 use super::{TUNNEL, config, deliver, ops, reconciler};
+use rs_l2tpd::kernel::{AddrInfo, Kernel, Notice};
+use rs_l2tpd::reconciler::Source;
 
 /// An address added to the bind device reconnects the connected tunnel
 /// for a fresh source; one elsewhere touches nothing (E6, M16).
@@ -69,4 +71,179 @@ fn a_vanished_bind_device_disconnects() {
     deliver(&mut r);
     assert_eq!(r.kernel().connection(socket), None);
     assert!(!r.kernel().transmits(10));
+}
+
+/// spec: M3, M4, M5, M7, E12, G6
+#[test]
+fn one_failed_creation_does_not_block_an_independent_entry() {
+    let (mut r, _) = reconciler();
+    let text = format!("{TUNNEL}\n[tunnels.b]\ntunnel_id=11\nremote_addr='192.0.2.3'");
+    r.kernel_mut().fail_next("socket", nix::errno::Errno::EPERM);
+    assert!(!r.reconcile(config(&text)));
+    assert!(r.kernel_mut().tunnel(10).unwrap().is_none());
+    let sibling = r.kernel().tunnel_socket(11).unwrap();
+    super::run_for(&mut r, 1);
+    assert!(r.ready());
+    assert_eq!(r.kernel().tunnel_socket(11), Some(sibling));
+}
+
+/// spec: E20, E21, M18
+#[test]
+fn a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds() {
+    for source in [Source::Monitor, Source::L2tp] {
+        let (mut r, _) = reconciler();
+        let device = r.kernel_mut().add_link("wan", false);
+        r.kernel_mut()
+            .add_addr(device, "192.0.2.1".parse().unwrap());
+        r.reconcile(config(TUNNEL));
+        r.kernel_mut().fail_next(
+            if source == Source::Monitor {
+                "dump"
+            } else {
+                "tunnel"
+            },
+            nix::errno::Errno::EIO,
+        );
+        r.handle(source, Notice::Loss);
+        assert!(r.next_deadline().is_some());
+        super::run_for(&mut r, 1);
+        assert!(r.ready());
+        assert_eq!(r.next_deadline(), None);
+    }
+}
+
+/// spec: E6, E8, T18, T20, M14, M15
+#[test]
+fn unrelated_address_events_never_connect_or_postpone_a_pending_peer() {
+    let (mut r, _) = reconciler();
+    let wan = r.kernel_mut().add_link("wan", false);
+    r.kernel_mut().add_addr(wan, "192.0.2.1".parse().unwrap());
+    r.kernel_mut().refuse(
+        "192.0.2.2".parse().unwrap(),
+        Some(nix::errno::Errno::ENETUNREACH),
+    );
+    r.reconcile(config(&(TUNNEL.to_owned() + "bind_interface='wan'")));
+    let due = r.next_deadline();
+    ops(&mut r);
+    for address in ["192.0.2.4", "2001:db8::1"] {
+        r.handle(
+            Source::Monitor,
+            Notice::AddrNew(AddrInfo {
+                index: wan,
+                addr: address.parse().unwrap(),
+            }),
+        );
+        assert_eq!(r.next_deadline(), due);
+        assert!(ops(&mut r).is_empty());
+    }
+    r.kernel_mut().refuse("192.0.2.2".parse().unwrap(), None);
+    super::run_for(&mut r, 1);
+    assert!(r.kernel().transmits(10));
+}
+
+/// spec: E27, K41, S29, M9
+#[test]
+fn foreign_same_identifier_announcements_only_queue_verification() {
+    let (mut r, _) = reconciler();
+    let dev = r.kernel_mut().add_link("wan", false);
+    r.kernel_mut().add_addr(dev, "192.0.2.1".parse().unwrap());
+    let text =
+        format!("{TUNNEL}\n[sessions.s]\ntunnel_name='a'\nsession_id=100\ninterface_name='l2tp0'");
+    r.reconcile(config(&text));
+    let index = r.kernel().session_index(10, 100);
+    ops(&mut r);
+    for _ in 0..100 {
+        r.handle(
+            Source::L2tp,
+            Notice::SessionDeleted {
+                tunnel_id: 10,
+                session_id: 100,
+            },
+        );
+    }
+    super::run_for(&mut r, 2);
+    assert!(r.ready());
+    assert_eq!(r.kernel().session_index(10, 100), index);
+    assert!(ops(&mut r).is_empty());
+}
+
+/// spec: E18, E19, M3
+#[test]
+fn a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress() {
+    let (mut r, _) = reconciler();
+    r.kernel_mut().fail_next("socket", nix::errno::Errno::EPERM);
+    assert!(!r.reconcile(config(TUNNEL)));
+    let latest = config(&TUNNEL.replace("tunnel_id = 10", "tunnel_id = 11"));
+    r.reconcile(latest.clone());
+    super::run_for(&mut r, 1);
+    assert_eq!(r.accepted(), &latest);
+    assert!(r.kernel_mut().tunnel(10).unwrap().is_none());
+    assert!(r.kernel_mut().tunnel(11).unwrap().is_some());
+    assert!(r.shutdown());
+    r.kernel_mut().tick();
+    assert_eq!(r.kernel().open_sockets(), 0);
+}
+
+/// spec: M16, E4, E6
+#[test]
+fn unrelated_events_query_no_kernel_objects_even_with_many_entries() {
+    let (mut r, _) = reconciler();
+    let text = (1..=100).map(|id| format!("[tunnels.t{id}]\ntunnel_id={id}\nremote_addr='192.0.2.2'\nbind_interface='wan{id}'\n")).collect::<String>();
+    r.reconcile(config(&text));
+    ops(&mut r);
+    r.kernel_mut().fail_next("link", nix::errno::Errno::EIO);
+    r.kernel_mut().fail_next("session", nix::errno::Errno::EIO);
+    for id in 1000..1100 {
+        r.handle(
+            Source::Monitor,
+            Notice::LinkNew(rs_l2tpd::kernel::LinkInfo {
+                index: id,
+                name: rs_l2tpd::kernel::L2tpIfName::new(format!("foreign{id}").as_bytes()).unwrap(),
+                up: true,
+                vrf: false,
+                master: None,
+            }),
+        );
+        r.handle(
+            Source::Monitor,
+            Notice::AddrNew(AddrInfo {
+                index: id,
+                addr: "192.0.2.9".parse().unwrap(),
+            }),
+        );
+    }
+    assert!(ops(&mut r).is_empty());
+    assert_eq!(
+        r.kernel_mut()
+            .link_by_name(&rs_l2tpd::kernel::L2tpIfName::new(b"unused").unwrap())
+            .unwrap_err()
+            .raw_os_error(),
+        Some(nix::libc::EIO)
+    );
+    assert_eq!(
+        r.kernel_mut().session(1, 100).unwrap_err().raw_os_error(),
+        Some(nix::libc::EIO)
+    );
+}
+
+/// spec: M14, M15, V4, E27
+#[test]
+fn event_traffic_does_not_move_the_absolute_poll_deadline() {
+    let (mut r, _) = reconciler();
+    r.reconcile(config(
+        &(TUNNEL.replace("192.0.2.2", "peer.example") + "ip_version='V4'"),
+    ));
+    let due = r.next_deadline().unwrap();
+    for _ in 0..5 {
+        r.kernel_mut()
+            .advance(std::time::Duration::from_millis(100));
+        r.handle(
+            Source::Monitor,
+            Notice::AddrNew(AddrInfo {
+                index: 999,
+                addr: "192.0.2.1".parse().unwrap(),
+            }),
+        );
+        assert_eq!(r.next_deadline(), Some(due));
+    }
 }

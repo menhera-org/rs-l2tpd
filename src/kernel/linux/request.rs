@@ -45,6 +45,7 @@ pub(super) struct Msg<'a> {
 }
 
 /// An error of the given errno.
+// kernel: net/ipv6/datagram.c ip6_datagram_connect returns negative errno (K26)
 pub(super) fn errno(code: i32) -> io::Error {
     io::Error::from_raw_os_error(code)
 }
@@ -179,6 +180,9 @@ fn exchange<I: NetlinkSerializable + Debug>(
     deadline: Instant,
     visit: &mut dyn FnMut(u16, &[u8]) -> io::Result<()>,
 ) -> io::Result<io::Result<()>> {
+    if Instant::now() >= deadline {
+        return Err(errno(libc::ETIMEDOUT));
+    }
     let mut header = NetlinkHeader::default();
     header.flags = NLM_F_REQUEST | if dump { NLM_F_DUMP } else { NLM_F_ACK };
     header.sequence_number = seq;
@@ -189,6 +193,9 @@ fn exchange<I: NetlinkSerializable + Debug>(
     socket.send(&buffer, 0)?;
     let mut answer = Ok(());
     loop {
+        if Instant::now() >= deadline {
+            return Err(errno(libc::ETIMEDOUT));
+        }
         let (datagram, from) = match socket.recv_from_full() {
             Ok(received) => received,
             Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
@@ -221,7 +228,8 @@ fn exchange<I: NetlinkSerializable + Debug>(
                 kind if kind >= NLMSG_MIN_TYPE && answer.is_ok() => {
                     answer = visit(kind, msg.payload);
                 }
-                _ => {} // NLMSG_NOOP, NLMSG_OVERRUN, or after an error
+                netlink_packet_core::NLMSG_OVERRUN => return Err(errno(libc::ENOBUFS)),
+                _ => {} // NLMSG_NOOP, or after an error
             }
         }
     }
@@ -276,5 +284,58 @@ mod tests {
         assert!(start.elapsed() >= Duration::from_millis(20));
         let error = wait(&socket, start).unwrap_err();
         assert_eq!(error.raw_os_error(), Some(libc::ETIMEDOUT));
+    }
+
+    // kernel: net/netlink/af_netlink.c netlink_ack; net/core/filter.c
+    // sk_filter_trim_cap drops unicast acknowledgements too (K29)
+    /// spec: A14, E21, K29
+    #[test]
+    #[ignore = "isolated network namespace with CAP_NET_ADMIN"]
+    fn a_missing_mutation_reply_is_uncertain_and_reopens_the_socket() {
+        use netlink_packet_route::{
+            RouteNetlinkMessage,
+            link::{LinkAttribute, LinkMessage},
+        };
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let mut request = Request::new(netlink_sys::protocols::NETLINK_ROUTE).unwrap();
+        let drop_all = [socket2::SockFilter::new(0x06, 0, 0, 0)];
+        SockRef::from(request.socket.as_ref().unwrap())
+            .attach_filter(&drop_all)
+            .unwrap();
+        let mut link = LinkMessage::default();
+        link.header.index = 1;
+        link.attributes.push(LinkAttribute::Mtu(64000));
+        let deadline = Instant::now() + Duration::from_millis(50);
+        let result = request.run(
+            RouteNetlinkMessage::NewLink(link),
+            false,
+            deadline,
+            &mut |_, _| Ok(()),
+        );
+        assert_eq!(result.unwrap_err().raw_os_error(), Some(libc::ETIMEDOUT));
+        assert!(Instant::now() >= deadline);
+        assert!(request.socket.is_none());
+        let mut query = LinkMessage::default();
+        query.header.index = 1;
+        let mut applied = false;
+        request
+            .run(
+                RouteNetlinkMessage::GetLink(query),
+                false,
+                Instant::now() + DEADLINE,
+                &mut |_, bytes| {
+                    use netlink_packet_core::Parseable;
+                    let link = LinkMessage::parse(bytes).unwrap();
+                    applied |= link.attributes.contains(&LinkAttribute::Mtu(64000));
+                    Ok(())
+                },
+            )
+            .unwrap();
+        assert!(
+            applied,
+            "the mutation happened despite the missing acknowledgement"
+        );
+        // A reopened socket may reuse the old port; its sequence still advances.
+        assert_eq!(request.seq, 2);
     }
 }

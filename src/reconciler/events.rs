@@ -4,9 +4,28 @@
 
 use crate::config::{Family, L2tpIfName};
 use crate::kernel::{AddrInfo, Kernel, LinkInfo, Notice};
+use std::collections::{BTreeMap, BTreeSet};
+use std::net::IpAddr;
 
-use super::records::Identity;
 use super::{Reconciler, report};
+
+#[derive(Default)]
+pub(super) struct Index {
+    names: BTreeMap<L2tpIfName, BTreeSet<u32>>,
+    devices: BTreeMap<u32, BTreeSet<u32>>,
+    sources: BTreeMap<IpAddr, BTreeSet<u32>>,
+    sessions: BTreeMap<u32, u32>,
+    registrations: BTreeMap<u32, u32>,
+}
+
+pub(super) fn remove<T: Ord>(map: &mut BTreeMap<T, BTreeSet<u32>>, key: T, id: u32) {
+    if let std::collections::btree_map::Entry::Occupied(mut entry) = map.entry(key) {
+        entry.get_mut().remove(&id);
+        if entry.get().is_empty() {
+            entry.remove();
+        }
+    }
+}
 
 /// The subscription a notice came from: a loss means a different resync
 /// for each (E20).
@@ -20,6 +39,71 @@ pub enum Source {
 }
 
 impl<K: Kernel> Reconciler<K> {
+    pub(super) fn reindex(&mut self) {
+        self.index = Index::default();
+        for id in self.tunnels.keys().copied().collect::<Vec<_>>() {
+            self.index_tunnel(id);
+        }
+        for (sid, record) in &self.sessions {
+            if let Some(registration) = record.state.registration() {
+                self.index.sessions.insert(registration.index, *sid);
+                self.index.registrations.insert(*sid, registration.index);
+            }
+        }
+    }
+
+    pub(super) fn index_tunnel(&mut self, id: u32) {
+        let record = &self.tunnels[&id];
+        for name in [record.config.bind_interface().copied(), self.zone_name(id)]
+            .into_iter()
+            .flatten()
+        {
+            self.index.names.entry(name).or_default().insert(id);
+        }
+        for device in [record.bind_index, record.zone_index, record.bound]
+            .into_iter()
+            .flatten()
+        {
+            self.index.devices.entry(device).or_default().insert(id);
+        }
+        if let Some(source) = self.source_of(id) {
+            self.index.sources.entry(source).or_default().insert(id);
+        }
+    }
+
+    pub(super) fn unindex_tunnel(&mut self, id: u32) {
+        let record = &self.tunnels[&id];
+        for name in [record.config.bind_interface().copied(), self.zone_name(id)]
+            .into_iter()
+            .flatten()
+        {
+            remove(&mut self.index.names, name, id);
+        }
+        for device in [record.bind_index, record.zone_index, record.bound]
+            .into_iter()
+            .flatten()
+        {
+            remove(&mut self.index.devices, device, id);
+        }
+        if let Some(source) = self.source_of(id) {
+            remove(&mut self.index.sources, source, id);
+        }
+    }
+
+    pub(super) fn index_session(&mut self, sid: u32) {
+        if let Some(registration) = self.sessions[&sid].state.registration() {
+            self.index.sessions.insert(registration.index, sid);
+            self.index.registrations.insert(sid, registration.index);
+        }
+    }
+
+    pub(super) fn unindex_session(&mut self, sid: u32) {
+        if let Some(index) = self.index.registrations.remove(&sid)
+            && self.index.sessions.get(&index) == Some(&sid)
+        {
+            self.index.sessions.remove(&index);
+        }
+    }
     /// Applies one notice of a subscription.
     pub fn handle(&mut self, source: Source, notice: Notice) {
         match notice {
@@ -47,13 +131,15 @@ impl<K: Kernel> Reconciler<K> {
                 self.l2tp_resync();
             }
         }
+        self.arm_tick();
     }
 
     fn owned_session(&self, index: u32) -> Option<u32> {
-        self.sessions
-            .iter()
-            .find(|(_, s)| s.state.registration().is_some_and(|r| r.index == index))
-            .map(|(sid, _)| *sid)
+        self.index.sessions.get(&index).copied().filter(|sid| {
+            self.sessions
+                .get(sid)
+                .is_some_and(|s| s.state.registration().is_some_and(|r| r.index == index))
+        })
     }
 
     fn zone_name(&self, tunnel_id: u32) -> Option<L2tpIfName> {
@@ -75,7 +161,21 @@ impl<K: Kernel> Reconciler<K> {
         if let Some(sid) = self.owned_session(link.index) {
             self.session_device_changed(sid, link.name, link.up);
         }
-        let ids: Vec<u32> = self.tunnels.keys().copied().collect();
+        let ids: BTreeSet<_> = self
+            .index
+            .names
+            .get(&link.name)
+            .into_iter()
+            .flatten()
+            .chain(self.index.devices.get(&link.index).into_iter().flatten())
+            .chain(
+                previous
+                    .into_iter()
+                    .chain(link.master)
+                    .flat_map(|m| self.index.devices.get(&m).into_iter().flatten()),
+            )
+            .copied()
+            .collect();
         for id in ids {
             let record = &self.tunnels[&id];
             let bind_name = record.config.bind_interface().copied();
@@ -104,7 +204,7 @@ impl<K: Kernel> Reconciler<K> {
                 self.converge_tunnel(id);
             }
         }
-        self.resolver_device_changed(&link.name);
+        self.resolver_device_changed(&link.name, Some(link.index));
     }
 
     /// A device left the namespace (E3, S19, S27).
@@ -117,7 +217,19 @@ impl<K: Kernel> Reconciler<K> {
                 self.create_wanted_sessions();
             }
         }
-        let ids: Vec<u32> = self.tunnels.keys().copied().collect();
+        let ids: BTreeSet<_> = self
+            .index
+            .devices
+            .get(&link.index)
+            .into_iter()
+            .flatten()
+            .chain(
+                master
+                    .into_iter()
+                    .flat_map(|m| self.index.devices.get(&m).into_iter().flatten()),
+            )
+            .copied()
+            .collect();
         for id in ids {
             let record = &self.tunnels[&id];
             let bound =
@@ -131,7 +243,7 @@ impl<K: Kernel> Reconciler<K> {
                 self.converge_tunnel(id);
             }
         }
-        self.resolver_device_changed(&link.name);
+        self.resolver_device_changed(&link.name, Some(link.index));
     }
 
     /// E6, E7: connected tunnels of the address's family bound to its
@@ -144,7 +256,26 @@ impl<K: Kernel> Reconciler<K> {
             Family::V6
         };
         let vrf_of_device = self.masters.get(&addr.index).copied();
-        let ids: Vec<u32> = self.tunnels.keys().copied().collect();
+        let ids: BTreeSet<_> = self
+            .index
+            .devices
+            .get(&addr.index)
+            .into_iter()
+            .flatten()
+            .chain(
+                vrf_of_device
+                    .into_iter()
+                    .flat_map(|m| self.index.devices.get(&m).into_iter().flatten()),
+            )
+            .chain(
+                removed
+                    .then(|| self.index.sources.get(&addr.addr.to_canonical()))
+                    .flatten()
+                    .into_iter()
+                    .flatten(),
+            )
+            .copied()
+            .collect();
         for id in ids {
             let record = &self.tunnels[&id];
             let peer_family = match &record.connection {
@@ -177,11 +308,13 @@ impl<K: Kernel> Reconciler<K> {
 
     /// A tunnel deletion was announced: an operator deleted an owned tunnel,
     /// which is unsupported (T9), or the announcement is foreign (K41).
-    fn tunnel_announced(&mut self, tunnel_id: u32) {
+    pub(super) fn tunnel_announced(&mut self, tunnel_id: u32) {
         if !self.tunnels.contains_key(&tunnel_id) {
             return;
         }
+        self.tunnels.get_mut(&tunnel_id).unwrap().verify = true;
         if let Ok(None) = self.k.tunnel(tunnel_id) {
+            self.tunnels.get_mut(&tunnel_id).unwrap().verify = false;
             let label = self.tunnel_label(tunnel_id);
             self.report.begin_error(&label, "deleted", || {
                 "was deleted in the kernel outside the daemon; this is unsupported (T9)".into()
@@ -217,15 +350,19 @@ impl<K: Kernel> Reconciler<K> {
     /// E20, event monitor: every binding checked by name, every connected
     /// tunnel reconnected, deferred addresses re-checked, resolver devices
     /// validated again.
-    fn monitor_resync(&mut self) {
+    pub(super) fn monitor_resync(&mut self) {
+        self.monitor_pending = true;
         log::warn!("the event monitor lost notifications; resynchronising (E20)");
-        if let Ok(links) = self.k.dump_links() {
-            self.vrfs = links.iter().filter(|l| l.vrf).map(|l| l.index).collect();
-            self.masters = links
-                .iter()
-                .filter_map(|l| Some((l.index, l.master?)))
-                .collect();
-        }
+        let Ok(links) = self.k.dump_links() else {
+            return;
+        };
+        let Ok(_) = self.k.dump_addrs() else { return };
+        self.vrfs = links.iter().filter(|l| l.vrf).map(|l| l.index).collect();
+        self.masters = links
+            .iter()
+            .filter_map(|l| Some((l.index, l.master?)))
+            .collect();
+        self.monitor_pending = false;
         let ids: Vec<u32> = self.tunnels.keys().copied().collect();
         for id in ids {
             let record = self.tunnels.get_mut(&id).unwrap();
@@ -234,18 +371,24 @@ impl<K: Kernel> Reconciler<K> {
         }
         let sids: Vec<u32> = self.sessions.keys().copied().collect();
         for sid in sids {
-            if let Identity::Proved(r) = self.sessions[&sid].state {
-                self.apply_hwaddr(sid, r.index);
+            if !self.converge_session(sid) {
+                self.incomplete = true;
+                self.reconcile_at.get_or_insert(self.k.now() + super::RETRY);
             }
         }
         let names: Vec<L2tpIfName> = self
             .accepted
             .resolvers()
             .values()
-            .filter_map(|r| r.bind_interface().copied())
+            .flat_map(|r| {
+                r.bind_interface()
+                    .into_iter()
+                    .chain(r.addresses().iter().filter_map(|s| s.zone()))
+                    .copied()
+            })
             .collect();
         for name in names {
-            self.resolver_device_changed(&name);
+            self.resolver_device_changed(&name, None);
         }
     }
 

@@ -35,6 +35,10 @@ path = "tests/tools/srclink.rs"
 name = "review-kernel"
 path = "tests/kernel/review.rs"
 
+[[test]]
+name = "store-kernel"
+path = "tests/kernel/store.rs"
+
 # The conformance suite (docs/testing.md) on the fake kernel.
 [[test]]
 name = "kernel-fake"
@@ -79,7 +83,7 @@ libc = { version = "0.2", optional = true }
 # The configuration tests write their documents in TOML.
 toml = "1.1"
 # The live kernel tests give each fixture a network namespace of its own.
-nix = { version = "0.30", default-features = false, features = ["sched"] }
+nix = { version = "0.30", default-features = false, features = ["sched", "uio"] }
 
 [features]
 default = ["bin"]

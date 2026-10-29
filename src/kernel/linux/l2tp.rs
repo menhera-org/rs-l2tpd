@@ -301,12 +301,23 @@ impl Genl {
         self.run(message, false, deadline, &mut |_| Ok(()))
     }
 
-    // kernel: (K16) net/l2tp/l2tp_netlink.c l2tp_nl_cmd_session_get (792-800),
-    // l2tp_nl_session_get (55-57)
+    // kernel: (K16, K19) net/l2tp/l2tp_netlink.c l2tp_nl_cmd_session_get;
+    // v6.12 l2tp_core.c:315-321 selects the namespace-wide v3 IP lookup
     pub(super) fn session(
         &mut self,
         tunnel_id: u32,
         session_id: u32,
+    ) -> io::Result<Option<SessionInfo>> {
+        self.session_until(tunnel_id, session_id, Instant::now() + DEADLINE)
+    }
+
+    // kernel: (K19) v6.12 net/l2tp/l2tp_core.c:315-321; a reply's tunnel
+    // must match even when the kernel's IP lookup ignored the requested ID
+    fn session_until(
+        &mut self,
+        tunnel_id: u32,
+        session_id: u32,
+        deadline: Instant,
     ) -> io::Result<Option<SessionInfo>> {
         let mut info = None;
         let message = L2tpMessage {
@@ -316,8 +327,11 @@ impl Genl {
                 L2tpAttribute::SessionId(session_id),
             ],
         };
-        let result = self.run(message, false, Instant::now() + DEADLINE, &mut |reply| {
-            info = Some(session_info(reply)?);
+        let result = self.run(message, false, deadline, &mut |reply| {
+            let session = session_info(reply)?;
+            if (session.tunnel_id, session.session_id) == (tunnel_id, session_id) {
+                info = Some(session);
+            }
             Ok(())
         });
         absent(result.map(|()| info))
@@ -345,12 +359,24 @@ impl Genl {
     // kernel: (K18) net/l2tp/l2tp_netlink.c l2tp_nl_cmd_session_delete
     // (652-660); synchronous through 6.11, a workqueue from 6.12
     pub(super) fn delete_session(&mut self, tunnel_id: u32, session_id: u32) -> io::Result<()> {
-        self.command(
-            L2tpCmd::SessionDelete,
-            vec![
-                L2tpAttribute::ConnId(tunnel_id),
-                L2tpAttribute::SessionId(session_id),
-            ],
+        let deadline = Instant::now() + DEADLINE;
+        if self
+            .session_until(tunnel_id, session_id, deadline)?
+            .is_none()
+        {
+            return Err(errno(libc::ENODEV));
+        }
+        self.run(
+            L2tpMessage {
+                cmd: L2tpCmd::SessionDelete,
+                attributes: vec![
+                    L2tpAttribute::ConnId(tunnel_id),
+                    L2tpAttribute::SessionId(session_id),
+                ],
+            },
+            false,
+            deadline,
+            &mut |_| Ok(()),
         )
     }
 
@@ -379,6 +405,80 @@ mod tests {
     use netlink_packet_core::Emitable;
 
     use super::*;
+
+    // kernel: net/l2tp/l2tp_netlink.c:584-600,913-920 (K35)
+    /// spec: K35, S28, O5, S16
+    #[test]
+    #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
+    fn every_foreign_cookie_length_is_read_without_relaxing_configuration() {
+        use netlink_packet_core::{Emitable, NetlinkSerializable, Nla};
+        use std::os::fd::AsRawFd;
+        #[derive(Debug)]
+        struct Foreign(u16, Vec<u8>);
+        impl NetlinkSerializable for Foreign {
+            // kernel: include/uapi/linux/netlink.h nlmsg_type (K35)
+            fn message_type(&self) -> u16 {
+                self.0
+            }
+            // kernel: include/uapi/linux/netlink.h nlmsg_len (K35)
+            fn buffer_len(&self) -> usize {
+                self.1.len()
+            }
+            // kernel: net/l2tp/l2tp_netlink.c cookie length policy (K35)
+            fn serialize(&self, buffer: &mut [u8]) {
+                buffer.copy_from_slice(&self.1);
+            }
+        }
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let tunnel =
+            super::super::socket::Tunnel::create(crate::kernel::Family::V6, 9361, 9362).unwrap();
+        let mut genl = Genl::new().unwrap();
+        genl.register_tunnel(tunnel.socket.as_raw_fd(), 9361, 9362)
+            .unwrap();
+        for len in 0..=8 {
+            let name = crate::kernel::L2tpIfName::new(format!("foreign-{len}").as_bytes()).unwrap();
+            let message = L2tpMessage {
+                cmd: L2tpCmd::SessionCreate,
+                attributes: vec![
+                    L2tpAttribute::ConnId(9361),
+                    L2tpAttribute::SessionId(93610 + len),
+                    L2tpAttribute::PeerSessionId(93610 + len),
+                    L2tpAttribute::PwType(L2tpPwType::Eth),
+                    L2tpAttribute::L2SpecType(L2SPEC_NONE),
+                    L2tpAttribute::IfName(name),
+                ],
+            };
+            let mut body = vec![0; message.buffer_len()];
+            message.emit(&mut body);
+            // Fixture-only foreign input: the daemon never emits odd cookies.
+            for (kind, byte) in [
+                (L2tpAttribute::Cookie(Vec::new()).kind(), 0x5a),
+                (L2tpAttribute::PeerCookie(Vec::new()).kind(), 0xa5),
+            ] {
+                let size = 4 + len as usize;
+                body.extend((size as u16).to_ne_bytes());
+                body.extend(kind.to_ne_bytes());
+                body.extend(vec![byte; len as usize]);
+                body.resize(body.len().next_multiple_of(4), 0);
+            }
+            let mut bytes = vec![L2tpCmd::SessionCreate.into(), 1, 0, 0];
+            bytes.extend(body);
+            let family = genl.family(Instant::now() + DEADLINE).unwrap().0;
+            genl.request
+                .run(
+                    Foreign(family, bytes),
+                    false,
+                    Instant::now() + DEADLINE,
+                    &mut |_, _| Ok(()),
+                )
+                .unwrap();
+            let session = genl.session(9361, 93610 + len).unwrap().unwrap();
+            assert_eq!(session.cookies().is_ok(), matches!(len, 0 | 4 | 8));
+            let debug = format!("{session:?}");
+            assert!(!debug.contains("90, 90") && !debug.contains("165, 165"));
+            genl.delete_session(9361, 93610 + len).unwrap();
+        }
+    }
 
     // kernel: net/netlink/genetlink.c genlmsg_put (K41)
     fn payload(cmd: L2tpCmd, attributes: Vec<L2tpAttribute>) -> Vec<u8> {

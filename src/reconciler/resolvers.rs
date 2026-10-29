@@ -6,10 +6,10 @@
 //! The lookups run behind [`Resolve`], on threads of their own (A9);
 //! [`IphostResolve`] is the real one, over `iphost`.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io;
 use std::net::{IpAddr, SocketAddr, SocketAddrV6};
-use std::sync::mpsc;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crate::config::{
@@ -21,8 +21,6 @@ use super::{Reconciler, report};
 
 /// The resolver host-defect and device retry (V9, V12, M14).
 const DEVICE_RETRY: Duration = Duration::from_secs(30);
-/// The refresh period after the previous lookup returned (V4).
-const REFRESH: Duration = Duration::from_secs(30);
 
 /// The DHCPv6 client identifier, with the device's address already read
 /// (V12).
@@ -95,6 +93,16 @@ pub trait Resolve: Send {
     /// The addresses returned since the last poll, per lookup id, in the
     /// resolver's order.
     fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)>;
+    /// Whether discovery started only partially and should be retried
+    /// after thirty seconds (V12, V14). Existing answers stay in force.
+    fn retry_discovery(&self, _id: u64) -> bool {
+        false
+    }
+    /// Whether this current lookup is waiting for its process-wide worker
+    /// budget (V15). The reconciler reports one episode per entry.
+    fn waiting(&self, _id: u64) -> bool {
+        false
+    }
 }
 
 /// The answers of one tunnel (V5–V7).
@@ -105,6 +113,7 @@ struct Watch {
     key: (String, Family, Option<String>, Option<ResolverConfig>),
     /// The resolver as started, `None` while its devices do not allow it.
     started: Option<ResolverSpec>,
+    dependencies: Vec<(L2tpIfName, u32)>,
     selected: Option<IpAddr>,
     retry_at: Option<Instant>,
 }
@@ -113,6 +122,8 @@ pub(crate) struct Resolvers {
     resolve: Box<dyn Resolve>,
     next_id: u64,
     watches: BTreeMap<u32, Watch>,
+    names: BTreeMap<L2tpIfName, BTreeSet<u32>>,
+    devices: BTreeMap<u32, BTreeSet<u32>>,
 }
 
 fn key(
@@ -133,12 +144,15 @@ impl Resolvers {
             resolve,
             next_id: 1,
             watches: BTreeMap::new(),
+            names: BTreeMap::new(),
+            devices: BTreeMap::new(),
         }
     }
 
     /// Discards the answers whose host name, family, resolver or resolver
     /// configuration changed (V7).
-    pub fn reload(&mut self, _old: &Config, new: &Config) {
+    pub fn reload(&mut self, _old: &Config, new: &Config) -> Vec<u32> {
+        let mut changed = Vec::new();
         let ids: Vec<u32> = self.watches.keys().copied().collect();
         for id in ids {
             let still = new
@@ -148,13 +162,50 @@ impl Resolvers {
                 .and_then(|t| key(new, t));
             if still.as_ref() != Some(&self.watches[&id].key) {
                 self.forget(id);
+                changed.push(id);
             }
         }
+        changed
     }
 
     pub fn forget(&mut self, tunnel_id: u32) {
+        self.unindex(tunnel_id);
         if let Some(watch) = self.watches.remove(&tunnel_id) {
             self.resolve.unwatch(watch.id);
+        }
+    }
+
+    fn index(&mut self, id: u32) {
+        let watch = &self.watches[&id];
+        if let Some(config) = &watch.key.3 {
+            for name in config
+                .bind_interface()
+                .into_iter()
+                .chain(config.addresses().iter().filter_map(|a| a.zone()))
+            {
+                self.names.entry(*name).or_default().insert(id);
+            }
+        }
+        for (_, device) in &watch.dependencies {
+            self.devices.entry(*device).or_default().insert(id);
+        }
+    }
+
+    fn unindex(&mut self, id: u32) {
+        let Some(watch) = self.watches.get(&id) else {
+            return;
+        };
+        if let Some(config) = &watch.key.3 {
+            for name in config
+                .bind_interface()
+                .into_iter()
+                .chain(config.addresses().iter().filter_map(|a| a.zone()))
+            {
+                super::events::remove(&mut self.names, *name, id);
+            }
+        }
+        for (_, device) in &watch.dependencies {
+            super::events::remove(&mut self.devices, *device, id);
         }
     }
 
@@ -195,7 +246,7 @@ pub(crate) fn select(
         }
     };
     previous
-        .filter(|p| answer.contains(p))
+        .filter(|p| answer.contains(p) && usable(p))
         .or_else(|| answer.iter().copied().find(usable))
 }
 
@@ -219,19 +270,38 @@ impl<K: Kernel> Reconciler<K> {
                 id: *next_id,
                 key: key.clone(),
                 started: None,
+                dependencies: Vec::new(),
                 selected: None,
                 retry_at: None,
             }
         });
-        if watch.started.is_some() || watch.retry_at.is_some_and(|t| t > now) {
+        let skip = watch.retry_at.is_some_and(|t| t > now)
+            || (watch.started.is_some() && watch.retry_at.is_none());
+        let (host, mut id) = (watch.key.0.clone(), watch.id);
+        self.resolvers.index(tunnel_id);
+        if skip {
             return;
         }
-        let (host, id) = (watch.key.0.clone(), watch.id);
+        self.resolvers.unindex(tunnel_id);
         let spec = match &key.3 {
-            None => Ok(ResolverSpec::System),
-            Some(config) => self.resolver_spec(config),
+            None => Ok((ResolverSpec::System, Vec::new())),
+            Some(config) => self.resolver_dependencies(config).and_then(|dependencies| {
+                self.resolver_spec(config).map(|spec| (spec, dependencies))
+            }),
         };
-        let started = spec.and_then(|spec| {
+        let started = spec.and_then(|(spec, dependencies)| {
+            if self.resolvers.watches[&tunnel_id].started.as_ref() == Some(&spec)
+                && self.resolvers.watches[&tunnel_id].dependencies == dependencies
+                && !self.resolvers.resolve.retry_discovery(id)
+            {
+                return Ok((spec, dependencies));
+            }
+            self.resolvers.resolve.unwatch(id);
+            if self.resolvers.watches[&tunnel_id].started.is_some() {
+                self.resolvers.next_id += 1;
+                id = self.resolvers.next_id;
+                self.resolvers.watches.get_mut(&tunnel_id).unwrap().id = id;
+            }
             self.resolvers
                 .resolve
                 .watch(Lookup {
@@ -239,24 +309,66 @@ impl<K: Kernel> Reconciler<K> {
                     host,
                     resolver: spec.clone(),
                 })
-                .map(|()| spec)
+                .map(|()| (spec, dependencies))
                 .map_err(|e| report::describe(&e))
         });
         let watch = self.resolvers.watches.get_mut(&tunnel_id).unwrap();
         match started {
-            Ok(spec) => {
+            Ok((spec, dependencies)) => {
+                // A missing default DUID temporarily uses RA, but must
+                // retry the Ethernet-address read (V12).
+                let partial = matches!(spec, ResolverSpec::Ra { .. })
+                    && key
+                        .3
+                        .as_ref()
+                        .is_some_and(|r| r.method() == Some(Method::Ipv6))
+                    || self.resolvers.resolve.retry_discovery(watch.id);
                 watch.started = Some(spec);
-                watch.retry_at = None;
+                watch.dependencies = dependencies;
+                watch.retry_at = partial.then_some(now + DEVICE_RETRY);
+                if watch.selected.is_none() {
+                    self.report.begin(&label, "answer", || {
+                        "waiting for its resolver's first usable answer (V8)".into()
+                    });
+                }
                 self.report
                     .end(&label, "resolver", || "its resolver started".into());
             }
             Err(why) => {
+                if watch.started.take().is_some() {
+                    self.resolvers.resolve.unwatch(watch.id);
+                    self.resolvers.next_id += 1;
+                    watch.id = self.resolvers.next_id;
+                }
+                watch.dependencies.clear();
                 watch.retry_at = Some(now + DEVICE_RETRY);
                 self.report.begin(&label, "resolver", || {
                     format!("its resolver waits: {why} (V9, V12)")
                 });
             }
         }
+        self.resolvers.index(tunnel_id);
+    }
+
+    fn resolver_dependencies(
+        &mut self,
+        config: &ResolverConfig,
+    ) -> Result<Vec<(L2tpIfName, u32)>, String> {
+        let names: std::collections::BTreeSet<_> = config
+            .bind_interface()
+            .into_iter()
+            .chain(config.addresses().iter().filter_map(|a| a.zone()))
+            .copied()
+            .collect();
+        names
+            .into_iter()
+            .map(|name| match self.k.link_by_name(&name) {
+                Ok(Some(link)) if !link.vrf => Ok((name, link.index)),
+                Ok(Some(_)) => Err(format!("{} is a VRF, not a link", name.to_string_lossy())),
+                Ok(None) => Err(format!("{} does not exist", name.to_string_lossy())),
+                Err(error) => Err(report::describe(&error)),
+            })
+            .collect()
     }
 
     /// The resolver as `iphost` gets it, its devices checked now (V9, V12).
@@ -337,6 +449,19 @@ impl<K: Kernel> Reconciler<K> {
     /// Takes the answers that arrived (V4–V6) and reconnects the tunnels
     /// whose selected address changed (E10, T15).
     pub(super) fn poll_answers(&mut self) {
+        for (tid, watch) in &self.resolvers.watches {
+            let Some(tunnel) = self.tunnels.get(tid) else {
+                continue;
+            };
+            let label = report::tunnel(&tunnel.name, *tid);
+            if self.resolvers.resolve.waiting(watch.id) {
+                self.report.begin(&label, "worker", || "resolver waits for a process-wide worker; obsolete calls keep their permits (V15)".into());
+            } else {
+                self.report.end(&label, "worker", || {
+                    "resolver worker capacity is available again".into()
+                });
+            }
+        }
         for (id, answer) in self.resolvers.resolve.poll() {
             // A result of an earlier incarnation is ignored (V7, E10).
             let Some((&tunnel_id, watch)) =
@@ -353,13 +478,22 @@ impl<K: Kernel> Reconciler<K> {
                 .get(&tunnel_id)
                 .map_or(String::new(), |t| report::tunnel(&t.name, tunnel_id));
             let family = watch.key.1;
+            if answer
+                .iter()
+                .any(|address| select(None, std::slice::from_ref(address), family, bound).is_none())
+            {
+                log::warn!(
+                    "{label}: the answer contains unusable addresses of {family}; skipped (V5)"
+                );
+            }
             // A negative or failed answer keeps the one in force (V6).
             let Some(selected) = select(watch.selected, &answer, family, bound) else {
-                if !answer.is_empty() {
-                    log::warn!("{label}: the answer holds no usable address of {family}");
-                }
+                self.report.begin(&label, "answer", || format!("resolver returned no usable address of {family}; keeping the previous answer (V6)"));
                 continue;
             };
+            self.report.end(&label, "answer", || {
+                "resolver answers are usable again".into()
+            });
             if watch.selected != Some(selected) {
                 watch.selected = Some(selected);
                 log::info!("{label}: {} resolves to {selected}", watch.key.0);
@@ -372,20 +506,28 @@ impl<K: Kernel> Reconciler<K> {
 
     /// A device a resolver depends on appeared, disappeared or changed:
     /// restart its lookups after validating it again (V9, V13, E1, E3).
-    pub(super) fn resolver_device_changed(&mut self, name: &L2tpIfName) {
-        let affected: Vec<u32> = self
+    pub(super) fn resolver_device_changed(&mut self, name: &L2tpIfName, index: Option<u32>) {
+        let affected: BTreeSet<_> = self
             .resolvers
-            .watches
-            .iter()
-            .filter(|(_, w)| {
-                w.key.3.as_ref().is_some_and(|r| {
-                    r.bind_interface() == Some(name)
-                        || r.addresses().iter().any(|s| s.zone() == Some(name))
-                })
-            })
-            .map(|(id, _)| *id)
+            .names
+            .get(name)
+            .into_iter()
+            .flatten()
+            .chain(
+                index
+                    .into_iter()
+                    .flat_map(|index| self.resolvers.devices.get(&index).into_iter().flatten()),
+            )
+            .copied()
             .collect();
         for tunnel_id in affected {
+            let config = self.resolvers.watches[&tunnel_id].key.3.clone().unwrap();
+            if self.resolvers.watches[&tunnel_id].started.is_some()
+                && self.resolver_dependencies(&config).ok().as_ref()
+                    == Some(&self.resolvers.watches[&tunnel_id].dependencies)
+            {
+                continue;
+            }
             let watch = self.resolvers.watches.get_mut(&tunnel_id).unwrap();
             // Answers in force are kept; only the lookups restart.
             if watch.started.take().is_some() {
@@ -409,38 +551,30 @@ impl<K: Kernel> Reconciler<K> {
             .map(|(id, _)| *id)
             .collect();
         for id in due {
-            self.resolvers.watches.get_mut(&id).unwrap().retry_at = None;
             self.ensure_lookup(id);
         }
     }
 }
 
-/// A lookup's id and the addresses it returned.
-type Answer = (u64, Vec<IpAddr>);
-
-/// [`Resolve`] over `iphost`: one refresh thread per lookup, a lookup now
-/// and thirty seconds after each one returned (V4, V15).
+/// [`Resolve`] over `iphost`, using separate process-wide worker budgets
+/// for libc and configured DNS (V3, V4, V15).
+#[derive(Default)]
 pub struct IphostResolve {
-    results: (mpsc::Sender<Answer>, mpsc::Receiver<Answer>),
-    stops: BTreeMap<u64, mpsc::Sender<()>>,
-    // Discovery resolvers own sockets and threads: one per spec, shared
-    // by the host names that use it (V15).
-    shared: Vec<(ResolverSpec, iphost::Resolver)>,
-}
-
-impl Default for IphostResolve {
-    fn default() -> Self {
-        IphostResolve {
-            results: mpsc::channel(),
-            stops: BTreeMap::new(),
-            shared: Vec::new(),
-        }
-    }
+    workers: Option<super::workers::Owner>,
+    watches: BTreeMap<u64, (Lookup, iphost::Resolver, u64)>,
 }
 
 impl IphostResolve {
+    fn partial(resolver: &iphost::Resolver) -> bool {
+        matches!(resolver, iphost::Resolver::Ipv6(config) if config.dhcpv6().is_none() || config.ra().is_none())
+    }
+
     fn resolver(&mut self, spec: &ResolverSpec) -> io::Result<iphost::Resolver> {
-        if let Some((_, r)) = self.shared.iter().find(|(s, _)| s == spec) {
+        if let Some((_, r, _)) = self
+            .watches
+            .values()
+            .find(|(l, r, _)| &l.resolver == spec && !Self::partial(r))
+        {
             return Ok(r.clone());
         }
         let client = |id: &ClientId| match id {
@@ -478,48 +612,95 @@ impl IphostResolve {
                     .with_failure_fallback(true),
             ),
         };
-        self.shared.push((spec.clone(), resolver.clone()));
         Ok(resolver)
     }
 }
 
 impl Resolve for IphostResolve {
     fn watch(&mut self, lookup: Lookup) -> io::Result<()> {
+        self.unwatch(lookup.id);
         let host: iphost::IpHost = lookup
             .host
             .parse()
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "not a host name"))?;
         let resolver = self.resolver(&lookup.resolver)?;
-        let (stop, stopped) = mpsc::channel();
-        let results = self.results.0.clone();
-        let id = lookup.id;
-        std::thread::Builder::new()
-            .name("rs-l2tpd-lookup".into())
-            .spawn(move || {
-                let lookups = iphost::IpHostResolver::new_with_config(host, false, false)
-                    .with_resolver(resolver);
-                loop {
-                    if results.send((id, lookups.resolve())).is_err() {
-                        return;
-                    }
-                    match stopped.recv_timeout(REFRESH) {
-                        Err(mpsc::RecvTimeoutError::Timeout) => {}
-                        _ => return,
-                    }
-                }
-            })?;
-        self.stops.insert(id, stop);
+        if self.workers.is_none() {
+            self.workers = Some(super::workers::Owner::new()?);
+        }
+        let workers = self.workers.as_ref().unwrap();
+        let job = self
+            .watches
+            .values()
+            .find(|(l, _, _)| l.host == lookup.host && l.resolver == lookup.resolver)
+            .map(|(_, _, job)| *job)
+            .unwrap_or_else(|| {
+                let resolver = resolver.clone();
+                workers.watch(
+                    lookup.resolver != ResolverSpec::System,
+                    Arc::new(move || {
+                        iphost::IpHostResolver::new_with_config(host.clone(), false, false)
+                            .with_resolver(resolver.clone())
+                            .resolve()
+                    }),
+                )
+            });
+        self.watches.insert(lookup.id, (lookup, resolver, job));
         Ok(())
     }
 
-    // shortcut: a discovery resolver, once created, stays until the
-    // process ends; drop unused ones when frequent resolver reloads matter.
     fn unwatch(&mut self, id: u64) {
-        // Dropping the sender stops the refresh thread.
-        self.stops.remove(&id);
+        if let Some((_, _, job)) = self.watches.remove(&id)
+            && !self.watches.values().any(|(_, _, other)| *other == job)
+        {
+            self.workers.as_ref().unwrap().unwatch(job);
+        }
+        if self.watches.is_empty() {
+            self.workers = None;
+        }
     }
 
     fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
-        self.results.1.try_iter().collect()
+        let mut results = BTreeMap::new();
+        if let Some(workers) = &self.workers {
+            for (_, _, job) in self.watches.values() {
+                results.entry(*job).or_insert_with(|| workers.poll(*job));
+            }
+        }
+        self.watches
+            .iter()
+            .filter_map(|(id, (_, _, job))| {
+                results
+                    .get(job)?
+                    .as_ref()
+                    .map(|answer| (*id, answer.clone()))
+            })
+            .collect()
+    }
+
+    fn retry_discovery(&self, id: u64) -> bool {
+        self.watches
+            .get(&id)
+            .is_some_and(|(_, resolver, _)| Self::partial(resolver))
+    }
+    fn waiting(&self, id: u64) -> bool {
+        self.watches.get(&id).is_some_and(|(_, _, job)| {
+            self.workers
+                .as_ref()
+                .is_some_and(|workers| workers.waiting(*job))
+        })
     }
 }
+
+impl Drop for IphostResolve {
+    fn drop(&mut self) {
+        if let Some(workers) = &self.workers {
+            for (_, _, job) in self.watches.values() {
+                workers.unwatch(*job);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "resolvers_tests.rs"]
+mod tests;

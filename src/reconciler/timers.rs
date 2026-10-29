@@ -12,12 +12,11 @@ impl<K: Kernel> Reconciler<K> {
     /// When the next timer is due, `None` while nothing waits (M15).
     pub fn next_deadline(&self) -> Option<Instant> {
         let now = self.k.now();
-        let every_second =
-            (self.resolvers.any() || self.l2tp_pending || self.sessions.values().any(|s| s.verify))
-                .then_some(now + RETRY);
         [
             self.reconcile_at,
-            every_second,
+            self.tunable_pending.map(|(_, deadline)| deadline),
+            self.store.next_deadline(now),
+            self.tick_at,
             self.resolvers.next_deadline(),
             self.tunnels.values().filter_map(|t| t.retry_at).min(),
             self.conflicts
@@ -38,6 +37,19 @@ impl<K: Kernel> Reconciler<K> {
     /// verifications of E20 and E27.
     pub fn tick(&mut self) {
         let now = self.k.now();
+        if self.tick_at.is_some_and(|deadline| now >= deadline) {
+            self.tick_at = None;
+        }
+        self.retire_sockets();
+        if self
+            .tunable_pending
+            .is_some_and(|(_, deadline)| now >= deadline)
+        {
+            self.tunable_pending = None;
+            self.tunable = Some(false);
+            log::warn!("bindv6only write timed out; using the socket family fallback (T26)");
+            self.reconcile_at = Some(now);
+        }
         self.poll_answers();
         self.retry_resolvers();
         let left_out_due = self.conflicts.values().any(|c| c.left_out && c.next <= now);
@@ -45,7 +57,7 @@ impl<K: Kernel> Reconciler<K> {
         if self.reconcile_at.is_some_and(|t| t <= now) || left_out_due || departed_due {
             self.reconcile_at = None;
             let config = self.accepted.clone();
-            self.reconcile(config);
+            self.reconcile_current(config);
         }
         let due: Vec<u32> = self
             .tunnels
@@ -68,6 +80,32 @@ impl<K: Kernel> Reconciler<K> {
         }
         if self.l2tp_pending {
             self.l2tp_resync();
+        }
+        if self.monitor_pending {
+            self.monitor_resync();
+        }
+        let verify: Vec<_> = self
+            .tunnels
+            .iter()
+            .filter(|(_, t)| t.verify)
+            .map(|(id, _)| *id)
+            .collect();
+        for id in verify {
+            self.tunnel_announced(id);
+        }
+        self.arm_tick();
+    }
+
+    pub(super) fn arm_tick(&mut self) {
+        if self.resolvers.any()
+            || self.l2tp_pending
+            || self.monitor_pending
+            || self.sessions.values().any(|s| s.verify)
+            || self.tunnels.values().any(|t| t.verify)
+        {
+            self.tick_at.get_or_insert(self.k.now() + RETRY);
+        } else {
+            self.tick_at = None;
         }
     }
 }

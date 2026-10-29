@@ -73,6 +73,7 @@ impl<K: Kernel> Reconciler<K> {
     /// Forgets a session record; its creation name stays reserved until
     /// the session is confirmed gone (S4).
     pub(super) fn forget_session(&mut self, sid: u32) {
+        self.unindex_session(sid);
         let label = self.session_label(sid);
         let record = self.sessions.remove(&sid).unwrap();
         if let Some(registration) = record.state.registration() {
@@ -143,7 +144,7 @@ impl<K: Kernel> Reconciler<K> {
                 self.report.begin(&label, "ambiguous", || {
                     "cannot be deleted safely: its stored name is ambiguous or does not match; left alone (S22)".into()
                 });
-                true
+                false
             }
             Err(e) => {
                 log::debug!("{label}: session dump failed: {}", report::describe(&e));
@@ -173,6 +174,10 @@ impl<K: Kernel> Reconciler<K> {
                 continue;
             }
             let sid = config.session_id();
+            if self.reserved.values().any(|(_, old_sid)| *old_sid == sid) {
+                self.incomplete = true;
+                continue;
+            }
             let conflict = ConflictIdentity::Session(identity);
             if !self.may_try(true, sid, conflict) {
                 continue;
@@ -190,6 +195,9 @@ impl<K: Kernel> Reconciler<K> {
                     });
                 }
             }
+        }
+        if self.incomplete {
+            self.reconcile_at.get_or_insert(self.k.now() + super::RETRY);
         }
     }
 
@@ -245,12 +253,17 @@ impl<K: Kernel> Reconciler<K> {
                     created_as: Some(temp),
                     current_name: Some(temp),
                     name_state: Enforce::Pending,
-                    hwaddr: config.interface_hwaddr(),
-                    hwaddr_state: Enforce::Pending,
+                    hwaddr: config.interface_hwaddr().or(kernel_hwaddr),
+                    hwaddr_state: if config.interface_hwaddr().is_some() {
+                        Enforce::Pending
+                    } else {
+                        Enforce::Applied
+                    },
                     kernel_hwaddr,
                     verify: false,
                 },
             );
+            self.index_session(config.session_id());
             log::info!(
                 "{}: created as {}",
                 report::session(name, tid, config.session_id()),
@@ -272,6 +285,10 @@ impl<K: Kernel> Reconciler<K> {
                 continue;
             };
             let record = self.sessions.get_mut(&sid).unwrap();
+            if record.name != name || record.config != config {
+                self.report
+                    .forget(&report::session(&record.name, record.tunnel_id, sid));
+            }
             if record.config.interface_name() != config.interface_name() {
                 record.name_state = Enforce::Pending;
             }
@@ -287,6 +304,32 @@ impl<K: Kernel> Reconciler<K> {
     /// Renames to temporary names the published devices whose name another
     /// owned device is about to take, so that no rename collides (S11, M6).
     pub(super) fn clear_swaps(&mut self) {
+        // Drain acyclic rename dependencies first; only cycles need a
+        // temporary name (S11).
+        loop {
+            let movable =
+                self.sessions
+                    .iter()
+                    .find(|(_, r)| {
+                        r.name_state == Enforce::Pending
+                            && matches!(r.state, Identity::Proved(_))
+                            && r.current_name != Some(*r.config.interface_name())
+                            && !self.sessions.values().any(|holder| {
+                                holder.current_name == Some(*r.config.interface_name())
+                            })
+                    })
+                    .map(|(sid, _)| *sid);
+            let Some(sid) = movable else { break };
+            let before = self.sessions[&sid].current_name;
+            self.converge_session(sid);
+            if self
+                .sessions
+                .get(&sid)
+                .is_some_and(|r| r.current_name == before)
+            {
+                break;
+            }
+        }
         let targets: Vec<(u32, L2tpIfName)> = self
             .sessions
             .iter()
@@ -361,6 +404,9 @@ impl<K: Kernel> Reconciler<K> {
             }
         }
         let mut done = self.apply_hwaddr(sid, registration.index);
+        if !done {
+            return false;
+        }
         let record = &self.sessions[&sid];
         if record.name_state == Enforce::Pending {
             let target = *record.config.interface_name();
@@ -370,6 +416,18 @@ impl<K: Kernel> Reconciler<K> {
                 record.name_state = Enforce::Applied;
                 record.state = Identity::Proved(registration);
             } else {
+                match self.k.prove(&registration) {
+                    Proof::Proved => {}
+                    Proof::Removed => return self.observed_removal(sid),
+                    Proof::Lost => {
+                        self.sessions.get_mut(&sid).unwrap().state = Identity::Lost { staged };
+                        return if staged {
+                            self.restage(sid)
+                        } else {
+                            self.skip_unmanageable_then(sid)
+                        };
+                    }
+                }
                 match self.k.rename(registration.index, &target) {
                     Ok(()) => {
                         let record = self.sessions.get_mut(&sid).unwrap();
@@ -451,11 +509,9 @@ impl<K: Kernel> Reconciler<K> {
 
     /// A staged session whose identity was lost: removed through the
     /// kernel's record and created again (S23).
-    // shortcut: no re-identification at the broadcast's index first (S23),
-    // because the trait offers no proof in the new generation; upgrade
-    // when Kernel can prove an index anew.
     fn restage(&mut self, sid: u32) -> bool {
-        if self.delete_verified(sid) {
+        let tid = self.sessions[&sid].tunnel_id;
+        if self.delete_verified(sid) && matches!(self.k.session(tid, sid), Ok(None)) {
             self.forget_session(sid);
         }
         self.incomplete = true;
@@ -504,6 +560,15 @@ impl<K: Kernel> Reconciler<K> {
     /// hardware address once it is down (E2, E4, S10, S12).
     pub(super) fn session_device_changed(&mut self, sid: u32, name: L2tpIfName, up: bool) {
         let label = self.session_label(sid);
+        let record = &self.sessions[&sid];
+        if record.hwaddr_state == Enforce::Applied
+            && let Some(registration) = record.state.registration()
+            && self.k.prove(registration) == Proof::Proved
+            && let Ok(Some(address)) = self.k.ether_addr(registration.index)
+            && record.hwaddr != Some(address)
+        {
+            self.sessions.get_mut(&sid).unwrap().hwaddr_state = Enforce::Overridden;
+        }
         let record = self.sessions.get_mut(&sid).unwrap();
         if record.current_name != Some(name) {
             if record.name_state == Enforce::Applied && matches!(record.state, Identity::Proved(_))

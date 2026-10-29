@@ -7,7 +7,9 @@
 //! that first polls it: the trait creates and polls on different threads.
 
 use std::collections::VecDeque;
+use std::future::Future;
 use std::io;
+use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use netlink_sys::Socket;
@@ -34,6 +36,7 @@ pub(super) struct Feed {
     pending: VecDeque<Notice>,
     decode: Decode,
     reopen: Reopen,
+    retry: Option<Pin<Box<tokio::time::Sleep>>>,
 }
 
 impl Feed {
@@ -45,6 +48,7 @@ impl Feed {
             pending: VecDeque::new(),
             decode,
             reopen,
+            retry: None,
         }
     }
 
@@ -53,7 +57,13 @@ impl Feed {
     /// Queues the notices of one datagram; a broken one is a loss.
     fn receive(&mut self, datagram: &[u8]) {
         match messages(datagram) {
-            Ok(msgs) => self.pending.extend(msgs.iter().filter_map(&self.decode)),
+            Ok(msgs) => self.pending.extend(msgs.iter().filter_map(|msg| {
+                if msg.kind == netlink_packet_core::NLMSG_OVERRUN {
+                    Some(Notice::Loss)
+                } else {
+                    (self.decode)(msg)
+                }
+            })),
             Err(_) => self.pending.push_back(Notice::Loss),
         }
     }
@@ -67,14 +77,20 @@ impl Subscription for Feed {
             if let Some(notice) = self.pending.pop_front() {
                 return Poll::Ready(notice);
             }
+            if let Some(retry) = &mut self.retry {
+                if retry.as_mut().poll(cx).is_pending() {
+                    return Poll::Pending;
+                }
+                self.retry = None;
+            }
             let Some(fd) = &self.registered else {
                 let socket = match self.opened.take().map_or_else(&mut self.reopen, Ok) {
                     Ok(socket) => socket,
                     Err(error) => {
-                        // shortcut: retried at every poll; pace it with a timer if
-                        // reopening ever fails for long (descriptor exhaustion).
                         log::warn!("netlink subscription cannot be reopened: {error}");
-                        cx.waker().wake_by_ref();
+                        self.retry = Some(Box::pin(tokio::time::sleep(
+                            std::time::Duration::from_secs(1),
+                        )));
                         return Poll::Ready(Notice::Loss);
                     }
                 };
@@ -86,7 +102,9 @@ impl Subscription for Feed {
                     Ok(fd) => self.registered = Some(fd),
                     Err(error) => {
                         log::warn!("netlink subscription cannot be registered: {error}");
-                        cx.waker().wake_by_ref();
+                        self.retry = Some(Box::pin(tokio::time::sleep(
+                            std::time::Duration::from_secs(1),
+                        )));
                         return Poll::Ready(Notice::Loss);
                     }
                 }
@@ -165,4 +183,64 @@ fn decode(msg: &Msg<'_>) -> Option<Notice> {
 /// Opens the event monitor (A5).
 pub(super) fn monitor() -> io::Result<Feed> {
     Ok(Feed::new(socket()?, Box::new(decode), Box::new(socket)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // kernel: net/netlink/af_netlink.c netlink_sendmsg, netlink_recvmsg
+    // (K29, K30); the userspace sender's address must be checked (E22)
+    /// spec: E22, K30
+    #[test]
+    #[ignore = "isolated network namespace with CAP_NET_ADMIN"]
+    fn a_live_feed_ignores_a_forged_notification_before_a_real_one() {
+        use netlink_packet_core::{NetlinkHeader, NetlinkMessage, NetlinkPayload};
+        use netlink_packet_route::{
+            RouteNetlinkMessage,
+            link::{LinkAttribute, LinkMessage},
+        };
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let mut feed = monitor().unwrap();
+        let mut address = netlink_sys::SocketAddr::new(0, 0);
+        feed.opened
+            .as_ref()
+            .unwrap()
+            .get_address(&mut address)
+            .unwrap();
+        let sender = super::super::request::open(NETLINK_ROUTE).unwrap();
+        let mut link = LinkMessage::default();
+        link.header.index = 999;
+        link.attributes.push(LinkAttribute::IfName("forged".into()));
+        let mut message = NetlinkMessage::new(
+            NetlinkHeader::default(),
+            NetlinkPayload::InnerMessage(RouteNetlinkMessage::NewLink(link)),
+        );
+        message.finalize();
+        let mut bytes = vec![0; message.buffer_len()];
+        message.serialize(&mut bytes);
+        sender.send_to(&bytes, &address, 0).unwrap();
+        let output = std::process::Command::new("ip")
+            .args(["link", "add", "name", "actual", "type", "dummy"])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let notice = runtime.block_on(async {
+            tokio::time::timeout(
+                std::time::Duration::from_secs(2),
+                std::future::poll_fn(|cx| feed.poll_notice(cx)),
+            )
+            .await
+            .unwrap()
+        });
+        assert!(matches!(notice, Notice::LinkNew(link) if link.name.to_string_lossy() == "actual"));
+    }
 }

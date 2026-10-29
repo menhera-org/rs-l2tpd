@@ -1,0 +1,69 @@
+   Compiling libc v0.2.191
+   Compiling pin-project-lite v0.2.17
+   Compiling punycode v0.4.1
+   Compiling tokio v1.54.1
+   Compiling fqdn v0.5.2
+   Compiling socket2 v0.6.5
+   Compiling iphost v0.4.1 (/tmp/rs-l2tpd-phase23-iphost)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.20s
+     Running unittests src/lib.rs (/tmp/rs-l2tpd-phase23-iphost-target/x86_64-unknown-linux-musl/debug/deps/iphost-fa896183b6ec63f7)
+
+running 56 tests
+test custom::tests::builds_query ... ok
+test custom::tests::definitive_answers_never_consult_second_source ... ok
+test custom::tests::no_nameservers ... ok
+test custom::tests::fallback_result_for_obsolete_configuration_is_discarded ... ok
+test custom::tests::failure_beside_nodata_is_not_an_error ... ok
+test custom::tests::failed_family_is_marked ... ok
+test custom::tests::parses_answers ... ok
+test custom::tests::failed_family_cache_not_returned_without_use_cached_on_error ... ok
+test custom::tests::rcodes ... ok
+test custom::tests::rejects_malformed ... ok
+test custom::tests::rejects_mismatches ... ok
+test custom::tests::failing_server_is_skipped ... ok
+test custom::tests::scope_only_for_link_local ... ok
+test custom::tests::missing_interface_is_a_failure_not_a_dns_negative ... ok
+test custom::tests::source_failures_exhaust_retries_before_fallback ... ok
+test custom::tests::failed_family_keeps_cache ... ok
+test custom::tests::time_bound ... ok
+test custom::tests::lookup_via_udp ... ok
+test custom::tests::fallback_uses_real_udp_and_tcp_transport ... ok
+test custom::tests::source_fallback_is_per_family_and_retries_primary_next_time ... ok
+test dhcpv6::tests::arrival_interface ... ok
+test dhcpv6::tests::builds_information_request ... ok
+test dhcpv6::tests::checks_reply_client_id ... ok
+test dhcpv6::tests::jitter_bounds ... ok
+test dhcpv6::tests::parses_reply ... ok
+test dhcpv6::tests::rejects_bad_raw_duid_lengths ... ok
+test dhcpv6::tests::rejects_failures_and_garbage ... ok
+test custom::tests::truncation_falls_back_to_tcp ... ok
+test duid::tests::client_ids ... ok
+test duid::tests::validates_raw_lengths ... ok
+test ipv6::tests::discovery_waits_once_and_snapshots_both_sources ... ok
+test custom::tests::virtual_time_bounds_for_two_sources_and_partial_families ... ok
+test ipv6::tests::policy_clones_and_bounds ... ok
+test ipv6::tests::selection_and_interface_are_preserved_for_both_sources ... ok
+test ipv6::tests::unavailable_or_empty_source ... ok
+test ra::tests::clones_share_repository ... ok
+test ra::tests::delayed_netlink_options_and_interleaved_routers_match_raw_lifetimes ... ok
+test ra::tests::delayed_updates_preserve_servers ... ok
+test ra::tests::capacity_and_eviction_order ... ok
+test ra::tests::empty_and_malformed_ra_do_not_change_repository ... ok
+test ra::tests::filter_passes_only_ra ... ok
+test ra::tests::lifetimes ... ok
+test ra::tests::new_ra_preserves_omitted_servers ... ok
+test ra::tests::parses_netlink_useropt ... ok
+test ra::tests::parses_rdnss ... ok
+test ra::tests::refresh_preserves_expiry_and_stale_withdrawal_is_permanent ... ok
+test ra::tests::validates_ra ... ok
+test ra::tests::withdrawal_preserves_omitted_server ... ok
+test resolver::tests::lookup_time_bound ... ok
+test resolver::tests::replace_resets_cache ... ok
+test resolver::tests::resolve_localhost ... ok
+test resolver::tests::stable_pick_keeps_previous ... ok
+test resolver::tests::set_resolver_resets_cache ... ok
+test custom::tests::fallback_outcomes_preserve_cache_options_and_stable_selection ... ok
+test custom::tests::unrelated_udp_traffic_does_not_restart_deadline ... ok
+test custom::tests::udp_and_trickling_tcp_share_one_deadline ... ok
+
+test result: ok. 56 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s

@@ -1,10 +1,14 @@
 //! The behavioural rules over the fake kernel (docs/testing.md), one
 //! module per specification page. No test sleeps: time is the fake's.
-//! Phase 3 is in progress: only the first cases exist so far.
+//! Phase 3 policy cases and seeded reload properties; service/process
+//! acceptance remains in the later phases of docs/plan.md.
 
 mod events;
+#[path = "../properties/planner.rs"]
+mod planner;
 mod resolvers;
 mod sessions;
+mod store;
 mod tunnels;
 
 use std::collections::BTreeMap;

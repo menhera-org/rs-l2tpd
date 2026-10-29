@@ -1,0 +1,1399 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+
+running 57 tests
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::host_settings ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::configuration_names ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::merging ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test config::tests::reload_keeps_values_in_force ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test config::tests::resolver_methods ... ok
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test config::tests::strict_conversion ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test config::tests::tunnel_resolver_name ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::session_cookies ... ok
+test config::tests::tunnel_literals ... ok
+test config::tests::session_fields ... ok
+test config::tests::interface_names ... ok
+test config::tests::tunnel_host_names ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+
+test result: ok. 48 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-fcbd4bddcc5e3ae8)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-cc924e8ec42501b2)
+
+running 63 tests
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::sessions_swap_names ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+
+running 57 tests
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::host_settings ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::configuration_names ... ok
+test config::tests::merging ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::resolver_methods ... ok
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test config::tests::strict_conversion ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test config::tests::accepted_configuration_reads_back ... ok
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test config::tests::tunnel_resolver_name ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::session_fields ... ok
+test config::tests::interface_names ... ok
+test config::tests::session_cookies ... ok
+test config::tests::tunnel_host_names ... ok
+test config::tests::tunnel_literals ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+
+test result: ok. 48 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-fcbd4bddcc5e3ae8)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-cc924e8ec42501b2)
+
+running 63 tests
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test sessions::sessions_swap_names ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+
+running 57 tests
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::host_settings ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::configuration_names ... ok
+test config::tests::merging ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::kernel_identities ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test config::tests::reload_keeps_values_in_force ... ok
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test config::tests::resolver_methods ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test config::tests::strict_conversion ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test config::tests::tunnel_resolver_name ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::interface_names ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::session_fields ... ok
+test config::tests::session_cookies ... ok
+test config::tests::tunnel_host_names ... ok
+test config::tests::tunnel_literals ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+
+test result: ok. 48 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-fcbd4bddcc5e3ae8)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-cc924e8ec42501b2)
+
+running 63 tests
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test sessions::sessions_swap_names ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.71s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+
+running 57 tests
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::host_settings ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::configuration_names ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::merging ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test config::tests::resolver_methods ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test config::tests::strict_conversion ... ok
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test config::tests::tunnel_resolver_name ... ok
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::interface_names ... ok
+test config::tests::session_fields ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::session_cookies ... ok
+test config::tests::tunnel_host_names ... ok
+test config::tests::tunnel_literals ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+
+test result: ok. 48 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-fcbd4bddcc5e3ae8)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-cc924e8ec42501b2)
+
+running 63 tests
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test sessions::sessions_swap_names ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+
+running 57 tests
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::host_settings ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::configuration_names ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::merging ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test config::tests::reload_keeps_values_in_force ... ok
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test config::tests::resolver_methods ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test config::tests::tunnel_resolver_name ... ok
+test config::tests::strict_conversion ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::interface_names ... ok
+test config::tests::session_fields ... ok
+test config::tests::tunnel_literals ... ok
+test config::tests::session_cookies ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::tunnel_host_names ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+
+test result: ok. 48 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-fcbd4bddcc5e3ae8)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-cc924e8ec42501b2)
+
+running 63 tests
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::sessions_swap_names ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+
+running 57 tests
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::host_settings ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::configuration_names ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::merging ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test config::tests::kernel_identities ... ok
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test config::tests::strict_conversion ... ok
+test config::tests::resolver_methods ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test config::tests::tunnel_resolver_name ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::interface_names ... ok
+test config::tests::tunnel_host_names ... ok
+test config::tests::tunnel_literals ... ok
+test config::tests::session_fields ... ok
+test config::tests::session_cookies ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+
+test result: ok. 48 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-fcbd4bddcc5e3ae8)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-cc924e8ec42501b2)
+
+running 63 tests
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test sessions::sessions_swap_names ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+
+running 57 tests
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::host_settings ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::configuration_names ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::merging ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test config::tests::strict_conversion ... ok
+test config::tests::resolver_methods ... ok
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test config::tests::tunnel_resolver_name ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::session_fields ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::tunnel_host_names ... ok
+test config::tests::session_cookies ... ok
+test config::tests::interface_names ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::tunnel_literals ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+
+test result: ok. 48 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-fcbd4bddcc5e3ae8)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-cc924e8ec42501b2)
+
+running 63 tests
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test sessions::sessions_swap_names ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.83s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+
+running 57 tests
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::host_settings ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::configuration_names ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::merging ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test config::tests::resolver_methods ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test config::tests::strict_conversion ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test config::tests::tunnel_resolver_name ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::session_cookies ... ok
+test config::tests::session_fields ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::interface_names ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::tunnel_literals ... ok
+test config::tests::tunnel_host_names ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+
+test result: ok. 48 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-fcbd4bddcc5e3ae8)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-cc924e8ec42501b2)
+
+running 63 tests
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test sessions::sessions_swap_names ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+
+running 57 tests
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::host_settings ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::configuration_names ... ok
+test config::tests::merging ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test config::tests::reload_keeps_values_in_force ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test config::tests::resolver_methods ... ok
+test config::tests::strict_conversion ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test config::tests::tunnel_resolver_name ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::session_cookies ... ok
+test config::tests::interface_names ... ok
+test config::tests::session_fields ... ok
+test config::tests::tunnel_host_names ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::tunnel_literals ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+
+test result: ok. 48 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-fcbd4bddcc5e3ae8)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-cc924e8ec42501b2)
+
+running 63 tests
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test sessions::sessions_swap_names ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+
+running 57 tests
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::host_settings ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::configuration_names ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::merging ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test config::tests::reload_keeps_values_in_force ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test config::tests::resolver_methods ... ok
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test config::tests::strict_conversion ... ok
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::tunnel_resolver_name ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::session_cookies ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::tunnel_host_names ... ok
+test config::tests::session_fields ... ok
+test config::tests::tunnel_literals ... ok
+test config::tests::interface_names ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+
+test result: ok. 48 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-fcbd4bddcc5e3ae8)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-cc924e8ec42501b2)
+
+running 63 tests
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test sessions::sessions_swap_names ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s

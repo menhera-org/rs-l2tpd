@@ -34,7 +34,7 @@ Every test names the rules it guards in its doc comment,
 | Suite | Kernel | Runs where | Guards |
 |---|---|---|---|
 | Unit and `rules/` | fake | `cargo test --all-features`, no privilege | C, M, T, S, V, E, O, L rules |
-| `properties/` | fake | `cargo test --all-features`, when implemented | G promises as invariants over random inputs |
+| `properties/` | fake | included by the feature-gated `rules` target in `cargo test --all-features` | seeded reload invariants for G3, G5–G7 and G18 |
 | `kernel/` conformance | fake **and** real | `cargo test --all-features` for the fake; a privileged container and the QEMU matrix for the real one | K facts, `kernel::linux` |
 | `scenarios/` | real | privileged containers; QEMU for `ipv6.disable=1` and other boot options | H rules, P rules, the unit, G15–G23 end to end |
 
@@ -146,7 +146,7 @@ Current review probes and exact commands are in `tests/kernel/README.md`.
 ## Running
 
 ```sh
-cargo test --locked --all-features --target x86_64-unknown-linux-musl # unit, rules, fake conformance; properties when implemented
+cargo test --locked --all-features --target x86_64-unknown-linux-musl # unit, rules, seeded properties, fake conformance
 tests/docker/run.sh conformance              # real-kernel conformance in a privileged container
 tests/docker/run.sh scenarios                # the scenario suite
 tests/docker/run.sh matrix required          # the required kernels of "Kernel targets" (QEMU, TCG, unprivileged)
@@ -168,9 +168,10 @@ account and the kernel images the driver builds or fetches.
 
 ## Contract correction acceptance cases
 
-These cases are required by the 2026-10-29 contract corrections. They are
-not claims that current suites implement them. Existing rule citations
-must gain these cases before the affected phase exits close.
+These cases are required by the 2026-10-29 contract corrections.
+[Phase 2–3 evidence](../audit/PHASE23_VERIFICATION_2026-10-29.md) identifies
+the implemented policy, adapter and live-boundary cases. The callback,
+process crash/re-exec and whole-daemon portions still require Phases 4–6.
 
 | Rules | Deterministic policy case | Real boundary evidence |
 |---|---|---|

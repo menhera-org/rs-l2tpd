@@ -38,6 +38,12 @@ impl Fixture for FakeFixture {
     fn net_raw(&self) -> bool {
         self.0.net_raw
     }
+    fn send_frame(&mut self, index: u32) {
+        self.0.send_frame(index);
+    }
+    fn tx_drops(&mut self, index: u32) -> u64 {
+        self.0.tx_drops(index)
+    }
     fn wait_notice(
         &mut self,
         sub: &mut dyn Subscription,

@@ -1,0 +1,5 @@
+Oct 29 05:03:36 workspace1 systemd[2072]: Starting rs-l2tpd-phase23-store-verified.service - [systemd-run] /usr/bin/env TRANSFER_SOCKET=/tmp/rs-l2tpd-phase23-store-verified.sock /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/store_kernel-7ea32c1508557238 --exact manager_bridge --ignored --nocapture...
+Oct 29 05:03:36 workspace1 env[2532867]: running 1 test
+Oct 29 05:03:36 workspace1 systemd[2072]: Started rs-l2tpd-phase23-store-verified.service - [systemd-run] /usr/bin/env TRANSFER_SOCKET=/tmp/rs-l2tpd-phase23-store-verified.sock /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/store_kernel-7ea32c1508557238 --exact manager_bridge --ignored --nocapture.
+Oct 29 05:03:40 workspace1 env[2532867]: test manager_bridge ... ok
+Oct 29 05:03:40 workspace1 env[2532867]: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 4.00s

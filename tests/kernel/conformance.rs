@@ -29,6 +29,10 @@ pub trait Fixture {
     fn settle(&mut self);
     /// Whether the daemon holds `CAP_NET_RAW` (K22).
     fn net_raw(&self) -> bool;
+    /// Sends a frame through the session device.
+    fn send_frame(&mut self, index: u32);
+    /// Reads that device's transmit drops.
+    fn tx_drops(&mut self, index: u32) -> u64;
     /// The next notice of `sub` matching `want`, waiting a bounded time.
     fn wait_notice(
         &mut self,
@@ -64,10 +68,16 @@ fn create(tunnel_id: u32, session_id: u32, ifname: &str) -> SessionCreate {
 
 /// Polls `check` after letting the kernel work, a bounded number of times.
 fn eventually(f: &mut dyn Fixture, mut check: impl FnMut(&mut dyn Kernel) -> bool) -> bool {
-    (0..200).any(|_| {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    loop {
         f.settle();
-        check(f.k())
-    })
+        if check(f.k()) {
+            return true;
+        }
+        if std::time::Instant::now() >= deadline {
+            return false;
+        }
+    }
 }
 
 /// A tunnel identifier is refused while bound or registered (K19, T7).
@@ -102,6 +112,8 @@ pub fn session_identifiers_are_unique_in_the_namespace(f: &mut dyn Fixture) {
         nix::libc::EEXIST
     );
     assert!(f.k().session(9112, 91111).unwrap().is_none());
+    assert_eq!(errno(f.k().delete_session(9112, 91111)), nix::libc::ENODEV);
+    assert!(f.k().session(9111, 91111).unwrap().is_some());
     f.k().close(a);
     f.k().close(b);
     assert!(eventually(f, |k| k.tunnel(9111).unwrap().is_none()));
@@ -355,11 +367,30 @@ pub fn deletions_are_announced(f: &mut dyn Fixture) {
     f.k().close(socket);
 }
 
+/// A disconnected socket really drops an emitted frame (K5).
+pub fn disconnected_sessions_count_frame_drops(f: &mut dyn Fixture) {
+    let socket = tunnel(f.k(), 9231);
+    let registration = f
+        .k()
+        .create_session(&create(9231, 92311, "conf-drop"))
+        .unwrap();
+    f.add_addr(registration.index, "192.0.2.1".parse().unwrap());
+    f.set_up(registration.index, true);
+    let before = f.tx_drops(registration.index);
+    f.send_frame(registration.index);
+    assert!(f.tx_drops(registration.index) > before);
+    f.k().close(socket);
+}
+
 /// A case of the suite.
 pub type Case = fn(&mut dyn Fixture);
 
 /// Every case, by name, for the runners.
 pub const CASES: &[(&str, Case)] = &[
+    (
+        "disconnected_sessions_count_frame_drops",
+        disconnected_sessions_count_frame_drops,
+    ),
     (
         "tunnel_identifiers_are_unique",
         tunnel_identifiers_are_unique,

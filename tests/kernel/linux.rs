@@ -118,10 +118,25 @@ impl Fixture for LinuxFixture {
         ip(&["link", "set", "dev", &name_of(index), "name", name]);
     }
     fn settle(&mut self) {
-        std::thread::sleep(Duration::from_millis(10));
+        std::thread::yield_now();
     }
     fn net_raw(&self) -> bool {
         true
+    }
+    fn send_frame(&mut self, index: u32) {
+        let before = self.tx_drops(index);
+        std::net::UdpSocket::bind("192.0.2.1:0")
+            .unwrap()
+            .send_to(b"drop", "192.0.2.2:9")
+            .unwrap();
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while self.tx_drops(index) <= before {
+            assert!(std::time::Instant::now() < deadline);
+            std::thread::yield_now();
+        }
+    }
+    fn tx_drops(&mut self, index: u32) -> u64 {
+        packets(&name_of(index), "TX:", 3)
     }
     fn wait_notice(
         &mut self,
@@ -224,10 +239,16 @@ fn a_handed_over_socket_keeps_its_tunnel() {
         f.settle();
         assert!(f.k().tunnel(id).unwrap().is_some(), "K37");
         f.k().close(adopted.socket);
-        let gone = (0..200).any(|_| {
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        let gone = loop {
             f.settle();
-            f.k().tunnel(id).unwrap().is_none()
-        });
+            if f.k().tunnel(id).unwrap().is_none() {
+                break true;
+            }
+            if std::time::Instant::now() >= deadline {
+                break false;
+            }
+        };
         assert!(gone, "K17");
     }
 }
@@ -277,14 +298,27 @@ fn sessions_are_captured_scanned_and_deleted() {
     assert!(all >= 2);
     f.k().delete_session_by_name(&name("live-sb")).unwrap();
     f.k().delete_session(9321, 93211).unwrap();
-    let gone = (0..200).any(|_| {
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    let gone = loop {
         f.settle();
-        f.k().session(9321, 93211).unwrap().is_none()
+        if f.k().session(9321, 93211).unwrap().is_none()
             && f.k().session(9321, 93213).unwrap().is_none()
-    });
+        {
+            break true;
+        }
+        if std::time::Instant::now() >= deadline {
+            break false;
+        }
+    };
     assert!(gone);
-    assert_eq!(f.k().prove(&registration), Proof::Removed);
-    assert_eq!(f.k().prove(&second), Proof::Removed);
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    while f.k().prove(&registration) != Proof::Removed || f.k().prove(&second) != Proof::Removed {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "session absence and device removal are separate observations"
+        );
+        std::thread::yield_now();
+    }
     f.k().release(&registration);
     assert_eq!(f.k().prove(&registration), Proof::Lost);
     assert_eq!(errno(f.k().delete_session(9321, 93211)), libc::ENODEV);
@@ -384,4 +418,183 @@ fn a_closed_socket_is_not_announced() {
         )
     });
     assert_eq!(seen, None);
+}
+
+/// spec: K42, M18, S9, S19, S23, S24
+#[test]
+#[ignore = "isolated network namespaces with CAP_NET_ADMIN and L2TP modules"]
+fn a_reused_index_and_creation_name_never_revive_an_old_registration() {
+    let mut f = LinuxFixture::new();
+    let socket = f.k().create_socket(Family::V6, 9341, 9342).unwrap();
+    f.k().register_tunnel(socket, 9341, 9342).unwrap();
+    let original = f
+        .k()
+        .create_session(&create(9341, 93411, "reuse-stage"))
+        .unwrap();
+    assert_eq!(f.k().prove(&original), Proof::Proved);
+    let (ready, namespace) = std::sync::mpsc::channel();
+    let (finish, finished) = std::sync::mpsc::channel();
+    let child = std::thread::spawn(move || {
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        ready.send(nix::unistd::gettid().as_raw()).unwrap();
+        finished.recv_timeout(Duration::from_secs(10)).unwrap();
+    });
+    let tid = namespace.recv_timeout(Duration::from_secs(5)).unwrap();
+    ip(&[
+        "link",
+        "set",
+        "dev",
+        "reuse-stage",
+        "netns",
+        &tid.to_string(),
+    ]);
+    ip(&[
+        "link",
+        "add",
+        "name",
+        "reuse-stage",
+        "index",
+        &original.index.to_string(),
+        "type",
+        "dummy",
+    ]);
+    assert_eq!(index_of("reuse-stage"), original.index);
+    assert_eq!(f.k().prove(&original), Proof::Removed);
+    assert!(
+        f.k().session(9341, 93411).unwrap().is_some(),
+        "moved, not deleted"
+    );
+    let other = f
+        .k()
+        .create_session(&create(9341, 93412, "reuse-other"))
+        .unwrap();
+    assert_eq!(other.generation, original.generation);
+    assert_ne!(other.incarnation, original.incarnation);
+    assert_eq!(f.k().prove(&other), Proof::Proved);
+    assert_eq!(f.k().prove(&original), Proof::Removed);
+    finish.send(()).unwrap();
+    child.join().unwrap();
+    f.k().close(socket);
+}
+
+/// spec: K23, T26, L12
+#[test]
+#[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
+fn a_tunable_write_changes_only_fresh_sockets() {
+    let mut f = LinuxFixture::new();
+    std::fs::write("/proc/sys/net/ipv6/bindv6only", "1").unwrap();
+    let old = f.k().create_socket(Family::V6, 9351, 9352).unwrap();
+    assert!(f.k().only_v6(old).unwrap());
+    std::fs::write("/proc/sys/net/ipv6/bindv6only", "0").unwrap();
+    assert!(f.k().only_v6(old).unwrap());
+    let new = f.k().create_socket(Family::V6, 9353, 9354).unwrap();
+    assert!(!f.k().only_v6(new).unwrap());
+    f.k().close(old);
+    f.k().close(new);
+}
+
+fn packets(device: &str, direction: &str, field: usize) -> u64 {
+    ip(&["-s", "link", "show", "dev", device])
+        .lines()
+        .skip_while(|line| !line.trim_start().starts_with(direction))
+        .nth(1)
+        .unwrap()
+        .split_whitespace()
+        .nth(field)
+        .unwrap()
+        .parse()
+        .unwrap()
+}
+
+/// spec: K5, K15, S14, T1
+#[test]
+#[ignore = "isolated namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules"]
+fn disconnected_sessions_drop_outbound_but_receive_only_matching_cookies() {
+    let mut f = LinuxFixture::new();
+    let socket = f.k().create_socket(Family::V6, 9371, 9372).unwrap();
+    f.k().register_tunnel(socket, 9371, 9372).unwrap();
+    let mut session = create(9371, 93711, "frames");
+    session.peer_cookie = Some(rs_l2tpd::kernel::Cookie::new(&[1, 2, 3, 4]).unwrap());
+    f.k().create_session(&session).unwrap();
+    ip(&["link", "set", "dev", "frames", "addrgenmode", "none"]);
+    ip(&["link", "set", "dev", "frames", "up"]);
+    ip(&["addr", "add", "192.0.2.1/24", "dev", "frames"]);
+    let before = packets("frames", "TX:", 3);
+    std::net::UdpSocket::bind("192.0.2.1:0")
+        .unwrap()
+        .send_to(b"drop", "192.0.2.2:9")
+        .unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    while packets("frames", "TX:", 3) <= before {
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::yield_now();
+    }
+    let receiver_before = packets("frames", "RX:", 1);
+    let raw = socket2::Socket::new(
+        socket2::Domain::IPV4,
+        socket2::Type::RAW,
+        Some(socket2::Protocol::from(115)),
+    )
+    .unwrap();
+    raw.bind(
+        &"127.0.0.2:0"
+            .parse::<std::net::SocketAddr>()
+            .unwrap()
+            .into(),
+    )
+    .unwrap();
+    let mut ethernet = vec![0xff; 6];
+    ethernet.extend([2, 0, 0x5e, 0, 0x53, 1, 0x88, 0xb5]);
+    ethernet.resize(60, 0);
+    for cookie in [&[][..], &[9, 9, 9, 9][..], &[1, 2, 3, 4][..]] {
+        let mut payload = 93711u32.to_be_bytes().to_vec();
+        payload.extend(cookie);
+        payload.extend(&ethernet);
+        raw.send_to(
+            &payload,
+            &"127.0.0.1:0"
+                .parse::<std::net::SocketAddr>()
+                .unwrap()
+                .into(),
+        )
+        .unwrap();
+    }
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    while packets("frames", "RX:", 1) == receiver_before {
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::yield_now();
+    }
+    assert_eq!(packets("frames", "RX:", 1), receiver_before + 1);
+    f.k().close(socket);
+}
+
+/// spec: K25, T29
+#[test]
+#[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
+fn the_kernel_keeps_the_previous_ipv6_peer_after_disconnect() {
+    let mut f = LinuxFixture::new();
+    let device = f.add_link("record", false);
+    f.set_up(device, true);
+    f.add_addr(device, "2001:db8:99::1".parse().unwrap());
+    let socket = f.k().create_socket(Family::V6, 9391, 9392).unwrap();
+    f.k().register_tunnel(socket, 9391, 9392).unwrap();
+    f.k().bind_index(socket, device).unwrap();
+    f.k()
+        .connect(
+            socket,
+            &Peer {
+                addr: "2001:db8:99::2".parse().unwrap(),
+                zone: None,
+            },
+        )
+        .unwrap();
+    f.k().disconnect(socket).unwrap();
+    let record = ip(&["l2tp", "show", "tunnel"]);
+    assert!(
+        record
+            .to_ascii_lowercase()
+            .contains("from :: to 2001:db8:99::2"),
+        "{record}"
+    );
+    f.k().close(socket);
 }

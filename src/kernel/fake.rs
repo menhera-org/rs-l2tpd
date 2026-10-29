@@ -10,7 +10,7 @@ use std::io;
 use std::net::{IpAddr, Ipv4Addr};
 use std::os::fd::{AsFd, OwnedFd};
 use std::os::unix::fs::MetadataExt;
-use std::os::unix::net::UnixDatagram;
+use std::os::unix::net::UnixStream;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 use std::time::{Duration, Instant};
@@ -35,7 +35,23 @@ struct FakeSocket {
     peer: Option<IpAddr>,
     source: Option<IpAddr>,
     // The descriptor handed out by `clone_fd` shares this inode.
-    fd: UnixDatagram,
+    fd: Option<UnixStream>,
+    lifetime: UnixStream,
+    inode: u64,
+}
+
+impl FakeSocket {
+    fn last_reference_closed(&self) -> bool {
+        use nix::poll::{PollFd, PollFlags, PollTimeout, poll};
+        if self.fd.is_some() {
+            return false;
+        }
+        let mut fds = [PollFd::new(self.lifetime.as_fd(), PollFlags::POLLHUP)];
+        poll(&mut fds, PollTimeout::ZERO).unwrap();
+        fds[0]
+            .revents()
+            .is_some_and(|flags| flags.contains(PollFlags::POLLHUP))
+    }
 }
 
 struct FakeSession {
@@ -48,6 +64,8 @@ struct FakeLink {
     info: LinkInfo,
     hwaddr: Option<HwAddr>,
     l2tpeth: bool,
+    session: Option<(u32, u32)>,
+    dropped: u64,
 }
 
 struct Tracked {
@@ -113,6 +131,7 @@ pub struct FakeKernel {
     // tunnel id -> its socket, `None` once the socket closed and the
     // deletion is queued (K17)
     tunnels: BTreeMap<u32, Option<SocketId>>,
+    closed_since: BTreeMap<u32, Instant>,
     sessions: BTreeMap<(u32, u32), FakeSession>,
     links: BTreeMap<u32, FakeLink>,
     next_index: u32,
@@ -129,12 +148,16 @@ pub struct FakeKernel {
     pub inet6: bool,
     /// `net.ipv6.bindv6only` (K23).
     pub bindv6only: bool,
+    /// A failure of the IPV6_V6ONLY read-back, for trust-boundary tests.
+    pub only_v6_error: Option<Errno>,
     /// The daemon holds `CAP_NET_RAW` (K22). Off by default, so that a
     /// binding set on a bound socket fails as a daemon defect would.
     pub net_raw: bool,
     /// Session deletion waits for the next [`tick`](Self::tick), as from
     /// 6.12 (K18); immediate otherwise.
     pub async_session_delete: bool,
+    /// Delay after the last descriptor closes before tunnel cleanup (K17).
+    pub tunnel_delete_delay: Duration,
 }
 
 impl FakeKernel {
@@ -153,6 +176,7 @@ impl FakeKernel {
             next_socket: 1,
             sockets: BTreeMap::new(),
             tunnels: BTreeMap::new(),
+            closed_since: BTreeMap::new(),
             sessions: BTreeMap::new(),
             links: BTreeMap::new(),
             next_index: 1,
@@ -167,8 +191,10 @@ impl FakeKernel {
             ops: Vec::new(),
             inet6: true,
             bindv6only: false,
+            only_v6_error: None,
             net_raw: false,
             async_session_delete: true,
+            tunnel_delete_delay: Duration::ZERO,
         }
     }
 
@@ -197,6 +223,7 @@ impl FakeKernel {
     fn socket(&mut self, s: SocketId) -> io::Result<&mut FakeSocket> {
         self.sockets
             .get_mut(&s)
+            .filter(|s| s.fd.is_some())
             .ok_or(io::Error::from_raw_os_error(Errno::EBADF as i32))
     }
 
@@ -210,7 +237,12 @@ impl FakeKernel {
     }
 
     fn remove_session(&mut self, key: (u32, u32)) {
-        if let Some(session) = self.sessions.remove(&key) {
+        if let Some(session) = self.sessions.remove(&key)
+            && self
+                .links
+                .get(&session.index)
+                .is_some_and(|l| l.session == Some(key))
+        {
             self.unregister(session.index);
         }
     }
@@ -242,10 +274,22 @@ impl FakeKernel {
         let closed: Vec<u32> = self
             .tunnels
             .iter()
-            .filter(|(_, s)| s.is_none())
+            .filter(|(tid, _)| {
+                let sockets: Vec<_> = self
+                    .sockets
+                    .values()
+                    .filter(|s| s.tunnel_id == **tid)
+                    .collect();
+                !sockets.is_empty() && sockets.iter().all(|s| s.last_reference_closed())
+            })
             .map(|(id, _)| *id)
             .collect();
         for id in closed {
+            let now = self.now();
+            let closed = self.closed_since.entry(id).or_insert(now);
+            if now.duration_since(*closed) < self.tunnel_delete_delay {
+                continue;
+            }
             let keys: Vec<_> = self
                 .sessions
                 .range((id, 0)..=(id, u32::MAX))
@@ -253,6 +297,8 @@ impl FakeKernel {
                 .collect();
             keys.into_iter().for_each(|k| self.remove_session(k));
             self.tunnels.remove(&id);
+            self.closed_since.remove(&id);
+            self.sockets.retain(|_, s| s.tunnel_id != id);
         }
         let doomed: Vec<_> = self
             .sessions
@@ -288,6 +334,8 @@ impl FakeKernel {
                 },
                 hwaddr,
                 l2tpeth: false,
+                session: None,
+                dropped: 0,
             },
         );
         self.notify_link(index, false);
@@ -322,6 +370,11 @@ impl FakeKernel {
     pub fn set_link_hwaddr(&mut self, index: u32, addr: HwAddr) {
         self.links.get_mut(&index).unwrap().hwaddr = Some(addr);
         self.notify_link(index, false);
+    }
+
+    /// Makes a fixture device report no Ethernet address (V12).
+    pub fn clear_link_hwaddr(&mut self, index: u32) {
+        self.links.get_mut(&index).unwrap().hwaddr = None;
     }
 
     /// Adds an address to a device.
@@ -360,10 +413,33 @@ impl FakeKernel {
         self.netlink_delete((tunnel_id, session_id));
     }
 
+    /// Replaces a kernel tunnel behind the daemon's socket (unsupported,
+    /// T9). The replacement's distinct socket must survive local cleanup.
+    pub fn operator_replace_tunnel(&mut self, tunnel_id: u32, peer: u32) -> SocketId {
+        let sessions: Vec<_> = self
+            .sessions
+            .keys()
+            .filter(|(tid, _)| *tid == tunnel_id)
+            .copied()
+            .collect();
+        for key in sessions {
+            self.remove_session(key);
+        }
+        let socket = self.create_socket(Family::V6, u32::MAX, peer).unwrap();
+        self.sockets.get_mut(&socket).unwrap().tunnel_id = tunnel_id;
+        self.tunnels.insert(tunnel_id, Some(socket));
+        self.l2tp
+            .lock()
+            .unwrap()
+            .push(Notice::TunnelDeleted { tunnel_id });
+        socket
+    }
+
     /// A foreign session, created by someone else under `ifname`.
     pub fn foreign_session(&mut self, info: SessionInfo) -> u32 {
         let index = self.add_link(&info.ifname.unwrap().to_string_lossy(), false);
         self.links.get_mut(&index).unwrap().l2tpeth = true;
+        self.links.get_mut(&index).unwrap().session = Some((info.tunnel_id, info.session_id));
         self.sessions.insert(
             (info.tunnel_id, info.session_id),
             FakeSession {
@@ -379,11 +455,17 @@ impl FakeKernel {
     /// (E20, M18).
     pub fn lose_lifetime(&mut self) {
         self.generation += 1;
+        self.tracked.clear();
     }
 
     /// Sets the event monitor's queue capacity (E20).
     pub fn set_monitor_capacity(&mut self, capacity: usize) {
         self.monitor.lock().unwrap().capacity = capacity;
+    }
+
+    /// Sets the L2TP event queue's capacity (E20, E21).
+    pub fn set_l2tp_capacity(&mut self, capacity: usize) {
+        self.l2tp.lock().unwrap().capacity = capacity;
     }
 
     /// Takes every queued event-monitor notice.
@@ -411,7 +493,29 @@ impl FakeKernel {
     /// Whether a frame of the tunnel's sessions would leave the host: only
     /// when its socket is connected (K5).
     pub fn transmits(&self, tunnel_id: u32) -> bool {
-        matches!(self.tunnels.get(&tunnel_id), Some(Some(s)) if self.sockets[s].peer.is_some())
+        let socket = match self.tunnels.get(&tunnel_id) {
+            Some(Some(id)) => self.sockets.get(id),
+            Some(None) => self
+                .sockets
+                .values()
+                .rev()
+                .find(|s| s.tunnel_id == tunnel_id),
+            None => None,
+        };
+        socket.is_some_and(|s| s.peer.is_some() && !s.last_reference_closed())
+    }
+
+    /// Emits one fixture frame, counting disconnected-session drops (K5).
+    pub fn send_frame(&mut self, index: u32) {
+        let tid = self.links[&index].session.expect("a session device").0;
+        if !self.transmits(tid) {
+            self.links.get_mut(&index).unwrap().dropped += 1;
+        }
+    }
+
+    /// Frames dropped at a fixture session device (K5).
+    pub fn tx_drops(&self, index: u32) -> u64 {
+        self.links[&index].dropped
     }
 
     /// A socket's peer and source, `None` while disconnected.
@@ -447,7 +551,7 @@ impl FakeKernel {
 
     /// The number of open sockets.
     pub fn open_sockets(&self) -> usize {
-        self.sockets.len()
+        self.sockets.values().filter(|s| s.fd.is_some()).count()
     }
 
     fn netlink_delete(&mut self, key: (u32, u32)) {
@@ -520,11 +624,17 @@ impl Kernel for FakeKernel {
             return fail(Errno::EAFNOSUPPORT);
         }
         // kernel: a bound connection id is refused (K19, T7)
-        if self.sockets.values().any(|s| s.tunnel_id == tunnel_id) {
+        if self.sockets.values().any(|s| {
+            s.tunnel_id == tunnel_id && (s.fd.is_some() || self.tunnels.contains_key(&tunnel_id))
+        }) {
             return fail(Errno::EADDRINUSE);
         }
         let id = SocketId(self.next_socket);
         self.next_socket += 1;
+        let (fd, lifetime) = UnixStream::pair()?;
+        let inode = std::fs::File::from(fd.as_fd().try_clone_to_owned()?)
+            .metadata()?
+            .ino();
         self.sockets.insert(
             id,
             FakeSocket {
@@ -536,7 +646,9 @@ impl Kernel for FakeKernel {
                 bound: None,
                 peer: None,
                 source: None,
-                fd: UnixDatagram::unbound()?,
+                fd: Some(fd),
+                lifetime,
+                inode,
             },
         );
         self.ops
@@ -545,11 +657,17 @@ impl Kernel for FakeKernel {
     }
 
     fn only_v6(&self, socket: SocketId) -> io::Result<bool> {
-        Ok(self
+        let s = self
             .sockets
             .get(&socket)
-            .ok_or(io::Error::from_raw_os_error(Errno::EBADF as i32))?
-            .only_v6)
+            .ok_or(io::Error::from_raw_os_error(Errno::EBADF as i32))?;
+        if s.family == Family::V4 {
+            return fail(Errno::ENOPROTOOPT);
+        }
+        if let Some(error) = self.only_v6_error {
+            return fail(error);
+        }
+        Ok(s.only_v6)
     }
 
     fn scratch_only_v6(&mut self) -> io::Result<bool> {
@@ -659,14 +777,24 @@ impl Kernel for FakeKernel {
     }
 
     fn close(&mut self, socket: SocketId) {
-        if let Some(s) = self.sockets.remove(&socket) {
+        let now = self.now();
+        if let Some(s) = self.sockets.get_mut(&socket) {
+            if s.fd.take().is_none() {
+                return;
+            }
             // kernel: the tunnel's deletion is queued (K17)
             if let Some(entry) = self.tunnels.get_mut(&s.tunnel_id)
                 && *entry == Some(socket)
             {
                 *entry = None;
+                if s.last_reference_closed() {
+                    self.closed_since.insert(s.tunnel_id, now);
+                }
             }
             self.ops.push(format!("close {}", socket.0));
+            if !self.tunnels.contains_key(&s.tunnel_id) {
+                self.sockets.remove(&socket);
+            }
         }
     }
 
@@ -675,23 +803,37 @@ impl Kernel for FakeKernel {
             .sockets
             .get(&socket)
             .ok_or(io::Error::from_raw_os_error(Errno::EBADF as i32))?;
-        s.fd.as_fd().try_clone_to_owned()
+        s.fd.as_ref()
+            .ok_or(io::Error::from_raw_os_error(Errno::EBADF as i32))?
+            .as_fd()
+            .try_clone_to_owned()
     }
 
     fn adopt(&mut self, fd: OwnedFd) -> io::Result<Adopted> {
-        let inode = std::fs::File::from(fd).metadata()?.ino();
-        let mut found = None;
-        for (id, s) in &self.sockets {
-            if std::fs::File::from(s.fd.as_fd().try_clone_to_owned()?)
-                .metadata()?
-                .ino()
-                == inode
-            {
-                found = Some((*id, s.family, s.tunnel_id, s.peer_tunnel_id));
-            }
-        }
-        let (socket, family, tunnel_id, peer_tunnel_id) =
-            found.ok_or(io::Error::from_raw_os_error(Errno::ENOTSOCK as i32))?;
+        self.injected("adopt")?;
+        let inode = std::fs::File::from(fd.try_clone()?).metadata()?.ino();
+        let s = self
+            .sockets
+            .values()
+            .find(|s| s.inode == inode)
+            .ok_or(io::Error::from_raw_os_error(Errno::ENOTSOCK as i32))?;
+        let (family, tunnel_id, peer_tunnel_id) = (s.family, s.tunnel_id, s.peer_tunnel_id);
+        self.next_socket += 1;
+        let socket = SocketId(self.next_socket);
+        let adopted = FakeSocket {
+            family,
+            tunnel_id,
+            peer_tunnel_id,
+            only_v6: s.only_v6,
+            bound: s.bound,
+            peer: s.peer,
+            source: s.source,
+            fd: Some(UnixStream::from(fd)),
+            lifetime: s.lifetime.try_clone()?,
+            inode,
+        };
+        self.sockets.insert(socket, adopted);
+        self.tunnels.insert(tunnel_id, Some(socket));
         Ok(Adopted {
             socket,
             family,
@@ -726,7 +868,15 @@ impl Kernel for FakeKernel {
         self.injected("tunnel")?;
         Ok(self.tunnels.get(&tunnel_id).map(|s| TunnelInfo {
             tunnel_id,
-            peer_tunnel_id: s.map_or(0, |s| self.sockets[&s].peer_tunnel_id),
+            peer_tunnel_id: s.map_or_else(
+                || {
+                    self.sockets
+                        .values()
+                        .find(|s| s.tunnel_id == tunnel_id)
+                        .map_or(0, |s| s.peer_tunnel_id)
+                },
+                |s| self.sockets[&s].peer_tunnel_id,
+            ),
         }))
     }
 
@@ -761,6 +911,8 @@ impl Kernel for FakeKernel {
                 },
                 hwaddr: Some(hwaddr),
                 l2tpeth: true,
+                session: Some((create.tunnel_id, create.session_id)),
+                dropped: 0,
             },
         );
         self.notify_link(index, false);
