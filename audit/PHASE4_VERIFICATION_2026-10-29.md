@@ -1,5 +1,10 @@
 # Phase 4 verification — 2026-10-29
 
+Follow-up: the [Phase 4 audit](PHASE4_AUDIT_2026-10-29.md) found defects
+after this baseline verification. The [remediation record](PHASE4_REMEDIATION_2026-10-29.md)
+documents their fixes, the amended blocking contracts, and the final tests.
+The counts and logs below preserve the original baseline results.
+
 Phase 4 is complete within its library/runtime scope. The starting checkout
 was clean `main` at `c8058b4`, already pushed to `origin/main`; that commit
 contains the [Phase 2–3 evidence](PHASE23_VERIFICATION_2026-10-29.md).

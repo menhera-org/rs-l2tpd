@@ -2,7 +2,7 @@
 use std::io;
 use std::net::IpAddr;
 use std::os::fd::OwnedFd;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
@@ -20,6 +20,9 @@ struct Host(
     Arc<Mutex<Option<Gate>>>,
     Arc<AtomicUsize>,
     Arc<AtomicUsize>,
+    Arc<AtomicUsize>,
+    Arc<Mutex<Option<mpsc::SyncSender<()>>>>,
+    Arc<AtomicBool>,
 );
 struct Gate {
     entered: mpsc::SyncSender<()>,
@@ -45,32 +48,61 @@ impl Host {
             Arc::new(Mutex::new(None)),
             Arc::new(AtomicUsize::new(0)),
             Arc::new(AtomicUsize::new(0)),
+            Arc::new(AtomicUsize::new(0)),
+            Arc::new(Mutex::new(None)),
+            Arc::new(AtomicBool::new(false)),
         )
     }
     fn with<T>(&self, f: impl FnOnce(&mut FakeKernel) -> T) -> T {
         f(&mut self.0.lock().unwrap())
     }
+    fn callback_context(&self) {
+        if self.6.load(Ordering::SeqCst) {
+            engine().block_on(async {});
+        }
+    }
+}
+impl Drop for Host {
+    fn drop(&mut self) {
+        if let Some(finished) = self.5.lock().unwrap().take() {
+            let _ = finished.send(());
+        }
+    }
 }
 macro_rules! forward {
     ($($name:ident($($arg:ident: $ty:ty),*) -> $ret:ty;)*) => {
         $(fn $name(&mut self, $($arg: $ty),*) -> $ret {
+            self.callback_context();
             self.0.lock().unwrap().$name($($arg),*)
         })*
     };
 }
 impl Kernel for Host {
+    fn rename(&mut self, index: u32, name: &L2tpIfName) -> io::Result<()> {
+        self.callback_context();
+        let gate = self.1.lock().unwrap().take();
+        if let Some(gate) = gate {
+            gate.entered.send(()).unwrap();
+            gate.release.recv().unwrap();
+        }
+        self.4.fetch_add(1, Ordering::SeqCst);
+        self.0.lock().unwrap().rename(index, name)
+    }
     fn tunnel(&mut self, id: u32) -> io::Result<Option<TunnelInfo>> {
+        self.callback_context();
         let mut kernel = self.0.lock().unwrap();
         kernel.tick();
         kernel.tunnel(id)
     }
     fn monitor(&mut self) -> io::Result<Box<dyn Subscription>> {
+        self.callback_context();
         Ok(Box::new(Counted {
             feed: self.0.lock().unwrap().monitor()?,
             count: self.2.clone(),
         }))
     }
     fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>> {
+        self.callback_context();
         self.3.fetch_add(1, Ordering::SeqCst);
         let gate = self.1.lock().unwrap().take();
         if let Some(gate) = gate {
@@ -80,12 +112,15 @@ impl Kernel for Host {
         self.0.lock().unwrap().dump_links()
     }
     fn now(&self) -> Instant {
+        self.callback_context();
         self.0.lock().unwrap().now()
     }
     fn only_v6(&self, socket: SocketId) -> io::Result<bool> {
+        self.callback_context();
         self.0.lock().unwrap().only_v6(socket)
     }
     fn clone_fd(&self, socket: SocketId) -> io::Result<OwnedFd> {
+        self.callback_context();
         self.0.lock().unwrap().clone_fd(socket)
     }
     forward! {
@@ -106,7 +141,6 @@ impl Kernel for Host {
         prove(registration: &Registration) -> Proof;
         release(registration: &Registration) -> ();
         link_by_name(name: &L2tpIfName) -> io::Result<Option<LinkInfo>>;
-        rename(index: u32, name: &L2tpIfName) -> io::Result<()>;
         set_hwaddr(index: u32, addr: HwAddr) -> io::Result<()>;
         ether_addr(index: u32) -> io::Result<Option<HwAddr>>;
         dump_addrs() -> io::Result<Vec<AddrInfo>>;
@@ -329,7 +363,7 @@ fn shutdown_does_not_wait_for_blocked_callback_or_apply_its_result() {
     );
     release_tx.send(()).unwrap();
     thread.join().unwrap();
-    assert_eq!(control.config(), config(10));
+    assert_eq!(control.config(), Config::new());
     host.with(|k| {
         k.tick();
         assert!(k.tunnel_socket(10).is_none());
@@ -408,8 +442,10 @@ fn run_after_shutdown_reports_the_completed_cleanup() {
     let host = Host::new();
     let mut service = start(&host, config(10));
     service.converge().unwrap();
-    service.control().shutdown();
+    let control = service.control();
+    control.shutdown();
     service.run(Ok, |_| Ok(())).unwrap();
+    assert_eq!(control.config(), Config::new());
 }
 
 /// spec: A6, A7, A13, A14, L6, L9
@@ -458,11 +494,14 @@ fn superseded_reload_is_discarded_and_the_latest_runs_next() {
     let (entered_tx, entered_rx) = mpsc::sync_channel(1);
     let (release_tx, release_rx) = mpsc::sync_channel(1);
     let (ready_tx, ready_rx) = mpsc::channel();
+    let calls_seen = Arc::new(AtomicUsize::new(0));
+    let callback_calls = calls_seen.clone();
     let thread = std::thread::spawn(move || {
         let mut calls = 0;
         service.run(
             move |accepted| {
                 calls += 1;
+                callback_calls.fetch_add(1, Ordering::SeqCst);
                 entered_tx.send((calls, accepted)).unwrap();
                 if calls == 1 {
                     release_rx.recv().unwrap();
@@ -482,6 +521,7 @@ fn superseded_reload_is_discarded_and_the_latest_runs_next() {
         (1, config(10))
     );
     control.reload().unwrap();
+    control.reload().unwrap();
     release_tx.send(()).unwrap();
     assert_eq!(
         entered_rx.recv_timeout(Duration::from_secs(5)).unwrap(),
@@ -490,6 +530,7 @@ fn superseded_reload_is_discarded_and_the_latest_runs_next() {
     wait(|| control.config() == config(30));
     control.shutdown();
     thread.join().unwrap().unwrap();
+    assert_eq!(calls_seen.load(Ordering::SeqCst), 2);
 }
 
 /// spec: L3
@@ -515,35 +556,33 @@ fn blocking_service_exposes_host_requests_and_waits_for_processing_acknowledgeme
     let control = service.control();
     let (stored_tx, stored_rx) = mpsc::sync_channel(1);
     let host_thread = std::thread::spawn(move || {
-        engine().block_on(async {
-            let mut stored = std::collections::BTreeMap::new();
-            let mut seen = Vec::new();
-            while let Some(event) = requests.recv().await {
-                match event {
-                    service::ControlEvent::WriteTunable {
-                        id, name, value, ..
-                    } => {
-                        assert_eq!((name, value), ("net.ipv6.bindv6only", "0"));
-                        host.with(|k| k.set_bindv6only(false));
-                        control.tunable_written(id, true).await.unwrap();
-                        seen.push("write");
-                    }
-                    service::ControlEvent::StoreSocket { name, fd, .. } => {
-                        stored.insert(name, fd);
-                        seen.push("store");
-                        stored_tx.send(()).unwrap();
-                    }
-                    service::ControlEvent::ForgetSocket { id, name, .. } => {
-                        assert!(stored.remove(&name).is_some());
-                        control.socket_forgotten(id, true).await.unwrap();
-                        seen.push("forget");
-                    }
-                    _ => panic!("unexpected host request"),
+        let mut stored = std::collections::BTreeMap::new();
+        let mut seen = Vec::new();
+        while let Some(event) = requests.blocking_recv() {
+            match event {
+                service::ControlEvent::WriteTunable {
+                    id, name, value, ..
+                } => {
+                    assert_eq!((name, value), ("net.ipv6.bindv6only", "0"));
+                    host.with(|k| k.set_bindv6only(false));
+                    control.tunable_written_blocking(id, true).unwrap();
+                    seen.push("write");
                 }
+                service::ControlEvent::StoreSocket { name, fd, .. } => {
+                    stored.insert(name, fd);
+                    seen.push("store");
+                    stored_tx.send(()).unwrap();
+                }
+                service::ControlEvent::ForgetSocket { id, name, .. } => {
+                    assert!(stored.remove(&name).is_some());
+                    control.socket_forgotten_blocking(id, true).unwrap();
+                    seen.push("forget");
+                }
+                _ => panic!("unexpected host request"),
             }
-            assert!(stored.is_empty());
-            seen
-        })
+        }
+        assert!(stored.is_empty());
+        seen
     });
     service.converge().unwrap();
     stored_rx.recv_timeout(Duration::from_secs(5)).unwrap();
@@ -588,4 +627,385 @@ fn blocking_service_verifies_and_reuses_a_named_adopted_tunnel() {
         kernel.tick();
         assert!(kernel.tunnel_socket(10).is_none());
     });
+}
+
+/// spec: L7, A14, M14
+#[test]
+fn retry_timer_keeps_running_during_a_blocked_reload() {
+    let host = Host::new();
+    host.with(|kernel| {
+        kernel.add_link("l2tp0", false);
+    });
+    let mut service = start(&host, config(10));
+    service.converge().unwrap();
+    let control = service.control();
+    let (entered_tx, entered_rx) = mpsc::sync_channel(1);
+    let (release_tx, release_rx) = mpsc::sync_channel(1);
+    control.reload().unwrap();
+    let thread = std::thread::spawn(move || {
+        service.run(
+            move |config| {
+                entered_tx.send(()).unwrap();
+                release_rx.recv().unwrap();
+                Ok(config)
+            },
+            |_| Ok(()),
+        )
+    });
+    entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    let attempts = host.4.load(Ordering::SeqCst);
+    host.with(|kernel| kernel.advance(Duration::from_secs(1)));
+    // Restart waits for the callback, but its arrival wakes the owner to tick.
+    control.restart().unwrap();
+    wait(|| host.4.load(Ordering::SeqCst) > attempts);
+    control.shutdown();
+    assert!(thread.join().unwrap().is_ok());
+    release_tx.send(()).unwrap();
+}
+
+/// spec: L7, L12
+#[test]
+fn tunable_completion_is_processed_during_a_blocked_reload() {
+    let host = Host::new();
+    let mut service = start(&host, config(10));
+    let mut requests = service.take_requests().unwrap().unwrap();
+    service.converge().unwrap();
+    host.with(|kernel| kernel.set_bindv6only(true));
+    let control = service.control();
+    let (entered_tx, entered_rx) = mpsc::sync_channel(1);
+    let (release_tx, release_rx) = mpsc::sync_channel(1);
+    control.reload().unwrap();
+    let thread = std::thread::spawn(move || {
+        let mut calls = 0;
+        service.run(
+            move |_| {
+                calls += 1;
+                if calls == 2 {
+                    entered_tx.send(()).unwrap();
+                    release_rx.recv().unwrap();
+                }
+                Ok(config(20))
+            },
+            |_| Ok(()),
+        )
+    });
+    let service::ControlEvent::WriteTunable { id, deadline, .. } =
+        requests.blocking_recv().unwrap()
+    else {
+        panic!("expected tunable")
+    };
+    control.reload().unwrap();
+    entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    host.with(|kernel| kernel.set_bindv6only(false));
+    control.tunable_written_blocking(id, true).unwrap();
+    wait(|| host.with(|kernel| kernel.session_index(20, 120).is_some()));
+    host.with(|kernel| {
+        assert!(kernel.now() < deadline);
+        assert!(!kernel.only_v6(kernel.tunnel_socket(20).unwrap()).unwrap());
+    });
+    control.shutdown();
+    assert!(thread.join().unwrap().is_ok());
+    release_tx.send(()).unwrap();
+}
+
+/// spec: L7, L13
+#[test]
+fn withdrawal_completion_is_processed_during_a_blocked_reload() {
+    let host = Host::new();
+    let mut service = start(&host, config(10));
+    service.set_store_capacity(1).unwrap();
+    let mut requests = service.take_requests().unwrap().unwrap();
+    service.converge().unwrap();
+    let service::ControlEvent::StoreSocket { fd, .. } = requests.blocking_recv().unwrap() else {
+        panic!("expected store")
+    };
+    let control = service.control();
+    let (entered_tx, entered_rx) = mpsc::sync_channel(1);
+    let (release_tx, release_rx) = mpsc::sync_channel(1);
+    control.reload().unwrap();
+    let thread = std::thread::spawn(move || {
+        let mut calls = 0;
+        service.run(
+            move |_| {
+                calls += 1;
+                if calls == 2 {
+                    entered_tx.send(()).unwrap();
+                    release_rx.recv().unwrap();
+                }
+                Ok(config(20))
+            },
+            |_| Ok(()),
+        )
+    });
+    let service::ControlEvent::ForgetSocket { id, deadline, name } =
+        requests.blocking_recv().unwrap()
+    else {
+        panic!("expected withdrawal")
+    };
+    assert_eq!(name, "t10");
+    control.reload().unwrap();
+    entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    drop(fd);
+    control.socket_forgotten_blocking(id, true).unwrap();
+    wait(|| host.with(|kernel| kernel.tunnel_socket(10).is_none()));
+    assert!(host.with(|kernel| kernel.now() < deadline));
+    // Socket 20 was created while the capacity was occupied and is locally owned.
+    control.shutdown();
+    assert!(thread.join().unwrap().is_ok());
+    release_tx.send(()).unwrap();
+}
+
+/// spec: L5, L6
+#[test]
+fn requests_between_converge_and_run_keep_their_order() {
+    for restart_first in [false, true] {
+        let host = Host::new();
+        let mut service = start(&host, config(10));
+        service.converge().unwrap();
+        let control = service.control();
+        if restart_first {
+            control.restart().unwrap();
+            control.reload().unwrap();
+        } else {
+            control.reload().unwrap();
+            control.restart().unwrap();
+        }
+        control.restart().unwrap();
+        let observed = Arc::new(Mutex::new(Vec::new()));
+        let reload_observed = observed.clone();
+        let restart_observed = observed.clone();
+        let (done_tx, done_rx) = mpsc::sync_channel(1);
+        let thread = std::thread::spawn(move || {
+            let mut restarts = 0;
+            let result = service.run(
+                move |accepted| {
+                    assert_eq!(accepted, config(10));
+                    reload_observed.lock().unwrap().push("reload");
+                    Ok(accepted)
+                },
+                move |_| {
+                    restart_observed.lock().unwrap().push("restart");
+                    restarts += 1;
+                    if restarts == 2 {
+                        control.shutdown();
+                    }
+                    Ok(())
+                },
+            );
+            done_tx.send(result).unwrap();
+        });
+        done_rx
+            .recv_timeout(Duration::from_secs(5))
+            .unwrap()
+            .unwrap();
+        thread.join().unwrap();
+        assert_eq!(
+            *observed.lock().unwrap(),
+            if restart_first {
+                vec!["restart", "reload", "restart"]
+            } else {
+                vec!["reload", "restart", "restart"]
+            }
+        );
+    }
+}
+
+/// spec: L6, L7, A6
+#[test]
+fn deferred_restarts_are_bounded_and_each_accepted_request_runs() {
+    let host = Host::new();
+    let mut service = start(&host, config(10));
+    service.converge().unwrap();
+    let control = service.control();
+    let (entered_tx, entered_rx) = mpsc::sync_channel(1);
+    let (release_tx, release_rx) = mpsc::sync_channel(1);
+    let processed = Arc::new(AtomicUsize::new(0));
+    let restarts = processed.clone();
+    control.reload().unwrap();
+    let thread = std::thread::spawn(move || {
+        service.run(
+            move |config| {
+                entered_tx.send(()).unwrap();
+                release_rx.recv().unwrap();
+                Ok(config)
+            },
+            move |_| {
+                restarts.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            },
+        )
+    });
+    entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    let mut accepted = 0;
+    while control.restart().is_ok() {
+        accepted += 1;
+        assert!(accepted < rs_l2tpd::runtime::QUEUE_CAPACITY);
+    }
+    assert!(accepted > 0);
+    assert_eq!(processed.load(Ordering::SeqCst), 0);
+    release_tx.send(()).unwrap();
+    wait(|| processed.load(Ordering::SeqCst) == accepted);
+    control.shutdown();
+    thread.join().unwrap().unwrap();
+}
+
+/// spec: L8, L13
+#[test]
+fn tokio_drop_returns_without_blocking_host_request_processing() {
+    engine().block_on(async {
+        let host = Host::new();
+        let (finished_tx, finished_rx) = mpsc::sync_channel(1);
+        *host.5.lock().unwrap() = Some(finished_tx);
+        let runtime = Runtime::with_kernel(host.clone(), Box::new(NoDns), vec![])
+            .map_err(|(e, _)| e)
+            .unwrap();
+        let mut service = service::Service::with_runtime(config(10), runtime)
+            .map_err(|(e, _)| e)
+            .unwrap();
+        service.set_store_capacity(1).await.unwrap();
+        let mut requests = service.take_requests().unwrap();
+        service.converge().await.unwrap();
+        let control = service.control();
+        let before = Instant::now();
+        drop(service);
+        assert!(before.elapsed() < Duration::from_secs(1));
+        // The same current-thread executor can now process the withdrawals.
+        while let Some(event) = requests.recv().await {
+            match event {
+                service::ControlEvent::StoreSocket { fd, .. } => drop(fd),
+                service::ControlEvent::ForgetSocket { id, .. } => {
+                    control.socket_forgotten(id, true).await.unwrap()
+                }
+                _ => panic!("unexpected host request"),
+            }
+        }
+        finished_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        host.with(|kernel| {
+            kernel.tick();
+            assert!(kernel.tunnel_socket(10).is_none());
+            assert!(kernel.session_index(10, 110).is_none());
+        });
+    });
+}
+
+struct NestedDns(Arc<AtomicUsize>);
+impl Resolve for NestedDns {
+    fn watch(&mut self, _: Lookup) -> io::Result<()> {
+        engine().block_on(async {});
+        Ok(())
+    }
+    fn unwatch(&mut self, _: u64) {
+        engine().block_on(async {});
+    }
+    fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
+        engine().block_on(async {});
+        self.0.fetch_add(1, Ordering::SeqCst);
+        vec![]
+    }
+    fn retry_discovery(&self, _: u64) -> bool {
+        engine().block_on(async {});
+        false
+    }
+    fn waiting(&self, _: u64) -> bool {
+        engine().block_on(async {});
+        false
+    }
+}
+
+/// spec: L7, L8, A14
+#[test]
+fn spawn_blocking_callers_and_injected_callbacks_can_own_their_runtimes() {
+    engine().block_on(async {
+        tokio::task::spawn_blocking(|| {
+            let host = Host::new();
+            host.6.store(true, Ordering::SeqCst);
+            let polls = Arc::new(AtomicUsize::new(0));
+            let mut wanted = config(10);
+            wanted
+                .insert_tunnel(
+                    "wan",
+                    TunnelConfig::builder(10)
+                        .remote_addr(rs_l2tpd::config::RemoteAddr::Host("peer.example".into()))
+                        .ip_version(Family::V6)
+                        .build()
+                        .unwrap(),
+                )
+                .unwrap();
+            let mut service = blocking::Service::with_kernel(
+                wanted.clone(),
+                host.clone(),
+                Box::new(NestedDns(polls.clone())),
+                vec![],
+            )
+            .map_err(|(error, _)| error)
+            .unwrap();
+            service.set_store_capacity(0).unwrap();
+            assert!(service.take_requests().unwrap().is_some());
+            service.converge().unwrap();
+            let control = service.control();
+            assert_eq!(control.config(), wanted);
+            control.tunable_written_blocking(0, false).unwrap();
+            control.socket_forgotten_blocking(0, false).unwrap();
+            host.with(|kernel| kernel.advance(Duration::from_secs(1)));
+            control.reload().unwrap();
+            control.restart().unwrap();
+            let shutdown = control.clone();
+            service
+                .run(
+                    |accepted| engine().block_on(async { Ok(accepted) }),
+                    move |_| {
+                        engine().block_on(async {
+                            shutdown.shutdown();
+                            Ok(())
+                        })
+                    },
+                )
+                .unwrap();
+            assert!(polls.load(Ordering::SeqCst) > 0);
+            assert_eq!(control.config(), Config::new());
+            drop(service);
+
+            // Drop before run also keeps the private subscription runtime alive.
+            let mut service =
+                blocking::Service::with_kernel(wanted, host, Box::new(NestedDns(polls)), vec![])
+                    .map_err(|(error, _)| error)
+                    .unwrap();
+            service.converge().unwrap();
+            drop(service);
+        })
+        .await
+        .unwrap();
+    });
+}
+
+/// spec: L5, L6
+#[test]
+fn reload_accepted_during_convergence_is_ignored_even_when_dequeued_after_readiness() {
+    let host = Host::new();
+    let (entered_tx, entered_rx) = mpsc::sync_channel(1);
+    let (release_tx, release_rx) = mpsc::sync_channel(1);
+    *host.1.lock().unwrap() = Some(Gate {
+        entered: entered_tx,
+        release: release_rx,
+    });
+    let mut service = start(&host, config(10));
+    let control = service.control();
+    let converging = std::thread::spawn(move || {
+        service.converge().unwrap();
+        service
+    });
+    entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    control.reload().unwrap();
+    release_tx.send(()).unwrap();
+    let mut service = converging.join().unwrap();
+    control.restart().unwrap();
+    service
+        .run(
+            |_| panic!("convergence reload must be ignored"),
+            move |_| {
+                control.shutdown();
+                Ok(())
+            },
+        )
+        .unwrap();
 }

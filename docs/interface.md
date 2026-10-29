@@ -167,6 +167,19 @@ Both services offer `set_store_capacity` and `take_requests` before
 convergence for optional host integration. Drain the request receiver
 and answer through `Control`; without integration the library declines
 tunable writes and uses local socket ownership.
+Ordinary host threads can use `Receiver::blocking_recv`,
+`Control::tunable_written_blocking` and `Control::socket_forgotten_blocking`,
+including from `tokio::task::spawn_blocking`. Async workers use the async
+completion methods. The blocking service waits for orderly cleanup on drop;
+the Tokio service's drop only requests shutdown. Await its `run` to observe
+cleanup completion and errors while the caller's runtime stays active.
+
+Reload callbacks do not suspend kernel events, timers or host completions.
+Reloads accepted during initial convergence are ignored; requests accepted
+after convergence are retained for `run`. Deferred operator requests share a
+bounded admission budget, so a blocked callback cannot create an unbounded
+backlog. Injected blocking callbacks run outside Tokio context and may build
+and drive a runtime of their own.
 
 `Runtime::next_event` is the program-driven receive operation.
 `Runtime::shutdown` returns `Ok(false)` while cleanup is pending; keep

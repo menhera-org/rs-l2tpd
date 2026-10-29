@@ -75,6 +75,10 @@ fn queue_full_waiter_and_shutdown_precedence() {
         );
         let event = r.next_event().await;
         assert!(matches!(event, ControlEvent::Reload { generation: 1 }));
+        assert!(
+            control.restart().is_err(),
+            "dequeue alone must not free a pending request's admission slot"
+        );
         r.handle_event(event).unwrap();
         waiting.await.unwrap();
         control.shutdown();
@@ -480,5 +484,62 @@ fn dropping_runtime_stops_both_subscription_tasks_and_closes_the_queue() {
         }
         assert!(control.reload().is_err());
         assert!(control.reload_wait().await.is_err());
+    });
+}
+
+/// spec: L8, L11, L12, L13
+#[test]
+fn blocking_completions_work_inside_spawn_blocking() {
+    engine().block_on(async {
+        let mut runtime = runtime();
+        let control = runtime.control();
+        let sender = tokio::task::spawn_blocking(move || {
+            control.tunable_written_blocking(1, true).unwrap();
+            control.socket_forgotten_blocking(1, true).unwrap();
+        });
+        let event = runtime.next_event().await;
+        assert!(matches!(event, ControlEvent::TunableWritten { .. }));
+        runtime.handle_event(event).unwrap();
+        let event = runtime.next_event().await;
+        assert!(matches!(event, ControlEvent::SocketForgotten { .. }));
+        runtime.handle_event(event).unwrap();
+        sender.await.unwrap();
+    });
+}
+
+/// spec: L6, L11, A6
+#[test]
+fn cancelling_unaccepted_reload_wait_does_not_inflate_admission_capacity() {
+    engine().block_on(async {
+        let mut runtime = runtime();
+        let control = runtime.control();
+        for _ in 0..QUEUE_CAPACITY {
+            assert!(control.tx.try_send(ControlEvent::Tick).is_ok());
+        }
+        {
+            let mut waiting = pin!(control.reload_wait());
+            assert!(
+                waiting
+                    .as_mut()
+                    .poll(&mut Context::from_waker(Waker::noop()))
+                    .is_pending()
+            );
+            // A program-driven event did not acquire an admission slot.
+            runtime.handle_event(ControlEvent::Restart).unwrap();
+        }
+        for _ in 0..QUEUE_CAPACITY {
+            let event = runtime.next_event().await;
+            runtime.handle_event(event).unwrap();
+        }
+        for _ in 0..QUEUE_CAPACITY {
+            control.reload().unwrap();
+        }
+        let event = runtime.next_event().await;
+        assert!(
+            control.reload().is_err(),
+            "a dequeue must not leave an extra admission slot"
+        );
+        runtime.handle_event(event).unwrap();
+        control.reload().unwrap();
     });
 }

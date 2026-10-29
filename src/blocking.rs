@@ -120,6 +120,9 @@ impl Service {
                             }
                         }
                     }
+                    // Keep this runtime driving subscriptions until the owner
+                    // finishes, even though the Tokio-facing Drop does not wait.
+                    let _ = service.shutdown_and_wait().await;
                 });
             }) {
             Ok(thread) => thread,
@@ -150,7 +153,9 @@ impl Service {
     pub fn set_store_capacity(&mut self, capacity: usize) -> Result<()> {
         self.request(|tx| Command::StoreCapacity(capacity, tx))
     }
-    /// Enables host integration once, before convergence.
+    /// Enables host integration once, before convergence. On an ordinary thread,
+    /// drain with `Receiver::blocking_recv` and answer with the blocking methods
+    /// on [`Control`]; no Tokio runtime is needed by that thread.
     pub fn take_requests(&mut self) -> Result<Option<Receiver<ControlEvent>>> {
         self.request(Command::Requests)
     }

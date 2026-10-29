@@ -13,6 +13,7 @@
 //! # Ok(()) }
 //! ```
 
+use std::collections::VecDeque;
 use std::future::{Future, poll_fn};
 use std::pin::pin;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -33,17 +34,23 @@ enum Action {
     Converge(tokio::sync::oneshot::Sender<Result<Vec<String>>>),
     Run(Reload, Restart),
     StoreCapacity(usize, tokio::sync::oneshot::Sender<Result<()>>),
+    Reloaded {
+        generation: u64,
+        reload: Reload,
+        result: Result<Result<Config>>,
+    },
 }
 
 /// Internal service command, forwarded unchanged by event-loop embedders.
 #[doc(hidden)]
 pub struct Operation(Action);
 
-/// A Tokio-facing service. Dropping requests shutdown and joins the owner;
-/// explicit `run` reports cleanup errors. Callbacks must own their captured data.
+/// A Tokio-facing service. Drop only requests shutdown; it does not wait for
+/// cleanup. Shut down through `run` to await cleanup and observe failures while
+/// the caller's runtime continues draining subscriptions and host requests.
+/// Callbacks must own their captured data.
 pub struct Service {
     control: Control,
-    thread: Option<std::thread::JoinHandle<()>>,
     requests: Option<Receiver<ControlEvent>>,
     forward: Arc<AtomicBool>,
     completion: Option<tokio::sync::oneshot::Receiver<Result<()>>>,
@@ -111,7 +118,6 @@ impl Service {
         }
         Ok(Self {
             control,
-            thread: Some(thread),
             requests: Some(host_rx),
             forward,
             completion: Some(complete_rx),
@@ -190,14 +196,22 @@ impl Service {
         rx.await
             .map_err(|_| Error::Other("service stopped".into()))?
     }
+
+    pub(crate) async fn shutdown_and_wait(&mut self) -> Result<()> {
+        self.control.shutdown();
+        if let Some(completion) = self.completion.take() {
+            completion
+                .await
+                .map_err(|_| Error::Other("service stopped".into()))?
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl Drop for Service {
     fn drop(&mut self) {
         self.control.shutdown();
-        if let Some(thread) = self.thread.take() {
-            let _ = thread.join();
-        }
     }
 }
 
@@ -208,8 +222,13 @@ fn host_request<K: Kernel + 'static>(
     forward: bool,
 ) {
     if forward {
-        if host.try_send(event).is_err() {
-            log::warn!("host request receiver unavailable; handshake deadline remains in force");
+        if let Err(error) = host.try_send(event) {
+            match error.into_inner() {
+                ControlEvent::StoreSocket { name, .. } => runtime.store_refused(&name),
+                _ => log::warn!(
+                    "host request receiver unavailable; handshake deadline remains in force"
+                ),
+            }
         }
     } else {
         let answer = match event {
@@ -220,10 +239,24 @@ fn host_request<K: Kernel + 'static>(
                 id,
                 processed: true,
             },
+            ControlEvent::StoreSocket { name, .. } => {
+                runtime.store_refused(&name);
+                return;
+            }
             _ => return,
         };
         let _ = runtime.handle_event(answer);
     }
+}
+
+enum OperatorRequest {
+    Reload(u64),
+    Restart,
+}
+
+struct Callbacks {
+    reload: Option<Reload>,
+    restart: Restart,
 }
 
 fn worker<K: Kernel + 'static>(
@@ -236,8 +269,15 @@ fn worker<K: Kernel + 'static>(
     let control = runtime.control();
     let mut started = false;
     let mut converged = false;
+    let mut convergence_generation = 0;
     let mut convergence: Option<tokio::sync::oneshot::Sender<Result<Vec<String>>>> = None;
-    let mut serving: Option<(Reload, Restart)> = None;
+    let mut serving: Option<Callbacks> = None;
+    let mut in_flight = None;
+    // Admission slots stay reserved until processing, bounding this deferral
+    // queue as well as preserving every accepted restart's position.
+    let mut pending = VecDeque::new();
+    let mut poll_background = false;
+    let callback_panicked = Arc::new(AtomicBool::new(false));
     let mut failure = None;
     loop {
         if control.shared.shutdown.load(Ordering::Acquire) {
@@ -252,12 +292,122 @@ fn worker<K: Kernel + 'static>(
         }
         if started && !converged && runtime.ready() {
             converged = true;
+            // Ignore reloads accepted during convergence even if a kernel
+            // operation kept them queued until after readiness.
+            convergence_generation = control.shared.generation.load(Ordering::Acquire);
             if let Some(tx) = convergence.take() {
                 let _ = tx.send(Ok(runtime.left_out()));
             }
         }
-        let event = engine.block_on(runtime.next_event());
+        let pending_ready = converged
+            && in_flight.is_none()
+            && serving.is_some()
+            && !pending.is_empty()
+            && !control.shared.shutdown.load(Ordering::Acquire);
+        if !poll_background
+            && pending_ready
+            && in_flight.is_none()
+            && !control.shared.shutdown.load(Ordering::Acquire)
+            && let Some(callbacks) = serving.as_mut()
+            && let Some(request) = pending.pop_front()
+        {
+            match request {
+                OperatorRequest::Reload(generation) => {
+                    if generation != control.shared.generation.load(Ordering::Acquire) {
+                        control.request_processed();
+                        continue;
+                    }
+                    let mut reload = callbacks.reload.take().unwrap();
+                    let accepted = control.config();
+                    let returned = control.clone();
+                    let panicked = callback_panicked.clone();
+                    let spawned = std::thread::Builder::new()
+                        .name("l2tp-reload".into())
+                        .spawn(move || {
+                            let result =
+                                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                    reload(accepted)
+                                }))
+                                .map_err(|_| Error::ReloadPanicked);
+                            // A completion queued during shutdown may not be
+                            // dequeued before cleanup ends. Preserve its panic.
+                            if result.is_err() {
+                                panicked.store(true, Ordering::Release);
+                                returned.shutdown();
+                            }
+                            let _ = returned.tx.blocking_send(ControlEvent::Service(Operation(
+                                Action::Reloaded {
+                                    generation,
+                                    reload,
+                                    result,
+                                },
+                            )));
+                        });
+                    match spawned {
+                        Ok(_) => in_flight = Some(generation),
+                        Err(error) => {
+                            control.request_processed();
+                            failure = Some(error.into());
+                            control.shutdown();
+                        }
+                    }
+                }
+                OperatorRequest::Restart => {
+                    match runtime.restart_sockets().and_then(&mut callbacks.restart) {
+                        Ok(()) => log::warn!("restart callback returned; resuming"),
+                        Err(error) => log::warn!("restart failed; resuming: {error}"),
+                    }
+                    control.request_processed();
+                }
+            }
+            poll_background = true;
+            continue;
+        }
+        // Interleave policy and host work with deferred operator requests;
+        // neither a full input queue nor a long restart backlog may starve the other.
+        let event = if pending_ready {
+            let mut next = pin!(runtime.next_event());
+            engine.block_on(poll_fn(|cx| {
+                Poll::Ready(match next.as_mut().poll(cx) {
+                    Poll::Ready(event) => Some(event),
+                    Poll::Pending => None,
+                })
+            }))
+        } else {
+            Some(engine.block_on(runtime.next_event()))
+        };
+        poll_background = false;
+        let Some(event) = event else {
+            continue;
+        };
         match event {
+            ControlEvent::Service(Operation(Action::Reloaded {
+                generation,
+                reload,
+                result,
+            })) => {
+                in_flight = None;
+                control.request_processed();
+                if let Some(callbacks) = serving.as_mut() {
+                    callbacks.reload = Some(reload);
+                }
+                match result {
+                    Err(error) => {
+                        failure = Some(error);
+                        control.shutdown();
+                    }
+                    Ok(Err(error)) => {
+                        log::error!("reload failed; retaining accepted configuration: {error}")
+                    }
+                    Ok(Ok(config))
+                        if !control.shared.shutdown.load(Ordering::Acquire)
+                            && generation == control.shared.generation.load(Ordering::Acquire) =>
+                    {
+                        runtime.reconcile(config);
+                    }
+                    _ => {}
+                }
+            }
             ControlEvent::Service(Operation(action))
                 if !control.shared.shutdown.load(Ordering::Acquire) =>
             {
@@ -280,8 +430,12 @@ fn worker<K: Kernel + 'static>(
                         }
                     }
                     Action::Run(reload, restart) => {
-                        serving = Some((reload, restart));
+                        serving = Some(Callbacks {
+                            reload: Some(reload),
+                            restart,
+                        });
                     }
+                    Action::Reloaded { .. } => unreachable!("handled above"),
                 }
                 if !started {
                     runtime.reconcile(config.clone());
@@ -290,75 +444,21 @@ fn worker<K: Kernel + 'static>(
             }
             ControlEvent::Reload { generation }
                 if converged
-                    && serving.is_some()
+                    && generation > convergence_generation
                     && !control.shared.shutdown.load(Ordering::Acquire) =>
             {
-                if generation != control.shared.generation.load(Ordering::Acquire) {
-                    continue;
-                }
-                let (mut reload, restart) = serving.take().unwrap();
-                let accepted = control.config();
-                let (answer_tx, mut answer_rx) = tokio::sync::oneshot::channel();
-                let spawned = std::thread::Builder::new()
-                    .name("l2tp-reload".into())
-                    .spawn(move || {
-                        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                            reload(accepted)
-                        }));
-                        let _ = answer_tx.send((reload, result));
-                    });
-                if let Err(error) = spawned {
-                    failure = Some(error.into());
-                    serving = Some((Box::new(Ok), restart));
-                    control.shutdown();
-                    continue;
-                }
-                let answer = engine.block_on(async {
-                    let mut cancelled = pin!(control.cancelled());
-                    poll_fn(|cx| {
-                        if cancelled.as_mut().poll(cx).is_ready() {
-                            return Poll::Ready(None);
-                        }
-                        std::pin::Pin::new(&mut answer_rx).poll(cx).map(Some)
-                    })
-                    .await
+                pending.retain(|request| {
+                    if matches!(request, OperatorRequest::Reload(_)) {
+                        control.request_processed();
+                        false
+                    } else {
+                        true
+                    }
                 });
-                match answer {
-                    Some(Ok((reload, result))) => {
-                        serving = Some((reload, restart));
-                        match result {
-                            Err(_) => {
-                                failure = Some(Error::ReloadPanicked);
-                                control.shutdown();
-                            }
-                            Ok(Err(error)) => log::error!(
-                                "reload failed; retaining accepted configuration: {error}"
-                            ),
-                            Ok(Ok(config))
-                                if generation
-                                    == control.shared.generation.load(Ordering::Acquire) =>
-                            {
-                                runtime.reconcile(config);
-                            }
-                            _ => {}
-                        }
-                    }
-                    _ => {
-                        serving = Some((Box::new(Ok), restart));
-                        control.shutdown();
-                    }
-                }
+                pending.push_back(OperatorRequest::Reload(generation));
             }
-            ControlEvent::Restart
-                if converged
-                    && serving.is_some()
-                    && !control.shared.shutdown.load(Ordering::Acquire) =>
-            {
-                let (_, restart) = serving.as_mut().unwrap();
-                match runtime.restart_sockets().and_then(restart) {
-                    Ok(()) => log::warn!("restart callback returned; resuming"),
-                    Err(error) => log::warn!("restart failed; resuming: {error}"),
-                }
+            ControlEvent::Restart if !control.shared.shutdown.load(Ordering::Acquire) => {
+                pending.push_back(OperatorRequest::Restart);
             }
             event @ (ControlEvent::WriteTunable { .. }
             | ControlEvent::StoreSocket { .. }
@@ -376,5 +476,136 @@ fn worker<K: Kernel + 'static>(
     if let Some(tx) = convergence {
         let _ = tx.send(Ok(runtime.left_out()));
     }
+    if callback_panicked.load(Ordering::Acquire) {
+        return Err(Error::ReloadPanicked);
+    }
     failure.map_or(Ok(()), Err)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{Family, TunnelConfig};
+    use crate::kernel::fake::FakeKernel;
+    use crate::reconciler::IphostResolve;
+    use std::future::Future;
+    use std::pin::pin;
+    use std::task::{Context, Waker};
+
+    fn engine() -> tokio::runtime::Runtime {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+    }
+    fn config() -> Config {
+        let mut config = Config::new();
+        config
+            .insert_tunnel(
+                "a",
+                TunnelConfig::builder(10)
+                    .ip_version(Family::V6)
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        config
+    }
+    fn runtime(adopted: Vec<AdoptedSocket>) -> Runtime<FakeKernel> {
+        Runtime::with_kernel(
+            FakeKernel::new(42),
+            Box::new(IphostResolve::default()),
+            adopted,
+        )
+        .map_err(|(error, _)| error)
+        .unwrap()
+    }
+
+    /// spec: L13
+    #[test]
+    fn refused_host_delivery_releases_capacity_and_needs_no_withdrawal() {
+        engine().block_on(async {
+            for unavailable in ["full", "closed", "disabled"] {
+                let mut runtime = runtime(vec![]);
+                runtime.set_store_capacity(1);
+                let (host, mut receiver) = tokio::sync::mpsc::channel(1);
+                if unavailable == "full" {
+                    assert!(host.try_send(ControlEvent::Tick).is_ok());
+                }
+                if unavailable == "closed" {
+                    receiver.close();
+                }
+                runtime.reconcile(config());
+                let event = runtime.next_event().await;
+                assert!(matches!(
+                    event,
+                    ControlEvent::StoreSocket { tunnel_id: 10, .. }
+                ));
+                host_request(&mut runtime, event, &host, unavailable != "disabled");
+                assert!(runtime.ready(), "storage must not gate readiness");
+
+                let mut wanted = config();
+                wanted
+                    .insert_tunnel(
+                        "b",
+                        TunnelConfig::builder(20)
+                            .ip_version(Family::V6)
+                            .build()
+                            .unwrap(),
+                    )
+                    .unwrap();
+                runtime.reconcile(wanted);
+                let event = runtime.next_event().await;
+                assert!(
+                    matches!(event, ControlEvent::StoreSocket { tunnel_id: 20, .. }),
+                    "refusal must release the capacity slot"
+                );
+                host_request(&mut runtime, event, &host, unavailable != "disabled");
+                assert!(!runtime.shutdown().unwrap()); // asynchronous kernel close
+                let mut next = pin!(runtime.next_event());
+                assert!(
+                    next.as_mut()
+                        .poll(&mut Context::from_waker(Waker::noop()))
+                        .is_pending(),
+                    "a refused submission must not emit ForgetSocket"
+                );
+            }
+        });
+    }
+
+    /// spec: L7
+    #[test]
+    fn panic_completion_during_shutdown_is_reported_after_cleanup() {
+        engine().block_on(async {
+            let (fd, _) = std::os::unix::net::UnixStream::pair().unwrap();
+            let mut runtime = runtime(vec![AdoptedSocket::new("malformed", fd.into())]);
+            runtime.set_store_capacity(1);
+            let mut service = Service::with_runtime(Config::new(), runtime)
+                .map_err(|(error, _)| error)
+                .unwrap();
+            let mut requests = service.take_requests().unwrap();
+            service.converge().await.unwrap();
+            let ControlEvent::ForgetSocket { id, .. } = requests.recv().await.unwrap() else {
+                panic!("expected withdrawal")
+            };
+            let control = service.control();
+            control.shutdown();
+            // The callback result arrives after shutdown began, while cleanup
+            // waits for a processing acknowledgement. It must not be discarded.
+            control
+                .send(ControlEvent::Service(Operation(Action::Reloaded {
+                    generation: 1,
+                    reload: Box::new(Ok),
+                    result: Err(Error::ReloadPanicked),
+                })))
+                .await
+                .unwrap();
+            control.socket_forgotten(id, true).await.unwrap();
+            assert!(matches!(
+                service.run(Ok, |_| Ok(())).await,
+                Err(Error::ReloadPanicked)
+            ));
+            assert_eq!(control.config(), Config::new());
+        });
+    }
 }

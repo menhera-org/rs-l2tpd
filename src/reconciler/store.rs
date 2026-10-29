@@ -62,6 +62,17 @@ impl<K: Kernel> Reconciler<K> {
         self.store.capacity = capacity;
     }
 
+    // Only for a submission that could not reach the program; this synchronous
+    // owner-thread path cannot reject a later incarnation of the same name.
+    pub(crate) fn store_refused(&mut self, name: &str) {
+        if !self.store.inherited.contains_key(name)
+            && !self.store.retiring.contains_key(name)
+            && self.store.names.remove(name)
+        {
+            log::warn!("{name}: storage unavailable; socket remains locally owned");
+        }
+    }
+
     /// Retains an inherited descriptor and its exact store name until
     /// bounded verification or retirement completes (P14). Call before
     /// the first reconcile; malformed names are withdrawn without inspection.

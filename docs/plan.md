@@ -334,6 +334,15 @@ build gates, and 26 live Linux tests including the two services and
 unordered runtime drop. The binary remains a Phase 5 stub. Coverage,
 the full required kernel matrix and strict global gates remain Phase 6.
 
+The [Phase 4 audit follow-up](../audit/PHASE4_REMEDIATION_2026-10-29.md)
+corrects F1–F7 and verifies the amended L7/L8 blocking contracts: reload
+completions return as events, queued requests survive the converge/run gap,
+failed store delivery releases capacity, blocking completions work inside
+`spawn_blocking`, and Tokio drop does not join the owner. Kernel/resolver
+callbacks, including subscription initialization and clock reads, stay
+outside the service's asynchronous wait. The follow-up records 64 ordinary
+library tests, 22 service tests, ten seeded repetitions and live host results.
+
 ### Phase 5 — the binary
 
 Implements [process](spec/process.md) P1–P27 and

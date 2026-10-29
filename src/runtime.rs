@@ -22,7 +22,7 @@ use std::collections::VecDeque;
 use std::future::{Future, poll_fn};
 use std::os::fd::OwnedFd;
 use std::pin::pin;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::task::Poll;
 use std::time::{Duration, Instant};
@@ -107,7 +107,8 @@ pub enum ControlEvent {
         /// The notice.
         notice: Notice,
     },
-    /// Poll the resolver's retained latest answers.
+    /// Reserved for resolver notifications; treated as [`Self::Tick`]. Current
+    /// resolver workers retain their answers for polling by the policy timer.
     ResolverAnswers,
     /// Run due timers.
     Tick,
@@ -174,6 +175,8 @@ pub(crate) struct Shared {
     pub generation: AtomicU64,
     acceptance: Mutex<()>,
     config: Mutex<Config>,
+    requests: tokio::sync::Semaphore,
+    admitted: AtomicUsize,
 }
 
 /// Cloneable, thread-safe requests. Shutdown has a persistent path outside the
@@ -188,17 +191,30 @@ impl Control {
     /// Requests a reload without waiting for queue space.
     pub fn reload(&self) -> Result<()> {
         let _order = self.shared.acceptance.lock().unwrap();
+        let request = self
+            .shared
+            .requests
+            .try_acquire()
+            .map_err(|e| Error::Other(e.to_string()))?;
         let permit = self
             .tx
             .try_reserve()
             .map_err(|e| Error::Other(e.to_string()))?;
         let generation = self.shared.generation.fetch_add(1, Ordering::AcqRel) + 1;
+        self.shared.admitted.fetch_add(1, Ordering::AcqRel);
+        request.forget();
         permit.send(ControlEvent::Reload { generation });
         Ok(())
     }
     /// Waits for queue space, without blocking the calling thread.
     pub async fn reload_wait(&self) -> Result<()> {
         // Reserve outside the admission lock: waiting must not block try_send.
+        let request = self
+            .shared
+            .requests
+            .acquire()
+            .await
+            .map_err(|e| Error::Other(e.to_string()))?;
         let permit = self
             .tx
             .reserve()
@@ -206,6 +222,8 @@ impl Control {
             .map_err(|e| Error::Other(e.to_string()))?;
         let _order = self.shared.acceptance.lock().unwrap();
         let generation = self.shared.generation.fetch_add(1, Ordering::AcqRel) + 1;
+        self.shared.admitted.fetch_add(1, Ordering::AcqRel);
+        request.forget();
         permit.send(ControlEvent::Reload { generation });
         Ok(())
     }
@@ -217,9 +235,19 @@ impl Control {
     /// Requests a restart; fails rather than waiting if the queue is full.
     pub fn restart(&self) -> Result<()> {
         let _order = self.shared.acceptance.lock().unwrap();
-        self.tx
-            .try_send(ControlEvent::Restart)
-            .map_err(|e| Error::Other(e.to_string()))
+        let request = self
+            .shared
+            .requests
+            .try_acquire()
+            .map_err(|e| Error::Other(e.to_string()))?;
+        let permit = self
+            .tx
+            .try_reserve()
+            .map_err(|e| Error::Other(e.to_string()))?;
+        self.shared.admitted.fetch_add(1, Ordering::AcqRel);
+        request.forget();
+        permit.send(ControlEvent::Restart);
+        Ok(())
     }
     /// A snapshot of the accepted configuration.
     pub fn config(&self) -> Config {
@@ -235,20 +263,44 @@ impl Control {
         self.send(ControlEvent::SocketForgotten { id, processed })
             .await
     }
+    /// Blocking tunable completion from a synchronous thread, including
+    /// `tokio::task::spawn_blocking`. Async workers use [`Self::tunable_written`].
+    pub fn tunable_written_blocking(&self, id: u64, success: bool) -> Result<()> {
+        self.send_blocking(ControlEvent::TunableWritten { id, success })
+    }
+    /// Blocking processing-barrier completion, also usable in `spawn_blocking`.
+    /// Async workers use [`Self::socket_forgotten`].
+    pub fn socket_forgotten_blocking(&self, id: u64, processed: bool) -> Result<()> {
+        self.send_blocking(ControlEvent::SocketForgotten { id, processed })
+    }
+    fn send_blocking(&self, event: ControlEvent) -> Result<()> {
+        self.tx
+            .blocking_send(event)
+            .map_err(|e| Error::Other(e.to_string()))
+    }
+    pub(crate) fn request_processed(&self) {
+        // Direct Runtime users can also forward manually constructed events.
+        let mut count = self.shared.admitted.load(Ordering::Acquire);
+        while count != 0 {
+            match self.shared.admitted.compare_exchange_weak(
+                count,
+                count - 1,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => {
+                    self.shared.requests.add_permits(1);
+                    break;
+                }
+                Err(current) => count = current,
+            }
+        }
+    }
     pub(crate) async fn send(&self, event: ControlEvent) -> Result<()> {
         self.tx
             .send(event)
             .await
             .map_err(|e| Error::Other(e.to_string()))
-    }
-    pub(crate) async fn cancelled(&self) {
-        loop {
-            let notified = self.shared.wake.notified();
-            if self.shared.shutdown.load(Ordering::Acquire) {
-                return;
-            }
-            notified.await;
-        }
     }
 }
 
@@ -288,14 +340,31 @@ impl<K: Kernel + 'static> Runtime<K> {
         resolver: Box<dyn Resolve>,
         adopted: Vec<AdoptedSocket>,
     ) -> StartResult<Self> {
-        let opened = (|| {
-            let handle =
-                tokio::runtime::Handle::try_current().map_err(|e| Error::Other(e.to_string()))?;
-            Ok((handle, kernel.monitor()?, kernel.l2tp_events()?))
-        })();
-        let (handle, monitor, l2tp) = match opened {
-            Ok(v) => v,
-            Err(e) => return Err((e, adopted)),
+        let handle = match tokio::runtime::Handle::try_current() {
+            Ok(handle) => handle,
+            Err(error) => return Err((Error::Other(error.to_string()), adopted)),
+        };
+        // Injected blocking implementations may build their own runtimes,
+        // including while the caller constructs this runtime from an async task.
+        let opened = std::thread::Builder::new()
+            .name("l2tp-subscriptions".into())
+            .spawn(move || -> std::io::Result<_> {
+                let monitor = kernel.monitor()?;
+                let l2tp = kernel.l2tp_events()?;
+                Ok((kernel, monitor, l2tp))
+            });
+        let (kernel, monitor, l2tp) = match opened {
+            Ok(thread) => match thread.join() {
+                Ok(Ok(opened)) => opened,
+                Ok(Err(error)) => return Err((error.into(), adopted)),
+                Err(_) => {
+                    return Err((
+                        Error::Other("kernel subscription initializer panicked".into()),
+                        adopted,
+                    ));
+                }
+            },
+            Err(error) => return Err((error.into(), adopted)),
         };
         let (tx, rx) = tokio::sync::mpsc::channel(QUEUE_CAPACITY);
         let shared = Arc::new(Shared {
@@ -305,6 +374,8 @@ impl<K: Kernel + 'static> Runtime<K> {
             generation: AtomicU64::new(0),
             acceptance: Mutex::new(()),
             config: Mutex::new(Config::new()),
+            requests: tokio::sync::Semaphore::new(QUEUE_CAPACITY),
+            admitted: AtomicUsize::new(0),
         });
         let control = Control { tx, shared };
         let mut reconciler = Reconciler::new(kernel, resolver);
@@ -358,6 +429,9 @@ impl<K: Kernel + 'static> Runtime<K> {
     pub fn set_store_capacity(&mut self, capacity: usize) {
         self.reconciler.set_store_capacity(capacity);
     }
+    pub(crate) fn store_refused(&mut self, name: &str) {
+        self.reconciler.store_refused(name);
+    }
     /// Applies configuration; `true` means every requested change was applied.
     pub fn reconcile(&mut self, config: Config) -> bool {
         if self.stopping.is_some() || self.control.shared.shutdown.load(Ordering::Acquire) {
@@ -385,9 +459,25 @@ impl<K: Kernel + 'static> Runtime<K> {
             .map(|(name, fd)| AdoptedSocket::new(name, fd))
             .collect())
     }
-    /// Waits for one event. Persistent shutdown/loss is checked before dequeue;
+    /// Prepares a wait on the owner thread, before entering `block_on`; only
+    /// the returned future runs asynchronously. Persistent shutdown/loss is checked before dequeue;
     /// swapping each loss flag before resync preserves a concurrent second loss.
-    pub async fn next_event(&mut self) -> ControlEvent {
+    pub fn next_event(&mut self) -> impl Future<Output = ControlEvent> + '_ {
+        let now = self.reconciler.kernel().now();
+        let deadline = if self.stopping.is_some() {
+            self.stopping
+                .into_iter()
+                .chain(self.reconciler.shutdown_deadline())
+                .min()
+        } else {
+            self.reconciler.next_deadline()
+        };
+        let wake_at =
+            deadline.map(|deadline| Instant::now() + deadline.saturating_duration_since(now));
+        self.wait_event(wake_at)
+    }
+
+    async fn wait_event(&mut self, wake_at: Option<Instant>) -> ControlEvent {
         let shared = self.control.shared.clone();
         loop {
             let notified = shared.wake.notified();
@@ -406,23 +496,14 @@ impl<K: Kernel + 'static> Runtime<K> {
                     };
                 }
             }
-            let now = self.reconciler.kernel().now();
-            let deadline = if self.stopping.is_some() {
-                self.stopping
-                    .into_iter()
-                    .chain(self.reconciler.shutdown_deadline())
-                    .min()
-            } else {
-                self.reconciler.next_deadline()
-            };
             // An always-ready receiver can complete block_on without polling
             // Tokio's timer driver. Due policy work must still make progress.
-            if deadline.is_some_and(|deadline| deadline <= now) {
+            if wake_at.is_some_and(|deadline| deadline <= Instant::now()) {
                 return ControlEvent::Tick;
             }
             let mut timer = pin!(async {
-                if let Some(deadline) = deadline {
-                    tokio::time::sleep(deadline.saturating_duration_since(now)).await;
+                if let Some(deadline) = wake_at {
+                    tokio::time::sleep_until(tokio::time::Instant::from_std(deadline)).await;
                 } else {
                     std::future::pending::<()>().await;
                 }
@@ -464,6 +545,7 @@ impl<K: Kernel + 'static> Runtime<K> {
                 self.control.shutdown();
                 return self.shutdown().map(|_| ());
             }
+            ControlEvent::Reload { .. } | ControlEvent::Restart => self.control.request_processed(),
             _ => {}
         }
         self.collect_requests();
@@ -479,13 +561,15 @@ impl<K: Kernel + 'static> Runtime<K> {
     pub fn shutdown(&mut self) -> Result<bool> {
         let now = self.reconciler.kernel().now();
         let deadline = *self.stopping.get_or_insert(now + Duration::from_secs(4));
-        self.outgoing.retain(|event| {
-            !matches!(
-                event,
-                ControlEvent::WriteTunable { .. } | ControlEvent::StoreSocket { .. }
-            )
-        });
+        for event in std::mem::take(&mut self.outgoing) {
+            match event {
+                ControlEvent::StoreSocket { name, .. } => self.store_refused(&name),
+                ControlEvent::WriteTunable { .. } => {}
+                event => self.outgoing.push_back(event),
+            }
+        }
         let complete = self.reconciler.shutdown();
+        *self.control.shared.config.lock().unwrap() = self.reconciler.accepted().clone();
         self.collect_requests();
         let deleted = self.reconciler.shutdown_deletions()?;
         if complete && deleted {
@@ -530,6 +614,7 @@ impl<K: Kernel + 'static> Runtime<K> {
 
 impl<K: Kernel> Drop for Runtime<K> {
     fn drop(&mut self) {
+        self.control.shared.requests.close();
         for task in &self.tasks {
             task.abort();
         }
