@@ -353,9 +353,16 @@ fn worker<K: Kernel + 'static>(
                     }
                 }
                 OperatorRequest::Restart => {
-                    match runtime.restart_sockets().and_then(&mut callbacks.restart) {
-                        Ok(()) => log::warn!("restart callback returned; resuming"),
-                        Err(error) => log::warn!("restart failed; resuming: {error}"),
+                    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        runtime.restart_sockets().and_then(&mut callbacks.restart)
+                    }));
+                    match outcome {
+                        Ok(Ok(())) => log::warn!("restart callback returned; resuming"),
+                        Ok(Err(error)) => log::warn!("restart failed; resuming: {error}"),
+                        Err(_) => {
+                            failure = Some(Error::RestartPanicked);
+                            control.shutdown();
+                        }
                     }
                     control.request_processed();
                 }

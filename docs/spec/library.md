@@ -74,7 +74,12 @@ request that wins over queued reloads. `restart` requests the restart of
 [P26](process.md#restart): the service finishes the operation in
 progress, stops its timers and calls the program's restart callback with
 the tunnel descriptors to hand over; the program execs, and if the
-callback returns (the exec failed) the service resumes. Requests accepted
+callback returns (the exec failed) the service resumes. A restart
+requested during `converge` is honoured: it is kept and runs once
+convergence completes and `run` serves requests, unlike a reload, which
+`converge` ignores ([L5](#the-service)). A restart callback that panics
+ends the service with an error after cleanup, as a reload callback does
+([L7](#the-service)). Requests accepted
 through the handle are processed in order of acceptance, one at a time.
 `config` returns the accepted configuration.
 

@@ -189,6 +189,13 @@ pub struct Control {
 
 impl Control {
     /// Requests a reload without waiting for queue space.
+    ///
+    /// Every accepted reload or restart holds one of the queue's admission
+    /// slots until it is processed: by the service, or, for a program driving
+    /// [`Runtime`] itself, by forwarding the `Reload`/`Restart` event to
+    /// [`Runtime::handle_event`] as L10 requires. A program that withholds
+    /// those events exhausts the slots, after which this method and
+    /// [`Self::restart`] fail until the program forwards them.
     pub fn reload(&self) -> Result<()> {
         let _order = self.shared.acceptance.lock().unwrap();
         let request = self

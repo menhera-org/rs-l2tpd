@@ -175,8 +175,10 @@ the Tokio service's drop only requests shutdown. Await its `run` to observe
 cleanup completion and errors while the caller's runtime stays active.
 
 Reload callbacks do not suspend kernel events, timers or host completions.
-Reloads accepted during initial convergence are ignored; requests accepted
-after convergence are retained for `run`. Deferred operator requests share a
+Reloads accepted during initial convergence are ignored; restarts accepted
+at any time, and reloads accepted after convergence, are retained for `run`.
+A panicking restart callback ends `run` with `Error::RestartPanicked` after
+cleanup, as a reload panic does. Deferred operator requests share a
 bounded admission budget, so a blocked callback cannot create an unbounded
 backlog. Injected blocking callbacks run outside Tokio context and may build
 and drive a runtime of their own.

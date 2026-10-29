@@ -11,6 +11,8 @@ pub enum Error {
     Io(std::io::Error),
     /// The reload callback panicked; cleanup was attempted before returning.
     ReloadPanicked,
+    /// The restart callback panicked; cleanup was attempted before returning.
+    RestartPanicked,
     /// Any other failure, with a message.
     Other(String),
 }
@@ -21,6 +23,7 @@ impl std::fmt::Display for Error {
             Error::InvalidConfig(msg) => write!(f, "invalid configuration: {msg}"),
             Error::Io(err) => err.fmt(f),
             Error::ReloadPanicked => f.write_str("reload callback panicked"),
+            Error::RestartPanicked => f.write_str("restart callback panicked"),
             Error::Other(msg) => f.write_str(msg),
         }
     }

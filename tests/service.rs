@@ -325,6 +325,26 @@ fn callback_panic_returns_only_after_cleanup() {
     });
 }
 
+/// spec: L6
+#[test]
+fn restart_callback_panic_returns_only_after_cleanup() {
+    let host = Host::new();
+    let mut service = start(&host, config(10));
+    service.converge().unwrap();
+    let control = service.control();
+    let thread = std::thread::spawn(move || service.run(Ok, |_| panic!("restart panic")));
+    control.restart().unwrap();
+    assert!(matches!(
+        thread.join().unwrap(),
+        Err(Error::RestartPanicked)
+    ));
+    host.with(|k| {
+        k.tick();
+        assert!(k.tunnel_socket(10).is_none());
+        assert!(k.session_index(10, 110).is_none());
+    });
+}
+
 /// spec: L6, L7
 #[test]
 fn shutdown_does_not_wait_for_blocked_callback_or_apply_its_result() {
