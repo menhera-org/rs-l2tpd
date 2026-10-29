@@ -160,6 +160,25 @@ first; F2 is cheapest to fold into the same change.
   API already; keep it and document "reserved, treated as `Tick`") or have
   the resolver worker send it. Keeping it costs nothing; document it.
 
+## Blocking contracts every fix must keep
+
+These hold today, were confirmed on 2026-10-29 and are now part of L7 and L8
+in [library](../docs/spec/library.md#the-service); F1 and F4 must not break
+them.
+
+1. **Every public blocking function works inside `tokio::task::spawn_blocking`.**
+   No code on the caller's thread may call `Runtime::block_on`,
+   `Handle::block_on` or `Handle::current()`. Any Tokio runtime the library
+   needs is built and driven on a thread the library owns (`l2tp-blocking`,
+   `l2tp-reconciler`). New sync completions (F4) use `Sender::blocking_send`,
+   which Tokio allows from `spawn_blocking` and refuses only in async workers.
+2. **Every injected blocking callback may build a Tokio runtime of its own.**
+   The reload callback runs on the `l2tp-reload` thread; the restart callback,
+   user `Kernel` and `Resolve` implementations run on the reconciler thread
+   between `engine.block_on` calls. None of them may ever be invoked inside
+   `block_on` or a spawned task. The F1 rewrite keeps the callback on its own
+   thread and posts its result back with `blocking_send`.
+
 ## Verified as conforming (no action)
 
 - L5: startup failure returns adopted descriptors with exact names

@@ -81,13 +81,22 @@ through the handle are processed in order of acceptance, one at a time.
 L7. The reload callback runs on a thread that may block; its error is
 logged and the previous configuration kept; its panic ends the service with
 an error after cleanup; a shutdown does not wait for a blocked callback
-([P13](process.md#signals-and-requests)).
+([P13](process.md#signals-and-requests)). Every callback the program
+injects (the reload and restart callbacks, and a `Kernel` or resolver
+implementation it supplies) is invoked on a thread that is inside no Tokio
+runtime context, never inside a `block_on` or a spawned task, so that the
+callback MAY build and drive a Tokio runtime of its own.
 
 L8. `blocking::Service` offers the same on a runtime of its own, on its
 own thread, so that a program without Tokio, or inside another Tokio
 runtime, can call `converge` and `run` as ordinary blocking functions.
 Dropping it, before or after `run`, performs the shutdown of
-[P16](process.md#shutdown) and removes everything.
+[P16](process.md#shutdown) and removes everything. Every blocking function
+of the library, including the synchronous methods of `Control`, is safe
+inside `tokio::task::spawn_blocking`: the library never calls `block_on` or
+reads the current Tokio handle on the caller's thread, and any runtime it
+needs is built and driven on a thread it owns; synchronous completions sent
+into the queue use the channel's blocking send.
 
 ## The reconciler
 
