@@ -21,39 +21,55 @@ pub mod linux;
 /// A tunnel socket the kernel implementation holds for the reconciler.
 /// The number is the implementation's own and is never reused.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct SocketId(pub u64);
+pub struct SocketId(pub(crate) u64);
+
+impl SocketId {
+    /// Constructs an implementation-local socket identifier.
+    pub fn new(value: u64) -> Self {
+        Self(value)
+    }
+    /// The implementation-local identifier.
+    pub fn get(self) -> u64 {
+        self.0
+    }
+}
 
 /// The peer a socket is connected to (T14, T27): an address, IPv4 for an
 /// IPv4 peer whatever the socket family, and for a link-local IPv6 peer
 /// the zone device's name, resolved by the kernel at the connect.
+///
+/// ```compile_fail,E0451
+/// use rs_l2tpd::kernel::Peer;
+/// let peer = Peer { addr: "192.0.2.1".parse().unwrap(), zone: None };
+/// ```
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Peer {
     /// The peer's address.
-    pub addr: IpAddr,
+    pub(crate) addr: IpAddr,
     /// The zone of a link-local address.
-    pub zone: Option<L2tpIfName>,
+    pub(crate) zone: Option<L2tpIfName>,
 }
 
 /// A tunnel socket handed over by a previous instance (P14, S28).
 #[derive(Clone, Copy, Debug)]
 pub struct Adopted {
     /// The socket, now held by the implementation.
-    pub socket: SocketId,
+    pub(crate) socket: SocketId,
     /// The socket's family.
-    pub family: Family,
+    pub(crate) family: Family,
     /// The tunnel registered on it.
-    pub tunnel_id: u32,
+    pub(crate) tunnel_id: u32,
     /// Its peer tunnel identifier, as the kernel reports it.
-    pub peer_tunnel_id: u32,
+    pub(crate) peer_tunnel_id: u32,
 }
 
 /// The kernel's record of a tunnel.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TunnelInfo {
     /// The tunnel identifier.
-    pub tunnel_id: u32,
+    pub(crate) tunnel_id: u32,
     /// The peer tunnel identifier.
-    pub peer_tunnel_id: u32,
+    pub(crate) peer_tunnel_id: u32,
 }
 
 /// A session to create (S3): an Ethernet pseudowire with no sequence
@@ -61,17 +77,17 @@ pub struct TunnelInfo {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SessionCreate {
     /// The tunnel.
-    pub tunnel_id: u32,
+    pub(crate) tunnel_id: u32,
     /// The session identifier.
-    pub session_id: u32,
+    pub(crate) session_id: u32,
     /// The peer session identifier.
-    pub peer_session_id: u32,
+    pub(crate) peer_session_id: u32,
     /// Sent in every frame.
-    pub cookie: Option<Cookie>,
+    pub(crate) cookie: Option<Cookie>,
     /// Required in every frame received.
-    pub peer_cookie: Option<Cookie>,
+    pub(crate) peer_cookie: Option<Cookie>,
     /// The creation name, a staging name (S4).
-    pub ifname: L2tpIfName,
+    pub(crate) ifname: L2tpIfName,
 }
 
 /// A cookie as the kernel reported it (K35): any length up to 8 bytes,
@@ -116,17 +132,17 @@ impl std::fmt::Debug for ReportedCookie {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SessionInfo {
     /// The tunnel.
-    pub tunnel_id: u32,
+    pub(crate) tunnel_id: u32,
     /// The session identifier.
-    pub session_id: u32,
+    pub(crate) session_id: u32,
     /// The peer session identifier.
-    pub peer_session_id: u32,
+    pub(crate) peer_session_id: u32,
     /// The cookie, empty when none.
-    pub cookie: ReportedCookie,
+    pub(crate) cookie: ReportedCookie,
     /// The peer cookie, empty when none.
-    pub peer_cookie: ReportedCookie,
+    pub(crate) peer_cookie: ReportedCookie,
     /// The creation-time interface name, not the current one (K16).
-    pub ifname: Option<L2tpIfName>,
+    pub(crate) ifname: Option<L2tpIfName>,
 }
 
 impl SessionInfo {
@@ -141,15 +157,16 @@ impl SessionInfo {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Registration {
     /// The device's index.
-    pub index: u32,
+    pub(crate) index: u32,
     /// The lifetime subscription's generation it was seen in.
-    pub generation: u64,
+    pub(crate) generation: u64,
     /// Distinct for every registration seen, even of a reused index.
-    pub incarnation: u64,
+    pub(crate) incarnation: u64,
 }
 
 /// What the lifetime subscription says about a registration (S9, S19).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Proof {
     /// The index still refers to the device registered.
     Proved,
@@ -164,29 +181,30 @@ pub enum Proof {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LinkInfo {
     /// The index.
-    pub index: u32,
+    pub(crate) index: u32,
     /// The current name.
-    pub name: L2tpIfName,
+    pub(crate) name: L2tpIfName,
     /// `IFF_UP`.
-    pub up: bool,
+    pub(crate) up: bool,
     /// The device is a VRF.
-    pub vrf: bool,
+    pub(crate) vrf: bool,
     /// The controller's index (`IFLA_MASTER`).
-    pub master: Option<u32>,
+    pub(crate) master: Option<u32>,
 }
 
 /// An address on a device.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AddrInfo {
     /// The device's index.
-    pub index: u32,
+    pub(crate) index: u32,
     /// The address.
-    pub addr: IpAddr,
+    pub(crate) addr: IpAddr,
 }
 
 /// A notification of a subscription (E1–E7, E27), or the loss of some
 /// (E20, E21).
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Notice {
     /// `RTM_NEWLINK` of family `AF_UNSPEC` (E5).
     LinkNew(LinkInfo),
@@ -314,4 +332,251 @@ pub trait Kernel: Send {
 /// The errno of `error`, 0 for none.
 pub fn errno(error: &io::Error) -> i32 {
     error.raw_os_error().unwrap_or(0)
+}
+
+impl Peer {
+    /// Constructs a host-boundary record from reported facts.
+    pub fn new(addr: IpAddr, zone: Option<L2tpIfName>) -> Self {
+        Self { addr, zone }
+    }
+    /// The reported `addr` field.
+    pub fn addr(&self) -> IpAddr {
+        self.addr
+    }
+    /// The reported `zone` field.
+    pub fn zone(&self) -> Option<L2tpIfName> {
+        self.zone
+    }
+}
+
+impl Adopted {
+    /// Constructs a host-boundary record from reported facts.
+    pub fn new(socket: SocketId, family: Family, tunnel_id: u32, peer_tunnel_id: u32) -> Self {
+        Self {
+            socket,
+            family,
+            tunnel_id,
+            peer_tunnel_id,
+        }
+    }
+    /// The reported `socket` field.
+    pub fn socket(&self) -> SocketId {
+        self.socket
+    }
+    /// The reported `family` field.
+    pub fn family(&self) -> Family {
+        self.family
+    }
+    /// The reported `tunnel_id` field.
+    pub fn tunnel_id(&self) -> u32 {
+        self.tunnel_id
+    }
+    /// The reported `peer_tunnel_id` field.
+    pub fn peer_tunnel_id(&self) -> u32 {
+        self.peer_tunnel_id
+    }
+}
+
+impl TunnelInfo {
+    /// Constructs a host-boundary record from reported facts.
+    pub fn new(tunnel_id: u32, peer_tunnel_id: u32) -> Self {
+        Self {
+            tunnel_id,
+            peer_tunnel_id,
+        }
+    }
+    /// The reported `tunnel_id` field.
+    pub fn tunnel_id(&self) -> u32 {
+        self.tunnel_id
+    }
+    /// The reported `peer_tunnel_id` field.
+    pub fn peer_tunnel_id(&self) -> u32 {
+        self.peer_tunnel_id
+    }
+}
+
+impl SessionCreate {
+    /// Constructs a host-boundary record from reported facts.
+    pub fn new(
+        tunnel_id: u32,
+        session_id: u32,
+        peer_session_id: u32,
+        cookie: Option<Cookie>,
+        peer_cookie: Option<Cookie>,
+        ifname: L2tpIfName,
+    ) -> Self {
+        Self {
+            tunnel_id,
+            session_id,
+            peer_session_id,
+            cookie,
+            peer_cookie,
+            ifname,
+        }
+    }
+    /// The reported `tunnel_id` field.
+    pub fn tunnel_id(&self) -> u32 {
+        self.tunnel_id
+    }
+    /// The reported `session_id` field.
+    pub fn session_id(&self) -> u32 {
+        self.session_id
+    }
+    /// The reported `peer_session_id` field.
+    pub fn peer_session_id(&self) -> u32 {
+        self.peer_session_id
+    }
+    /// The reported `cookie` field.
+    pub fn cookie(&self) -> Option<Cookie> {
+        self.cookie
+    }
+    /// The reported `peer_cookie` field.
+    pub fn peer_cookie(&self) -> Option<Cookie> {
+        self.peer_cookie
+    }
+    /// The reported `ifname` field.
+    pub fn ifname(&self) -> L2tpIfName {
+        self.ifname
+    }
+    /// Sets the requested `cookie`.
+    pub fn with_cookie(mut self, value: Option<Cookie>) -> Self {
+        self.cookie = value;
+        self
+    }
+    /// Sets the requested `peer_cookie`.
+    pub fn with_peer_cookie(mut self, value: Option<Cookie>) -> Self {
+        self.peer_cookie = value;
+        self
+    }
+}
+
+impl SessionInfo {
+    /// Constructs a host-boundary record from reported facts.
+    pub fn new(
+        tunnel_id: u32,
+        session_id: u32,
+        peer_session_id: u32,
+        cookie: ReportedCookie,
+        peer_cookie: ReportedCookie,
+        ifname: Option<L2tpIfName>,
+    ) -> Self {
+        Self {
+            tunnel_id,
+            session_id,
+            peer_session_id,
+            cookie,
+            peer_cookie,
+            ifname,
+        }
+    }
+    /// The reported `tunnel_id` field.
+    pub fn tunnel_id(&self) -> u32 {
+        self.tunnel_id
+    }
+    /// The reported `session_id` field.
+    pub fn session_id(&self) -> u32 {
+        self.session_id
+    }
+    /// The reported `peer_session_id` field.
+    pub fn peer_session_id(&self) -> u32 {
+        self.peer_session_id
+    }
+    /// The reported `cookie` field.
+    pub fn cookie(&self) -> ReportedCookie {
+        self.cookie
+    }
+    /// The reported `peer_cookie` field.
+    pub fn peer_cookie(&self) -> ReportedCookie {
+        self.peer_cookie
+    }
+    /// The reported `ifname` field.
+    pub fn ifname(&self) -> Option<L2tpIfName> {
+        self.ifname
+    }
+    /// Replaces `tunnel_id` in this host record.
+    pub fn with_tunnel_id(mut self, value: u32) -> Self {
+        self.tunnel_id = value;
+        self
+    }
+    /// Replaces `session_id` in this host record.
+    pub fn with_session_id(mut self, value: u32) -> Self {
+        self.session_id = value;
+        self
+    }
+    /// Replaces `peer_session_id` in this host record.
+    pub fn with_peer_session_id(mut self, value: u32) -> Self {
+        self.peer_session_id = value;
+        self
+    }
+}
+
+impl Registration {
+    /// Constructs a host-boundary record from reported facts.
+    pub fn new(index: u32, generation: u64, incarnation: u64) -> Self {
+        Self {
+            index,
+            generation,
+            incarnation,
+        }
+    }
+    /// The reported `index` field.
+    pub fn index(&self) -> u32 {
+        self.index
+    }
+    /// The reported `generation` field.
+    pub fn generation(&self) -> u64 {
+        self.generation
+    }
+    /// The reported `incarnation` field.
+    pub fn incarnation(&self) -> u64 {
+        self.incarnation
+    }
+}
+
+impl LinkInfo {
+    /// Constructs a host-boundary record from reported facts.
+    pub fn new(index: u32, name: L2tpIfName, up: bool, vrf: bool, master: Option<u32>) -> Self {
+        Self {
+            index,
+            name,
+            up,
+            vrf,
+            master,
+        }
+    }
+    /// The reported `index` field.
+    pub fn index(&self) -> u32 {
+        self.index
+    }
+    /// The reported `name` field.
+    pub fn name(&self) -> L2tpIfName {
+        self.name
+    }
+    /// The reported `up` field.
+    pub fn up(&self) -> bool {
+        self.up
+    }
+    /// The reported `vrf` field.
+    pub fn vrf(&self) -> bool {
+        self.vrf
+    }
+    /// The reported `master` field.
+    pub fn master(&self) -> Option<u32> {
+        self.master
+    }
+}
+
+impl AddrInfo {
+    /// Constructs a host-boundary record from reported facts.
+    pub fn new(index: u32, addr: IpAddr) -> Self {
+        Self { index, addr }
+    }
+    /// The reported `index` field.
+    pub fn index(&self) -> u32 {
+        self.index
+    }
+    /// The reported `addr` field.
+    pub fn addr(&self) -> IpAddr {
+        self.addr
+    }
 }

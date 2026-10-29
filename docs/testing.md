@@ -170,8 +170,10 @@ account and the kernel images the driver builds or fetches.
 
 These cases are required by the 2026-10-29 contract corrections.
 [Phase 2–3 evidence](../audit/PHASE23_VERIFICATION_2026-10-29.md) identifies
-the implemented policy, adapter and live-boundary cases. The callback,
-process crash/re-exec and whole-daemon portions still require Phases 4–6.
+the implemented policy, adapter and live-boundary cases.
+[Phase 4 evidence](../audit/PHASE4_VERIFICATION_2026-10-29.md) adds callback,
+queue, service-drop and library handshake cases. Process crash/re-exec
+and whole-daemon portions still require Phases 5–6.
 
 | Rules | Deterministic policy case | Real boundary evidence |
 |---|---|---|

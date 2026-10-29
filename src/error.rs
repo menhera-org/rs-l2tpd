@@ -9,6 +9,8 @@ pub enum Error {
     InvalidConfig(String),
     /// A kernel or socket error, with its errno where the kernel gave one.
     Io(std::io::Error),
+    /// The reload callback panicked; cleanup was attempted before returning.
+    ReloadPanicked,
     /// Any other failure, with a message.
     Other(String),
 }
@@ -18,6 +20,7 @@ impl std::fmt::Display for Error {
         match self {
             Error::InvalidConfig(msg) => write!(f, "invalid configuration: {msg}"),
             Error::Io(err) => err.fmt(f),
+            Error::ReloadPanicked => f.write_str("reload callback panicked"),
             Error::Other(msg) => f.write_str(msg),
         }
     }

@@ -174,14 +174,14 @@ fn conformance_on_the_linux_kernel() {
 }
 
 fn create(tunnel_id: u32, session_id: u32, ifname: &str) -> SessionCreate {
-    SessionCreate {
+    SessionCreate::new(
         tunnel_id,
         session_id,
-        peer_session_id: session_id + 1,
-        cookie: None,
-        peer_cookie: None,
-        ifname: name(ifname),
-    }
+        session_id + 1,
+        None,
+        None,
+        name(ifname),
+    )
 }
 
 /// spec: T1, T3, T4, T6, T26, T28, K2, K4, K11, K23, K28, K34
@@ -196,19 +196,13 @@ fn sockets_bind_connect_and_report_their_source() {
     assert!(!f.k().scratch_only_v6().unwrap());
     let v4 = f.k().create_socket(Family::V4, 9303, 9304).unwrap();
     f.k().bind_index(v4, dev).unwrap();
-    let peer = Peer {
-        addr: "198.51.100.1".parse().unwrap(),
-        zone: None,
-    };
+    let peer = Peer::new("198.51.100.1".parse().unwrap(), None);
     // An ordinary bound device without an address: on-link, no source.
     assert_eq!(
         f.k().connect(v4, &peer).unwrap(),
         "0.0.0.0".parse::<IpAddr>().unwrap()
     );
-    let v6peer = Peer {
-        addr: "2001:db8:93::2".parse().unwrap(),
-        zone: None,
-    };
+    let v6peer = Peer::new("2001:db8:93::2".parse().unwrap(), None);
     assert_eq!(errno(f.k().connect(v4, &v6peer)), libc::EAFNOSUPPORT);
     f.add_addr(dev, "198.51.100.9".parse().unwrap());
     f.k().disconnect(v4).unwrap();
@@ -230,15 +224,18 @@ fn a_handed_over_socket_keeps_its_tunnel() {
         let socket = f.k().create_socket(family, id, id + 1).unwrap();
         f.k().register_tunnel(socket, id, id + 1).unwrap();
         let info = f.k().tunnel(id).unwrap().unwrap();
-        assert_eq!((info.tunnel_id, info.peer_tunnel_id), (id, id + 1));
+        assert_eq!((info.tunnel_id(), info.peer_tunnel_id()), (id, id + 1));
         let fd = f.k().clone_fd(socket).unwrap();
         f.k().close(socket);
         let adopted = f.k().adopt(fd).unwrap();
-        assert_eq!(adopted.family, family);
-        assert_eq!((adopted.tunnel_id, adopted.peer_tunnel_id), (id, id + 1));
+        assert_eq!(adopted.family(), family);
+        assert_eq!(
+            (adopted.tunnel_id(), adopted.peer_tunnel_id()),
+            (id, id + 1)
+        );
         f.settle();
         assert!(f.k().tunnel(id).unwrap().is_some(), "K37");
-        f.k().close(adopted.socket);
+        f.k().close(adopted.socket());
         let deadline = std::time::Instant::now() + Duration::from_secs(2);
         let gone = loop {
             f.settle();
@@ -261,38 +258,38 @@ fn sessions_are_captured_scanned_and_deleted() {
     let socket = f.k().create_socket(Family::V6, 9321, 9321).unwrap();
     f.k().register_tunnel(socket, 9321, 9321).unwrap();
     let mut first = create(9321, 93211, "live-sa");
-    first.cookie = Some(rs_l2tpd::kernel::Cookie::new(&[1, 2, 3, 4]).unwrap());
+    first = first.with_cookie(Some(rs_l2tpd::kernel::Cookie::new(&[1, 2, 3, 4]).unwrap()));
     let registration = f.k().create_session(&first).unwrap();
-    assert_eq!(registration.index, index_of("live-sa"));
+    assert_eq!(registration.index(), index_of("live-sa"));
     let set = HwAddr::new([0x02, 0, 0x5e, 0, 0x53, 0x93]).unwrap();
-    f.k().set_hwaddr(registration.index, set).unwrap();
-    assert_eq!(f.k().ether_addr(registration.index).unwrap(), Some(set));
-    f.set_up(registration.index, true);
+    f.k().set_hwaddr(registration.index(), set).unwrap();
+    assert_eq!(f.k().ether_addr(registration.index()).unwrap(), Some(set));
+    f.set_up(registration.index(), true);
     let other = HwAddr::new([0x02, 0, 0x5e, 0, 0x53, 0x94]).unwrap();
     assert_eq!(
-        errno(f.k().set_hwaddr(registration.index, other)),
+        errno(f.k().set_hwaddr(registration.index(), other)),
         libc::EBUSY,
         "K31"
     );
     // An unchanged address is not a change (net/core/dev.c:9035-9039).
-    f.k().set_hwaddr(registration.index, set).unwrap();
+    f.k().set_hwaddr(registration.index(), set).unwrap();
     let again = f.k().create_session(&create(9321, 93212, "live-sa"));
     assert!(matches!(errno(again), libc::EEXIST | libc::ENFILE), "K20");
     let second = f
         .k()
         .create_session(&create(9321, 93213, "live-sb"))
         .unwrap();
-    assert_ne!(second.incarnation, registration.incarnation);
+    assert_ne!(second.incarnation(), registration.incarnation());
     let mut seen = Vec::new();
     f.k()
         .scan_sessions(Some(9321), &mut |s| seen.push(s.clone()))
         .unwrap();
-    seen.sort_by_key(|s| s.session_id);
+    seen.sort_by_key(|s| s.session_id());
     assert_eq!(seen.len(), 2);
-    assert_eq!(seen[0].ifname, Some(name("live-sa")));
-    assert_eq!(seen[0].peer_session_id, 93212);
-    assert_eq!(seen[0].cookie, first.cookie.into());
-    assert_eq!(seen[1].cookie, None.into());
+    assert_eq!(seen[0].ifname(), Some(name("live-sa")));
+    assert_eq!(seen[0].peer_session_id(), 93212);
+    assert_eq!(seen[0].cookie(), first.cookie().into());
+    assert_eq!(seen[1].cookie(), None.into());
     let mut all = 0;
     f.k().scan_sessions(None, &mut |_| all += 1).unwrap();
     assert!(all >= 2);
@@ -336,10 +333,10 @@ fn links_are_found_by_name_and_dumped() {
     f.set_up(dummy, true);
     f.add_addr(dummy, "203.0.113.5".parse().unwrap());
     let link = f.k().link_by_name(&name("live-vrf")).unwrap().unwrap();
-    assert_eq!((link.index, link.vrf, link.up), (vrf, true, false));
+    assert_eq!((link.index(), link.vrf(), link.up()), (vrf, true, false));
     let link = f.k().link_by_name(&name("live-dummy")).unwrap().unwrap();
     assert_eq!(
-        (link.index, link.vrf, link.up, link.master),
+        (link.index(), link.vrf(), link.up(), link.master()),
         (dummy, false, true, Some(vrf))
     );
     assert!(f.k().link_by_name(&name("live-none")).unwrap().is_none());
@@ -352,19 +349,19 @@ fn links_are_found_by_name_and_dumped() {
     assert!(
         links
             .iter()
-            .any(|l| l.index == dummy && l.name == name("live-dummy2"))
+            .any(|l| l.index() == dummy && l.name() == name("live-dummy2"))
     );
-    assert!(links.iter().any(|l| l.index == vrf && l.vrf));
+    assert!(links.iter().any(|l| l.index() == vrf && l.vrf()));
     let addrs = f.k().dump_addrs().unwrap();
     assert!(
         addrs
             .iter()
-            .any(|a| a.index == dummy && a.addr == "203.0.113.5".parse::<IpAddr>().unwrap())
+            .any(|a| a.index() == dummy && a.addr() == "203.0.113.5".parse::<IpAddr>().unwrap())
     );
     assert!(
         addrs
             .iter()
-            .any(|a| a.addr == "127.0.0.1".parse::<IpAddr>().unwrap())
+            .any(|a| a.addr() == "127.0.0.1".parse::<IpAddr>().unwrap())
     );
 }
 
@@ -378,19 +375,19 @@ fn the_monitor_reports_removals() {
     f.add_addr(index, "2001:db8:94::1".parse().unwrap());
     let added = f.wait_notice(
         &mut *monitor,
-        &mut |n| matches!(n, Notice::AddrNew(a) if a.index == index && a.addr.is_ipv6()),
+        &mut |n| matches!(n, Notice::AddrNew(a) if a.index() == index && a.addr().is_ipv6()),
     );
     assert!(added.is_some());
     ip(&["addr", "del", "2001:db8:94::1/64", "dev", "live-mon"]);
     let removed = f.wait_notice(
         &mut *monitor,
-        &mut |n| matches!(n, Notice::AddrDel(a) if a.index == index),
+        &mut |n| matches!(n, Notice::AddrDel(a) if a.index() == index),
     );
     assert!(removed.is_some());
     ip(&["link", "del", "live-mon"]);
     let gone = f.wait_notice(
         &mut *monitor,
-        &mut |n| matches!(n, Notice::LinkDel(l) if l.index == index && l.name == name("live-mon")),
+        &mut |n| matches!(n, Notice::LinkDel(l) if l.index() == index && l.name() == name("live-mon")),
     );
     assert!(gone.is_some());
 }
@@ -454,11 +451,11 @@ fn a_reused_index_and_creation_name_never_revive_an_old_registration() {
         "name",
         "reuse-stage",
         "index",
-        &original.index.to_string(),
+        &original.index().to_string(),
         "type",
         "dummy",
     ]);
-    assert_eq!(index_of("reuse-stage"), original.index);
+    assert_eq!(index_of("reuse-stage"), original.index());
     assert_eq!(f.k().prove(&original), Proof::Removed);
     assert!(
         f.k().session(9341, 93411).unwrap().is_some(),
@@ -468,8 +465,8 @@ fn a_reused_index_and_creation_name_never_revive_an_old_registration() {
         .k()
         .create_session(&create(9341, 93412, "reuse-other"))
         .unwrap();
-    assert_eq!(other.generation, original.generation);
-    assert_ne!(other.incarnation, original.incarnation);
+    assert_eq!(other.generation(), original.generation());
+    assert_ne!(other.incarnation(), original.incarnation());
     assert_eq!(f.k().prove(&other), Proof::Proved);
     assert_eq!(f.k().prove(&original), Proof::Removed);
     finish.send(()).unwrap();
@@ -514,7 +511,7 @@ fn disconnected_sessions_drop_outbound_but_receive_only_matching_cookies() {
     let socket = f.k().create_socket(Family::V6, 9371, 9372).unwrap();
     f.k().register_tunnel(socket, 9371, 9372).unwrap();
     let mut session = create(9371, 93711, "frames");
-    session.peer_cookie = Some(rs_l2tpd::kernel::Cookie::new(&[1, 2, 3, 4]).unwrap());
+    session = session.with_peer_cookie(Some(rs_l2tpd::kernel::Cookie::new(&[1, 2, 3, 4]).unwrap()));
     f.k().create_session(&session).unwrap();
     ip(&["link", "set", "dev", "frames", "addrgenmode", "none"]);
     ip(&["link", "set", "dev", "frames", "up"]);
@@ -580,13 +577,7 @@ fn the_kernel_keeps_the_previous_ipv6_peer_after_disconnect() {
     f.k().register_tunnel(socket, 9391, 9392).unwrap();
     f.k().bind_index(socket, device).unwrap();
     f.k()
-        .connect(
-            socket,
-            &Peer {
-                addr: "2001:db8:99::2".parse().unwrap(),
-                zone: None,
-            },
-        )
+        .connect(socket, &Peer::new("2001:db8:99::2".parse().unwrap(), None))
         .unwrap();
     f.k().disconnect(socket).unwrap();
     let record = ip(&["l2tp", "show", "tunnel"]);
@@ -597,4 +588,73 @@ fn the_kernel_keeps_the_previous_ipv6_peer_after_disconnect() {
         "{record}"
     );
     f.k().close(socket);
+}
+
+/// spec: L5, L8, L9, P16
+#[test]
+#[ignore = "isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules"]
+fn services_converge_and_orderly_shutdown_on_linux() {
+    use rs_l2tpd::config::{Config, SessionConfig, TunnelConfig};
+    nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+    let config = |id, interface| {
+        let mut config = Config::new();
+        config
+            .insert_tunnel(
+                "wan",
+                TunnelConfig::builder(id)
+                    .ip_version(Family::V6)
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        config
+            .insert_session(
+                "lan",
+                SessionConfig::builder("wan", id + 1, name(interface))
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        config
+    };
+    let gone = || {
+        assert!(ip(&["l2tp", "show", "tunnel"]).trim().is_empty());
+        assert!(!ip(&["-o", "link", "show"]).contains("phase4-"));
+    };
+    let mut service = rs_l2tpd::blocking::Service::new(config(9490, "phase4-block"), vec![])
+        .map_err(|(e, _)| e)
+        .unwrap();
+    service.converge().unwrap();
+    assert!(ip(&["-o", "link", "show"]).contains("phase4-block"));
+    drop(service);
+    gone();
+
+    let engine = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    engine.block_on(async {
+        let mut service = rs_l2tpd::service::Service::new(config(9492, "phase4-tokio"), vec![])
+            .map_err(|(e, _)| e)
+            .unwrap();
+        service.converge().await.unwrap();
+        assert!(ip(&["-o", "link", "show"]).contains("phase4-tokio"));
+        service.control().shutdown();
+        service.run(Ok, |_| Ok(())).await.unwrap();
+    });
+    gone();
+
+    engine.block_on(async {
+        let mut runtime = rs_l2tpd::Runtime::new(vec![]).map_err(|(e, _)| e).unwrap();
+        runtime.reconcile(config(9494, "phase4-runtime"));
+        assert!(ip(&["-o", "link", "show"]).contains("phase4-runtime"));
+        drop(runtime);
+    });
+    // Runtime drop closes the sockets without the orderly wait used by services.
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    while !ip(&["l2tp", "show", "tunnel"]).trim().is_empty() {
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::yield_now();
+    }
+    gone();
 }

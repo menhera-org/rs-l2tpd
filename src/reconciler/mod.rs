@@ -152,6 +152,15 @@ impl<K: Kernel> Reconciler<K> {
         &self.accepted
     }
 
+    /// Duplicates the owned tunnel sockets for an in-process restart.
+    /// A partial failure drops every duplicate already obtained.
+    pub fn restart_sockets(&self) -> std::io::Result<Vec<(String, OwnedFd)>> {
+        self.tunnels
+            .iter()
+            .map(|(id, record)| Ok((format!("t{id}"), self.k.clone_fd(record.socket)?)))
+            .collect()
+    }
+
     /// Takes what the program must do (L12, L13).
     pub fn take_requests(&mut self) -> Vec<Request> {
         std::mem::take(&mut self.requests)
@@ -251,6 +260,35 @@ impl<K: Kernel> Reconciler<K> {
         self.retire_sockets();
         self.resolvers.reload(&Config::new(), &Config::new());
         !self.incomplete && self.tunnels.is_empty() && self.store.retiring.is_empty()
+    }
+
+    pub(crate) fn shutdown_deletions(&mut self) -> crate::Result<bool> {
+        let now = self.k.now();
+        let mut failure = None;
+        for (id, deadline) in self.departing.clone() {
+            match self.k.tunnel(id) {
+                Ok(None) => {
+                    self.departing.remove(&id);
+                }
+                result if now >= deadline => {
+                    log::error!("tunnel_id={id}: deletion not confirmed before deadline");
+                    failure = Some(match result {
+                        Err(error) => error.into(),
+                        _ => crate::Error::Other(format!("tunnel_id={id}: deletion not confirmed")),
+                    });
+                }
+                _ => {}
+            }
+        }
+        failure.map_or(Ok(self.departing.is_empty()), Err)
+    }
+
+    pub(crate) fn shutdown_deadline(&self) -> Option<Instant> {
+        self.store
+            .next_deadline(self.k.now())
+            .into_iter()
+            .chain(self.departing.values().copied())
+            .min()
     }
 
     /// Every eligible entry exists in the kernel (P6): all but the entries

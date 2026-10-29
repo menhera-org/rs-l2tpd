@@ -36,7 +36,7 @@ impl Fixture for FakeFixture {
         self.0.tick()
     }
     fn net_raw(&self) -> bool {
-        self.0.net_raw
+        self.0.net_raw()
     }
     fn send_frame(&mut self, index: u32) {
         self.0.send_frame(index);

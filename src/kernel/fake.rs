@@ -15,7 +15,7 @@ use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 use std::time::{Duration, Instant};
 
-use nix::errno::Errno;
+pub use nix::errno::Errno;
 
 use super::{
     AddrInfo, Adopted, Family, HwAddr, Kernel, L2tpIfName, LinkInfo, Notice, Peer, Proof,
@@ -145,19 +145,19 @@ pub struct FakeKernel {
     failures: Vec<(&'static str, Errno)>,
     ops: Vec<String>,
     /// `AF_INET6` L2TP/IP sockets exist (K4, T4).
-    pub inet6: bool,
+    pub(crate) inet6: bool,
     /// `net.ipv6.bindv6only` (K23).
-    pub bindv6only: bool,
+    pub(crate) bindv6only: bool,
     /// A failure of the IPV6_V6ONLY read-back, for trust-boundary tests.
-    pub only_v6_error: Option<Errno>,
+    pub(crate) only_v6_error: Option<Errno>,
     /// The daemon holds `CAP_NET_RAW` (K22). Off by default, so that a
     /// binding set on a bound socket fails as a daemon defect would.
-    pub net_raw: bool,
+    pub(crate) net_raw: bool,
     /// Session deletion waits for the next [`tick`](Self::tick), as from
     /// 6.12 (K18); immediate otherwise.
-    pub async_session_delete: bool,
+    pub(crate) async_session_delete: bool,
     /// Delay after the last descriptor closes before tunnel cleanup (K17).
-    pub tunnel_delete_delay: Duration,
+    pub(crate) tunnel_delete_delay: Duration,
 }
 
 impl FakeKernel {
@@ -1080,5 +1080,56 @@ impl Kernel for FakeKernel {
 
     fn l2tp_events(&mut self) -> io::Result<Box<dyn Subscription>> {
         Ok(Box::new(Reader(self.l2tp.clone())))
+    }
+}
+
+impl FakeKernel {
+    /// The fixture's `inet6` setting.
+    pub fn inet6(&self) -> bool {
+        self.inet6
+    }
+    /// Changes the fixture's `inet6` setting.
+    pub fn set_inet6(&mut self, value: bool) {
+        self.inet6 = value;
+    }
+    /// The fixture's `bindv6only` setting.
+    pub fn bindv6only(&self) -> bool {
+        self.bindv6only
+    }
+    /// Changes the fixture's `bindv6only` setting.
+    pub fn set_bindv6only(&mut self, value: bool) {
+        self.bindv6only = value;
+    }
+    /// The fixture's `only_v6_error` setting.
+    pub fn only_v6_error(&self) -> Option<Errno> {
+        self.only_v6_error
+    }
+    /// Changes the fixture's `only_v6_error` setting.
+    pub fn set_only_v6_error(&mut self, value: Option<Errno>) {
+        self.only_v6_error = value;
+    }
+    /// The fixture's `net_raw` setting.
+    pub fn net_raw(&self) -> bool {
+        self.net_raw
+    }
+    /// Changes the fixture's `net_raw` setting.
+    pub fn set_net_raw(&mut self, value: bool) {
+        self.net_raw = value;
+    }
+    /// The fixture's `async_session_delete` setting.
+    pub fn async_session_delete(&self) -> bool {
+        self.async_session_delete
+    }
+    /// Changes the fixture's `async_session_delete` setting.
+    pub fn set_async_session_delete(&mut self, value: bool) {
+        self.async_session_delete = value;
+    }
+    /// The fixture's `tunnel_delete_delay` setting.
+    pub fn tunnel_delete_delay(&self) -> Duration {
+        self.tunnel_delete_delay
+    }
+    /// Changes the fixture's `tunnel_delete_delay` setting.
+    pub fn set_tunnel_delete_delay(&mut self, value: Duration) {
+        self.tunnel_delete_delay = value;
     }
 }

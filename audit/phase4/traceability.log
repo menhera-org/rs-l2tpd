@@ -1,0 +1,704 @@
+$ cargo test --locked --all-features --target x86_64-unknown-linux-musl --test rulemap --test srclink -- --nocapture
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/tools/rulemap.rs (target/x86_64-unknown-linux-musl/debug/deps/rulemap-362263b0ae5b86b8)
+
+running 3 tests
+test definitions_are_recognised ... ok
+test only_doc_comments_attached_to_tests_are_citations ... ok
+rule map: 340 rules (330 active), 196 linked to test declarations, 134 without citations
+without test citation: A1
+without test citation: A10
+without test citation: A11
+without test citation: A12
+without test citation: A15
+without test citation: A16
+without test citation: A17
+without test citation: A18
+without test citation: A19
+without test citation: A2
+without test citation: A20
+without test citation: A21
+without test citation: A3
+without test citation: A4
+without test citation: A8
+without test citation: A9
+without test citation: C1
+without test citation: C3
+without test citation: C4
+without test citation: E26
+without test citation: G1
+without test citation: G10
+without test citation: G11
+without test citation: G12
+without test citation: G13
+without test citation: G14
+without test citation: G15
+without test citation: G16
+without test citation: G17
+without test citation: G19
+without test citation: G2
+without test citation: G20
+without test citation: G21
+without test citation: G4
+without test citation: G8
+without test citation: G9
+without test citation: H1
+without test citation: H10
+without test citation: H11
+without test citation: H12
+without test citation: H13
+without test citation: H14
+without test citation: H15
+without test citation: H16
+without test citation: H17
+without test citation: H18
+without test citation: H19
+without test citation: H2
+without test citation: H3
+without test citation: H4
+without test citation: H5
+without test citation: H6
+without test citation: H7
+without test citation: H8
+without test citation: H9
+without test citation: K1
+without test citation: K13
+without test citation: K21
+without test citation: K3
+without test citation: K33
+without test citation: K36
+without test citation: K38
+without test citation: K6
+without test citation: K8
+without test citation: O1
+without test citation: O2
+without test citation: O4
+without test citation: O7
+without test citation: O9
+without test citation: P1
+without test citation: P10
+without test citation: P11
+without test citation: P12
+without test citation: P13
+without test citation: P15
+without test citation: P18
+without test citation: P19
+without test citation: P2
+without test citation: P20
+without test citation: P21
+without test citation: P22
+without test citation: P23
+without test citation: P24
+without test citation: P26
+without test citation: P27
+without test citation: P3
+without test citation: P4
+without test citation: P5
+without test citation: P6
+without test citation: P7
+without test citation: P9
+without test citation: R1
+without test citation: R10
+without test citation: R11
+without test citation: R12
+without test citation: R13
+without test citation: R14
+without test citation: R15
+without test citation: R16
+without test citation: R17
+without test citation: R18
+without test citation: R19
+without test citation: R21
+without test citation: R22
+without test citation: R23
+without test citation: R24
+without test citation: R25
+without test citation: R26
+without test citation: R27
+without test citation: R28
+without test citation: R29
+without test citation: R3
+without test citation: R30
+without test citation: R31
+without test citation: R34
+without test citation: R35
+without test citation: R36
+without test citation: R37
+without test citation: R38
+without test citation: R39
+without test citation: R4
+without test citation: R40
+without test citation: R41
+without test citation: R42
+without test citation: R43
+without test citation: R44
+without test citation: R45
+without test citation: R46
+without test citation: R48
+without test citation: R49
+without test citation: R5
+without test citation: R6
+without test citation: R8
+without test citation: R9
+A13: /home/dev/rs-l2tpd/src/runtime/tests.rs:60 (queue_full_waiter_and_shutdown_precedence)
+A13: /home/dev/rs-l2tpd/tests/service.rs:417 (subscriptions_drain_during_a_kernel_call_and_loss_during_resync_survives)
+A14: /home/dev/rs-l2tpd/src/runtime/tests.rs:127 (lifetime_proofs_do_not_use_the_full_event_queue)
+A14: /home/dev/rs-l2tpd/src/kernel/linux/request.rs:280 (a_passed_deadline_times_out_without_waiting)
+A14: /home/dev/rs-l2tpd/src/kernel/linux/request.rs:294 (a_missing_mutation_reply_is_uncertain_and_reopens_the_socket)
+A14: /home/dev/rs-l2tpd/tests/service.rs:417 (subscriptions_drain_during_a_kernel_call_and_loss_during_resync_survives)
+A22: /home/dev/rs-l2tpd/src/kernel/linux/rtnl.rs:250 (a_link_message_decodes_name_bytes_master_and_vrf)
+A5: /home/dev/rs-l2tpd/src/kernel/linux/rtnl.rs:250 (a_link_message_decodes_name_bytes_master_and_vrf)
+A5: /home/dev/rs-l2tpd/src/kernel/linux/rtnl.rs:277 (an_address_message_prefers_the_local_address)
+A5: /home/dev/rs-l2tpd/src/kernel/linux/bpf.rs:86 (the_filter_passes_lifetimes_and_addresses_only)
+A5: /home/dev/rs-l2tpd/tests/kernel/linux.rs:328 (links_are_found_by_name_and_dumped)
+A5: /home/dev/rs-l2tpd/tests/kernel/linux.rs:371 (the_monitor_reports_removals)
+A6: /home/dev/rs-l2tpd/src/runtime/tests.rs:60 (queue_full_waiter_and_shutdown_precedence)
+A6: /home/dev/rs-l2tpd/src/runtime/tests.rs:90 (subscription_loss_survives_a_full_queue_and_a_second_loss)
+A6: /home/dev/rs-l2tpd/src/runtime/tests.rs:405 (l2tp_queue_loss_uses_its_own_resync_flag)
+A6: /home/dev/rs-l2tpd/tests/service.rs:417 (subscriptions_drain_during_a_kernel_call_and_loss_during_resync_survives)
+A7: /home/dev/rs-l2tpd/src/runtime/tests.rs:127 (lifetime_proofs_do_not_use_the_full_event_queue)
+A7: /home/dev/rs-l2tpd/tests/service.rs:417 (subscriptions_drain_during_a_kernel_call_and_loss_during_resync_survives)
+C10: /home/dev/rs-l2tpd/src/config/tests.rs:283 (tunnel_ip_version)
+C10: /home/dev/rs-l2tpd/src/config/tests.rs:435 (session_hardware_addresses)
+C10: /home/dev/rs-l2tpd/src/config/tests.rs:716 (start_up_leaves_out_and_takes_dependents)
+C10: /home/dev/rs-l2tpd/src/config/tests.rs:752 (an_empty_result_is_valid)
+C10: /home/dev/rs-l2tpd/src/config/tests.rs:1321 (irrelevant_dhcpv6_fields_still_validate_their_values)
+C10: /home/dev/rs-l2tpd/tests/rules/sessions.rs:423 (tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address)
+C11: /home/dev/rs-l2tpd/src/config/tests.rs:803 (a_reload_corrects_tolerated_mistakes_in_place)
+C11: /home/dev/rs-l2tpd/src/config/tests.rs:1321 (irrelevant_dhcpv6_fields_still_validate_their_values)
+C12: /home/dev/rs-l2tpd/src/config/tests.rs:762 (reload_keeps_values_in_force)
+C12: /home/dev/rs-l2tpd/src/config/tests.rs:827 (reload_refused_when_values_in_force_no_longer_fit)
+C12: /home/dev/rs-l2tpd/src/config/tests.rs:869 (reload_refused_when_a_dependency_is_removed)
+C12: /home/dev/rs-l2tpd/src/config/tests.rs:900 (new_valid_entries_collide_among_themselves_first)
+C13: /home/dev/rs-l2tpd/src/config/tests.rs:941 (accepted_configuration_reads_back)
+C14: /home/dev/rs-l2tpd/src/config/tests.rs:803 (a_reload_corrects_tolerated_mistakes_in_place)
+C14: /home/dev/rs-l2tpd/src/config/tests.rs:987 (kernel_identities)
+C15: /home/dev/rs-l2tpd/src/config/tests.rs:128 (unknown_keys_at_every_depth)
+C15: /home/dev/rs-l2tpd/src/config/tests.rs:1025 (strict_conversion)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:505 (resolver_addresses)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:564 (resolver_methods)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:595 (resolver_dhcpv6_identities)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:1070 (builders_and_insertions_validate)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:1300 (host_dependent_conditions_are_not_parse_errors)
+C16: /home/dev/rs-l2tpd/src/config/tests.rs:1321 (irrelevant_dhcpv6_fields_still_validate_their_values)
+C16: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:86 (a_vrf_bind_device_holds_the_resolver_back)
+C16: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:131 (resolver_zones_require_a_non_vrf_matching_bind_link)
+C17: /home/dev/rs-l2tpd/src/config/tests.rs:651 (host_settings)
+C2: /home/dev/rs-l2tpd/src/config/tests.rs:103 (documents_are_merged_before_validation)
+C2: /home/dev/rs-l2tpd/src/config/tests.rs:917 (merging)
+C5: /home/dev/rs-l2tpd/src/config/tests.rs:87 (configuration_names)
+C5: /home/dev/rs-l2tpd/src/config/tests.rs:103 (documents_are_merged_before_validation)
+C6: /home/dev/rs-l2tpd/src/config/tests.rs:113 (a_value_of_the_wrong_type_fails_the_document)
+C6: /home/dev/rs-l2tpd/src/config/tests.rs:128 (unknown_keys_at_every_depth)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:173 (tunnel_identifiers)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:199 (tunnel_literals)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:243 (tunnel_host_names)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:283 (tunnel_ip_version)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:332 (interface_names)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:360 (tunnel_resolver_name)
+C7: /home/dev/rs-l2tpd/src/config/tests.rs:1070 (builders_and_insertions_validate)
+C8: /home/dev/rs-l2tpd/src/config/tests.rs:377 (session_fields)
+C8: /home/dev/rs-l2tpd/src/config/tests.rs:435 (session_hardware_addresses)
+C8: /home/dev/rs-l2tpd/src/config/tests.rs:466 (session_cookies)
+C8: /home/dev/rs-l2tpd/src/config/tests.rs:1070 (builders_and_insertions_validate)
+C9: /home/dev/rs-l2tpd/src/config/tests.rs:669 (uniqueness_in_byte_order_of_names)
+C9: /home/dev/rs-l2tpd/src/config/tests.rs:827 (reload_refused_when_values_in_force_no_longer_fit)
+C9: /home/dev/rs-l2tpd/src/config/tests.rs:1070 (builders_and_insertions_validate)
+E1: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:66 (an_absent_bind_device_is_waited_for)
+E1: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:345 (zone_and_vrf_dependencies_are_followed_independently)
+E10: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:19 (an_answer_connects_the_tunnel)
+E10: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:63 (a_changed_host_name_discards_answers)
+E10: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:209 (resolver_configuration_generations_discard_already_queued_answers)
+E10: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:232 (an_unreachable_new_answer_never_restores_the_previous_peer)
+E11: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:63 (a_changed_host_name_discards_answers)
+E11: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:209 (resolver_configuration_generations_discard_already_queued_answers)
+E12: /home/dev/rs-l2tpd/tests/rules/events.rs:78 (one_failed_creation_does_not_block_an_independent_entry)
+E13: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:86 (a_refused_peer_is_retried_every_second)
+E14: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:160 (a_conflict_leaves_the_tunnel_out_after_ten_attempts)
+E14: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:377 (an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer)
+E17: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:38 (an_identical_reload_issues_no_operation)
+E17: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:377 (an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer)
+E18: /home/dev/rs-l2tpd/tests/rules/events.rs:169 (a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress)
+E19: /home/dev/rs-l2tpd/tests/rules/events.rs:169 (a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress)
+E2: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:345 (zone_and_vrf_dependencies_are_followed_independently)
+E2: /home/dev/rs-l2tpd/tests/rules/sessions.rs:93 (another_managers_rename_is_kept)
+E20: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:517 (a_live_lifetime_overflow_ends_all_old_proofs)
+E20: /home/dev/rs-l2tpd/tests/kernel/linux.rs:328 (links_are_found_by_name_and_dumped)
+E20: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:102 (unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it)
+E20: /home/dev/rs-l2tpd/tests/rules/events.rs:92 (a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds)
+E21: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:517 (a_live_lifetime_overflow_ends_all_old_proofs)
+E21: /home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs:494 (deletions_decode_into_notices)
+E21: /home/dev/rs-l2tpd/src/kernel/linux/request.rs:280 (a_passed_deadline_times_out_without_waiting)
+E21: /home/dev/rs-l2tpd/src/kernel/linux/request.rs:294 (a_missing_mutation_reply_is_uncertain_and_reopens_the_socket)
+E21: /home/dev/rs-l2tpd/tests/rules/events.rs:92 (a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds)
+E22: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:477 (a_capture_takes_the_first_broadcast_and_a_removal_sticks)
+E22: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:574 (a_live_foreign_sender_cannot_invalidate_a_registration)
+E22: /home/dev/rs-l2tpd/src/kernel/linux/monitor.rs:197 (a_live_feed_ignores_a_forged_notification_before_a_real_one)
+E22: /home/dev/rs-l2tpd/tests/kernel/linux.rs:371 (the_monitor_reports_removals)
+E23: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:166 (released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository)
+E25: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:194 (tunable_success_waits_and_opens_fresh_sockets_for_all_waiters)
+E27: /home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs:494 (deletions_decode_into_notices)
+E27: /home/dev/rs-l2tpd/tests/kernel/linux.rs:398 (a_closed_socket_is_not_announced)
+E27: /home/dev/rs-l2tpd/tests/kernel/review.rs:142 (foreign_namespace_deletion_does_not_delete_local_session)
+E27: /home/dev/rs-l2tpd/tests/rules/events.rs:143 (foreign_same_identifier_announcements_only_queue_verification)
+E27: /home/dev/rs-l2tpd/tests/rules/events.rs:225 (event_traffic_does_not_move_the_absolute_poll_deadline)
+E27: /home/dev/rs-l2tpd/tests/rules/sessions.rs:148 (an_externally_deleted_session_is_created_again)
+E3: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:345 (zone_and_vrf_dependencies_are_followed_independently)
+E3: /home/dev/rs-l2tpd/tests/rules/events.rs:62 (a_vanished_bind_device_disconnects)
+E4: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:345 (zone_and_vrf_dependencies_are_followed_independently)
+E4: /home/dev/rs-l2tpd/tests/rules/events.rs:186 (unrelated_events_query_no_kernel_objects_even_with_many_entries)
+E4: /home/dev/rs-l2tpd/tests/rules/sessions.rs:73 (a_hardware_address_waits_for_the_device_to_go_down)
+E5: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:477 (a_capture_takes_the_first_broadcast_and_a_removal_sticks)
+E5: /home/dev/rs-l2tpd/src/kernel/linux/rtnl.rs:250 (a_link_message_decodes_name_bytes_master_and_vrf)
+E5: /home/dev/rs-l2tpd/src/kernel/linux/bpf.rs:86 (the_filter_passes_lifetimes_and_addresses_only)
+E5: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+E5: /home/dev/rs-l2tpd/tests/kernel/linux.rs:371 (the_monitor_reports_removals)
+E5: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+E6: /home/dev/rs-l2tpd/tests/kernel/linux.rs:371 (the_monitor_reports_removals)
+E6: /home/dev/rs-l2tpd/tests/rules/events.rs:11 (an_address_on_the_bind_device_reconnects)
+E6: /home/dev/rs-l2tpd/tests/rules/events.rs:117 (unrelated_address_events_never_connect_or_postpone_a_pending_peer)
+E6: /home/dev/rs-l2tpd/tests/rules/events.rs:186 (unrelated_events_query_no_kernel_objects_even_with_many_entries)
+E7: /home/dev/rs-l2tpd/tests/kernel/linux.rs:371 (the_monitor_reports_removals)
+E7: /home/dev/rs-l2tpd/tests/rules/events.rs:37 (an_unbound_tunnel_follows_its_removed_source)
+E8: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:274 (every_transient_connect_errno_retries_the_new_peer_in_place)
+E8: /home/dev/rs-l2tpd/tests/rules/events.rs:117 (unrelated_address_events_never_connect_or_postpone_a_pending_peer)
+G18: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+G18: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:38 (an_identical_reload_issues_no_operation)
+G22: /home/dev/rs-l2tpd/src/config/tests.rs:1056 (format_of_0_1_5)
+G23: /home/dev/rs-l2tpd/src/reconciler/workers.rs:240 (obsolete_calls_keep_separate_budgets_and_latest_results)
+G23: /home/dev/rs-l2tpd/src/reconciler/workers.rs:311 (eight_blocked_calls_survive_cancellation_without_a_ninth_worker)
+G23: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:340 (removing_the_last_watch_releases_discovery_threads_and_descriptors)
+G23: /home/dev/rs-l2tpd/tests/rules/store.rs:151 (full_store_keeps_new_sockets_locally_owned)
+G3: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+G5: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+G5: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:274 (every_transient_connect_errno_retries_the_new_peer_in_place)
+G6: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+G6: /home/dev/rs-l2tpd/tests/rules/events.rs:78 (one_failed_creation_does_not_block_an_independent_entry)
+G7: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+K10: /home/dev/rs-l2tpd/src/kernel/linux/bpf.rs:86 (the_filter_passes_lifetimes_and_addresses_only)
+K10: /home/dev/rs-l2tpd/tests/kernel/linux.rs:371 (the_monitor_reports_removals)
+K11: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+K14: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:166 (released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository)
+K15: /home/dev/rs-l2tpd/tests/kernel/linux.rs:509 (disconnected_sessions_drop_outbound_but_receive_only_matching_cookies)
+K16: /home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs:525 (a_session_record_decodes_names_and_cookies)
+K16: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K16: /home/dev/rs-l2tpd/tests/kernel/linux.rs:256 (sessions_are_captured_scanned_and_deleted)
+K16: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K16: /home/dev/rs-l2tpd/tests/kernel/review.rs:71 (creation_name_is_not_current_or_unique)
+K17: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K17: /home/dev/rs-l2tpd/tests/kernel/linux.rs:221 (a_handed_over_socket_keeps_its_tunnel)
+K17: /home/dev/rs-l2tpd/tests/kernel/linux.rs:398 (a_closed_socket_is_not_announced)
+K17: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K17: /home/dev/rs-l2tpd/tests/kernel/store.rs:73 (kernel_reference)
+K17: /home/dev/rs-l2tpd/tests/kernel/review.rs:122 (unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate)
+K17: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:414 (delayed_tunnel_cleanup_withholds_replacement_until_release)
+K18: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K18: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K18: /home/dev/rs-l2tpd/tests/kernel/review.rs:243 (session_identifier_reuse_waits_for_deletion)
+K18: /home/dev/rs-l2tpd/tests/rules/store.rs:218 (unmatched_adopted_sessions_are_deleted_before_identifier_reuse)
+K18: /home/dev/rs-l2tpd/tests/rules/sessions.rs:371 (session_identifier_reuse_waits_for_confirmed_deletion)
+K19: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K19: /home/dev/rs-l2tpd/tests/kernel/linux.rs:221 (a_handed_over_socket_keeps_its_tunnel)
+K19: /home/dev/rs-l2tpd/tests/kernel/linux.rs:256 (sessions_are_captured_scanned_and_deleted)
+K19: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K19: /home/dev/rs-l2tpd/tests/kernel/review.rs:243 (session_identifier_reuse_waits_for_deletion)
+K2: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+K20: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K20: /home/dev/rs-l2tpd/tests/kernel/linux.rs:256 (sessions_are_captured_scanned_and_deleted)
+K20: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K22: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K22: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K23: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+K23: /home/dev/rs-l2tpd/tests/kernel/linux.rs:480 (a_tunable_write_changes_only_fresh_sockets)
+K24: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K24: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K25: /home/dev/rs-l2tpd/tests/kernel/linux.rs:221 (a_handed_over_socket_keeps_its_tunnel)
+K25: /home/dev/rs-l2tpd/tests/kernel/linux.rs:571 (the_kernel_keeps_the_previous_ipv6_peer_after_disconnect)
+K26: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K26: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K27: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K27: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K28: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K28: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+K28: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K29: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:517 (a_live_lifetime_overflow_ends_all_old_proofs)
+K29: /home/dev/rs-l2tpd/src/kernel/linux/request.rs:259 (a_datagram_splits_into_padded_messages)
+K29: /home/dev/rs-l2tpd/src/kernel/linux/request.rs:294 (a_missing_mutation_reply_is_uncertain_and_reopens_the_socket)
+K30: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:574 (a_live_foreign_sender_cannot_invalidate_a_registration)
+K30: /home/dev/rs-l2tpd/src/kernel/linux/monitor.rs:197 (a_live_feed_ignores_a_forged_notification_before_a_real_one)
+K31: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K31: /home/dev/rs-l2tpd/tests/kernel/linux.rs:328 (links_are_found_by_name_and_dumped)
+K31: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K32: /home/dev/rs-l2tpd/src/config/tests.rs:332 (interface_names)
+K32: /home/dev/rs-l2tpd/tests/kernel/linux.rs:328 (links_are_found_by_name_and_dumped)
+K34: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K34: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+K34: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K35: /home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs:413 (every_foreign_cookie_length_is_read_without_relaxing_configuration)
+K35: /home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs:525 (a_session_record_decodes_names_and_cookies)
+K35: /home/dev/rs-l2tpd/tests/kernel/linux.rs:256 (sessions_are_captured_scanned_and_deleted)
+K35: /home/dev/rs-l2tpd/tests/rules/store.rs:218 (unmatched_adopted_sessions_are_deleted_before_identifier_reuse)
+K37: /home/dev/rs-l2tpd/tests/kernel/linux.rs:221 (a_handed_over_socket_keeps_its_tunnel)
+K37: /home/dev/rs-l2tpd/tests/kernel/store.rs:23 (manager_bridge)
+K37: /home/dev/rs-l2tpd/tests/kernel/store.rs:73 (kernel_reference)
+K37: /home/dev/rs-l2tpd/tests/kernel/review.rs:122 (unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate)
+K37: /home/dev/rs-l2tpd/tests/rules/store.rs:39 (withdrawal_precedes_close_and_replacement_storage)
+K39: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:166 (released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository)
+K4: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+K40: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:166 (released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository)
+K41: /home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs:494 (deletions_decode_into_notices)
+K41: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+K41: /home/dev/rs-l2tpd/tests/kernel/linux.rs:398 (a_closed_socket_is_not_announced)
+K41: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+K41: /home/dev/rs-l2tpd/tests/kernel/review.rs:142 (foreign_namespace_deletion_does_not_delete_local_session)
+K41: /home/dev/rs-l2tpd/tests/rules/events.rs:143 (foreign_same_identifier_announcements_only_queue_verification)
+K42: /home/dev/rs-l2tpd/tests/kernel/linux.rs:423 (a_reused_index_and_creation_name_never_revive_an_old_registration)
+K5: /home/dev/rs-l2tpd/tests/kernel/linux.rs:509 (disconnected_sessions_drop_outbound_but_receive_only_matching_cookies)
+K5: /home/dev/rs-l2tpd/tests/kernel/review.rs:122 (unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate)
+K5: /home/dev/rs-l2tpd/tests/kernel/review.rs:204 (unconnected_tunnel_drops_outbound_frames)
+K7: /home/dev/rs-l2tpd/tests/kernel/linux.rs:371 (the_monitor_reports_removals)
+K9: /home/dev/rs-l2tpd/src/kernel/linux/rtnl.rs:250 (a_link_message_decodes_name_bytes_master_and_vrf)
+K9: /home/dev/rs-l2tpd/tests/kernel/linux.rs:328 (links_are_found_by_name_and_dumped)
+L1: /home/dev/rs-l2tpd/src/runtime/tests.rs:345 (library_boundary_and_extensible_api)
+L10: /home/dev/rs-l2tpd/src/runtime/tests.rs:60 (queue_full_waiter_and_shutdown_precedence)
+L10: /home/dev/rs-l2tpd/src/runtime/tests.rs:90 (subscription_loss_survives_a_full_queue_and_a_second_loss)
+L10: /home/dev/rs-l2tpd/src/runtime/tests.rs:127 (lifetime_proofs_do_not_use_the_full_event_queue)
+L10: /home/dev/rs-l2tpd/src/runtime/tests.rs:157 (tunable_handshake_is_observed_forwarded_and_answered_without_host_io)
+L10: /home/dev/rs-l2tpd/src/runtime/tests.rs:405 (l2tp_queue_loss_uses_its_own_resync_flag)
+L11: /home/dev/rs-l2tpd/src/runtime/tests.rs:345 (library_boundary_and_extensible_api)
+L11: /home/dev/rs-l2tpd/src/runtime/tests.rs:441 (cleanup_verifies_kernel_absence_and_reports_a_remaining_reference)
+L11: /home/dev/rs-l2tpd/tests/service.rs:179 (blocking_converges_and_drop_removes_children_before_parents)
+L12: /home/dev/rs-l2tpd/src/runtime/tests.rs:157 (tunable_handshake_is_observed_forwarded_and_answered_without_host_io)
+L12: /home/dev/rs-l2tpd/src/runtime/tests.rs:192 (tunable_timeout_ignores_late_success_and_shutdown_cancels_pending)
+L12: /home/dev/rs-l2tpd/tests/kernel/linux.rs:480 (a_tunable_write_changes_only_fresh_sockets)
+L12: /home/dev/rs-l2tpd/tests/service.rs:508 (blocking_service_exposes_host_requests_and_waits_for_processing_acknowledgement)
+L12: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:194 (tunable_success_waits_and_opens_fresh_sockets_for_all_waiters)
+L12: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:225 (failed_expired_and_still_v6only_writes_use_the_fallback_once)
+L12: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:261 (shutdown_cancels_the_tunable_handshake)
+L12: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:331 (failed_readback_never_registers_a_socket_as_dual_stack)
+L13: /home/dev/rs-l2tpd/src/runtime/tests.rs:231 (adopted_names_are_verified_or_retired_and_store_wait_is_bounded)
+L13: /home/dev/rs-l2tpd/src/runtime/tests.rs:310 (store_submission_and_withdrawal_acknowledgements_keep_the_incarnation)
+L13: /home/dev/rs-l2tpd/src/runtime/tests.rs:366 (shutdown_keeps_withdrawal_and_kernel_deletion_windows_separate)
+L13: /home/dev/rs-l2tpd/tests/kernel/store.rs:23 (manager_bridge)
+L13: /home/dev/rs-l2tpd/tests/kernel/store.rs:73 (kernel_reference)
+L13: /home/dev/rs-l2tpd/tests/service.rs:508 (blocking_service_exposes_host_requests_and_waits_for_processing_acknowledgement)
+L13: /home/dev/rs-l2tpd/tests/rules/store.rs:39 (withdrawal_precedes_close_and_replacement_storage)
+L13: /home/dev/rs-l2tpd/tests/rules/store.rs:66 (missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse)
+L13: /home/dev/rs-l2tpd/tests/rules/store.rs:101 (adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name)
+L13: /home/dev/rs-l2tpd/tests/rules/store.rs:129 (malformed_names_and_shutdown_keep_cleanup_authority)
+L13: /home/dev/rs-l2tpd/tests/rules/store.rs:151 (full_store_keeps_new_sockets_locally_owned)
+L13: /home/dev/rs-l2tpd/tests/rules/store.rs:171 (adopted_matching_sessions_keep_manager_names_and_are_never_reproved)
+L2: /home/dev/rs-l2tpd/src/runtime/tests.rs:345 (library_boundary_and_extensible_api)
+L3: /home/dev/rs-l2tpd/src/runtime/tests.rs:345 (library_boundary_and_extensible_api)
+L3: /home/dev/rs-l2tpd/tests/service.rs:497 (public_dependency_types_are_reexported)
+L4: /home/dev/rs-l2tpd/src/config/tests.rs:1070 (builders_and_insertions_validate)
+L4: /home/dev/rs-l2tpd/src/config/tests.rs:1300 (host_dependent_conditions_are_not_parse_errors)
+L5: /home/dev/rs-l2tpd/src/runtime/tests.rs:231 (adopted_names_are_verified_or_retired_and_store_wait_is_bounded)
+L5: /home/dev/rs-l2tpd/src/runtime/tests.rs:441 (cleanup_verifies_kernel_absence_and_reports_a_remaining_reference)
+L5: /home/dev/rs-l2tpd/tests/kernel/linux.rs:596 (services_converge_and_orderly_shutdown_on_linux)
+L5: /home/dev/rs-l2tpd/tests/service.rs:179 (blocking_converges_and_drop_removes_children_before_parents)
+L5: /home/dev/rs-l2tpd/tests/service.rs:199 (drop_before_run_retires_inherited_entries_and_works_inside_tokio)
+L5: /home/dev/rs-l2tpd/tests/service.rs:217 (reload_error_keeps_config_then_success_applies_and_restart_resumes)
+L5: /home/dev/rs-l2tpd/tests/service.rs:269 (callback_panic_returns_only_after_cleanup)
+L5: /home/dev/rs-l2tpd/tests/service.rs:342 (converge_ignores_reloads_and_reports_conflicts_after_ten_attempts)
+L5: /home/dev/rs-l2tpd/tests/service.rs:371 (startup_failure_returns_exact_names_and_live_descriptors)
+L5: /home/dev/rs-l2tpd/tests/service.rs:386 (tokio_service_run_converges_without_explicit_converge)
+L5: /home/dev/rs-l2tpd/tests/service.rs:508 (blocking_service_exposes_host_requests_and_waits_for_processing_acknowledgement)
+L5: /home/dev/rs-l2tpd/tests/service.rs:559 (blocking_service_verifies_and_reuses_a_named_adopted_tunnel)
+L6: /home/dev/rs-l2tpd/src/runtime/tests.rs:60 (queue_full_waiter_and_shutdown_precedence)
+L6: /home/dev/rs-l2tpd/tests/service.rs:217 (reload_error_keeps_config_then_success_applies_and_restart_resumes)
+L6: /home/dev/rs-l2tpd/tests/service.rs:296 (shutdown_does_not_wait_for_blocked_callback_or_apply_its_result)
+L6: /home/dev/rs-l2tpd/tests/service.rs:407 (run_after_shutdown_reports_the_completed_cleanup)
+L6: /home/dev/rs-l2tpd/tests/service.rs:417 (subscriptions_drain_during_a_kernel_call_and_loss_during_resync_survives)
+L6: /home/dev/rs-l2tpd/tests/service.rs:453 (superseded_reload_is_discarded_and_the_latest_runs_next)
+L7: /home/dev/rs-l2tpd/tests/service.rs:217 (reload_error_keeps_config_then_success_applies_and_restart_resumes)
+L7: /home/dev/rs-l2tpd/tests/service.rs:269 (callback_panic_returns_only_after_cleanup)
+L7: /home/dev/rs-l2tpd/tests/service.rs:296 (shutdown_does_not_wait_for_blocked_callback_or_apply_its_result)
+L7: /home/dev/rs-l2tpd/tests/service.rs:453 (superseded_reload_is_discarded_and_the_latest_runs_next)
+L8: /home/dev/rs-l2tpd/tests/kernel/linux.rs:596 (services_converge_and_orderly_shutdown_on_linux)
+L8: /home/dev/rs-l2tpd/tests/service.rs:179 (blocking_converges_and_drop_removes_children_before_parents)
+L8: /home/dev/rs-l2tpd/tests/service.rs:199 (drop_before_run_retires_inherited_entries_and_works_inside_tokio)
+L8: /home/dev/rs-l2tpd/tests/service.rs:386 (tokio_service_run_converges_without_explicit_converge)
+L8: /home/dev/rs-l2tpd/tests/service.rs:407 (run_after_shutdown_reports_the_completed_cleanup)
+L8: /home/dev/rs-l2tpd/tests/service.rs:508 (blocking_service_exposes_host_requests_and_waits_for_processing_acknowledgement)
+L8: /home/dev/rs-l2tpd/tests/service.rs:559 (blocking_service_verifies_and_reuses_a_named_adopted_tunnel)
+L9: /home/dev/rs-l2tpd/src/runtime/tests.rs:60 (queue_full_waiter_and_shutdown_precedence)
+L9: /home/dev/rs-l2tpd/src/runtime/tests.rs:90 (subscription_loss_survives_a_full_queue_and_a_second_loss)
+L9: /home/dev/rs-l2tpd/src/runtime/tests.rs:127 (lifetime_proofs_do_not_use_the_full_event_queue)
+L9: /home/dev/rs-l2tpd/src/runtime/tests.rs:157 (tunable_handshake_is_observed_forwarded_and_answered_without_host_io)
+L9: /home/dev/rs-l2tpd/src/runtime/tests.rs:405 (l2tp_queue_loss_uses_its_own_resync_flag)
+L9: /home/dev/rs-l2tpd/src/runtime/tests.rs:441 (cleanup_verifies_kernel_absence_and_reports_a_remaining_reference)
+L9: /home/dev/rs-l2tpd/src/runtime/tests.rs:472 (dropping_runtime_stops_both_subscription_tasks_and_closes_the_queue)
+L9: /home/dev/rs-l2tpd/tests/kernel/linux.rs:596 (services_converge_and_orderly_shutdown_on_linux)
+L9: /home/dev/rs-l2tpd/tests/service.rs:371 (startup_failure_returns_exact_names_and_live_descriptors)
+L9: /home/dev/rs-l2tpd/tests/service.rs:386 (tokio_service_run_converges_without_explicit_converge)
+L9: /home/dev/rs-l2tpd/tests/service.rs:417 (subscriptions_drain_during_a_kernel_call_and_loss_during_resync_survives)
+M1: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+M10: /home/dev/rs-l2tpd/tests/rules/sessions.rs:248 (failed_staging_address_is_retried_before_publication)
+M11: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+M12: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+M12: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:119 (a_changed_peer_keeps_the_socket)
+M13: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:160 (a_conflict_leaves_the_tunnel_out_after_ten_attempts)
+M13: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:274 (every_transient_connect_errno_retries_the_new_peer_in_place)
+M13: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:86 (a_vrf_bind_device_holds_the_resolver_back)
+M14: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:86 (a_refused_peer_is_retried_every_second)
+M14: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:414 (delayed_tunnel_cleanup_withholds_replacement_until_release)
+M14: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:174 (a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity)
+M14: /home/dev/rs-l2tpd/tests/rules/store.rs:39 (withdrawal_precedes_close_and_replacement_storage)
+M14: /home/dev/rs-l2tpd/tests/rules/store.rs:66 (missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse)
+M14: /home/dev/rs-l2tpd/tests/rules/events.rs:117 (unrelated_address_events_never_connect_or_postpone_a_pending_peer)
+M14: /home/dev/rs-l2tpd/tests/rules/events.rs:225 (event_traffic_does_not_move_the_absolute_poll_deadline)
+M15: /home/dev/rs-l2tpd/tests/rules/events.rs:117 (unrelated_address_events_never_connect_or_postpone_a_pending_peer)
+M15: /home/dev/rs-l2tpd/tests/rules/events.rs:225 (event_traffic_does_not_move_the_absolute_poll_deadline)
+M16: /home/dev/rs-l2tpd/tests/rules/events.rs:11 (an_address_on_the_bind_device_reconnects)
+M16: /home/dev/rs-l2tpd/tests/rules/events.rs:186 (unrelated_events_query_no_kernel_objects_even_with_many_entries)
+M17: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+M17: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:311 (socket_family_fallback_never_recreates_existing_tunnels)
+M17: /home/dev/rs-l2tpd/tests/rules/store.rs:171 (adopted_matching_sessions_keep_manager_names_and_are_never_reproved)
+M17: /home/dev/rs-l2tpd/tests/rules/sessions.rs:133 (a_cookie_change_recreates_the_session)
+M18: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:477 (a_capture_takes_the_first_broadcast_and_a_removal_sticks)
+M18: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:517 (a_live_lifetime_overflow_ends_all_old_proofs)
+M18: /home/dev/rs-l2tpd/tests/kernel/linux.rs:423 (a_reused_index_and_creation_name_never_revive_an_old_registration)
+M18: /home/dev/rs-l2tpd/tests/rules/events.rs:92 (a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds)
+M18: /home/dev/rs-l2tpd/tests/rules/sessions.rs:164 (a_lost_identity_skips_changes)
+M18: /home/dev/rs-l2tpd/tests/rules/sessions.rs:180 (staged_loss_never_modifies_a_reused_index_and_name)
+M18: /home/dev/rs-l2tpd/tests/rules/sessions.rs:388 (mismatched_stored_records_cannot_authorize_staged_recovery)
+M19: /home/dev/rs-l2tpd/tests/rules/sessions.rs:93 (another_managers_rename_is_kept)
+M19: /home/dev/rs-l2tpd/tests/rules/sessions.rs:273 (removing_a_hardware_address_restores_the_creation_address_without_lowering)
+M19: /home/dev/rs-l2tpd/tests/rules/sessions.rs:329 (a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides)
+M2: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+M2: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:38 (an_identical_reload_issues_no_operation)
+M3: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+M3: /home/dev/rs-l2tpd/tests/rules/events.rs:78 (one_failed_creation_does_not_block_an_independent_entry)
+M3: /home/dev/rs-l2tpd/tests/rules/events.rs:169 (a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress)
+M4: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+M4: /home/dev/rs-l2tpd/tests/rules/events.rs:78 (one_failed_creation_does_not_block_an_independent_entry)
+M5: /home/dev/rs-l2tpd/tests/rules/events.rs:78 (one_failed_creation_does_not_block_an_independent_entry)
+M6: /home/dev/rs-l2tpd/tests/rules/sessions.rs:111 (sessions_swap_names)
+M6: /home/dev/rs-l2tpd/tests/rules/sessions.rs:293 (acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt)
+M6: /home/dev/rs-l2tpd/tests/rules/sessions.rs:371 (session_identifier_reuse_waits_for_confirmed_deletion)
+M7: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+M7: /home/dev/rs-l2tpd/tests/rules/events.rs:78 (one_failed_creation_does_not_block_an_independent_entry)
+M7: /home/dev/rs-l2tpd/tests/rules/sessions.rs:423 (tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address)
+M8: /home/dev/rs-l2tpd/tests/properties/planner.rs:8 (reload_sequences_converge_without_unjustified_identity_changes)
+M8: /home/dev/rs-l2tpd/tests/rules/sessions.rs:423 (tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address)
+M9: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:395 (cleanup_cannot_delete_a_foreign_replacement_tunnel)
+M9: /home/dev/rs-l2tpd/tests/rules/events.rs:143 (foreign_same_identifier_announcements_only_queue_verification)
+M9: /home/dev/rs-l2tpd/tests/rules/sessions.rs:310 (a_moved_session_is_forgotten_without_deleting_a_replacement)
+O3: /home/dev/rs-l2tpd/src/reconciler/report.rs:99 (an_episode_is_reported_once)
+O5: /home/dev/rs-l2tpd/src/config/tests.rs:466 (session_cookies)
+O5: /home/dev/rs-l2tpd/src/config/tests.rs:1279 (cookies_are_never_formatted)
+O5: /home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs:413 (every_foreign_cookie_length_is_read_without_relaxing_configuration)
+O5: /home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs:525 (a_session_record_decodes_names_and_cookies)
+O6: /home/dev/rs-l2tpd/src/reconciler/report.rs:92 (errors_carry_their_errno_names)
+O8: /home/dev/rs-l2tpd/src/config/tests.rs:941 (accepted_configuration_reads_back)
+O8: /home/dev/rs-l2tpd/src/config/tests.rs:965 (check_mode_rendering_order)
+P14: /home/dev/rs-l2tpd/tests/kernel/linux.rs:221 (a_handed_over_socket_keeps_its_tunnel)
+P14: /home/dev/rs-l2tpd/tests/kernel/store.rs:23 (manager_bridge)
+P14: /home/dev/rs-l2tpd/tests/kernel/store.rs:73 (kernel_reference)
+P14: /home/dev/rs-l2tpd/tests/rules/store.rs:39 (withdrawal_precedes_close_and_replacement_storage)
+P14: /home/dev/rs-l2tpd/tests/rules/store.rs:66 (missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse)
+P14: /home/dev/rs-l2tpd/tests/rules/store.rs:101 (adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name)
+P14: /home/dev/rs-l2tpd/tests/rules/store.rs:129 (malformed_names_and_shutdown_keep_cleanup_authority)
+P14: /home/dev/rs-l2tpd/tests/rules/store.rs:171 (adopted_matching_sessions_keep_manager_names_and_are_never_reproved)
+P16: /home/dev/rs-l2tpd/src/runtime/tests.rs:441 (cleanup_verifies_kernel_absence_and_reports_a_remaining_reference)
+P16: /home/dev/rs-l2tpd/tests/kernel/linux.rs:596 (services_converge_and_orderly_shutdown_on_linux)
+P16: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:52 (shutdown_closes_the_sockets)
+P17: /home/dev/rs-l2tpd/src/runtime/tests.rs:441 (cleanup_verifies_kernel_absence_and_reports_a_remaining_reference)
+P17: /home/dev/rs-l2tpd/tests/rules/store.rs:129 (malformed_names_and_shutdown_keep_cleanup_authority)
+P25: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:194 (tunable_success_waits_and_opens_fresh_sockets_for_all_waiters)
+P25: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:225 (failed_expired_and_still_v6only_writes_use_the_fallback_once)
+P8: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:194 (tunable_success_waits_and_opens_fresh_sockets_for_all_waiters)
+R47: /home/dev/rs-l2tpd/src/config/tests.rs:199 (tunnel_literals)
+S1: /home/dev/rs-l2tpd/tests/rules/sessions.rs:28 (a_session_is_staged_then_published)
+S10: /home/dev/rs-l2tpd/tests/rules/sessions.rs:93 (another_managers_rename_is_kept)
+S11: /home/dev/rs-l2tpd/tests/rules/sessions.rs:111 (sessions_swap_names)
+S11: /home/dev/rs-l2tpd/tests/rules/sessions.rs:293 (acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt)
+S12: /home/dev/rs-l2tpd/tests/rules/sessions.rs:28 (a_session_is_staged_then_published)
+S12: /home/dev/rs-l2tpd/tests/rules/sessions.rs:73 (a_hardware_address_waits_for_the_device_to_go_down)
+S12: /home/dev/rs-l2tpd/tests/rules/sessions.rs:248 (failed_staging_address_is_retried_before_publication)
+S12: /home/dev/rs-l2tpd/tests/rules/sessions.rs:273 (removing_a_hardware_address_restores_the_creation_address_without_lowering)
+S12: /home/dev/rs-l2tpd/tests/rules/sessions.rs:329 (a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides)
+S13: /home/dev/rs-l2tpd/tests/rules/sessions.rs:273 (removing_a_hardware_address_restores_the_creation_address_without_lowering)
+S13: /home/dev/rs-l2tpd/tests/rules/sessions.rs:423 (tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address)
+S14: /home/dev/rs-l2tpd/tests/kernel/linux.rs:509 (disconnected_sessions_drop_outbound_but_receive_only_matching_cookies)
+S15: /home/dev/rs-l2tpd/tests/rules/sessions.rs:133 (a_cookie_change_recreates_the_session)
+S15: /home/dev/rs-l2tpd/tests/rules/sessions.rs:371 (session_identifier_reuse_waits_for_confirmed_deletion)
+S16: /home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs:413 (every_foreign_cookie_length_is_read_without_relaxing_configuration)
+S17: /home/dev/rs-l2tpd/src/config/tests.rs:987 (kernel_identities)
+S17: /home/dev/rs-l2tpd/tests/rules/sessions.rs:133 (a_cookie_change_recreates_the_session)
+S17: /home/dev/rs-l2tpd/tests/rules/sessions.rs:371 (session_identifier_reuse_waits_for_confirmed_deletion)
+S18: /home/dev/rs-l2tpd/tests/rules/sessions.rs:329 (a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides)
+S19: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+S19: /home/dev/rs-l2tpd/tests/kernel/linux.rs:423 (a_reused_index_and_creation_name_never_revive_an_old_registration)
+S19: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+S19: /home/dev/rs-l2tpd/tests/rules/sessions.rs:164 (a_lost_identity_skips_changes)
+S2: /home/dev/rs-l2tpd/tests/rules/sessions.rs:73 (a_hardware_address_waits_for_the_device_to_go_down)
+S20: /home/dev/rs-l2tpd/tests/rules/sessions.rs:164 (a_lost_identity_skips_changes)
+S21: /home/dev/rs-l2tpd/tests/rules/sessions.rs:310 (a_moved_session_is_forgotten_without_deleting_a_replacement)
+S22: /home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs:525 (a_session_record_decodes_names_and_cookies)
+S22: /home/dev/rs-l2tpd/tests/kernel/linux.rs:256 (sessions_are_captured_scanned_and_deleted)
+S22: /home/dev/rs-l2tpd/tests/kernel/review.rs:71 (creation_name_is_not_current_or_unique)
+S22: /home/dev/rs-l2tpd/tests/rules/sessions.rs:180 (staged_loss_never_modifies_a_reused_index_and_name)
+S22: /home/dev/rs-l2tpd/tests/rules/sessions.rs:233 (failed_staged_verification_and_deletion_preserve_the_record)
+S22: /home/dev/rs-l2tpd/tests/rules/sessions.rs:388 (mismatched_stored_records_cannot_authorize_staged_recovery)
+S23: /home/dev/rs-l2tpd/tests/kernel/linux.rs:423 (a_reused_index_and_creation_name_never_revive_an_old_registration)
+S23: /home/dev/rs-l2tpd/tests/rules/sessions.rs:180 (staged_loss_never_modifies_a_reused_index_and_name)
+S23: /home/dev/rs-l2tpd/tests/rules/sessions.rs:233 (failed_staged_verification_and_deletion_preserve_the_record)
+S23: /home/dev/rs-l2tpd/tests/rules/sessions.rs:388 (mismatched_stored_records_cannot_authorize_staged_recovery)
+S24: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:517 (a_live_lifetime_overflow_ends_all_old_proofs)
+S24: /home/dev/rs-l2tpd/tests/kernel/linux.rs:423 (a_reused_index_and_creation_name_never_revive_an_old_registration)
+S24: /home/dev/rs-l2tpd/tests/rules/sessions.rs:180 (staged_loss_never_modifies_a_reused_index_and_name)
+S24: /home/dev/rs-l2tpd/tests/rules/sessions.rs:310 (a_moved_session_is_forgotten_without_deleting_a_replacement)
+S24: /home/dev/rs-l2tpd/tests/rules/sessions.rs:388 (mismatched_stored_records_cannot_authorize_staged_recovery)
+S25: /home/dev/rs-l2tpd/tests/rules/sessions.rs:371 (session_identifier_reuse_waits_for_confirmed_deletion)
+S26: /home/dev/rs-l2tpd/tests/rules/sessions.rs:371 (session_identifier_reuse_waits_for_confirmed_deletion)
+S27: /home/dev/rs-l2tpd/tests/rules/sessions.rs:148 (an_externally_deleted_session_is_created_again)
+S28: /home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs:413 (every_foreign_cookie_length_is_read_without_relaxing_configuration)
+S28: /home/dev/rs-l2tpd/tests/kernel/linux.rs:221 (a_handed_over_socket_keeps_its_tunnel)
+S28: /home/dev/rs-l2tpd/tests/kernel/review.rs:71 (creation_name_is_not_current_or_unique)
+S28: /home/dev/rs-l2tpd/tests/rules/store.rs:101 (adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name)
+S28: /home/dev/rs-l2tpd/tests/rules/store.rs:171 (adopted_matching_sessions_keep_manager_names_and_are_never_reproved)
+S28: /home/dev/rs-l2tpd/tests/rules/store.rs:218 (unmatched_adopted_sessions_are_deleted_before_identifier_reuse)
+S29: /home/dev/rs-l2tpd/tests/rules/events.rs:143 (foreign_same_identifier_announcements_only_queue_verification)
+S29: /home/dev/rs-l2tpd/tests/rules/sessions.rs:148 (an_externally_deleted_session_is_created_again)
+S3: /home/dev/rs-l2tpd/tests/kernel/linux.rs:256 (sessions_are_captured_scanned_and_deleted)
+S3: /home/dev/rs-l2tpd/tests/rules/sessions.rs:28 (a_session_is_staged_then_published)
+S4: /home/dev/rs-l2tpd/tests/kernel/linux.rs:256 (sessions_are_captured_scanned_and_deleted)
+S4: /home/dev/rs-l2tpd/tests/kernel/review.rs:71 (creation_name_is_not_current_or_unique)
+S4: /home/dev/rs-l2tpd/tests/rules/sessions.rs:28 (a_session_is_staged_then_published)
+S4: /home/dev/rs-l2tpd/tests/rules/sessions.rs:248 (failed_staging_address_is_retried_before_publication)
+S5: /home/dev/rs-l2tpd/tests/rules/sessions.rs:329 (a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides)
+S6: /home/dev/rs-l2tpd/tests/rules/sessions.rs:54 (a_taken_name_is_retried_and_the_session_kept)
+S6: /home/dev/rs-l2tpd/tests/rules/sessions.rs:248 (failed_staging_address_is_retried_before_publication)
+S7: /home/dev/rs-l2tpd/tests/rules/sessions.rs:54 (a_taken_name_is_retried_and_the_session_kept)
+S8: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:477 (a_capture_takes_the_first_broadcast_and_a_removal_sticks)
+S8: /home/dev/rs-l2tpd/tests/kernel/linux.rs:256 (sessions_are_captured_scanned_and_deleted)
+S8: /home/dev/rs-l2tpd/tests/rules/sessions.rs:28 (a_session_is_staged_then_published)
+S9: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:477 (a_capture_takes_the_first_broadcast_and_a_removal_sticks)
+S9: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:517 (a_live_lifetime_overflow_ends_all_old_proofs)
+S9: /home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs:574 (a_live_foreign_sender_cannot_invalidate_a_registration)
+S9: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+S9: /home/dev/rs-l2tpd/tests/kernel/linux.rs:423 (a_reused_index_and_creation_name_never_revive_an_old_registration)
+S9: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+T1: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+T1: /home/dev/rs-l2tpd/tests/kernel/linux.rs:509 (disconnected_sessions_drop_outbound_but_receive_only_matching_cookies)
+T1: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:14 (a_tunnel_is_created_then_connected)
+T10: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:345 (zone_and_vrf_dependencies_are_followed_independently)
+T11: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:345 (zone_and_vrf_dependencies_are_followed_independently)
+T11: /home/dev/rs-l2tpd/tests/rules/events.rs:62 (a_vanished_bind_device_disconnects)
+T12: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:345 (zone_and_vrf_dependencies_are_followed_independently)
+T12: /home/dev/rs-l2tpd/tests/rules/events.rs:62 (a_vanished_bind_device_disconnects)
+T13: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:66 (an_absent_bind_device_is_waited_for)
+T14: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:19 (an_answer_connects_the_tunnel)
+T15: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:232 (an_unreachable_new_answer_never_restores_the_previous_peer)
+T16: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:86 (a_refused_peer_is_retried_every_second)
+T16: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:274 (every_transient_connect_errno_retries_the_new_peer_in_place)
+T16: /home/dev/rs-l2tpd/tests/rules/sessions.rs:423 (tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address)
+T17: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:274 (every_transient_connect_errno_retries_the_new_peer_in_place)
+T17: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:232 (an_unreachable_new_answer_never_restores_the_previous_peer)
+T18: /home/dev/rs-l2tpd/tests/rules/events.rs:117 (unrelated_address_events_never_connect_or_postpone_a_pending_peer)
+T19: /home/dev/rs-l2tpd/tests/rules/events.rs:11 (an_address_on_the_bind_device_reconnects)
+T19: /home/dev/rs-l2tpd/tests/rules/events.rs:37 (an_unbound_tunnel_follows_its_removed_source)
+T2: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:274 (every_transient_connect_errno_retries_the_new_peer_in_place)
+T20: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:274 (every_transient_connect_errno_retries_the_new_peer_in_place)
+T20: /home/dev/rs-l2tpd/tests/rules/events.rs:117 (unrelated_address_events_never_connect_or_postpone_a_pending_peer)
+T21: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:66 (an_absent_bind_device_is_waited_for)
+T22: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:119 (a_changed_peer_keeps_the_socket)
+T23: /home/dev/rs-l2tpd/src/config/tests.rs:987 (kernel_identities)
+T23: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:142 (a_changed_kernel_identity_recreates_after_the_deletion)
+T24: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:142 (a_changed_kernel_identity_recreates_after_the_deletion)
+T24: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:414 (delayed_tunnel_cleanup_withholds_replacement_until_release)
+T24: /home/dev/rs-l2tpd/tests/rules/store.rs:39 (withdrawal_precedes_close_and_replacement_storage)
+T25: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:160 (a_conflict_leaves_the_tunnel_out_after_ten_attempts)
+T25: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:377 (an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer)
+T26: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+T26: /home/dev/rs-l2tpd/tests/kernel/linux.rs:480 (a_tunable_write_changes_only_fresh_sockets)
+T26: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:194 (tunable_success_waits_and_opens_fresh_sockets_for_all_waiters)
+T26: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:225 (failed_expired_and_still_v6only_writes_use_the_fallback_once)
+T26: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:261 (shutdown_cancels_the_tunable_handshake)
+T26: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:311 (socket_family_fallback_never_recreates_existing_tunnels)
+T26: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:331 (failed_readback_never_registers_a_socket_as_dual_stack)
+T27: /home/dev/rs-l2tpd/src/config/tests.rs:199 (tunnel_literals)
+T27: /home/dev/rs-l2tpd/src/config/tests.rs:1300 (host_dependent_conditions_are_not_parse_errors)
+T27: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:345 (zone_and_vrf_dependencies_are_followed_independently)
+T28: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+T28: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:14 (a_tunnel_is_created_then_connected)
+T28: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:119 (a_changed_peer_keeps_the_socket)
+T29: /home/dev/rs-l2tpd/tests/kernel/linux.rs:571 (the_kernel_keeps_the_previous_ipv6_peer_after_disconnect)
+T3: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+T3: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:14 (a_tunnel_is_created_then_connected)
+T4: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+T4: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:311 (socket_family_fallback_never_recreates_existing_tunnels)
+T5: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:311 (socket_family_fallback_never_recreates_existing_tunnels)
+T6: /home/dev/rs-l2tpd/tests/kernel/linux.rs:190 (sockets_bind_connect_and_report_their_source)
+T6: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:14 (a_tunnel_is_created_then_connected)
+T6: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:66 (an_absent_bind_device_is_waited_for)
+T7: /home/dev/rs-l2tpd/tests/kernel/linux.rs:164 (conformance_on_the_linux_kernel)
+T7: /home/dev/rs-l2tpd/tests/kernel/fake.rs:64 (conformance_on_the_fake_kernel)
+T8: /home/dev/rs-l2tpd/src/runtime/tests.rs:366 (shutdown_keeps_withdrawal_and_kernel_deletion_windows_separate)
+T8: /home/dev/rs-l2tpd/src/runtime/tests.rs:441 (cleanup_verifies_kernel_absence_and_reports_a_remaining_reference)
+T8: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:52 (shutdown_closes_the_sockets)
+T8: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:142 (a_changed_kernel_identity_recreates_after_the_deletion)
+T8: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:414 (delayed_tunnel_cleanup_withholds_replacement_until_release)
+T8: /home/dev/rs-l2tpd/tests/rules/store.rs:39 (withdrawal_precedes_close_and_replacement_storage)
+T9: /home/dev/rs-l2tpd/tests/rules/tunnels.rs:395 (cleanup_cannot_delete_a_foreign_replacement_tunnel)
+V1: /home/dev/rs-l2tpd/src/config/tests.rs:360 (tunnel_resolver_name)
+V10: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:166 (released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository)
+V10: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:340 (removing_the_last_watch_releases_discovery_threads_and_descriptors)
+V11: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:102 (unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it)
+V12: /home/dev/rs-l2tpd/src/config/tests.rs:595 (resolver_dhcpv6_identities)
+V12: /home/dev/rs-l2tpd/tests/kernel/linux.rs:328 (links_are_found_by_name_and_dumped)
+V12: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:174 (a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity)
+V13: /home/dev/rs-l2tpd/src/config/tests.rs:869 (reload_refused_when_a_dependency_is_removed)
+V13: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:102 (unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it)
+V13: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:131 (resolver_zones_require_a_non_vrf_matching_bind_link)
+V14: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:280 (released_unified_adapter_enables_per_family_failure_fallback)
+V14: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:174 (a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity)
+V15: /home/dev/rs-l2tpd/src/reconciler/workers.rs:240 (obsolete_calls_keep_separate_budgets_and_latest_results)
+V15: /home/dev/rs-l2tpd/src/reconciler/workers.rs:311 (eight_blocked_calls_survive_cancellation_without_a_ninth_worker)
+V15: /home/dev/rs-l2tpd/src/reconciler/workers.rs:409 (dispatchers_preserve_each_owners_network_namespace)
+V15: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:340 (removing_the_last_watch_releases_discovery_threads_and_descriptors)
+V2: /home/dev/rs-l2tpd/src/config/tests.rs:505 (resolver_addresses)
+V2: /home/dev/rs-l2tpd/src/config/tests.rs:564 (resolver_methods)
+V3: /home/dev/rs-l2tpd/src/reconciler/workers.rs:240 (obsolete_calls_keep_separate_budgets_and_latest_results)
+V3: /home/dev/rs-l2tpd/src/reconciler/workers.rs:311 (eight_blocked_calls_survive_cancellation_without_a_ninth_worker)
+V3: /home/dev/rs-l2tpd/src/reconciler/workers.rs:409 (dispatchers_preserve_each_owners_network_namespace)
+V3: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:19 (an_answer_connects_the_tunnel)
+V4: /home/dev/rs-l2tpd/src/reconciler/workers.rs:240 (obsolete_calls_keep_separate_budgets_and_latest_results)
+V4: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:280 (released_unified_adapter_enables_per_family_failure_fallback)
+V4: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:340 (removing_the_last_watch_releases_discovery_threads_and_descriptors)
+V4: /home/dev/rs-l2tpd/tests/rules/events.rs:225 (event_traffic_does_not_move_the_absolute_poll_deadline)
+V5: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:9 (selection_checks_every_unusable_address_class_and_preserves_a_present_choice)
+V5: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:42 (the_selected_address_is_retained)
+V6: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:9 (selection_checks_every_unusable_address_class_and_preserves_a_present_choice)
+V6: /home/dev/rs-l2tpd/src/reconciler/resolvers_tests.rs:280 (released_unified_adapter_enables_per_family_failure_fallback)
+V6: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:42 (the_selected_address_is_retained)
+V7: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:63 (a_changed_host_name_discards_answers)
+V7: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:102 (unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it)
+V7: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:209 (resolver_configuration_generations_discard_already_queued_answers)
+V7: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:232 (an_unreachable_new_answer_never_restores_the_previous_peer)
+V8: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:19 (an_answer_connects_the_tunnel)
+V9: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:86 (a_vrf_bind_device_holds_the_resolver_back)
+V9: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:102 (unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it)
+V9: /home/dev/rs-l2tpd/tests/rules/resolvers.rs:131 (resolver_zones_require_a_non_vrf_matching_bind_link)
+test every_rule_has_a_test_citation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/tools/srclink.rs (target/x86_64-unknown-linux-musl/debug/deps/srclink-747d0d283aa962df)
+
+running 2 tests
+test scoped_and_qualified_functions_are_checked ... ok
+source links: 41 facts, 36 cited, 0 functions without a citation
+fact never cited: K13
+fact never cited: K14
+fact never cited: K33
+fact never cited: K38
+fact never cited: K40
+test kernel_code_cites_the_facts ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+exit=0

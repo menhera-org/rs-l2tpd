@@ -57,6 +57,11 @@ name = "rules"
 path = "tests/rules/main.rs"
 required-features = ["fake-kernel", "serde"]
 
+[[test]]
+name = "service"
+path = "tests/service.rs"
+required-features = ["fake-kernel"]
+
 [dependencies]
 # Library (docs/dependencies.md)
 l2tp = "0.5.0"

@@ -44,7 +44,7 @@ impl Answers {
         let ids: Vec<u64> = state
             .watching
             .iter()
-            .filter(|(_, l)| l.host == host)
+            .filter(|(_, l)| l.host() == host)
             .map(|(id, _)| *id)
             .collect();
         for id in ids {
@@ -71,7 +71,7 @@ impl Resolve for Answers {
         if state.refuse {
             return Err(io::Error::from_raw_os_error(nix::libc::EADDRINUSE));
         }
-        state.watching.insert(lookup.id, lookup);
+        state.watching.insert(lookup.id(), lookup);
         Ok(())
     }
     fn unwatch(&mut self, id: u64) {

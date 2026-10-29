@@ -24,7 +24,7 @@ fn an_answer_connects_the_tunnel() {
     assert!(r.ready());
     let watching = answers.watching();
     assert_eq!(watching.len(), 1);
-    assert_eq!(watching[0].resolver, ResolverSpec::System);
+    assert_eq!(watching[0].resolver(), &ResolverSpec::System);
     let socket = r.kernel().tunnel_socket(10).unwrap();
     assert_eq!(r.kernel().connection(socket), None);
     answers.answer("peer.example", &["2001:db8::1", "192.0.2.2"]);
@@ -74,7 +74,7 @@ fn a_changed_host_name_discards_answers() {
         None,
         "no peer the configuration no longer names (T17)"
     );
-    assert_eq!(answers.watching()[0].host, "other.example");
+    assert_eq!(answers.watching()[0].host(), "other.example");
     run_for(&mut r, 1);
     assert_eq!(r.kernel().connection(socket), None);
 }
@@ -107,9 +107,13 @@ fn unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it() 
     let text =
         format!("{NAMED}resolver_name='r'\n[resolvers.r]\nmethod='ra'\nbind_interface='wan'");
     r.reconcile(config(&text));
-    let id = answers.watching()[0].id;
+    let id = answers.watching()[0].id();
     r.handle(Source::Monitor, Notice::Loss);
-    assert_eq!(answers.watching()[0].id, id, "unchanged discovery retained");
+    assert_eq!(
+        answers.watching()[0].id(),
+        id,
+        "unchanged discovery retained"
+    );
     r.kernel_mut().rename_link(wan, "old-wan");
     super::deliver(&mut r);
     assert!(answers.watching().is_empty(), "old-name dependency stopped");
@@ -119,7 +123,7 @@ fn unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it() 
     r.kernel_mut().remove_link(vrf);
     r.kernel_mut().add_link("wan", false);
     super::deliver(&mut r);
-    assert_ne!(answers.watching()[0].id, id);
+    assert_ne!(answers.watching()[0].id(), id);
 }
 
 /// spec: V9, C16, V13
@@ -153,7 +157,8 @@ fn resolver_zones_require_a_non_vrf_matching_bind_link() {
                 "different indexes still mismatch"
             );
         } else {
-            let ResolverSpec::Static { servers, .. } = &answers.watching()[0].resolver else {
+            let watching = answers.watching();
+            let ResolverSpec::Static { servers, .. } = watching[0].resolver() else {
                 panic!()
             };
             let std::net::SocketAddr::V6(server) = servers[0] else {
@@ -174,26 +179,26 @@ fn a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity() {
         format!("{NAMED}resolver_name='r'\n[resolvers.r]\nmethod='ipv6'\nbind_interface='wan'");
     r.reconcile(config(&text));
     assert!(matches!(
-        answers.watching()[0].resolver,
+        answers.watching()[0].resolver(),
         ResolverSpec::Ra { .. }
     ));
     let mac = rs_l2tpd::kernel::HwAddr::new([2, 0, 0x5e, 0, 0x53, 1]).unwrap();
     r.kernel_mut().set_link_hwaddr(wan, mac);
     run_for(&mut r, 29);
     assert!(matches!(
-        answers.watching()[0].resolver,
+        answers.watching()[0].resolver(),
         ResolverSpec::Ra { .. }
     ));
     run_for(&mut r, 1);
     assert!(
-        matches!(answers.watching()[0].resolver, ResolverSpec::Ipv6 { client_id: rs_l2tpd::reconciler::ClientId::DuidLl(addr), .. } if addr == mac.octets())
+        matches!(answers.watching()[0].resolver(), ResolverSpec::Ipv6 { client_id: rs_l2tpd::reconciler::ClientId::DuidLl(addr), .. } if *addr == mac.octets())
     );
-    let id = answers.watching()[0].id;
+    let id = answers.watching()[0].id();
     let changed = rs_l2tpd::kernel::HwAddr::new([2, 0, 0x5e, 0, 0x53, 2]).unwrap();
     r.kernel_mut().set_link_hwaddr(wan, changed);
     super::deliver(&mut r);
     assert_eq!(
-        answers.watching()[0].id,
+        answers.watching()[0].id(),
         id,
         "DUID held for discovery lifetime"
     );
@@ -207,11 +212,11 @@ fn resolver_configuration_generations_discard_already_queued_answers() {
     r.kernel_mut().add_addr(dev, "192.0.2.1".parse().unwrap());
     let text = format!("{NAMED}resolver_name='r'\n[resolvers.r]\naddresses=['192.0.2.53']");
     r.reconcile(config(&text));
-    let old = answers.watching()[0].id;
+    let old = answers.watching()[0].id();
     answers.answer("peer.example", &["192.0.2.2"]);
     r.reconcile(config(&text.replace("192.0.2.53", "192.0.2.54")));
     let socket = r.kernel().tunnel_socket(10).unwrap();
-    assert_ne!(answers.watching()[0].id, old);
+    assert_ne!(answers.watching()[0].id(), old);
     run_for(&mut r, 1);
     assert!(r.kernel().connection(socket).is_none());
     answers.answer("peer.example", &["192.0.2.3"]);

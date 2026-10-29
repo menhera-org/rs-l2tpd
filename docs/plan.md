@@ -317,6 +317,23 @@ a `#[non_exhaustive]` and re-export check (L3).
 Exit: every L rule tested; the library builds with no default features,
 with `serde`, and under `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps`.
 
+**Status: done on 2026-10-29 within this phase's scope.** The runtime,
+Tokio service, blocking service and control handle are implemented. The
+1,024-entry input queue has persistent loss and shutdown paths; reload
+callbacks run off-thread, and shutdown does not wait for them. Named
+adoption, tunable/store handshakes and restart descriptors are exposed
+without process I/O in the library. Shutdown verifies kernel absence and
+keeps withdrawal and kernel deletion windows separate. Public boundary
+records now have constructors/getters and private fields; enums are
+non-exhaustive and dependency types are re-exported.
+
+The [verification record](../audit/PHASE4_VERIFICATION_2026-10-29.md)
+maps the L rules to executed cases: 12 runtime tests, 14 service tests,
+six doc tests, ten seeded fake-suite repetitions, the warnings/feature
+build gates, and 26 live Linux tests including the two services and
+unordered runtime drop. The binary remains a Phase 5 stub. Coverage,
+the full required kernel matrix and strict global gates remain Phase 6.
+
 ### Phase 5 — the binary
 
 Implements [process](spec/process.md) P1–P27 and

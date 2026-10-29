@@ -157,3 +157,17 @@ rs-l2tpd = { version = "0.2", default-features = false }               # no TOML
   foreign type re-exported next to its use; enums non-exhaustive (L3).
 - The library does no standard or file I/O, reads no environment,
   installs no handler, writes no tunable (L1).
+
+The library surface above is implemented in Phase 4. Constructors take
+`Vec<AdoptedSocket>`; startup failures return `(Error, Vec<AdoptedSocket>)`
+so the caller retains cleanup authority. Service reload callbacks take
+the accepted `Config` and return `Result<Config>`; restart callbacks take
+owned socket duplicates and return `Result<()>` if exec did not happen.
+Both services offer `set_store_capacity` and `take_requests` before
+convergence for optional host integration. Drain the request receiver
+and answer through `Control`; without integration the library declines
+tunable writes and uses local socket ownership.
+
+`Runtime::next_event` is the program-driven receive operation.
+`Runtime::shutdown` returns `Ok(false)` while cleanup is pending; keep
+forwarding events until it returns `Ok(true)` or a cleanup error.

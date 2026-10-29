@@ -1,0 +1,44 @@
+$ cargo fmt --check
+
+exit=0
+
+$ cargo clippy --locked --all-targets --all-features --target x86_64-unknown-linux-musl -- -D warnings
+    Checking rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Building [======================>    ] 80/92: rs-l2tpd, rs_l2tpd(test)
+    Building [======================>    ] 81/92: rs_l2tpd(test), store-kerne…
+    Building [======================>    ] 81/92: service(test), srclink(test…
+    Building [=======================>   ] 82/92: service(test), srclink(test…
+    Building [=======================>   ] 83/92: service(test), srclink(test…
+    Building [=======================>   ] 84/92: service(test), rules(test),…
+    Building [=======================>   ] 85/92: service(test), rules(test),…
+    Building [========================>  ] 86/92: service(test), rules(test),…
+    Building [========================>  ] 87/92: service(test), rules(test),…
+    Building [========================>  ] 88/92: service(test), rules(test),…
+    Building [=========================> ] 89/92: rules(test), rs_l2tpd(test)…
+    Building [=========================> ] 90/92: rules(test), rs_l2tpd(test)
+    Building [=========================> ] 91/92: rules(test)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.14s
+
+exit=0
+
+$ cargo build --locked --no-default-features --target x86_64-unknown-linux-musl
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Building [=========================> ] 67/68: rs-l2tpd
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.87s
+
+exit=0
+
+$ cargo build --locked --no-default-features --features serde --target x86_64-unknown-linux-musl
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Building [=========================> ] 74/75: rs-l2tpd
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.11s
+
+exit=0
+
+$ RUSTDOCFLAGS='-D warnings' cargo doc --locked --all-features --no-deps --target x86_64-unknown-linux-musl
+ Documenting rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Building [=========================> ] 80/81: rs-l2tpd(doc)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.74s
+   Generated /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/doc/rs_l2tpd/index.html
+
+exit=0

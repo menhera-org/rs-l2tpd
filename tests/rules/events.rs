@@ -128,10 +128,7 @@ fn unrelated_address_events_never_connect_or_postpone_a_pending_peer() {
     for address in ["192.0.2.4", "2001:db8::1"] {
         r.handle(
             Source::Monitor,
-            Notice::AddrNew(AddrInfo {
-                index: wan,
-                addr: address.parse().unwrap(),
-            }),
+            Notice::AddrNew(AddrInfo::new(wan, address.parse().unwrap())),
         );
         assert_eq!(r.next_deadline(), due);
         assert!(ops(&mut r).is_empty());
@@ -196,20 +193,17 @@ fn unrelated_events_query_no_kernel_objects_even_with_many_entries() {
     for id in 1000..1100 {
         r.handle(
             Source::Monitor,
-            Notice::LinkNew(rs_l2tpd::kernel::LinkInfo {
-                index: id,
-                name: rs_l2tpd::kernel::L2tpIfName::new(format!("foreign{id}").as_bytes()).unwrap(),
-                up: true,
-                vrf: false,
-                master: None,
-            }),
+            Notice::LinkNew(rs_l2tpd::kernel::LinkInfo::new(
+                id,
+                rs_l2tpd::kernel::L2tpIfName::new(format!("foreign{id}").as_bytes()).unwrap(),
+                true,
+                false,
+                None,
+            )),
         );
         r.handle(
             Source::Monitor,
-            Notice::AddrNew(AddrInfo {
-                index: id,
-                addr: "192.0.2.9".parse().unwrap(),
-            }),
+            Notice::AddrNew(AddrInfo::new(id, "192.0.2.9".parse().unwrap())),
         );
     }
     assert!(ops(&mut r).is_empty());
@@ -239,10 +233,7 @@ fn event_traffic_does_not_move_the_absolute_poll_deadline() {
             .advance(std::time::Duration::from_millis(100));
         r.handle(
             Source::Monitor,
-            Notice::AddrNew(AddrInfo {
-                index: 999,
-                addr: "192.0.2.1".parse().unwrap(),
-            }),
+            Notice::AddrNew(AddrInfo::new(999, "192.0.2.1".parse().unwrap())),
         );
         assert_eq!(r.next_deadline(), Some(due));
     }

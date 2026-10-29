@@ -41,7 +41,7 @@ fn a_session_is_staged_then_published() {
         .unwrap();
     assert!(hw < rename, "the address precedes publication: {ops:?}");
     assert_eq!(
-        r.kernel().link(index).unwrap().name.to_string_lossy(),
+        r.kernel().link(index).unwrap().name().to_string_lossy(),
         "l2tp0"
     );
     assert!(r.ready());
@@ -61,7 +61,7 @@ fn a_taken_name_is_retried_and_the_session_kept() {
     r.kernel_mut().remove_link(foreign);
     run_for(&mut r, 1);
     assert_eq!(
-        r.kernel().link(index).unwrap().name.to_string_lossy(),
+        r.kernel().link(index).unwrap().name().to_string_lossy(),
         "l2tp0"
     );
 }
@@ -81,7 +81,7 @@ fn a_hardware_address_waits_for_the_device_to_go_down() {
         "interface_hwaddr = \"{addr}\"\n"
     )))));
     assert_ne!(r.kernel().hwaddr(index).unwrap().to_string(), addr);
-    assert!(r.kernel().link(index).unwrap().up, "never lowered");
+    assert!(r.kernel().link(index).unwrap().up(), "never lowered");
     r.kernel_mut().set_up(index, false);
     deliver(&mut r);
     assert_eq!(r.kernel().hwaddr(index).unwrap().to_string(), addr);
@@ -100,7 +100,7 @@ fn another_managers_rename_is_kept() {
     assert!(r.reconcile(config(&with_session(""))));
     assert_eq!(ops(&mut r), Vec::<String>::new());
     assert_eq!(
-        r.kernel().link(index).unwrap().name.to_string_lossy(),
+        r.kernel().link(index).unwrap().name().to_string_lossy(),
         "lan7"
     );
 }
@@ -123,8 +123,8 @@ fn sessions_swap_names() {
     ops(&mut r);
     assert!(r.reconcile(config(&two("y0", "x0"))));
     assert!(ops(&mut r).iter().any(|o| o.contains(" rsl2tp-r")));
-    assert_eq!(r.kernel().link(s).unwrap().name.to_string_lossy(), "y0");
-    assert_eq!(r.kernel().link(t).unwrap().name.to_string_lossy(), "x0");
+    assert_eq!(r.kernel().link(s).unwrap().name().to_string_lossy(), "y0");
+    assert_eq!(r.kernel().link(t).unwrap().name().to_string_lossy(), "x0");
 }
 
 /// A cookie change re-creates the session (S15, S17).
@@ -170,7 +170,7 @@ fn a_lost_identity_skips_changes() {
     assert!(r.reconcile(config(&with_session("").replace("l2tp0", "l2tp1"))));
     assert_eq!(ops(&mut r), Vec::<String>::new());
     assert_eq!(
-        r.kernel().link(index).unwrap().name.to_string_lossy(),
+        r.kernel().link(index).unwrap().name().to_string_lossy(),
         "l2tp0"
     );
 }
@@ -183,15 +183,14 @@ fn staged_loss_never_modifies_a_reused_index_and_name() {
         r.kernel_mut().add_link("l2tp0", false);
         r.reconcile(config(&with_session("")));
         let index = r.kernel().session_index(10, 100).unwrap();
-        let temp = r.kernel().link(index).unwrap().name;
+        let temp = r.kernel().link(index).unwrap().name();
         r.kernel_mut().lose_lifetime();
         r.kernel_mut().remove_link(index);
         r.kernel_mut()
             .add_link_at(index, &temp.to_string_lossy(), false);
         if ambiguous {
             let mut info = r.kernel_mut().session(10, 100).unwrap().unwrap();
-            info.tunnel_id = 99;
-            info.session_id = 999;
+            info = info.with_tunnel_id(99).with_session_id(999);
             let foreign = r.kernel_mut().foreign_session(info);
             r.kernel_mut().rename_link(foreign, "foreign");
         }
@@ -206,7 +205,7 @@ fn staged_loss_never_modifies_a_reused_index_and_name() {
                 .any(|o| o.starts_with("rename ") || o.starts_with("hwaddr ")),
             "{operations:?}"
         );
-        assert_eq!(r.kernel().link(index).unwrap().name, temp);
+        assert_eq!(r.kernel().link(index).unwrap().name(), temp);
         assert!(
             r.kernel_mut().session(10, 100).unwrap().is_some(),
             "absence not yet confirmed"
@@ -257,14 +256,14 @@ fn failed_staging_address_is_retried_before_publication() {
         r.kernel()
             .link(index)
             .unwrap()
-            .name
+            .name()
             .to_string_lossy()
             .starts_with("rsl2tp-t")
     );
     run_for(&mut r, 1);
     assert_eq!(r.kernel().session_index(10, 100), Some(index));
     assert_eq!(
-        r.kernel().link(index).unwrap().name.to_string_lossy(),
+        r.kernel().link(index).unwrap().name().to_string_lossy(),
         "l2tp0"
     );
 }
@@ -283,7 +282,7 @@ fn removing_a_hardware_address_restores_the_creation_address_without_lowering() 
     deliver(&mut r);
     r.reconcile(config(&with_session("")));
     assert_ne!(r.kernel().hwaddr(index), Some(original));
-    assert!(r.kernel().link(index).unwrap().up);
+    assert!(r.kernel().link(index).unwrap().up());
     r.kernel_mut().set_up(index, false);
     deliver(&mut r);
     assert_eq!(r.kernel().hwaddr(index), Some(original));
@@ -320,7 +319,7 @@ fn a_moved_session_is_forgotten_without_deleting_a_replacement() {
     assert!(!ops(&mut r).iter().any(|o| o.starts_with("delete ")));
     assert!(r.kernel_mut().session(10, 100).unwrap().is_some());
     assert_eq!(
-        r.kernel().link(index).unwrap().name.to_string_lossy(),
+        r.kernel().link(index).unwrap().name().to_string_lossy(),
         "l2tp0"
     );
 }
@@ -339,9 +338,9 @@ fn a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides()
     let address = "2001:db8::1".parse().unwrap();
     r.kernel_mut().add_addr(child, address);
     assert!(r.reconcile(config(&text)));
-    assert!(r.kernel().link(index).unwrap().up);
+    assert!(r.kernel().link(index).unwrap().up());
     assert_eq!(
-        r.kernel().link(index).unwrap().name.to_string_lossy(),
+        r.kernel().link(index).unwrap().name().to_string_lossy(),
         "l2tp0"
     );
     r.kernel_mut().set_up(index, false);
@@ -356,13 +355,13 @@ fn a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides()
             .replace("192.0.2.2", "192.0.2.3"),
     ));
     assert_eq!(r.kernel().hwaddr(index), Some(override_addr));
-    assert_eq!(r.kernel().link(child).unwrap().master, Some(index));
+    assert_eq!(r.kernel().link(child).unwrap().master(), Some(index));
     assert!(
         r.kernel_mut()
             .dump_addrs()
             .unwrap()
             .iter()
-            .any(|a| a.index == child && a.addr == address)
+            .any(|a| a.index() == child && a.addr() == address)
     );
     assert!(!ops(&mut r).iter().any(|op| op.starts_with("hwaddr ")));
 }
@@ -391,13 +390,15 @@ fn mismatched_stored_records_cannot_authorize_staged_recovery() {
     r.kernel_mut().add_link("l2tp0", false);
     r.reconcile(config(&with_session("")));
     let old = r.kernel().session_index(10, 100).unwrap();
-    let temp = r.kernel().link(old).unwrap().name;
+    let temp = r.kernel().link(old).unwrap().name();
     r.kernel_mut().lose_lifetime();
     r.kernel_mut().remove_link(old);
     r.kernel_mut()
         .add_link_at(old, &temp.to_string_lossy(), false);
     let mut info = r.kernel_mut().session(10, 100).unwrap().unwrap();
-    info.peer_session_id += 1;
+    info = info
+        .clone()
+        .with_peer_session_id(info.peer_session_id() + 1);
     let foreign = r.kernel_mut().foreign_session(info);
     r.kernel_mut().rename_link(foreign, "foreign");
     ops(&mut r);
@@ -406,13 +407,13 @@ fn mismatched_stored_records_cannot_authorize_staged_recovery() {
     )));
     run_for(&mut r, 3);
     assert!(ops(&mut r).is_empty());
-    assert_eq!(r.kernel().link(old).unwrap().name, temp);
+    assert_eq!(r.kernel().link(old).unwrap().name(), temp);
     assert_eq!(
         r.kernel_mut()
             .session(10, 100)
             .unwrap()
             .unwrap()
-            .peer_session_id,
+            .peer_session_id(),
         101
     );
 }

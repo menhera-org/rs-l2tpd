@@ -128,8 +128,8 @@ fn a_changed_peer_keeps_the_socket() {
     assert_eq!(
         ops(&mut r),
         [
-            format!("disconnect {}", socket.0),
-            format!("connect {} 192.0.2.3", socket.0)
+            format!("disconnect {}", socket.get()),
+            format!("connect {} 192.0.2.3", socket.get())
         ]
     );
     assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
@@ -146,7 +146,7 @@ fn a_changed_kernel_identity_recreates_after_the_deletion() {
     ops(&mut r);
     let changed = TUNNEL.replace("peer_tunnel_id = 20", "peer_tunnel_id = 21");
     assert!(!r.reconcile(config(&changed)), "waits for the kernel");
-    assert_eq!(ops(&mut r), [format!("close {}", old.0)]);
+    assert_eq!(ops(&mut r), [format!("close {}", old.get())]);
     super::run_for(&mut r, 1);
     let new = r.kernel().tunnel_socket(10).unwrap();
     assert_ne!(new, old);
@@ -194,7 +194,7 @@ fn tunable_request(
 fn tunable_success_waits_and_opens_fresh_sockets_for_all_waiters() {
     use std::time::Duration;
     let (mut r, _) = reconciler();
-    r.kernel_mut().bindv6only = true;
+    r.kernel_mut().set_bindv6only(true);
     let text = format!(
         "{TUNNEL}\n[tunnels.b]\ntunnel_id = 11\nip_version = 'V6'\nremote_addr = '2001:db8::2'\n"
     );
@@ -207,7 +207,7 @@ fn tunable_success_waits_and_opens_fresh_sockets_for_all_waiters() {
     r.tick();
     assert!(r.kernel_mut().tunnel(10).unwrap().is_none());
     assert!(r.take_requests().is_empty(), "coalesced");
-    r.kernel_mut().bindv6only = false;
+    r.kernel_mut().set_bindv6only(false);
     r.tunable_written(id, true);
     assert!(r.ready());
     for tid in [10, 11] {
@@ -225,7 +225,7 @@ fn tunable_success_waits_and_opens_fresh_sockets_for_all_waiters() {
 fn failed_expired_and_still_v6only_writes_use_the_fallback_once() {
     for outcome in [0, 1, 2] {
         let (mut r, _) = reconciler();
-        r.kernel_mut().bindv6only = true;
+        r.kernel_mut().set_bindv6only(true);
         let text = format!(
             "{TUNNEL}\n[tunnels.b]\ntunnel_id = 11\nip_version = 'V6'\nremote_addr = '2001:db8::2'\n"
         );
@@ -243,7 +243,7 @@ fn failed_expired_and_still_v6only_writes_use_the_fallback_once() {
         assert!(r.kernel().only_v6(v4).is_err(), "AF_INET fallback");
         let v6 = r.kernel().tunnel_socket(11).unwrap();
         assert!(r.kernel().only_v6(v6).unwrap());
-        r.kernel_mut().bindv6only = false;
+        r.kernel_mut().set_bindv6only(false);
         r.tunable_written(id, true);
         super::run_for(&mut r, 2);
         assert_eq!(r.kernel().tunnel_socket(10), Some(v4));
@@ -260,7 +260,7 @@ fn failed_expired_and_still_v6only_writes_use_the_fallback_once() {
 #[test]
 fn shutdown_cancels_the_tunable_handshake() {
     let (mut r, _) = reconciler();
-    r.kernel_mut().bindv6only = true;
+    r.kernel_mut().set_bindv6only(true);
     r.reconcile(config(TUNNEL));
     let (id, _) = tunable_request(&mut r);
     assert!(r.shutdown());
@@ -330,11 +330,12 @@ fn socket_family_fallback_never_recreates_existing_tunnels() {
 #[test]
 fn failed_readback_never_registers_a_socket_as_dual_stack() {
     let (mut r, _) = reconciler();
-    r.kernel_mut().only_v6_error = Some(nix::errno::Errno::EIO);
+    r.kernel_mut()
+        .set_only_v6_error(Some(nix::errno::Errno::EIO));
     assert!(!r.reconcile(config(TUNNEL)));
     assert!(r.kernel_mut().tunnel(10).unwrap().is_none());
     assert_eq!(r.kernel().open_sockets(), 0);
-    r.kernel_mut().only_v6_error = None;
+    r.kernel_mut().set_only_v6_error(None);
     super::run_for(&mut r, 1);
     assert!(r.ready());
 }
@@ -400,10 +401,10 @@ fn cleanup_cannot_delete_a_foreign_replacement_tunnel() {
     ops(&mut r);
     assert!(r.shutdown());
     r.kernel_mut().tick();
-    assert_eq!(ops(&mut r), [format!("close {}", old.0)]);
+    assert_eq!(ops(&mut r), [format!("close {}", old.get())]);
     assert_eq!(r.kernel().tunnel_socket(10), Some(replacement));
     assert_eq!(
-        r.kernel_mut().tunnel(10).unwrap().unwrap().peer_tunnel_id,
+        r.kernel_mut().tunnel(10).unwrap().unwrap().peer_tunnel_id(),
         99
     );
 }
@@ -412,7 +413,8 @@ fn cleanup_cannot_delete_a_foreign_replacement_tunnel() {
 #[test]
 fn delayed_tunnel_cleanup_withholds_replacement_until_release() {
     let (mut r, _) = reconciler();
-    r.kernel_mut().tunnel_delete_delay = std::time::Duration::from_secs(2);
+    r.kernel_mut()
+        .set_tunnel_delete_delay(std::time::Duration::from_secs(2));
     r.reconcile(config(TUNNEL));
     let old = r.kernel().tunnel_socket(10).unwrap();
     assert!(!r.reconcile(config(

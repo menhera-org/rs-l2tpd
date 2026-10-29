@@ -3,6 +3,9 @@
 Phase 2–3 results and the per-K classification are in
 [the verification record](../../audit/PHASE23_VERIFICATION_2026-10-29.md)
 and [kernel evidence map](../../docs/kernel-evidence.md).
+[Phase 4 verification](../../audit/PHASE4_VERIFICATION_2026-10-29.md)
+adds a live service/runtime case to `kernel-linux` and re-runs the host
+suites. It leaves the Phase 6 required kernel matrix as a separate gate.
 
 Build every test executable, including the production adapter's private live
 cases in the library test executable:

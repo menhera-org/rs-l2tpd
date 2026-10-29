@@ -76,11 +76,30 @@ pub enum ResolverSpec {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Lookup {
     /// Identifies the results; a new one per incarnation (V7).
-    pub id: u64,
+    pub(crate) id: u64,
     /// The host name.
-    pub host: String,
+    pub(crate) host: String,
     /// The resolver.
-    pub resolver: ResolverSpec,
+    pub(crate) resolver: ResolverSpec,
+}
+
+impl Lookup {
+    /// A lookup with the caller's incarnation and resolver specification.
+    pub fn new(id: u64, host: String, resolver: ResolverSpec) -> Self {
+        Self { id, host, resolver }
+    }
+    /// The lookup incarnation.
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+    /// The host name.
+    pub fn host(&self) -> &str {
+        &self.host
+    }
+    /// The selected resolver.
+    pub fn resolver(&self) -> &ResolverSpec {
+        &self.resolver
+    }
 }
 
 /// The lookups, run in the background (A9, V15).

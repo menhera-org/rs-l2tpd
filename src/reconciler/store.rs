@@ -25,6 +25,7 @@ pub(super) struct Retirement {
     withdrawn: bool,
     next: Instant,
     reported: bool,
+    closed: Option<Instant>,
 }
 
 impl Store {
@@ -48,6 +49,13 @@ impl Store {
 }
 
 impl<K: Kernel> Reconciler<K> {
+    pub(crate) fn take_inherited(&mut self) -> Vec<(String, OwnedFd)> {
+        std::mem::take(&mut self.store.inherited)
+            .into_iter()
+            .flat_map(|(name, fds)| fds.into_iter().map(move |fd| (name.clone(), fd)))
+            .collect()
+    }
+
     /// Announces descriptor-store capacity. Zero (the default) means no
     /// store; sockets remain locally owned. Set before reconciliation.
     pub fn set_store_capacity(&mut self, capacity: usize) {
@@ -118,6 +126,7 @@ impl<K: Kernel> Reconciler<K> {
                 withdrawn: self.store.capacity == 0,
                 next: now,
                 reported: false,
+                closed: None,
             });
         r.sockets.extend(sockets);
         r.fds.extend(fds);
@@ -140,6 +149,7 @@ impl<K: Kernel> Reconciler<K> {
                     self.k.close(socket);
                 }
                 r.fds.clear();
+                r.closed.get_or_insert(now);
                 self.retire_sockets();
                 return;
             }
@@ -233,6 +243,7 @@ impl<K: Kernel> Reconciler<K> {
                     self.k.close(socket);
                 }
                 r.fds.clear();
+                r.closed.get_or_insert(now);
                 r.next = now + RETRY;
             }
             if r.withdrawn {
@@ -240,6 +251,7 @@ impl<K: Kernel> Reconciler<K> {
                     self.k.close(socket);
                 }
                 r.fds.clear();
+                r.closed.get_or_insert(now);
             }
             let absent = r.sockets.is_empty()
                 && r.fds.is_empty()
@@ -252,7 +264,9 @@ impl<K: Kernel> Reconciler<K> {
                 continue;
             }
             if stopping {
-                if !r.reported {
+                if !r.reported
+                    && (!r.withdrawn || r.closed.is_none_or(|closed| now >= closed + DELETION_WAIT))
+                {
                     log::error!("descriptor store cleanup incomplete for {name}");
                     r.reported = true;
                 }

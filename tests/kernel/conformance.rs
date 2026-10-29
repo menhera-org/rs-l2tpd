@@ -56,14 +56,7 @@ fn tunnel(k: &mut dyn Kernel, id: u32) -> rs_l2tpd::kernel::SocketId {
 }
 
 fn create(tunnel_id: u32, session_id: u32, ifname: &str) -> SessionCreate {
-    SessionCreate {
-        tunnel_id,
-        session_id,
-        peer_session_id: session_id,
-        cookie: None,
-        peer_cookie: None,
-        ifname: name(ifname),
-    }
+    SessionCreate::new(tunnel_id, session_id, session_id, None, None, name(ifname))
 }
 
 /// Polls `check` after letting the kernel work, a bounded number of times.
@@ -93,7 +86,7 @@ pub fn tunnel_identifiers_are_unique(f: &mut dyn Fixture) {
         nix::libc::EEXIST
     );
     assert_eq!(
-        f.k().tunnel(9101).unwrap().map(|t| t.peer_tunnel_id),
+        f.k().tunnel(9101).unwrap().map(|t| t.peer_tunnel_id()),
         Some(9101)
     );
     f.k().close(other);
@@ -142,15 +135,15 @@ pub fn the_stored_name_is_the_creation_name(f: &mut dyn Fixture) {
         .k()
         .create_session(&create(9131, 91311, "conf-stage"))
         .unwrap();
-    f.rename_link(registration.index, "conf-renamed");
+    f.rename_link(registration.index(), "conf-renamed");
     let info = f.k().session(9131, 91311).unwrap().unwrap();
-    assert_eq!(info.ifname, Some(name("conf-stage")));
+    assert_eq!(info.ifname(), Some(name("conf-stage")));
     assert_eq!(
         f.k()
             .link_by_name(&name("conf-renamed"))
             .unwrap()
-            .map(|l| l.index),
-        Some(registration.index)
+            .map(|l| l.index()),
+        Some(registration.index())
     );
     f.k().delete_session_by_name(&name("conf-stage")).unwrap();
     assert!(eventually(f, |k| k.session(9131, 91311).unwrap().is_none()));
@@ -191,7 +184,7 @@ pub fn a_registration_is_proved_until_removal(f: &mut dyn Fixture) {
         .create_session(&create(9161, 91611, "conf-proof"))
         .unwrap();
     assert_eq!(f.k().prove(&registration), Proof::Proved);
-    f.rename_link(registration.index, "conf-proof2");
+    f.rename_link(registration.index(), "conf-proof2");
     assert_eq!(f.k().prove(&registration), Proof::Proved);
     f.k().delete_session(9161, 91611).unwrap();
     assert!(eventually(f, |k| k.prove(&registration) == Proof::Removed));
@@ -228,10 +221,7 @@ pub fn connect_selects_the_source_of_the_device(f: &mut dyn Fixture) {
     let socket = f.k().create_socket(Family::V6, 9181, 9181).unwrap();
     f.k().register_tunnel(socket, 9181, 9181).unwrap();
     f.k().bind_index(socket, device).unwrap();
-    let v4 = Peer {
-        addr: "192.0.2.2".parse().unwrap(),
-        zone: None,
-    };
+    let v4 = Peer::new("192.0.2.2".parse().unwrap(), None);
     let source = f.k().connect(socket, &v4).unwrap();
     assert_eq!(
         source.to_canonical(),
@@ -241,10 +231,7 @@ pub fn connect_selects_the_source_of_the_device(f: &mut dyn Fixture) {
         source.is_ipv6(),
         "an AF_INET6 socket reports the mapped form"
     );
-    let v6 = Peer {
-        addr: "2001:db8:91::2".parse().unwrap(),
-        zone: None,
-    };
+    let v6 = Peer::new("2001:db8:91::2".parse().unwrap(), None);
     assert_eq!(errno(f.k().connect(socket, &v6)), nix::libc::EAFNOSUPPORT);
     f.k().disconnect(socket).unwrap();
     f.k().bind_index(socket, device).unwrap();
@@ -262,10 +249,7 @@ pub fn no_ipv6_source_is_eaddrnotavail(f: &mut dyn Fixture) {
     f.set_up(vrf, true);
     let socket = f.k().create_socket(Family::V6, 9191, 9191).unwrap();
     f.k().bind_index(socket, vrf).unwrap();
-    let peer = Peer {
-        addr: "2001:db8:92::2".parse().unwrap(),
-        zone: None,
-    };
+    let peer = Peer::new("2001:db8:92::2".parse().unwrap(), None);
     assert_eq!(
         errno(f.k().connect(socket, &peer)),
         nix::libc::EADDRNOTAVAIL
@@ -287,10 +271,7 @@ pub fn a_link_local_zone_must_match_the_binding(f: &mut dyn Fixture) {
     f.add_addr(outsider, "fe80::92:1".parse().unwrap());
     let socket = f.k().create_socket(Family::V6, 9201, 9201).unwrap();
     f.k().bind_index(socket, vrf).unwrap();
-    let peer = |zone: &str| Peer {
-        addr: "fe80::91:2".parse().unwrap(),
-        zone: Some(name(zone)),
-    };
+    let peer = |zone: &str| Peer::new("fe80::91:2".parse().unwrap(), Some(name(zone)));
     assert_eq!(
         errno(f.k().connect(socket, &peer("conf-llo"))),
         nix::libc::EINVAL
@@ -311,18 +292,18 @@ pub fn a_hardware_address_needs_the_device_down(f: &mut dyn Fixture) {
         .create_session(&create(9211, 92111, "conf-mac"))
         .unwrap();
     let addr = HwAddr::new([0x02, 0, 0x5e, 0, 0x53, 0x91]).unwrap();
-    f.k().set_hwaddr(registration.index, addr).unwrap();
-    assert_eq!(f.k().ether_addr(registration.index).unwrap(), Some(addr));
-    f.set_up(registration.index, true);
+    f.k().set_hwaddr(registration.index(), addr).unwrap();
+    assert_eq!(f.k().ether_addr(registration.index()).unwrap(), Some(addr));
+    f.set_up(registration.index(), true);
     let other = HwAddr::new([0x02, 0, 0x5e, 0, 0x53, 0x92]).unwrap();
     assert_eq!(
-        errno(f.k().set_hwaddr(registration.index, other)),
+        errno(f.k().set_hwaddr(registration.index(), other)),
         nix::libc::EBUSY
     );
     // The same address is no change (net/core/dev.c, dev_set_mac_address).
-    f.k().set_hwaddr(registration.index, addr).unwrap();
+    f.k().set_hwaddr(registration.index(), addr).unwrap();
     f.k()
-        .rename(registration.index, &name("conf-mac-up"))
+        .rename(registration.index(), &name("conf-mac-up"))
         .unwrap();
     f.k().close(socket);
 }
@@ -334,13 +315,13 @@ pub fn the_monitor_reports_links_and_addresses(f: &mut dyn Fixture) {
     let index = f.add_link("conf-mon", false);
     let seen = f.wait_notice(
         &mut *monitor,
-        &mut |n| matches!(n, Notice::LinkNew(l) if l.index == index),
+        &mut |n| matches!(n, Notice::LinkNew(l) if l.index() == index),
     );
     assert!(seen.is_some());
     f.add_addr(index, "192.0.2.91".parse().unwrap());
     let seen = f.wait_notice(
         &mut *monitor,
-        &mut |n| matches!(n, Notice::AddrNew(a) if a.index == index),
+        &mut |n| matches!(n, Notice::AddrNew(a) if a.index() == index),
     );
     assert!(seen.is_some());
 }
@@ -374,11 +355,11 @@ pub fn disconnected_sessions_count_frame_drops(f: &mut dyn Fixture) {
         .k()
         .create_session(&create(9231, 92311, "conf-drop"))
         .unwrap();
-    f.add_addr(registration.index, "192.0.2.1".parse().unwrap());
-    f.set_up(registration.index, true);
-    let before = f.tx_drops(registration.index);
-    f.send_frame(registration.index);
-    assert!(f.tx_drops(registration.index) > before);
+    f.add_addr(registration.index(), "192.0.2.1".parse().unwrap());
+    f.set_up(registration.index(), true);
+    let before = f.tx_drops(registration.index());
+    f.send_frame(registration.index());
+    assert!(f.tx_drops(registration.index()) > before);
     f.k().close(socket);
 }
 

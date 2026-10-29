@@ -174,17 +174,17 @@ fn adopted_matching_sessions_keep_manager_names_and_are_never_reproved() {
     r.kernel_mut().register_tunnel(socket, 10, 20).unwrap();
     let registration = r
         .kernel_mut()
-        .create_session(&rs_l2tpd::kernel::SessionCreate {
-            tunnel_id: 10,
-            session_id: 100,
-            peer_session_id: 100,
-            cookie: Some(rs_l2tpd::kernel::Cookie::new(&[0, 0x11, 0x22, 0x33]).unwrap()),
-            peer_cookie: Some(rs_l2tpd::kernel::Cookie::new(&[0, 0x11, 0x22, 0x33]).unwrap()),
-            ifname: rs_l2tpd::kernel::L2tpIfName::new(b"rsl2tp-t112233").unwrap(),
-        })
+        .create_session(&rs_l2tpd::kernel::SessionCreate::new(
+            10,
+            100,
+            100,
+            Some(rs_l2tpd::kernel::Cookie::new(&[0, 0x11, 0x22, 0x33]).unwrap()),
+            Some(rs_l2tpd::kernel::Cookie::new(&[0, 0x11, 0x22, 0x33]).unwrap()),
+            rs_l2tpd::kernel::L2tpIfName::new(b"rsl2tp-t112233").unwrap(),
+        ))
         .unwrap();
     r.kernel_mut()
-        .rename_link(registration.index, "manager-name");
+        .rename_link(registration.index(), "manager-name");
     let fd = r.kernel().clone_fd(socket).unwrap();
     r.kernel_mut().close(socket);
     r.inherit("t10".into(), fd);
@@ -194,12 +194,15 @@ fn adopted_matching_sessions_keep_manager_names_and_are_never_reproved() {
     );
     assert!(r.reconcile(config(&text)));
     assert!(r.ready());
-    assert_eq!(r.kernel().session_index(10, 100), Some(registration.index));
+    assert_eq!(
+        r.kernel().session_index(10, 100),
+        Some(registration.index())
+    );
     assert_eq!(
         r.kernel()
-            .link(registration.index)
+            .link(registration.index())
             .unwrap()
-            .name
+            .name()
             .to_string_lossy(),
         "manager-name"
     );
@@ -218,14 +221,14 @@ fn unmatched_adopted_sessions_are_deleted_before_identifier_reuse() {
     r.kernel_mut().register_tunnel(socket, 10, 20).unwrap();
     let old = r
         .kernel_mut()
-        .foreign_session(rs_l2tpd::kernel::SessionInfo {
-            tunnel_id: 10,
-            session_id: 100,
-            peer_session_id: 0,
-            cookie: rs_l2tpd::kernel::ReportedCookie::new(&[1, 2, 3, 4, 5]).unwrap(),
-            peer_cookie: None.into(),
-            ifname: Some(rs_l2tpd::kernel::L2tpIfName::new(b"unmatched").unwrap()),
-        });
+        .foreign_session(rs_l2tpd::kernel::SessionInfo::new(
+            10,
+            100,
+            0,
+            rs_l2tpd::kernel::ReportedCookie::new(&[1, 2, 3, 4, 5]).unwrap(),
+            None.into(),
+            Some(rs_l2tpd::kernel::L2tpIfName::new(b"unmatched").unwrap()),
+        ));
     let fd = r.kernel().clone_fd(socket).unwrap();
     r.kernel_mut().close(socket);
     r.inherit("t10".into(), fd);
