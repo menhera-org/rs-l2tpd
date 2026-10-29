@@ -471,10 +471,12 @@ impl IphostResolve {
             ResolverSpec::Ipv6 {
                 interface,
                 client_id,
-            } => iphost::Resolver::Ipv6(iphost::Ipv6ResolverConfig::new(
-                interface.clone(),
-                client(client_id),
-            )?),
+            } => iphost::Resolver::Ipv6(
+                // V14: per family, DHCPv6 first, RA only after DHCPv6 fails
+                // (iphost 0.4.1; off by default there).
+                iphost::Ipv6ResolverConfig::new(interface.clone(), client(client_id))?
+                    .with_failure_fallback(true),
+            ),
         };
         self.shared.push((spec.clone(), resolver.clone()));
         Ok(resolver)

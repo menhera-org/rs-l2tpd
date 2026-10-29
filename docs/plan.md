@@ -213,9 +213,11 @@ Their availability does not close the live-test exit criteria.
 
 **Status: code exists; acceptance is open.** In particular the corrected
 S23 staging rule, L12 handshake, P14/L13 retirement path and V15 worker
-budgets must be reconciled with the implementation. V10 protocol updates
-and V14's optional failure fallback require the
-[iphost upstream work](upstream-iphost.md). Do not call this phase complete
+budgets must be reconciled with the implementation. V10's incremental
+RDNSS updates and V14's opt-in failure fallback shipped in `iphost`
+0.4.1 (pinned, the fallback enabled); their adapter cases in
+[testing](testing.md#contract-correction-acceptance-cases) are still to
+write. Do not call this phase complete
 from historical rule citations or from these documentation changes.
 
 Implements [model](spec/model.md), [tunnels](spec/tunnels.md),

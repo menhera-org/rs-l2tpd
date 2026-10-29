@@ -382,8 +382,9 @@ the stored descriptors' names (P14) and the path it was started with
   clock itself, so the rules tests advance time deterministically.
 - **`iphost` kept for every resolver, used through `IpHostResolver::resolve`.**
   It is a general-purpose library: protocol corrections go upstream;
-  daemon policy stays here. Required fixes and additive capabilities are
-  specified in [the upstream instruction](upstream-iphost.md).
+  daemon policy stays here. The V10 fix and the V14 fallback option were
+  specified in [the upstream instruction](upstream-iphost.md) and are in
+  0.4.1.
   The daemon schedules refreshes itself and admits calls through V15's
   separate process-wide budgets of eight system and eight configured
   lookups. A permit stays with a running call until return, including

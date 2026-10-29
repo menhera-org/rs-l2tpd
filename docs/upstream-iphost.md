@@ -1,5 +1,12 @@
 # Upstream iphost work: protocol fixes and optional failure fallback
 
+**Done:** `iphost` 0.4.1, published 2026-10-29 and pinned by this
+repository, carries both items (`74c6338` the RDNSS and deadline fixes,
+`34b6e2c` `Ipv6ResolverConfig::with_failure_fallback`). The daemon
+enables the fallback; the adapter cases of
+[testing](testing.md#contract-correction-acceptance-cases) remain its
+own work. The text below is the instruction as given.
+
 This is an implementation instruction for the general-purpose `iphost`
 crate, based on its published 0.4.0 behavior and the source inspected on
 2026-10-29. Recheck the current upstream tree before editing: a correction

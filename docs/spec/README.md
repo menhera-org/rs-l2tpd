@@ -73,8 +73,8 @@ that the current code passes it:
 | L12, T26, P8, P25 | Finish the bounded tunable handshake before registration; test success, failure, timeout, late reply, concurrent creations and a racing sysctl writer. |
 | P14, P26, L13 | Retain exact inherited store names; retry uncertain adoption and withdraw definitively rejected descriptors before reuse. Test real store references, delayed removal and shutdown failure. |
 | V3–V4, V15, A9, G23 | Separate bounded worker budgets from unbounded libc execution; test stalled calls across reloads/service drops, queue coalescing and configured-DNS independence. |
-| V10 | Apply bounded per-address RDNSS updates rather than replacement snapshots; upstream protocol fix required. |
-| V14 | Enable general-purpose per-family DHCPv6-to-RA failure fallback with truthful bounds; upstream additive capability required. |
+| V10 | Apply bounded per-address RDNSS updates rather than replacement snapshots; shipped in `iphost` 0.4.1 (pinned), the daemon's adapter cases remain. |
+| V14 | Enable general-purpose per-family DHCPv6-to-RA failure fallback with truthful bounds; shipped in `iphost` 0.4.1 and turned on by the daemon, its adapter cases remain. |
 
 [Upstream instructions](../upstream-iphost.md) distinguish `iphost`'s own
 bugs from optional features and daemon-only work.

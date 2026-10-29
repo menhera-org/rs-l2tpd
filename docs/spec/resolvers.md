@@ -7,9 +7,10 @@ system resolver by default, or through a resolver the configuration names,
 given by address or by a discovery method, with an optional bind interface.
 The mechanism is implemented in the `iphost` crate (version 0.4.0 adds the
 configured resolvers and the unified `ipv6` method); this page states the
-behaviour the daemon requires of it. The V10 protocol correction and V14
-optional fallback still require [upstream work](../upstream-iphost.md);
-version 0.4.0 does not satisfy those clauses.
+behaviour the daemon requires of it. The V10 protocol correction and the
+V14 opt-in fallback are in version 0.4.1 (2026-10-29), produced by
+[the upstream instruction](../upstream-iphost.md); 0.4.0 replaced the
+RDNSS list on every advertisement and had no fallback.
 
 ## Model
 
@@ -292,11 +293,10 @@ DHCPv6 again; a fallback does not delete either discovery source's list.
 Thus stale DHCPv6 information cannot indefinitely hide working RA DNS.
 The total bound is V4's 63 seconds, not 33 seconds per unified lookup.
 
-Enable this behavior explicitly through the general-purpose fallback
-option requested in [the upstream instruction](../upstream-iphost.md).
-The existing `iphost` selection-only API remains available to other
-consumers; the daemon must not claim this behavior until the upstream
-option and its bounds ship. Discovery lifetimes follow V10 and V12.
+The daemon enables this explicitly with
+`Ipv6ResolverConfig::with_failure_fallback(true)` (`iphost` 0.4.1); the
+library's default stays selection-only for other consumers. Discovery
+lifetimes follow V10 and V12.
 
 ## Resources
 
