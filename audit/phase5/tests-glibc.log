@@ -1,0 +1,66 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.78s
+     Running unittests src/bin/rs-l2tpd/main.rs (target/x86_64-unknown-linux-gnu/debug/deps/rs_l2tpd-7b65163872b78287)
+
+running 21 tests
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ignored, run in a user systemd service with the template address-family restrictions
+test caps::tests::effective_set_without_proc ... ok
+test args::tests::modes_and_errors ... ok
+test files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths ... ignored, root in an isolated container, drops child uid
+test files::filesystem_tests::permission_child ... ok
+test pidfile::permission_tests::precreated_permissions_links_and_owner ... ignored, root in an isolated container, drops child uid
+test pidfile::permission_tests::precreated_child ... ok
+test check::tests::fixed_order_corrected_values_and_omitted_defaults ... ok
+test fdstore::tests::barrier_timeout_is_a_failure ... ok
+test setup::tests::parses_required_unit_keys_and_install_paths ... ok
+test fdstore::tests::rights_and_ordered_processing_barrier ... ok
+test files::filesystem_tests::followed_links_and_absence_on_reload ... ok
+test files::tests::failed_documents_are_omitted_and_diagnostics_redact_input ... ok
+test tunable::tests::writes_only_when_needed ... ok
+test signals::tests::pending_requests_coalesce_and_shutdown_bypasses_a_full_fake_queue ... ok
+test files::tests::discovery_merging_and_reload_refusal ... ok
+test restart::tests::incompatible_probe_never_executes_or_changes_descriptors ... ok
+test restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table ... ok
+test pidfile::tests::symlink_refusal_and_directory_permissions_preserved ... ok
+test pidfile::tests::fresh_inode_and_conditional_removal ... ok
+test setup::tests::atomic_idempotent_and_preserves_edits_and_configuration ... ok
+
+test result: ok. 18 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running tests/process.rs (target/x86_64-unknown-linux-gnu/debug/deps/process-84b288a32bd0623f)
+
+running 22 tests
+test binary_tunable_handshake_and_opt_out ... ignored, isolated privileged container with namespace-local writable network sysctls
+test crash_store_adoption_and_ordered_withdrawal ... ignored, isolated privileged container
+test crash_without_store_closes_tunnel ... ignored, isolated privileged container
+test daemon_readiness_pid_inode_and_reexec ... ignored, isolated privileged container
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ignored, isolated privileged container
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ignored, isolated privileged container
+test foreground_reload_and_clean_shutdown_without_network ... ignored, isolated privileged container
+test incompatible_replacement_keeps_running_interfaces ... ignored, isolated privileged container
+test installer_enables_once_and_never_restarts ... ignored, root in disposable container, records systemctl without contacting a manager
+test handover_launcher ... ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ignored, isolated privileged container, drops child uid
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ignored, isolated privileged container; exercises the ten-second conflict budget
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ignored, isolated privileged container
+test rejected_store_name_is_withdrawn_before_replacement ... ignored, isolated privileged container
+test stored_descriptors_survive_double_fork ... ignored, isolated privileged container
+test unannounced_descriptors_close_before_service_start ... ignored, isolated privileged container
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ignored, isolated privileged container
+test invalid_reexec_state_fails_without_forking ... ok
+test startup_changes_directory_before_loading_and_logs_problems ... ok
+test malformed_and_closed_announcements_are_errors_without_panics ... ok
+test check_cli_and_no_process_side_effects ... ok
+binary: done
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+test setup_prefix_preserves_configuration ... ok
+
+test result: ok. 6 passed; 0 failed; 16 ignored; 0 measured; 0 filtered out; finished in 1.14s

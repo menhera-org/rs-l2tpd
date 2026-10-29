@@ -152,6 +152,10 @@ impl<K: Kernel> Reconciler<K> {
         &self.accepted
     }
 
+    pub(crate) fn applied(&self) -> bool {
+        !self.incomplete
+    }
+
     /// Duplicates the owned tunnel sockets for an in-process restart.
     /// A partial failure drops every duplicate already obtained.
     pub fn restart_sockets(&self) -> std::io::Result<Vec<(String, OwnedFd)>> {

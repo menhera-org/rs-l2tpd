@@ -1,0 +1,33 @@
+[Unit]
+Description=rs-l2tpd daemon
+Before=network-online.target
+
+[Service]
+Type=forking
+PIDFile=/run/rs-l2tpd.pid
+ExecStart=/usr/local/bin/rs-l2tpd
+ExecReload=/bin/kill -HUP $MAINPID
+TimeoutStartSec=infinity
+Restart=on-failure
+RestartSec=3
+
+# Hardening: the daemon only needs netlink and IP sockets, and only
+# writes its PID file.
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+RequiredBy=network-online.target

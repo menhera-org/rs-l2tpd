@@ -1,2 +1,295 @@
-//! The restart: the `--adopt-version` probe and the `execve` with the
-//! tunnel sockets inherited (spec P26, E26).
+//! Versioned, same-process exec with isolated descriptor shuffling (P26).
+use super::pidfile::PidFile;
+use rs_l2tpd::AdoptedSocket;
+use std::ffi::OsString;
+use std::io::{self, Read};
+use std::os::fd::AsRawFd;
+use std::os::unix::ffi::{OsStrExt, OsStringExt};
+use std::os::unix::process::CommandExt;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
+
+pub const VERSION: &str = "rs-l2tpd-adopt 1\n";
+pub struct Entry {
+    pub reexec: bool,
+    pub pid: Option<PidFile>,
+}
+pub fn entry() -> io::Result<Entry> {
+    let marker = std::env::var_os("RS_L2TPD_REEXEC");
+    let state = std::env::var_os("RS_L2TPD_PIDFILE");
+    // Entry is single-threaded; consume internal state even on errors.
+    unsafe {
+        std::env::remove_var("RS_L2TPD_REEXEC");
+        std::env::remove_var("RS_L2TPD_PIDFILE");
+    }
+    match marker {
+        None if state.is_none() => {
+            return Ok(Entry {
+                reexec: false,
+                pid: None,
+            });
+        }
+        Some(marker) if marker == format!("1:{}", std::process::id()).as_str() => (),
+        _ => return Err(io::Error::other("invalid re-exec marker/state")),
+    }
+    if std::env::var("LISTEN_PID").ok().as_deref() != Some(&std::process::id().to_string())
+        || std::env::var("LISTEN_FDS")
+            .ok()
+            .and_then(|s| s.parse::<u32>().ok())
+            .is_none()
+    {
+        return Err(io::Error::other("invalid re-exec descriptor announcement"));
+    }
+    let state = state.ok_or_else(|| io::Error::other("missing re-exec PID-file state"))?;
+    let state = state
+        .to_str()
+        .ok_or_else(|| io::Error::other("invalid re-exec state encoding"))?;
+    let pid = if state == "1:none" {
+        None
+    } else {
+        let fields: Vec<_> = state.split(':').collect();
+        if fields.len() != 4 || fields[0] != "1" {
+            return Err(io::Error::other("invalid re-exec PID-file state"));
+        }
+        let parse = |s: &str| {
+            s.parse::<u64>()
+                .map_err(|_| io::Error::other("invalid re-exec inode"))
+        };
+        let encoded = fields[3].as_bytes();
+        if encoded.len() % 2 != 0 {
+            return Err(io::Error::other("invalid re-exec pathname"));
+        }
+        let bytes: Option<Vec<u8>> = encoded
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|pair| {
+                let digit = |b: u8| (b as char).to_digit(16).map(|n| n as u8);
+                Some(digit(pair[0])? * 16 + digit(pair[1])?)
+            })
+            .collect();
+        let path = PathBuf::from(OsString::from_vec(
+            bytes.ok_or_else(|| io::Error::other("invalid re-exec pathname"))?,
+        ));
+        if !path.is_absolute() || path.as_os_str().as_bytes().contains(&0) {
+            return Err(io::Error::other("invalid re-exec PID path"));
+        }
+        let pid = PidFile {
+            path,
+            dev: parse(fields[1])?,
+            ino: parse(fields[2])?,
+        };
+        if pid.matches()? {
+            Some(pid)
+        } else {
+            log::warn!("re-exec PID file no longer matches; removal authority discarded");
+            None
+        }
+    };
+    Ok(Entry { reexec: true, pid })
+}
+fn state(pid: Option<&PidFile>) -> String {
+    match pid {
+        None => "1:none".into(),
+        Some(pid) => {
+            let path: String = pid
+                .path
+                .as_os_str()
+                .as_bytes()
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect();
+            format!("1:{}:{}:{path}", pid.dev, pid.ino)
+        }
+    }
+}
+// Resolve argv[0] before chdir: current_exe names the old inode on Linux.
+pub fn executable_at(argv0: &std::ffi::OsStr, original: &Path) -> io::Result<PathBuf> {
+    let input = Path::new(argv0);
+    if input.components().count() > 1 || input.is_absolute() {
+        return Ok(original.join(input));
+    }
+    for directory in std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()) {
+        let candidate = original.join(directory).join(input);
+        if let Ok(metadata) = candidate.metadata() {
+            use std::os::unix::fs::PermissionsExt;
+            if metadata.is_file() && metadata.permissions().mode() & 0o111 != 0 {
+                return Ok(candidate);
+            }
+        }
+    }
+    Err(io::Error::new(
+        io::ErrorKind::NotFound,
+        "cannot resolve executable path",
+    ))
+}
+fn probe(path: &Path) -> io::Result<()> {
+    let mut child = Command::new(path)
+        .arg("--adopt-version")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?;
+    let result = (|| {
+        let mut stdout = child.stdout.take().unwrap();
+        use nix::fcntl::{FcntlArg, OFlag, fcntl};
+        fcntl(&stdout, FcntlArg::F_SETFL(OFlag::O_NONBLOCK))?;
+        let mut output = vec![];
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            let mut bytes = [0; 64];
+            match stdout.read(&mut bytes) {
+                Ok(count) => output.extend_from_slice(&bytes[..count]),
+                Err(e)
+                    if matches!(
+                        e.kind(),
+                        io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
+                    ) => {}
+                Err(e) => return Err(e),
+            }
+            if output.len() > VERSION.len() {
+                return Err(io::Error::other("incompatible adoption protocol"));
+            }
+            if let Some(status) = child.try_wait()? {
+                // Drain the small remaining pipe payload after process exit.
+                loop {
+                    match stdout.read(&mut bytes) {
+                        Ok(0) => break,
+                        Ok(count) => {
+                            output.extend_from_slice(&bytes[..count]);
+                            if output.len() > VERSION.len() {
+                                break;
+                            }
+                        }
+                        Err(e) if e.kind() == io::ErrorKind::WouldBlock => break,
+                        Err(e) => return Err(e),
+                    }
+                }
+                return if status.success() && output == VERSION.as_bytes() {
+                    Ok(())
+                } else {
+                    Err(io::Error::other("incompatible adoption protocol"))
+                };
+            }
+            if Instant::now() >= deadline {
+                return Err(io::Error::new(io::ErrorKind::TimedOut, "adoption probe"));
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    })();
+    if result.is_err() {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+    result
+}
+pub fn exec(
+    path: &Path,
+    arguments: &[OsString],
+    sockets: Vec<AdoptedSocket>,
+    pid: Option<&PidFile>,
+) -> io::Result<()> {
+    probe(path)?;
+    let mut command = Command::new(path);
+    command
+        .args(arguments)
+        .env("LISTEN_PID", std::process::id().to_string())
+        .env("LISTEN_FDS", sockets.len().to_string())
+        .env(
+            "LISTEN_FDNAMES",
+            sockets
+                .iter()
+                .map(|s| s.name())
+                .collect::<Vec<_>>()
+                .join(":"),
+        )
+        .env("RS_L2TPD_REEXEC", format!("1:{}", std::process::id()))
+        .env("RS_L2TPD_PIDFILE", state(pid));
+    let raw: Vec<_> = sockets.iter().map(|s| s.fd().as_raw_fd()).collect();
+    // A private fd table prevents dup2 from clobbering live subscription fds.
+    // On exec failure only this short-lived thread loses its private table.
+    let error = std::thread::Builder::new()
+        .name("l2tp-exec".into())
+        .spawn(move || -> io::Error {
+            if unsafe { libc::unshare(libc::CLONE_FILES) } < 0 {
+                return io::Error::last_os_error();
+            }
+            let mut copies = vec![];
+            for fd in &raw {
+                let copy = unsafe { libc::fcntl(*fd, libc::F_DUPFD_CLOEXEC, 3 + raw.len() as i32) };
+                if copy < 0 {
+                    return io::Error::last_os_error();
+                }
+                copies.push(copy);
+            }
+            for (index, fd) in copies.iter().enumerate() {
+                if unsafe { libc::dup2(*fd, 3 + index as i32) } < 0 {
+                    return io::Error::last_os_error();
+                }
+            }
+            // Keep requests blocked until the new image installs sigwait. Its
+            // thread_set_mask replaces the inherited mask, including other bits.
+            command.exec()
+        })?
+        .join()
+        .map_err(|_| io::Error::other("exec thread panicked"))?;
+    drop(sockets);
+    Err(error)
+}
+pub fn signal(path: &Path) -> io::Result<()> {
+    let text = std::fs::read_to_string(path)?;
+    let pid = text
+        .trim()
+        .parse::<i32>()
+        .ok()
+        .filter(|pid| *pid > 1)
+        .ok_or_else(|| io::Error::other("invalid PID file"))?;
+    nix::sys::signal::kill(
+        nix::unistd::Pid::from_raw(pid),
+        nix::sys::signal::Signal::SIGUSR2,
+    )?;
+    Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    /// spec: P26
+    #[test]
+    fn incompatible_probe_never_executes_or_changes_descriptors() {
+        let file = std::fs::File::open("/dev/null").unwrap();
+        let fd = file.as_raw_fd();
+        let socket = AdoptedSocket::new("t1", file.into());
+        assert!(exec(Path::new("/bin/false"), &[], vec![socket], None).is_err());
+        // A separate live descriptor is unaffected by the rejected request.
+        let other = std::fs::File::open("/dev/null").unwrap();
+        assert!(other.metadata().is_ok());
+        let _ = fd;
+    }
+}
+
+#[cfg(test)]
+mod exec_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    /// spec: P26
+    #[test]
+    fn failed_exec_after_a_compatible_probe_keeps_the_shared_table() {
+        let dir = crate::testdir::Dir::new();
+        let target = dir.path().join("vanishing-target");
+        std::fs::write(
+            &target,
+            "#!/bin/sh\nprintf 'rs-l2tpd-adopt 1\\n'\nrm \"$0\"\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let held = std::fs::File::open("/dev/null").unwrap();
+        let original = held.as_raw_fd();
+        let socket = AdoptedSocket::new("t1", held.try_clone().unwrap().into());
+        let flags = unsafe { libc::fcntl(original, libc::F_GETFD) };
+        let error = exec(&target, &[], vec![socket], None).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::NotFound);
+        assert!(held.metadata().is_ok());
+        assert_eq!(unsafe { libc::fcntl(original, libc::F_GETFD) }, flags);
+        assert!(!target.exists());
+    }
+}

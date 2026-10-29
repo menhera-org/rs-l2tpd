@@ -1,0 +1,25 @@
+# rs-l2tpd: uncomment and adjust the entries you need.
+# [tunnels.uplink]
+# tunnel_id = 10
+# peer_tunnel_id = 10
+# remote_addr = "peer.example.org"
+# ip_version = "V6"
+# bind_interface = "vrf-wan"
+# resolver_name = "wan-dns"
+#
+# [resolvers.wan-dns]
+# method = "ipv6"
+# bind_interface = "wan0"
+# dhcpv6_identity = "link-layer"
+#
+# [sessions.lan]
+# tunnel_name = "uplink"
+# session_id = 100
+# peer_session_id = 100
+# interface_name = "l2tp0"
+# interface_hwaddr = "02:00:5e:00:53:01"
+# cookie = "0011223344556677"
+# peer_cookie = "8899aabb"
+#
+# [host]
+# fix_bindv6only = true

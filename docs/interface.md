@@ -4,7 +4,7 @@
 
 What an operator or an embedding program sees after the rewrite. Every
 item is fixed by the specification; the rule numbers point at the
-normative text. The current binary is a rewrite stub that exits 2;
+normative text. The process layer is implemented in Phase 5;
 [known gaps](spec/README.md#known-gaps) describe the historical `741117b`
 implementation. 0.1.5 is the last release.
 
@@ -104,7 +104,8 @@ except a deferred hardware-address change, logged at every reconcile
 
 ## The systemd unit
 
-`contrib/rs-l2tpd.service` (P21): `Type=forking` with the PID file,
+`contrib/rs-l2tpd.service.in` (P21), rendered with the installation's
+binary path: `Type=forking` with the PID file,
 `Before=network-online.target`, `RequiredBy=network-online.target`,
 `TimeoutStartSec=infinity`, `Restart=on-failure`, `NotifyAccess=all`,
 `FileDescriptorStoreMax=` for the tunnels; runs as root with the
@@ -116,6 +117,12 @@ for the descriptor-store notification socket, independent of resolver needs), an
 write allowed. It is one integration: the process contract (P22) is
 what every init system gets, and a container entry point uses
 `--foreground`.
+
+The unit passes `--pid-file /run/rs-l2tpd/rs-l2tpd.pid` and creates only
+that runtime directory as writable. For its command-line restart use
+`rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid`, or send
+`SIGUSR2` to its main process. Standalone starts keep the built-in
+`/run/rs-l2tpd.pid` default.
 
 With the store, the daemon pushes each tunnel socket into it as the
 tunnel exists and withdraws it at an explicit shutdown, so that the

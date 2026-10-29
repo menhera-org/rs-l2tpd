@@ -19,6 +19,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+          targets: x86_64-unknown-linux-musl
 
       - uses: Swatinem/rust-cache@v2
 
@@ -41,6 +42,9 @@ jobs:
       # containers and under QEMU, not here.
       - name: Unit, rules, properties and fake-kernel tests
         run: cargo test --locked --all-features
+
+      - name: Musl binary and process tests
+        run: cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process
 
       # docs/testing.md gates. Lenient until phase 6, which sets
       # RULEMAP_STRICT=1 and SRCLINK_STRICT=1 here.

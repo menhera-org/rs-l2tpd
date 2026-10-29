@@ -48,6 +48,13 @@ binary path: installer `/usr/local/sbin/rs-l2tpd`, package
 unit in `/etc` overrides the package unit in `/lib`; installing a package
 does not silently switch an existing installer service to the other binary.
 
+The template passes `--pid-file /run/rs-l2tpd/rs-l2tpd.pid` so its
+dedicated runtime directory is the only writable PID location under
+`ProtectSystem=strict`. To restart that service in place, use
+`rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid` or send
+`SIGUSR2` to its main process. Starts without the unit keep the built-in
+PID-file default.
+
 ## `musl-deb`: a minimal Debian package
 
 A directory `musl-deb/` in the repository builds `.deb` files from the

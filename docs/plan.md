@@ -393,6 +393,34 @@ listener, the restart exec, and the capability report.
 Exit: every P and O rule and the deferred C1, C3, C4 file cases tested; the binary runs on glibc and musl
 targets (P24).
 
+**Status: done on 2026-10-29 within this phase's scope.** The binary now
+loads and checks files, logs, double-forks with readiness, publishes and
+removes its PID file by inode, and forwards coalesced signals to the
+existing service. The native descriptor-store transport uses processing
+barriers; adoption preserves exact names through both forks. Re-exec
+preserves the executable path, options, PID-file authority and interfaces,
+including with zero tunnels. Descriptor remapping uses a private Linux
+file table so a failed exec cannot disturb live threads.
+
+The unit template and optional installer are implemented, including
+preserved edits and first-enable-only behavior. The unit selects a
+dedicated writable PID directory; standalone PID defaults are unchanged.
+No dependency was added.
+
+The [verification record](../audit/PHASE5_VERIFICATION_2026-10-29.md)
+maps the process and deferred file rules to explicit cases: 18 ordinary
+binary unit cases, six ordinary process cases, 15 live kernel/process
+cases on both musl and glibc, uid-dropping permission fixtures, an installer
+systemctl recorder, and native notifications under a real systemd
+address-family filter. Ten seeded ordinary and ten live musl repetitions
+pass. [Reproduction commands](../tests/process/README.md) keep privileged
+and real-manager checks separate from ordinary Cargo tests.
+The required QEMU matrix, Incus/LXD, combined coverage, strict global
+gates and whole-daemon resource/timing promises, including comparative
+P15 timing, remain Phase 6.
+The binary's 1,875 physical lines excluding inline tests exceed the
+rewrite's under-1,500 target; that size target remains open.
+
 ### Phase 6 — proof
 
 1. The container suite (`tests/docker/`), rewritten as Rust integration

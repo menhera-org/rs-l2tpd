@@ -1,0 +1,338 @@
+Run 1
+
+running 16 tests
+test binary_tunable_handshake_and_opt_out ... ok
+test crash_store_adoption_and_ordered_withdrawal ... ok
+test crash_without_store_closes_tunnel ... ok
+test daemon_readiness_pid_inode_and_reexec ... ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ok
+test foreground_reload_and_clean_shutdown_without_network ... ok
+test incompatible_replacement_keeps_running_interfaces ... ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: done
+systemd: existing services are never restarted
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ok
+test rejected_store_name_is_withdrawn_before_replacement ... ok
+test stored_descriptors_survive_double_fork ... ok
+test unannounced_descriptors_close_before_service_start ... ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 15.89s
+
+Run 2
+
+running 16 tests
+test binary_tunable_handshake_and_opt_out ... ok
+test crash_store_adoption_and_ordered_withdrawal ... ok
+test crash_without_store_closes_tunnel ... ok
+test daemon_readiness_pid_inode_and_reexec ... ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ok
+test foreground_reload_and_clean_shutdown_without_network ... ok
+test incompatible_replacement_keeps_running_interfaces ... ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ok
+test rejected_store_name_is_withdrawn_before_replacement ... ok
+test stored_descriptors_survive_double_fork ... ok
+test unannounced_descriptors_close_before_service_start ... ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 15.29s
+
+Run 3
+
+running 16 tests
+test binary_tunable_handshake_and_opt_out ... ok
+test crash_store_adoption_and_ordered_withdrawal ... ok
+test crash_without_store_closes_tunnel ... ok
+test daemon_readiness_pid_inode_and_reexec ... ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ok
+test foreground_reload_and_clean_shutdown_without_network ... ok
+test incompatible_replacement_keeps_running_interfaces ... ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ok
+test rejected_store_name_is_withdrawn_before_replacement ... ok
+test stored_descriptors_survive_double_fork ... ok
+test unannounced_descriptors_close_before_service_start ... ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 15.20s
+
+Run 4
+
+running 16 tests
+test binary_tunable_handshake_and_opt_out ... ok
+test crash_store_adoption_and_ordered_withdrawal ... ok
+test crash_without_store_closes_tunnel ... ok
+test daemon_readiness_pid_inode_and_reexec ... ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ok
+test foreground_reload_and_clean_shutdown_without_network ... ok
+test incompatible_replacement_keeps_running_interfaces ... ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ok
+test rejected_store_name_is_withdrawn_before_replacement ... ok
+test stored_descriptors_survive_double_fork ... ok
+test unannounced_descriptors_close_before_service_start ... ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 15.63s
+
+Run 5
+
+running 16 tests
+test binary_tunable_handshake_and_opt_out ... ok
+test crash_store_adoption_and_ordered_withdrawal ... ok
+test crash_without_store_closes_tunnel ... ok
+test daemon_readiness_pid_inode_and_reexec ... ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ok
+test foreground_reload_and_clean_shutdown_without_network ... ok
+test incompatible_replacement_keeps_running_interfaces ... ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ok
+test rejected_store_name_is_withdrawn_before_replacement ... ok
+test stored_descriptors_survive_double_fork ... ok
+test unannounced_descriptors_close_before_service_start ... ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 15.90s
+
+Run 6
+
+running 16 tests
+test binary_tunable_handshake_and_opt_out ... ok
+test crash_store_adoption_and_ordered_withdrawal ... ok
+test crash_without_store_closes_tunnel ... ok
+test daemon_readiness_pid_inode_and_reexec ... ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ok
+test foreground_reload_and_clean_shutdown_without_network ... ok
+test incompatible_replacement_keeps_running_interfaces ... ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ok
+test rejected_store_name_is_withdrawn_before_replacement ... ok
+test stored_descriptors_survive_double_fork ... ok
+test unannounced_descriptors_close_before_service_start ... ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 15.48s
+
+Run 7
+
+running 16 tests
+test binary_tunable_handshake_and_opt_out ... ok
+test crash_store_adoption_and_ordered_withdrawal ... ok
+test crash_without_store_closes_tunnel ... ok
+test daemon_readiness_pid_inode_and_reexec ... ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ok
+test foreground_reload_and_clean_shutdown_without_network ... ok
+test incompatible_replacement_keeps_running_interfaces ... ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ok
+test rejected_store_name_is_withdrawn_before_replacement ... ok
+test stored_descriptors_survive_double_fork ... ok
+test unannounced_descriptors_close_before_service_start ... ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 15.74s
+
+Run 8
+
+running 16 tests
+test binary_tunable_handshake_and_opt_out ... ok
+test crash_store_adoption_and_ordered_withdrawal ... ok
+test crash_without_store_closes_tunnel ... ok
+test daemon_readiness_pid_inode_and_reexec ... ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ok
+test foreground_reload_and_clean_shutdown_without_network ... ok
+test incompatible_replacement_keeps_running_interfaces ... ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ok
+test rejected_store_name_is_withdrawn_before_replacement ... ok
+test stored_descriptors_survive_double_fork ... ok
+test unannounced_descriptors_close_before_service_start ... ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 15.79s
+
+Run 9
+
+running 16 tests
+test binary_tunable_handshake_and_opt_out ... ok
+test crash_store_adoption_and_ordered_withdrawal ... ok
+test crash_without_store_closes_tunnel ... ok
+test daemon_readiness_pid_inode_and_reexec ... ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ok
+test foreground_reload_and_clean_shutdown_without_network ... ok
+test incompatible_replacement_keeps_running_interfaces ... ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ok
+test rejected_store_name_is_withdrawn_before_replacement ... ok
+test stored_descriptors_survive_double_fork ... ok
+test unannounced_descriptors_close_before_service_start ... ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 16.32s
+
+Run 10
+
+running 16 tests
+test binary_tunable_handshake_and_opt_out ... ok
+test crash_store_adoption_and_ordered_withdrawal ... ok
+test crash_without_store_closes_tunnel ... ok
+test daemon_readiness_pid_inode_and_reexec ... ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ok
+test foreground_reload_and_clean_shutdown_without_network ... ok
+test incompatible_replacement_keeps_running_interfaces ... ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ok
+test rejected_store_name_is_withdrawn_before_replacement ... ok
+test stored_descriptors_survive_double_fork ... ok
+test unannounced_descriptors_close_before_service_start ... ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 16.60s

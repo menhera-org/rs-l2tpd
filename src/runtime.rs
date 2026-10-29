@@ -453,6 +453,9 @@ impl<K: Kernel + 'static> Runtime<K> {
     pub fn ready(&self) -> bool {
         self.reconciler.ready()
     }
+    pub(crate) fn applied(&self) -> bool {
+        self.reconciler.applied()
+    }
     /// Entries omitted after the bounded conflict retry.
     pub fn left_out(&self) -> Vec<String> {
         self.reconciler.left_out()

@@ -29,9 +29,10 @@ The last release is 0.1.5. The tree is being rewritten against a complete
 [plan](docs/plan.md) says what is being built and in which order, and the
 [current contract gaps](docs/spec/README.md#current-contract-gaps) list the
 review corrections and their acceptance work. Configuration, kernel,
-reconciler, runtime and service code exists; Phases 1–4 have scoped
-verification records. The process layer and global Phase 6 gates remain;
-the binary still exits 2. The known-gap tables describe historical commit `741117b`.
+reconciler, runtime, service and process code exists; Phases 1–5 have scoped
+verification records, including [binary verification](audit/PHASE5_VERIFICATION_2026-10-29.md).
+The binary runs on musl and glibc. The global Phase 6 gates remain open.
+The known-gap tables describe historical commit `741117b`.
 
 ## Quick start
 

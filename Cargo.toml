@@ -62,6 +62,11 @@ name = "service"
 path = "tests/service.rs"
 required-features = ["fake-kernel"]
 
+[[test]]
+name = "process"
+path = "tests/process.rs"
+required-features = ["bin"]
+
 [dependencies]
 # Library (docs/dependencies.md)
 l2tp = "0.5.0"
@@ -95,7 +100,7 @@ default = ["bin"]
 # Serialize/Deserialize for the configuration types.
 serde = ["dep:serde", "iphost/serde"]
 # Everything the `rs-l2tpd` binary needs on top of the library.
-bin = ["serde", "dep:toml", "dep:libc"]
+bin = ["serde", "dep:toml", "dep:libc", "nix/uio"]
 # The `--setup-systemd` installer in the binary (docs/packaging.md). Not a
 # substitute for packaging; see `musl-deb/` for that.
 setup-systemd = ["bin"]

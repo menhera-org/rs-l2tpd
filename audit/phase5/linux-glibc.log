@@ -1,0 +1,228 @@
+6.8.0-147-generic
+glibc 2.43
+
+running 1 test
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.00s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.00s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.00s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.00s
+
+test pidfile::permission_tests::precreated_permissions_links_and_owner ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.01s
+
+
+running 1 test
+
+running 1 test
+test files::filesystem_tests::permission_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.00s
+
+test files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.00s
+
+
+running 16 tests
+test binary_tunable_handshake_and_opt_out ... daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-tbc8d35
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=25
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-tbc8d35 by another manager; kept (S10)
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+daemon: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-tea0dd2
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=34
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-tea0dd2 by another manager; kept (S10)
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test crash_store_adoption_and_ordered_withdrawal ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-td6f314
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=45
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-td6f314 by another manager; kept (S10)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: WARN rs_l2tpd::reconciler::report: session a (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+daemon: INFO rs_l2tpd: ready pid=55
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test crash_without_store_closes_tunnel ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-t0646dd
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=66
+ok
+test daemon_readiness_pid_inode_and_reexec ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-t0a49a0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: WARN rs_l2tpd::pidfile: PID directory permits replacement by other users: /tmp/rs-l2tpd-process-745cc365454ac551/pid
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-t0a49a0 by another manager; kept (S10)
+daemon: INFO rs_l2tpd: ready pid=80
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: WARN rs_l2tpd::reconciler::report: session a (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: WARN rs_l2tpd::pidfile: PID directory permits replacement by other users: /tmp/rs-l2tpd-process-745cc365454ac551/pid
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... daemon: ERROR rs_l2tpd: opening kernel interfaces: Operation not permitted (os error 1); retrying
+daemon: ERROR rs_l2tpd: opening kernel interfaces: Operation not permitted (os error 1); retrying
+ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-td7956d
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=113
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-td7956d by another manager; kept (S10)
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: ERROR rs_l2tpd::reconciler::store: descriptor store cleanup incomplete for t10
+daemon: ERROR rs_l2tpd: service: kernel or descriptor-store cleanup incomplete
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test foreground_reload_and_clean_shutdown_without_network ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-tdde450
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=124
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-tdde450 by another manager; kept (S10)
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: ERROR rs_l2tpd::files: /tmp/rs-l2tpd-process-0b73783d46deb115/main.toml: invalid TOML document at byte 8; reload refused
+daemon: ERROR rs_l2tpd::service: reload failed; retaining accepted configuration: invalid configuration: file problems; previous configuration retained
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test incompatible_replacement_keeps_running_interfaces ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-tea8f10
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=137
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-tea8f10 by another manager; kept (S10)
+daemon: WARN rs_l2tpd::service: restart failed; resuming: incompatible adoption protocol
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: done
+systemd: existing services are never restarted
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_ADMIN: tunnel, session and device operations may fail
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_RAW: device binding and raw router discovery may fail
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_BIND_SERVICE: DHCPv6 port 546 may be unavailable
+daemon: INFO rs_l2tpd: ready pid=158
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-t934a3f
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=168
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-t934a3f by another manager; kept (S10)
+daemon: WARN rs_l2tpd::reconciler: tunnel a (tunnel_id=10): left out after 10 refusals: EADDRINUSE: Address already in use
+daemon: INFO rs_l2tpd: ready pid=178
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-t553b66
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: WARN rs_l2tpd::pidfile: PID directory permits replacement by other users: /tmp/rs-l2tpd-process-24a23a43497001e9/pid
+daemon: ERROR rs_l2tpd: PID file /tmp/rs-l2tpd-process-24a23a43497001e9/pid: PID file is a symbolic link; readiness still valid
+daemon: INFO rs_l2tpd: ready pid=191
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-t553b66 by another manager; kept (S10)
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test rejected_store_name_is_withdrawn_before_replacement ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-t2a29c3
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=202
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-t660b61
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=212
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-t660b61 by another manager; kept (S10)
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test stored_descriptors_survive_double_fork ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-t6b1324
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=224
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-t6b1324 by another manager; kept (S10)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: WARN rs_l2tpd::reconciler::report: session a (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+daemon: WARN rs_l2tpd::pidfile: PID directory permits replacement by other users: /tmp/rs-l2tpd-process-a8d527564c724c6e/pid
+daemon: INFO rs_l2tpd: ready pid=238
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: WARN rs_l2tpd::pidfile: PID directory permits replacement by other users: /tmp/rs-l2tpd-process-a8d527564c724c6e/pid
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test unannounced_descriptors_close_before_service_start ... daemon: INFO rs_l2tpd: ready pid=247
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... daemon: INFO rs_l2tpd: ready pid=257
+daemon: INFO rs_l2tpd: re-exec resumed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 16.18s

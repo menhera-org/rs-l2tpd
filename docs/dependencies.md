@@ -17,7 +17,7 @@ crates the `l2tp` crate already pulls.
 | `iphost` 0.4.1 | General-purpose system/configured DNS and discovery, with the incremental RDNSS updates of V10 and the opt-in failure fallback of V14; daemon scheduling and retention stay here | V1–V15 |
 | `netlink-sys`, `netlink-packet-core`, `netlink-packet-route`; add direct `netlink-packet-generic` and `netlink-packet-l2tp` imports when Phase 2 uses them | Bounded generic-netlink requests and events, the rtnetlink request socket, event monitor and lifetime subscription: raw sockets on `AsyncFd`, so that the kernel's buffer and `ENOBUFS` are seen (already dependencies of `l2tp`) | A5, A7, E20, E21, K29 |
 | `socket2` | `SO_BINDTOIFINDEX`, `SO_ATTACH_FILTER`, `IPV6_V6ONLY` read-back, `SO_RCVBUF`, socket type and protocol queries for adopted descriptors | T10, K10, T26, R10, P14 |
-| `nix` (`socket`, `process`, `signal`, `fs`) | `SO_RCVBUFFORCE`, process/signal/filesystem wrappers; Phase 5 must also enable `uio` when using `sendmsg` with `SCM_RIGHTS` | R10, P14 |
+| `nix` (`socket`, `process`, `signal`, `fs`, `poll`) | `SO_RCVBUFFORCE`, process/signal/filesystem wrappers; the `bin` feature adds `uio` for `sendmsg` with `SCM_RIGHTS` | R10, P14 |
 | `tokio` (`rt`, `sync`, `time`, `net`) | The loop, the bounded channel, timers, `AsyncFd` | A6, M14 |
 | `log` | The facade | O1 |
 | `getrandom` | Temporary interface names from the kernel's random source, without file I/O or unsafe code | S4, L1, L2 |
@@ -33,7 +33,7 @@ registry), so that one copy of the core crate is built.
 |---|---|---|
 | `toml` | Parsing the documents | C1 |
 | `serde` | With it | C5 |
-| `libc` | `capget(2)` for the capability report and `fork(2)` for daemonisation, the two calls `std` and `nix` do not wrap safely; the binary allows `unsafe` for them, the library denies it | R49, P4, L2 |
+| `libc` | Capability, fork, descriptor-relative PID-file and exec handover operations; `unshare(CLONE_FILES)` isolates exec descriptor remapping from live threads. Unsafe code stays in the binary; the library denies it | R49, P4, P10, P26, L2 |
 
 The `setup-systemd` feature ([packaging](packaging.md)) adds no crate:
 the unit is embedded with `include_str!`, the copy is `std`, and

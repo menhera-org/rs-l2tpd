@@ -1,0 +1,12 @@
+Running as unit: rs-l2tpd-phase5-notify.service; invocation ID: 041dbd7aa5af41b79c031a86352adfd2
+
+running 1 test
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.05s
+
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
+               Service runtime: 74ms
+             CPU time consumed: 23ms
+                   Memory peak: 2.3M (swap: 0B)

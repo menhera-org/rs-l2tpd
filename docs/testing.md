@@ -18,7 +18,8 @@ tests/
   rules/          behavioural tests over the fake kernel, one file per spec page (tunnels.rs, sessions.rs, ...)
   properties/     property tests of the promises (G3, G5, G6, G18) over random reload sequences
   kernel/         shared operation cases plus live-only fixture/source checks for K facts
-  binary/         the binary's unit-level tests (args, files, check rendering, pid file, logger)
+  process.rs      actual-binary CLI and live process cases; binary unit tests live in src/bin/
+  process/        instructions for privileged and real-manager process checks
   scenarios/      the scenario suite: whole-daemon tests in containers, one per H rule and G promise
   docker/         the runner: Dockerfiles, the scenario driver, the QEMU matrix driver
   tools/
@@ -28,6 +29,12 @@ tests/
 
 Every test names the rules it guards in its doc comment,
 `/// spec: T21, K22`, which the rule map reads.
+
+Phase 5's executed process cases and limits are recorded in
+[binary verification](../audit/PHASE5_VERIFICATION_2026-10-29.md);
+[tests/process](../tests/process/README.md) gives musl, glibc, permission
+and native systemd transport commands. They precede the complete Phase 6
+scenario suite below.
 
 ## The four suites
 

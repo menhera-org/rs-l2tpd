@@ -273,6 +273,7 @@ fn worker<K: Kernel + 'static>(
     let mut convergence: Option<tokio::sync::oneshot::Sender<Result<Vec<String>>>> = None;
     let mut serving: Option<Callbacks> = None;
     let mut in_flight = None;
+    let mut reload_pending = false;
     // Admission slots stay reserved until processing, bounding this deferral
     // queue as well as preserving every accepted restart's position.
     let mut pending = VecDeque::new();
@@ -298,6 +299,10 @@ fn worker<K: Kernel + 'static>(
             if let Some(tx) = convergence.take() {
                 let _ = tx.send(Ok(runtime.left_out()));
             }
+        }
+        if reload_pending && runtime.applied() && !control.shared.shutdown.load(Ordering::Acquire) {
+            log::info!("reload completed");
+            reload_pending = false;
         }
         let pending_ready = converged
             && in_flight.is_none()
@@ -411,6 +416,7 @@ fn worker<K: Kernel + 'static>(
                             && generation == control.shared.generation.load(Ordering::Acquire) =>
                     {
                         runtime.reconcile(config);
+                        reload_pending = true;
                     }
                     _ => {}
                 }

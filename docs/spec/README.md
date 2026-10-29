@@ -85,9 +85,9 @@ close these gaps; existing citations alone do not.
 
 Historical gaps of the pre-rewrite implementation at `741117b`, removed
 in Phase 0. The current rewrite has configuration, fake/real kernel,
-reconciler, runtime and services, with an unfinished process layer and a
-stub binary. [Phase 4 evidence](../../audit/PHASE4_VERIFICATION_2026-10-29.md)
-records library acceptance separately from the remaining whole-daemon gates.
+reconciler, runtime, services and process layer.
+[Phase 5 evidence](../../audit/PHASE5_VERIFICATION_2026-10-29.md)
+records binary acceptance separately from the remaining whole-daemon gates.
 Current acceptance work is in [the plan](../plan.md); the 2026-10-29
 contract corrections and upstream dependencies are listed above.
 The following comparison is historical:
