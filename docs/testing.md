@@ -55,22 +55,32 @@ real run also records the kernel version it ran on.
 
 ### Kernel targets
 
-`CONTRIBUTING.md` fixes the kernels the live suites run on. Required:
-the stock kernels of the two latest Ubuntu LTS releases, mainline, and
-the vanilla release each Ubuntu kernel derives from. As of 2026-10-29
-that is:
+`CONTRIBUTING.md` fixes the kernels the live suites MUST run on, as a
+moving rule, not a fixed list: **the stock kernels of the two latest
+Ubuntu LTS releases, the vanilla release each of them derives from, and
+mainline**. The table below is that rule resolved on a date. Whenever
+Ubuntu publishes a new LTS, a new `linux-image-generic` for one, or a
+new mainline tag appears, the table MUST be updated and the matrix
+re-run on the new versions before the phase 6 gate is called green;
+a matrix run on a superseded version does not count.
 
-| Kernel | Why | How it runs |
+Resolved on 2026-10-29 (from the `linux-image-generic` candidates of
+the `ubuntu:24.04` and `ubuntu:26.04` images and the newest kernel.org
+tag):
+
+| Kernel | Rule | How it runs |
 |---|---|---|
-| Ubuntu 24.04 `6.8.0-147-generic` | LTS stock kernel | the host kernel of CI, in a privileged container |
-| Ubuntu 26.04 `7.0.0-42-generic` (also 24.04's HWE kernel) | LTS stock kernel | QEMU, the `vmlinuz` and modules unpacked from the `linux-image` package of the `ubuntu:26.04` image |
-| vanilla `6.8.12` and the latest `7.0.x` | the releases those are built from | QEMU, built from the kernel.org tarball with `x86_64_defconfig` plus L2TP |
-| mainline, `v7.3` today | the newest release | QEMU, built the same way |
+| Ubuntu 24.04 `6.8.0-147-generic` | older of the two latest LTS kernels | the host kernel of CI, in a privileged container |
+| Ubuntu 26.04 `7.0.0-42-generic` (also 24.04's HWE kernel) | newer of the two latest LTS kernels | QEMU, the `vmlinuz` and modules unpacked from the `linux-image` package of the `ubuntu:26.04` image |
+| vanilla `6.8.12` (the last 6.8.y) | vanilla equivalent of the 24.04 kernel | QEMU, built from the kernel.org tarball with `x86_64_defconfig` plus L2TP |
+| vanilla latest `7.0.y` | vanilla equivalent of the 26.04 kernel | QEMU, built the same way |
+| mainline `v7.3` | the newest release | QEMU, built the same way |
 
 Desired, not gating: every vanilla release between the oldest required
 one and mainline (the matrix below), Debian's stock kernels, and
-RHEL-ish stock kernels. The matrix driver takes a list of these targets;
-a run records `uname -r` next to its result, as the probes of
+RHEL-ish stock kernels. The matrix driver takes the required set from
+this table, so updating the table is what updates the run; a run
+records `uname -r` next to its result, as the probes of
 `tests/kernel/README.md` do. The verified range of
 [kernel](spec/kernel.md) grows with what the matrix has run.
 

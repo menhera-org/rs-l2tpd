@@ -372,9 +372,11 @@ targets (P24).
    requires ([testing](testing.md#the-scenario-suite)).
 2. The QEMU kernel matrix over the [kernel targets](testing.md#kernel-targets)
    of `CONTRIBUTING.md`: required are the stock kernels of the two latest
-   Ubuntu LTS releases (24.04's 6.8.0 and 26.04's 7.0.0 today), their
-   vanilla equivalents and mainline; desired are every release from v6.8
-   to the newest, Debian and RHEL-ish stock kernels. Each boots with TCG
+   Ubuntu LTS releases, their vanilla equivalents and mainline, as a
+   rule that follows Ubuntu and kernel.org (24.04's 6.8.0 and 26.04's
+   7.0.0 today; the table in testing.md MUST be updated and re-run when
+   they move); desired are every release from v6.8 to the newest, Debian
+   and RHEL-ish stock kernels. Each boots with TCG
    and runs the conformance suite and the K5 sweep; a kernel built
    without IPv6 serves H4 and T4.
 3. Coverage: `cargo llvm-cov` over unit, fake-kernel and container tests
