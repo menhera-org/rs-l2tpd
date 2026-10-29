@@ -18,11 +18,13 @@ are in the [GitHub repository](https://github.com/menhera-org/rs-l2tpd).
 | [Dependencies](dependencies.md) | The supply chain after the rewrite, each crate with its reason, and what was removed |
 | [Testing](testing.md) | How 100 % coverage, one test per specification claim, determinism and live-kernel proof are reached: the fake kernel, the conformance suite, the container and QEMU matrices, the rule map |
 | [Packaging](packaging.md) | The two installation paths besides distribution packages: `--setup-systemd` (feature `setup-systemd`) with its bounded scope, and the `musl-deb` static packages for `amd64` and `arm64` |
+| [Upstream iphost work](upstream-iphost.md) | Instructions for protocol bug fixes, optional failure fallback, compatibility and daemon integration gates |
 | [Specification](spec/README.md) | The normative behaviour, with the known gaps of the historical pre-rewrite implementation that the rewrite closes |
 
 Version 0.2.0 has not been released; the rewrite ships under that
-number. The current tree contains the Phase 1 configuration layer and later-phase
-skeletons; its binary exits 2. The specification's
+number. The tree contains configuration, fake/real kernel and reconciler
+code; phase exit criteria remain open, and the service/process layers are
+unfinished. Its binary still exits 2. The specification's
 [known gaps](spec/README.md#known-gaps) describe historical commit
 `741117b`, removed in Phase 0. The interface page describes the target.
 

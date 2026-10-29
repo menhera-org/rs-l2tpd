@@ -22,11 +22,11 @@ src/
     serde.rs        feature "serde": Deserialize/Serialize with unknown-key collection (C6, O8)
   kernel/
     mod.rs          trait Kernel and its associated types; Family, ConnectOutcome, LinkEvent, AddrEvent, L2tpEvent
-    fake.rs         the in-memory kernel for tests (K5–K41 as rules), behind cfg(any(test, feature = "fake-kernel"))
+    fake.rs         the in-memory kernel for tests (K5–K42 as rules), behind cfg(any(test, feature = "fake-kernel"))
     linux/
       mod.rs        LinuxKernel: owns the request socket, the genl handle, the subscriptions
       socket.rs     tunnel sockets over l2tp::TunnelSocket + socket2 (T3–T6, T10, T21, T26, K22–K26)
-      l2tp.rs       bounded generic-netlink requests over netlink-sys; the K41 subscription is l2tp::BoundedEvents (K16–K20, K35, K41)
+      l2tp.rs       bounded raw generic-netlink requests and K41 events over netlink-sys; l2tp::KernelMessage reply decoding (K16–K20, K35, K41)
       rtnl.rs       rtnetlink requests over netlink-sys (K32, A5)
       monitor.rs    the event monitor: groups, cBPF filter, ENOBUFS (A5, K10, K29, E20–E22)
       lifetime.rs   the link-lifetime subscription and ordered lookups (A7, S8, S9, M18)
@@ -277,17 +277,27 @@ emits a re-creating operation.
   `Proved`, `Removed` or `Lost(generation)` after ordered lookups.
   The deadline is five seconds (E21), independent of the two-second
   tunnel-deletion retry window.
-- Resolver results carry the resolver configuration incarnation (V7);
-  runtime validates every resolver bind link as non-VRF before starting
-  queries/discovery and after link replacement (V9).
+- Resolver jobs and results carry their configuration incarnation (V7);
+  V15's permits outlive cancellation of interest. Validate bind and zone
+  devices before queries/discovery and after replacement or monitor loss
+  (V9, V11). New configurations replace queued work, not running workers.
+- `WriteTunable` carries a request incarnation and deadline; affected
+  creations wait unregistered for at most five seconds (L12). Success
+  retries socket creation once with read-back. Late replies cannot replace
+  registered sockets. Shutdown and unrelated operations continue.
+- Adopted descriptors retain their original store names. Uncertain
+  verification keeps the descriptor; rejection creates a retirement record
+  before any local close. `ForgetSocket` carries that exact name and a
+  request incarnation; withdrawal, close and absence verification follow
+  L13. Serialize removal and replacement storage under a reused name.
 - Shutdown wakes an idle loop immediately; an in-flight synchronous
   request may consume its remaining five-second deadline (A14).
 
 ## Runtime, services, binary
 
 `Runtime` (L9) is the loop above as a struct the program drives:
-`new(kernel, adopted)` opens the subscriptions and verifies the adopted
-descriptors (P14); `reconcile(config)` and `handle_event(event)` are the
+`new(kernel, adopted)` opens the subscriptions and retains the adopted
+descriptors with their store names for verification or retirement (P14); `reconcile(config)` and `handle_event(event)` are the
 two entry points; `shutdown()` applies the empty configuration in order
 (P16) and withdraws stored sockets first (L13). `Service` (L5) runs the
 loop on the caller's Tokio runtime with a reload callback on a blocking
@@ -331,17 +341,18 @@ the stored descriptors' names (P14) and the path it was started with
   kernel socket into an unbounded queue, which is the A6 defect of the
   known gaps; `netlink-sys` on `AsyncFd` gives the kernel's own buffer and
   `ENOBUFS` back.
-- **`l2tp` kept for socket operations, the event subscription and shared
-  types.** Generic-netlink requests use the daemon's `netlink-sys` adapter
-  with the existing packet codecs, because the upstream handles carry no
-  deadline: its request socket has at most one request in flight, an
-  absolute five-second deadline and sequence/sender validation, and it
-  reopens after a failed or uncertain request. The K41 subscription is
-  `L2tpHandle::events_bounded` (0.4.3): it reads the kernel socket
-  directly, so memory is bounded by `SO_RCVBUF`, which the daemon sets
-  through its `AsFd`; `ENOBUFS` arrives as an error item ahead of the
-  queued notifications and feeds the persistent loss flag of E20; sender
-  port 0 is checked before decoding (E22).
+- **`l2tp` 0.5 for socket operations, reply decoding and shared types.**
+  The daemon uses its raw `netlink-sys` adapter for generic-netlink
+  requests and the K41 subscription. Upstream handles now offer timeouts,
+  but require a runtime and do not implement the daemon's uncertain-mutation
+  recovery. The request socket has one request in flight, an absolute
+  five-second deadline and sequence/sender validation; it reopens after
+  failure. Replies decode through `l2tp::KernelMessage` to accept foreign
+  cookie lengths. Events use the same bounded `Feed` as rtnetlink:
+  kernel receive buffers, port-0 validation before decoding, and persistent
+  loss state on `ENOBUFS` or forwarding overflow. Upstream
+  `events_bounded` and runtime-free `EventSocket` are available
+  alternatives, not the selected production path.
   Three details of its use: a tunnel is created on
   `TunnelSocket::ip_unconnected` (0.4.2) with the `TunnelConfig` that
   `TunnelConfig::for_socket` derives from it (the unspecified remote,
@@ -358,12 +369,11 @@ the stored descriptors' names (P14) and the path it was started with
   deletes by identifier, which is not the daemon's ownership policy.
   Session devices' indexes come from the daemon's lifetime subscription
   (S8), not from `SessionHandle::ifindex`, whose own monitor is opened
-  per creation and falls back to a lookup by name. The K41 path is
-  bounded from the socket reader onward only with `events_bounded`; the
-  unbounded `events`/`EventIter` is for fixtures, and a bounded
-  forwarding queue behind it would not bound the upstream queue. All
-  request paths obey the total deadline and uncertain-mutation rules
-  above.
+  per creation and falls back to a lookup by name. The raw K41 path is
+  bounded from the socket reader onward; unbounded `events`/`EventIter`
+  remains fixture-only. A bounded forwarding queue behind an unbounded
+  upstream queue would not meet G23. All request paths obey the total
+  deadline and uncertain-mutation rules above.
 - **Random names from the `getrandom` crate.** S4 wants the kernel's
   random source; the library may neither read `/dev/urandom` (L1) nor
   call `getrandom(2)` through `libc` (L2), and `std` exposes no stable
@@ -371,12 +381,22 @@ the stored descriptors' names (P14) and the path it was started with
 - **A `Clock` behind `Kernel::now`.** The reconciler never reads the
   clock itself, so the rules tests advance time deterministically.
 - **`iphost` kept for every resolver, used through `IpHostResolver::resolve`.**
-  The four kinds, the DUIDs, the RA and DHCPv6 sources and their threads
-  are what V9–V15 describe. The reconciler's `resolvers.rs` runs one
-  refresh thread per host name, takes the address list each `resolve`
-  returns, selects and retains by V5–V6 itself, and parses zones itself;
-  `iphost`'s own cache, `AutoIpHostResolver` and the `broadcast` and
-  `tracing` features are not used.
+  It is a general-purpose library: protocol corrections go upstream;
+  daemon policy stays here. Required fixes and additive capabilities are
+  specified in [the upstream instruction](upstream-iphost.md).
+  The daemon schedules refreshes itself and admits calls through V15's
+  separate process-wide budgets of eight system and eight configured
+  lookups. A permit stays with a running call until return, including
+  across reload and service drop. Pending work/results coalesce by current
+  key; old generations cannot allocate replacement workers or accumulate
+  results. Configured jobs use finite V4 deadlines; libc remains unbounded.
+  Keep each worker in its originating namespace; a shared budget does not
+  authorize sharing a socket or worker across network namespaces.
+  The daemon selects and retains answers by V5–V7, parses zones, validates
+  non-VRF dependencies and releases unused discovery configurations.
+  It enables upstream failure fallback for unified IPv6 explicitly;
+  `iphost`'s own cache, `AutoIpHostResolver`, `broadcast` and `tracing`
+  are not used.
 - **The fake kernel is not a mock.** It is a model of the kernel facts,
   shared by every behavioural test, and itself tested against the
   kernel; a test never scripts kernel replies by hand.

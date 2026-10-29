@@ -98,9 +98,10 @@ and retried every second ([T15](tunnels.md#peers)). An answer for a host
 name, family, resolver or resolver configuration incarnation no longer
 in force is discarded, including a late result from before reload.
 
-E11. Queries are refreshed thirty seconds after the previous lookup
-returned, each lookup bounded per kind ([V4](resolvers.md#queries-and-answers)),
-and their results polled every second; a failed query and a negative
+E11. Queries become eligible thirty seconds after the previous lookup
+returned, with admission and execution limits of V3, V4 and V15
+(configured queries bounded, libc calls unbounded), and their results
+are polled every second; a failed query and a negative
 answer keep the answer in force ([V6](resolvers.md#queries-and-answers)). Replacing a tunnel's host
 name, family, resolver or that resolver's configuration discards its
 answers and invalidates outstanding lookup results (V7).
@@ -192,8 +193,9 @@ from the kernel through the request socket, and treats everything that
 could have been missed as possibly changed: every binding is checked by
 name, every connected tunnel is reconnected for a fresh source, every
 deferred hardware-address change is re-checked against the device's
-state, and router-advertisement servers are kept until their lifetimes
-expire ([V11](resolvers.md#router-advertisements)). When the **lifetime
+state, and every resolver bind/zone dependency is revalidated. Unchanged
+resolver dependencies keep discovery state and its V10 lifetime policy;
+replaced or invalid dependencies follow V9 and V11. When the **lifetime
 subscription** overflows or fails, its generation ends: it is reopened
 and seeded, and session identities captured in the old generation are
 marked as lost ([S19](sessions.md#identity-loss)); the event monitor is

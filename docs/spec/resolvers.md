@@ -7,7 +7,9 @@ system resolver by default, or through a resolver the configuration names,
 given by address or by a discovery method, with an optional bind interface.
 The mechanism is implemented in the `iphost` crate (version 0.4.0 adds the
 configured resolvers and the unified `ipv6` method); this page states the
-behaviour the daemon requires of it.
+behaviour the daemon requires of it. The V10 protocol correction and V14
+optional fallback still require [upstream work](../upstream-iphost.md);
+version 0.4.0 does not satisfy those clauses.
 
 ## Model
 
@@ -36,28 +38,41 @@ V3. The system resolver is the libc resolver of the build: on glibc the
 host's NSS configuration, on musl `/etc/resolv.conf` and `/etc/hosts` and
 nothing else. The daemon does not read those files itself
 ([L1](library.md#boundaries)); it asks the libc. Answer order, timeouts and
-search-domain handling are the libc's, and no rule below depends on them.
+search-domain handling are the libc's. There is no portable finite
+deadline or safe thread cancellation for this call; `iphost` correctly
+reports `Resolver::System.max_lookup_time() == None`. The daemon bounds
+outstanding calls under V15, not their execution time. Convergence for a
+new system-resolved name requires a worker to become available and libc
+eventually to return; readiness, existing traffic and shutdown never wait
+for it. Configured resolvers have a separate budget and remain usable if
+all system calls stall.
 
 ## Queries and answers
 
 V4. For every tunnel with a host name, the daemon has the tunnel's
 resolver look the host name up (both families at once; the answer of the
-family `ip_version` names is the one used) every thirty seconds
-([M14](model.md#timing)), and at once when the tunnel's configuration or
-its resolver's configuration changes. Lookups run on threads of the
+family `ip_version` names is the one used), with a refresh eligible
+thirty seconds after completion ([M14](model.md#timing)). A tunnel or
+resolver configuration change makes a fresh lookup eligible immediately.
+Lookups run on threads of the
 resolver and never block the reconciler ([A9](architecture.md#concurrency));
 the reconciler learns of a changed answer through the resolver's change
-notification, or by polling every second. Lookups for one host name run
-one at a time, and each is bounded by the bound the resolver library
-states for its kind: for the address kind, ten seconds per configured
-server, because each server is asked twice with a five-second timeout
-per query (over UDP, then over TCP within the same five seconds when the
-answer was truncated) and the first server that answers ends the lookup;
-for the discovery kinds, three seconds of waiting for the first servers
-plus thirty seconds, because at most three discovered servers are used.
-The next refresh is sent thirty seconds after the previous lookup
-returned, so a slow or failing resolver stretches the period and never
-piles lookups up. The address kind asks the configured servers directly:
+notification, or by polling every second. One current lookup per
+host name and resolver incarnation is eligible at a time, subject to
+V15's worker admission. Bounds below start when a worker begins the call;
+queue time is separate. System lookups have no finite execution bound
+(V3). The address kind takes at most ten seconds per configured server:
+two attempts with a five-second absolute deadline per attempt, including
+UDP and any TCP retry after truncation. RA-only and DHCPv6-only lookups
+wait at most three seconds for servers, then query at most three servers
+within thirty seconds. Unified `ipv6` with failure fallback (V14) waits
+at most three seconds once, then spends at most thirty seconds on each
+source, for a total bound of 63 seconds; families run in parallel.
+The next refresh becomes eligible thirty seconds after the previous
+lookup returned; overload coalesces pending work rather than queuing ticks.
+A reload invalidates old results immediately (V7), but does not free an
+in-flight worker until its call actually returns. The address kind asks
+the configured servers directly:
 the hosts file and the special names of the system resolver
 (`localhost`) play no part in it.
 
@@ -155,21 +170,39 @@ alternatives, never used together. The fallback works only where
 interfaces managed by systemd-networkd and similar daemons usually have
 it disabled, because the manager processes advertisements in user space;
 the raw socket is therefore required, not optional, for this method
-([R4](requirements.md#the-host)). An advertisement replaces the server
-list: each server of its RDNSS options is in force for the option's
-lifetime, a lifetime of zero withdraws the server, and the servers of the
-previous advertisement that it does not repeat are dropped. Servers whose
-lifetimes have expired are still used while no unexpired server exists,
-so that a router outage does not end resolution. A link-local server
-address is used with the interface as its scope. DNSSL options are
-ignored. Advertisements are multicast, so the daemon neither competes
-with nor disturbs other consumers of them and needs nothing from them.
+([R4](requirements.md#the-host)). Process RDNSS entries individually,
+keyed by address on the receiving interface, as
+[RFC 8106 §6.2](https://www.rfc-editor.org/rfc/rfc8106.html#section-6.2)
+specifies: a nonzero lifetime inserts or refreshes that address; zero
+withdraws that address, including any stale copy. Omitted addresses keep
+their lifetimes. An advertisement with no RDNSS changes nothing; several
+options or advertisements, including those from different routers, never
+replace the entire repository. Raw and netlink sources apply the same
+updates; no timing heuristic groups netlink options into a replacement
+snapshot.
 
-V11. A loss of the daemon's own notifications ([E20](events.md#monitor-loss))
-does not touch the resolvers: each owns its sockets and keeps its servers
-and answers; nothing is re-read or re-solicited for it. The daemon's
-event monitor does not subscribe to `RTNLGRP_ND_USEROPT`: advertisements
-reach the resolver through its own sockets ([E23](events.md#resolver-events)).
+The repository is bounded: at most 64 distinct server addresses per
+resolver, including stale ones. On overflow, evict expired entries first,
+then the earliest finite expiry, with infinite lifetimes last; use address
+byte order to break ties. Explicit withdrawals are processed even when
+full. Queries use at most three servers, with refreshed entries preferred
+in their advertised order and omitted entries retained behind them.
+As an explicit availability extension to RFC expiry behavior, expired
+servers may still be queried while no unexpired server exists; explicit
+withdrawal is never treated as expiry. This preserves the existing
+`iphost` stale-server contract without discarding a live server merely
+because a later advertisement omitted it. A link-local server address
+uses the interface as its scope. DNSSL is ignored. Discovery creates no
+host DNS configuration and does not modify another consumer's state.
+
+V11. After event-monitor loss ([E20](events.md#monitor-loss)), revalidate
+every resolver bind and zone dependency under V9. A dependency proved
+unchanged keeps its discovery sockets, server lifetimes and answers;
+loss alone does not flush servers or solicit again. An absent, replaced
+or invalid dependency stops the affected operations; restart discovery
+only after validation, retaining answers under V6. The event monitor
+does not subscribe to `RTNLGRP_ND_USEROPT`: advertisements reach the
+resolver through its own sockets ([E23](events.md#resolver-events)).
 
 ## DHCPv6 Information-Request
 
@@ -242,17 +275,28 @@ readiness is not withheld.
 V14. For `method = "ipv6"` the resolver runs both discovery methods on
 the bind interface at once: router advertisements
 ([V10](#router-advertisements)) and Information-Requests
-([V12](#dhcpv6-information-request)). Precedence is by source: while the
-DHCPv6 source has servers in force, only they are queried; otherwise the
-router-advertisement servers are, so DHCPv6 takes precedence while
-whichever source works suffices. Either source being absent, expired or
-failing (no router advertises servers, no DHCPv6 server answers, port
-546 refused, the raw socket refused) is not a failure of the resolver as
-long as the other source has a server; the resolver starts if either
-source starts, and is reported as without servers only when both are
-empty. A lookup waits up to three seconds for the first servers from
-either source. The lifetimes and refresh rules of each source apply
-unchanged.
+([V12](#dhcpv6-information-request)). Start if either source starts,
+and report no servers only when neither has a usable server list.
+Wait at most three seconds once for initial discovery, then take bounded
+snapshots of at most three servers per source for this lookup.
+
+For each address family independently, query DHCPv6-provided servers
+first. A successful positive answer or a definitive negative answer
+(NXDOMAIN or NOERROR with no records for that family) ends that family's
+lookup; do not consult RA to override it. If DHCPv6 has no servers, or
+all its attempts fail through timeout, transport error, SERVFAIL, REFUSED
+or malformed responses, query the RA-provided servers for that family.
+Keep a successful result of the other family unchanged. If both sources
+fail, V6 retains the previous answer. Every later lookup starts with
+DHCPv6 again; a fallback does not delete either discovery source's list.
+Thus stale DHCPv6 information cannot indefinitely hide working RA DNS.
+The total bound is V4's 63 seconds, not 33 seconds per unified lookup.
+
+Enable this behavior explicitly through the general-purpose fallback
+option requested in [the upstream instruction](../upstream-iphost.md).
+The existing `iphost` selection-only API remains available to other
+consumers; the daemon must not claim this behavior until the upstream
+option and its bounds ship. Discovery lifetimes follow V10 and V12.
 
 ## Resources
 
@@ -260,11 +304,32 @@ V15. A resolver of the address kind owns no socket between lookups; one
 of the `ra` kind owns one raw ICMPv6 socket and one thread; one of the
 `dhcpv6` kind owns one thread, and all resolvers on one interface share
 one UDP socket and one receiving thread; one of the `ipv6` kind owns
-both. Lookups run on one refresh thread per host name, one at a time,
-each with one helper thread for its duration, because the two families
-are queried in parallel; there is no shared runtime.
-These are bounded by the number of configured resolvers and interfaces
-and count toward [G23](promises.md#conditional-promises).
+both. Discovery configurations are shared by their current users and
+released when unused; completed old incarnations are not cached forever.
+
+Lookup scheduling belongs to the daemon, not to `iphost`. Across all
+library instances in one process, allow at most eight in-flight system
+lookups and, separately, eight in-flight configured-resolver lookups.
+A configured lookup may use one additional helper for its second family.
+Acquire the appropriate permit before spawning work; retain it until the
+actual call returns, even after reload, cancellation of interest, or
+dropping the service. Never spawn a replacement worker for a timed-out
+libc call. This bounds stuck system workers at eight across repeated
+reloads and service creation; configured DNS cannot consume or wait on
+those system permits.
+
+Keep at most one pending job and one latest result per current lookup
+key; replace superseded work and discard results from old incarnations.
+Admit pending keys fairly when permits return, with no busy polling.
+Shutdown drops queued work and returns without joining blocked libc
+calls. Workers retain only their bounded job inputs and release discovery
+references on completion; bounded configured calls may finish after
+shutdown. Memory is bounded by current configuration/discovery state,
+fixed worker budgets and their in-flight snapshots, not reload history.
+If all system workers stall, new system lookups wait with an episode
+report; no finite system-DNS convergence is promised in that condition.
+This is the explicit resource limit of [G23](promises.md#conditional-promises),
+not a reason to stop the reconciler, readiness or shutdown.
 
 ## Resolver events
 
@@ -278,4 +343,4 @@ V13. Events concerning resolvers and what they cause:
 | The bind device appears, disappears, is renamed or replaced | Revalidate its lifetime and non-VRF kind before starting queries or discovery; stop them while absent or a VRF. Retry as V9 requires; retain answers in force |
 | An RDNSS lifetime expires | The server is used only while no unexpired server exists ([V10](#router-advertisements)); answers in force are kept ([V6](#queries-and-answers)) |
 | Monitor notifications are lost | Revalidate every resolver's bind device before further queries; retain answers. Discovery-source lifetimes still follow V11 |
-| Shutdown | Queries are abandoned; nothing is removed, because resolvers create no kernel object |
+| Shutdown | Drop pending work, invalidate results, release unused discovery state; do not join blocked libc calls or release their permits early (V15) |

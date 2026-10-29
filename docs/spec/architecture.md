@@ -114,9 +114,12 @@ concurrently where they share no identifier and no name; a session's
 operations always follow its tunnel's.
 
 A9. A resolver never blocks the loop: answers are polled every second
-and queries refreshed thirty seconds after the previous one returned,
-every lookup is bounded, and a slow resolver costs nothing but a stale
-answer ([V4–V6](resolvers.md#queries-and-answers)).
+and queries become eligible thirty seconds after the previous one
+returned. Configured lookups have finite execution bounds; libc system
+lookups do not. Separate fixed worker budgets and coalesced pending work
+bound resources even across reloads (V3–V4, V15). A stalled system lookup
+may delay other system lookups when that budget is exhausted, but never
+configured DNS, kernel work, readiness or shutdown.
 
 ## State
 
@@ -134,7 +137,9 @@ removed or lost), the current name as far as known, deferred, skipped and
 acknowledged changes ([M19](model.md#enforced-fields)). Per resolver:
 its servers and the answers in force. Globally: conflict counters, timer
 deadlines, the subscriptions' health and generations, and whether the
-host tunable of [P25](process.md#host-tunables) was found set.
+host tunable of [P25](process.md#host-tunables) was found set, pending
+write request incarnations/deadlines, and exact descriptor-store names
+awaiting retirement (L12, L13).
 
 A12. Records are updated only after the kernel confirmed an operation,
 and in a way that a failure between two steps leaves a record the next

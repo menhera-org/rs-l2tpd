@@ -33,9 +33,9 @@ Every test names the rules it guards in its doc comment,
 
 | Suite | Kernel | Runs where | Guards |
 |---|---|---|---|
-| Unit and `rules/` | fake | `cargo test`, anywhere, no privilege | C, M, T, S, V, E, O, L rules |
-| `properties/` | fake | `cargo test` | G promises as invariants over random inputs |
-| `kernel/` conformance | fake **and** real | `cargo test` for the fake; a privileged container and the QEMU matrix for the real one | K facts, `kernel::linux` |
+| Unit and `rules/` | fake | `cargo test --all-features`, no privilege | C, M, T, S, V, E, O, L rules |
+| `properties/` | fake | `cargo test --all-features`, when implemented | G promises as invariants over random inputs |
+| `kernel/` conformance | fake **and** real | `cargo test --all-features` for the fake; a privileged container and the QEMU matrix for the real one | K facts, `kernel::linux` |
 | `scenarios/` | real | privileged containers; QEMU for `ipv6.disable=1` and other boot options | H rules, P rules, the unit, G15–G23 end to end |
 
 ### The conformance suite
@@ -105,17 +105,43 @@ Current review probes and exact commands are in `tests/kernel/README.md`.
 ## Running
 
 ```sh
-cargo test                                   # unit, rules, properties, fake conformance
+cargo test --locked --all-features --target x86_64-unknown-linux-musl # unit, rules, fake conformance; properties when implemented
 tests/docker/run.sh conformance              # real-kernel conformance in a privileged container
 tests/docker/run.sh scenarios                # the scenario suite
 tests/docker/run.sh matrix v6.8..v7.3        # QEMU kernel matrix (TCG, unprivileged)
 cargo llvm-cov --all-features -- --include-ignored   # with the container profiles mounted back
 ```
 
+The first command is usable now; plain `cargo test` skips the
+`fake-kernel`-gated rules and conformance targets. The `run.sh` commands
+are Phase 6 targets, not existing runners. Coverage must name and execute
+the required features and live suites; do not treat a lenient rule map as
+proof that new clauses pass.
+
 The container runs need `--cap-add NET_ADMIN --cap-add NET_RAW` (and
 `--privileged` for sysctls), host-kernel L2TP support, no host
 networking and no writable host mounts; the QEMU runs need only a user
 account and the kernel images the driver builds or fetches.
+
+## Contract correction acceptance cases
+
+These cases are required by the 2026-10-29 contract corrections. They are
+not claims that current suites implement them. Existing rule citations
+must gain these cases before the affected phase exits close.
+
+| Rules | Deterministic policy case | Real boundary evidence |
+|---|---|---|
+| S23, M18, S24 | Lose lifetime notifications while staged; replace the device using both its index and temporary name. No rename/MAC operation may hit the replacement. Verify ambiguity/refusal preserves it, and confirmed absence precedes restaging. | Namespace move/reuse on the live kernel; compare the registration incarnation, not only current name/index. |
+| L12, T26, P8, P25 | Delay success to the last instant before 5 s: no tunnel registered meanwhile, then fresh dual-stack socket. Cover failure, exact deadline, late success, still-v6-only read-back, multiple waiters and shutdown. Existing sessions never re-create. | Set `bindv6only=1` in an isolated namespace; confirm fresh socket read-back after write, both V4/V6 fallbacks and the kernel's fixed per-socket option. |
+| P14, P26, L13 | Inherit removed or changed-peer tunnels; retain exact names through rejection, distinguish a failed query from a mismatch, and serialize old-name withdrawal before replacement storage. Cover failed/missing acknowledgements and cleanup retries. | With a real systemd store, close only the local duplicate and show the tunnel remains; then withdraw the stored copy and confirm absence. Exercise crash/re-exec with changed config, a delayed removal/barrier and bounded failing shutdown. |
+| V3, V15, G23 | Block eight fake libc calls; repeatedly replace/remove names and create/drop services. No ninth system worker starts; permits return only when calls do. Configured DNS, kernel events, readiness and shutdown still progress. Verify one pending/latest result per current key and release of unused discovery refs. | Adapter tests use a controllable blocking resolver rather than waiting on real DNS; test namespace ownership and actual thread/descriptor counts. |
+| V10 | A+B, then refresh or withdraw A alone: B remains. Include no-RDNSS RA, interleaved routers, split netlink delivery, lifetime/stale rules and capacity overflow. | Upstream Rust parser/state regressions; raw and ND_USEROPT paths yield equivalent updates. Downstream tests use the released corrected crate. |
+| V14 | Enable fallback: DHCPv6 timeouts/SERVFAIL with working RA; positive/negative DHCPv6 finality; partial-family success; recovery next refresh; both sources fail. | Upstream transport tests verify default compatibility, per-family results and policy-dependent 33/63 s upper bounds. Downstream tests enable the released option explicitly. |
+
+Use barriers, injected results and virtual clocks for delayed calls and
+deadlines; no fixed sleeps or uncontrolled Internet DNS in unit tests.
+Upstream and daemon tests have separate ownership:
+[upstream instructions](upstream-iphost.md).
 
 ## Kernel test pitfalls
 

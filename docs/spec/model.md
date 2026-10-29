@@ -60,7 +60,9 @@ M4. Entries without a shared dependency are independent. A failure MUST
 NOT block unrelated work. A session waits for its tunnel, and an operation
 claiming an identifier or name waits for its release under M6, including
 across tunnels. A failed release blocks only operations depending on that
-resource; other entries continue.
+resource; other entries continue. Resolver calls also share their own
+finite worker budget (V15); waiting for a permit never blocks kernel work.
+A tunable handshake delays only the new tunnels that need it (L12).
 
 M5. A reconcile is triggered by: start-up, a reload, the retry timer while
 an earlier reconcile left something unapplied, and the periodic retry of
@@ -231,10 +233,11 @@ attempt never causes a burst.
 | Disconnected tunnel with a real peer: connect retry | 1 s, one shared timer |
 | Conflict retries before an entry is left out | 10 attempts, a second apart, the first attempt counted |
 | Retry of left-out entries | 30 s, and every reload |
-| Resolver refresh | 30 s after the previous lookup returned; a lookup is bounded per kind; answers polled every 1 s ([V4](resolvers.md#queries-and-answers)) |
+| Resolver refresh | Eligible 30 s after the previous lookup returned, subject to V15 admission; configured lookup execution bounded by V4, system lookup unbounded; answers polled every 1 s |
 | Resolver host-defect retry | 30 s ([V12](resolvers.md#dhcpv6-information-request)) |
 | Wait for a deleted tunnel to leave the kernel | up to 2 s |
-| Host tunable re-check | at every socket creation and every reconcile ([P25](process.md#host-tunables)) |
+| Host tunable re-check | at every socket creation and every reconcile ([P25](process.md#host-tunables)); one coalesced write handshake, 5 s maximum before fallback (L12) |
+| Descriptor-store withdrawal | 2 s per attempt, separate from the 2 s kernel-deletion window; retry failed retirement every 1 s while running (L13) |
 
 M15. The daemon MUST NOT poll where it can be notified, and MUST NOT loop
 without delay. Every timer is bounded in number: one per bound device, one
@@ -256,7 +259,9 @@ dropped before they reach the daemon where the host allows a filter
 per event, and the number of events is the host's; the cost is buffer
 space and, under bursts, a resync ([R6](requirements.md#the-host)). A
 rename event is matched against the configured bind names and the owned
-indexes by lookup, not by scanning the configuration. Memory is bounded
-by the current configuration plus the monitor buffers plus the resolver
-state; records of removed entries are released at the reconcile that
-removes them.
+indexes by lookup, not by scanning the configuration. Memory follows
+G23: current configuration, monitor buffers, bounded discovery state and
+fixed in-flight lookup budgets. Removed entries release queued work;
+uncertain mutations and descriptor-store retirements retain only the
+ownership/cleanup record needed to finish safely (L13). Finished records
+and unused discovery configurations are released, never cached by history.

@@ -164,9 +164,12 @@ interfaces except seeding a reopened subscription.
 H18. On a host with `net.ipv6.bindv6only=1` the daemon sets it to 0 in its
 own namespace at start-up and whenever it finds it set again, unless the
 operator turned `host.fix_bindv6only` off ([P25](process.md#host-tunables)).
-With the option off, IPv4 tunnels get `AF_INET` sockets and IPv6 tunnels
-`AF_INET6` ones ([T26](tunnels.md#hosts-with-bindv6only)); every peer
-works, and only in-place family moves are lost.
+New tunnels wait at most five seconds for the coalesced correction
+handshake before registration; success opens a fresh socket and verifies
+the option. With the option off or the correction unsuccessful, IPv4
+tunnels get `AF_INET` sockets and IPv6 tunnels `AF_INET6` ones
+([T26](tunnels.md#hosts-with-bindv6only)); only in-place family moves are
+lost. A late write success does not replace an already registered socket.
 
 ## Non-systemd hosts
 

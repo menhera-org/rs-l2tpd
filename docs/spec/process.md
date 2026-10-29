@@ -65,8 +65,11 @@ or an entry whose identifiers are held elsewhere once the bounded retries
 are spent.
 
 P8. Readiness MAY wait for: the bounded conflict retries (at most ten
-seconds per entry, run concurrently with the rest), and a kernel that
-cannot create the objects at all.
+seconds per entry, run concurrently with the rest), the coalesced
+five-second tunable handshake before affected tunnel registration
+(L12, T26), and a kernel that cannot create the objects at all.
+A failed handshake selects the fallback; it never becomes an indefinite
+readiness dependency.
 
 P9. Until readiness, failed creations are retried every second. Kernel and
 resolver events are handled meanwhile, so a device appearing or a name
@@ -157,12 +160,35 @@ is used: it is a socket of domain `AF_INET` or `AF_INET6`, type
 `SOCK_DGRAM` and protocol `IPPROTO_L2TP` (`SO_DOMAIN`, `SO_TYPE`,
 `SO_PROTOCOL`), `getsockname` reports the identifier of a tunnel of the
 configuration, and the kernel reports that tunnel with the configured
-peer identifier; one that fails any check is closed. The kernel cannot
+peer identifier. A transport error or timeout during verification is
+uncertain, not a mismatch: keep the descriptor and retry verification
+with the bounded kernel requests, without disturbing unrelated entries.
+
+A definitive rejection (including a removed tunnel or a changed peer
+identifier in the new configuration) follows this retirement path:
+retain its inherited store name, request `FDSTOREREMOVE=1` for that name
+where a store exists, then close the local descriptor and verify absence
+before identifier reuse. This applies before adoption too; a descriptor
+must not disappear inside a failed constructor without a cleanup record.
+Removing a store entry releases a descriptor reference, never deletes a
+kernel object by identifier. Keep a coalesced cleanup record until store
+withdrawal and kernel absence are confirmed; retry failures while running
+and report them at shutdown (L13, P17). The kernel cannot
 say that the tunnel is registered on this very socket; that residual is
 accepted because the only process that hands sockets over is the daemon
-itself. A stored socket is named `t` followed by the decimal tunnel
+itself. Store handback retains the manager's reference:
+[systemd's store protocol](https://www.freedesktop.org/software/systemd/man/latest/sd_notify.html#FDSTORE=1)
+and [service_collect_fds](https://github.com/systemd/systemd/blob/v256/src/core/service.c)
+do not transfer exclusive ownership. Linux deletion waits for socket
+destruction ([K37](kernel.md#facts)), so local close alone is insufficient.
+A store name addresses a group: never withdraw it while retaining another
+descriptor under that name; retire the group before storing a replacement.
+A stored socket is named `t` followed by the decimal tunnel
 identifier (`FDNAME=t17`); a descriptor under any other name in
-`LISTEN_FDNAMES` is closed unread. Sessions on an adopted tunnel keep
+`LISTEN_FDNAMES` is not inspected as a tunnel: withdraw that exact
+inherited name from the store before closing it locally. A malformed
+handover without usable names is reported; never guess a tunnel ID or
+claim successful store cleanup. Sessions on an adopted tunnel keep
 working and are handled by [S28](sessions.md#adopted-tunnels).
 
 P26. On every host, with or without a descriptor store, the daemon
@@ -208,8 +234,9 @@ protocol. Rules:
 - The process, its PID and the PID file stay the same, so every init
   system keeps supervising the same process ([P22](#the-process-contract)).
 - The new instance reads the configuration files afresh, verifies every
-  adopted socket as in [P14](#restart), closes those it cannot verify,
-  and reconciles; a tunnel of the accepted configuration that was not
+  adopted socket as in [P14](#restart), retries uncertain verification
+  and retires definitive rejections through the same store-withdrawal
+  path, and reconciles; a tunnel of the accepted configuration that was not
   handed over is created as at start-up. Readiness is not signalled
   again: there is no parent to tell.
 - If the exec fails, the old instance continues unchanged, restores
@@ -364,9 +391,13 @@ and whenever a freshly created `AF_INET6` socket reports `IPV6_V6ONLY=1`
 ([K23](kernel.md#facts), [T26](tunnels.md#hosts-with-bindv6only)), the
 service asks the binary (or the embedding program) to write 0, the binary
 does so, the change is logged at warning level with the previous value,
-and the socket is created again. A write that fails is a host defect for
-the tunnels concerned: reported once, and those tunnels get `AF_INET`
-sockets as with the option off. With it off, the daemon never writes the
+and new tunnels wait for the bounded handshake of
+[L12](library.md#the-reconciler) before registration. A successful write
+is followed by one fresh socket and read-back (T26). A failed or timed-out
+write, or a read-back still showing IPv6-only, is reported once and uses
+T26's family-specific fallback: V4 gets `AF_INET`, V6 keeps `AF_INET6`.
+Existing registered sockets and session identities are never replaced
+because of a late acknowledgement. With it off, the daemon never writes the
 tunable and [T26](tunnels.md#hosts-with-bindv6only) applies. This is the
 only kernel setting the daemon ever changes ([G10](promises.md#unconditional-promises));
 the reason it is on by default is that a value of 1 silently disables

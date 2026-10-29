@@ -27,8 +27,10 @@ The kernel carries Ethernet pseudowires over IPv4 or IPv6.
 The last release is 0.1.5. The tree is being rewritten against a complete
 [specification](docs/spec/README.md); the rewrite ships as 0.2.0. The
 [plan](docs/plan.md) says what is being built and in which order, and the
-specification's [known gaps](docs/spec/README.md#known-gaps) say where the
-current tree still differs.
+[current contract gaps](docs/spec/README.md#current-contract-gaps) list the
+review corrections still to implement. Configuration, kernel and reconciler
+code exists; the service/process layers are unfinished and the binary
+still exits 2. The known-gap tables describe historical commit `741117b`.
 
 ## Quick start
 

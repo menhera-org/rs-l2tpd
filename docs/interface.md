@@ -90,7 +90,8 @@ Readiness is that every eligible tunnel and session exists in the
 kernel, connected or not, published or still under a temporary name
 (P6). It waits for no name, route, source, bind device, IPv6 or deferred
 hardware address (P7); at most ten seconds for identifiers held
-elsewhere (P8). The parent exits 0 and `/run/rs-l2tpd.pid` appears
+elsewhere (P8), plus at most five seconds for a needed tunable-write
+handshake before registration (L12, T26). The parent exits 0 and `/run/rs-l2tpd.pid` appears
 (P10); with the supplied unit that releases `network-online.target`.
 
 ## Logging

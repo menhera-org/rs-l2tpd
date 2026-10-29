@@ -8,8 +8,9 @@ meet. It is written from the intent behind the original contracts of the
 project, from the kernel's source, and from the audits and reviews in
 the repository's `audit/` directory, not from the code. The
 implementation is measured against it; where the two differ the
-specification is right and the difference is listed under
-[known gaps](#known-gaps). The [documentation](../README.md) outside
+specification is right. [Current contract gaps](#current-contract-gaps)
+track the latest review corrections; [known gaps](#known-gaps) preserve
+the explicitly historical comparison. The [documentation](../README.md) outside
 this directory is the plan for building the implementation; where it
 and this specification differ, this specification is right.
 
@@ -60,22 +61,46 @@ re-derives that state and converges to it without changing an interface's
 identity unless the kernel leaves no choice. It never touches what it did
 not create.
 
+## Current contract gaps
+
+The 2026-10-29 documentation review corrected the following contracts.
+This is required implementation and acceptance work, not a declaration
+that the current code passes it:
+
+| Contract | Required correction and proof |
+|---|---|
+| S23, M18, S24 | Never recover a lost staging proof from an index/name match; test replacement with both values reused, verified deletion failure and absence before restaging. |
+| L12, T26, P8, P25 | Finish the bounded tunable handshake before registration; test success, failure, timeout, late reply, concurrent creations and a racing sysctl writer. |
+| P14, P26, L13 | Retain exact inherited store names; retry uncertain adoption and withdraw definitively rejected descriptors before reuse. Test real store references, delayed removal and shutdown failure. |
+| V3–V4, V15, A9, G23 | Separate bounded worker budgets from unbounded libc execution; test stalled calls across reloads/service drops, queue coalescing and configured-DNS independence. |
+| V10 | Apply bounded per-address RDNSS updates rather than replacement snapshots; upstream protocol fix required. |
+| V14 | Enable general-purpose per-family DHCPv6-to-RA failure fallback with truthful bounds; upstream additive capability required. |
+
+[Upstream instructions](../upstream-iphost.md) distinguish `iphost`'s own
+bugs from optional features and daemon-only work.
+[Acceptance cases](../testing.md#contract-correction-acceptance-cases)
+close these gaps; existing citations alone do not.
+
 ## Known gaps
 
 Historical gaps of the pre-rewrite implementation at `741117b`, removed
-in Phase 0. The current rewrite has configuration code and later-phase
-skeletons, not that daemon. The following comparison is historical:
+in Phase 0. The current rewrite has configuration, fake/real kernel and
+reconciler code, with unfinished service/process layers and a stub binary.
+Current acceptance work is in [the plan](../plan.md); the 2026-10-29
+contract corrections and upstream dependencies are listed above.
+The following comparison is historical:
 behaviour the specification required that that implementation did not
 provide, re-derived from the code on 2026-10-27, checked by an independent
 second pass on 2026-10-28, and every row re-confirmed against the code at
 commit `741117b` (roadmap step 2 of the repository's `CONTRIBUTING.md`;
 the rule-by-rule comparison is the step 2 report in the repository's
 `audit/` directory). Both tables are defects of the implementation, not
-of the specification: every row was confirmed on 2026-10-28 (roadmap
-steps 3 and 4), when the cases the implementation's behaviour could
-have been right about were decided.
+of the specification as assessed then: rows were confirmed on 2026-10-28
+(roadmap steps 3 and 4), when the cases in which the implementation could
+have been right were decided. The S23 finding is explicitly withdrawn
+below after the 2026-10-29 review.
 
-The design the code still implements:
+The design implemented by the historical baseline:
 
 | Requirement | Specification | Current behaviour |
 |---|---|---|
@@ -113,7 +138,7 @@ Defects against rules that hold under either design:
 | [P16](process.md#shutdown), [P17](process.md#shutdown), [S26](sessions.md#removal), [G20](promises.md#conditional-promises) | Provable sessions are deleted before their tunnel; each tunnel deletion is waited for up to two seconds. | Tunnel sockets are closed first and the sessions go with them; nothing is waited for. |
 | [P21](process.md#the-supplied-systemd-unit) | A read-only system except the PID file; the `bindv6only` write allowed; hand-over keys present. | `ProtectSystem=full` leaves `/var` writable; `ProtectKernelTunables=yes` forbids the write; no `NotifyAccess` or `FileDescriptorStoreMax`. |
 | [S22](sessions.md#identity-loss) | Deletion after a loss first verifies a unique matching stored creation name, then deletes by that name, accepting the documented check/delete race (S22). | The check and a deletion by identifiers are two operations, and any error of the check counts as "not ours", so the session is forgotten without being deleted. |
-| [S23](sessions.md#identity-loss) | A lost proof is first re-identified. | A staging session whose captured proof is lost is deleted and re-created at once. |
+| [S23](sessions.md#identity-loss), historical finding withdrawn 2026-10-29 | The former instruction to re-identify a lost proof by index/name was unsafe and is replaced by verified deletion, confirmed absence and restaging. | The baseline deleted and re-created a staging session after loss; it must be assessed against the corrected verification rule, not the withdrawn re-identification requirement. |
 | [T4](tunnels.md#address-families), [H4](hosts.md#address-families) | The `AF_INET6` refusal is probed at every tunnel creation. | One refusal latches every later tunnel to `AF_INET` for the daemon's life. |
 | [T20](tunnels.md#source-addresses), [H5](hosts.md#address-families) | A connect that leaves the source unspecified counts as failed and the tunnel is disconnected. | After a reconnect it counts as failed in the daemon's view, but the socket stays connected with that source; a creation-time connect is not checked at all (not reproduced). |
 | [T28](tunnels.md#peer-changes), [E13](events.md#timers) | Every peer change is a reconnect. | A same-family change on a connected, validly bound socket, including the peer retry, is a bare `connect`, which keeps the previous source. |

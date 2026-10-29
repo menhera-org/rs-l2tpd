@@ -22,7 +22,7 @@ specification differ, the specification is right and this page is wrong.
   7,000 lines of library and 1,500 of binary, excluding tests.
 - **One boundary makes everything testable.** The reconciler talks to the
   host only through the `Kernel` trait of the [architecture](architecture.md#the-kernel-boundary).
-  A fake implementation encodes the kernel facts K5–K41; the real one
+  A fake implementation encodes the kernel facts K5–K42; the real one
   wraps the sockets. Every behavioural rule is tested against the fake,
   deterministically; every kernel fact and every real implementation is
   tested against the live kernel.
@@ -71,7 +71,8 @@ specification differ, the specification is right and this page is wrong.
    unconnected tunnel socket (the disconnected state of T1), is
    in `l2tp` 0.4.2, published and pinned on 2026-10-28; 0.4.3 (same day,
    pinned) fixed the sender validation of E22 and added the bounded event
-   subscription `events_bounded` that G23 needs; 0.5.0 (2026-10-29,
+   subscription `events_bounded` as a bounded alternative; the production
+   path now uses the daemon's raw adapter. 0.5.0 (2026-10-29,
    pinned, with breaking changes the daemon does not meet, since it uses
    no handle) added the socket identifiers of P14, the lenient reply
    parser for foreign cookies of K35 and the runtime-free `EventSocket`.
@@ -203,12 +204,19 @@ use). The 14 shared cases of `tests/kernel/conformance.rs` pass on the
 fake and, with the 6 method-level live tests, on 6.8.0-147 in a
 privileged container. Open for the exit: live cases that force a
 lifetime overflow, a missing reply at the deadline, a foreign sender port
-and index reuse within a generation; the QEMU kernels; the three
-upstream needs recorded in [dependencies](dependencies.md#upstream-needs)
-(adopted socket identifiers, cookies of every length, and the raw `l2tp`
-group socket used instead of `events_bounded`).
+and index reuse within a generation; the QEMU kernels. The socket-ID
+and foreign-cookie needs subsequently shipped in pinned `l2tp` 0.5.0;
+the production event subscription uses the raw `netlink-sys` adapter.
+Their availability does not close the live-test exit criteria.
 
 ### Phase 3 — the reconciler
+
+**Status: code exists; acceptance is open.** In particular the corrected
+S23 staging rule, L12 handshake, P14/L13 retirement path and V15 worker
+budgets must be reconciled with the implementation. V10 protocol updates
+and V14's optional failure fallback require the
+[iphost upstream work](upstream-iphost.md). Do not call this phase complete
+from historical rule citations or from these documentation changes.
 
 Implements [model](spec/model.md), [tunnels](spec/tunnels.md),
 [sessions](spec/sessions.md), [resolvers](spec/resolvers.md) and
@@ -237,7 +245,11 @@ Implements [model](spec/model.md), [tunnels](spec/tunnels.md),
    adopted tunnels (S28).
 5. Resolvers (V1–V15): adapters over `iphost` for the four kinds,
    selection and retention (V5–V7), binding (V9), the DUID read with its
-   retry (V12), answers polled once a second (V4).
+   retry (V12), answers polled once a second (V4). Use separate process-wide system
+   and configured lookup budgets (V15), retain permits through obsolete
+   calls, coalesce jobs/results, and release unused discovery state.
+   V10 uses incremental RDNSS updates; V14 enables bounded per-family
+   fallback through the upstream API, not daemon-owned DNS protocol code.
 6. The degradation ladder (M7–M8) as the single place that decides which
    substitute an entry gets, so that promotion is one function.
 7. Event handlers (E1–E27) and timers (M14–M15): one tick, per-device
@@ -261,6 +273,10 @@ non-VRF validation, and dual zone/bind dependencies. G14 library behavior
 and actual channel/wakeup concurrency close in Phase 4; G15–G23 process,
 timing and resource promises require Phase 5–6 end-to-end tests. No
 unimplemented service/process promise is claimed from a planner test.
+The [contract correction cases](testing.md#contract-correction-acceptance-cases)
+are mandatory: staged replacement after loss, tunable completion before
+registration, obsolete lookup accounting, and both upstream resolver
+corrections. A documentation rewrite does not close these gates.
 
 ### Phase 4 — runtime and services
 
@@ -312,7 +328,11 @@ Implements [process](spec/process.md) P1–P27 and
 8. Descriptor store (P14): `NOTIFY_SOCKET` datagrams with `SCM_RIGHTS`
    (`FDSTORE=1`, `FDNAME=t<id>`, `FDSTOREREMOVE=1`), `LISTEN_FDS` with the
    original parent's PID through the double fork, unannounced
-   descriptors closed.
+   descriptors closed. Retain exact announced names through adoption,
+   retry uncertain verification, and retire definite rejections through
+   L13's bounded withdrawal/close/absence path. Verify manager processing
+   where possible, serialize removal before replacement storage, and
+   report failed cleanup without hanging shutdown.
 9. Restart (P26, E26): the `--adopt-version` probe, close-on-exec cleared
    on the handed sockets only, `execve` of the path the daemon was started
    with, signal mask reset in the new instance.

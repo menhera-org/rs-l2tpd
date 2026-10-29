@@ -197,11 +197,9 @@ S19. Two things end the proof of S9, and they are told apart:
 - **Observed removal**: the subscription saw the index leave the
   namespace, because the device was deleted, or moved to another namespace
   as a container manager's `physical` device. The index may now belong to
-  a replacement: the kernel never gives a freed index to a newly created
-  device before its 31-bit counter wraps, but a device moved in from
-  another namespace keeps its old index whenever that index is free here
-  (`__dev_change_net_namespace`), which is why [S24](#identity-loss) is
-  needed.
+  a replacement: automatic allocation is cyclic, and explicit index
+  selection or a device moved in from another namespace can reuse a free
+  index sooner ([K42](kernel.md#facts)). This is why S24 is needed.
 - **Loss of notifications**: the lifetime subscription overflowed, or its
   socket stopped answering ([E21](events.md#monitor-loss)); the device may
   or may not still be the one created. A new generation is opened and
@@ -251,12 +249,18 @@ On refusal, keep the object unmanageable and report the conflict rather
 than deleting by identifiers. This path also permits safely verified
 staged sessions to be removed and re-created after notification loss.
 
-S23. A session still being prepared whose device can no longer be proved
-is first re-identified at the index the registration broadcast reported,
-if the device there still bears the temporary name and the lifetime
-subscription of the current generation finds it; otherwise it is removed
-through the kernel's record ([S22](#identity-loss)) and created again, at
-most once per attempt, with ordinary retries thereafter.
+S23. A staged session with an ended lifetime proof MUST NOT be
+re-identified by its old index, temporary name, or a lookup in a new
+generation. Those values may now describe another device
+([K42](kernel.md#facts), [M18](model.md#monitor-generations), S24).
+After notification loss,
+remove it only through S22's verified stored-record path, confirm its
+absence, then create it again through S4–S8, at most once per attempt.
+If verification or deletion fails, keep it unmanageable and retry only
+the safe recovery path. After an observed removal, S21 and S27 apply
+instead: a session moved out of the namespace is left alone. A still-valid
+original registration proof permits ordinary staging to continue; no
+new proof is inferred from a matching name.
 
 S24. The daemon MUST NOT, after any loss, modify a device that reuses the
 index of a former session device, even if it bears the configured name.

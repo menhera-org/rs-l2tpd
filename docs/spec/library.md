@@ -53,10 +53,12 @@ effect and error ([C15](configuration.md#library-conversions)).
 
 L5. `Service` is the daemon minus process management: created with a
 configuration and an optional list of adopted descriptors (each an
-`OwnedFd` with the tunnel identifier the program read from
-`LISTEN_FDNAMES`, [P14](process.md#restart)), it opens the kernel
-interfaces and returns an error at once when it cannot, leaving the
-retry of [P5](process.md#start-up) to the caller, and verifies each
+`OwnedFd` with its exact store name and, when valid, parsed tunnel
+identifier from `LISTEN_FDNAMES`, [P14](process.md#restart)), it opens
+the kernel interfaces and returns an error at once when it cannot,
+leaving the retry of [P5](process.md#start-up) to the caller. A constructor
+failure returns unconsumed adopted descriptors/names to the caller rather
+than dropping them; retries retain their cleanup authority. It verifies each
 adopted descriptor as P14 says; `converge` applies the configuration, retrying every second until
 every eligible entry exists or a shutdown is requested, handling kernel
 and resolver events meanwhile and ignoring reloads, and returns with the
@@ -109,18 +111,43 @@ L12. The runtime never writes a kernel tunable. When
 [P25](process.md#host-tunables) calls for a write, the runtime sends an
 event naming the tunable and the value; the program (the binary, in the
 daemon) performs the write and reports the outcome through the control
-handle; until it does, or when it reports failure, the runtime proceeds
-as with the option off ([T26](tunnels.md#hosts-with-bindv6only)).
+handle. The request has an incarnation and a five-second absolute
+deadline. New tunnels needing the correction remain unregistered until
+the answer or deadline; unrelated work and shutdown continue. Coalesce
+simultaneous requests for the namespace. Success causes one fresh socket
+and read-back before registration; failure, timeout or a still-IPv6-only
+replacement selects T26's fallback. Ignore late answers for completed
+requests. Never register a fallback merely because the answer is pending,
+then replace its socket after sessions exist.
 
 L13. The runtime never speaks to a descriptor store. It sends
-`StoreSocket { tunnel_id, fd }` when a tunnel exists and
-`ForgetSocket { tunnel_id }` before it closes a tunnel's socket; the
-program (the binary, in the daemon) performs the store operation of
-[P14](process.md#restart) where a store exists and reports the outcome
-through the control handle. The close of a socket waits for the answer
-to its `ForgetSocket`, bounded by the two seconds of
-[T8](tunnels.md#creation-and-identifiers); without a store the program
+`StoreSocket { tunnel_id, fd }` when a tunnel exists and a
+`ForgetSocket` request with the exact store name and request incarnation
+before closing a tunnel socket, including a descriptor rejected during
+adoption. Adoption inputs retain that name until verification or
+retirement completes; a tunnel identifier alone cannot name an invalid
+inherited entry. The program performs the protocol of
+[P14](process.md#restart) and reports its outcome; without a store it
 answers at once.
+
+Withdrawal waits at most two seconds per attempt without blocking the
+loop. Sending a datagram is not proof that the manager processed it:
+use a bounded notification barrier when available; otherwise retain
+uncertainty and verify kernel absence after closing. On failure or
+timeout, close the local descriptor but retain a coalesced retirement
+record, retry withdrawal, and do not report successful deletion or reuse
+the identifier until absence is confirmed. Complete a prior withdrawal
+before storing a replacement under the same name, so a delayed removal
+cannot withdraw the replacement. Ignore stale acknowledgements.
+Shutdown makes a bounded final attempt, reports residual store references
+as cleanup failures and still performs subsequent cleanup (P17).
+The two-second kernel-deletion window (T8) begins after local close;
+it is separate from the withdrawal deadline. Bound outstanding store-name
+records by the announced store capacity or inherited name count, whichever
+is larger, reserving a record before each new store submission. If full,
+report storage unavailable for new sockets and keep them locally owned;
+do not accumulate untracked submissions. Readiness does not depend on
+optional crash preservation. Released records make room again.
 
 ## Errors
 

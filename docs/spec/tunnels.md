@@ -216,8 +216,9 @@ is not disturbed by another's retry.
 T22. The following configuration changes keep the socket, the tunnel and
 its sessions: `remote_addr`, `ip_version`, `resolver_name`,
 `bind_interface`, and the correction of an unusable endpoint. A changed
-`bind_interface` is applied by a reconnect to the new name; this is a
-[known gap](README.md#known-gaps): today it re-creates the tunnel.
+`bind_interface` is applied by a reconnect to the new name. The
+[historical comparison](README.md#known-gaps) records the pre-rewrite
+re-creation behavior.
 
 T23. The following changes re-create the tunnel, and with it its sessions
 and their interfaces, because the kernel cannot change them: `tunnel_id`
@@ -254,13 +255,21 @@ which a connect to an IPv4-mapped address refuses with `ENETUNREACH`, and
 the option cannot be cleared on an L2TP/IPv6 socket
 ([K23](kernel.md#facts)). After creating an `AF_INET6` socket the daemon
 reads `IPV6_V6ONLY` back. If it is set and `host.fix_bindv6only` is on,
-the daemon has the tunable set to 0 ([P25](process.md#host-tunables)),
-closes the socket and creates it again. If it is set and the option is
-off, or the write failed, a tunnel whose `ip_version` is `V4` gets an
-`AF_INET` socket instead and a tunnel whose `ip_version` is `V6` keeps
-the `AF_INET6` socket; the loss of in-place family moves for such
-tunnels is reported once. A tunnel keeps the family it was created with
-until it is re-created for another reason ([M17](model.md#identity-matrix)).
+close this provisional socket and request the tunable write
+([P25](process.md#host-tunables), [L12](library.md#the-reconciler)).
+Do not register the tunnel or create its sessions while that request is
+pending. On success, open one fresh socket and read the option again.
+The handshake lasts at most five seconds; it never blocks unrelated
+entries or shutdown. A failed read-back is a retryable socket error,
+never evidence that a socket is dual-stack.
+
+With the option off, a failed or timed-out write, or a fresh socket still
+reporting IPv6-only after the write, a V4 tunnel uses `AF_INET` and a V6
+tunnel uses the IPv6-only `AF_INET6` socket. Report the loss of in-place
+family moves once. Do not loop indefinitely if another writer keeps
+setting the tunable. A later write success affects future creations
+only: once registered, a tunnel keeps its socket until re-created for
+another reason ([M17](model.md#identity-matrix)).
 
 ## Link-local peers
 
