@@ -61,7 +61,7 @@ rs-l2tpd [--config FILE] [--config-dir DIR] [--pid-file FILE] [--verbose]
 | none | Starts the daemon: double fork, readiness, PID file (P4, P6, P10) | parent 0 at readiness, 1 before |
 | `--check` | Prints the configuration that would be applied, in a fixed order, and every problem (P3, O8) | 0 without problems, 1 with any |
 | `--foreground` | Runs in the calling process: no fork, no PID file, no readiness report (P4) | the daemon's own |
-| `--restart` | Sends `SIGUSR2` to the PID in the PID file (P26) | 0 delivered, 1 not |
+| `--restart` | Sends `SIGUSR2` to the PID in the PID file, after checking that the file is a regular, caller-owned, not group- or world-writable file holding one PID (P26, P27) | 0 delivered, 1 not |
 | `--adopt-version` | Prints `rs-l2tpd-adopt 1` (P26) | 0 |
 | `--version` | Prints the crate version | 0 |
 | `--setup-systemd` | Only in a binary built with the `setup-systemd` feature: installs this binary, the unit and the configuration paths on a systemd host, within the scope of [packaging](packaging.md#--setup-systemd-feature-setup-systemd) | 0 done, 1 a step failed |

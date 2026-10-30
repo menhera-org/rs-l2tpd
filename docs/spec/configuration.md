@@ -27,8 +27,11 @@ remote_addr = "192.0.2.2"`; the result has `tunnel_id = 1` and
 defines it.
 
 C3. An absent main file or an absent directory is not a problem. A file
-that cannot be inspected, read or parsed, or a directory that cannot be
-listed, is a problem that names the file: at start-up the file is left out
+that cannot be inspected, read or parsed, that is not a regular file (a
+FIFO, a socket or a device would block or never end; the check is made
+before the open and again on the opened descriptor), or that exceeds a
+size bound of 16 MiB, or a directory that cannot be listed, is a problem
+that names the file: at start-up the file is left out
 and the rest is used; on reload the whole previous configuration stays in
 force, because the entries of an unreadable file cannot be told apart from
 intentional removals ([C12](#reload)). A main file or directory that was
@@ -70,7 +73,7 @@ C7. Fields of a tunnel entry:
 |---|---|
 | `tunnel_id` | Required. Integer, 1 to 2^32-1. Unique among tunnels. |
 | `peer_tunnel_id` | Integer, 1 to 2^32-1. Defaults to `tunnel_id`. |
-| `remote_addr` | Required. An IPv4 literal (dotted quad), an IPv6 literal (RFC 4291 text form, optionally with a zone `%` followed by an interface name, which is valid only for a link-local address), or a host name: one to 253 bytes of labels of 1 to 63 ASCII letters, digits and hyphens, separated by dots, not beginning or ending with a hyphen, with an optional trailing dot that is removed; an IPv4-mapped IPv6 literal is an IPv4 literal. A literal MUST be a unicast address: not unspecified, not multicast, not the IPv4 broadcast address; loopback is allowed. A link-local IPv6 literal without a zone is valid only on a tunnel with a `bind_interface` ([T27](tunnels.md#link-local-peers)); otherwise it is a hard mistake. |
+| `remote_addr` | Required. An IPv4 literal (dotted quad), an IPv6 literal (RFC 4291 text form, optionally with a zone `%` followed by an interface name, which is valid only for a link-local address), or a host name: one to 253 bytes of labels of 1 to 63 ASCII letters, digits and hyphens, separated by dots, not beginning or ending with a hyphen, whose last label is not all digits (RFC 1123 section 2.1 reserves that form for IPv4 literals, so `300.1.1.1` or `1.2.3` is a mistyped address, not a name), with an optional trailing dot that is removed; an IPv4-mapped IPv6 literal is an IPv4 literal. A literal MUST be a unicast address: not unspecified, not multicast, not the IPv4 broadcast address; loopback is allowed. A link-local IPv6 literal without a zone is valid only on a tunnel with a `bind_interface` ([T27](tunnels.md#link-local-peers)); otherwise it is a hard mistake. |
 | `ip_version` | `"V4"` or `"V6"`, either case. Required for a host name, where it selects which answers are used. Optional for a literal, whose family it then is; a literal of the other family is a mistake. |
 | `bind_interface` | Optional. An interface name valid for the kernel ([K32](kernel.md#facts)): 1 to 15 bytes, no `/`, no `:`, no `%`, no whitespace, no NUL, not `.` or `..`. The device need not exist. |
 | `resolver_name` | Optional. The configuration name of a resolver ([C16](#resolver-entries)); meaningful only with a host name, ignored with a warning otherwise ([V1](resolvers.md#model)). Absent, the system resolver is used. |

@@ -12,8 +12,11 @@ tunnels and session interfaces ([degradation ladder](model.md#the-degradation-la
 a tunnel that cannot reach its peer is created disconnected
 ([T16](tunnels.md#peers-that-cannot-be-reached)).
 
-P2. Start-up order: change directory to `/`, parse the command line,
-initialise logging (the command line sets its level; a command line that
+P2. Start-up order: open `/dev/null` on every closed descriptor among 0,
+1 and 2, so that a supervisor that started the daemon with a closed
+standard stream cannot make the first socket take the place of standard
+error ([O1](observability.md#logging)); change directory to `/`, parse
+the command line, initialise logging (the command line sets its level; a command line that
 cannot be parsed is reported on standard error without the logger and is
 the only thing that can fail before it), load the configuration leniently
 ([C10](configuration.md#start-up)), report every problem, then daemonise
@@ -151,7 +154,11 @@ exception to [G9](promises.md#unconditional-promises) and the adoption
 the one exception to [G2](promises.md#unconditional-promises). The
 hand-over is used only when the init system announces the store to the
 process; it needs no configuration key, no systemd on hosts without it,
-and no file. The daemon speaks the protocol itself, through the
+and no file. A `NOTIFY_SOCKET` the daemon cannot use (a path too long for
+`sockaddr_un`, `AF_UNIX` refused by the unit's address-family filter, a
+connect failure) is reported once at error level and the store is simply
+not used: it never prevents start-up ([P5](#start-up) reserves hard
+failure for the kernel interfaces). The daemon speaks the protocol itself, through the
 `NOTIFY_SOCKET`, `LISTEN_FDS`, `LISTEN_PID` and `LISTEN_FDNAMES`
 environment variables, and MUST NOT link against libsystemd or any D-Bus
 library: the same binary runs on a host without systemd, where the
@@ -341,15 +348,26 @@ For compatibility with 0.1.5 ([G22](promises.md#conditional-promises)),
 `-v`, `-c` and `-p FILE` or `--pidfile FILE` are accepted as aliases of
 `--verbose`, `--check` and `--pid-file FILE`. The modes are exclusive: `--check` ([P3](#start-up)); `--foreground`
 ([P4](#start-up)); `--restart`, which sends `SIGUSR2` to the PID in the
-PID file and exits 0 when the signal was delivered and 1 otherwise;
+PID file and exits 0 when the signal was delivered and 1 otherwise, and
+which, because `SIGUSR2`'s default action terminates a process that is
+not the daemon, trusts the file only when it opens without following a
+symbolic link, is a regular file with one link owned by the caller's
+effective user, has no group or other write permission, and holds at
+most 32 bytes that are one decimal PID above 1 and a newline; anything
+else exits 1 with a report and sends nothing;
 `--adopt-version` ([P26](#restart)); `--version`, which prints the crate
 version; and, only in a binary built with the `setup-systemd` feature,
 `--setup-systemd [--prefix DIR]`, an installer for systemd hosts whose
 scope is bounded by the documentation's packaging page: it copies the
 running binary atomically to `/usr/local/sbin`, installs the supplied
-unit unless the operator edited it, creates the configuration paths
-unless present, reloads systemd and enables and starts the unit once,
-and never restarts a running daemon; it is not a substitute for a
+unit at `/usr/local/lib/systemd/system/rs-l2tpd.service` (the directory
+for units the administrator installed; a unit of the same name in
+`/etc/systemd/system` shadows it by systemd's precedence and is left
+alone) unless the operator edited the installed one, creates the
+configuration paths unless present with directories of mode `0755` and
+files of mode `0644` whatever the caller's umask, reloads systemd and
+enables and starts the unit once, never restarts a running daemon, and
+says when a restart is needed for the installed binary to take effect; it is not a substitute for a
 package and the daemon never depends on it ([P23](#the-process-contract)).
 With no mode the daemon starts. An unknown option, a missing argument,
 two modes, or `--setup-systemd` in a binary without the feature exits 2

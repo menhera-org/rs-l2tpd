@@ -32,7 +32,8 @@ is still open.
 |---|---|---|
 | A1 | Staging under a temporary name happens only when strictly necessary: a configured `interface_hwaddr`, or the configured name held by a foreign device. Otherwise the session is created directly under its configured name, as 0.1.5 did. | S4 and S7 rewritten; H11 limitation scoped to staged sessions |
 | A2–A6 | Fix all. | no change |
-| B1–B11 | Fix all. B6: the installer's unit goes to `/usr/local/lib/systemd/system`, where 0.1.5 wrote it; `/etc` copies shadow it by precedence. B9: `-v`, `-c`, `-p`/`--pidfile` accepted as aliases. | P27 aliases; `docs/packaging.md` path and `--restart --pid-file` |
+| B1–B11 | Fix all. B6: the installer's unit goes to `/usr/local/lib/systemd/system`, where 0.1.5 wrote it; `/etc` copies shadow it by precedence. B9: `-v`, `-c`, `-p`/`--pidfile` accepted as aliases. | P27 aliases, installer path and modes (B6, B7), `--restart` file checks (B5); P2 closed descriptors (B1); P14 unusable `NOTIFY_SOCKET` (B3); C7 all-digit last label (B11); `docs/packaging.md` path and `--restart --pid-file` |
+| A4, A6 | Spec text the fixes rely on. | C3 non-regular files and the 16 MiB bound (A4); S10 creation-time notification is not an override (A6) |
 | C1 | The safer behaviour, which the code has: a new entry colliding with another new entry keeps its values in force when the accepted configuration holds its name. | C12 first-pass sentence |
 | C2 | Fix the code: tolerate `resolver_name` only when the configured text was a literal. | no change |
 | C3 | More buffer memory is fine; the spec follows the code. | R10 and E20: three subscriptions, 8 MiB requested, 16 MiB effective |

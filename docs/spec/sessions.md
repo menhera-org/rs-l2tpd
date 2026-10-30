@@ -112,7 +112,10 @@ S10. The configured name is the name the daemon gives the device at
 publication and when the configuration changes it. Another manager may
 rename the device afterwards; the daemon follows the device, not the
 name, accepts the rename as an acknowledged override
-([M19](model.md#enforced-fields)) and does not fight it. A later
+([M19](model.md#enforced-fields)) and does not fight it. Only a rename
+observed after the daemon's own rename was acknowledged counts: the
+creation-time notification, which still carries the creation name and
+may be delivered after the daemon's rename, is not an override. A later
 configured rename applies to the device under whatever name it bears. A
 configured rename to a name a foreign device holds is a transient
 failure. The kernel allows renaming a device that is up
