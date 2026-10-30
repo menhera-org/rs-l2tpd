@@ -23,6 +23,7 @@ struct Host(
     Arc<AtomicUsize>,
     Arc<Mutex<Option<mpsc::SyncSender<()>>>>,
     Arc<AtomicBool>,
+    Arc<Mutex<Option<Gate>>>,
 );
 struct Gate {
     entered: mpsc::SyncSender<()>,
@@ -51,6 +52,7 @@ impl Host {
             Arc::new(AtomicUsize::new(0)),
             Arc::new(Mutex::new(None)),
             Arc::new(AtomicBool::new(false)),
+            Arc::new(Mutex::new(None)),
         )
     }
     fn with<T>(&self, f: impl FnOnce(&mut FakeKernel) -> T) -> T {
@@ -87,6 +89,15 @@ impl Kernel for Host {
         }
         self.4.fetch_add(1, Ordering::SeqCst);
         self.0.lock().unwrap().rename(index, name)
+    }
+    fn create_session(&mut self, create: &SessionCreate) -> io::Result<Registration> {
+        self.callback_context();
+        let gate = self.7.lock().unwrap().take();
+        if let Some(gate) = gate {
+            gate.entered.send(()).unwrap();
+            gate.release.recv().unwrap();
+        }
+        self.0.lock().unwrap().create_session(create)
     }
     fn tunnel(&mut self, id: u32) -> io::Result<Option<TunnelInfo>> {
         self.callback_context();
@@ -134,7 +145,6 @@ impl Kernel for Host {
         close(socket: SocketId) -> ();
         adopt(fd: OwnedFd) -> io::Result<Adopted>;
         register_tunnel(socket: SocketId, tunnel_id: u32, peer_tunnel_id: u32) -> io::Result<()>;
-        create_session(create: &SessionCreate) -> io::Result<Registration>;
         session(tunnel_id: u32, session_id: u32) -> io::Result<Option<SessionInfo>>;
         scan_sessions(tunnel_id: Option<u32>, visit: &mut dyn FnMut(&SessionInfo)) -> io::Result<()>;
         delete_session(tunnel_id: u32, session_id: u32) -> io::Result<()>;
@@ -1002,41 +1012,42 @@ fn spawn_blocking_callers_and_injected_callbacks_can_own_their_runtimes() {
 /// spec: L5, L6
 #[test]
 fn reload_accepted_during_convergence_is_ignored_even_when_dequeued_after_readiness() {
-    let host = Host::new();
-    let (entered_tx, entered_rx) = mpsc::sync_channel(1);
-    let (release_tx, release_rx) = mpsc::sync_channel(1);
-    *host.1.lock().unwrap() = Some(Gate {
-        entered: entered_tx,
-        release: release_rx,
-    });
-    let mut wanted = config(10);
-    wanted
-        .insert_session(
-            "lan",
-            SessionConfig::builder("wan", 110, L2tpIfName::new("l2tp0").unwrap())
-                .interface_hwaddr(rs_l2tpd::config::HwAddr::new([2, 0, 0, 0, 0, 1]).unwrap())
-                .build()
-                .unwrap(),
-        )
-        .unwrap();
-    let mut service = start(&host, wanted);
-    let control = service.control();
-    let converging = std::thread::spawn(move || {
-        service.converge().unwrap();
+    for direct in [false, true] {
+        let host = Host::new();
+        let (entered_tx, entered_rx) = mpsc::sync_channel(1);
+        let (release_tx, release_rx) = mpsc::sync_channel(1);
+        let gate = if direct { &host.7 } else { &host.1 };
+        *gate.lock().unwrap() = Some(Gate {
+            entered: entered_tx,
+            release: release_rx,
+        });
+        let mut wanted = config(10);
+        let mut session = SessionConfig::builder("wan", 110, L2tpIfName::new("l2tp0").unwrap());
+        if !direct {
+            session = session.interface_hwaddr(HwAddr::new([2, 0, 0, 0, 0, 1]).unwrap());
+        }
+        wanted
+            .insert_session("lan", session.build().unwrap())
+            .unwrap();
+        let mut service = start(&host, wanted);
+        let control = service.control();
+        let converging = std::thread::spawn(move || {
+            service.converge().unwrap();
+            service
+        });
+        entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        control.reload().unwrap();
+        release_tx.send(()).unwrap();
+        let mut service = converging.join().unwrap();
+        control.restart().unwrap();
         service
-    });
-    entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
-    control.reload().unwrap();
-    release_tx.send(()).unwrap();
-    let mut service = converging.join().unwrap();
-    control.restart().unwrap();
-    service
-        .run(
-            |_| panic!("convergence reload must be ignored"),
-            move |_| {
-                control.shutdown();
-                Ok(())
-            },
-        )
-        .unwrap();
+            .run(
+                |_| panic!("convergence reload must be ignored"),
+                move |_| {
+                    control.shutdown();
+                    Ok(())
+                },
+            )
+            .unwrap();
+    }
 }

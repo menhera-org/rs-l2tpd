@@ -161,28 +161,41 @@ fn a_moved_session_recreation_reaches_the_conflict_budget_then_recovers() {
 /// spec: C14, M6, S11, S10, M19
 #[test]
 fn a_survivor_takes_a_removed_sessions_name_without_becoming_an_override() {
-    let (mut r, _) = reconciler();
-    r.kernel_mut().set_async_session_delete(false);
-    let first = session("interface_hwaddr='02:00:5e:00:53:01'")
-        + "\n[sessions.old]\ntunnel_name='a'\nsession_id=101\ninterface_name='l2tp1'";
-    r.reconcile(config(&first));
-    deliver(&mut r); // Includes the obsolete creation-time name.
-    let survivor = r.kernel().session_index(10, 100).unwrap();
-    let next = session("interface_hwaddr='02:00:5e:00:53:01'").replace("'l2tp0'", "'l2tp1'");
-    assert!(r.reconcile(config(&next)));
-    assert_eq!(r.kernel().session_index(10, 100), Some(survivor));
-    assert_eq!(r.kernel().session_index(10, 101), None);
-    assert_eq!(
-        r.kernel().link(survivor).unwrap().name().to_string_lossy(),
-        "l2tp1"
-    );
-    r.kernel_mut().rename_link(survivor, "manager");
-    deliver(&mut r);
-    r.reconcile(config(&next));
-    assert_eq!(
-        r.kernel().link(survivor).unwrap().name().to_string_lossy(),
-        "manager"
-    );
+    for asynchronous in [false, true] {
+        let (mut r, _) = reconciler();
+        r.kernel_mut().set_async_session_delete(asynchronous);
+        let first = session("interface_hwaddr='02:00:5e:00:53:01'")
+            + "\n[sessions.old]\ntunnel_name='a'\nsession_id=101\ninterface_name='l2tp1'";
+        r.reconcile(config(&first));
+        deliver(&mut r); // Includes the obsolete creation-time name.
+        let survivor = r.kernel().session_index(10, 100).unwrap();
+        let next = session("interface_hwaddr='02:00:5e:00:53:01'").replace("'l2tp0'", "'l2tp1'");
+        let complete = r.reconcile(config(&next));
+        assert_eq!(complete, !asynchronous);
+        if asynchronous {
+            assert!(r.kernel().session_index(10, 101).is_some());
+            assert_eq!(
+                r.kernel().link(survivor).unwrap().name().to_string_lossy(),
+                "l2tp0"
+            );
+            run_for(&mut r, 1);
+            deliver(&mut r);
+            assert!(r.reconcile(config(&next)));
+        }
+        assert_eq!(r.kernel().session_index(10, 100), Some(survivor));
+        assert_eq!(r.kernel().session_index(10, 101), None);
+        assert_eq!(
+            r.kernel().link(survivor).unwrap().name().to_string_lossy(),
+            "l2tp1"
+        );
+        r.kernel_mut().rename_link(survivor, "manager");
+        deliver(&mut r);
+        r.reconcile(config(&next));
+        assert_eq!(
+            r.kernel().link(survivor).unwrap().name().to_string_lossy(),
+            "manager"
+        );
+    }
 }
 
 /// spec: G1, G6, S4, M4, E12

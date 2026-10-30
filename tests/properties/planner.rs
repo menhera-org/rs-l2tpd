@@ -1,9 +1,9 @@
 //! Seeded reload/event sequences, checking invariants after every step.
 use crate::{config, deliver, ops, reconciler, run_for};
 use rs_l2tpd::config::Config;
-use rs_l2tpd::kernel::Kernel;
+use rs_l2tpd::kernel::{Kernel, L2tpIfName, SessionInfo};
 
-/// spec: M1, M2, M3, M4, M7, M8, M11, M12, M17, G3, G5, G6, G7, G18
+/// spec: M1, M2, M3, M4, M7, M8, M11, M12, M17, G2, G3, G4, G5, G6, G7, G18
 #[test]
 fn reload_sequences_converge_without_unjustified_identity_changes() {
     let seeds = std::env::var("TEST_SEED")
@@ -18,6 +18,19 @@ fn reload_sequences_converge_without_unjustified_identity_changes() {
             .add_addr(device, "192.0.2.1".parse().unwrap());
         r.kernel_mut()
             .add_addr(device, "2001:db8::1".parse().unwrap());
+        let foreign_socket = r.kernel_mut().operator_replace_tunnel(9000, 9001);
+        let foreign_info = SessionInfo::new(
+            9000,
+            9002,
+            9003,
+            Default::default(),
+            Default::default(),
+            Some(L2tpIfName::new("foreign-session").unwrap()),
+        );
+        let foreign_session = r.kernel_mut().foreign_session(foreign_info.clone());
+        let foreign_name = r.kernel_mut().add_link("foreign-name", false);
+        r.kernel_mut().set_up(foreign_name, true);
+        let foreign_link = r.kernel().link(foreign_name).unwrap().clone();
         let mut tid = 10;
         let mut peer_tid = 20;
         let mut sid = 100;
@@ -90,7 +103,30 @@ fn reload_sequences_converge_without_unjustified_identity_changes() {
             }
             if old_si == Some(si) {
                 assert_eq!(r.kernel().session_index(tid, sid), old_index);
+                assert!(
+                    r.kernel().link(old_index.unwrap()).unwrap().up(),
+                    "G4: a manager-raised device must stay up, seed {initial}"
+                );
             }
+            assert_eq!(
+                r.kernel().tunnel_socket(9000),
+                Some(foreign_socket),
+                "G2: foreign tunnel ownership, seed {initial}"
+            );
+            assert_eq!(
+                r.kernel_mut().session(9000, 9002).unwrap(),
+                Some(foreign_info.clone()),
+                "G2: foreign session unchanged, seed {initial}"
+            );
+            assert_eq!(r.kernel().session_index(9000, 9002), Some(foreign_session));
+            assert_eq!(
+                r.kernel().link(foreign_name),
+                Some(&foreign_link),
+                "G2/G4: foreign device and administrative state, seed {initial}"
+            );
+            let current_index = r.kernel().session_index(tid, sid).unwrap();
+            r.kernel_mut().set_up(current_index, true);
+            deliver(&mut r);
             let socket = r.kernel().tunnel_socket(tid).unwrap();
             let (peer, _) = r.kernel().connection(socket).unwrap();
             assert_eq!(
@@ -104,6 +140,12 @@ fn reload_sequences_converge_without_unjustified_identity_changes() {
         assert!(r.shutdown());
         r.kernel_mut().tick();
         assert!(r.kernel_mut().tunnel(tid).unwrap().is_none());
-        assert_eq!(r.kernel().open_sockets(), 0);
+        assert_eq!(r.kernel().open_sockets(), 1);
+        assert_eq!(r.kernel().tunnel_socket(9000), Some(foreign_socket));
+        assert_eq!(
+            r.kernel_mut().session(9000, 9002).unwrap(),
+            Some(foreign_info)
+        );
+        assert_eq!(r.kernel().link(foreign_name), Some(&foreign_link));
     }
 }

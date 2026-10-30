@@ -1,0 +1,409 @@
+6.8.0-147-generic
+command: TEST_SEED=7 cargo test --locked --all-features
+features: all; native; ordinary tests only
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 85 tests
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::completion_empty_tables_do_not_remove_merged_values ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::completion_new_collision_keeps_an_accepted_name ... ok
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::completion_corrected_host_retains_resolver ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::configuration_names ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::host_settings ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::completion_hard_endpoint_mistake_precedes_tolerated_family ... ok
+test config::tests::merging ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test config::tests::resolver_methods ... ok
+test config::tests::interface_names ... ok
+test config::tests::completion_host_names_and_mapped_family ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::strict_conversion ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test config::tests::tunnel_resolver_name ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... ignored, live kernel; Incus runner additionally requires the EPERM branch
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test config::tests::session_cookies ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test kernel::linux::request::completion_tests::payload_debug_is_redacted_without_changing_serialization ... ok
+test config::tests::tunnel_identifiers ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::rtnl::tests::address_dump_skips_foreign_families_and_rejects_malformed_inet_records ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test kernel::linux::rtnl::tests::malformed_dump_records_are_not_usable_entries ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test config::tests::session_hardware_addresses ... ok
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test config::tests::tunnel_literals ... ok
+test config::tests::tunnel_ip_version ... ok
+test reconciler::tests::completion::obsolete_creation_names_are_not_recorded_as_overrides_and_create_episode_ends ... ok
+test reconciler::tests::completion::removal_query_retries_and_old_deletion_does_not_poll_a_new_incarnation ... ok
+test config::tests::session_fields ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test config::tests::tunnel_host_names ... ok
+test runtime::tests::dropping_runtime_stops_both_subscription_tasks_and_closes_the_queue ... ok
+test runtime::tests::cleanup_verifies_kernel_absence_and_reports_a_remaining_reference ... ok
+test runtime::tests::blocking_completions_work_inside_spawn_blocking ... ok
+test runtime::tests::tunable_handshake_is_observed_forwarded_and_answered_without_host_io ... ok
+test runtime::tests::shutdown_keeps_withdrawal_and_kernel_deletion_windows_separate ... ok
+test runtime::tests::store_submission_and_withdrawal_acknowledgements_keep_the_incarnation ... ok
+test runtime::tests::library_boundary_and_extensible_api ... ok
+test runtime::tests::adopted_names_are_verified_or_retired_and_store_wait_is_bounded ... ok
+test service::tests::panic_completion_during_shutdown_is_reported_after_cleanup ... ok
+test runtime::tests::l2tp_queue_loss_uses_its_own_resync_flag ... ok
+test service::tests::refused_host_delivery_releases_capacity_and_needs_no_withdrawal ... ok
+test runtime::tests::queue_full_waiter_and_shutdown_precedence ... ok
+test runtime::tests::subscription_loss_survives_a_full_queue_and_a_second_loss ... ok
+test runtime::tests::tunable_timeout_ignores_late_success_and_shutdown_cancels_pending ... ok
+test runtime::tests::lifetime_proofs_do_not_use_the_full_event_queue ... ok
+test runtime::tests::cancelling_unaccepted_reload_wait_does_not_inflate_admission_capacity ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test reconciler::tests::completion::unrelated_interfaces_do_not_accumulate_in_the_device_caches ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+
+test result: ok. 75 passed; 0 failed; 10 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-9efdeacd5b52e729)
+
+running 42 tests
+
+running 1 test
+test args::completion_tests::legacy_aliases_share_validation ... ok
+test args::tests::byte_paths_and_option_like_values ... ok
+test caps::tests::effective_set_without_proc ... ok
+test args::tests::modes_and_errors ... ok
+test daemon::tests::broken_pipe_and_collector_shutdown_child ... ok
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ignored, run in a user systemd service with the template address-family restrictions
+test files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths ... ignored, root in an isolated container, drops child uid
+test files::filesystem_tests::permission_child ... ok
+test pidfile::permission_tests::precreated_permissions_links_and_owner ... ignored, root in an isolated container, drops child uid
+test pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes ... ignored, root in an isolated container, changes directory owner
+test check::tests::fixed_order_corrected_values_and_omitted_defaults ... ok
+test fdstore::tests::barrier_timeout_is_a_failure ... ok
+test restart::completion_tests::absolute_executable_does_not_need_a_working_directory ... ok
+test restart::completion_tests::pid_inspection_error_child ... ok
+test pidfile::edge_tests::pid_edge_child ... ok
+test pidfile::permission_tests::precreated_child ... ok
+test restart::signal_tests::exec_mask_child ... ok
+test files::tests::failed_documents_are_omitted_and_diagnostics_redact_input ... ok
+test files::filesystem_tests::followed_links_and_absence_on_reload ... ok
+test fdstore::tests::rights_and_ordered_processing_barrier ... ok
+test setup::completion_tests::directory_modes_child ... ok
+test restart::completion_tests::restart_file_checks_precede_any_signal ... ok
+test setup::tests::parses_required_unit_keys_and_install_paths ... ok
+test stream_tests::closed_streams_child ... ok
+test tunable::tests::writes_only_when_needed ... ok
+test daemon::tests::vanished_parent_is_logged_and_signal_threads_join ... ok
+test files::tests::discovery_merging_and_reload_refusal ... ok
+test restart::completion_tests::pid_inspection_error_discards_only_removal_authority ... ok
+test stream_tests::sockets_cannot_take_the_place_of_closed_standard_streams ... ok
+test signals::tests::pending_requests_coalesce_and_shutdown_bypasses_a_full_fake_queue ... ok
+test restart::signal_tests::exec_preserves_requests_and_rust_entry_ignores_sigpipe ... ok
+test restart::tests::incompatible_probe_never_executes_or_changes_descriptors ... ok
+test pidfile::removal_tests::uninspectable_removal_is_not_a_shutdown_failure ... ok
+test pidfile::tests::symlink_refusal_and_directory_permissions_preserved ... ok
+test restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table ... ok
+test signals::forwarder_tests::forwarder_retries_a_full_queue_and_delivers_after_capacity_returns ... ok
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.02s
+
+test pidfile::tests::fresh_inode_and_conditional_removal ... ok
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... ok
+test pidfile::edge_tests::sticky_warning_and_unwritable_directory_fallbacks ... ok
+test setup::tests::atomic_idempotent_and_preserves_edits_and_configuration ... ok
+test files::completion_tests::bounded_regular_files_and_special_files ... ok
+test setup::completion_tests::umask_does_not_weaken_installation_or_shadow_admin_units ... ok
+
+test result: ok. 38 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/kernel/fake.rs (target/debug/deps/kernel_fake-600afdb1d7a371a0)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/kernel/linux.rs (target/debug/deps/kernel_linux-9e7ac3831d996fce)
+
+running 15 tests
+test a_closed_socket_is_not_announced ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test a_handed_over_socket_keeps_its_tunnel ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test a_reused_index_and_creation_name_never_revive_an_old_registration ... ignored, isolated network namespaces with CAP_NET_ADMIN and L2TP modules
+test a_tunable_write_changes_only_fresh_sockets ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test completion_scoped_failure_lookup_and_random_refusal ... ignored, isolated privileged container
+test conformance_on_the_linux_kernel ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test disconnected_sessions_drop_outbound_but_receive_only_matching_cookies ... ignored, isolated namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test event_recreation_uses_the_configured_creation_name_on_linux ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test links_are_found_by_name_and_dumped ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test lowering_a_device_discards_ipv6_addresses_unless_preserved ... ignored, isolated network namespace with CAP_NET_ADMIN
+test services_converge_and_orderly_shutdown_on_linux ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test sessions_are_captured_scanned_and_deleted ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test sockets_bind_connect_and_report_their_source ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test the_kernel_keeps_the_previous_ipv6_peer_after_disconnect ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test the_monitor_reports_removals ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+
+test result: ok. 0 passed; 0 failed; 15 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/process.rs (target/debug/deps/process-689b6aafb554068b)
+
+running 26 tests
+test an_unusable_notify_store_does_not_abort_startup ... ignored, isolated privileged container
+test binary_tunable_handshake_and_opt_out ... ignored, isolated privileged container with namespace-local writable network sysctls
+test crash_store_adoption_and_ordered_withdrawal ... ignored, isolated privileged container
+test crash_without_store_closes_tunnel ... ignored, isolated privileged container
+test daemon_readiness_pid_inode_and_reexec ... ignored, isolated privileged container
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ignored, isolated privileged container
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ignored, isolated privileged container
+test foreground_reload_and_clean_shutdown_without_network ... ignored, isolated privileged container
+test incompatible_replacement_keeps_running_interfaces ... ignored, isolated privileged container
+test installer_enables_once_and_never_restarts ... ignored, root in disposable container, records systemctl without contacting a manager
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ignored, isolated privileged container, drops child uid
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ignored, isolated privileged container; exercises the ten-second conflict budget
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ignored, isolated privileged container
+test rejected_store_name_is_withdrawn_before_replacement ... ignored, isolated privileged container
+test handover_launcher ... ok
+test sigusr1_retains_its_default_action ... ignored, isolated privileged container
+test stored_descriptors_survive_double_fork ... ignored, isolated privileged container
+test unannounced_descriptors_close_before_service_start ... ignored, isolated privileged container
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ignored, isolated privileged container
+test startup_changes_directory_before_loading_and_logs_problems ... ok
+test an_absolute_executable_starts_from_a_deleted_working_directory ... ok
+test invalid_reexec_state_fails_without_forking ... ok
+test check_and_startup_report_file_errors_in_the_same_words ... ok
+test malformed_and_closed_announcements_are_errors_without_panics ... ok
+test check_cli_and_no_process_side_effects ... ok
+binary: done
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+test setup_prefix_preserves_configuration ... ok
+
+test result: ok. 8 passed; 0 failed; 18 ignored; 0 measured; 0 filtered out; finished in 1.23s
+
+     Running tests/kernel/review.rs (target/debug/deps/review_kernel-6a593a4d1c93cefe)
+
+running 5 tests
+test creation_name_is_not_current_or_unique ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test foreign_namespace_deletion_does_not_delete_local_session ... ignored, isolated network namespace with L2TP modules and permission to unshare a child netns
+test session_identifier_reuse_waits_for_deletion ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test unconnected_tunnel_drops_outbound_frames ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+
+test result: ok. 0 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/tools/rulemap.rs (target/debug/deps/rulemap-31ba9e663b443122)
+
+running 3 tests
+test definitions_are_recognised ... ok
+test citations::only_doc_comments_attached_to_tests_are_citations ... ok
+test every_rule_has_a_test_citation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 74 tests
+
+running 1 test
+test completion::completion_report_counts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.00s
+
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test sessions::sessions_swap_names ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test completion::completion_report_counts ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+
+     Running tests/scenarios/main.rs (target/debug/deps/scenarios-d6b553e0ed687178)
+
+running 13 tests
+test hosts::address_churn_reconnects_only_the_bound_tunnel_of_that_family ... ignored, disposable privileged container
+test hosts::bind_devices_can_appear_lose_their_names_and_be_replaced ... ignored, disposable privileged container
+test hosts::bindv6only_correction_and_native_ipv4_fallback_both_deliver_frames ... ignored, disposable privileged container
+test hosts::dual_stack_peers_exchange_frames_on_ipv6_tunnels ... ignored, disposable privileged container
+test hosts::ipv4_only_with_ipv6_stack_needs_no_ipv6_configuration ... ignored, disposable privileged container
+test hosts::ipv6_only_keeps_ipv4_disconnected_without_a_source ... ignored, disposable privileged container
+test hosts::noninitial_namespace_without_proc_runs_with_only_the_three_capabilities ... ignored, disposable privileged container
+test hosts::readiness_without_routes_then_frames_after_the_first_route ... ignored, disposable privileged container
+test hosts::sysctl_disabled_ipv6_still_carries_ipv4_on_ipv6_sockets ... ignored, disposable privileged container
+test hosts::vrf_membership_selects_the_domain_and_scoped_member ... ignored, disposable privileged container
+test incus::system_container_store_tunable_networkd_and_udev ... ignored, unprivileged Incus system container; tests/docker/run.sh incus
+test managers::a_child_in_another_namespace_survives_reload_and_dies_with_its_parent ... ignored, disposable privileged container
+test managers::foreign_identifiers_and_names_are_left_alone_until_they_are_freed ... ignored, disposable privileged container
+
+test result: ok. 0 passed; 0 failed; 13 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/service.rs (target/debug/deps/service-09f802d44b2efd34)
+
+running 23 tests
+test public_dependency_types_are_reexported ... ok
+test startup_failure_returns_exact_names_and_live_descriptors ... ok
+test drop_before_run_retires_inherited_entries_and_works_inside_tokio ... ok
+test tokio_service_run_converges_without_explicit_converge ... ok
+test converge_ignores_reloads_and_reports_conflicts_after_ten_attempts ... ok
+test callback_panic_returns_only_after_cleanup ... ok
+test blocking_service_exposes_host_requests_and_waits_for_processing_acknowledgement ... ok
+test shutdown_does_not_wait_for_blocked_callback_or_apply_its_result ... ok
+test tokio_drop_returns_without_blocking_host_request_processing ... ok
+test blocking_service_verifies_and_reuses_a_named_adopted_tunnel ... ok
+test run_after_shutdown_reports_the_completed_cleanup ... ok
+test blocking_converges_and_drop_removes_children_before_parents ... ok
+test restart_callback_panic_returns_only_after_cleanup ... ok
+test retry_timer_keeps_running_during_a_blocked_reload ... ok
+test superseded_reload_is_discarded_and_the_latest_runs_next ... ok
+test tunable_completion_is_processed_during_a_blocked_reload ... ok
+test reload_error_keeps_config_then_success_applies_and_restart_resumes ... ok
+test withdrawal_completion_is_processed_during_a_blocked_reload ... ok
+test deferred_restarts_are_bounded_and_each_accepted_request_runs ... ok
+test reload_accepted_during_convergence_is_ignored_even_when_dequeued_after_readiness ... ok
+test requests_between_converge_and_run_keep_their_order ... ok
+test subscriptions_drain_during_a_kernel_call_and_loss_during_resync_survives ... ok
+test spawn_blocking_callers_and_injected_callbacks_can_own_their_runtimes ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/tools/srclink.rs (target/debug/deps/srclink-2b797d664da25c61)
+
+running 4 tests
+test citations::only_doc_comments_attached_to_tests_are_citations ... ok
+test scoped_and_qualified_functions_are_checked ... ok
+test classified_facts_need_the_evidence_and_the_right_citation ... ok
+test kernel_code_cites_the_facts ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/kernel/store.rs (target/debug/deps/store_kernel-83c0baa5ecb0b1aa)
+
+running 2 tests
+test kernel_reference ... ignored, isolated privileged container connected to manager_bridge
+test manager_bridge ... ignored, run as a user systemd notify service, see tests/kernel/README.md
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests rs_l2tpd
+
+running 4 tests
+test src/blocking.rs - blocking (line 4) - compile ... ok
+test src/lib.rs - (line 8) - compile ... ok
+test src/service.rs - service (line 4) - compile ... ok
+test src/runtime.rs - runtime (line 6) - compile ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test src/runtime.rs - runtime::ControlEvent (line 87) - compile fail ... ok
+test src/kernel/mod.rs - kernel::Peer (line 41) - compile fail ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+all doctests ran in 0.42s; merged doctests compilation took 0.35s
