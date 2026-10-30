@@ -1,0 +1,33 @@
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): created
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): created
+INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): created
+INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): created
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): created
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=2, session_id=102): created as rsl2tp-te125f5
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=12, session_id=202): created as rsl2tp-t3ccb1d
+INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=22, session_id=302): created as rsl2tp-t4d286a
+INFO rs_l2tpd::reconciler::sessions: session s4 (tunnel_id=32, session_id=402): created as rsl2tp-tf1de78
+INFO rs_l2tpd::reconciler::sessions: session s5 (tunnel_id=42, session_id=502): created as rsl2tp-t2eb49b
+WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+WARN rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+WARN rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+WARN rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=2, session_id=102): published as l2tp0
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=12, session_id=202): published as l2tp1
+INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=22, session_id=302): published as l2tp2
+INFO rs_l2tpd::reconciler::sessions: session s4 (tunnel_id=32, session_id=402): published as l2tp3
+INFO rs_l2tpd::reconciler::sessions: session s5 (tunnel_id=42, session_id=502): published as l2tp4
+INFO rs_l2tpd: ready pid=19
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=2, session_id=102): renamed to rsl2tp-te125f5 by another manager; kept (S10)
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=12, session_id=202): renamed to rsl2tp-t3ccb1d by another manager; kept (S10)
+INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=22, session_id=302): renamed to rsl2tp-t4d286a by another manager; kept (S10)
+INFO rs_l2tpd::reconciler::sessions: session s4 (tunnel_id=32, session_id=402): renamed to rsl2tp-tf1de78 by another manager; kept (S10)
+INFO rs_l2tpd::reconciler::sessions: session s5 (tunnel_id=42, session_id=502): renamed to rsl2tp-t2eb49b by another manager; kept (S10)
+DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected, peer fe80::1 pending: ENETUNREACH: Network is unreachable
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::ac7b:d9ff:feb7:8905

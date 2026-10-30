@@ -1,0 +1,40 @@
+[2026-10-30T01:57:54Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:54Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:54Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:57:54Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:54Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:54Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:57:55Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:55Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:55Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:57:56Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:56Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:56Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:57:57Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:57Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:57Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:57:58Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:58Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:58Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding session tunnel_id=1 session_id=101 interface_name=l2tp0
+[2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:57:59Z INFO  rs_l2tpd] initial configuration applied
+[2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:58:02Z INFO  rs_l2tpd::runtime] bound tunnel_id=1 socket to interface bindA
+[2026-10-30T01:58:03Z INFO  rs_l2tpd] shutdown requested
+[2026-10-30T01:58:03Z INFO  rs_l2tpd::runtime] deleting tunnel_id=1

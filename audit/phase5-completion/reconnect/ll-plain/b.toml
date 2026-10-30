@@ -1,0 +1,10 @@
+[tunnels.t5]
+tunnel_id = 42
+peer_tunnel_id = 41
+remote_addr = "fe80::1%vB"
+ip_version = "v6"
+[sessions.s5]
+tunnel_name = "t5"
+session_id = 502
+peer_session_id = 501
+interface_name = "l2tp4"

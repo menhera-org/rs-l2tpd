@@ -1,0 +1,78 @@
+[  0s] == S6: VRF bind device: absent, created, member joins/leaves, replaced; link-local peer with zone (T10-T13, T27, E4, H7, H13)
+[  2s]   seen (1): tunnel t1 (tunnel_id=2): created
+[  5s]   A log:
+   A| [2026-10-30T01:57:50Z INFO  rs_l2tpd::runtime] adding tunnel_id=31 peer_tunnel_id=32 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=31 if_name=vrfA: failed to look up interface vrfA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:50Z INFO  rs_l2tpd::runtime] adding session tunnel_id=31 session_id=401 interface_name=l2tp3
+   A| [2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:57:50Z INFO  rs_l2tpd] initial configuration applied
+   A| [2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+[  5s] == create vrfA (table 100), no members yet
+[  7s]   A log:
+   A| [2026-10-30T01:57:53Z INFO  rs_l2tpd::runtime] bound tunnel_id=31 socket to interface vrfA
+[  7s]   -- ip l2tp show tunnel (a):
+     Tunnel 31, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 32
+[  8s]   ping l2tp3 -> 192.168.3.2: ok (tx_dropped +0)
+[  8s] == enslave bindA to vrfA (member joins; t1's device changes L3 domain)
+[  8s]   seen (7): tunnel_id=31
+[  8s]   A log:
+[  9s]   ping l2tp0 -> 192.168.0.2: FAIL (tx_dropped +0)
+[ 10s]   ping l2tp3 -> 192.168.3.2: ok (tx_dropped +0)
+[ 10s]   ping l2tp4 -> 192.168.4.2: FAIL (tx_dropped +0)
+[ 10s]   -- ip l2tp show tunnel (a):
+     Tunnel 31, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 32
+[ 10s] == add 'unreachable default' routes to the VRF table (the usual VRF setup): no event, nothing expected
+[ 12s]   A log lines since: 0
+[ 13s]   ping l2tp3 -> 192.168.3.2: ok (tx_dropped +0)
+[ 13s] == bindA leaves the VRF (nomaster): VRF has no source any more; zone no longer a member
+[ 16s]   A log:
+[ 16s]   ping l2tp0 -> 192.168.0.2: FAIL (tx_dropped +0)
+[ 18s]   ping l2tp3 -> 192.168.3.2: FAIL (tx_dropped +3)
+[ 18s]   ping l2tp4 -> 192.168.4.2: FAIL (tx_dropped +0)
+[ 18s] == bindA re-joins the VRF
+[ 21s]   A log:
+[ 21s]   ping l2tp0 -> 192.168.0.2: FAIL (tx_dropped +0)
+[ 22s]   ping l2tp3 -> 192.168.3.2: ok (tx_dropped +0)
+[ 22s]   ping l2tp4 -> 192.168.4.2: FAIL (tx_dropped +0)
+[ 22s] == delete vrfA (bind device disappears; bindA loses its controller)
+[ 25s]   A log:
+   A| [2026-10-30T01:58:10Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:10Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:10Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:11Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+[ 25s]   ping l2tp0 -> 192.168.0.2: FAIL (tx_dropped +0)
+[ 27s]   ping l2tp3 -> 192.168.3.2: FAIL (tx_dropped +2)
+[ 27s] == re-create vrfA under the same name (new index) and enslave bindA again (H13 replacement)
+[ 30s]   A log:
+[ 30s]   ping l2tp0 -> 192.168.0.2: FAIL (tx_dropped +0)
+[ 32s]   ping l2tp3 -> 192.168.3.2: FAIL (tx_dropped +2)
+[ 32s]   ping l2tp4 -> 192.168.4.2: FAIL (tx_dropped +0)
+[ 32s]   -- ip l2tp show tunnel (a):
+     Tunnel 31, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 32
+[ 32s] == done; A log tail:
+   A| [2026-10-30T01:57:50Z INFO  rs_l2tpd::runtime] adding tunnel_id=31 peer_tunnel_id=32 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=31 if_name=vrfA: failed to look up interface vrfA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:50Z INFO  rs_l2tpd::runtime] adding session tunnel_id=31 session_id=401 interface_name=l2tp3
+   A| [2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:57:50Z INFO  rs_l2tpd] initial configuration applied
+   A| [2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:57:53Z INFO  rs_l2tpd::runtime] bound tunnel_id=31 socket to interface vrfA
+   A| [2026-10-30T01:58:10Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:10Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:10Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:11Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+[ 32s] -- B log (reconnect-related lines):
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::546d:c3ff:fe42:8fa

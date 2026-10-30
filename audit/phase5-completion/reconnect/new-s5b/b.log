@@ -1,0 +1,38 @@
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): created
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): created
+INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): created
+INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): created
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): created
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=2, session_id=102): created as rsl2tp-t07e2a3
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=12, session_id=202): created as rsl2tp-t9dd333
+INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=22, session_id=302): created as rsl2tp-t953c1d
+INFO rs_l2tpd::reconciler::sessions: session s4 (tunnel_id=32, session_id=402): created as rsl2tp-t298d8b
+INFO rs_l2tpd::reconciler::sessions: session s5 (tunnel_id=42, session_id=502): created as rsl2tp-t9b981b
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=2, session_id=102): published as l2tp0
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=12, session_id=202): published as l2tp1
+INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=22, session_id=302): published as l2tp2
+INFO rs_l2tpd::reconciler::sessions: session s4 (tunnel_id=32, session_id=402): published as l2tp3
+INFO rs_l2tpd::reconciler::sessions: session s5 (tunnel_id=42, session_id=502): published as l2tp4
+INFO rs_l2tpd: ready pid=33
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=2, session_id=102): renamed to rsl2tp-t07e2a3 by another manager; kept (S10)
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=12, session_id=202): renamed to rsl2tp-t9dd333 by another manager; kept (S10)
+INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=22, session_id=302): renamed to rsl2tp-t953c1d by another manager; kept (S10)
+INFO rs_l2tpd::reconciler::sessions: session s4 (tunnel_id=32, session_id=402): renamed to rsl2tp-t298d8b by another manager; kept (S10)
+INFO rs_l2tpd::reconciler::sessions: session s5 (tunnel_id=42, session_id=502): renamed to rsl2tp-t9b981b by another manager; kept (S10)
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::c:99ff:fe9f:f4ab
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=2, session_id=102): removed
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=12, session_id=202): removed
+INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=22, session_id=302): removed
+INFO rs_l2tpd::reconciler::sessions: session s4 (tunnel_id=32, session_id=402): removed
+INFO rs_l2tpd::reconciler::sessions: session s5 (tunnel_id=42, session_id=502): removed
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): removed
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): removed
+INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): removed
+INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): removed
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): removed
+INFO rs_l2tpd: shutdown complete

@@ -1,0 +1,307 @@
+
+### systemd: systemd 259 (259.9-0ubuntu0.1) | mode=container | kernel=6.8.0-147-generic
+machine-id: da99c1e708874329a3b98de3341bb4a3
+dbus started
+/sys mount: sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0
+networkd enumerated
+Bus bus-api-network: changing state UNSET → OPENING
+sd-bus: starting bus bus-api-network by connecting to /run/dbus/system_bus_socket...
+Bus bus-api-network: changing state OPENING → AUTHENTICATING
+Registering bus object implementation for path=/org/freedesktop/network1 iface=org.freedesktop.network1.Manager
+Registering bus object implementation for path=/org/freedesktop/network1/link iface=org.freedesktop.network1.Link
+
+### TEST A (dummy): create rsl2tp-tabc123, sleep 1, rename to l2tp0
+RESULT: address APPLIED after 1s
+mac=c2:e1:6f:d7:48:b7 addr_assign_type=1
+-- networkd log:
+rsl2tp-tabc123: Saved new link: ifindex=4, iftype=ETHER(1), kind=dummy
+rsl2tp-tabc123: Saved original MTU 1500 (min: 0, max: 4294967295)
+rsl2tp-tabc123: Found driver: dummy
+rsl2tp-tabc123: Saved permanent hardware address: 00:00:00:00:00:00
+rsl2tp-tabc123: Saved hardware address: c2:e1:6f:d7:48:b7
+rsl2tp-tabc123: Saved IPv6 link-local address generation mode: eui64
+rsl2tp-tabc123: Link state is up-to-date
+rsl2tp-tabc123: State changed: pending -> initialized
+rsl2tp-tabc123: No matching .network found.
+rsl2tp-tabc123: Unmanaging interface.
+rsl2tp-tabc123: State changed: initialized -> unmanaged
+rsl2tp-tabc123: Interface name change detected, renamed to l2tp0.
+l2tp0: Found driver: dummy
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: unmanaged -> initialized
+l2tp0: State changed: initialized -> configuring
+l2tp0: Cannot disable kernel IPv6 accept_ra for interface, ignoring: Read-only file system
+l2tp0: Cannot enable promote_secondaries for interface, ignoring: Read-only file system
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: Received new foreign address (configured): fe80::c0e1:6fff:fed7:48b7/64 (valid forever, preferred forever), flags: permanent, scope: link
+l2tp0: Received new foreign route (configured): dst: fe80::c0e1:6fff:fed7:48b7/128, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 0, proto: kernel, scope: global, type: local, flags: n/a
+l2tp0: Configuring static address (requesting): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+
+### TEST B (dummy): create l2tp0 directly
+RESULT: address APPLIED after 1s
+mac=06:43:10:e3:3a:bb addr_assign_type=1
+-- networkd log:
+l2tp0: Saved new link: ifindex=5, iftype=ETHER(1), kind=dummy
+l2tp0: Saved original MTU 1500 (min: 0, max: 4294967295)
+l2tp0: Found driver: dummy
+l2tp0: Saved permanent hardware address: 00:00:00:00:00:00
+l2tp0: Saved hardware address: 06:43:10:e3:3a:bb
+l2tp0: Saved IPv6 link-local address generation mode: eui64
+l2tp0: Link state is up-to-date
+l2tp0: State changed: pending -> initialized
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: initialized -> configuring
+l2tp0: Cannot disable kernel IPv6 accept_ra for interface, ignoring: Read-only file system
+l2tp0: Cannot enable promote_secondaries for interface, ignoring: Read-only file system
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: Received new foreign address (configured): fe80::443:10ff:fee3:3abb/64 (valid forever, preferred forever), flags: permanent, scope: link
+l2tp0: Received new foreign route (configured): dst: fe80::443:10ff:fee3:3abb/128, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 0, proto: kernel, scope: global, type: local, flags: n/a
+l2tp0: Configuring static address (requesting): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Received new static address (configured): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: permanent, scope: global, label: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.1/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: host, type: local, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.255/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: link, type: broadcast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.0/24, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: main(254), priority: 0, proto: kernel, scope: link, type: unicast, flags: n/a
+l2tp0: Addresses set
+l2tp0: State changed: configuring -> configured
+
+### TEST A (l2tpeth): create rsl2tp-tabc123, sleep 1, rename to l2tp0
+RESULT: address APPLIED after 1s
+mac=5a:52:02:67:9f:c6 addr_assign_type=1
+-- networkd log:
+rsl2tp-tabc123: Saved new link: ifindex=6, iftype=ETHER(1), kind=n/a
+rsl2tp-tabc123: Saved original MTU 65481 (min: 0, max: 65535)
+rsl2tp-tabc123: Failed to get driver, continuing without: Operation not supported
+rsl2tp-tabc123: Saved permanent hardware address: 00:00:00:00:00:00
+rsl2tp-tabc123: Saved hardware address: 5a:52:02:67:9f:c6
+rsl2tp-tabc123: Saved IPv6 link-local address generation mode: eui64
+rsl2tp-tabc123: Link state is up-to-date
+rsl2tp-tabc123: State changed: pending -> initialized
+rsl2tp-tabc123: No matching .network found.
+rsl2tp-tabc123: Unmanaging interface.
+rsl2tp-tabc123: State changed: initialized -> unmanaged
+rsl2tp-tabc123: Interface name change detected, renamed to l2tp0.
+l2tp0: Failed to get driver, continuing without: Operation not supported
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: unmanaged -> initialized
+l2tp0: State changed: initialized -> configuring
+l2tp0: Cannot disable kernel IPv6 accept_ra for interface, ignoring: Read-only file system
+l2tp0: Cannot enable promote_secondaries for interface, ignoring: Read-only file system
+l2tp0: Requested configuring of the DHCPv6 client.
+l2tp0: Requested configuring of the IPv6 Router Discovery.
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: DHCPv6 client is configured.
+
+### TEST B (l2tpeth): create l2tp0 directly
+RESULT: address APPLIED after 1s
+mac=1a:7d:d0:4a:4a:6f addr_assign_type=1
+-- networkd log:
+l2tp0: Saved new link: ifindex=7, iftype=ETHER(1), kind=n/a
+l2tp0: Saved original MTU 65481 (min: 0, max: 65535)
+l2tp0: Failed to get driver, continuing without: Operation not supported
+l2tp0: Saved permanent hardware address: 00:00:00:00:00:00
+l2tp0: Saved hardware address: 1a:7d:d0:4a:4a:6f
+l2tp0: Saved IPv6 link-local address generation mode: eui64
+l2tp0: Link state is up-to-date
+l2tp0: State changed: pending -> initialized
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: initialized -> configuring
+l2tp0: Cannot disable kernel IPv6 accept_ra for interface, ignoring: Read-only file system
+l2tp0: Cannot enable promote_secondaries for interface, ignoring: Read-only file system
+l2tp0: Requested configuring of the DHCPv6 client.
+l2tp0: Requested configuring of the IPv6 Router Discovery.
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: DHCPv6 client is configured.
+l2tp0: IPv6 Router Discovery is configured.
+l2tp0: Configuring static address (requesting): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Received new static address (configured): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: permanent, scope: global, label: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.1/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: host, type: local, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.255/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: link, type: broadcast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.0/24, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: main(254), priority: 0, proto: kernel, scope: link, type: unicast, flags: n/a
+
+### H3: adding .link file OriginalName=l2tp0 MACAddress=02:00:5e:00:53:01
+
+### TEST A (H3-dummy): create rsl2tp-tabc123, sleep 1, rename to l2tp0
+RESULT: address APPLIED after 1s
+mac=e2:7f:44:22:10:72 addr_assign_type=1
+-- networkd log:
+rsl2tp-tabc123: Saved new link: ifindex=8, iftype=ETHER(1), kind=dummy
+rsl2tp-tabc123: Saved original MTU 1500 (min: 0, max: 4294967295)
+rsl2tp-tabc123: Found driver: dummy
+rsl2tp-tabc123: Saved permanent hardware address: 00:00:00:00:00:00
+rsl2tp-tabc123: Saved hardware address: e2:7f:44:22:10:72
+rsl2tp-tabc123: Saved IPv6 link-local address generation mode: eui64
+rsl2tp-tabc123: Link state is up-to-date
+rsl2tp-tabc123: State changed: pending -> initialized
+rsl2tp-tabc123: No matching .network found.
+rsl2tp-tabc123: Unmanaging interface.
+rsl2tp-tabc123: State changed: initialized -> unmanaged
+rsl2tp-tabc123: Interface name change detected, renamed to l2tp0.
+l2tp0: Found driver: dummy
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: unmanaged -> initialized
+l2tp0: State changed: initialized -> configuring
+l2tp0: Cannot disable kernel IPv6 accept_ra for interface, ignoring: Read-only file system
+l2tp0: Cannot enable promote_secondaries for interface, ignoring: Read-only file system
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: Received new foreign address (configured): fe80::e07f:44ff:fe22:1072/64 (valid forever, preferred forever), flags: permanent, scope: link
+l2tp0: Received new foreign route (configured): dst: fe80::e07f:44ff:fe22:1072/128, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 0, proto: kernel, scope: global, type: local, flags: n/a
+l2tp0: Configuring static address (requesting): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+
+### TEST B (H3-dummy): create l2tp0 directly
+RESULT: address APPLIED after 1s
+mac=ce:c8:79:c9:57:ed addr_assign_type=1
+-- networkd log:
+l2tp0: Saved new link: ifindex=9, iftype=ETHER(1), kind=dummy
+l2tp0: Saved original MTU 1500 (min: 0, max: 4294967295)
+l2tp0: Found driver: dummy
+l2tp0: Saved permanent hardware address: 00:00:00:00:00:00
+l2tp0: Saved hardware address: ce:c8:79:c9:57:ed
+l2tp0: Saved IPv6 link-local address generation mode: eui64
+l2tp0: Link state is up-to-date
+l2tp0: State changed: pending -> initialized
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: initialized -> configuring
+l2tp0: Cannot disable kernel IPv6 accept_ra for interface, ignoring: Read-only file system
+l2tp0: Cannot enable promote_secondaries for interface, ignoring: Read-only file system
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: Received new foreign address (configured): fe80::ccc8:79ff:fec9:57ed/64 (valid forever, preferred forever), flags: permanent, scope: link
+l2tp0: Received new foreign route (configured): dst: fe80::ccc8:79ff:fec9:57ed/128, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 0, proto: kernel, scope: global, type: local, flags: n/a
+l2tp0: Configuring static address (requesting): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Received new static address (configured): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: permanent, scope: global, label: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.1/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: host, type: local, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.255/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: link, type: broadcast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.0/24, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: main(254), priority: 0, proto: kernel, scope: link, type: unicast, flags: n/a
+l2tp0: Addresses set
+l2tp0: State changed: configuring -> configured
+
+### TEST A (H3-l2tpeth): create rsl2tp-tabc123, sleep 1, rename to l2tp0
+RESULT: address APPLIED after 1s
+mac=16:fb:b5:44:1c:cb addr_assign_type=1
+-- networkd log:
+rsl2tp-tabc123: Saved new link: ifindex=10, iftype=ETHER(1), kind=n/a
+rsl2tp-tabc123: Saved original MTU 65481 (min: 0, max: 65535)
+rsl2tp-tabc123: Failed to get driver, continuing without: Operation not supported
+rsl2tp-tabc123: Saved permanent hardware address: 00:00:00:00:00:00
+rsl2tp-tabc123: Saved hardware address: 16:fb:b5:44:1c:cb
+rsl2tp-tabc123: Saved IPv6 link-local address generation mode: eui64
+rsl2tp-tabc123: Link state is up-to-date
+rsl2tp-tabc123: State changed: pending -> initialized
+rsl2tp-tabc123: No matching .network found.
+rsl2tp-tabc123: Unmanaging interface.
+rsl2tp-tabc123: State changed: initialized -> unmanaged
+rsl2tp-tabc123: Interface name change detected, renamed to l2tp0.
+l2tp0: Failed to get driver, continuing without: Operation not supported
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: unmanaged -> initialized
+l2tp0: State changed: initialized -> configuring
+l2tp0: Cannot disable kernel IPv6 accept_ra for interface, ignoring: Read-only file system
+l2tp0: Cannot enable promote_secondaries for interface, ignoring: Read-only file system
+l2tp0: Requested configuring of the DHCPv6 client.
+l2tp0: Requested configuring of the IPv6 Router Discovery.
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: DHCPv6 client is configured.
+
+### TEST B (H3-l2tpeth): create l2tp0 directly
+RESULT: address APPLIED after 1s
+mac=52:25:8c:2f:cc:d7 addr_assign_type=1
+-- networkd log:
+l2tp0: Saved new link: ifindex=11, iftype=ETHER(1), kind=n/a
+l2tp0: Saved original MTU 65481 (min: 0, max: 65535)
+l2tp0: Failed to get driver, continuing without: Operation not supported
+l2tp0: Saved permanent hardware address: 00:00:00:00:00:00
+l2tp0: Saved hardware address: 52:25:8c:2f:cc:d7
+l2tp0: Saved IPv6 link-local address generation mode: eui64
+l2tp0: Link state is up-to-date
+l2tp0: State changed: pending -> initialized
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: initialized -> configuring
+l2tp0: Cannot disable kernel IPv6 accept_ra for interface, ignoring: Read-only file system
+l2tp0: Cannot enable promote_secondaries for interface, ignoring: Read-only file system
+l2tp0: Requested configuring of the DHCPv6 client.
+l2tp0: Requested configuring of the IPv6 Router Discovery.
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: DHCPv6 client is configured.
+l2tp0: IPv6 Router Discovery is configured.
+l2tp0: Configuring static address (requesting): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Received new static address (configured): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: permanent, scope: global, label: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.1/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: host, type: local, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.255/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: link, type: broadcast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.0/24, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: main(254), priority: 0, proto: kernel, scope: link, type: unicast, flags: n/a
+
+### full networkd log line count: 933; errors/warnings:
+Failed to allocate memory pressure event source, ignoring: Permission denied
+Failed to increase receive buffer size for rtnl socket, ignoring: Operation not permitted
+Failed to increase receive buffer size for general netlink socket, ignoring: Operation not permitted
+Failed to increase receive buffer size for nftables netlink socket, ignoring: Operation not permitted
+Failed to bind to systemd-resolved hook varlink socket, ignoring: Permission denied
+Failed to determine peer pidfd, ignoring: Invalid argument
+lo: Failed to get driver, continuing without: Operation not supported
+libbpf: Failed to bump RLIMIT_MEMLOCK (err = -EPERM), you might need to do it explicitly!
+libbpf: Error in bpf_object__probe_loading(): -EPERM. Couldn't load trivial BPF program. Make sure your kernel supports BPF (CONFIG_BPF_SYSCALL=y) and/or that RLIMIT_MEMLOCK is set to big enough value.
+libbpf: failed to load BPF skeleton 'sysctl_monitor_bpf': -EPERM
+
+### DONE

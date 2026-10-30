@@ -1,0 +1,11 @@
+[tunnels.t4]
+tunnel_id = 31
+peer_tunnel_id = 32
+remote_addr = "10.0.0.2"
+ip_version = "v4"
+bind_interface = "vrfA"
+[sessions.s4]
+tunnel_name = "t4"
+session_id = 401
+peer_session_id = 402
+interface_name = "l2tp3"

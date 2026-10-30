@@ -425,6 +425,13 @@ The initial record, `audit/PHASE5_VERIFICATION_2026-10-29.md`, retains its
 dated test counts and repetition evidence. Reproduction commands are in
 repository file `tests/process/README.md`.
 
+A whole-tree check on 2026-10-30 (repository file
+`audit/PHASE5_COMPLETION_CONFORMANCE_2026-10-30.md`) ran every suite,
+compared the reconnection paths live against the 0.1.5 binary, and found
+them conforming and better than 0.1.5 throughout; its fix list is open,
+led by the staged-name interaction with udev's persistent MAC policy (A1)
+and a zoned link-local reconnect that fails for good (A2).
+
 The required Ubuntu/vanilla kernel matrix, Incus/LXD, combined coverage,
 strict global gates and whole-daemon resource/timing promises, including
 comparative P15 timing, remain Phase 6. The full root system-unit mount

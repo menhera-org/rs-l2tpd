@@ -1,0 +1,81 @@
+[  0s] == S2: bind device renamed away / removed; re-added (T11, T12, E2, E3, H13)
+[  2s]   seen (1): tunnel t1 (tunnel_id=2): created
+[  2s]   seen (2): tunnel_id=1
+[  3s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[  3s] == rename bindA -> tmp0 (name lost)
+[  5s]   A log since rename:
+   A| [2026-10-30T01:57:57Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+[  6s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[  6s] == rename tmp0 -> bindA (name back)
+[  6s]   seen (3): tunnel_id=1
+[  7s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[  7s] == delete the veth (bindA and vB vanish)
+[  9s]   A log since deletion:
+   A| [2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+[  9s]   B log: unbound sources removed -> reconnect attempts:
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+[ 11s]   ping l2tp0 -> 192.168.0.2: FAIL (tx_dropped +2)
+[ 11s] == re-create the veth under the same name (new index)
+[ 12s]   seen (8): tunnel_id=1
+[ 12s]   seen (2): tunnel t1 (tunnel_id=2): connected to
+[ 14s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 14s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 2
+[ 14s] == done; A log tail:
+   A| [2026-10-30T01:57:55Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:55Z INFO  rs_l2tpd::runtime] adding session tunnel_id=1 session_id=101 interface_name=l2tp0
+   A| [2026-10-30T01:57:55Z INFO  rs_l2tpd] initial configuration applied
+   A| [2026-10-30T01:57:57Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:04Z INFO  rs_l2tpd::runtime] reconnected tunnel_id=1 after local address change on bindA
+   A| [2026-10-30T01:58:04Z INFO  rs_l2tpd::runtime] reconnected tunnel_id=1 after local address change on bindA
+   A| [2026-10-30T01:58:06Z INFO  rs_l2tpd::runtime] reconnected tunnel_id=1 after local address change on bindA
+[ 14s] -- B log (reconnect-related lines):
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::985b:8fff:fe51:b4de
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::985b:8fff:fe51:b4de
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): disconnected
+   B| WARN rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| WARN rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| WARN rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected, peer fe80::1 pending: ENETUNREACH: Network is unreachable
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::f07d:2bff:fe69:48f

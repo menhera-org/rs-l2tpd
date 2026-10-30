@@ -1,0 +1,12 @@
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): created
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=11): created
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=1, session_id=101): created as rsl2tp-t5a4084
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=11, session_id=201): created as rsl2tp-taab836
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=1, session_id=101): published as l2tp0
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=11, session_id=201): published as l2tp1
+INFO rs_l2tpd: ready pid=52
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=1, session_id=101): renamed to rsl2tp-t5a4084 by another manager; kept (S10)
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=11, session_id=201): renamed to rsl2tp-taab836 by another manager; kept (S10)
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=11): connected to fd00:9::2 from fd00::1

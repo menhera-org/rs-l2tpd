@@ -1,0 +1,6 @@
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): created
+INFO rs_l2tpd::reconciler::sessions: session s5 (tunnel_id=41, session_id=501): created as rsl2tp-tdd963d
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fe80::bc29:27ff:fe1e:6adb
+INFO rs_l2tpd::reconciler::sessions: session s5 (tunnel_id=41, session_id=501): published as l2tp4
+INFO rs_l2tpd: ready pid=27
+INFO rs_l2tpd::reconciler::sessions: session s5 (tunnel_id=41, session_id=501): renamed to rsl2tp-tdd963d by another manager; kept (S10)

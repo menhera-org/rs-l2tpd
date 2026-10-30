@@ -1,0 +1,17 @@
+[2026-10-30T01:59:58Z INFO  rs_l2tpd::runtime] adding tunnel_id=11 peer_tunnel_id=12 remote_addr=fd00:9::2
+[2026-10-30T01:59:58Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:59:58Z INFO  rs_l2tpd::runtime] adding tunnel_id=11 peer_tunnel_id=12 remote_addr=fd00:9::2
+[2026-10-30T01:59:58Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:59:58Z INFO  rs_l2tpd::runtime] adding tunnel_id=11 peer_tunnel_id=12 remote_addr=fd00:9::2
+[2026-10-30T01:59:58Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T01:59:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=11 peer_tunnel_id=12 remote_addr=fd00:9::2
+[2026-10-30T01:59:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T02:00:00Z INFO  rs_l2tpd::runtime] adding tunnel_id=11 peer_tunnel_id=12 remote_addr=fd00:9::2
+[2026-10-30T02:00:00Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T02:00:01Z INFO  rs_l2tpd::runtime] adding tunnel_id=11 peer_tunnel_id=12 remote_addr=fd00:9::2
+[2026-10-30T02:00:01Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+[2026-10-30T02:00:02Z INFO  rs_l2tpd::runtime] adding tunnel_id=11 peer_tunnel_id=12 remote_addr=fd00:9::2
+[2026-10-30T02:00:02Z INFO  rs_l2tpd::runtime] adding session tunnel_id=11 session_id=201 interface_name=l2tp1
+[2026-10-30T02:00:02Z INFO  rs_l2tpd] initial configuration applied
+[2026-10-30T02:00:10Z INFO  rs_l2tpd] shutdown requested
+[2026-10-30T02:00:10Z INFO  rs_l2tpd::runtime] deleting tunnel_id=11

@@ -1,0 +1,16 @@
+[2026-10-30T01:57:50Z INFO  rs_l2tpd::runtime] adding tunnel_id=31 peer_tunnel_id=32 remote_addr=10.0.0.2
+[2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=31 if_name=vrfA: failed to look up interface vrfA: Received a netlink error message No such device (os error 19); creating unbound socket
+[2026-10-30T01:57:50Z INFO  rs_l2tpd::runtime] adding session tunnel_id=31 session_id=401 interface_name=l2tp3
+[2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:57:50Z INFO  rs_l2tpd] initial configuration applied
+[2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:57:50Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:57:53Z INFO  rs_l2tpd::runtime] bound tunnel_id=31 socket to interface vrfA
+[2026-10-30T01:58:10Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:58:10Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:58:10Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:58:11Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=31 if_name=vrfA error=failed to look up interface vrfA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:58:20Z INFO  rs_l2tpd] shutdown requested
+[2026-10-30T01:58:20Z INFO  rs_l2tpd::runtime] deleting tunnel_id=31
+[2026-10-30T01:58:20Z WARN  netlink_proto::connection] failed to forward message to connection handle: channel closed
+[2026-10-30T01:58:20Z WARN  netlink_proto::connection] ignoring unsolicited message NetlinkMessage { header: NetlinkHeader { length: 80, message_type: 21, flags: 0, sequence_number: 0, port_number: 0 }, payload: InnerMessage(DelAddress(AddressMessage { header: AddressHeader { family: Inet6, prefix_len: 64, flags: AddressHeaderFlags(Permanent), scope: Link, index: 4 }, attributes: [Address(fe80::e464:c7ff:fea3:17be), CacheInfo(CacheInfo { ifa_preferred: 4294967295, ifa_valid: 4294967295, cstamp: 75960125, tstamp: 75960125 }), Flags(AddressFlags(Permanent)), Protocol(LinkLocal)] })) } from SocketAddr(nl_family=16, nl_pid=0, nl_groups=256)

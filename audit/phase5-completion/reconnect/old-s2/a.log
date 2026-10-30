@@ -1,0 +1,14 @@
+[2026-10-30T01:57:55Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+[2026-10-30T01:57:55Z INFO  rs_l2tpd::runtime] adding session tunnel_id=1 session_id=101 interface_name=l2tp0
+[2026-10-30T01:57:55Z INFO  rs_l2tpd] initial configuration applied
+[2026-10-30T01:57:57Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+[2026-10-30T01:58:04Z INFO  rs_l2tpd::runtime] reconnected tunnel_id=1 after local address change on bindA
+[2026-10-30T01:58:04Z INFO  rs_l2tpd::runtime] reconnected tunnel_id=1 after local address change on bindA
+[2026-10-30T01:58:06Z INFO  rs_l2tpd::runtime] reconnected tunnel_id=1 after local address change on bindA
+[2026-10-30T01:58:07Z INFO  rs_l2tpd] shutdown requested
+[2026-10-30T01:58:07Z INFO  rs_l2tpd::runtime] deleting tunnel_id=1
+[2026-10-30T01:58:07Z WARN  netlink_proto::connection] failed to forward message to connection handle: channel closed
+[2026-10-30T01:58:07Z WARN  netlink_proto::connection] ignoring unsolicited message NetlinkMessage { header: NetlinkHeader { length: 80, message_type: 21, flags: 0, sequence_number: 0, port_number: 0 }, payload: InnerMessage(DelAddress(AddressMessage { header: AddressHeader { family: Inet6, prefix_len: 64, flags: AddressHeaderFlags(Permanent), scope: Link, index: 4 }, attributes: [Address(fe80::6cb8:7eff:fe6e:cb67), CacheInfo(CacheInfo { ifa_preferred: 4294967295, ifa_valid: 4294967295, cstamp: 75960366, tstamp: 75960366 }), Flags(AddressFlags(Permanent)), Protocol(LinkLocal)] })) } from SocketAddr(nl_family=16, nl_pid=0, nl_groups=256)

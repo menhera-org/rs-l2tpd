@@ -1,0 +1,203 @@
+[  0s] == s5b: FQDN peer; answer changes; answer disappears (T14, T15, E10, E11, V6, G5)
+[  3s]   seen (1): tunnel t3 (tunnel_id=21): connected to
+[  4s]   ping l2tp2 -> 192.168.2.2: ok (tx_dropped +0)
+[  4s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 2
+     Tunnel 11, encap IP
+       From :: to ::
+       Peer tunnel 12
+     Tunnel 21, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 22
+[  4s] == change /etc/hosts: peerb.test -> 10.0.0.3
+sed: can't move '/etc/hostsiDMlMi' to '/etc/hosts': Resource busy
+[  4s]   libc view now: PING peerb.test (10.0.0.2): 56 data bytes
+[ 75s]   MISSING after 70s (count 0): tunnel t3 (tunnel_id=21): connected to 10.0.0.3
+[ 75s]   A log:
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+[ 75s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 2
+     Tunnel 11, encap IP
+       From :: to ::
+       Peer tunnel 12
+     Tunnel 21, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 22
+[ 76s]   ping l2tp2 -> 192.168.2.2: ok (tx_dropped +0)
+[ 76s] == remove the /etc/hosts entry (lookup fails): tunnel must stay connected
+sed: can't move '/etc/hostsNmbCLA' to '/etc/hosts': Resource busy
+[116s]   A log:
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+[116s]   unchanged (0): tunnel t3 (tunnel_id=21): disconnected
+[117s]   ping l2tp2 -> 192.168.2.2: ok (tx_dropped +0)
+[117s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 2
+     Tunnel 11, encap IP
+       From :: to ::
+       Peer tunnel 12
+     Tunnel 21, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 22
+[117s] == done; A log tail:
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+[117s] -- B log (reconnect-related lines):
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::c:99ff:fe9f:f4ab

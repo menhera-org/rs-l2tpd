@@ -149,7 +149,10 @@ or loadable (R1); `CAP_NET_ADMIN`, `CAP_NET_RAW`, `CAP_NET_BIND_SERVICE`
 except for the `bindv6only` write (P25), no `dummy` driver, no route, no address, no DNS, no IPv6
 at start-up. Hosts without IPv6, with `disable_ipv6`, with
 `ipv6.disable=1`, VRFs, routers without a default route, containers and
-`bindv6only=1` are covered by [hosts](spec/hosts.md).
+`bindv6only=1` are covered by [hosts](spec/hosts.md). One documented
+limitation (H11): in a container without udev, systemd-networkd before
+v253 never applies a `[Match] Name=` file to a session device the daemon
+staged under a temporary name; Ubuntu 24.04 and later are not affected.
 
 ## Library
 

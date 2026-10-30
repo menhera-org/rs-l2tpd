@@ -1,0 +1,116 @@
+[  0s] == S7: reload changing bind_interface, remote_addr and family in place (T22, G3, G18)
+[  2s]   seen (1): tunnel t1 (tunnel_id=2): created
+[  2s]   seen (2): tunnel_id=1
+[  3s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[  3s]   l2tp0 ifindex: 4
+[  3s] == reload: bind_interface -> bindX (absent)
+[  6s]   A log:
+   A| [2026-10-30T01:57:56Z INFO  rs_l2tpd] received SIGHUP: reloading configuration
+   A| [2026-10-30T01:57:56Z INFO  rs_l2tpd::runtime] deleting tunnel_id=1
+   A| [2026-10-30T01:57:56Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:56Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindX: failed to look up interface bindX: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:56Z WARN  rs_l2tpd] failed to apply reloaded configuration; will retry: kernel error 17: File exists (os error 17)
+   A| [2026-10-30T01:57:56Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:56Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindX: failed to look up interface bindX: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:56Z WARN  rs_l2tpd] configuration apply still pending; will retry: kernel error 17: File exists (os error 17)
+   A| [2026-10-30T01:57:57Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:57Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindX: failed to look up interface bindX: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:57Z INFO  rs_l2tpd::runtime] adding session tunnel_id=1 session_id=101 interface_name=l2tp0
+   A| [2026-10-30T01:57:57Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindX error=failed to look up interface bindX: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:57:57Z INFO  rs_l2tpd] configuration convergence completed
+[  6s]   l2tp0 ifindex: 6 (was 4)
+[  6s]   ping l2tp0 -> 192.168.0.2: FAIL (tx_dropped +0)
+[  6s] == reload: bind_interface -> bindA, remote_addr -> 10.0.0.3
+[  9s]   A log:
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd] received SIGHUP: reloading configuration
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] deleting tunnel_id=1
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.3
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd] failed to apply reloaded configuration; will retry: kernel error 17: File exists (os error 17)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.3
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd] configuration apply still pending; will retry: kernel error 17: File exists (os error 17)
+   A| [2026-10-30T01:58:00Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.3
+   A| [2026-10-30T01:58:00Z INFO  rs_l2tpd::runtime] adding session tunnel_id=1 session_id=101 interface_name=l2tp0
+   A| [2026-10-30T01:58:00Z INFO  rs_l2tpd] configuration convergence completed
+[  9s]   l2tp0 ifindex: 7 (was 4)
+[ 10s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 10s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.3
+       Peer tunnel 2
+[ 10s] == reload: remote_addr -> fd00::2, ip_version v6 (family change on the same socket)
+[ 13s]   A log:
+   A| [2026-10-30T01:58:03Z INFO  rs_l2tpd] received SIGHUP: reloading configuration
+   A| [2026-10-30T01:58:03Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:03Z WARN  rs_l2tpd] failed to apply reloaded configuration; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:03Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:03Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:04Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:04Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:05Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:05Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:06Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:06Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+[ 13s]   l2tp0 ifindex: 7 (was 4)
+[ 14s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 14s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.3
+       Peer tunnel 2
+[ 14s] == reload: unchanged configuration (nothing expected)
+[ 16s]   A log lines since: 7
+   A| [2026-10-30T01:58:07Z INFO  rs_l2tpd] received SIGHUP: reloading configuration
+   A| [2026-10-30T01:58:07Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:07Z WARN  rs_l2tpd] failed to apply reloaded configuration; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:08Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:08Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:09Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:09Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+[ 16s]   l2tp0 ifindex: 7 (was 4)
+[ 16s] == done; A log tail:
+   A| [2026-10-30T01:57:56Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:56Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindX: failed to look up interface bindX: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:56Z WARN  rs_l2tpd] failed to apply reloaded configuration; will retry: kernel error 17: File exists (os error 17)
+   A| [2026-10-30T01:57:56Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:56Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindX: failed to look up interface bindX: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:56Z WARN  rs_l2tpd] configuration apply still pending; will retry: kernel error 17: File exists (os error 17)
+   A| [2026-10-30T01:57:57Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:57Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindX: failed to look up interface bindX: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:57Z INFO  rs_l2tpd::runtime] adding session tunnel_id=1 session_id=101 interface_name=l2tp0
+   A| [2026-10-30T01:57:57Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindX error=failed to look up interface bindX: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:57:57Z INFO  rs_l2tpd] configuration convergence completed
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd] received SIGHUP: reloading configuration
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] deleting tunnel_id=1
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.3
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd] failed to apply reloaded configuration; will retry: kernel error 17: File exists (os error 17)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.3
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd] configuration apply still pending; will retry: kernel error 17: File exists (os error 17)
+   A| [2026-10-30T01:58:00Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.3
+   A| [2026-10-30T01:58:00Z INFO  rs_l2tpd::runtime] adding session tunnel_id=1 session_id=101 interface_name=l2tp0
+   A| [2026-10-30T01:58:00Z INFO  rs_l2tpd] configuration convergence completed
+   A| [2026-10-30T01:58:03Z INFO  rs_l2tpd] received SIGHUP: reloading configuration
+   A| [2026-10-30T01:58:03Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:03Z WARN  rs_l2tpd] failed to apply reloaded configuration; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:03Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:03Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:04Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:04Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:05Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:05Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:06Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:06Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:07Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:07Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:07Z INFO  rs_l2tpd] received SIGHUP: reloading configuration
+   A| [2026-10-30T01:58:07Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:07Z WARN  rs_l2tpd] failed to apply reloaded configuration; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:08Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:08Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+   A| [2026-10-30T01:58:09Z INFO  rs_l2tpd::runtime] updating tunnel_id=1 remote_addr=fd00::2
+   A| [2026-10-30T01:58:09Z WARN  rs_l2tpd] configuration apply still pending; will retry: I/O error: Address family not supported by protocol (os error 97)
+[ 16s] -- B log (reconnect-related lines):
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::b0d7:d3ff:fef1:8673

@@ -1,0 +1,113 @@
+[  0s] == S1: bind device absent at start; appears under another name; renamed to the configured name (T13, E1, E2)
+[  1s]   seen (1): tunnel t1 (tunnel_id=2): created
+[  1s]   seen (2): adding tunnel_id=1
+[  6s]   MISSING after 5s (count 0): bind interface .* is absent for tunnel_id=1
+   A| [2026-10-30T01:57:54Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:54Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:54Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:54Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:54Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+[  6s] == create the veth as tmp0 (wrong name), up, addressed
+[  9s]   new A log lines since device creation under the wrong name:
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding session tunnel_id=1 session_id=101 interface_name=l2tp0
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd] initial configuration applied
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+[  9s]   CHANGED 0->26: tunnel_id=1
+[  9s] == rename tmp0 -> bindA
+[  9s]   seen (27): tunnel_id=1
+[  9s]   seen (1): bound tunnel_id=1 socket to interface bindA
+[ 10s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 10s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 2
+[ 10s] == done; A log tail:
+   A| [2026-10-30T01:57:54Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:54Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:54Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:54Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:54Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:54Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:55Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:55Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:55Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:56Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:56Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:56Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:57Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:57Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:57Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:58Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:58Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:58Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd] initial configuration apply failed; will retry: I/O error: Network unreachable (os error 101)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA: failed to look up interface bindA: Received a netlink error message No such device (os error 19); creating unbound socket
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd::runtime] adding session tunnel_id=1 session_id=101 interface_name=l2tp0
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to check bind interface tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:57:59Z INFO  rs_l2tpd] initial configuration applied
+   A| [2026-10-30T01:57:59Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:00Z WARN  rs_l2tpd::runtime] failed to resolve bind interface index tunnel_id=1 if_name=bindA error=failed to look up interface bindA: Received a netlink error message No such device (os error 19)
+   A| [2026-10-30T01:58:02Z INFO  rs_l2tpd::runtime] bound tunnel_id=1 socket to interface bindA
+[ 10s] -- B log (reconnect-related lines):
+   B| WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| WARN rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| WARN rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| WARN rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected, peer fe80::1 pending: ENETUNREACH: Network is unreachable
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::bc1f:11ff:fe2f:5aba

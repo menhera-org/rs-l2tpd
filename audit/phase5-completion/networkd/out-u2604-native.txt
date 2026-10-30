@@ -1,0 +1,583 @@
+
+### systemd: systemd 259 (259.9-0ubuntu0.1) | mode=native | kernel=6.8.0-147-generic
+machine-id: da99c1e708874329a3b98de3341bb4a3
+dbus started
+udevd: 16 /lib/systemd/systemd-udevd
+networkd enumerated
+Bus bus-api-network: changing state UNSET → OPENING
+sd-bus: starting bus bus-api-network by connecting to /run/dbus/system_bus_socket...
+Bus bus-api-network: changing state OPENING → AUTHENTICATING
+Registering bus object implementation for path=/org/freedesktop/network1 iface=org.freedesktop.network1.Manager
+Registering bus object implementation for path=/org/freedesktop/network1/link iface=org.freedesktop.network1.Link
+
+### TEST A (dummy): create rsl2tp-tabc123, sleep 1, rename to l2tp0
+RESULT: address APPLIED after 1s
+mac=7e:94:42:3f:a5:96 addr_assign_type=3
+  udevadm: E: INTERFACE=l2tp0
+  udevadm: E: ID_NET_DRIVER=dummy
+  udevadm: E: ID_NET_NAMING_SCHEME=v259
+  udevadm: E: ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link
+  udevadm: E: ID_NET_NAME=l2tp0
+  udevd: rsl2tp-tabc123: Device is queued (SEQNUM=836493, ACTION=add)
+  udevd: rsl2tp-tabc123: Device ready for processing (SEQNUM=836493, ACTION=add)
+  udevd: rsl2tp-tabc123: Processing device (SEQNUM=836493, ACTION=add)
+  udevd: rsl2tp-tabc123: addr_assign_type=1, MAC address is not permanent.
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Importing properties from results of builtin command "path_id".
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Failed to run builtin "path_id": No such file or directory
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 IMPORT{builtin}="net_setup_link": Importing properties from results of builtin command "net_setup_link".
+  udevd: rsl2tp-tabc123: Device has addr_assign_type attribute: 1
+  udevd: rsl2tp-tabc123: Config file /usr/lib/systemd/network/99-default.link is applied
+  udevd: rsl2tp-tabc123: Applying persistent MAC address: 7e:94:42:3f:a5:96
+  udevd: rsl2tp-tabc123: Policy *keep*: keeping existing userspace name
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME="$env{ID_NET_NAME}": Set network interface name: rsl2tp-tabc123
+  udevd: rsl2tp-tabc123: Device processed (SEQNUM=836493, ACTION=add)
+  udevd: rsl2tp-tabc123: sd-device-monitor(worker): Passed 437 byte to netlink monitor.
+  udevd: l2tp0: Device is queued (SEQNUM=836496, ACTION=move)
+  udevd: Skipping file '/etc/systemd/network/l2tp0.network', suffix is not '.link'.
+  udevd: l2tp0: Device ready for processing (SEQNUM=836496, ACTION=move)
+  udevd: l2tp0: sd-device-monitor(manager): Passed 243 byte to netlink monitor.
+  udevd: l2tp0: Processing device (SEQNUM=836496, ACTION=move)
+  udevd: l2tp0: addr_assign_type=3, MAC address is not permanent.
+-- networkd log:
+rsl2tp-tabc123: Saved new link: ifindex=4, iftype=ETHER(1), kind=dummy
+rsl2tp-tabc123: Saved original MTU 1500 (min: 0, max: 4294967295)
+rsl2tp-tabc123: Saved hardware address: 76:58:7d:f4:f7:92
+rsl2tp-tabc123: Saved IPv6 link-local address generation mode: eui64
+rsl2tp-tabc123: link pending udev initialization...
+rsl2tp-tabc123: Hardware address is changed: 76:58:7d:f4:f7:92 → 7e:94:42:3f:a5:96
+rsl2tp-tabc123: udev initialized link
+rsl2tp-tabc123: Found driver: dummy
+rsl2tp-tabc123: Saved permanent hardware address: 00:00:00:00:00:00
+rsl2tp-tabc123: Link state is up-to-date
+rsl2tp-tabc123: State changed: pending -> initialized
+rsl2tp-tabc123: No matching .network found.
+rsl2tp-tabc123: Unmanaging interface.
+rsl2tp-tabc123: State changed: initialized -> unmanaged
+rsl2tp-tabc123: Interface name change detected, renamed to l2tp0.
+l2tp0: Found driver: dummy
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: unmanaged -> initialized
+l2tp0: State changed: initialized -> configuring
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: Received new foreign address (configured): fe80::7c94:42ff:fe3f:a596/64 (valid forever, preferred forever), flags: permanent, scope: link
+l2tp0: Received new foreign route (configured): dst: fe80::7c94:42ff:fe3f:a596/128, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 0, proto: kernel, scope: global, type: local, flags: n/a
+
+### TEST B (dummy): create l2tp0 directly
+RESULT: address APPLIED after 1s
+mac=be:36:6a:d9:1e:43 addr_assign_type=3
+  udevadm: E: INTERFACE=l2tp0
+  udevadm: E: ID_NET_DRIVER=dummy
+  udevadm: E: ID_NET_NAMING_SCHEME=v259
+  udevadm: E: ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link
+  udevadm: E: ID_NET_NAME=l2tp0
+  udevd: l2tp0: Device is queued (SEQNUM=836500, ACTION=add)
+  udevd: l2tp0: Device ready for processing (SEQNUM=836500, ACTION=add)
+  udevd: l2tp0: sd-device-monitor(manager): Passed 194 byte to netlink monitor.
+  udevd: l2tp0: Processing device (SEQNUM=836500, ACTION=add)
+  udevd: l2tp0: addr_assign_type=1, MAC address is not permanent.
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Importing properties from results of builtin command "path_id".
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Failed to run builtin "path_id": No such file or directory
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 IMPORT{builtin}="net_setup_link": Importing properties from results of builtin command "net_setup_link".
+  udevd: l2tp0: Device has addr_assign_type attribute: 1
+  udevd: l2tp0: Config file /usr/lib/systemd/network/99-default.link is applied
+  udevd: l2tp0: Applying persistent MAC address: be:36:6a:d9:1e:43
+  udevd: l2tp0: Policy *keep*: keeping existing userspace name
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME="$env{ID_NET_NAME}": Set network interface name: l2tp0
+  udevd: l2tp0: Device processed (SEQNUM=836500, ACTION=add)
+  udevd: l2tp0: sd-device-monitor(worker): Passed 401 byte to netlink monitor.
+-- networkd log:
+l2tp0: Saved new link: ifindex=5, iftype=ETHER(1), kind=dummy
+l2tp0: Saved original MTU 1500 (min: 0, max: 4294967295)
+l2tp0: Saved hardware address: 0a:8f:e3:1c:52:63
+l2tp0: Saved IPv6 link-local address generation mode: eui64
+l2tp0: link pending udev initialization...
+l2tp0: Hardware address is changed: 0a:8f:e3:1c:52:63 → be:36:6a:d9:1e:43
+l2tp0: udev initialized link
+l2tp0: Found driver: dummy
+l2tp0: Saved permanent hardware address: 00:00:00:00:00:00
+l2tp0: Link state is up-to-date
+l2tp0: State changed: pending -> initialized
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: initialized -> configuring
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: Received new foreign address (configured): fe80::bc36:6aff:fed9:1e43/64 (valid forever, preferred forever), flags: permanent, scope: link
+l2tp0: Received new foreign route (configured): dst: fe80::bc36:6aff:fed9:1e43/128, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 0, proto: kernel, scope: global, type: local, flags: n/a
+l2tp0: Configuring static address (requesting): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Received new static address (configured): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: permanent, scope: global, label: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.1/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: host, type: local, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.255/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: link, type: broadcast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.0/24, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: main(254), priority: 0, proto: kernel, scope: link, type: unicast, flags: n/a
+l2tp0: Addresses set
+
+### TEST A (l2tpeth): create rsl2tp-tabc123, sleep 1, rename to l2tp0
+RESULT: address APPLIED after 1s
+mac=7e:94:42:3f:a5:96 addr_assign_type=3
+  udevadm: E: INTERFACE=l2tp0
+  udevadm: E: ID_NET_NAMING_SCHEME=v259
+  udevadm: E: ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link
+  udevadm: E: ID_NET_NAME=l2tp0
+  udevd: rsl2tp-tabc123: Device is queued (SEQNUM=836506, ACTION=add)
+  udevd: rsl2tp-tabc123: Device ready for processing (SEQNUM=836506, ACTION=add)
+  udevd: rsl2tp-tabc123: sd-device-monitor(manager): Passed 228 byte to netlink monitor.
+  udevd: rsl2tp-tabc123: Processing device (SEQNUM=836506, ACTION=add)
+  udevd: rsl2tp-tabc123: addr_assign_type=1, MAC address is not permanent.
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Importing properties from results of builtin command "path_id".
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Failed to run builtin "path_id": No such file or directory
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 IMPORT{builtin}="net_setup_link": Importing properties from results of builtin command "net_setup_link".
+  udevd: rsl2tp-tabc123: Device has addr_assign_type attribute: 1
+  udevd: rsl2tp-tabc123: Config file /usr/lib/systemd/network/99-default.link is applied
+  udevd: rsl2tp-tabc123: Applying persistent MAC address: 7e:94:42:3f:a5:96
+  udevd: rsl2tp-tabc123: Policy *keep*: keeping existing userspace name
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME="$env{ID_NET_NAME}": Set network interface name: rsl2tp-tabc123
+  udevd: rsl2tp-tabc123: Device processed (SEQNUM=836506, ACTION=add)
+  udevd: rsl2tp-tabc123: sd-device-monitor(worker): Passed 433 byte to netlink monitor.
+  udevd: l2tp0: Device is queued (SEQNUM=836509, ACTION=move)
+  udevd: l2tp0: Device ready for processing (SEQNUM=836509, ACTION=move)
+  udevd: l2tp0: sd-device-monitor(manager): Passed 259 byte to netlink monitor.
+  udevd: l2tp0: Processing device (SEQNUM=836509, ACTION=move)
+  udevd: l2tp0: addr_assign_type=3, MAC address is not permanent.
+-- networkd log:
+rsl2tp-tabc123: Saved new link: ifindex=6, iftype=ETHER(1), kind=n/a
+rsl2tp-tabc123: Saved original MTU 65481 (min: 0, max: 65535)
+rsl2tp-tabc123: Saved hardware address: 4a:1c:de:80:32:4f
+rsl2tp-tabc123: Saved IPv6 link-local address generation mode: eui64
+rsl2tp-tabc123: link pending udev initialization...
+rsl2tp-tabc123: Hardware address is changed: 4a:1c:de:80:32:4f → 7e:94:42:3f:a5:96
+rsl2tp-tabc123: udev initialized link
+rsl2tp-tabc123: Failed to get driver, continuing without: Operation not supported
+rsl2tp-tabc123: Saved permanent hardware address: 00:00:00:00:00:00
+rsl2tp-tabc123: Link state is up-to-date
+rsl2tp-tabc123: State changed: pending -> initialized
+rsl2tp-tabc123: No matching .network found.
+rsl2tp-tabc123: Unmanaging interface.
+rsl2tp-tabc123: State changed: initialized -> unmanaged
+rsl2tp-tabc123: Interface name change detected, renamed to l2tp0.
+l2tp0: Failed to get driver, continuing without: Operation not supported
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: unmanaged -> initialized
+l2tp0: State changed: initialized -> configuring
+l2tp0: Requested configuring of the DHCPv6 client.
+l2tp0: Requested configuring of the IPv6 Router Discovery.
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+
+### TEST B (l2tpeth): create l2tp0 directly
+RESULT: address APPLIED after 1s
+mac=be:36:6a:d9:1e:43 addr_assign_type=3
+  udevadm: E: INTERFACE=l2tp0
+  udevadm: E: ID_NET_NAMING_SCHEME=v259
+  udevadm: E: ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link
+  udevadm: E: ID_NET_NAME=l2tp0
+  udevd: l2tp0: Device is queued (SEQNUM=836513, ACTION=add)
+  udevd: l2tp0: Device ready for processing (SEQNUM=836513, ACTION=add)
+  udevd: l2tp0: sd-device-monitor(manager): Passed 210 byte to netlink monitor.
+  udevd: l2tp0: Processing device (SEQNUM=836513, ACTION=add)
+  udevd: l2tp0: addr_assign_type=1, MAC address is not permanent.
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Importing properties from results of builtin command "path_id".
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Failed to run builtin "path_id": No such file or directory
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 IMPORT{builtin}="net_setup_link": Importing properties from results of builtin command "net_setup_link".
+  udevd: l2tp0: Device has addr_assign_type attribute: 1
+  udevd: l2tp0: Config file /usr/lib/systemd/network/99-default.link is applied
+  udevd: l2tp0: Applying persistent MAC address: be:36:6a:d9:1e:43
+  udevd: l2tp0: Policy *keep*: keeping existing userspace name
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME="$env{ID_NET_NAME}": Set network interface name: l2tp0
+  udevd: l2tp0: Device processed (SEQNUM=836513, ACTION=add)
+  udevd: l2tp0: sd-device-monitor(worker): Passed 397 byte to netlink monitor.
+-- networkd log:
+l2tp0: Saved new link: ifindex=7, iftype=ETHER(1), kind=n/a
+l2tp0: Saved original MTU 65481 (min: 0, max: 65535)
+l2tp0: Saved hardware address: 96:db:e7:38:03:48
+l2tp0: Saved IPv6 link-local address generation mode: eui64
+l2tp0: link pending udev initialization...
+l2tp0: Hardware address is changed: 96:db:e7:38:03:48 → be:36:6a:d9:1e:43
+l2tp0: udev initialized link
+l2tp0: Failed to get driver, continuing without: Operation not supported
+l2tp0: Saved permanent hardware address: 00:00:00:00:00:00
+l2tp0: Link state is up-to-date
+l2tp0: State changed: pending -> initialized
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: initialized -> configuring
+l2tp0: Requested configuring of the DHCPv6 client.
+l2tp0: Requested configuring of the IPv6 Router Discovery.
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: DHCPv6 client is configured.
+l2tp0: IPv6 Router Discovery is configured.
+l2tp0: Configuring static address (requesting): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Received new static address (configured): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: permanent, scope: global, label: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.1/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: host, type: local, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.255/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: link, type: broadcast, flags: n/a
+
+### H2: MAC after create rsl2tp-tNNNNNN, sleep 1, rename -> l2tp0 (x3, distinct temp names)
+run 1: mac=66:0d:b0:2a:b4:d0 addr_assign_type=3
+run 2: mac=a6:e6:53:44:a8:4d addr_assign_type=3
+run 3: mac=02:84:d8:51:ca:ab addr_assign_type=3
+
+### H2: MAC after create rsl2tp-tabc123 (same temp name), sleep 1, rename -> l2tp0 (x2)
+run 1: mac=7e:94:42:3f:a5:96 addr_assign_type=3
+run 2: mac=7e:94:42:3f:a5:96 addr_assign_type=3
+
+### H2: MAC after direct create l2tp0 (x3)
+run 1: mac=be:36:6a:d9:1e:43 addr_assign_type=3
+run 2: mac=be:36:6a:d9:1e:43 addr_assign_type=3
+run 3: mac=be:36:6a:d9:1e:43 addr_assign_type=3
+
+### H2: MAC after create rsl2tp-tNNNNNN + immediate rename (race, x3)
+run 1: mac=be:36:6a:d9:1e:43 addr_assign_type=3
+  udevd: rsl2tp-t100001: Failed to get permanent hardware address, ignoring: No such device
+  udevd: rsl2tp-t100001: MAC address on the device already matches policy "persistent".
+  udevd: l2tp0: addr_assign_type=1, MAC address is not permanent.
+  udevd: l2tp0: Applying persistent MAC address: be:36:6a:d9:1e:43
+  udevd: l2tp0: Not applying Name= and NamePolicy= on 'move' uevent.
+  udevd: l2tp0: Not applying AlternativeNames= and AlternativeNamesPolicy= on 'move' uevent.
+run 2: mac=72:1b:e3:f4:f5:ff addr_assign_type=3
+  udevd: rsl2tp-t100002: addr_assign_type=1, MAC address is not permanent.
+  udevd: rsl2tp-t100002: Failed to get permanent hardware address, ignoring: No such device
+  udevd: rsl2tp-t100002: Applying persistent MAC address: 72:1b:e3:f4:f5:ff
+  udevd: l2tp0: addr_assign_type=3, MAC address is not permanent.
+  udevd: l2tp0: MAC address on the device already set by userspace.
+  udevd: l2tp0: Not applying Name= and NamePolicy= on 'move' uevent.
+run 3: mac=5e:00:3d:07:96:51 addr_assign_type=3
+  udevd: rsl2tp-t100003: addr_assign_type=1, MAC address is not permanent.
+  udevd: rsl2tp-t100003: Failed to get permanent hardware address, ignoring: No such device
+  udevd: rsl2tp-t100003: Applying persistent MAC address: 5e:00:3d:07:96:51
+  udevd: rsl2tp-t100003: Policy *keep*: keeping existing userspace name
+  udevd: l2tp0: addr_assign_type=3, MAC address is not permanent.
+  udevd: l2tp0: MAC address on the device already set by userspace.
+
+### udev monitor events (ACTION/INTERFACE/ID_NET_LINK_FILE), whole run so far
+
+ACTION=add INTERFACE=rsl2tp-tabc123 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=rsl2tp-tabc123 
+ACTION=add 
+ACTION=add 
+ACTION=move INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=remove 
+ACTION=remove 
+ACTION=remove INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=add INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=add 
+ACTION=add 
+ACTION=remove 
+ACTION=remove 
+ACTION=remove INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=add INTERFACE=rsl2tp-tabc123 ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=rsl2tp-tabc123 
+ACTION=add 
+ACTION=add 
+ACTION=move INTERFACE=l2tp0 ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=remove 
+ACTION=remove 
+ACTION=remove INTERFACE=l2tp0 ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=add INTERFACE=l2tp0 ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=add 
+ACTION=add 
+ACTION=remove 
+ACTION=remove 
+ACTION=remove INTERFACE=l2tp0 ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=add INTERFACE=rsl2tp-t000001 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=rsl2tp-t000001 
+ACTION=add 
+ACTION=add 
+ACTION=move INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=remove 
+ACTION=remove 
+ACTION=remove INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=add INTERFACE=rsl2tp-t000002 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=rsl2tp-t000002 
+ACTION=add 
+ACTION=add 
+ACTION=move INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=remove 
+ACTION=remove 
+ACTION=remove INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=add INTERFACE=rsl2tp-t000003 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=rsl2tp-t000003 
+ACTION=add 
+ACTION=add 
+ACTION=move INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=remove 
+ACTION=remove 
+ACTION=remove INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=add INTERFACE=rsl2tp-tabc123 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=rsl2tp-tabc123 
+ACTION=add 
+ACTION=add 
+ACTION=move INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=remove 
+ACTION=remove 
+ACTION=remove INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=add INTERFACE=rsl2tp-tabc123 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=rsl2tp-tabc123 
+ACTION=add 
+ACTION=add 
+ACTION=move INTERFACE=l2tp0 ID_NET_DRIVER=dummy ID_NET_LINK_FILE=/usr/lib/systemd/network/99-default.link ID_NET_NAME=l2tp0 
+ACTION=remove 
+
+### H3: adding .link file OriginalName=l2tp0 MACAddress=02:00:5e:00:53:01
+
+### TEST A (H3-dummy): create rsl2tp-tabc123, sleep 1, rename to l2tp0
+RESULT: address APPLIED after 1s
+mac=02:00:5e:00:53:01 addr_assign_type=3
+  udevadm: E: INTERFACE=l2tp0
+  udevadm: E: ID_NET_DRIVER=dummy
+  udevadm: E: ID_NET_NAMING_SCHEME=v259
+  udevadm: E: ID_NET_LINK_FILE=/etc/systemd/network/10-l2tp0.link
+  udevadm: E: ID_NET_NAME=l2tp0
+  udevd: rsl2tp-tabc123: Device is queued (SEQNUM=836593, ACTION=add)
+  udevd: rsl2tp-tabc123: Device ready for processing (SEQNUM=836593, ACTION=add)
+  udevd: rsl2tp-tabc123: Processing device (SEQNUM=836593, ACTION=add)
+  udevd: rsl2tp-tabc123: addr_assign_type=1, MAC address is not permanent.
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Importing properties from results of builtin command "path_id".
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Failed to run builtin "path_id": No such file or directory
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 IMPORT{builtin}="net_setup_link": Importing properties from results of builtin command "net_setup_link".
+  udevd: rsl2tp-tabc123: Device has addr_assign_type attribute: 1
+  udevd: rsl2tp-tabc123: Config file /usr/lib/systemd/network/99-default.link is applied
+  udevd: rsl2tp-tabc123: Applying persistent MAC address: 7e:94:42:3f:a5:96
+  udevd: rsl2tp-tabc123: Policy *keep*: keeping existing userspace name
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME="$env{ID_NET_NAME}": Set network interface name: rsl2tp-tabc123
+  udevd: rsl2tp-tabc123: Device processed (SEQNUM=836593, ACTION=add)
+  udevd: rsl2tp-tabc123: sd-device-monitor(worker): Passed 438 byte to netlink monitor.
+  udevd: l2tp0: Device is queued (SEQNUM=836596, ACTION=move)
+  udevd: l2tp0: Device ready for processing (SEQNUM=836596, ACTION=move)
+  udevd: l2tp0: sd-device-monitor(manager): Passed 244 byte to netlink monitor.
+  udevd: l2tp0: Processing device (SEQNUM=836596, ACTION=move)
+  udevd: l2tp0: addr_assign_type=3, MAC address is not permanent.
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Importing properties from results of builtin command "path_id".
+-- networkd log:
+rsl2tp-tabc123: Saved new link: ifindex=19, iftype=ETHER(1), kind=dummy
+rsl2tp-tabc123: Saved original MTU 1500 (min: 0, max: 4294967295)
+rsl2tp-tabc123: Saved hardware address: ee:f7:6a:89:b2:5d
+rsl2tp-tabc123: Saved IPv6 link-local address generation mode: eui64
+rsl2tp-tabc123: link pending udev initialization...
+rsl2tp-tabc123: Hardware address is changed: ee:f7:6a:89:b2:5d → 7e:94:42:3f:a5:96
+rsl2tp-tabc123: udev initialized link
+rsl2tp-tabc123: Found driver: dummy
+rsl2tp-tabc123: Saved permanent hardware address: 00:00:00:00:00:00
+rsl2tp-tabc123: Link state is up-to-date
+rsl2tp-tabc123: State changed: pending -> initialized
+rsl2tp-tabc123: No matching .network found.
+rsl2tp-tabc123: Unmanaging interface.
+rsl2tp-tabc123: State changed: initialized -> unmanaged
+rsl2tp-tabc123: Interface name change detected, renamed to l2tp0.
+l2tp0: Found driver: dummy
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: unmanaged -> initialized
+l2tp0: State changed: initialized -> configuring
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: Received new foreign address (configured): fe80::7c94:42ff:fe3f:a596/64 (valid forever, preferred forever), flags: permanent, scope: link
+l2tp0: Received new foreign route (configured): dst: fe80::7c94:42ff:fe3f:a596/128, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 0, proto: kernel, scope: global, type: local, flags: n/a
+
+### TEST B (H3-dummy): create l2tp0 directly
+RESULT: address APPLIED after 1s
+mac=02:00:5e:00:53:01 addr_assign_type=3
+  udevadm: E: INTERFACE=l2tp0
+  udevadm: E: ID_NET_DRIVER=dummy
+  udevadm: E: ID_NET_NAMING_SCHEME=v259
+  udevadm: E: ID_NET_LINK_FILE=/etc/systemd/network/10-l2tp0.link
+  udevadm: E: ID_NET_NAME=l2tp0
+  udevd: l2tp0: Device is queued (SEQNUM=836600, ACTION=add)
+  udevd: Skipping file '/etc/systemd/network/l2tp0.network', suffix is not '.link'.
+  udevd: l2tp0: Device ready for processing (SEQNUM=836600, ACTION=add)
+  udevd: l2tp0: sd-device-monitor(manager): Passed 195 byte to netlink monitor.
+  udevd: l2tp0: Processing device (SEQNUM=836600, ACTION=add)
+  udevd: l2tp0: addr_assign_type=1, MAC address is not permanent.
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Importing properties from results of builtin command "path_id".
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Failed to run builtin "path_id": No such file or directory
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 IMPORT{builtin}="net_setup_link": Importing properties from results of builtin command "net_setup_link".
+  udevd: l2tp0: Device has addr_assign_type attribute: 1
+  udevd: l2tp0: Config file /etc/systemd/network/10-l2tp0.link is applied
+  udevd: l2tp0: Using static MAC address.
+  udevd: l2tp0: Applying static MAC address: 02:00:5e:00:53:01
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME="$env{ID_NET_NAME}": Set network interface name: l2tp0
+  udevd: l2tp0: Device processed (SEQNUM=836600, ACTION=add)
+  udevd: l2tp0: sd-device-monitor(worker): Passed 396 byte to netlink monitor.
+-- networkd log:
+l2tp0: Saved new link: ifindex=20, iftype=ETHER(1), kind=dummy
+l2tp0: Saved original MTU 1500 (min: 0, max: 4294967295)
+l2tp0: Saved hardware address: a2:e2:a5:99:5a:a7
+l2tp0: Saved IPv6 link-local address generation mode: eui64
+l2tp0: link pending udev initialization...
+l2tp0: Hardware address is changed: a2:e2:a5:99:5a:a7 → 02:00:5e:00:53:01
+l2tp0: udev initialized link
+l2tp0: Found driver: dummy
+l2tp0: Saved permanent hardware address: 00:00:00:00:00:00
+l2tp0: Link state is up-to-date
+l2tp0: State changed: pending -> initialized
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: initialized -> configuring
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: Received new foreign address (configured): fe80::5eff:fe00:5301/64 (valid forever, preferred forever), flags: permanent, scope: link
+l2tp0: Received new foreign route (configured): dst: fe80::5eff:fe00:5301/128, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 0, proto: kernel, scope: global, type: local, flags: n/a
+l2tp0: Configuring static address (requesting): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Received new static address (configured): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: permanent, scope: global, label: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.1/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: host, type: local, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.255/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: link, type: broadcast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.0/24, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: main(254), priority: 0, proto: kernel, scope: link, type: unicast, flags: n/a
+l2tp0: Addresses set
+
+### TEST A (H3-l2tpeth): create rsl2tp-tabc123, sleep 1, rename to l2tp0
+RESULT: address APPLIED after 1s
+mac=02:00:5e:00:53:01 addr_assign_type=3
+  udevadm: E: INTERFACE=l2tp0
+  udevadm: E: ID_NET_NAMING_SCHEME=v259
+  udevadm: E: ID_NET_LINK_FILE=/etc/systemd/network/10-l2tp0.link
+  udevadm: E: ID_NET_NAME=l2tp0
+  udevd: rsl2tp-tabc123: Device is queued (SEQNUM=836606, ACTION=add)
+  udevd: rsl2tp-tabc123: Device ready for processing (SEQNUM=836606, ACTION=add)
+  udevd: rsl2tp-tabc123: sd-device-monitor(manager): Passed 229 byte to netlink monitor.
+  udevd: rsl2tp-tabc123: Processing device (SEQNUM=836606, ACTION=add)
+  udevd: rsl2tp-tabc123: addr_assign_type=1, MAC address is not permanent.
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Importing properties from results of builtin command "path_id".
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Failed to run builtin "path_id": No such file or directory
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 IMPORT{builtin}="net_setup_link": Importing properties from results of builtin command "net_setup_link".
+  udevd: rsl2tp-tabc123: Device has addr_assign_type attribute: 1
+  udevd: rsl2tp-tabc123: Config file /usr/lib/systemd/network/99-default.link is applied
+  udevd: rsl2tp-tabc123: Applying persistent MAC address: 7e:94:42:3f:a5:96
+  udevd: rsl2tp-tabc123: Policy *keep*: keeping existing userspace name
+  udevd: rsl2tp-tabc123: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME="$env{ID_NET_NAME}": Set network interface name: rsl2tp-tabc123
+  udevd: rsl2tp-tabc123: Device processed (SEQNUM=836606, ACTION=add)
+  udevd: rsl2tp-tabc123: sd-device-monitor(worker): Passed 434 byte to netlink monitor.
+  udevd: l2tp0: Device is queued (SEQNUM=836609, ACTION=move)
+  udevd: Skipping file '/etc/systemd/network/l2tp0.network', suffix is not '.link'.
+  udevd: l2tp0: Device ready for processing (SEQNUM=836609, ACTION=move)
+  udevd: l2tp0: sd-device-monitor(manager): Passed 260 byte to netlink monitor.
+  udevd: l2tp0: Processing device (SEQNUM=836609, ACTION=move)
+-- networkd log:
+rsl2tp-tabc123: Saved new link: ifindex=21, iftype=ETHER(1), kind=n/a
+rsl2tp-tabc123: Saved original MTU 65481 (min: 0, max: 65535)
+rsl2tp-tabc123: Saved hardware address: 62:06:e2:44:2d:7d
+rsl2tp-tabc123: Saved IPv6 link-local address generation mode: eui64
+rsl2tp-tabc123: link pending udev initialization...
+rsl2tp-tabc123: Hardware address is changed: 62:06:e2:44:2d:7d → 7e:94:42:3f:a5:96
+rsl2tp-tabc123: udev initialized link
+rsl2tp-tabc123: Failed to get driver, continuing without: Operation not supported
+rsl2tp-tabc123: Saved permanent hardware address: 00:00:00:00:00:00
+rsl2tp-tabc123: Link state is up-to-date
+rsl2tp-tabc123: State changed: pending -> initialized
+rsl2tp-tabc123: No matching .network found.
+rsl2tp-tabc123: Unmanaging interface.
+rsl2tp-tabc123: State changed: initialized -> unmanaged
+rsl2tp-tabc123: Interface name change detected, renamed to l2tp0.
+l2tp0: Failed to get driver, continuing without: Operation not supported
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: unmanaged -> initialized
+l2tp0: State changed: initialized -> configuring
+l2tp0: Requested configuring of the DHCPv6 client.
+l2tp0: Requested configuring of the IPv6 Router Discovery.
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Hardware address is changed: 7e:94:42:3f:a5:96 → 02:00:5e:00:53:01
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+
+### TEST B (H3-l2tpeth): create l2tp0 directly
+RESULT: address APPLIED after 1s
+mac=02:00:5e:00:53:01 addr_assign_type=3
+  udevadm: E: INTERFACE=l2tp0
+  udevadm: E: ID_NET_NAMING_SCHEME=v259
+  udevadm: E: ID_NET_LINK_FILE=/etc/systemd/network/10-l2tp0.link
+  udevadm: E: ID_NET_NAME=l2tp0
+  udevd: l2tp0: Device is queued (SEQNUM=836613, ACTION=add)
+  udevd: l2tp0: Device ready for processing (SEQNUM=836613, ACTION=add)
+  udevd: l2tp0: sd-device-monitor(manager): Passed 211 byte to netlink monitor.
+  udevd: l2tp0: Processing device (SEQNUM=836613, ACTION=add)
+  udevd: l2tp0: addr_assign_type=1, MAC address is not permanent.
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Importing properties from results of builtin command "path_id".
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 IMPORT{builtin}="path_id": Failed to run builtin "path_id": No such file or directory
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 IMPORT{builtin}="net_setup_link": Importing properties from results of builtin command "net_setup_link".
+  udevd: l2tp0: Device has addr_assign_type attribute: 1
+  udevd: l2tp0: Config file /etc/systemd/network/10-l2tp0.link is applied
+  udevd: l2tp0: Using static MAC address.
+  udevd: l2tp0: Applying static MAC address: 02:00:5e:00:53:01
+  udevd: l2tp0: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME="$env{ID_NET_NAME}": Set network interface name: l2tp0
+  udevd: l2tp0: Device processed (SEQNUM=836613, ACTION=add)
+  udevd: l2tp0: sd-device-monitor(worker): Passed 392 byte to netlink monitor.
+-- networkd log:
+l2tp0: Saved new link: ifindex=22, iftype=ETHER(1), kind=n/a
+l2tp0: Saved original MTU 65481 (min: 0, max: 65535)
+l2tp0: Saved hardware address: ca:1e:ea:b5:01:9c
+l2tp0: Saved IPv6 link-local address generation mode: eui64
+l2tp0: link pending udev initialization...
+l2tp0: Hardware address is changed: ca:1e:ea:b5:01:9c → 02:00:5e:00:53:01
+l2tp0: udev initialized link
+l2tp0: Failed to get driver, continuing without: Operation not supported
+l2tp0: Saved permanent hardware address: 00:00:00:00:00:00
+l2tp0: Link state is up-to-date
+l2tp0: State changed: pending -> initialized
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Configuring with /etc/systemd/network/l2tp0.network.
+l2tp0: State changed: initialized -> configuring
+l2tp0: Requested configuring of the DHCPv6 client.
+l2tp0: Requested configuring of the IPv6 Router Discovery.
+l2tp0: Requesting static address (n/a): 192.0.2.1/24 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Setting addresses
+l2tp0: Bringing link up
+l2tp0: Link UP
+l2tp0: Found matching .network file: /etc/systemd/network/l2tp0.network
+l2tp0: Setting addresses
+l2tp0: Received new foreign route (configured): dst: ff00::/8, src: n/a, gw: n/a, prefsrc: n/a, table: local(255), priority: 256, proto: kernel, scope: global, type: multicast, flags: n/a
+l2tp0: Received new foreign route (configured): dst: fe80::/64, src: n/a, gw: n/a, prefsrc: n/a, table: main(254), priority: 256, proto: kernel, scope: global, type: unicast, flags: n/a
+l2tp0: DHCPv6 client is configured.
+l2tp0: IPv6 Router Discovery is configured.
+l2tp0: Configuring static address (requesting): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: n/a, scope: global, label: n/a
+l2tp0: Received new static address (configured): 192.0.2.1/24 broadcast 192.0.2.255 (valid forever, preferred forever), flags: permanent, scope: global, label: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.1/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: host, type: local, flags: n/a
+l2tp0: Received new foreign route (configured): dst: 192.0.2.255/32, src: n/a, gw: n/a, prefsrc: 192.0.2.1, table: local(255), priority: 0, proto: kernel, scope: link, type: broadcast, flags: n/a
+
+### full networkd log line count: 2053; errors/warnings:
+Failed to allocate memory pressure event source, ignoring: Permission denied
+Failed to increase receive buffer size for rtnl socket, ignoring: Operation not permitted
+Failed to increase receive buffer size for general netlink socket, ignoring: Operation not permitted
+Failed to increase receive buffer size for nftables netlink socket, ignoring: Operation not permitted
+Failed to bind to systemd-resolved hook varlink socket, ignoring: Permission denied
+Failed to determine peer pidfd, ignoring: Invalid argument
+sd-device-monitor(n/a): Failed to increase receive buffer size, ignoring: Operation not permitted
+libbpf: Failed to bump RLIMIT_MEMLOCK (err = -EPERM), you might need to do it explicitly!
+libbpf: Error in bpf_object__probe_loading(): -EPERM. Couldn't load trivial BPF program. Make sure your kernel supports BPF (CONFIG_BPF_SYSCALL=y) and/or that RLIMIT_MEMLOCK is set to big enough value.
+libbpf: failed to load BPF skeleton 'sysctl_monitor_bpf': -EPERM
+
+### DONE

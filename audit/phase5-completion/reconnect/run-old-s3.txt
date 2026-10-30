@@ -1,0 +1,46 @@
+[  0s] == S3: address events on the bind device and on an unbound tunnel's source (T19, E6, E7, E8, H14)
+[  2s]   seen (2): tunnel_id=1
+[  3s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[  3s] == add 10.0.0.11/24 to bindA (same family) -> one reconnect expected
+[  7s]   MISSING after 4s (count 3): tunnel_id=1
+[  7s]   seen (1): reconnected tunnel_id=1
+[  7s]   A log:
+[  8s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[  8s] == add fd00:1::1/64 to bindA (other family) -> no reconnect of the v4 tunnel expected
+[ 10s]   CHANGED 3->4: tunnel_id=1
+[ 10s]   A log:
+   A| [2026-10-30T01:57:56Z INFO  rs_l2tpd::runtime] reconnected tunnel_id=1 after local address change on bindA
+[ 10s] == remove 10.0.0.11/24 -> one reconnect expected; unbound t3 untouched
+[ 14s]   MISSING after 4s (count 4): tunnel_id=1
+[ 14s]   seen (2): reconnected tunnel_id=1
+[ 15s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 15s] == B side: remove B's source 10.0.0.2 (promote_secondaries=1 keeps 10.0.0.3): unbound tunnels of B reselect their source
+[ 15s]   seen (1): tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.3
+[ 15s]   B log:
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.3
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.3
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.3
+[ 17s]   ping l2tp0 -> 192.168.0.2: FAIL (tx_dropped +0)
+[ 17s] == B side: add 10.0.0.2 back (unbound: no reconnect expected; A's frames to .2 land again, K15)
+[ 19s]   unchanged (2): tunnel t1 (tunnel_id=2): connected to
+[ 20s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 20s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 2
+[ 20s] == done; A log tail:
+   A| [2026-10-30T01:57:50Z INFO  rs_l2tpd::runtime] adding tunnel_id=1 peer_tunnel_id=2 remote_addr=10.0.0.2
+   A| [2026-10-30T01:57:50Z INFO  rs_l2tpd::runtime] adding session tunnel_id=1 session_id=101 interface_name=l2tp0
+   A| [2026-10-30T01:57:50Z INFO  rs_l2tpd] initial configuration applied
+   A| [2026-10-30T01:57:50Z INFO  rs_l2tpd::runtime] reconnected tunnel_id=1 after local address change on bindA
+   A| [2026-10-30T01:57:56Z INFO  rs_l2tpd::runtime] reconnected tunnel_id=1 after local address change on bindA
+[ 20s] -- B log (reconnect-related lines):
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::d0da:dff:fe65:54f
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.3
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.3
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.3

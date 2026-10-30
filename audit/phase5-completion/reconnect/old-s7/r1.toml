@@ -1,0 +1,11 @@
+[tunnels.t1]
+tunnel_id = 1
+peer_tunnel_id = 2
+remote_addr = "10.0.0.2"
+ip_version = "v4"
+bind_interface = "bindX"
+[sessions.s1]
+tunnel_name = "t1"
+session_id = 101
+peer_session_id = 102
+interface_name = "l2tp0"

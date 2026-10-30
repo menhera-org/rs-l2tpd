@@ -1,0 +1,10 @@
+[tunnels.t3]
+tunnel_id = 21
+peer_tunnel_id = 22
+remote_addr = "peerb.test"
+ip_version = "v4"
+[sessions.s3]
+tunnel_name = "t3"
+session_id = 301
+peer_session_id = 302
+interface_name = "l2tp2"
