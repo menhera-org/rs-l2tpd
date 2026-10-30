@@ -6,7 +6,7 @@ use std::io::{self, IoSlice, Read};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::net::UnixDatagram;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 pub struct Store {
     socket: UnixDatagram,
@@ -20,10 +20,10 @@ impl Store {
         } else {
             UnixAddr::new(std::path::Path::new(path))?
         };
-        Ok(Self {
-            socket: UnixDatagram::unbound()?,
-            address,
-        })
+        let socket = UnixDatagram::unbound()?;
+        // kernel: net/unix/af_unix.c unix_dgram_connect; reject unusable stores at startup (P14).
+        nix::sys::socket::connect(socket.as_raw_fd(), &address)?;
+        Ok(Self { socket, address })
     }
     fn send(&self, text: &str, fd: Option<i32>) -> io::Result<()> {
         let fds = fd.into_iter().collect::<Vec<_>>();
@@ -137,7 +137,7 @@ pub fn inherit() -> io::Result<Inherited> {
         names.split(':').collect()
     };
     let invalid = names.len() != count as usize || names.iter().any(|s| valid_name(s).is_err());
-    close_from(3 + count as u32);
+    close_from(3 + count as u32)?;
     // Environment mutation is confined to startup, before threads exist.
     unsafe {
         for key in ["LISTEN_PID", "LISTEN_FDS", "LISTEN_FDNAMES"] {
@@ -170,20 +170,35 @@ pub fn inherit() -> io::Result<Inherited> {
             .unwrap_or(0),
     })
 }
-fn close_from(first: u32) {
-    // Linux-only daemon; close_range avoids procfs and a million individual closes.
+fn close_from(first: u32) -> io::Result<()> {
+    // Linux fs/open.c close_range: no procfs or per-descriptor loop on this path.
     if unsafe { libc::syscall(libc::SYS_close_range, first, u32::MAX, 0u32) } == 0 {
-        return;
+        return Ok(());
     }
     let mut limit = std::mem::MaybeUninit::<libc::rlimit>::uninit();
-    if unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, limit.as_mut_ptr()) } == 0 {
-        let limit = unsafe { limit.assume_init() }.rlim_max.min(i32::MAX as u64);
-        for fd in first as u64..limit {
-            unsafe {
-                libc::close(fd as i32);
-            }
+    if unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, limit.as_mut_ptr()) } < 0 {
+        return Err(io::Error::last_os_error());
+    }
+    // The hard limit covers descriptors opened before a soft-limit reduction.
+    let limit = unsafe { limit.assume_init() }.rlim_max.min(i32::MAX as u64);
+    close_individually(first, limit, Instant::now() + Duration::from_secs(1))
+}
+
+fn close_individually(first: u32, limit: u64, deadline: Instant) -> io::Result<()> {
+    for fd in first as u64..limit {
+        // A filtering container may refuse close_range and set an enormous limit.
+        // Fail startup rather than hang or continue with unclosed descriptors.
+        if (fd - first as u64).is_multiple_of(1024) && Instant::now() >= deadline {
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "closing inherited descriptors",
+            ));
+        }
+        unsafe {
+            libc::close(fd as i32);
         }
     }
+    Ok(())
 }
 pub fn worker(
     mut requests: rs_l2tpd::runtime::Receiver<ControlEvent>,
@@ -346,5 +361,39 @@ mod manager_tests {
             .forget("t17", Instant::now() + std::time::Duration::from_secs(3))
             .unwrap();
         assert_eq!(query("NFileDescriptorStore"), "0");
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+
+    /// spec: P14, P17
+    #[test]
+    fn fallback_closing_is_bounded_without_trusting_the_soft_limit() {
+        assert_eq!(
+            close_individually(3, i32::MAX as u64, Instant::now())
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::TimedOut
+        );
+        if std::env::var_os("COMPLETION_CLOSE_CHILD").is_none() {
+            assert!(std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit"])
+                .env("COMPLETION_CLOSE_CHILD", "1").status().unwrap().success());
+            return;
+        }
+        let fd = std::fs::File::open("/dev/null").unwrap();
+        let high = unsafe { libc::fcntl(fd.as_raw_fd(), libc::F_DUPFD, 100) };
+        assert!(high >= 100);
+        let limits = libc::rlimit {
+            rlim_cur: 32,
+            rlim_max: 256,
+        };
+        assert_eq!(unsafe { libc::setrlimit(libc::RLIMIT_NOFILE, &limits) }, 0);
+        // Exercise the fallback independently of close_range availability.
+        close_individually(3, limits.rlim_max, Instant::now() + Duration::from_secs(1)).unwrap();
+        assert_eq!(unsafe { libc::fcntl(high, libc::F_GETFD) }, -1);
+        std::mem::forget(fd); // Its descriptor was deliberately closed above.
     }
 }

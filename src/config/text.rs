@@ -63,7 +63,13 @@ pub(crate) fn host_name(text: &str) -> Option<&str> {
                 .bytes()
                 .all(|b| b.is_ascii_alphanumeric() || b == b'-')
     };
-    (name.len() <= 253 && name.split('.').all(label)).then_some(name)
+    (name.len() <= 253
+        && name.split('.').all(label)
+        && name
+            .rsplit('.')
+            .next()
+            .is_some_and(|last| !last.bytes().all(|b| b.is_ascii_digit())))
+    .then_some(name)
 }
 
 /// `remote_addr` (C7). On error, the family of the literal when the

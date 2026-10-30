@@ -80,11 +80,18 @@ pub fn entry() -> io::Result<Entry> {
             dev: parse(fields[1])?,
             ino: parse(fields[2])?,
         };
-        if pid.matches()? {
-            Some(pid)
-        } else {
-            log::warn!("re-exec PID file no longer matches; removal authority discarded");
-            None
+        match pid.matches() {
+            Ok(true) => Some(pid),
+            Ok(false) => {
+                log::warn!("re-exec PID file no longer matches; removal authority discarded");
+                None
+            }
+            Err(error) => {
+                log::warn!(
+                    "re-exec PID file could not be inspected: {error}; removal authority discarded"
+                );
+                None
+            }
         }
     };
     Ok(Entry { reexec: true, pid })
@@ -105,9 +112,16 @@ fn state(pid: Option<&PidFile>) -> String {
     }
 }
 // Resolve argv[0] before chdir: current_exe names the old inode on Linux.
-pub fn executable_at(argv0: &std::ffi::OsStr, original: &Path) -> io::Result<PathBuf> {
+pub fn executable_at(
+    argv0: &std::ffi::OsStr,
+    original: io::Result<PathBuf>,
+) -> io::Result<PathBuf> {
     let input = Path::new(argv0);
-    if input.components().count() > 1 || input.is_absolute() {
+    if input.is_absolute() {
+        return Ok(input.to_owned());
+    }
+    let original = original?;
+    if input.components().count() > 1 {
         return Ok(original.join(input));
     }
     for directory in std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()) {
@@ -246,9 +260,27 @@ pub fn exec(
     Err(error)
 }
 pub fn signal(path: &Path) -> io::Result<()> {
-    let text = std::fs::read_to_string(path)?;
-    let pid = text
-        .trim()
+    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+        .open(path)?;
+    let metadata = file.metadata()?;
+    if !metadata.is_file()
+        || metadata.uid() != unsafe { libc::geteuid() }
+        || metadata.nlink() != 1
+        || metadata.mode() & 0o022 != 0
+        || metadata.len() > 32
+    {
+        return Err(io::Error::other("unsafe PID file"));
+    }
+    let mut text = String::new();
+    file.take(33).read_to_string(&mut text)?;
+    let number = text
+        .strip_suffix('\n')
+        .filter(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()) && text.len() <= 32)
+        .ok_or_else(|| io::Error::other("invalid PID file"))?;
+    let pid = number
         .parse::<i32>()
         .ok()
         .filter(|pid| *pid > 1)
@@ -370,6 +402,107 @@ mod signal_tests {
                 "--nocapture",
             ])
             .env("PHASE5_EXEC_MASK", "exec")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+    use std::os::unix::fs::{PermissionsExt, symlink};
+    /// spec: P27
+    #[test]
+    fn restart_file_checks_precede_any_signal() {
+        let dir = crate::testdir::Dir::new();
+        let path = dir.path().join("pid");
+        let mut child = Command::new("/bin/sleep").arg("30").spawn().unwrap();
+        let contents = format!("{}\n", child.id());
+        for text in [
+            contents.trim_end().to_owned(),
+            format!("+{}", contents),
+            "0\n".into(),
+            "1\n".into(),
+            "1\n2\n".into(),
+            "9".repeat(33),
+        ] {
+            std::fs::write(&path, text).unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+            assert!(signal(&path).is_err());
+            assert!(child.try_wait().unwrap().is_none());
+        }
+        std::fs::write(&path, &contents).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o666)).unwrap();
+        assert!(signal(&path).is_err());
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let link = dir.path().join("link");
+        std::fs::hard_link(&path, &link).unwrap();
+        assert!(signal(&path).is_err());
+        std::fs::remove_file(&link).unwrap();
+        symlink(&path, &link).unwrap();
+        assert!(signal(&link).is_err());
+        assert!(signal(dir.path()).is_err());
+        let fifo = dir.path().join("fifo");
+        let name = std::ffi::CString::new(fifo.as_os_str().as_bytes()).unwrap();
+        assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+        assert!(signal(&fifo).is_err());
+        assert!(child.try_wait().unwrap().is_none());
+        signal(&path).unwrap();
+        use std::os::unix::process::ExitStatusExt;
+        assert_eq!(child.wait().unwrap().signal(), Some(libc::SIGUSR2));
+    }
+    /// spec: P23 P26
+    #[test]
+    fn absolute_executable_does_not_need_a_working_directory() {
+        assert_eq!(
+            executable_at(
+                std::ffi::OsStr::new("/absolute/daemon"),
+                Err(io::Error::other("deleted cwd"))
+            )
+            .unwrap(),
+            Path::new("/absolute/daemon")
+        );
+        assert!(
+            executable_at(
+                std::ffi::OsStr::new("./daemon"),
+                Err(io::Error::other("deleted cwd"))
+            )
+            .is_err()
+        );
+    }
+    /// spec: P26
+    #[test]
+    fn pid_inspection_error_child() {
+        if std::env::var_os("COMPLETION_PID_ENTRY").is_none() {
+            return;
+        }
+        let dir = crate::testdir::Dir::new();
+        let parent = dir.path().join("file");
+        std::fs::write(&parent, "").unwrap();
+        let pid = PidFile {
+            path: parent.join("pid"),
+            dev: 0,
+            ino: 0,
+        };
+        unsafe {
+            std::env::set_var("RS_L2TPD_REEXEC", format!("1:{}", std::process::id()));
+            std::env::set_var("RS_L2TPD_PIDFILE", state(Some(&pid)));
+            std::env::set_var("LISTEN_PID", std::process::id().to_string());
+            std::env::set_var("LISTEN_FDS", "0");
+        }
+        let result = entry().unwrap();
+        assert!(result.reexec && result.pid.is_none());
+    }
+    /// spec: P26
+    #[test]
+    fn pid_inspection_error_discards_only_removal_authority() {
+        let output = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "restart::completion_tests::pid_inspection_error_child",
+            ])
+            .env("COMPLETION_PID_ENTRY", "1")
             .output()
             .unwrap();
         assert!(output.status.success(), "{output:?}");

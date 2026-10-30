@@ -50,10 +50,12 @@ pub(super) fn parse_link(payload: &[u8]) -> Option<Link> {
             libc::IFLA_MASTER => master = Some(u32::from_ne_bytes(value.try_into().ok()?)),
             libc::IFLA_ADDRESS => address = value.try_into().ok(),
             libc::IFLA_LINKINFO => {
-                vrf = NlasIterator::new(value).flatten().any(|info| {
-                    info.kind() == libc::IFLA_INFO_KIND
-                        && info.value().strip_suffix(&[0]).unwrap_or(info.value()) == b"vrf"
-                });
+                for info in NlasIterator::new(value) {
+                    let info = info.ok()?;
+                    if info.kind() == libc::IFLA_INFO_KIND {
+                        vrf = info.value().strip_suffix(&[0]).unwrap_or(info.value()) == b"vrf";
+                    }
+                }
             }
             _ => {}
         }
@@ -80,18 +82,23 @@ pub(super) fn parse_link(payload: &[u8]) -> Option<Link> {
 pub(super) fn parse_addr(payload: &[u8]) -> Option<AddrInfo> {
     let header = payload.get(..8)?;
     let index = u32::from_ne_bytes(header[4..8].try_into().ok()?);
+    (index != 0).then_some(())?;
     let (mut address, mut local) = (None, None);
     for nla in NlasIterator::new(&payload[8..]) {
         let nla = nla.ok()?;
-        let addr = match nla.value().len() {
-            4 => IpAddr::from(<[u8; 4]>::try_from(nla.value()).ok()?),
-            16 => IpAddr::from(<[u8; 16]>::try_from(nla.value()).ok()?),
-            _ => continue,
+        let kind = nla.kind() & libc::NLA_TYPE_MASK as u16;
+        if kind != libc::IFA_ADDRESS && kind != libc::IFA_LOCAL {
+            continue;
+        }
+        let addr = match header[0] as i32 {
+            libc::AF_INET => IpAddr::from(<[u8; 4]>::try_from(nla.value()).ok()?),
+            libc::AF_INET6 => IpAddr::from(<[u8; 16]>::try_from(nla.value()).ok()?),
+            _ => return None,
         };
-        match nla.kind() {
-            libc::IFA_ADDRESS => address = Some(addr),
-            libc::IFA_LOCAL => local = Some(addr),
-            _ => {}
+        if kind == libc::IFA_LOCAL {
+            local = Some(addr);
+        } else {
+            address = Some(addr);
         }
     }
     Some(AddrInfo {
@@ -147,6 +154,13 @@ impl Rtnl {
         Ok(self.get(message)?.map(|link| link.info))
     }
 
+    // kernel: (K9, K32) net/core/rtnetlink.c rtnl_getlink: ifi_index lookup.
+    pub(super) fn link_by_index(&mut self, index: u32) -> io::Result<Option<LinkInfo>> {
+        let mut message = LinkMessage::default();
+        message.header.index = index;
+        Ok(self.get(message)?.map(|link| link.info))
+    }
+
     // kernel: (K31) net/core/rtnetlink.c rtnl_getlink; IFLA_ADDRESS of an
     // ARPHRD_ETHER device
     pub(super) fn ether_addr(&mut self, index: u32) -> io::Result<Option<HwAddr>> {
@@ -193,7 +207,7 @@ impl Rtnl {
             Instant::now() + DEADLINE,
             &mut |kind, payload| {
                 if kind == libc::RTM_NEWLINK {
-                    links.extend(parse_link(payload).map(|link| link.info));
+                    links.push(parse_link(payload).ok_or_else(|| errno(libc::EPROTO))?.info);
                 }
                 Ok(())
             },
@@ -211,7 +225,7 @@ impl Rtnl {
             Instant::now() + DEADLINE,
             &mut |kind, payload| {
                 if kind == libc::RTM_NEWADDR {
-                    addrs.extend(parse_addr(payload));
+                    addrs.push(parse_addr(payload).ok_or_else(|| errno(libc::EPROTO))?);
                 }
                 Ok(())
             },
@@ -269,6 +283,39 @@ mod tests {
         assert_eq!(parsed.address, Some([2, 0, 0, 0, 0, 1]));
         let unnamed = link(0, 7, 0, &[]);
         assert!(parse_link(&unnamed).is_none());
+    }
+
+    // kernel: (K7, K29) net/core/rtnetlink.c rtnl_fill_ifinfo and net/ipv4/devinet.c inet_fill_ifaddr.
+    /// spec: A5, E21
+    #[test]
+    fn malformed_dump_records_are_not_usable_entries() {
+        for payload in [
+            vec![],
+            link(0, 0, 0, &[nla(libc::IFLA_IFNAME, b"wan\0")]),
+            link(
+                0,
+                1,
+                0,
+                &[
+                    nla(libc::IFLA_IFNAME, b"wan\0"),
+                    nla(libc::IFLA_LINKINFO, &[1, 0, 0, 0]),
+                ],
+            ),
+        ] {
+            assert!(
+                parse_link(&payload)
+                    .ok_or_else(|| errno(libc::EPROTO))
+                    .is_err()
+            );
+        }
+        let mut payload = vec![libc::AF_INET as u8, 24, 0, 0];
+        payload.extend_from_slice(&1u32.to_ne_bytes());
+        payload.extend(nla(libc::IFA_LOCAL, &[192, 0, 2]));
+        assert!(
+            parse_addr(&payload)
+                .ok_or_else(|| errno(libc::EPROTO))
+                .is_err()
+        );
     }
 
     // kernel: net/ipv4/devinet.c inet_fill_ifaddr (K7)

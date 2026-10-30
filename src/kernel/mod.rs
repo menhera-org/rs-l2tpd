@@ -245,7 +245,7 @@ pub trait Kernel: Send {
     fn now(&self) -> Instant;
     /// Three bytes (six hexadecimal digits) from the kernel's random
     /// source, for staging names (S4).
-    fn random(&mut self) -> [u8; 3];
+    fn random(&mut self) -> io::Result<[u8; 3]>;
 
     /// A socket of `family`, bound to the unspecified address with
     /// `tunnel_id` as its connection identifier, unconnected, close-on-exec
@@ -311,6 +311,8 @@ pub trait Kernel: Send {
 
     /// The device that bears `name` now.
     fn link_by_name(&mut self, name: &L2tpIfName) -> io::Result<Option<LinkInfo>>;
+    /// The current device at an index (K9).
+    fn link_by_index(&mut self, index: u32) -> io::Result<Option<LinkInfo>>;
     /// Renames a device; `EEXIST` when the name is taken.
     fn rename(&mut self, index: u32, name: &L2tpIfName) -> io::Result<()>;
     /// Sets a hardware address; `EBUSY` while the device is up (K31).

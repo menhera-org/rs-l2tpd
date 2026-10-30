@@ -1,0 +1,41 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.40s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+
+running 6 tests
+test config::tests::completion_empty_tables_do_not_remove_merged_values ... ok
+test config::tests::completion_new_collision_keeps_an_accepted_name ... ok
+test config::tests::completion_host_names_and_mapped_family ... FAILED
+test config::tests::completion_hard_endpoint_mistake_precedes_tolerated_family ... FAILED
+test config::tests::completion_corrected_host_retains_resolver ... FAILED
+test service::tests::panic_completion_during_shutdown_is_reported_after_cleanup ... ok
+
+failures:
+
+---- config::tests::completion_host_names_and_mapped_family stdout ----
+
+thread 'config::tests::completion_host_names_and_mapped_family' (2869972) panicked at src/config/tests.rs:1339:9:
+300.1.1.1
+
+---- config::tests::completion_hard_endpoint_mistake_precedes_tolerated_family stdout ----
+
+thread 'config::tests::completion_hard_endpoint_mistake_precedes_tolerated_family' (2869971) panicked at src/config/tests.rs:1372:9:
+assertion failed: entry.is_none()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- config::tests::completion_corrected_host_retains_resolver stdout ----
+
+thread 'config::tests::completion_corrected_host_retains_resolver' (2869969) panicked at src/config/tests.rs:1359:9:
+assertion `left == right` failed
+  left: None
+ right: Some("r")
+
+
+failures:
+    config::tests::completion_corrected_host_retains_resolver
+    config::tests::completion_hard_endpoint_mistake_precedes_tolerated_family
+    config::tests::completion_host_names_and_mapped_family
+
+test result: FAILED. 3 passed; 3 failed; 0 ignored; 0 measured; 72 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

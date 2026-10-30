@@ -607,9 +607,10 @@ impl Kernel for FakeKernel {
         self.base + self.elapsed
     }
 
-    fn random(&mut self) -> [u8; 3] {
+    fn random(&mut self) -> io::Result<[u8; 3]> {
+        self.injected("random")?;
         let [a, b, c, ..] = self.next_random().to_le_bytes();
-        [a, b, c]
+        Ok([a, b, c])
     }
 
     fn create_socket(
@@ -741,6 +742,8 @@ impl Kernel for FakeKernel {
                 }
             }
         }
+        // kernel: net/ipv6/datagram.c ip6_datagram_connect stores the scope before routing (K27).
+        self.sockets.get_mut(&socket).unwrap().bound = bound;
         if let Some(errno) = self.refused.get(&addr) {
             return fail(*errno);
         }
@@ -1016,6 +1019,11 @@ impl Kernel for FakeKernel {
 
     fn release(&mut self, registration: &Registration) {
         self.tracked.remove(&registration.incarnation);
+    }
+
+    fn link_by_index(&mut self, index: u32) -> io::Result<Option<LinkInfo>> {
+        self.injected("link")?;
+        Ok(self.links.get(&index).map(|link| link.info.clone()))
     }
 
     fn link_by_name(&mut self, name: &L2tpIfName) -> io::Result<Option<LinkInfo>> {

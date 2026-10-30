@@ -74,11 +74,7 @@ impl<K: Kernel> Reconciler<K> {
             let Some((name, config)) = matched else {
                 // Foreign cookie lengths and identifiers that a configuration
                 // cannot hold are unmatched too; never construct a fake config.
-                self.k.delete_session(tunnel_id, s.session_id)?;
-                log::info!(
-                    "{}: unmatched adopted session deleted (S28)",
-                    report::session("", tunnel_id, s.session_id)
-                );
+                self.unmatched_sessions.insert((tunnel_id, s.session_id));
                 continue;
             };
             self.sessions.insert(
@@ -95,7 +91,6 @@ impl<K: Kernel> Reconciler<K> {
                     hwaddr: config.interface_hwaddr(),
                     hwaddr_state: super::records::Enforce::Pending,
                     kernel_hwaddr: None,
-                    verify: false,
                 },
             );
         }
@@ -114,7 +109,6 @@ impl<K: Kernel> Reconciler<K> {
                 // Its connection is unknown: the first converge disconnects.
                 stale: true,
                 retry_at: None,
-                verify: false,
             },
         );
         log::info!(
@@ -161,12 +155,30 @@ impl<K: Kernel> Reconciler<K> {
                 self.forget_session(sid);
             }
             let label = self.tunnel_label(id);
+            self.verify_tunnels.remove(&id);
+            let unmatched: Vec<_> = self
+                .unmatched_sessions
+                .iter()
+                .copied()
+                .filter(|(tid, _)| *tid == id)
+                .collect();
+            for (tid, sid) in unmatched {
+                self.unmatched_sessions.remove(&(tid, sid));
+                self.report.forget(&report::session("", tid, sid));
+            }
             let record = self.tunnels.remove(&id).unwrap();
             if !self.withdraw_socket(id, record.socket) {
                 self.k.close(record.socket);
                 self.departing.insert(id, self.k.now() + DELETION_WAIT);
             }
-            self.resolvers.forget(id);
+            if !self
+                .accepted
+                .tunnels()
+                .values()
+                .any(|config| config.tunnel_id() == id)
+            {
+                self.resolvers.forget(id);
+            }
             self.report.forget(&label);
             log::info!("{label}: removed");
         }
@@ -182,6 +194,11 @@ impl<K: Kernel> Reconciler<K> {
                 self.departing.remove(&id);
             }
         }
+        for (key, deadline) in self.deleting_sessions.clone() {
+            if deadline <= now || matches!(self.k.session(key.0, key.1), Ok(None)) {
+                self.deleting_sessions.remove(&key);
+            }
+        }
         let departed: Vec<_> = self
             .reserved
             .iter()
@@ -191,6 +208,7 @@ impl<K: Kernel> Reconciler<K> {
         for (name, (tid, sid)) in departed {
             if matches!(self.k.session(tid, sid), Ok(None)) {
                 self.reserved.remove(&name);
+                self.deleting_sessions.remove(&(tid, sid));
             }
         }
     }
@@ -324,7 +342,6 @@ impl<K: Kernel> Reconciler<K> {
                 connection: Connection::Disconnected { pending: None },
                 stale: false,
                 retry_at: None,
-                verify: false,
             },
         );
         self.store_socket(id, socket);
@@ -338,6 +355,7 @@ impl<K: Kernel> Reconciler<K> {
         self.unindex_tunnel(id);
         let result = self.converge_tunnel_inner(id);
         self.index_tunnel(id);
+        self.retain_devices();
         result
     }
 
@@ -361,7 +379,9 @@ impl<K: Kernel> Reconciler<K> {
                 converged || self.reconnect(id, peer, bind, zone)
             }
             Target::Disconnect { bind, pending, why } => {
-                self.disconnect_to(id, bind, pending.clone());
+                if !self.disconnect_to(id, bind, pending.clone()) {
+                    return false;
+                }
                 match (why, pending) {
                     (Some(why), Some(_)) => {
                         self.report
@@ -377,45 +397,70 @@ impl<K: Kernel> Reconciler<K> {
 
     /// Leaves the tunnel disconnected, bound to `bind` when it is present
     /// (T6, T11–T13).
-    fn disconnect_to(&mut self, id: u32, bind: Option<u32>, pending: Option<Peer>) {
+    fn disconnect_to(&mut self, id: u32, bind: Option<u32>, pending: Option<Peer>) -> bool {
         let label = self.tunnel_label(id);
-        let record = self.tunnels.get_mut(&id).unwrap();
-        if record.connection.is_connected()
-            || record.stale
-            || (record.bound.is_some() && record.bound != bind)
+        let record = &self.tunnels[&id];
+        if !record.stale
+            && record.bound == bind
+            && record.zone_index.is_none()
+            && record.connection
+                == (Connection::Disconnected {
+                    pending: pending.clone(),
+                })
         {
-            if let Err(e) = self.k.disconnect(record.socket) {
-                log::error!("{label}: disconnect failed: {}", report::describe(&e));
-                return;
-            }
-            record.bound = None;
-            log::info!("{label}: disconnected");
+            return true;
         }
+        let socket = record.socket;
+        let connected = record.connection.is_connected();
+        if let Err(error) = self.k.disconnect(socket) {
+            self.report.begin_error(&label, "disconnect", || {
+                format!("disconnect failed: {}", report::describe(&error))
+            });
+            self.arm_retry(id);
+            return false;
+        }
+        self.report
+            .end(&label, "disconnect", || "disconnected".into());
+        let record = self.tunnels.get_mut(&id).unwrap();
+        record.bound = None;
         record.connection = Connection::Disconnected { pending };
         record.bind_index = bind;
         record.zone_index = None;
         record.stale = false;
-        if let Some(index) = bind.filter(|_| record.bound.is_none()) {
-            match self.k.bind_index(record.socket, index) {
-                Ok(()) => record.bound = Some(index),
-                Err(e) => log::debug!("{label}: bind failed: {}", report::describe(&e)),
+        if connected {
+            log::info!("{label}: disconnected");
+        }
+        if let Some(index) = bind {
+            match self.k.bind_index(socket, index) {
+                Ok(()) => self.tunnels.get_mut(&id).unwrap().bound = Some(index),
+                Err(error) => {
+                    self.report.begin(&label, "bind", || {
+                        format!("bind failed: {}", report::describe(&error))
+                    });
+                    self.arm_retry(id);
+                    return false;
+                }
             }
         }
+        self.report.forget_condition(&label, "bind");
+        true
     }
 
     /// The reconnect of T21: disconnect, bind to the device the name
     /// resolves to now, connect; the source read back after it (T28).
     fn reconnect(&mut self, id: u32, peer: Peer, bind: Option<u32>, zone: Option<u32>) -> bool {
         let label = self.tunnel_label(id);
-        let record = self.tunnels.get_mut(&id).unwrap();
-        let socket = record.socket;
-        if (record.connection.is_connected() || record.bound.is_some() || record.stale)
-            && let Err(e) = self.k.disconnect(socket)
-        {
-            log::error!("{label}: disconnect failed: {}", report::describe(&e));
+        let socket = self.tunnels[&id].socket;
+        // kernel: net/ipv6/datagram.c ip6_datagram_connect may retain a scope on failure (K27).
+        if let Err(e) = self.k.disconnect(socket) {
+            self.report.begin_error(&label, "disconnect", || {
+                format!("disconnect failed: {}", report::describe(&e))
+            });
             self.arm_retry(id);
             return false;
         }
+        self.report
+            .end(&label, "disconnect", || "disconnected".into());
         let record = self.tunnels.get_mut(&id).unwrap();
         record.bound = None;
         record.connection = Connection::Disconnected {
@@ -449,6 +494,7 @@ impl<K: Kernel> Reconciler<K> {
                 true
             }
             outcome => {
+                self.tunnels.get_mut(&id).unwrap().stale = true;
                 // T20, T28: no source selected is a failed connect.
                 if outcome.is_ok() {
                     let _ = self.k.disconnect(socket);
@@ -487,6 +533,33 @@ impl<K: Kernel> Reconciler<K> {
         match &self.tunnels.get(&id)?.connection {
             Connection::Connected { source, .. } => Some(*source),
             _ => None,
+        }
+    }
+}
+
+impl<K: Kernel> Reconciler<K> {
+    pub(super) fn retry_unmatched_sessions(&mut self) {
+        for (tid, sid) in self.unmatched_sessions.clone() {
+            let label = report::session("", tid, sid);
+            match self.k.delete_session(tid, sid) {
+                Ok(()) => {
+                    self.unmatched_sessions.remove(&(tid, sid));
+                    self.deleting_sessions
+                        .insert((tid, sid), self.k.now() + DELETION_WAIT);
+                    self.report.forget_condition(&label, "adoption-delete");
+                    log::info!("{label}: unmatched adopted session deleted (S28)");
+                }
+                Err(error) if errno(&error) == Errno::ENODEV as i32 => {
+                    self.unmatched_sessions.remove(&(tid, sid));
+                    self.report.forget(&label);
+                }
+                Err(error) => {
+                    self.incomplete = true;
+                    self.report.begin_error(&label, "adoption-delete", || {
+                        format!("unmatched adopted session deletion failed: {error}")
+                    });
+                }
+            }
         }
     }
 }

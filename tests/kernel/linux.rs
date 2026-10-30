@@ -658,3 +658,85 @@ fn services_converge_and_orderly_shutdown_on_linux() {
     }
     gone();
 }
+
+/// spec: K9, K26, T21, T27, G1
+#[test]
+#[ignore = "isolated privileged container"]
+fn completion_scoped_failure_lookup_and_random_refusal() {
+    let mut f = LinuxFixture::new();
+    let _old = f.add_link("scope-old", false); // Down: route lookup fails after scope binding.
+    let socket = f
+        .kernel
+        .create_socket(Family::V6, 0x44001, 0x44002)
+        .unwrap();
+    f.kernel.register_tunnel(socket, 0x44001, 0x44002).unwrap();
+    let peer = Peer::new("fe80::1".parse().unwrap(), Some(name("scope-old")));
+    assert!(f.kernel.connect(socket, &peer).is_err());
+    let next = f.add_link("scope-new", false);
+    f.set_up(next, true);
+    f.add_addr(next, "fe80::2".parse().unwrap());
+    assert_eq!(
+        f.kernel.link_by_index(next).unwrap().unwrap().name(),
+        name("scope-new")
+    );
+    assert!(f.kernel.link_by_index(i32::MAX as u32).unwrap().is_none());
+    assert_eq!(
+        errno(f.kernel.connect(
+            socket,
+            &Peer::new("fe80::1".parse().unwrap(), Some(name("scope-new")))
+        )),
+        libc::EINVAL
+    );
+    f.kernel.disconnect(socket).unwrap();
+    f.kernel
+        .connect(
+            socket,
+            &Peer::new("fe80::1".parse().unwrap(), Some(name("scope-new"))),
+        )
+        .unwrap();
+    f.kernel.close(socket);
+
+    // Initialize getrandom's backend before filtering so this exercises its
+    // fallible syscall path rather than its safe /dev/urandom fallback.
+    f.kernel.random().unwrap();
+    // kernel: kernel/seccomp.c seccomp_run_filters; drivers/char/random.c getrandom.
+    let mut filter = [
+        libc::sock_filter {
+            code: (libc::BPF_LD | libc::BPF_W | libc::BPF_ABS) as u16,
+            jt: 0,
+            jf: 0,
+            k: 0,
+        },
+        libc::sock_filter {
+            code: (libc::BPF_JMP | libc::BPF_JEQ | libc::BPF_K) as u16,
+            jt: 0,
+            jf: 1,
+            k: libc::SYS_getrandom as u32,
+        },
+        libc::sock_filter {
+            code: (libc::BPF_RET | libc::BPF_K) as u16,
+            jt: 0,
+            jf: 0,
+            k: libc::SECCOMP_RET_ERRNO | libc::EPERM as u32,
+        },
+        libc::sock_filter {
+            code: (libc::BPF_RET | libc::BPF_K) as u16,
+            jt: 0,
+            jf: 0,
+            k: libc::SECCOMP_RET_ALLOW,
+        },
+    ];
+    let program = libc::sock_fprog {
+        len: filter.len() as u16,
+        filter: filter.as_mut_ptr(),
+    };
+    assert_eq!(
+        unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) },
+        0
+    );
+    assert_eq!(
+        unsafe { libc::prctl(libc::PR_SET_SECCOMP, libc::SECCOMP_MODE_FILTER, &program) },
+        0
+    );
+    assert_eq!(errno(f.kernel.random()), libc::EPERM);
+}

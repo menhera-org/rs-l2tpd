@@ -371,6 +371,12 @@ impl TunnelConfig {
                 }
             }
             Some(RemoteAddr::Ip { addr, zone }) => {
+                if zone.is_none() && text::link_local(*addr) && self.bind_interface.is_none() {
+                    return Err(Mistake::hard(
+                        "remote_addr",
+                        format!("{addr} is link-local: it needs a zone or bind_interface"),
+                    ));
+                }
                 text::unicast(*addr).map_err(|e| Mistake::tolerated("remote_addr", e))?;
                 if let Some(family) = self.ip_version
                     && family != Family::of(*addr)
@@ -380,23 +386,15 @@ impl TunnelConfig {
                         format!("{family} does not match {addr}"),
                     ));
                 }
-                match zone {
-                    Some(zone) => text::zone(*addr, zone.as_bytes())
+                if let Some(zone) = zone {
+                    text::zone(*addr, zone.as_bytes())
                         .map(drop)
-                        .map_err(|e| Mistake::tolerated("remote_addr", e))?,
-                    None if text::link_local(*addr) && self.bind_interface.is_none() => {
-                        // spec: T27, R47
-                        return Err(Mistake::hard(
-                            "remote_addr",
-                            format!("{addr} is link-local: it needs a zone or bind_interface"),
-                        ));
-                    }
-                    None => {}
+                        .map_err(|e| Mistake::tolerated("remote_addr", e))?;
                 }
             }
         }
         if let Some(resolver) = &self.resolver_name
-            && !matches!(self.remote_addr, Some(RemoteAddr::Host(_)))
+            && matches!(self.remote_addr, Some(RemoteAddr::Ip { .. }))
         {
             return Err(Mistake::tolerated(
                 "resolver_name",

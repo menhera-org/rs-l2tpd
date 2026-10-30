@@ -1330,3 +1330,94 @@ fn irrelevant_dhcpv6_fields_still_validate_their_values() {
         }
     }
 }
+
+/// spec: C7 C10
+#[test]
+fn completion_host_names_and_mapped_family() {
+    for host in [
+        "300.1.1.1",
+        "1.2.3",
+        "01.2.3.4",
+        "a.123",
+        "123",
+        "é.example",
+    ] {
+        let (entry, problems) = tunnel(&format!(
+            "tunnel_id=1\nremote_addr='{host}'\nip_version='V6'"
+        ));
+        assert!(entry.unwrap().remote_addr().is_none(), "{host}");
+        assert_eq!(problems, corrected("remote_addr"), "{host}");
+    }
+    let host = format!(
+        "{}.{}.{}.{}",
+        "a".repeat(63),
+        "b".repeat(63),
+        "c".repeat(63),
+        "d".repeat(61)
+    );
+    assert_eq!(host.len(), 253);
+    let (entry, problems) = tunnel(&format!(
+        "tunnel_id=1\nremote_addr='{host}.'\nip_version='V6'"
+    ));
+    assert!(problems.is_empty());
+    assert_eq!(entry.unwrap().remote_addr(), Some(&RemoteAddr::Host(host)));
+    let (entry, problems) = tunnel("tunnel_id=1\nremote_addr='::ffff:192.0.2.1'\nip_version='V6'");
+    assert!(entry.unwrap().remote_addr().is_none());
+    assert_eq!(problems, corrected("ip_version"));
+}
+
+/// spec: C7 C10 C13 O8
+#[test]
+fn completion_corrected_host_retains_resolver() {
+    for endpoint in ["peer.example", "bad host"] {
+        let (entry, problems) = tunnel(&format!(
+            "tunnel_id=1\nremote_addr='{endpoint}'\nresolver_name='r'"
+        ));
+        let entry = entry.unwrap();
+        assert!(entry.remote_addr().is_none());
+        assert_eq!(entry.resolver_name(), Some("r"));
+        assert_eq!(problems.len(), 1);
+    }
+    let (entry, problems) =
+        tunnel("tunnel_id=1\nremote_addr='192.0.2.1'\nip_version='V6'\nresolver_name='r'");
+    assert!(entry.unwrap().resolver_name().is_none());
+    assert_eq!(problems.len(), 2);
+}
+
+/// spec: C7 C10 T27 R47
+#[test]
+fn completion_hard_endpoint_mistake_precedes_tolerated_family() {
+    for family in ["V4", "bad"] {
+        let (entry, problems) = tunnel(&format!(
+            "tunnel_id=1\nremote_addr='fe80::1'\nip_version='{family}'"
+        ));
+        assert!(entry.is_none());
+        assert_eq!(problems, left_out("remote_addr"));
+    }
+}
+
+/// spec: C12
+#[test]
+fn completion_new_collision_keeps_an_accepted_name() {
+    let previous = lenient("[tunnels.b]\ntunnel_id=2\nremote_addr='192.0.2.2'").0;
+    let (config, problems) = reload(&previous, "[tunnels.a]\ntunnel_id=1\nremote_addr='192.0.2.1'\n[tunnels.b]\ntunnel_id=1\nremote_addr='192.0.2.3'").unwrap();
+    assert_eq!(config.tunnels()["b"], previous.tunnels()["b"]);
+    assert_eq!(config.tunnels()["a"].tunnel_id(), 1);
+    assert_eq!(
+        summary(&problems),
+        [("b".into(), Some("tunnel_id"), Effect::KeptPrevious)]
+    );
+}
+
+/// spec: C2
+#[test]
+fn completion_empty_tables_do_not_remove_merged_values() {
+    let mut before = partial(&format!("[tunnels.t]\n{VALID}"));
+    before.merge(partial("[tunnels.t]\n"));
+    let (config, problems) = before.into_config_lenient();
+    assert!(problems.is_empty());
+    assert_eq!(
+        config.tunnels()["t"].remote_addr().unwrap().to_string(),
+        "192.0.2.1"
+    );
+}

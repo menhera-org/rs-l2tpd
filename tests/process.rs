@@ -613,7 +613,9 @@ fn setup_prefix_preserves_configuration() {
     assert_eq!(fs::read(&installed).unwrap(), fs::read(BINARY).unwrap());
     let main = dir.path().join("etc/rs-l2tpd.toml");
     fs::write(&main, "# mine").unwrap();
-    let unit = dir.path().join("etc/systemd/system/rs-l2tpd.service");
+    let unit = dir
+        .path()
+        .join("usr/local/lib/systemd/system/rs-l2tpd.service");
     fs::write(&unit, "# mine").unwrap();
     assert!(
         command()
@@ -629,6 +631,10 @@ fn setup_prefix_preserves_configuration() {
 }
 
 fn deny_netlink() -> std::io::Result<()> {
+    deny_socket_family(libc::AF_NETLINK)
+}
+
+fn deny_socket_family(family: i32) -> std::io::Result<()> {
     let mut filter = [
         libc::sock_filter {
             code: (libc::BPF_LD | libc::BPF_W | libc::BPF_ABS) as u16,
@@ -652,7 +658,7 @@ fn deny_netlink() -> std::io::Result<()> {
             code: (libc::BPF_JMP | libc::BPF_JEQ | libc::BPF_K) as u16,
             jt: 0,
             jf: 1,
-            k: libc::AF_NETLINK as u32,
+            k: family as u32,
         },
         libc::sock_filter {
             code: (libc::BPF_RET | libc::BPF_K) as u16,
@@ -1058,5 +1064,65 @@ fn sigusr1_retains_its_default_action() {
     process.signal(Signal::SIGUSR1);
     use std::os::unix::process::ExitStatusExt;
     assert_eq!(process.child.wait().unwrap().signal(), Some(libc::SIGUSR1));
+    process.done = true;
+}
+
+/// spec: P14 P5
+#[test]
+#[ignore = "isolated privileged container"]
+fn an_unusable_notify_store_does_not_abort_startup() {
+    namespace();
+    let dir = Dir::new();
+    let main = dir.path().join("main");
+    fs::write(&main, "[host]\nfix_bindv6only=false").unwrap();
+    for (address, filter) in [
+        ("/".to_owned() + &"x".repeat(200), false),
+        (
+            dir.path().join("absent").to_string_lossy().into_owned(),
+            false,
+        ),
+        (
+            dir.path().join("filtered").to_string_lossy().into_owned(),
+            true,
+        ),
+    ] {
+        let mut command = start(&main, true, &dir.path().join("pid"));
+        command.env("NOTIFY_SOCKET", address).env("FDSTORE", "8");
+        if filter {
+            unsafe {
+                command.pre_exec(|| deny_socket_family(libc::AF_UNIX));
+            }
+        }
+        let mut process = Process::spawn(command);
+        process.event("descriptor store unavailable");
+        process.event("ready");
+        process.stop();
+    }
+}
+
+/// spec: P26 P2
+#[test]
+fn an_absolute_executable_starts_from_a_deleted_working_directory() {
+    let dir = Dir::new();
+    let main = config(&dir);
+    let cwd = dir.path().join("gone");
+    fs::create_dir(&cwd).unwrap();
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+    let removed = CString::new(cwd.as_os_str().as_bytes()).unwrap();
+    let mut command = start(&main, true, &dir.path().join("pid"));
+    command.current_dir(cwd);
+    unsafe {
+        command.pre_exec(move || {
+            if libc::rmdir(removed.as_ptr()) != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            deny_netlink()
+        });
+    }
+    let mut process = Process::spawn(command);
+    process.event("opening kernel interfaces");
+    process.signal(Signal::SIGTERM);
+    assert_eq!(process.child.wait().unwrap().code(), Some(1));
     process.done = true;
 }

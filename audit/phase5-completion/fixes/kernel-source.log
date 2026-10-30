@@ -1,0 +1,342 @@
+Kernel source confirmation: Linux v6.8 and locally built Linux v7.3
+
+/tmp/rs-l2tpd-completion-sources/net_ipv6_datagram.c
+4c0dd8c49168758755b3c371dfd7093782ef6dc440bfa58aed4a9706785aa151  /tmp/rs-l2tpd-completion-sources/net_ipv6_datagram.c
+		    ipv6_mapped_addr_any(&np->saddr))
+			ipv6_addr_set_v4mapped(inet->inet_saddr, &np->saddr);
+
+		if (ipv6_addr_any(&sk->sk_v6_rcv_saddr) ||
+		    ipv6_mapped_addr_any(&sk->sk_v6_rcv_saddr)) {
+			ipv6_addr_set_v4mapped(inet->inet_rcv_saddr,
+					       &sk->sk_v6_rcv_saddr);
+			if (sk->sk_prot->rehash)
+				sk->sk_prot->rehash(sk);
+		}
+
+		goto out;
+	}
+
+	if (__ipv6_addr_needs_scope_id(addr_type)) {
+		if (addr_len >= sizeof(struct sockaddr_in6) &&
+		    usin->sin6_scope_id) {
+			if (!sk_dev_equal_l3scope(sk, usin->sin6_scope_id)) {
+				err = -EINVAL;
+				goto out;
+			}
+			WRITE_ONCE(sk->sk_bound_dev_if, usin->sin6_scope_id);
+		}
+
+		if (!sk->sk_bound_dev_if && (addr_type & IPV6_ADDR_MULTICAST))
+			WRITE_ONCE(sk->sk_bound_dev_if, READ_ONCE(np->mcast_oif));
+
+		/* Connect to link-local address requires an interface */
+		if (!sk->sk_bound_dev_if) {
+			err = -EINVAL;
+			goto out;
+		}
+	}
+
+	/* save the current peer information before updating it */
+	old_daddr = sk->sk_v6_daddr;
+	old_fl6_flowlabel = np->flow_label;
+	old_dport = inet->inet_dport;
+
+	sk->sk_v6_daddr = *daddr;
+	np->flow_label = fl6_flowlabel;
+	inet->inet_dport = usin->sin6_port;
+
+	/*
+	 *	Check for a route to destination an obtain the
+	 *	destination cache for it.
+	 */
+
+	err = ip6_datagram_dst_update(sk, true);
+	if (err) {
+		/* Restore the socket peer info, to keep it consistent with
+		 * the old socket state
+		 */
+		sk->sk_v6_daddr = old_daddr;
+		np->flow_label = old_fl6_flowlabel;
+		inet->inet_dport = old_dport;
+		goto out;
+	}
+
+	reuseport_has_conns_set(sk);
+	sk->sk_state = TCP_ESTABLISHED;
+	sk_set_txhash(sk);
+out:
+	return err;
+}
+EXPORT_SYMBOL_GPL(__ip6_datagram_connect);
+
+/tmp/rs-l2tpd-phase23-kernel73/net/ipv6/datagram.c
+e86ef6a2397a371f991f3a3aec720da504873d9ea611bfc5f31586587519133c  /tmp/rs-l2tpd-phase23-kernel73/net/ipv6/datagram.c
+		if (ipv6_addr_any(&np->saddr) ||
+		    ipv6_mapped_addr_any(&np->saddr))
+			ipv6_addr_set_v4mapped(inet->inet_saddr, &np->saddr);
+
+		if (ipv6_addr_any(&sk->sk_v6_rcv_saddr) ||
+		    ipv6_mapped_addr_any(&sk->sk_v6_rcv_saddr)) {
+			ipv6_addr_set_v4mapped(inet->inet_rcv_saddr,
+					       &sk->sk_v6_rcv_saddr);
+			if (sk->sk_prot->rehash)
+				sk->sk_prot->rehash(sk);
+		}
+
+		goto out;
+	}
+
+	if (__ipv6_addr_needs_scope_id(addr_type)) {
+		if (addr_len >= sizeof(struct sockaddr_in6) &&
+		    usin->sin6_scope_id) {
+			if (!sk_dev_equal_l3scope(sk, usin->sin6_scope_id)) {
+				err = -EINVAL;
+				goto out;
+			}
+			WRITE_ONCE(sk->sk_bound_dev_if, usin->sin6_scope_id);
+		}
+
+		if (!sk->sk_bound_dev_if && (addr_type & IPV6_ADDR_MULTICAST))
+			WRITE_ONCE(sk->sk_bound_dev_if, READ_ONCE(np->mcast_oif));
+
+		/* Connect to link-local address requires an interface */
+		if (!sk->sk_bound_dev_if) {
+			err = -EINVAL;
+			goto out;
+		}
+	}
+
+	/* save the current peer information before updating it */
+	old_daddr = sk->sk_v6_daddr;
+	old_fl6_flowlabel = np->flow_label;
+	old_dport = inet->inet_dport;
+
+	sk->sk_v6_daddr = *daddr;
+	np->flow_label = fl6_flowlabel;
+	inet->inet_dport = usin->sin6_port;
+
+	/*
+	 *	Check for a route to destination an obtain the
+	 *	destination cache for it.
+	 */
+
+	err = ip6_datagram_dst_update(sk, true);
+	if (err) {
+		/* Restore the socket peer info, to keep it consistent with
+		 * the old socket state
+		 */
+		sk->sk_v6_daddr = old_daddr;
+		np->flow_label = old_fl6_flowlabel;
+		inet->inet_dport = old_dport;
+		goto out;
+	}
+
+	reuseport_has_conns_set(sk);
+	sk->sk_state = TCP_ESTABLISHED;
+	sk_set_txhash(sk);
+out:
+	return err;
+}
+
+/tmp/rs-l2tpd-completion-sources/net_ipv4_udp.c
+8aa73e6ffe9434fcfae0e33937db44c20933807dc9b79a3b3db85f2aa806975b  /tmp/rs-l2tpd-completion-sources/net_ipv4_udp.c
+int __udp_disconnect(struct sock *sk, int flags)
+{
+	struct inet_sock *inet = inet_sk(sk);
+	/*
+	 *	1003.1g - break association.
+	 */
+
+	sk->sk_state = TCP_CLOSE;
+	inet->inet_daddr = 0;
+	inet->inet_dport = 0;
+	sock_rps_reset_rxhash(sk);
+	sk->sk_bound_dev_if = 0;
+	if (!(sk->sk_userlocks & SOCK_BINDADDR_LOCK)) {
+		inet_reset_saddr(sk);
+		if (sk->sk_prot->rehash &&
+		    (sk->sk_userlocks & SOCK_BINDPORT_LOCK))
+			sk->sk_prot->rehash(sk);
+	}
+
+	if (!(sk->sk_userlocks & SOCK_BINDPORT_LOCK)) {
+		sk->sk_prot->unhash(sk);
+		inet->inet_sport = 0;
+	}
+	sk_dst_reset(sk);
+	return 0;
+}
+EXPORT_SYMBOL(__udp_disconnect);
+
+/tmp/rs-l2tpd-phase23-kernel73/net/ipv4/udp.c
+df41c35e6748340dd62125560ddfc761dead44c4324be0d0010b6e2b0cf460e0  /tmp/rs-l2tpd-phase23-kernel73/net/ipv4/udp.c
+int __udp_disconnect(struct sock *sk, int flags)
+{
+	struct inet_sock *inet = inet_sk(sk);
+	/*
+	 *	1003.1g - break association.
+	 */
+
+	sk->sk_state = TCP_CLOSE;
+	WRITE_ONCE(inet->inet_daddr, 0);
+	inet->inet_dport = 0;
+	sock_rps_reset_rxhash(sk);
+	WRITE_ONCE(sk->sk_bound_dev_if, 0);
+	if (!(sk->sk_userlocks & SOCK_BINDADDR_LOCK)) {
+		inet_reset_saddr(sk);
+		if (sk->sk_prot->rehash &&
+		    (sk->sk_userlocks & SOCK_BINDPORT_LOCK))
+			sk->sk_prot->rehash(sk);
+	}
+
+	if (!(sk->sk_userlocks & SOCK_BINDPORT_LOCK)) {
+		sk->sk_prot->unhash(sk);
+		inet->inet_sport = 0;
+	}
+	sk_dst_reset(sk);
+	return 0;
+}
+EXPORT_SYMBOL(__udp_disconnect);
+
+/tmp/rs-l2tpd-completion-sources/net_ipv4_devinet.c
+83519d0b46bdcb5888714ba2060feb79245631b3d90503d34a04d3bad544018a  /tmp/rs-l2tpd-completion-sources/net_ipv4_devinet.c
+static void inetdev_changename(struct net_device *dev, struct in_device *in_dev)
+{
+	struct in_ifaddr *ifa;
+	int named = 0;
+
+	in_dev_for_each_ifa_rtnl(ifa, in_dev) {
+		char old[IFNAMSIZ], *dot;
+
+		memcpy(old, ifa->ifa_label, IFNAMSIZ);
+		memcpy(ifa->ifa_label, dev->name, IFNAMSIZ);
+		if (named++ == 0)
+			goto skip;
+		dot = strchr(old, ':');
+		if (!dot) {
+			sprintf(old, ":%d", named);
+			dot = old;
+		}
+		if (strlen(dot) + strlen(dev->name) < IFNAMSIZ)
+			strcat(ifa->ifa_label, dot);
+		else
+			strcpy(ifa->ifa_label + (IFNAMSIZ - strlen(dot) - 1), dot);
+skip:
+		rtmsg_ifa(RTM_NEWADDR, ifa, NULL, 0);
+	}
+}
+
+static void inetdev_send_gratuitous_arp(struct net_device *dev,
+					struct in_device *in_dev)
+
+{
+	const struct in_ifaddr *ifa;
+
+	in_dev_for_each_ifa_rtnl(ifa, in_dev) {
+		arp_send(ARPOP_REQUEST, ETH_P_ARP,
+			 ifa->ifa_local, dev,
+			 ifa->ifa_local, NULL,
+			 dev->dev_addr, NULL);
+	}
+}
+
+/* Called only under RTNL semaphore */
+
+static int inetdev_event(struct notifier_block *this, unsigned long event,
+
+/tmp/rs-l2tpd-phase23-kernel73/net/ipv4/devinet.c
+ef3f4abc18a9e5907353068969bb59b834bee3675d1a7978fb4934bd142bed61  /tmp/rs-l2tpd-phase23-kernel73/net/ipv4/devinet.c
+static void inetdev_changename(struct net_device *dev, struct in_device *in_dev)
+{
+	struct in_ifaddr *ifa;
+	int named = 0;
+
+	in_dev_for_each_ifa_rtnl(ifa, in_dev) {
+		char old[IFNAMSIZ], *dot;
+
+		memcpy(old, ifa->ifa_label, IFNAMSIZ);
+		memcpy(ifa->ifa_label, dev->name, IFNAMSIZ);
+		if (named++ == 0)
+			goto skip;
+		dot = strchr(old, ':');
+		if (!dot) {
+			sprintf(old, ":%d", named);
+			dot = old;
+		}
+		if (strlen(dot) + strlen(dev->name) < IFNAMSIZ)
+			strcat(ifa->ifa_label, dot);
+		else
+			strcpy(ifa->ifa_label + (IFNAMSIZ - strlen(dot) - 1), dot);
+skip:
+		rtmsg_ifa(RTM_NEWADDR, ifa, NULL, 0);
+	}
+}
+
+static void inetdev_send_gratuitous_arp(struct net_device *dev,
+					struct in_device *in_dev)
+
+{
+	const struct in_ifaddr *ifa;
+
+	in_dev_for_each_ifa_rtnl(ifa, in_dev) {
+		arp_send(ARPOP_REQUEST, ETH_P_ARP,
+			 ifa->ifa_local, dev,
+			 ifa->ifa_local, NULL,
+			 dev->dev_addr, NULL);
+	}
+}
+
+/* Called only under RTNL semaphore */
+
+static int inetdev_event(struct notifier_block *this, unsigned long event,
+
+Linux v6.8 net/core/rtnetlink.c
+41cefef67c319102b8413e5ab603f984219630b5660fe5fa86304db99c3fb742  /tmp/rs-l2tpd-completion-sources/net_core_rtnetlink.c
+1807:static int rtnl_fill_ifinfo(struct sk_buff *skb,
+2188:	 * The correct header is ifinfomsg. It is consistent with rtnl_getlink.
+2201:static int rtnl_dump_ifinfo(struct sk_buff *skb, struct netlink_callback *cb)
+2273:			err = rtnl_fill_ifinfo(skb, dev, net,
+3804:static int rtnl_getlink(struct sk_buff *skb, struct nlmsghdr *nlh,
+3861:	err = rtnl_fill_ifinfo(nskb, dev, net,
+3989:	/* Same kernel<->userspace interface hack as in rtnl_dump_ifinfo. */
+4081:	err = rtnl_fill_ifinfo(skb, dev, dev_net(dev),
+6718:	rtnl_register(PF_UNSPEC, RTM_GETLINK, rtnl_getlink,
+6719:		      rtnl_dump_ifinfo, 0);
+
+Linux v6.8 fs/open.c
+7f304b00ba6d17c33bbec2045569da590cd86664b0e53fccbcc879285aa8e2a7  /tmp/rs-l2tpd-completion-sources/fs_open.c
+1423:SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, umode_t, mode)
+1430:SYSCALL_DEFINE4(openat, int, dfd, const char __user *, filename, int, flags,
+1438:SYSCALL_DEFINE4(openat2, int, dfd, const char __user *, filename,
+1468:COMPAT_SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, umode_t, mode)
+1477:COMPAT_SYSCALL_DEFINE4(openat, int, dfd, const char __user *, filename, int, flags, umode_t, mode)
+1577:SYSCALL_DEFINE3(close_range, unsigned int, fd, unsigned int, max_fd,
+1580:	return __close_range(fd, max_fd, flags);
+
+Linux v6.8 fs/file.c
+c129e331b9042443bcd516d8fda58f58c755da41b70b94097d5ad7a9412acf43  /tmp/rs-l2tpd-completion-sources/fs_file.c
+293: * turns out that in the close_range() -> __close_range() ->
+730: * __close_range() - Close all file descriptors in a given range.
+739:int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
+1393:SYSCALL_DEFINE2(dup2, unsigned int, oldfd, unsigned int, newfd)
+
+Linux v6.8 fs/fcntl.c
+9a6edc2517ed7a54abaf1900fce0f7e8a35009f52f18fe21b46722a3f5df4ef1  /tmp/rs-l2tpd-completion-sources/fs_fcntl.c
+441:SYSCALL_DEFINE3(fcntl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
+465:SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
+668:COMPAT_SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
+674:COMPAT_SYSCALL_DEFINE3(fcntl, unsigned int, fd, unsigned int, cmd,
+
+Linux v6.8 net/unix/af_unix.c
+a5ecafbd6a071f271687bfffd0b2976a0788b3cc463397afbe2f780c97db67e9  /tmp/rs-l2tpd-completion-sources/net_unix_af_unix.c
+779:static int unix_dgram_connect(struct socket *, struct sockaddr *,
+861:	.connect =	unix_dgram_connect,
+1351:static int unix_dgram_connect(struct socket *sock, struct sockaddr *addr,
+
+Linux v6.8 drivers/char/random.c
+edf316271eaf6f5a38303211e4c7c13404bc74d3b802045e4d683a04edb12cbd  /tmp/rs-l2tpd-completion-sources/drivers_char_random.c
+1364:SYSCALL_DEFINE3(getrandom, char __user *, ubuf, size_t, len, unsigned int, flags)
+
+Linux v6.8 include/net/sock.h
+711774075286c2cbcd92c62d609b102b84466d3cbbee0c122a93545669d9fe53  /tmp/rs-l2tpd-completion-sources/include_net_sock.h
+2956:static inline bool sk_dev_equal_l3scope(struct sock *sk, int dif)

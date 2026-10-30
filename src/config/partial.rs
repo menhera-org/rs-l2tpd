@@ -393,8 +393,25 @@ fn tunnel(p: PartialTunnel) -> Parsed<TunnelConfig> {
         )),
         None => {}
     }
+    if tunnel.remote_addr.is_some()
+        && let Err(mistake) = tunnel.check()
+        && mistake.hard
+    {
+        return Err(mistake);
+    }
     if !tolerated.is_empty() {
         tunnel.make_peerless(hint);
+    }
+    if p.remote_addr
+        .as_deref()
+        .and_then(text::ip_literal)
+        .is_some()
+        && let Some(resolver) = tunnel.resolver_name.take()
+    {
+        tolerated.push(Mistake::tolerated(
+            "resolver_name",
+            format!("{resolver:?} is used only with a host name"),
+        ));
     }
     tolerate(
         tunnel,

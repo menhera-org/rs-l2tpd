@@ -25,8 +25,23 @@ the number in the commit message.
 ## Decisions, 2026-10-30
 
 Taken by the maintainer the same day; the specification was amended in
-the same commit where a decision changes a rule. The code and test work
-is still open.
+the same commit where a decision changes a rule.
+
+Fix status, 2026-10-30: A1–A6, B1–B11, C1–C6, D1–D12 and E1–E4
+are complete (including the decisions resolved by specification changes).
+Verification evidence is in [phase5-completion/fixes/](phase5-completion/fixes/):
+the current CI gates, musl and glibc live suites on Ubuntu 6.8.0-147,
+QEMU 6.12.114, 6.18.59 and vanilla 7.3, the actual user-systemd store,
+scoped-device replacement, and systemd 255/259 MAC and networkd checks
+pass. The ignored V10/V14 adapter tests ran on the host and in QEMU.
+Only this status and the checklist were updated; no specification or
+other documentation changed in the code-fix work.
+
+E5 remains Phase 6 work: strict rule mapping reports 101 uncited rules;
+strict source linking reports the same five uncited kernel facts and
+zero functions without source citations. Full path coverage, the full
+required Ubuntu/vanilla kernel matrix, real Incus/LXD and the root
+system-unit sandbox remain open; these runs do not mark them complete.
 
 | Item | Decision | Specification |
 |---|---|---|
@@ -46,7 +61,7 @@ is still open.
 
 ## A. Must fix before 0.2.0
 
-- [ ] **A1. Staging every session under a temporary name changes the MAC
+- [x] **A1. Staging every session under a temporary name changes the MAC
   of every 0.1.5 session interface at every start (G22, S4, H11).**
   0.1.5 created the `l2tpeth` device directly as `l2tp0`; the rewrite
   creates it as `rsl2tp-tXXXXXX` and renames it (`src/reconciler/sessions.rs:205-277`,
@@ -70,7 +85,7 @@ is still open.
   stated reason) or the name is occupied. The creation name is then the
   configured name, which S22's deletion-by-creation-name still handles.
 
-- [ ] **A2. A failed connect to a zoned link-local peer leaves a kernel
+- [x] **A2. A failed connect to a zoned link-local peer leaves a kernel
   binding the daemon does not know about; every later reconnect skips the
   disconnect and fails `EINVAL` for good (T21, T27, G17).**
   `src/reconciler/tunnels.rs:412-418` (`reconnect`) and `:383-393`
@@ -87,7 +102,7 @@ is still open.
   `disconnect_to`; `__udp_disconnect` on a connection-id-bound L2TP/IP
   socket is harmless.
 
-- [ ] **A3. A tunnel re-creation drops the resolver answer in force (V6,
+- [x] **A3. A tunnel re-creation drops the resolver answer in force (V6,
   V7, G19).** `src/reconciler/tunnels.rs:169` forgets the resolver watch
   for every unwanted tunnel, including one re-created for a
   `peer_tunnel_id` change. Reproduced on the fake kernel: an FQDN tunnel
@@ -99,7 +114,7 @@ is still open.
   leaves the configuration or its key changes. No test covers answer
   retention across a re-creation.
 
-- [ ] **A4. Configuration files are read with no regular-file check and no
+- [x] **A4. Configuration files are read with no regular-file check and no
   size bound (C3, P2, P13).** `src/bin/rs-l2tpd/files.rs:84` after
   `present()` at `:14`, which calls `metadata` only. A FIFO named `x.toml`
   in the drop-in directory blocks `open` forever: at start-up before
@@ -109,7 +124,7 @@ is still open.
   whole. Fix: refuse non-regular files in `present()` as a C3 problem that
   names the file, and cap the read.
 
-- [ ] **A5. A session whose device left the namespace blocks its own
+- [x] **A5. A session whose device left the namespace blocks its own
   re-creation silently, for ever (S21, T25, G13).**
   `src/reconciler/sessions.rs:177-180` refuses to create a session whose
   identifier has a creation-name reservation; `src/reconciler/tunnels.rs:185-195`
@@ -122,7 +137,7 @@ is still open.
   window), not to forgotten sessions; S21 wants the attempt and `EEXIST`
   counted as a conflict.
 
-- [ ] **A6. Every published session is recorded as renamed by another
+- [x] **A6. Every published session is recorded as renamed by another
   manager (S10).** `src/reconciler/sessions.rs:572-583` compares the
   creation-time `RTM_NEWLINK`, which still carries the temporary name and
   is delivered after the daemon's own rename, with `current_name` and
@@ -133,7 +148,7 @@ is still open.
 
 ## B. Should fix
 
-- [ ] **B1. Log output goes to whatever holds descriptor 2 (O1).**
+- [x] **B1. Log output goes to whatever holds descriptor 2 (O1).**
   `src/bin/rs-l2tpd/logger.rs:12` writes to standard error unconditionally
   and nothing ensures descriptors 0 to 2 are open; `fdstore::inherit`
   closes from 3 up only. Started with standard error closed, the first
@@ -141,27 +156,27 @@ is still open.
   a tunnel socket an L2TP frame to the peer carrying log text. Fix: open
   `/dev/null` on every closed descriptor in 0 to 2 at the top of `run()`.
 
-- [ ] **B2. A stat error on the handed-over PID file kills the re-exec'd
+- [x] **B2. A stat error on the handed-over PID file kills the re-exec'd
   image (P26).** `src/bin/rs-l2tpd/restart.rs:83` propagates every error
   of `PidFile::matches` except `NotFound` (`pidfile.rs:230-236`); the new
   image exits 1, the inherited sockets close and every tunnel is deleted.
   P26 says a non-matching identity drops the removal authority with a
   report. Fix: treat an error like a mismatch, with a warning.
 
-- [ ] **B3. An unusable `NOTIFY_SOCKET` aborts start-up (P14, P5).**
+- [x] **B3. An unusable `NOTIFY_SOCKET` aborts start-up (P14, P5).**
   `src/bin/rs-l2tpd/main.rs:90-94`: a path over 107 bytes or an `AF_UNIX`
   refusal exits 1 before the kernel interfaces are opened, a three-second
   crash loop under `Restart=on-failure`. Fix: report and continue without
   a store.
 
-- [ ] **B4. An inherited descriptor that is a socket but not a datagram
+- [x] **B4. An inherited descriptor that is a socket but not a datagram
   socket is retried every second, for ever (P14, L13).**
   `src/reconciler/store.rs:221-231` lists the definitive rejections;
   `l2tp 0.5.0`'s `from_fd` returns `ESOCKTNOSUPPORT` for a non-`SOCK_DGRAM`
   socket, which is missing from the list, so the descriptor is never
   retired or withdrawn and `incomplete` never clears. Fix: add it.
 
-- [ ] **B5. `--restart` trusts the PID file's location and content.**
+- [x] **B5. `--restart` trusts the PID file's location and content.**
   `src/bin/rs-l2tpd/restart.rs:248-259` reads the file unbounded (a FIFO
   hangs), parses any PID above 1 and sends `SIGUSR2` as root, whose default
   action is termination: a stale file after a crash names a recycled PID;
@@ -171,7 +186,7 @@ is still open.
   `rs-l2tpd --restart` without `--pid-file` (`docs/packaging.md:28`, `:113`)
   while the unit uses `/run/rs-l2tpd/rs-l2tpd.pid`.
 
-- [ ] **B6. The installer's unit path and the 0.1.5 upgrade.**
+- [x] **B6. The installer's unit path and the 0.1.5 upgrade.**
   `src/bin/rs-l2tpd/setup.rs:46-61` writes the unit to
   `/etc/systemd/system`, which systemd.unit(5) reserves for units the
   administrator *created*; units the administrator *installed* belong in
@@ -186,30 +201,30 @@ is still open.
   `systemctl restart` is needed once. Fix the path in the installer and in
   `docs/packaging.md:26`; the spec's P27 names no directory.
 
-- [ ] **B7. Installer directories follow the caller's umask.**
+- [x] **B7. Installer directories follow the caller's umask.**
   `src/bin/rs-l2tpd/setup.rs:15`, `:64`: `create_dir_all` under umask 000
   or 002 leaves `/etc/rs-l2tpd.toml.d` group- or world-writable, and the
   root daemon reads it at every reload. Files are chmod'ed, directories
   are not. Fix: `DirBuilder` with mode `0755`.
 
-- [ ] **B8. The monitor-resync warning repeats every second while the
+- [x] **B8. The monitor-resync warning repeats every second while the
   link dump fails (G13).** `src/reconciler/events.rs:355` warns
   unconditionally and `timers.rs:84-86` re-enters each tick. Reproduced:
   one loss plus five failing dumps, six warnings. Route it through
   `Report`; same for `disconnect failed` at `tunnels.rs:388` and `:415`.
 
-- [ ] **B9. The command line dropped 0.1.5's spellings (G22, P27).**
+- [x] **B9. The command line dropped 0.1.5's spellings (G22, P27).**
   0.1.5 accepted `-v`, `-c`, `-p`/`--pidfile PATH`; `src/bin/rs-l2tpd/args.rs`
   exits 2 on each. 0.1.5's installed unit passed no options, so installer
   upgrades survive, but a hand-written unit or script with `-p` breaks.
   Fix: accept the three old spellings as aliases and say so in P27.
 
-- [ ] **B10. `getrandom` failure panics the reconciler (G1).**
+- [x] **B10. `getrandom` failure panics the reconciler (G1).**
   `src/kernel/linux/mod.rs:81-85` uses `expect`; `getrandom(2)` fails with
   `ENOSYS` or `EPERM` under a filtering seccomp policy in a container. Fix:
   return an error from the trait method or fall back.
 
-- [ ] **B11. All-numeric last labels are host names (C7, C10).**
+- [x] **B11. All-numeric last labels are host names (C7, C10).**
   `src/config/text.rs:56-67` classifies `300.1.1.1`, `1.2.3` and `01.2.3.4`
   as host names, so a mistyped literal becomes a DNS lookup and the warning
   points at `ip_version`. Reject a name whose last label is all digits and
@@ -217,53 +232,53 @@ is still open.
 
 ## C. Spec and code disagree; decide, then fix one side
 
-- [ ] **C1. C12 first pass versus `partial.rs:293-313`.** A new valid entry
+- [x] **C1. C12 first pass versus `partial.rs:293-313`.** A new valid entry
   that collides with an earlier new entry and exists in the accepted
   configuration is retained with its old values (`KeptPrevious`); C12 says
   it is left out. The code's behaviour is the safer one. The test at
   `src/config/tests.rs:900` does not cover the branch.
-- [ ] **C2. A host-name tunnel without `ip_version` loses its
+- [x] **C2. A host-name tunnel without `ip_version` loses its
   `resolver_name`** (`partial.rs:399-407`, `mod.rs:369-405`): the
   peerless correction turns the key into a second tolerated mistake and
   `--check` no longer shows it. Tolerate the key only when the configured
   text was a literal.
-- [ ] **C3. R10 and E20 say two monitors with 8 MiB buffers;** the code has
+- [x] **C3. R10 and E20 say two monitors with 8 MiB buffers;** the code has
   three subscriptions (`monitor.rs:146`, `lifetime.rs:151`, `l2tp.rs:396`)
   and the kernel doubles the requested size (K36), so 16 MiB each.
-- [ ] **C4. T20 and E8 say retries are per bound device;** the code
+- [x] **C4. T20 and E8 say retries are per bound device;** the code
   retries per tunnel (`tunnels.rs:479-483`, `timers.rs:62-71`). A superset;
   amend the spec or the code.
-- [ ] **C5. C10 precedence:** `fe80::1` with `ip_version = "V4"` and no
+- [x] **C5. C10 precedence:** `fe80::1` with `ip_version = "V4"` and no
   bind device is tolerated (family mismatch, checked first) instead of
   hard (link-local without a zone). Add a precedence sentence to C10.
-- [ ] **C6. K31 nuance:** `dev_set_mac_address` accepts an unchanged
+- [x] **C6. K31 nuance:** `dev_set_mac_address` accepts an unchanged
   address while the device is up (`net/core/dev.c:9020-9044`); the code is
   consistent, K31 could say so.
 
 ## D. Lower-severity robustness items
 
-- [ ] D1. `src/reconciler/sessions.rs:186-197`: the session "create" episode
+- [x] D1. `src/reconciler/sessions.rs:186-197`: the session "create" episode
   is never ended (G13).
-- [ ] D2. `src/reconciler/events.rs:214-219`: an error from the kernel query
+- [x] D2. `src/reconciler/events.rs:214-219`: an error from the kernel query
   on a link removal sets no retry (E3); the E27 path at `:338-341` does it
   right.
-- [ ] D3. Same-identifier re-creation leaves a one-second `session()` poll
+- [x] D3. Same-identifier re-creation leaves a one-second `session()` poll
   running for the entry's life (`events.rs:119-126`, `timers.rs:72-80`).
-- [ ] D4. `events.rs:151-159`: the VRF and master caches grow with every
+- [x] D4. `events.rs:151-159`: the VRF and master caches grow with every
   link on the host (G23); `timers.rs:99-110` is linear in the entries per
   event.
-- [ ] D5. `src/reconciler/tunnels.rs:57`, `:77`: adoption aborts the whole
+- [x] D5. `src/reconciler/tunnels.rs:57`, `:77`: adoption aborts the whole
   tunnel on one undeletable unmatched session (M4).
-- [ ] D6. `events.rs:359`: dead `dump_addrs()` call in the resync.
-- [ ] D7. `src/bin/rs-l2tpd/fdstore.rs:173-186`: when `close_range` is
+- [x] D6. `events.rs:359`: dead `dump_addrs()` call in the resync.
+- [x] D7. `src/bin/rs-l2tpd/fdstore.rs:173-186`: when `close_range` is
   refused the fallback loops to the hard descriptor limit.
-- [ ] D8. `src/bin/rs-l2tpd/main.rs:24`, `:78`: a failed `getcwd` exits 1
+- [x] D8. `src/bin/rs-l2tpd/main.rs:24`, `:78`: a failed `getcwd` exits 1
   although only a relative `argv[0]` needs it.
-- [ ] D9. `src/kernel/linux/rtnl.rs:196`, `:214`: undecodable links and
+- [x] D9. `src/kernel/linux/rtnl.rs:196`, `:214`: undecodable links and
   addresses are dropped from dumps silently.
-- [ ] D10. `src/kernel/linux/request.rs:146`, `:175`: a `Debug` bound on
+- [x] D10. `src/kernel/linux/request.rs:146`, `:175`: a `Debug` bound on
   payloads that carry cookie bytes; nothing formats them today (O5).
-- [ ] D11. A rename of a device with IPv4 addresses reconnects twice: the
+- [x] D11. A rename of a device with IPv4 addresses reconnects twice: the
   kernel sends one `RTM_NEWADDR` per address for the label change
   (`net/ipv4/devinet.c:1516-1540`) and `events.rs:252-306` takes it as E6.
 - [x] D12. `tests/kernel/README.md` said `-m 512` for QEMU; the current
@@ -271,16 +286,16 @@ is still open.
 
 ## E. Missing or weak tests
 
-- [ ] E1. C14, M6, S11: a removed session's name taken by a survivor has no
+- [x] E1. C14, M6, S11: a removed session's name taken by a survivor has no
   test at all.
-- [ ] E2. V7 across a re-creation (A3); S21 re-creation after a namespace
+- [x] E2. V7 across a re-creation (A3); S21 re-creation after a namespace
   move (A5); G13 log counting (B8); S27 publication and hardware address
   after re-creation; T25's "eventual creation" message; session-level and
   adoption cases for G6.
-- [ ] E3. C7 host names: no non-ASCII, all-numeric or 253-plus-dot case;
+- [x] E3. C7 host names: no non-ASCII, all-numeric or 253-plus-dot case;
   C7 literals: no `::ffff:192.0.2.1` with `ip_version = "V6"`; C2: no
   explicit empty-table "cannot remove a key" case; C12: see C1.
-- [ ] E4. V10 and V14 adapter tests are `#[ignore]` and did not run in the
+- [x] E4. V10 and V14 adapter tests are `#[ignore]` and did not run in the
   default suite; they need capabilities.
 - [ ] E5. The strict traceability gates are phase 6 work and are reported
   here for the record: 106 of 330 active rules have no test citation (all

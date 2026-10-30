@@ -143,7 +143,7 @@ impl Request {
     /// first error of `visit`, after the replies are drained. Any failure of
     /// the transport within `deadline` drops the socket and returns
     /// `ETIMEDOUT` (A14, E21).
-    pub(super) fn run<I: NetlinkSerializable + Debug>(
+    pub(super) fn run<I: NetlinkSerializable>(
         &mut self,
         payload: I,
         dump: bool,
@@ -172,7 +172,7 @@ impl Request {
 // netlink_dump_done; replies carry the request's nlmsg_seq
 /// One round trip: the outer error is the transport's, the inner one the
 /// kernel's answer.
-fn exchange<I: NetlinkSerializable + Debug>(
+fn exchange<I: NetlinkSerializable>(
     socket: &Socket,
     seq: u32,
     payload: I,
@@ -186,7 +186,7 @@ fn exchange<I: NetlinkSerializable + Debug>(
     let mut header = NetlinkHeader::default();
     header.flags = NLM_F_REQUEST | if dump { NLM_F_DUMP } else { NLM_F_ACK };
     header.sequence_number = seq;
-    let mut message = NetlinkMessage::new(header, NetlinkPayload::InnerMessage(payload));
+    let mut message = NetlinkMessage::new(header, NetlinkPayload::InnerMessage(Redacted(payload)));
     message.finalize();
     let mut buffer = vec![0; message.buffer_len()];
     message.serialize(&mut buffer);
@@ -337,5 +337,63 @@ mod tests {
         );
         // A reopened socket may reuse the old port; its sequence still advances.
         assert_eq!(request.seq, 2);
+    }
+}
+
+struct Redacted<I>(I);
+impl<I> Debug for Redacted<I> {
+    // kernel: (K35) net/l2tp/l2tp_netlink.c cookie attributes must never be logged (O5).
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("NetlinkPayload(<redacted>)")
+    }
+}
+impl<I: NetlinkSerializable> NetlinkSerializable for Redacted<I> {
+    // kernel: (K29) include/uapi/linux/netlink.h nlmsg_type.
+    fn message_type(&self) -> u16 {
+        self.0.message_type()
+    }
+    // kernel: (K29) include/uapi/linux/netlink.h nlmsg_len.
+    fn buffer_len(&self) -> usize {
+        self.0.buffer_len()
+    }
+    // kernel: (K29, K35) include/uapi/linux/netlink.h payload layout is unchanged.
+    fn serialize(&self, buffer: &mut [u8]) {
+        self.0.serialize(buffer);
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+    struct Secret([u8; 4]); // Deliberately has no Debug implementation.
+    impl NetlinkSerializable for Secret {
+        // kernel: (K35) net/l2tp/l2tp_netlink.c L2TP_ATTR_COOKIE.
+        fn message_type(&self) -> u16 {
+            42
+        }
+        // kernel: (K29) include/uapi/linux/netlink.h payload length.
+        fn buffer_len(&self) -> usize {
+            self.0.len()
+        }
+        // kernel: (K35) net/l2tp/l2tp_netlink.c cookie bytes.
+        fn serialize(&self, out: &mut [u8]) {
+            out.copy_from_slice(&self.0);
+        }
+    }
+    // kernel: (K29, K35) include/uapi/linux/netlink.h serialization; cookies remain opaque (O5).
+    /// spec: O5, K35
+    #[test]
+    fn payload_debug_is_redacted_without_changing_serialization() {
+        let secret = Redacted(Secret([0xde, 0xad, 0xbe, 0xef]));
+        assert_eq!(format!("{secret:?}"), "NetlinkPayload(<redacted>)");
+        assert_eq!(secret.message_type(), 42);
+        let mut bytes = vec![0; secret.buffer_len()];
+        secret.serialize(&mut bytes);
+        assert_eq!(bytes, [0xde, 0xad, 0xbe, 0xef]);
+        let message = NetlinkMessage::new(
+            NetlinkHeader::default(),
+            NetlinkPayload::InnerMessage(secret),
+        );
+        assert!(!format!("{message:?}").contains("222"));
     }
 }

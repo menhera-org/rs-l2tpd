@@ -3,6 +3,7 @@
 //! Phase 3 policy cases and seeded reload properties; service/process
 //! acceptance remains in the later phases of docs/plan.md.
 
+mod completion;
 mod events;
 #[path = "../properties/planner.rs"]
 mod planner;

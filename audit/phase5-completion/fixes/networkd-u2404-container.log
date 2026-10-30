@@ -1,0 +1,7 @@
+systemd 255 (255.4-1ubuntu8.18)
++PAM +AUDIT +SELINUX +APPARMOR +IMA +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBFDISK +PCRE2 -PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD -BPF_FRAMEWORK -XKBCOMMON +UTMP +SYSVINIT default-hierarchy=unified
+sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0
+run=1 mode=container mac=02:82:66:8b:f9:b3 address=192.0.2.1/24 creation=l2tp0
+run=2 mode=container mac=66:fd:3a:d0:30:fe address=192.0.2.1/24 creation=l2tp0
+run=3 mode=container mac=ee:6b:8b:67:ef:a2 address=192.0.2.1/24 creation=l2tp0
+NETWORKD_RESULT=0

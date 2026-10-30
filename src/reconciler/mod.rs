@@ -80,6 +80,10 @@ pub struct Reconciler<K: Kernel> {
     departing: BTreeMap<u32, Instant>,
     /// Creation names reserved until their session is confirmed gone (S4).
     reserved: BTreeMap<L2tpIfName, (u32, u32)>,
+    deleting_sessions: BTreeMap<(u32, u32), Instant>,
+    unmatched_sessions: BTreeSet<(u32, u32)>,
+    verify_sessions: BTreeSet<u32>,
+    verify_tunnels: BTreeSet<u32>,
     conflicts: BTreeMap<(bool, u32), Conflict>,
     resolvers: resolvers::Resolvers,
     report: Report,
@@ -104,6 +108,8 @@ pub struct Reconciler<K: Kernel> {
     /// from link notices (E4, E6).
     vrfs: BTreeSet<u32>,
     masters: BTreeMap<u32, u32>,
+    address_devices: BTreeSet<u32>,
+    addresses: BTreeSet<(u32, std::net::IpAddr)>,
     index: events::Index,
 }
 
@@ -117,6 +123,10 @@ impl<K: Kernel> Reconciler<K> {
             sessions: BTreeMap::new(),
             departing: BTreeMap::new(),
             reserved: BTreeMap::new(),
+            deleting_sessions: BTreeMap::new(),
+            unmatched_sessions: BTreeSet::new(),
+            verify_sessions: BTreeSet::new(),
+            verify_tunnels: BTreeSet::new(),
             conflicts: BTreeMap::new(),
             resolvers: resolvers::Resolvers::new(resolve),
             report: Report::default(),
@@ -133,6 +143,8 @@ impl<K: Kernel> Reconciler<K> {
             monitor_pending: false,
             vrfs: BTreeSet::new(),
             masters: BTreeMap::new(),
+            address_devices: BTreeSet::new(),
+            addresses: BTreeSet::new(),
             index: events::Index::default(),
         }
     }
@@ -212,6 +224,7 @@ impl<K: Kernel> Reconciler<K> {
         self.incomplete = false;
         self.check_tunable();
         self.verify_inherited();
+        self.retry_unmatched_sessions();
         self.retire_sockets();
         self.remove_unwanted_sessions();
         self.remove_unwanted_tunnels();

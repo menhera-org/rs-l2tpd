@@ -1,7 +1,7 @@
 //! Bounded optional installer, sharing the package's unit template.
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::Path;
 #[cfg(feature = "setup-systemd")]
 use std::process::Command;
@@ -12,7 +12,7 @@ pub fn unit(binary: &str) -> String {
     TEMPLATE.replace("@BINARY@", binary)
 }
 fn atomic(path: &Path, bytes: &[u8], mode: u32) -> io::Result<()> {
-    fs::create_dir_all(path.parent().unwrap())?;
+    directories(path.parent().unwrap())?;
     if fs::read(path).ok().as_deref() == Some(bytes) {
         return Ok(());
     }
@@ -48,7 +48,7 @@ fn install_files(prefix: &Path, executable: &Path) -> bool {
             .and_then(|bytes| atomic(&prefix.join("usr/local/sbin/rs-l2tpd"), &bytes, 0o755)),
     );
     let rendered = unit("/usr/local/sbin/rs-l2tpd");
-    let path = prefix.join("etc/systemd/system/rs-l2tpd.service");
+    let path = prefix.join("usr/local/lib/systemd/system/rs-l2tpd.service");
     let result = match fs::read(&path) {
         Ok(existing) if existing != rendered.as_bytes() && existing != LEGACY.as_bytes() => {
             println!("unit: preserved operator-edited or unknown unit");
@@ -61,7 +61,7 @@ fn install_files(prefix: &Path, executable: &Path) -> bool {
     step("unit", result);
     step(
         "configuration directory",
-        fs::create_dir_all(prefix.join("etc/rs-l2tpd.toml.d")),
+        directories(&prefix.join("etc/rs-l2tpd.toml.d")),
     );
     step(
         "configuration",
@@ -128,6 +128,9 @@ pub fn run(prefix: Option<&Path>, executable: &Path) -> u8 {
         true
     };
     println!("systemd: existing services are never restarted");
+    println!(
+        "To use the installed binary, run rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid; upgrading a running 0.1.5 daemon at /usr/local/bin/rs-l2tpd requires systemctl restart rs-l2tpd once."
+    );
     u8::from(!success || !reload || !start)
 }
 #[cfg(test)]
@@ -208,7 +211,9 @@ mod tests {
         assert_eq!(inode, fs::metadata(&binary).unwrap().ino());
         let config = dir.path().join("etc/rs-l2tpd.toml");
         fs::write(&config, "# operator").unwrap();
-        let path = dir.path().join("etc/systemd/system/rs-l2tpd.service");
+        let path = dir
+            .path()
+            .join("usr/local/lib/systemd/system/rs-l2tpd.service");
         for old in [
             LEGACY.to_owned(),
             format!("{LEGACY}# edit\n"),
@@ -225,6 +230,80 @@ mod tests {
                 }
             );
             assert_eq!(fs::read_to_string(&config).unwrap(), "# operator");
+        }
+    }
+}
+
+fn directories(path: &Path) -> io::Result<()> {
+    if path.as_os_str().is_empty() {
+        return Ok(());
+    }
+    match fs::DirBuilder::new().mode(0o755).create(path) {
+        Ok(()) => fs::set_permissions(path, fs::Permissions::from_mode(0o755)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            directories(path.parent().ok_or(error)?)?;
+            directories(path)
+        }
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists && path.is_dir() => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+    use std::os::unix::fs::MetadataExt;
+    /// spec: P27
+    #[test]
+    fn directory_modes_child() {
+        let Some(mask) = std::env::var_os("COMPLETION_INSTALL_UMASK") else {
+            return;
+        };
+        unsafe {
+            libc::umask(mask.to_str().unwrap().parse::<u32>().unwrap());
+        }
+        let dir = crate::testdir::Dir::new();
+        let source = dir.path().join("source");
+        fs::write(&source, "binary").unwrap();
+        let admin = dir.path().join("etc/systemd/system/rs-l2tpd.service");
+        directories(admin.parent().unwrap()).unwrap();
+        fs::write(&admin, "operator override").unwrap();
+        assert!(install_files(dir.path(), &source));
+        for sub in [
+            "usr",
+            "usr/local",
+            "usr/local/sbin",
+            "usr/local/lib",
+            "usr/local/lib/systemd/system",
+            "etc",
+            "etc/rs-l2tpd.toml.d",
+        ] {
+            assert_eq!(
+                fs::metadata(dir.path().join(sub)).unwrap().mode() & 0o777,
+                0o755,
+                "{sub}"
+            );
+        }
+        assert_eq!(fs::read_to_string(&admin).unwrap(), "operator override");
+        let unit = dir
+            .path()
+            .join("usr/local/lib/systemd/system/rs-l2tpd.service");
+        assert_eq!(fs::metadata(&unit).unwrap().mode() & 0o777, 0o644);
+        let config = dir.path().join("etc/rs-l2tpd.toml.d");
+        fs::set_permissions(&config, fs::Permissions::from_mode(0o750)).unwrap();
+        assert!(install_files(dir.path(), &source));
+        assert_eq!(fs::metadata(config).unwrap().mode() & 0o777, 0o750);
+    }
+    /// spec: P27
+    #[test]
+    fn umask_does_not_weaken_installation_or_shadow_admin_units() {
+        for mask in ["0", "2", "63"] {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "setup::completion_tests::directory_modes_child"])
+                .env("COMPLETION_INSTALL_UMASK", mask)
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{mask}: {output:?}");
         }
     }
 }

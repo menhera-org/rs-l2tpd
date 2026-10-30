@@ -21,6 +21,10 @@ fn main() -> std::process::ExitCode {
     std::process::ExitCode::from(run())
 }
 fn run() -> u8 {
+    if let Err(error) = streams() {
+        eprintln!("standard streams: {error}");
+        return 1;
+    }
     let original = std::env::current_dir();
     let argv: Vec<_> = std::env::args_os().collect();
     let directory = std::env::set_current_dir("/");
@@ -57,7 +61,7 @@ fn run() -> u8 {
         }
         Mode::Setup => {
             #[cfg(feature = "setup-systemd")]
-            return match original.and_then(|dir| restart::executable_at(&argv[0], &dir)) {
+            return match restart::executable_at(&argv[0], original) {
                 Ok(executable) => setup::run(args.prefix.as_deref(), &executable),
                 Err(error) => {
                     log::error!("running executable: {error}");
@@ -75,8 +79,7 @@ fn run() -> u8 {
         let entry = restart::entry()?;
         pid = entry.pid;
         let inherited = fdstore::inherit()?;
-        let original = original?;
-        let executable = restart::executable_at(&argv[0], &original)?;
+        let executable = restart::executable_at(&argv[0], original)?;
         let loaded = files::load(&args.config, &args.config_dir);
         let (config, problems) = loaded.partial.into_config_lenient();
         files::report(&config, &problems, false);
@@ -90,8 +93,15 @@ fn run() -> u8 {
         let store = inherited
             .notify
             .as_deref()
-            .map(fdstore::Store::new)
-            .transpose()?;
+            .and_then(|path| match fdstore::Store::new(path) {
+                Ok(store) => Some(store),
+                Err(error) => {
+                    log::error!(
+                        "descriptor store unavailable: {error}; continuing without a store"
+                    );
+                    None
+                }
+            });
         let capacity = if store.is_some() {
             inherited.capacity
         } else {
@@ -228,5 +238,65 @@ mod testdir {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.0);
         }
+    }
+}
+
+// kernel: fs/fcntl.c f_getfd, fs/file.c do_dup2, fs/open.c do_sys_openat2 (P2).
+fn streams() -> io::Result<()> {
+    for fd in 0..=2 {
+        if unsafe { libc::fcntl(fd, libc::F_GETFD) } >= 0 {
+            continue;
+        }
+        let error = io::Error::last_os_error();
+        if error.raw_os_error() != Some(libc::EBADF) {
+            return Err(error);
+        }
+        let null = unsafe { libc::open(c"/dev/null".as_ptr(), libc::O_RDWR) };
+        if null < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        if null != fd {
+            let result = unsafe { libc::dup2(null, fd) };
+            let error = io::Error::last_os_error();
+            unsafe {
+                libc::close(null);
+            }
+            if result < 0 {
+                return Err(error);
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod stream_tests {
+    /// spec: P2 O1
+    #[test]
+    fn closed_streams_child() {
+        if std::env::var_os("COMPLETION_CLOSED_STREAMS").is_none() {
+            return;
+        }
+        for fd in 0..=2 {
+            unsafe {
+                libc::close(fd);
+            }
+        }
+        super::streams().unwrap();
+        for fd in 0..=2 {
+            assert!(unsafe { libc::fcntl(fd, libc::F_GETFD) } >= 0);
+        }
+        use std::os::fd::AsRawFd;
+        assert!(std::fs::File::open("/dev/null").unwrap().as_raw_fd() >= 3);
+    }
+    /// spec: P2 O1
+    #[test]
+    fn sockets_cannot_take_the_place_of_closed_standard_streams() {
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "stream_tests::closed_streams_child"])
+            .env("COMPLETION_CLOSED_STREAMS", "1")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
     }
 }

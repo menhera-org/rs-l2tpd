@@ -50,6 +50,7 @@ impl<K: Kernel> Reconciler<K> {
                 self.index.registrations.insert(*sid, registration.index);
             }
         }
+        self.retain_devices();
     }
 
     pub(super) fn index_tunnel(&mut self, id: u32) {
@@ -121,7 +122,7 @@ impl<K: Kernel> Reconciler<K> {
                     .get(&session_id)
                     .is_some_and(|s| s.tunnel_id == tunnel_id)
                 {
-                    self.sessions.get_mut(&session_id).unwrap().verify = true;
+                    self.verify_sessions.insert(session_id);
                     self.verify_session(session_id);
                 }
             }
@@ -148,15 +149,34 @@ impl<K: Kernel> Reconciler<K> {
 
     /// A device appeared, was renamed or changed state (E1, E2, E4).
     fn link_new(&mut self, link: LinkInfo) {
-        if link.vrf {
-            self.vrfs.insert(link.index);
-        } else {
-            self.vrfs.remove(&link.index);
+        let previous = self.masters.get(&link.index).copied();
+        let relevant = self.index.devices.contains_key(&link.index)
+            || self.index.names.contains_key(&link.name)
+            || self.vrfs.contains(&link.index);
+        if relevant {
+            if self.remember_device(&link).is_err() {
+                self.monitor_pending = true;
+            }
+            if !link.vrf {
+                self.vrfs.remove(&link.index);
+            }
         }
-        let previous = match link.master {
-            Some(m) => self.masters.insert(link.index, m),
-            None => self.masters.remove(&link.index),
-        };
+        if relevant
+            || link
+                .master
+                .is_some_and(|master| self.vrfs.contains(&master))
+        {
+            match link.master {
+                Some(master) => {
+                    self.masters.insert(link.index, master);
+                }
+                None => {
+                    self.masters.remove(&link.index);
+                }
+            }
+        } else {
+            self.masters.remove(&link.index);
+        }
         let controller_changed = previous != link.master;
         if let Some(sid) = self.owned_session(link.index) {
             self.session_device_changed(sid, link.name, link.up);
@@ -176,6 +196,7 @@ impl<K: Kernel> Reconciler<K> {
             )
             .copied()
             .collect();
+        let tracked = !ids.is_empty() || relevant || previous.is_some();
         for id in ids {
             let record = &self.tunnels[&id];
             let bind_name = record.config.bind_interface().copied();
@@ -204,6 +225,9 @@ impl<K: Kernel> Reconciler<K> {
                 self.converge_tunnel(id);
             }
         }
+        if tracked {
+            self.retain_devices();
+        }
         self.resolver_device_changed(&link.name, Some(link.index));
     }
 
@@ -214,7 +238,7 @@ impl<K: Kernel> Reconciler<K> {
         if let Some(sid) = self.owned_session(link.index) {
             self.observed_removal(sid);
             if !self.sessions.contains_key(&sid) {
-                self.create_wanted_sessions();
+                self.recreate_session(sid);
             }
         }
         let ids: BTreeSet<_> = self
@@ -250,6 +274,16 @@ impl<K: Kernel> Reconciler<K> {
     /// device or to that device's VRF reselect their source; an unbound
     /// tunnel does when the address it selected is removed.
     fn addr_changed(&mut self, addr: AddrInfo, removed: bool) {
+        let key = (addr.index, addr.addr.to_canonical());
+        if self.address_devices.contains(&addr.index) {
+            if removed {
+                self.addresses.remove(&key);
+            } else if !self.addresses.insert(key) {
+                return;
+            }
+        } else if !removed {
+            return;
+        }
         let family = if addr.addr.to_canonical().is_ipv4() {
             Family::V4
         } else {
@@ -312,9 +346,9 @@ impl<K: Kernel> Reconciler<K> {
         if !self.tunnels.contains_key(&tunnel_id) {
             return;
         }
-        self.tunnels.get_mut(&tunnel_id).unwrap().verify = true;
+        self.verify_tunnels.insert(tunnel_id);
         if let Ok(None) = self.k.tunnel(tunnel_id) {
-            self.tunnels.get_mut(&tunnel_id).unwrap().verify = false;
+            self.verify_tunnels.remove(&tunnel_id);
             let label = self.tunnel_label(tunnel_id);
             self.report.begin_error(&label, "deleted", || {
                 "was deleted in the kernel outside the daemon; this is unsupported (T9)".into()
@@ -325,20 +359,37 @@ impl<K: Kernel> Reconciler<K> {
     /// E27: an announced deletion is verified locally; a session confirmed
     /// absent is created again (S27, S29), a present one is kept and
     /// verified again on the tick.
-    pub(super) fn verify_session(&mut self, sid: u32) {
+    pub(super) fn verify_session(&mut self, sid: u32) -> bool {
         let tid = self.sessions[&sid].tunnel_id;
         match self.k.session(tid, sid) {
             Ok(None) => {
                 let label = self.session_label_of(sid);
                 self.forget_session(sid);
                 log::warn!("{label}: deleted outside the daemon; creating it again (S27)");
-                self.create_wanted_sessions();
+                self.recreate_session(sid);
+                true
             }
-            Ok(Some(_)) => {}
-            Err(e) => log::debug!(
-                "verification of session_id={sid} failed: {}",
-                report::describe(&e)
-            ),
+            Ok(Some(_)) => self.sessions[&sid]
+                .state
+                .registration()
+                .is_some_and(|registration| {
+                    self.k.prove(registration) == crate::kernel::Proof::Proved
+                }),
+            Err(e) => {
+                log::debug!(
+                    "verification of session_id={sid} failed: {}",
+                    report::describe(&e)
+                );
+                false
+            }
+        }
+    }
+
+    fn recreate_session(&mut self, sid: u32) {
+        self.create_wanted_sessions();
+        if self.sessions.contains_key(&sid) && !self.converge_session(sid) {
+            self.incomplete = true;
+            self.reconcile_at.get_or_insert(self.k.now() + super::RETRY);
         }
     }
 
@@ -352,17 +403,45 @@ impl<K: Kernel> Reconciler<K> {
     /// validated again.
     pub(super) fn monitor_resync(&mut self) {
         self.monitor_pending = true;
-        log::warn!("the event monitor lost notifications; resynchronising (E20)");
+        self.report.begin("event monitor", "loss", || {
+            "lost notifications; resynchronising (E20)".into()
+        });
         let Ok(links) = self.k.dump_links() else {
             return;
         };
-        let Ok(_) = self.k.dump_addrs() else { return };
-        self.vrfs = links.iter().filter(|l| l.vrf).map(|l| l.index).collect();
+        self.vrfs = links
+            .iter()
+            .filter(|link| link.vrf && self.index.devices.contains_key(&link.index))
+            .map(|link| link.index)
+            .collect();
         self.masters = links
             .iter()
-            .filter_map(|l| Some((l.index, l.master?)))
+            .filter(|link| {
+                self.index.devices.contains_key(&link.index)
+                    || link
+                        .master
+                        .is_some_and(|master| self.vrfs.contains(&master))
+            })
+            .filter_map(|link| Some((link.index, link.master?)))
             .collect();
+        for link in &links {
+            if self.masters.values().any(|master| *master == link.index) && link.vrf {
+                self.vrfs.insert(link.index);
+            }
+        }
+        self.address_devices.clear();
         self.monitor_pending = false;
+        for link in &links {
+            if let Some(sid) = self.owned_session(link.index) {
+                self.session_device_changed(sid, link.name, link.up);
+            }
+        }
+        self.retain_devices();
+        if self.monitor_pending {
+            return;
+        }
+        self.report
+            .end("event monitor", "loss", || "resynchronised (E20)".into());
         let ids: Vec<u32> = self.tunnels.keys().copied().collect();
         for id in ids {
             let record = self.tunnels.get_mut(&id).unwrap();
@@ -411,7 +490,9 @@ impl<K: Kernel> Reconciler<K> {
             }
             let tid = self.sessions[&sid].tunnel_id;
             match self.k.session(tid, sid) {
-                Ok(None) => self.verify_session(sid),
+                Ok(None) => {
+                    self.verify_session(sid);
+                }
                 Ok(Some(_)) => {}
                 Err(_) => complete = false,
             }
@@ -419,5 +500,67 @@ impl<K: Kernel> Reconciler<K> {
         if complete {
             self.l2tp_pending = false;
         }
+    }
+}
+
+impl<K: Kernel> Reconciler<K> {
+    pub(super) fn remember_device(&mut self, link: &LinkInfo) -> std::io::Result<()> {
+        if link.vrf && !self.vrfs.contains(&link.index) {
+            let members = self.k.dump_links()?;
+            self.vrfs.insert(link.index);
+            for member in members {
+                if member.master == Some(link.index) {
+                    self.masters.entry(member.index).or_insert(link.index);
+                }
+            }
+        }
+        if let Some(master) = link.master {
+            self.masters.entry(link.index).or_insert(master);
+            if self
+                .k
+                .link_by_index(master)?
+                .is_some_and(|parent| parent.vrf)
+            {
+                self.vrfs.insert(master);
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn retain_devices(&mut self) {
+        self.masters.retain(|index, master| {
+            self.index.devices.contains_key(index) || self.index.devices.contains_key(master)
+        });
+        self.vrfs.retain(|index| {
+            self.index.devices.contains_key(index)
+                || self.masters.values().any(|master| master == index)
+        });
+        let watched: BTreeSet<_> = self
+            .index
+            .devices
+            .keys()
+            .chain(self.masters.keys())
+            .copied()
+            .collect();
+        self.addresses.retain(|(index, _)| watched.contains(index));
+        if !watched.is_subset(&self.address_devices) {
+            match self.k.dump_addrs() {
+                Ok(addresses) => {
+                    for address in addresses {
+                        if watched.contains(&address.index)
+                            && !self.address_devices.contains(&address.index)
+                        {
+                            self.addresses
+                                .insert((address.index, address.addr.to_canonical()));
+                        }
+                    }
+                }
+                Err(_) => {
+                    self.monitor_pending = true;
+                    return;
+                }
+            }
+        }
+        self.address_devices = watched;
     }
 }

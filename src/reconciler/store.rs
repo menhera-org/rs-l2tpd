@@ -224,6 +224,7 @@ impl<K: Kernel> Reconciler<K> {
                         Some(
                             nix::libc::EINVAL
                                 | nix::libc::ENOTSOCK
+                                | nix::libc::ESOCKTNOSUPPORT
                                 | nix::libc::EAFNOSUPPORT
                                 | nix::libc::EPROTONOSUPPORT
                                 | nix::libc::ENODEV

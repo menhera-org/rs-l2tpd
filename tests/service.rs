@@ -124,7 +124,8 @@ impl Kernel for Host {
         self.0.lock().unwrap().clone_fd(socket)
     }
     forward! {
-        random() -> [u8; 3];
+        random() -> io::Result<[u8; 3]>;
+        link_by_index(index: u32) -> io::Result<Option<LinkInfo>>;
         create_socket(family: Family, tunnel_id: u32, peer_tunnel_id: u32) -> io::Result<SocketId>;
         scratch_only_v6() -> io::Result<bool>;
         bind_index(socket: SocketId, index: u32) -> io::Result<()>;
@@ -1008,7 +1009,17 @@ fn reload_accepted_during_convergence_is_ignored_even_when_dequeued_after_readin
         entered: entered_tx,
         release: release_rx,
     });
-    let mut service = start(&host, config(10));
+    let mut wanted = config(10);
+    wanted
+        .insert_session(
+            "lan",
+            SessionConfig::builder("wan", 110, L2tpIfName::new("l2tp0").unwrap())
+                .interface_hwaddr(rs_l2tpd::config::HwAddr::new([2, 0, 0, 0, 0, 1]).unwrap())
+                .build()
+                .unwrap(),
+        )
+        .unwrap();
+    let mut service = start(&host, wanted);
     let control = service.control();
     let converging = std::thread::spawn(move || {
         service.converge().unwrap();

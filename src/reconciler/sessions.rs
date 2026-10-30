@@ -33,9 +33,9 @@ impl<K: Kernel> Reconciler<K> {
 
     /// A name `prefix` followed by six hexadecimal digits from the
     /// kernel's random source (S4, S11).
-    fn random_name(&mut self, prefix: &str) -> L2tpIfName {
-        let [a, b, c] = self.k.random();
-        L2tpIfName::new(format!("{prefix}{a:02x}{b:02x}{c:02x}").as_bytes()).unwrap()
+    fn random_name(&mut self, prefix: &str) -> io::Result<L2tpIfName> {
+        let [a, b, c] = self.k.random()?;
+        Ok(L2tpIfName::new(format!("{prefix}{a:02x}{b:02x}{c:02x}").as_bytes()).unwrap())
     }
 
     /// Free as a creation name: no device bears it, no session stored it,
@@ -74,6 +74,7 @@ impl<K: Kernel> Reconciler<K> {
     /// the session is confirmed gone (S4).
     pub(super) fn forget_session(&mut self, sid: u32) {
         self.unindex_session(sid);
+        self.verify_sessions.remove(&sid);
         let label = self.session_label(sid);
         let record = self.sessions.remove(&sid).unwrap();
         if let Some(registration) = record.state.registration() {
@@ -97,7 +98,11 @@ impl<K: Kernel> Reconciler<K> {
         };
         match proof {
             Proof::Proved => match self.k.delete_session(tid, sid) {
-                Ok(()) => true,
+                Ok(()) => {
+                    self.deleting_sessions
+                        .insert((tid, sid), self.k.now() + super::DELETION_WAIT);
+                    true
+                }
                 Err(e) if errno(&e) == Errno::ENODEV as i32 => true,
                 Err(e) => {
                     let label = self.session_label(sid);
@@ -135,7 +140,11 @@ impl<K: Kernel> Reconciler<K> {
         });
         match scan {
             Ok(()) if count == 1 && matched => match self.k.delete_session_by_name(&name) {
-                Ok(()) => true,
+                Ok(()) => {
+                    self.deleting_sessions
+                        .insert((want.0, want.1), self.k.now() + super::DELETION_WAIT);
+                    true
+                }
                 Err(e) if errno(&e) == Errno::ENODEV as i32 => true,
                 Err(_) => false,
             },
@@ -174,7 +183,7 @@ impl<K: Kernel> Reconciler<K> {
                 continue;
             }
             let sid = config.session_id();
-            if self.reserved.values().any(|(_, old_sid)| *old_sid == sid) {
+            if self.deleting_sessions.contains_key(&(tid, sid)) {
                 self.incomplete = true;
                 continue;
             }
@@ -184,7 +193,11 @@ impl<K: Kernel> Reconciler<K> {
             }
             let label = report::session(&name, tid, sid);
             match self.stage(&name, &config, identity, tid) {
-                Ok(()) => self.conflict_over(true, sid, &label),
+                Ok(()) => {
+                    self.conflict_over(true, sid, &label);
+                    self.report.end(&label, "create", || "created".into());
+                    self.report.forget_condition(&label, "random");
+                }
                 Err(e) if errno(&e) == Errno::EEXIST as i32 => {
                     self.conflict(true, sid, conflict, &label, &e)
                 }
@@ -209,9 +222,16 @@ impl<K: Kernel> Reconciler<K> {
         identity: SessionIdentity,
         tid: u32,
     ) -> io::Result<()> {
-        for _ in 0..DRAWS {
-            let temp = self.random_name("rsl2tp-t");
+        let mut direct = config.interface_hwaddr().is_none()
+            && self.creation_name_free(config.interface_name())?;
+        for _ in 0..DRAWS + usize::from(direct) {
+            let temp = if direct {
+                *config.interface_name()
+            } else {
+                self.random_name("rsl2tp-t")?
+            };
             if !self.creation_name_free(&temp)? {
+                direct = false;
                 continue;
             }
             let create = SessionCreate {
@@ -223,6 +243,7 @@ impl<K: Kernel> Reconciler<K> {
                 ifname: temp,
             };
             let state = match self.k.create_session(&create) {
+                Ok(registration) if direct => Identity::Proved(registration),
                 Ok(registration) => Identity::Staged(registration),
                 // The outcome is unknown: the kernel's record decides (S23).
                 Err(e) if errno(&e) == Errno::ETIMEDOUT as i32 => Identity::Lost { staged: true },
@@ -231,6 +252,7 @@ impl<K: Kernel> Reconciler<K> {
                     if errno(&e) == Errno::EEXIST as i32 || errno(&e) == Errno::ENFILE as i32 =>
                 {
                     if self.k.link_by_name(&temp)?.is_some() {
+                        direct = false;
                         continue;
                     }
                     return Err(e);
@@ -238,7 +260,9 @@ impl<K: Kernel> Reconciler<K> {
                 Err(e) => return Err(e),
             };
             let kernel_hwaddr = match state {
-                Identity::Staged(r) => self.k.ether_addr(r.index).ok().flatten(),
+                Identity::Staged(r) | Identity::Proved(r) => {
+                    self.k.ether_addr(r.index).ok().flatten()
+                }
                 _ => None,
             };
             self.reserved.insert(temp, (tid, config.session_id()));
@@ -252,7 +276,11 @@ impl<K: Kernel> Reconciler<K> {
                     state,
                     created_as: Some(temp),
                     current_name: Some(temp),
-                    name_state: Enforce::Pending,
+                    name_state: if direct {
+                        Enforce::Applied
+                    } else {
+                        Enforce::Pending
+                    },
                     hwaddr: config.interface_hwaddr().or(kernel_hwaddr),
                     hwaddr_state: if config.interface_hwaddr().is_some() {
                         Enforce::Pending
@@ -260,7 +288,6 @@ impl<K: Kernel> Reconciler<K> {
                         Enforce::Applied
                     },
                     kernel_hwaddr,
-                    verify: false,
                 },
             );
             self.index_session(config.session_id());
@@ -363,7 +390,17 @@ impl<K: Kernel> Reconciler<K> {
                 continue;
             }
             for _ in 0..DRAWS {
-                let temp = self.random_name("rsl2tp-r");
+                let temp = match self.random_name("rsl2tp-r") {
+                    Ok(name) => name,
+                    Err(error) => {
+                        let label = self.session_label(holder);
+                        self.report.begin(&label, "random", || {
+                            format!("temporary name unavailable: {error}")
+                        });
+                        self.incomplete = true;
+                        break;
+                    }
+                };
                 match self.k.rename(registration.index, &temp) {
                     Ok(()) => {
                         self.sessions.get_mut(&holder).unwrap().current_name = Some(temp);
@@ -503,7 +540,12 @@ impl<K: Kernel> Reconciler<K> {
                 self.sessions.get_mut(&sid).unwrap().state = Identity::Removed;
                 self.skip_unmanageable_then(sid)
             }
-            Err(_) => false,
+            Err(error) => {
+                log::debug!("session_id={sid}: removal verification failed: {error}");
+                self.incomplete = true;
+                self.reconcile_at.get_or_insert(self.k.now() + super::RETRY);
+                false
+            }
         }
     }
 
@@ -560,6 +602,19 @@ impl<K: Kernel> Reconciler<K> {
     /// hardware address once it is down (E2, E4, S10, S12).
     pub(super) fn session_device_changed(&mut self, sid: u32, name: L2tpIfName, up: bool) {
         let label = self.session_label(sid);
+        let record = &self.sessions[&sid];
+        if record.current_name != Some(name)
+            && let Some(registration) = record.state.registration()
+        {
+            match self.k.link_by_index(registration.index) {
+                Ok(Some(current)) if current.name == name => {}
+                Err(_) => {
+                    self.monitor_pending = true;
+                    return;
+                }
+                _ => return,
+            }
+        }
         let record = &self.sessions[&sid];
         if record.hwaddr_state == Enforce::Applied
             && let Some(registration) = record.state.registration()

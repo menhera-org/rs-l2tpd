@@ -53,7 +53,10 @@ impl<K: Kernel> Reconciler<K> {
         let (family, bind_name) = (record.family, record.config.bind_interface().copied());
         let bind = match bind_name {
             Some(name) => match self.k.link_by_name(&name)? {
-                Some(link) => Some(link),
+                Some(link) => {
+                    self.remember_device(&link)?;
+                    Some(link)
+                }
                 None => {
                     return Ok(Target::Disconnect {
                         bind: None,

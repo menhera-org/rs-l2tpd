@@ -29,7 +29,6 @@ pub(crate) struct TunnelRecord {
     pub stale: bool,
     /// The next reconnect retry (T20, E13).
     pub retry_at: Option<Instant>,
-    pub verify: bool,
 }
 
 /// Whether the socket is connected (T1, T16).
@@ -103,8 +102,6 @@ pub(crate) struct SessionRecord {
     pub hwaddr_state: Enforce,
     /// The address the kernel assigned at creation.
     pub kernel_hwaddr: Option<HwAddr>,
-    /// A deletion was announced and absence is not yet confirmed (E27).
-    pub verify: bool,
 }
 
 /// A conflict episode of one entry (T25).

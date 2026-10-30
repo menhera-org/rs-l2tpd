@@ -19,7 +19,12 @@ fn a_tunnel_is_created_then_connected() {
     assert!(r.reconcile(config(TUNNEL)));
     assert_eq!(
         ops(&mut r),
-        ["socket 1 V6 10", "register 10", "connect 1 192.0.2.2"]
+        [
+            "socket 1 V6 10",
+            "register 10",
+            "disconnect 1",
+            "connect 1 192.0.2.2"
+        ]
     );
     let socket = r.kernel().tunnel_socket(10).unwrap();
     assert_eq!(

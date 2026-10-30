@@ -76,13 +76,12 @@ impl Kernel for LinuxKernel {
         Instant::now()
     }
 
-    // kernel: drivers/char/random.c getrandom(2), no file I/O (S4)
-    fn random(&mut self) -> [u8; 3] {
+    // kernel: drivers/char/random.c getrandom(2); OS entropy only, with errors returned (S4)
+    fn random(&mut self) -> io::Result<[u8; 3]> {
         let mut bytes = [0; 3];
-        // getrandom(2) blocks until the pool is initialised and does not
-        // fail otherwise; there is no error to return here.
-        getrandom::fill(&mut bytes).expect("the kernel's random source");
-        bytes
+        getrandom::fill(&mut bytes)
+            .map_err(|error| errno(error.raw_os_error().unwrap_or(libc::EIO)))?;
+        Ok(bytes)
     }
 
     // kernel: (K2, K4, K19) net/l2tp/l2tp_ip.c l2tp_ip_bind, l2tp_ip6.c
@@ -220,7 +219,12 @@ impl Kernel for LinuxKernel {
         self.lifetime.release(registration)
     }
 
-    // kernel: net/core/rtnetlink.c rtnl_getlink, drivers/net/vrf.c (K9, K32)
+    // kernel: (K9, K32) net/core/rtnetlink.c rtnl_getlink: ifi_index lookup.
+    fn link_by_index(&mut self, index: u32) -> io::Result<Option<LinkInfo>> {
+        self.rtnl.link_by_index(index)
+    }
+
+    // kernel: (K9, K32) net/core/rtnetlink.c rtnl_getlink: IFLA_IFNAME lookup.
     fn link_by_name(&mut self, name: &L2tpIfName) -> io::Result<Option<LinkInfo>> {
         self.rtnl.link_by_name(name)
     }

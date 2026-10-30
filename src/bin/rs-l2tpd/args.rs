@@ -40,7 +40,9 @@ impl Args {
         let mut input = input.into_iter();
         while let Some(option) = input.next() {
             let mode = match option.to_str() {
-                Some("--config" | "--config-dir" | "--pid-file" | "--prefix") => {
+                Some(
+                    "--config" | "--config-dir" | "--pid-file" | "--pidfile" | "-p" | "--prefix",
+                ) => {
                     let value = input
                         .next()
                         .filter(|v| !v.is_empty())
@@ -48,16 +50,16 @@ impl Args {
                     match option.to_str().unwrap() {
                         "--config" => args.config = value.into(),
                         "--config-dir" => args.config_dir = value.into(),
-                        "--pid-file" => args.pid_file = value.into(),
+                        "--pid-file" | "--pidfile" | "-p" => args.pid_file = value.into(),
                         _ => args.prefix = Some(value.into()),
                     }
                     continue;
                 }
-                Some("--verbose") => {
+                Some("--verbose" | "-v") => {
                     args.verbose = true;
                     continue;
                 }
-                Some("--check") => Mode::Check,
+                Some("--check" | "-c") => Mode::Check,
                 Some("--foreground") => Mode::Foreground,
                 Some("--restart") => Mode::Restart,
                 Some("--adopt-version") => Mode::AdoptVersion,
@@ -139,5 +141,23 @@ mod tests {
             parse("--setup-systemd --prefix /tmp").is_ok(),
             cfg!(feature = "setup-systemd")
         );
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+    /// spec: P27 G22
+    #[test]
+    fn legacy_aliases_share_validation() {
+        for option in ["--pid-file", "--pidfile", "-p"] {
+            let args =
+                Args::parse([option.into(), "/tmp/pid".into(), "-v".into(), "-c".into()]).unwrap();
+            assert_eq!(args.pid_file, PathBuf::from("/tmp/pid"));
+            assert!(args.verbose);
+            assert_eq!(args.mode, Mode::Check);
+            assert!(Args::parse([option.into()]).is_err());
+        }
+        assert!(Args::parse(["-c".into(), "--foreground".into()]).is_err());
     }
 }

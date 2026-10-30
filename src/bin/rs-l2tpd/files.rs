@@ -81,7 +81,7 @@ impl Loaded {
             if !present(path).map_err(|e| e.to_string())? {
                 return Ok(None);
             }
-            let text = match fs::read_to_string(path) {
+            let text = match read_file(path) {
                 Ok(text) => text,
                 Err(e) if e.kind() == io::ErrorKind::NotFound => {
                     if !present(path).map_err(|e| e.to_string())? {
@@ -300,5 +300,72 @@ mod filesystem_tests {
             .status()
             .unwrap();
         assert!(status.success());
+    }
+}
+
+fn read_file(path: &Path) -> io::Result<String> {
+    use std::io::Read;
+    use std::os::unix::fs::OpenOptionsExt;
+    const LIMIT: u64 = 16 * 1024 * 1024;
+    let check = |metadata: fs::Metadata| {
+        if !metadata.is_file() {
+            Err(io::Error::other("configuration is not a regular file"))
+        } else if metadata.len() > LIMIT {
+            Err(io::Error::other("configuration exceeds 16 MiB"))
+        } else {
+            Ok(())
+        }
+    };
+    check(fs::metadata(path)?)?;
+    // kernel: fs/namei.c do_open; O_NONBLOCK prevents a raced FIFO open from waiting (C3/C4).
+    let file = fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NONBLOCK)
+        .open(path)?;
+    check(file.metadata()?)?;
+    let mut text = String::new();
+    file.take(LIMIT + 1).read_to_string(&mut text)?;
+    if text.len() as u64 > LIMIT {
+        return Err(io::Error::other("configuration exceeds 16 MiB"));
+    }
+    Ok(text)
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+    use std::os::unix::ffi::OsStrExt;
+    /// spec: C3 C4 P2 P13
+    #[test]
+    fn bounded_regular_files_and_special_files() {
+        let dir = crate::testdir::Dir::new();
+        let path = dir.path().join("input");
+        let name = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+        assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+        assert!(
+            read_file(&path)
+                .unwrap_err()
+                .to_string()
+                .contains("regular")
+        );
+        let loaded = load(&path, &dir.path().join("absent"));
+        assert_eq!(loaded.errors.len(), 1);
+        assert!(loaded.errors[0].contains("input"));
+        assert!(reload(&path, &dir.path().join("absent"), Config::new()).is_err());
+        fs::remove_file(&path).unwrap();
+        let socket = std::os::unix::net::UnixDatagram::bind(&path).unwrap();
+        assert!(read_file(&path).is_err());
+        drop(socket);
+        fs::remove_file(&path).unwrap();
+        fs::write(&path, vec![b' '; 16 * 1024 * 1024]).unwrap();
+        assert_eq!(read_file(&path).unwrap().len(), 16 * 1024 * 1024);
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_len(16 * 1024 * 1024 + 1)
+            .unwrap();
+        assert!(read_file(&path).unwrap_err().to_string().contains("16 MiB"));
+        assert!(read_file(Path::new("/dev/null")).is_err());
     }
 }
