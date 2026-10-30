@@ -215,9 +215,9 @@ container, and requires the result marker, not QEMU's exit code.
   modules; the init loads `l2tp_core`, `l2tp_netlink`, `l2tp_ip`,
   `l2tp_ip6`, `l2tp_eth`, `vrf`, `dummy`, `veth`). Vanilla and mainline
   kernels are built from kernel.org tarballs in a `debian:trixie-slim`
-  container (the host lacks flex and bison): `x86_64_defconfig` plus
-  L2TP, VRF, dummy, veth, bridge and 802.1Q built in; about a minute on
-  this host. One extra build has IPv6 disabled for H4 and T4.
+  container, so that the host needs no kernel build tools:
+  `x86_64_defconfig` plus L2TP, VRF, dummy, veth, bridge and 802.1Q
+  built in. One extra build has IPv6 disabled for H4 and T4.
 - The **desired set** is every release from v6.8 to the newest; run it
   when the required set is green and record which ones ran.
 - Memory `-m 2048` (the initramfs holds unstripped test binaries); strip
@@ -260,25 +260,20 @@ fallback taken (K36, R10), module autoload left to the host (K21, R1),
 the `bindv6only` write in the container's own namespace (P25), and the
 descriptor hand-over through the container's systemd (P14).
 
-Incus 6.0 is installed on the development host (2026-10-30): `dev` is
-in `incus-admin`, the `images:` remote is reachable, there is no managed
-bridge, and the host's L2TP, VRF, dummy and veth modules are loaded,
+The runner needs an Incus host where the user can create containers
+(the `incus-admin` group, or a project granted to them), the `images:`
+remote, and the L2TP, VRF, dummy and veth modules loaded on the host,
 because the unprivileged container cannot load them and that is what H9
-and K21 test. Two facts about this host matter for the runner. The host
-is itself a user-namespaced container with ids 0 to 999,999,999, so the
-root entries of `/etc/subuid` and `/etc/subgid` had to shrink to
-`root:1000000:500000000` and the daemon be restarted before an
-unprivileged container would start. The default profile is now
-`security.privileged=false`, verified by a plain `incus launch`; the
-scenario still sets `security.privileged=false` explicitly so that it
-does not depend on a host profile. And a stock Incus container mounts `/sys` read-write and runs
-`systemd-udevd` and `systemd-networkd`, verified by a probe that also
-created a dummy device, an L2TP tunnel and session, a network namespace
-and a veth pair and wrote `bindv6only` inside the container; the
-"no udev" condition of H11 is Docker's read-only `/sys`, not Incus.
-Check with `incus list` before starting; where Incus is absent (CI,
-another host) the runner reports `skipped: no Incus access` with a
-non-zero exit distinct from failure. The gate is green only when it
+and K21 test. It needs no Incus network at all. A stock Incus container
+mounts `/sys` read-write and runs `systemd-udevd` and
+`systemd-networkd`, and inside it `CAP_NET_ADMIN` suffices to create
+dummy and veth devices, network namespaces, L2TP tunnels and sessions
+and to write `bindv6only` (verified on Incus 6.0); the "no udev"
+condition of H11 is Docker's read-only `/sys`, not Incus. The scenario
+sets `security.privileged=false` explicitly and does not depend on the
+host's default profile. Check with `incus list` before starting; where
+Incus is absent or unusable (CI, another host) the runner reports
+`skipped: no Incus access` with a non-zero exit distinct from failure. The gate is green only when it
 ran. The scenario: launch `images:ubuntu/24.04` with
 `security.privileged=false` and no network device (the container's own
 loopback, namespaces and veth pairs are all it uses; no Incus network is
