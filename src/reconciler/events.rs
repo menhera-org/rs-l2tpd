@@ -386,6 +386,9 @@ impl<K: Kernel> Reconciler<K> {
     }
 
     fn recreate_session(&mut self, sid: u32) {
+        // Both callers just confirmed absence, so its creation names are free (S4).
+        self.reserved
+            .retain(|_, (_, reserved_sid)| *reserved_sid != sid);
         self.create_wanted_sessions();
         if self.sessions.contains_key(&sid) && !self.converge_session(sid) {
             self.incomplete = true;

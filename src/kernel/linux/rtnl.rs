@@ -115,6 +115,19 @@ fn ifname(name: &L2tpIfName) -> LinkAttribute {
     LinkAttribute::Other(DefaultNla::new(libc::IFLA_IFNAME, value))
 }
 
+// kernel: (K7, K29) net/core/rtnetlink.c rtnl_dump_all visits every
+// registered address family; inet_fill_ifaddr and inet6_fill_ifaddr use ifaddrmsg.
+fn collect_addr(addrs: &mut Vec<AddrInfo>, kind: u16, payload: &[u8]) -> io::Result<()> {
+    if kind == libc::RTM_NEWADDR {
+        let family = *payload.first().ok_or_else(|| errno(libc::EPROTO))? as i32;
+        if !matches!(family, libc::AF_INET | libc::AF_INET6) {
+            return Ok(());
+        }
+        addrs.push(parse_addr(payload).ok_or_else(|| errno(libc::EPROTO))?);
+    }
+    Ok(())
+}
+
 /// The rtnetlink request socket (A5).
 pub(super) struct Rtnl(Request);
 
@@ -216,19 +229,14 @@ impl Rtnl {
     }
 
     // kernel: (K7, K29) net/core/rtnetlink.c rtnl_dump_all over
-    // inet_dump_ifaddr and inet6_dump_ifaddr
+    // every registered address family
     pub(super) fn dump_addrs(&mut self) -> io::Result<Vec<AddrInfo>> {
         let mut addrs = Vec::new();
         self.0.run(
             RouteNetlinkMessage::GetAddress(AddressMessage::default()),
             true,
             Instant::now() + DEADLINE,
-            &mut |kind, payload| {
-                if kind == libc::RTM_NEWADDR {
-                    addrs.push(parse_addr(payload).ok_or_else(|| errno(libc::EPROTO))?);
-                }
-                Ok(())
-            },
+            &mut |kind, payload| collect_addr(&mut addrs, kind, payload),
         )?;
         Ok(addrs)
     }
@@ -316,6 +324,50 @@ mod tests {
                 .ok_or_else(|| errno(libc::EPROTO))
                 .is_err()
         );
+    }
+
+    // kernel: (K7, K29) net/core/rtnetlink.c rtnl_dump_all; net/mctp/device.c
+    // mctp_fill_addrinfo; net/phonet/pn_netlink.c fill_addr use one-byte addresses.
+    /// spec: A5, E20, E21, K7, K29
+    #[test]
+    fn address_dump_skips_foreign_families_and_rejects_malformed_inet_records() {
+        let addr = |family, value: &[u8]| {
+            let mut payload = vec![family, 0, 0, 0];
+            payload.extend_from_slice(&7u32.to_ne_bytes());
+            payload.extend(nla(libc::IFA_ADDRESS, value));
+            payload
+        };
+        let v4 = addr(libc::AF_INET as u8, &[192, 0, 2, 1]);
+        let v6 = addr(libc::AF_INET6 as u8, &[0x20; 16]);
+        let mut addrs = Vec::new();
+        for payload in [
+            v4.clone(),
+            addr(45, &[8]), // AF_MCTP (include/linux/socket.h)
+            addr(libc::AF_PHONET as u8, &[42]),
+            v6.clone(),
+        ] {
+            collect_addr(&mut addrs, libc::RTM_NEWADDR, &payload).unwrap();
+        }
+        assert_eq!(addrs.len(), 2);
+        assert_eq!(addrs[0], parse_addr(&v4).unwrap());
+        assert_eq!(addrs[1], parse_addr(&v6).unwrap());
+        collect_addr(&mut addrs, libc::RTM_DELADDR, &[]).unwrap();
+        assert_eq!(addrs.len(), 2);
+        for payload in [
+            vec![],
+            vec![libc::AF_INET as u8],
+            vec![libc::AF_INET6 as u8],
+            addr(libc::AF_INET as u8, &[192, 0, 2]),
+            addr(libc::AF_INET6 as u8, &[0; 15]),
+        ] {
+            assert_eq!(
+                collect_addr(&mut addrs, libc::RTM_NEWADDR, &payload)
+                    .unwrap_err()
+                    .raw_os_error(),
+                Some(libc::EPROTO)
+            );
+            assert_eq!(addrs.len(), 2);
+        }
     }
 
     // kernel: net/ipv4/devinet.c inet_fill_ifaddr (K7)

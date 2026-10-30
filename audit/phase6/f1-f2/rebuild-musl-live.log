@@ -1,0 +1,10 @@
+kernel: 6.8.0-147-generic
+command: 'cargo' 'test' '--locked' '--all-features' '--target' 'x86_64-unknown-linux-musl' '--test' 'kernel-linux' '--no-run'
+features: all unless command says otherwise
+elapsed_seconds: 3.96
+exit: 0
+
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Building [=========================> ] 82/83: kernel-linux(test)          
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.82s
+  Executable tests/kernel/linux.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_linux-24aa97de8de86bfb)

@@ -1,0 +1,69 @@
+kernel: 6.8.0-147-generic
+command: 'docker' 'run' '--rm' '--network' 'none' '--privileged' '--mount' 'type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly' '--entrypoint' 'sh' 'rs-l2tpd-audit-vm:local' '-ec' 'uname -r
+/home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896 --ignored --test-threads=1 --nocapture
+/home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/kernel_linux-24aa97de8de86bfb --ignored --test-threads=1 --nocapture
+/home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/review_kernel-a94d1056f1fc43ab --ignored --test-threads=1 --nocapture'
+features: all unless command says otherwise
+elapsed_seconds: 40.99
+exit: 0
+
+6.8.0-147-generic
+
+running 9 tests
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ok
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ok
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ok
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ok
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 75 filtered out; finished in 1.33s
+
+
+running 14 tests
+test a_closed_socket_is_not_announced ... ok
+test a_handed_over_socket_keeps_its_tunnel ... ok
+test a_reused_index_and_creation_name_never_revive_an_old_registration ... ok
+test a_tunable_write_changes_only_fresh_sockets ... ok
+test completion_scoped_failure_lookup_and_random_refusal ... ok
+test conformance_on_the_linux_kernel ... case disconnected_sessions_count_frame_drops
+case tunnel_identifiers_are_unique
+case session_identifiers_are_unique_in_the_namespace
+case a_taken_name_creates_no_session
+case the_stored_name_is_the_creation_name
+case closing_the_socket_deletes_the_tunnel
+case a_deleted_session_identifier_is_released
+case a_registration_is_proved_until_removal
+case a_binding_is_set_on_an_unbound_socket
+case connect_selects_the_source_of_the_device
+case no_ipv6_source_is_eaddrnotavail
+case a_link_local_zone_must_match_the_binding
+case a_hardware_address_needs_the_device_down
+case the_monitor_reports_links_and_addresses
+case deletions_are_announced
+ok
+test disconnected_sessions_drop_outbound_but_receive_only_matching_cookies ... ok
+test event_recreation_uses_the_configured_creation_name_on_linux ... ok
+test links_are_found_by_name_and_dumped ... ok
+test services_converge_and_orderly_shutdown_on_linux ... ok
+test sessions_are_captured_scanned_and_deleted ... ok
+test sockets_bind_connect_and_report_their_source ... ok
+test the_kernel_keeps_the_previous_ipv6_peer_after_disconnect ... ok
+test the_monitor_reports_removals ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.84s
+
+
+running 5 tests
+test creation_name_is_not_current_or_unique ... ok
+test foreign_namespace_deletion_does_not_delete_local_session ... ok
+test session_identifier_reuse_waits_for_deletion ... identifier reuse: 0 EEXIST retries over 32 deletions
+ok
+test unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate ... ok
+test unconnected_tunnel_drops_outbound_frames ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.92s
+

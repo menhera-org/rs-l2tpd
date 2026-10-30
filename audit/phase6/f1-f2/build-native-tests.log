@@ -1,0 +1,18 @@
+kernel: 6.8.0-147-generic
+command: 'cargo' 'test' '--locked' '--all-features' '--no-run'
+features: all unless command says otherwise
+elapsed_seconds: 0.22
+exit: 0
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+  Executable unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+  Executable unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-9efdeacd5b52e729)
+  Executable tests/kernel/fake.rs (target/debug/deps/kernel_fake-600afdb1d7a371a0)
+  Executable tests/kernel/linux.rs (target/debug/deps/kernel_linux-9e7ac3831d996fce)
+  Executable tests/process.rs (target/debug/deps/process-689b6aafb554068b)
+  Executable tests/kernel/review.rs (target/debug/deps/review_kernel-6a593a4d1c93cefe)
+  Executable tests/tools/rulemap.rs (target/debug/deps/rulemap-31ba9e663b443122)
+  Executable tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+  Executable tests/service.rs (target/debug/deps/service-09f802d44b2efd34)
+  Executable tests/tools/srclink.rs (target/debug/deps/srclink-2b797d664da25c61)
+  Executable tests/kernel/store.rs (target/debug/deps/store_kernel-83c0baa5ecb0b1aa)

@@ -79,7 +79,11 @@ fixed with tests the pre-fix code would fail, except the following. F1
 and F2 are to be fixed before Phase 6 starts; the rest within Phase 6.
 Phase 6 can begin.
 
-- [ ] **F1. D9 regressed (medium).** `src/kernel/linux/rtnl.rs:93-97`
+F1 and F2 are now fixed. The [entry-fix verification record](PHASE6_ENTRY_FIXES_2026-10-30.md)
+contains the before-fix failures, the passing regression and live-kernel tests,
+and the remaining Phase 6 gaps; logs are in `phase6/f1-f2/`.
+
+- [x] **F1. D9 regressed (medium).** `src/kernel/linux/rtnl.rs:93-97`
   returns `None` for an address record of any family other than
   `AF_INET` or `AF_INET6`, and `dump_addrs` (`:228`) and `dump_links`
   (`:210`) now turn one undecodable record into `EPROTO` for the whole
@@ -92,7 +96,7 @@ Phase 6 can begin.
   tunnels no longer reconnect when their device gets an address. Fix:
   skip records of other families and keep `EPROTO` for a truncated
   inet record only; add a dump-level test with a foreign-family record.
-- [ ] **F2. A1 partly (low to medium).** Re-creation through the event
+- [x] **F2. A1 partly (low to medium).** Re-creation through the event
   path (`recreate_session` after an observed removal or a failed
   verification) always stages, because the configured name is still in
   `reserved` and only `release_departed` drops it, which runs inside

@@ -13,7 +13,17 @@ fn session(extra: &str) -> String {
 /// spec: S4, S7, S8, S27, G22
 #[test]
 fn direct_creation_and_recreation_preserve_publication_rules() {
-    for extra in ["", "interface_hwaddr='02:00:5e:00:53:01'"] {
+    for (extra, source, retry) in ["", "interface_hwaddr='02:00:5e:00:53:01'"]
+        .into_iter()
+        .flat_map(|extra| {
+            [
+                (Source::Monitor, false),
+                (Source::L2tp, false),
+                (Source::L2tp, true),
+            ]
+            .map(|(source, retry)| (extra, source, retry))
+        })
+    {
         let (mut r, _) = reconciler();
         assert!(r.reconcile(config(&session(extra))));
         let first = r.kernel().session_index(10, 100).unwrap();
@@ -26,14 +36,37 @@ fn direct_creation_and_recreation_preserve_publication_rules() {
         ops(&mut r);
         r.kernel_mut().operator_delete_session(10, 100);
         r.kernel_mut().tick();
-        deliver(&mut r);
+        let monitor = r.kernel_mut().take_monitor();
+        let l2tp = r.kernel_mut().take_l2tp();
+        if retry {
+            r.kernel_mut().fail_next("session", Errno::EIO);
+        }
+        for notice in match source {
+            Source::Monitor => monitor,
+            Source::L2tp => l2tp,
+            _ => unreachable!(),
+        } {
+            r.handle(source, notice);
+        }
+        if retry {
+            assert!(r.kernel().session_index(10, 100).is_none());
+            r.tick();
+        }
         let next = r.kernel().session_index(10, 100).unwrap();
         assert_ne!(first, next);
+        let recreated = r.kernel_mut().session(10, 100).unwrap().unwrap();
+        assert_eq!(
+            recreated.ifname().unwrap().to_string_lossy() == "l2tp0",
+            extra.is_empty(),
+            "creation name after {source:?} removal"
+        );
         assert_eq!(
             r.kernel().link(next).unwrap().name().to_string_lossy(),
             "l2tp0"
         );
-        if !extra.is_empty() {
+        if extra.is_empty() {
+            assert!(!ops(&mut r).iter().any(|op| op.starts_with("rename")));
+        } else {
             assert_eq!(
                 r.kernel().hwaddr(next).unwrap().to_string(),
                 "02:00:5e:00:53:01"

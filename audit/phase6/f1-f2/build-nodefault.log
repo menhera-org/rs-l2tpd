@@ -1,0 +1,9 @@
+kernel: 6.8.0-147-generic
+command: 'cargo' 'build' '--locked' '--lib' '--no-default-features'
+features: all unless command says otherwise
+elapsed_seconds: 4.59
+exit: 0
+
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Building [=========================> ] 67/68: rs-l2tpd                    
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.52s

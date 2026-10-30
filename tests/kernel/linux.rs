@@ -740,3 +740,82 @@ fn completion_scoped_failure_lookup_and_random_refusal() {
     );
     assert_eq!(errno(f.kernel.random()), libc::EPERM);
 }
+
+/// spec: S4, S7, S27, E3, E27, G22
+#[test]
+#[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
+fn event_recreation_uses_the_configured_creation_name_on_linux() {
+    use rs_l2tpd::config::{Config, SessionConfig, TunnelConfig};
+    use rs_l2tpd::reconciler::{IphostResolve, Reconciler, Source};
+
+    let mut f = LinuxFixture::new();
+    for source in [Source::Monitor, Source::L2tp] {
+        let mut r = Reconciler::new(LinuxKernel::new().unwrap(), Box::<IphostResolve>::default());
+        let mut subscription = match source {
+            Source::Monitor => r.kernel_mut().monitor().unwrap(),
+            Source::L2tp => r.kernel_mut().l2tp_events().unwrap(),
+            _ => unreachable!(),
+        };
+        let mut config = Config::new();
+        config
+            .insert_tunnel(
+                "a",
+                TunnelConfig::builder(9510)
+                    .ip_version(Family::V6)
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        config
+            .insert_session(
+                "s",
+                SessionConfig::builder("a", 9511, name("direct-live"))
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        assert!(r.reconcile(config));
+        let first = index_of("direct-live");
+        ip(&[
+            "l2tp",
+            "del",
+            "session",
+            "tunnel_id",
+            "9510",
+            "session_id",
+            "9511",
+        ]);
+        let notice = f
+            .wait_notice(subscription.as_mut(), &mut |notice| match notice {
+                Notice::LinkDel(link) => link.index() == first,
+                Notice::SessionDeleted {
+                    tunnel_id,
+                    session_id,
+                } => *tunnel_id == 9510 && *session_id == 9511,
+                _ => false,
+            })
+            .expect("session deletion notification");
+        r.handle(source, notice);
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        let recreated = loop {
+            if let Some(session) = r.kernel_mut().session(9510, 9511).unwrap()
+                && r.kernel_mut()
+                    .link_by_name(&name("direct-live"))
+                    .unwrap()
+                    .is_some_and(|link| link.index() != first)
+            {
+                break session;
+            }
+            assert!(std::time::Instant::now() < deadline);
+            r.tick();
+            std::thread::yield_now();
+        };
+        assert_eq!(recreated.ifname(), Some(name("direct-live")), "{source:?}");
+        assert!(r.shutdown());
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while r.kernel_mut().tunnel(9510).unwrap().is_some() {
+            assert!(std::time::Instant::now() < deadline);
+            std::thread::yield_now();
+        }
+    }
+}

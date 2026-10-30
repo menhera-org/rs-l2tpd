@@ -17,8 +17,8 @@ and `audit/phase5-completion/`). Everything in that report's fix list is
 done except E5, the strict traceability gates, which are this phase's
 first package, and the follow-up list F of the same report: F1 (an
 undecodable or foreign-family record fails a whole rtnetlink dump) and
-F2 (event-path re-creation always stages) are fixed before Phase 6
-starts; F3 to F7 are folded into the packages below (F3 into P2's H17
+F2 (event-path re-creation always stages) are fixed, with verification in
+repository file `audit/PHASE6_ENTRY_FIXES_2026-10-30.md`. F3 to F7 are folded into the packages below (F3 into P2's H17
 scenario, F4 into P7's hosts page sentence, F5 into P1's E1 test, F6
 into P7's packaging page, F7 into P1's service tests). The live reconnection scenarios of that check
 (`audit/phase5-completion/reconnect/scenario.sh`) and its networkd and
