@@ -4,6 +4,10 @@
 
 - Respect and obey the [Menhera(R) Code of Conduct (CoC)](https://www.menhera.org/code-of-conduct/).
 
+## Scope
+
+- **Don't commit a machine-specific fact into the repository.**
+
 ## Committing and pushing
 
 Every commit MUST carry a `Signed-off-by` trailer and a GPG signature, and
