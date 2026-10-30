@@ -1,0 +1,36 @@
+6.8.0-147-generic
+
+running 1 test
+binary: done
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+test setup_prefix_preserves_configuration ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 1.16s
+
+
+running 1 test
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as rsl2tp-tde8e0d
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): published as testl2tp
+daemon: INFO rs_l2tpd: ready pid=15
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): renamed to rsl2tp-tde8e0d by another manager; kept (S10)
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: ERROR rs_l2tpd::files: /tmp/rs-l2tpd-process-d34f0d5557d5c11c/main.toml: invalid TOML document at byte 8; reload refused
+daemon: ERROR rs_l2tpd::service: reload failed; retaining accepted configuration: invalid configuration: file problems; previous configuration retained
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+test foreground_reload_and_clean_shutdown_without_network ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.05s
+

@@ -205,6 +205,15 @@ pub fn exec(
         )
         .env("RS_L2TPD_REEXEC", format!("1:{}", std::process::id()))
         .env("RS_L2TPD_PIDFILE", state(pid));
+    // Command::exec resets SIGPIPE even on failure; restore P12 before execve.
+    unsafe {
+        command.pre_exec(|| {
+            if libc::signal(libc::SIGPIPE, libc::SIG_IGN) == libc::SIG_ERR {
+                return Err(io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
     let raw: Vec<_> = sockets.iter().map(|s| s.fd().as_raw_fd()).collect();
     // A private fd table prevents dup2 from clobbering live subscription fds.
     // On exec failure only this short-lived thread loses its private table.
@@ -227,8 +236,8 @@ pub fn exec(
                     return io::Error::last_os_error();
                 }
             }
-            // Keep requests blocked until the new image installs sigwait. Its
-            // thread_set_mask replaces the inherited mask, including other bits.
+            // kernel: kernel/signal.c flush_signal_handlers; Rust unix do_exec (1.89+).
+            // The mask survives exec; the hook preserves SIGPIPE ignore on either outcome.
             command.exec()
         })?
         .join()
@@ -274,6 +283,13 @@ mod exec_tests {
     /// spec: P26
     #[test]
     fn failed_exec_after_a_compatible_probe_keeps_the_shared_table() {
+        if std::env::var_os("PHASE5_FAILED_EXEC_CHILD").is_none() {
+            let output = Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table", "--nocapture"])
+                .env("PHASE5_FAILED_EXEC_CHILD", "1").output().unwrap();
+            assert!(output.status.success(), "{output:?}");
+            return;
+        }
         let dir = crate::testdir::Dir::new();
         let target = dir.path().join("vanishing-target");
         std::fs::write(
@@ -291,5 +307,71 @@ mod exec_tests {
         assert!(held.metadata().is_ok());
         assert_eq!(unsafe { libc::fcntl(original, libc::F_GETFD) }, flags);
         assert!(!target.exists());
+        let mut action = std::mem::MaybeUninit::<libc::sigaction>::uninit();
+        assert_eq!(
+            unsafe { libc::sigaction(libc::SIGPIPE, std::ptr::null(), action.as_mut_ptr()) },
+            0
+        );
+        assert_eq!(unsafe { action.assume_init() }.sa_sigaction, libc::SIG_IGN);
+    }
+}
+
+#[cfg(test)]
+mod signal_tests {
+    use super::*;
+    use nix::sys::signal::{SigSet, Signal};
+    /// spec: P12 P26
+    #[test]
+    fn exec_mask_child() {
+        let Some(stage) = std::env::var_os("PHASE5_EXEC_MASK") else {
+            return;
+        };
+        let signals = [
+            Signal::SIGHUP,
+            Signal::SIGTERM,
+            Signal::SIGINT,
+            Signal::SIGUSR2,
+        ];
+        if stage == "exec" {
+            let mut set = SigSet::empty();
+            for signal in signals {
+                set.add(signal);
+            }
+            set.thread_set_mask().unwrap();
+            let error = Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "restart::signal_tests::exec_mask_child",
+                    "--nocapture",
+                ])
+                .env("PHASE5_EXEC_MASK", "check")
+                .exec();
+            panic!("{error}");
+        }
+        let mask = SigSet::thread_get_mask().unwrap();
+        for signal in signals {
+            assert!(mask.contains(signal), "{signal:?}");
+        }
+        assert!(!mask.contains(Signal::SIGUSR1));
+        let mut action = std::mem::MaybeUninit::<libc::sigaction>::uninit();
+        assert_eq!(
+            unsafe { libc::sigaction(libc::SIGPIPE, std::ptr::null(), action.as_mut_ptr()) },
+            0
+        );
+        assert_eq!(unsafe { action.assume_init() }.sa_sigaction, libc::SIG_IGN);
+    }
+    /// spec: P12 P26
+    #[test]
+    fn exec_preserves_requests_and_rust_entry_ignores_sigpipe() {
+        let output = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "restart::signal_tests::exec_mask_child",
+                "--nocapture",
+            ])
+            .env("PHASE5_EXEC_MASK", "exec")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
     }
 }

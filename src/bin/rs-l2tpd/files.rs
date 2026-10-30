@@ -107,6 +107,11 @@ impl Loaded {
         }
     }
 }
+pub fn report_errors(errors: &[String]) {
+    for error in errors {
+        log::error!("{error}; file left out");
+    }
+}
 pub fn report(config: &Config, problems: &[Problem], reload: bool) {
     use rs_l2tpd::config::{EntryKind, ProblemKind};
     for problem in problems {

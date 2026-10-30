@@ -31,8 +31,8 @@ Every test names the rules it guards in its doc comment,
 `/// spec: T21, K22`, which the rule map reads.
 
 Phase 5's executed process cases and limits are recorded in
-[binary verification](../audit/PHASE5_VERIFICATION_2026-10-29.md);
-[tests/process](../tests/process/README.md) gives musl, glibc, permission
+binary verification (repository file `audit/PHASE5_VERIFICATION_2026-10-29.md`);
+tests/process (repository file `tests/process/README.md`) gives musl, glibc, permission
 and native systemd transport commands. They precede the complete Phase 6
 scenario suite below.
 
@@ -176,9 +176,9 @@ account and the kernel images the driver builds or fetches.
 ## Contract correction acceptance cases
 
 These cases are required by the 2026-10-29 contract corrections.
-[Phase 2–3 evidence](../audit/PHASE23_VERIFICATION_2026-10-29.md) identifies
+Phase 2–3 evidence (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`) identifies
 the implemented policy, adapter and live-boundary cases.
-[Phase 4 evidence](../audit/PHASE4_VERIFICATION_2026-10-29.md) adds callback,
+Phase 4 evidence (repository file `audit/PHASE4_VERIFICATION_2026-10-29.md`) adds callback,
 queue, service-drop and library handshake cases. Process crash/re-exec
 and whole-daemon portions still require Phases 5–6.
 

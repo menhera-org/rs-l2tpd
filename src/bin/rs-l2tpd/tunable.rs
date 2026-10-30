@@ -4,13 +4,8 @@ pub fn write(name: &str, value: &str, deadline: std::time::Instant) -> bool {
     if name != "net.ipv6.bindv6only" || value != "0" || std::time::Instant::now() >= deadline {
         return false;
     }
-    match set(std::path::Path::new("/proc/sys/net/ipv6/bindv6only")) {
-        Ok(()) => true,
-        Err(error) => {
-            log::warn!("net.ipv6.bindv6only write failed: {error}");
-            false
-        }
-    }
+    // The reconciler reports a failed handshake once (P25/O3).
+    set(std::path::Path::new("/proc/sys/net/ipv6/bindv6only")).is_ok()
 }
 fn set(path: &std::path::Path) -> io::Result<()> {
     let previous = std::fs::read_to_string(path)?;

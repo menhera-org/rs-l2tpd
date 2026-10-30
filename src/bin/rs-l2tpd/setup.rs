@@ -92,18 +92,11 @@ fn systemctl(arguments: &[&str]) -> io::Result<bool> {
         .success())
 }
 #[cfg(feature = "setup-systemd")]
-pub fn run(prefix: Option<&Path>) -> u8 {
+pub fn run(prefix: Option<&Path>, executable: &Path) -> u8 {
     if prefix.is_none() && unsafe { libc::geteuid() } != 0 {
         log::error!("--setup-systemd requires root (or --prefix for tests)");
         return 1;
     }
-    let executable = match std::env::current_exe() {
-        Ok(path) => path,
-        Err(error) => {
-            log::error!("running executable: {error}");
-            return 1;
-        }
-    };
     let enabled = if prefix.is_none() {
         match systemctl(&["--quiet", "is-enabled", "rs-l2tpd.service"]) {
             Ok(enabled) => enabled,
@@ -115,7 +108,7 @@ pub fn run(prefix: Option<&Path>) -> u8 {
     } else {
         false
     };
-    let success = install_files(prefix.unwrap_or(Path::new("/")), &executable);
+    let success = install_files(prefix.unwrap_or(Path::new("/")), executable);
     if prefix.is_some() {
         return u8::from(!success);
     }

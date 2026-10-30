@@ -44,7 +44,7 @@ pub fn start(foreground: bool) -> io::Result<Started> {
                 0 => (),
                 _ => unsafe { libc::_exit(0) },
             }
-            write.write_all(&std::process::id().to_ne_bytes())?;
+            notify(&mut write, &std::process::id().to_ne_bytes())?;
             let null = File::open("/dev/null")?;
             if unsafe { libc::dup2(null.as_raw_fd(), 0) } < 0 {
                 return Err(io::Error::last_os_error());
@@ -110,10 +110,67 @@ pub fn start(foreground: bool) -> io::Result<Started> {
         }
     }
 }
+// kernel: fs/pipe.c pipe_write (v6.8), anon_pipe_write (v7.3): no reader -> EPIPE + SIGPIPE.
+fn notify(pipe: &mut File, bytes: &[u8]) -> io::Result<()> {
+    match pipe.write_all(bytes) {
+        Err(error) if error.kind() == io::ErrorKind::BrokenPipe => {
+            log::warn!("readiness parent: {error}");
+            Ok(())
+        }
+        result => result,
+    }
+}
 pub fn ready(pipe: &mut Option<File>) {
     if let Some(mut pipe) = pipe.take()
-        && let Err(error) = pipe.write_all(&[1])
+        && let Err(error) = notify(&mut pipe, &[1])
     {
         log::warn!("readiness parent: {error}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    /// spec: P12 P22
+    #[test]
+    fn broken_pipe_and_collector_shutdown_child() {
+        if std::env::var_os("PHASE5_PIPE_CHILD").is_none() {
+            return;
+        }
+        crate::logger::init(false);
+        let signals = crate::signals::Signals::install().unwrap();
+        let mask = SigSet::thread_get_mask().unwrap();
+        assert!(!mask.contains(Signal::SIGUSR1));
+        let mut fds = [-1; 2];
+        assert_eq!(unsafe { libc::pipe2(fds.as_mut_ptr(), libc::O_CLOEXEC) }, 0);
+        unsafe {
+            libc::close(fds[0]);
+        }
+        let mut pipe = unsafe { File::from_raw_fd(fds[1]) };
+        notify(&mut pipe, &std::process::id().to_ne_bytes()).unwrap();
+        let mut pipe = Some(pipe);
+        ready(&mut pipe);
+        assert!(pipe.is_none());
+        let mut invalid = File::open("/dev/null").unwrap();
+        assert!(notify(&mut invalid, &[1]).is_err());
+        ready(&mut Some(invalid));
+        drop(signals);
+    }
+    /// spec: P12 P22
+    #[test]
+    fn vanished_parent_is_logged_and_signal_threads_join() {
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "daemon::tests::broken_pipe_and_collector_shutdown_child",
+                "--nocapture",
+            ])
+            .env("PHASE5_PIPE_CHILD", "1")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{:?}", output);
+        let logs = String::from_utf8(output.stderr).unwrap();
+        assert_eq!(logs.matches("readiness parent:").count(), 3, "{logs}");
+        assert_eq!(logs.matches("Broken pipe").count(), 2, "{logs}");
     }
 }

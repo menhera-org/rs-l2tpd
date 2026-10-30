@@ -88,6 +88,9 @@ fn directory(path: &Path, create: bool) -> io::Result<(OwnedFd, CString)> {
             };
         }
         dir = cvt(fd)?;
+        if !create {
+            continue;
+        }
         let metadata = File::from(dir.try_clone()?).metadata()?;
         let uid = unsafe { libc::geteuid() };
         if metadata.uid() != 0 && metadata.uid() != uid {
@@ -96,7 +99,8 @@ fn directory(path: &Path, create: bool) -> io::Result<(OwnedFd, CString)> {
                 "PID directory is not owned by root or daemon user",
             ));
         }
-        if metadata.mode() & 0o022 != 0 {
+        // kernel: fs/namei.c __check_sticky/may_delete (v6.8, v7.3); P10.
+        if metadata.mode() & 0o022 != 0 && metadata.mode() & 0o1000 == 0 {
             log::warn!(
                 "PID directory permits replacement by other users: {}",
                 path.display()
@@ -149,7 +153,12 @@ impl PidFile {
         });
         let (mut file, fresh) = match new {
             Ok(fd) => (File::from(fd), true),
-            Err(error) if matches!(error.raw_os_error(), Some(libc::EACCES | libc::EROFS)) => {
+            Err(error)
+                if matches!(
+                    error.raw_os_error(),
+                    Some(libc::EACCES | libc::EROFS | libc::EPERM)
+                ) =>
+            {
                 let before = before.ok_or(error)?;
                 let fd = cvt(unsafe {
                     libc::openat(
@@ -229,12 +238,24 @@ impl PidFile {
         let (dir, name) = match directory(&self.path, false) {
             Ok(result) => result,
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
-            Err(e) => return Err(e),
+            Err(e) => {
+                log::warn!(
+                    "PID file cleanup could not inspect {}: {e}; leaving it alone",
+                    self.path.display()
+                );
+                return Ok(());
+            }
         };
         let stat = match inspect(&dir, &name) {
             Ok(stat) => stat,
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
-            Err(e) => return Err(e),
+            Err(e) => {
+                log::warn!(
+                    "PID file cleanup could not inspect {}: {e}; leaving it alone",
+                    self.path.display()
+                );
+                return Ok(());
+            }
         };
         if stat.st_dev != self.dev
             || stat.st_ino != self.ino
@@ -319,7 +340,10 @@ mod permission_tests {
         let before = std::fs::metadata(path).unwrap();
         let result = PidFile::publish(path);
         if std::env::var_os("PID_EXPECT_REFUSAL").is_some() {
-            assert!(result.is_err());
+            assert_eq!(
+                result.err().unwrap().to_string(),
+                "unsafe pre-created PID file"
+            );
         } else {
             let published = result.unwrap();
             assert_eq!(published.ino, before.ino());
@@ -329,7 +353,7 @@ mod permission_tests {
             );
         }
     }
-    /// spec: P10 C3
+    /// spec: P10
     #[test]
     #[ignore = "root in an isolated container, drops child uid"]
     fn precreated_permissions_links_and_owner() {
@@ -351,7 +375,11 @@ mod permission_tests {
             );
             std::fs::set_permissions(
                 &path,
-                std::fs::Permissions::from_mode(if case == "writable" { 0o620 } else { 0o600 }),
+                std::fs::Permissions::from_mode(match case {
+                    "writable" => 0o620,
+                    "foreign" => 0o666,
+                    _ => 0o600,
+                }),
             )
             .unwrap();
             let link = dir.path().join("hardlink");
@@ -374,6 +402,145 @@ mod permission_tests {
             if link.exists() {
                 std::fs::remove_file(link).unwrap();
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod removal_tests {
+    use super::*;
+    use crate::testdir::Dir;
+    /// spec: P11
+    #[test]
+    fn uninspectable_removal_is_not_a_shutdown_failure() {
+        let dir = Dir::new();
+        let parent = dir.path().join("parent");
+        std::fs::create_dir(&parent).unwrap();
+        let path = parent.join("pid");
+        let pid = PidFile::publish(&path).unwrap();
+        std::fs::remove_file(&path).unwrap();
+        std::fs::remove_dir(&parent).unwrap();
+        std::fs::write(&parent, "replacement").unwrap();
+        pid.remove().unwrap();
+        assert_eq!(std::fs::read_to_string(parent).unwrap(), "replacement");
+    }
+    /// spec: P10 P11
+    #[test]
+    #[ignore = "root in an isolated container, changes directory owner"]
+    fn removal_uses_inode_after_directory_owner_changes() {
+        let dir = Dir::new();
+        let parent = dir.path().join("parent");
+        std::fs::create_dir(&parent).unwrap();
+        let path = parent.join("pid");
+        let pid = PidFile::publish(&path).unwrap();
+        let name = cstr(parent.as_os_str().as_bytes()).unwrap();
+        assert_eq!(unsafe { libc::chown(name.as_ptr(), 65534, 65534) }, 0);
+        pid.remove().unwrap();
+        assert!(!path.exists());
+    }
+}
+
+#[cfg(test)]
+mod edge_tests {
+    use super::*;
+    use crate::testdir::Dir;
+    use std::os::unix::fs::PermissionsExt;
+    /// spec: P10 P11
+    #[test]
+    fn pid_edge_child() {
+        let Some(case) = std::env::var_os("PHASE5_PID_CASE") else {
+            return;
+        };
+        crate::logger::init(false);
+        let dir = Dir::new();
+        let path = dir.path().join("pid");
+        std::fs::write(&path, "old").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let inode = std::fs::metadata(&path).unwrap().ino();
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o755)).unwrap();
+        let errno = match case.to_str().unwrap() {
+            "eperm" => Some(libc::EPERM),
+            "erofs" => Some(libc::EROFS),
+            "eacces" => Some(libc::EACCES),
+            _ => None,
+        };
+        if let Some(errno) = errno {
+            // Deny only O_CREAT openat; opening the pre-created inode still reaches the kernel.
+            let stmt = |code: u32, k| libc::sock_filter {
+                code: code as u16,
+                jt: 0,
+                jf: 0,
+                k,
+            };
+            let mut filter = [
+                stmt(libc::BPF_LD | libc::BPF_W | libc::BPF_ABS, 0),
+                libc::sock_filter {
+                    code: (libc::BPF_JMP | libc::BPF_JEQ | libc::BPF_K) as u16,
+                    jt: 0,
+                    jf: 3,
+                    k: libc::SYS_openat as u32,
+                },
+                stmt(libc::BPF_LD | libc::BPF_W | libc::BPF_ABS, 32),
+                libc::sock_filter {
+                    code: (libc::BPF_JMP | libc::BPF_JSET | libc::BPF_K) as u16,
+                    jt: 0,
+                    jf: 1,
+                    k: libc::O_CREAT as u32,
+                },
+                stmt(
+                    libc::BPF_RET | libc::BPF_K,
+                    libc::SECCOMP_RET_ERRNO | errno as u32,
+                ),
+                stmt(libc::BPF_RET | libc::BPF_K, libc::SECCOMP_RET_ALLOW),
+            ];
+            let program = libc::sock_fprog {
+                len: filter.len() as u16,
+                filter: filter.as_mut_ptr(),
+            };
+            assert_eq!(
+                unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) },
+                0
+            );
+            assert_eq!(
+                unsafe { libc::prctl(libc::PR_SET_SECCOMP, libc::SECCOMP_MODE_FILTER, &program) },
+                0
+            );
+        } else {
+            let mode = if case == "sticky" { 0o1777 } else { 0o777 };
+            std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(mode)).unwrap();
+        }
+        let pid = PidFile::publish(&path).unwrap();
+        assert_eq!(pid.ino == inode, errno.is_some());
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            format!("{}\n", std::process::id())
+        );
+        pid.remove().unwrap();
+        assert!(!path.exists());
+    }
+    /// spec: P10 P11
+    #[test]
+    fn sticky_warning_and_unwritable_directory_fallbacks() {
+        let mut ancestor_warnings = None;
+        for case in ["sticky", "writable", "eperm", "erofs", "eacces"] {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "pidfile::edge_tests::pid_edge_child",
+                    "--nocapture",
+                ])
+                .env("PHASE5_PID_CASE", case)
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{case}: {output:?}");
+            let logs = String::from_utf8(output.stderr).unwrap();
+            let warnings = logs.matches("PID directory permits replacement").count();
+            let baseline = *ancestor_warnings.get_or_insert(warnings);
+            assert_eq!(
+                warnings,
+                baseline + usize::from(case == "writable"),
+                "{case}: {logs}"
+            );
         }
     }
 }

@@ -18,8 +18,41 @@ struct Shared {
     pending: Mutex<Pending>,
     wake: Condvar,
     shutdown: AtomicBool,
+    #[cfg(test)]
+    full_retries: std::sync::atomic::AtomicUsize,
 }
 impl Shared {
+    fn forward(&self) {
+        let mut pending = self.pending.lock().unwrap();
+        loop {
+            if pending.stopped {
+                break;
+            }
+            if self.shutdown.load(Ordering::Acquire) {
+                if let Some(control) = &pending.control {
+                    control.shutdown();
+                }
+            } else if let Some(control) = pending.control.clone() {
+                if pending.reload && control.reload().is_ok() {
+                    pending.reload = false;
+                }
+                if pending.restart && control.restart().is_ok() {
+                    pending.restart = false;
+                }
+            }
+            if pending.reload || pending.restart {
+                #[cfg(test)]
+                self.full_retries.fetch_add(1, Ordering::Release);
+                pending = self
+                    .wake
+                    .wait_timeout(pending, Duration::from_millis(10))
+                    .unwrap()
+                    .0;
+            } else {
+                pending = self.wake.wait(pending).unwrap();
+            }
+        }
+    }
     fn observe(&self, signal: Signal) -> bool {
         let mut pending = self.pending.lock().unwrap();
         if pending.stopped {
@@ -61,7 +94,6 @@ fn set() -> SigSet {
         Signal::SIGTERM,
         Signal::SIGINT,
         Signal::SIGUSR2,
-        Signal::SIGUSR1,
     ] {
         set.add(signal);
     }
@@ -76,6 +108,8 @@ impl Signals {
             pending: Mutex::new(Pending::default()),
             wake: Condvar::new(),
             shutdown: AtomicBool::new(false),
+            #[cfg(test)]
+            full_retries: Default::default(),
         });
         let collector_shared = shared.clone();
         let collector = std::thread::Builder::new()
@@ -99,40 +133,15 @@ impl Signals {
         let forwarder = match std::thread::Builder::new()
             .name("l2tp-signal-forward".into())
             .spawn(move || {
-                let mut pending = forward_shared.pending.lock().unwrap();
-                loop {
-                    if pending.stopped {
-                        break;
-                    }
-                    if forward_shared.shutdown.load(Ordering::Acquire) {
-                        if let Some(control) = &pending.control {
-                            control.shutdown();
-                        }
-                    } else if let Some(control) = pending.control.clone() {
-                        if pending.reload && control.reload().is_ok() {
-                            pending.reload = false;
-                        }
-                        if pending.restart && control.restart().is_ok() {
-                            pending.restart = false;
-                        }
-                    }
-                    if pending.reload || pending.restart {
-                        pending = forward_shared
-                            .wake
-                            .wait_timeout(pending, Duration::from_millis(10))
-                            .unwrap()
-                            .0;
-                    } else {
-                        pending = forward_shared.wake.wait(pending).unwrap();
-                    }
-                }
+                forward_shared.forward();
             }) {
             Ok(thread) => thread,
             Err(error) => {
                 shared.pending.lock().unwrap().stopped = true;
                 use std::os::unix::thread::JoinHandleExt;
+                // kernel: kernel/signal.c do_tkill/do_sigtimedwait: thread-directed wake.
                 unsafe {
-                    libc::pthread_kill(collector.as_pthread_t() as libc::pthread_t, libc::SIGUSR1);
+                    libc::pthread_kill(collector.as_pthread_t() as libc::pthread_t, libc::SIGTERM);
                 }
                 let _ = collector.join();
                 return Err(error);
@@ -186,8 +195,9 @@ impl Drop for Signals {
         self.shared.wake.notify_all();
         if let Some(thread) = self.collector.take() {
             use std::os::unix::thread::JoinHandleExt;
+            // stopped is visible before this thread-directed, already blocked signal.
             unsafe {
-                libc::pthread_kill(thread.as_pthread_t() as libc::pthread_t, libc::SIGUSR1);
+                libc::pthread_kill(thread.as_pthread_t() as libc::pthread_t, libc::SIGTERM);
             }
             let _ = thread.join();
         }
@@ -225,6 +235,7 @@ mod tests {
             }),
             wake: Condvar::new(),
             shutdown: AtomicBool::new(false),
+            full_retries: Default::default(),
         };
         shared.observe(Signal::SIGHUP);
         shared.observe(Signal::SIGUSR2);
@@ -252,5 +263,71 @@ mod tests {
         shared.observe(Signal::SIGUSR2);
         assert!(!shared.pending.lock().unwrap().reload);
         assert!(!shared.pending.lock().unwrap().restart);
+    }
+}
+
+#[cfg(all(test, feature = "fake-kernel"))]
+mod forwarder_tests {
+    use super::*;
+    use rs_l2tpd::kernel::fake::FakeKernel;
+    use rs_l2tpd::reconciler::IphostResolve;
+    use rs_l2tpd::{ControlEvent, Runtime};
+    /// spec: P12
+    #[test]
+    fn forwarder_retries_a_full_queue_and_delivers_after_capacity_returns() {
+        let engine = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _entered = engine.enter();
+        let mut runtime = Runtime::with_kernel(
+            FakeKernel::new(1),
+            Box::new(IphostResolve::default()),
+            vec![],
+        )
+        .unwrap();
+        let control = runtime.control();
+        for _ in 0..rs_l2tpd::runtime::QUEUE_CAPACITY {
+            control.reload().unwrap();
+        }
+        let shared = Arc::new(Shared {
+            pending: Mutex::new(Pending {
+                control: Some(control),
+                ready: true,
+                ..Pending::default()
+            }),
+            wake: Condvar::new(),
+            shutdown: AtomicBool::new(false),
+            full_retries: Default::default(),
+        });
+        shared.observe(Signal::SIGUSR2);
+        let forward = shared.clone();
+        let thread = std::thread::spawn(move || forward.forward());
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while shared.full_retries.load(Ordering::Acquire) == 0 {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "forwarder did not retry the full queue"
+            );
+            std::thread::yield_now();
+        }
+        assert!(shared.pending.lock().unwrap().restart);
+        engine.block_on(async {
+            tokio::time::timeout(Duration::from_secs(5), async {
+                for _ in 0..rs_l2tpd::runtime::QUEUE_CAPACITY {
+                    let event = runtime.next_event().await;
+                    assert!(matches!(event, ControlEvent::Reload { .. }));
+                    runtime.handle_event(event).unwrap();
+                }
+                assert!(matches!(runtime.next_event().await, ControlEvent::Restart));
+            })
+            .await
+            .unwrap();
+        });
+        assert!(!shared.pending.lock().unwrap().restart);
+        shared.pending.lock().unwrap().stopped = true;
+        shared.wake.notify_all();
+        thread.join().unwrap();
+        assert!(!shared.observe(Signal::SIGTERM));
     }
 }

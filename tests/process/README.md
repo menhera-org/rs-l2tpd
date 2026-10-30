@@ -27,6 +27,7 @@ docker run --rm --network none --privileged \
   --entrypoint sh rs-l2tpd-audit-vm:local -ec '
     uname -r
     /binary-unit --ignored --exact pidfile::permission_tests::precreated_permissions_links_and_owner --nocapture
+    /binary-unit --ignored --exact pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes --nocapture
     /binary-unit --ignored --exact files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths --nocapture
     /process-test --ignored --test-threads=1 --nocapture
   '
@@ -42,7 +43,9 @@ Repeat with `--target x86_64-unknown-linux-gnu` and `ubuntu:26.04` to test
 glibc. These images select userspace, not another kernel. A separate run
 of `foreground_reload_and_clean_shutdown_without_network`, after
 `mount -t tmpfs tmpfs /proc` inside the privileged container, checks the
-process with procfs absent and tunable fixing disabled. Docker/runc refuses
+process with procfs absent and tunable fixing disabled. Run
+setup_prefix_preserves_configuration there as well to check the installer's
+procfs-free executable lookup. Docker/runc refuses
 covering /proc directly through its outer mount options.
 
 The ignored `installer_enables_once_and_never_restarts` case installs only
@@ -67,7 +70,9 @@ systemd-run --user --no-pager --wait --pipe --collect \
 
 This tests the actual address-family restriction and descriptor protocol;
 it does not claim to execute the root system unit with every mount and
-capability restriction. The template is also parsed by unit tests and
+capability restriction. It does not verify that ReadWritePaths admits the
+bindv6only write under ProtectKernelTunables=yes; that root system-unit
+mount-sandbox check remains open (P21/P25). The template is also parsed by unit tests and
 checked with `systemd-analyze --no-pager verify`.
 
 Results and rule/case limits are in the

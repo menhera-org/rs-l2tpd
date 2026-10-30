@@ -57,7 +57,13 @@ fn run() -> u8 {
         }
         Mode::Setup => {
             #[cfg(feature = "setup-systemd")]
-            return setup::run(args.prefix.as_deref());
+            return match original.and_then(|dir| restart::executable_at(&argv[0], &dir)) {
+                Ok(executable) => setup::run(args.prefix.as_deref(), &executable),
+                Err(error) => {
+                    log::error!("running executable: {error}");
+                    1
+                }
+            };
             #[cfg(not(feature = "setup-systemd"))]
             return 2;
         }
@@ -74,9 +80,7 @@ fn run() -> u8 {
         let loaded = files::load(&args.config, &args.config_dir);
         let (config, problems) = loaded.partial.into_config_lenient();
         files::report(&config, &problems, false);
-        for error in loaded.errors {
-            log::error!("{error}; file left out");
-        }
+        files::report_errors(&loaded.errors);
         let mut pipe = match daemon::start(args.mode == Mode::Foreground || entry.reexec)? {
             daemon::Started::Parent(code) => return Ok(code),
             daemon::Started::Child(pipe) => pipe,

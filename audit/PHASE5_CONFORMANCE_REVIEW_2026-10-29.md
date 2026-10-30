@@ -18,15 +18,21 @@ taken as evidence.
 Each item below is a fix list entry. Tick it when the fix lands, and cite
 the item number in the commit message.
 
+Resolution and fresh source/live-test evidence are recorded in
+[the 2026-10-30 follow-up](PHASE5_CONFORMANCE_FIXES_2026-10-30.md).
+B2's signal-mask premise was disproved; the related SIGPIPE-on-failed-exec
+bug was confirmed and fixed. C6 uses the permitted evidence-wording correction;
+its missing root system-unit test remains an explicit gap.
+
 ## A. Must fix
 
-- [ ] **A1. `build-release.sh` names a feature that no longer exists.**
+- [x] **A1. `build-release.sh` names a feature that no longer exists.**
   `build-release.sh:14` defaults to `FEATURES=setup`; the commit renamed the
   feature to `setup-systemd` (`Cargo.toml` `[features]`), so
   `cargo build --features setup` fails with "does not contain this feature".
   Fix: default to `setup-systemd` and update the comment above it.
 
-- [ ] **A2. Links from `docs/` to non-Pages repo files (docs rule).**
+- [x] **A2. Links from `docs/` to non-Pages repo files (docs rule).**
   `docs/` is the GitHub Pages source and must stand alone; it names
   non-Pages files in prose instead of linking them. Added by this commit:
   - `docs/README.md:28` → `../audit/PHASE5_VERIFICATION_2026-10-29.md`
@@ -48,7 +54,7 @@ the item number in the commit message.
   `../upstream-iphost.md`) and the external systemd link in
   `docs/spec/process.md:181` are fine.
 
-- [ ] **A3. Installer reads `/proc/self/exe` (P23).**
+- [x] **A3. Installer reads `/proc/self/exe` (P23).**
   `src/bin/rs-l2tpd/setup.rs:100` calls `std::env::current_exe()`, which on
   Linux is a readlink of `/proc/self/exe`. P23 allows `/proc` only for the
   P25 bindv6only write. `main.rs:73` already resolves the running binary's
@@ -57,13 +63,13 @@ the item number in the commit message.
 
 ## B. Spec deviations, small
 
-- [ ] **B1. P12: a parent gone before readiness kills the grandchild.**
+- [x] **B1. P12: a parent gone before readiness kills the grandchild.**
   `src/bin/rs-l2tpd/daemon.rs:47` writes the grandchild's PID to the
   readiness pipe with `?`; only `ready()` (`daemon.rs:113`) logs `EPIPE`.
   The spec says a vanished parent is an `EPIPE` the daemon logs, not a
   death. Treat `EPIPE` on the first write the same way as in `ready()`.
 
-- [ ] **B2. P26: signal window in the new image after exec.**
+- [x] **B2. P26: signal window in the new image after exec.**
   `src/bin/rs-l2tpd/restart.rs:230-232` says the blocked mask is kept
   across exec until the new image's sigwait thread starts. Rust's
   `Command::exec` resets the signal mask to empty and `SIGPIPE` to
@@ -75,7 +81,11 @@ the item number in the commit message.
   first thing in `main` when the re-exec marker is present, or re-block
   them via a pre-exec hook; fix the comment either way.
 
-- [ ] **B3. P10/P11: PID-file edge cases.** `src/bin/rs-l2tpd/pidfile.rs`:
+  Resolution: Rust 1.89+ preserves the mask; the empty-mask premise above
+  was disproved by source and subprocess tests. The related SIGPIPE reset
+  on a failed exec was reproduced and fixed; see the follow-up record.
+
+- [x] **B3. P10/P11: PID-file edge cases.** `src/bin/rs-l2tpd/pidfile.rs`:
   - `:99-104`: the "other users could replace the file" warning tests
     `mode & 0o022` only; a sticky (`1777`) directory warns although others
     cannot replace the file. Skip the warning when the sticky bit is set.
@@ -88,30 +98,30 @@ the item number in the commit message.
     `EPERM` (immutable directory, LSM denial) is a hard failure. P10 says
     "a directory it cannot write to"; add `EPERM`.
 
-- [ ] **B4. O8: check mode wording differs from start-up.**
+- [x] **B4. O8: check mode wording differs from start-up.**
   `src/bin/rs-l2tpd/check.rs:7-9` logs an unreadable file as `{error}`,
   start-up (`main.rs:77-79`) as `{error}; file left out`. O8 wants the same
   words. Share one formatting site.
 
-- [ ] **B5. P27: usage text advertises `--setup-systemd` unconditionally.**
+- [x] **B5. P27: usage text advertises `--setup-systemd` unconditionally.**
   `src/bin/rs-l2tpd/args.rs:5` has one `USAGE` constant; a binary without
   the `setup-systemd` feature prints an option it then rejects as unknown.
   Gate that line on the feature.
 
-- [ ] **B6. P12/P22: `SIGUSR1` is consumed.** `src/bin/rs-l2tpd/signals.rs:64`,
+- [x] **B6. P12/P22: `SIGUSR1` is consumed.** `src/bin/rs-l2tpd/signals.rs:64`,
   `:135`, `:190` add `SIGUSR1` to the blocked and waited set as the
   collector's private wake-up and drop it at `:46`. An external `SIGUSR1`
   therefore has no effect instead of its default action. Either use a
   real-time signal (`SIGRTMIN+n`) or a pipe/eventfd for the wake-up, or
   document `SIGUSR1` as reserved in P22 and `docs/interface.md`.
 
-- [ ] **B7. P27/C1: option values starting with `--` are refused.**
+- [x] **B7. P27/C1: option values starting with `--` are refused.**
   `src/bin/rs-l2tpd/args.rs:43` treats a value that is empty or begins with
   `--` as a missing argument, so a path literally named `--x` cannot be
   given to `--config`, `--config-dir` or `--pid-file`. Low priority; accept
   any non-empty value, or document the restriction.
 
-- [ ] **B8. P25: repeated warning on failed tunable write.**
+- [x] **B8. P25: repeated warning on failed tunable write.**
   `src/bin/rs-l2tpd/tunable.rs:10` logs `warn!` on every failed attempt;
   P25 says the failure "is reported once". Confirm the service's episode
   reporting already covers it and drop the binary's line, or make it once.
@@ -121,33 +131,33 @@ the item number in the commit message.
 Fix by adding the missing case, or by narrowing the wording in
 `audit/PHASE5_VERIFICATION_2026-10-29.md`.
 
-- [ ] **C1. P12 "capacity-retrying forwarder" is untested.** The only test
+- [x] **C1. P12 "capacity-retrying forwarder" is untested.** The only test
   (`signals.rs:208`) drives `Shared::observe` directly; the forwarder thread
   and its retry-on-full path (`signals.rs:111-124`) never execute. Add a
   test that fills the queue and observes the forwarder delivering after
   capacity returns.
 
-- [ ] **C2. P4/P6 "parent exits only after readiness" is not observable.**
+- [x] **C2. P4/P6 "parent exits only after readiness" is not observable.**
   `tests/process.rs:260-261` waits for the "ready" log and then `wait()`s
   the parent, which cannot detect an early parent exit. Poll the parent
   with `try_wait()` while readiness is still withheld (for example before
   the conflict budget of the overlapping-instance case is spent).
 
-- [ ] **C3. P26 "invalid marker/state exits before a fork" is not
+- [x] **C3. P26 "invalid marker/state exits before a fork" is not
   observable.** `tests/process.rs:308-320` passes `--foreground`, so a
   fork could not be seen. Run the case without `--foreground` and assert
   the process exits non-zero with no child and no PID file.
 
-- [ ] **C4. P10 "foreign ownership" refusal comes from `open`, not the
+- [x] **C4. P10 "foreign ownership" refusal comes from `open`, not the
   owner check.** In `precreated_permissions_links_and_owner`
   (`pidfile.rs:335`) the root-owned `0600` file is unopenable by uid 65534,
   so `openat` fails with `EACCES` before the owner check at `pidfile.rs:166`
   runs. Make the foreign file `0666` so the owner check is what refuses.
 
-- [ ] **C5. Wrong rule citation.** `pidfile.rs:332` cites `spec: P10 C3`;
+- [x] **C5. Wrong rule citation.** `pidfile.rs:332` cites `spec: P10 C3`;
   C3 is a configuration-file rule. Cite the PID-file rule only.
 
-- [ ] **C6. Unit tunables untested.** The real-manager test checks the
+- [x] **C6. Unit tunables untested.** The real-manager test checks the
   address-family filter but not that
   `ReadWritePaths=-/proc/sys/net/ipv6/bindv6only` is honoured under
   `ProtectKernelTunables=yes` (P21/P25). Add a case or state the gap.

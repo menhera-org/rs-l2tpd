@@ -2,8 +2,11 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
+#[cfg(feature = "setup-systemd")]
 pub const USAGE: &str = "usage: rs-l2tpd [--config FILE] [--config-dir DIR] [--pid-file FILE] [--verbose]\n       [--check | --foreground | --restart | --adopt-version | --version | --setup-systemd [--prefix DIR]]";
 
+#[cfg(not(feature = "setup-systemd"))]
+pub const USAGE: &str = "usage: rs-l2tpd [--config FILE] [--config-dir DIR] [--pid-file FILE] [--verbose]\n       [--check | --foreground | --restart | --adopt-version | --version]";
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mode {
     Daemon,
@@ -40,7 +43,7 @@ impl Args {
                 Some("--config" | "--config-dir" | "--pid-file" | "--prefix") => {
                     let value = input
                         .next()
-                        .filter(|v| !v.is_empty() && !v.as_encoded_bytes().starts_with(b"--"))
+                        .filter(|v| !v.is_empty())
                         .ok_or_else(|| format!("missing argument for {}", option.display()))?;
                     match option.to_str().unwrap() {
                         "--config" => args.config = value.into(),
@@ -80,6 +83,31 @@ mod tests {
     fn parse(s: &str) -> Result<Args, String> {
         Args::parse(s.split_whitespace().map(Into::into))
     }
+    /// spec: P27 C1
+    #[test]
+    fn byte_paths_and_option_like_values() {
+        use std::os::unix::ffi::OsStringExt;
+        for option in ["--config", "--config-dir", "--pid-file"] {
+            for value in [
+                OsString::from("--x"),
+                OsString::from_vec(vec![b'-', b'-', 255]),
+            ] {
+                let args = Args::parse([option.into(), value.clone()]).unwrap();
+                let path = match option {
+                    "--config" => args.config,
+                    "--config-dir" => args.config_dir,
+                    _ => args.pid_file,
+                };
+                assert_eq!(path.into_os_string(), value);
+            }
+            assert!(Args::parse([option.into(), OsString::new()]).is_err());
+        }
+        assert_eq!(
+            USAGE.contains("--setup-systemd"),
+            cfg!(feature = "setup-systemd")
+        );
+        assert_eq!(USAGE.contains("--prefix"), cfg!(feature = "setup-systemd"));
+    }
     /// spec: P27
     #[test]
     fn modes_and_errors() {
@@ -95,7 +123,7 @@ mod tests {
         }
         for bad in [
             "--config",
-            "--config-dir --check",
+            "--config-dir",
             "--pid-file",
             "--unknown",
             "--prefix /tmp",

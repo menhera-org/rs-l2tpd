@@ -209,7 +209,7 @@ the pair within the same absolute deadline. No function in `kernel::linux`
 lacks a source citation, including `pub(super)` functions. The complete release
 matrix and strict global coverage/source gates remain Phase 6 requirements;
 these selected live runs do not claim them. Commands, results and limits are
-in the [verification record](../audit/PHASE23_VERIFICATION_2026-10-29.md).
+in the verification record (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`).
 
 ### Phase 3 — the reconciler
 
@@ -223,7 +223,7 @@ peers; its own parser/transport regressions run separately. A real systemd
 manager holds a live tunnel reference until acknowledged withdrawal. Seeded
 reload sequences assert convergence, identity preservation, peer selection and
 the fixed point; ten fake-suite runs pass. See the
-[case/evidence record](../audit/PHASE23_VERIFICATION_2026-10-29.md).
+case/evidence record (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`).
 The service callback/wakeup portions of E19/E26 and L12/L13, process re-exec,
 shutdown orchestration and whole-daemon resource/timing promises still belong
 to Phases 4–6; the reconciler tests do not claim those implementations.
@@ -327,14 +327,14 @@ keeps withdrawal and kernel deletion windows separate. Public boundary
 records now have constructors/getters and private fields; enums are
 non-exhaustive and dependency types are re-exported.
 
-The [verification record](../audit/PHASE4_VERIFICATION_2026-10-29.md)
+The verification record (repository file `audit/PHASE4_VERIFICATION_2026-10-29.md`)
 maps the L rules to executed cases: 12 runtime tests, 14 service tests,
 six doc tests, ten seeded fake-suite repetitions, the warnings/feature
 build gates, and 26 live Linux tests including the two services and
 unordered runtime drop. The binary remains a Phase 5 stub. Coverage,
 the full required kernel matrix and strict global gates remain Phase 6.
 
-The [Phase 4 audit follow-up](../audit/PHASE4_REMEDIATION_2026-10-29.md)
+The Phase 4 audit follow-up (repository file `audit/PHASE4_REMEDIATION_2026-10-29.md`)
 corrects F1–F7 and verifies the amended L7/L8 blocking contracts: reload
 completions return as events, queued requests survive the converge/run gap,
 failed store delivery releases capacity, blocking completions work inside
@@ -407,13 +407,13 @@ preserved edits and first-enable-only behavior. The unit selects a
 dedicated writable PID directory; standalone PID defaults are unchanged.
 No dependency was added.
 
-The [verification record](../audit/PHASE5_VERIFICATION_2026-10-29.md)
+The verification record (repository file `audit/PHASE5_VERIFICATION_2026-10-29.md`)
 maps the process and deferred file rules to explicit cases: 18 ordinary
 binary unit cases, six ordinary process cases, 15 live kernel/process
 cases on both musl and glibc, uid-dropping permission fixtures, an installer
 systemctl recorder, and native notifications under a real systemd
 address-family filter. Ten seeded ordinary and ten live musl repetitions
-pass. [Reproduction commands](../tests/process/README.md) keep privileged
+pass. Reproduction commands (repository file `tests/process/README.md`) keep privileged
 and real-manager checks separate from ordinary Cargo tests.
 The required QEMU matrix, Incus/LXD, combined coverage, strict global
 gates and whole-daemon resource/timing promises, including comparative

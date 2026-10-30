@@ -4,9 +4,7 @@ pub fn run(main: &Path, directory: &Path) -> u8 {
     let loaded = super::files::load(main, directory);
     let (config, problems) = loaded.partial.into_config_lenient();
     super::files::report(&config, &problems, false);
-    for error in &loaded.errors {
-        log::error!("{error}");
-    }
+    super::files::report_errors(&loaded.errors);
     match toml::to_string_pretty(&config) {
         Ok(text) => {
             use std::io::Write;

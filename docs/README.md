@@ -24,9 +24,10 @@ are in the [GitHub repository](https://github.com/menhera-org/rs-l2tpd).
 
 Version 0.2.0 has not been released; the rewrite ships under that
 number. The tree contains configuration, fake/real kernel, reconciler,
-runtime, services and binary; Phases 1–5 have scoped verification records
-([Phase 5](../audit/PHASE5_VERIFICATION_2026-10-29.md)). The binary runs
-on musl and glibc; global Phase 6 gates remain open. The specification's
+runtime, services and binary; Phases 1–5 have scoped verification records.
+The Phase 5 record is repository file
+`audit/PHASE5_VERIFICATION_2026-10-29.md`. The binary runs on musl and
+glibc; global Phase 6 gates remain open. The specification's
 [known gaps](spec/README.md#known-gaps) describe historical commit
 `741117b`, removed in Phase 0. The interface page describes the target.
 

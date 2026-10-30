@@ -1,0 +1,22 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.81s
+     Running unittests src/bin/rs-l2tpd/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-596b36cde4aa41c2)
+
+running 1 test
+test restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table ... FAILED
+
+failures:
+
+---- restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table stdout ----
+
+thread 'restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table' (2783802) panicked at src/bin/rs-l2tpd/restart.rs:283:13:
+Output { status: ExitStatus(unix_wait_status(25856)), stdout: "\nrunning 1 test\ntest restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table ... FAILED\n\nfailures:\n\nfailures:\n    restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.01s\n\n", stderr: "\nthread 'restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table' (2783804) panicked at src/bin/rs-l2tpd/restart.rs:305:9:\nassertion `left == right` failed\n  left: 0\n right: 1\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

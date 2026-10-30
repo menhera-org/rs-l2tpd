@@ -1,6 +1,6 @@
 # Kernel evidence map
 
-[Documentation index](README.md) · [Verification results](../audit/PHASE23_VERIFICATION_2026-10-29.md)
+[Documentation index](README.md) · Verification results (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`)
 
 `shared` means the same operation body runs on fake and real kernels in
 `tests/kernel/conformance.rs`. `live` means a host/fixture assertion against

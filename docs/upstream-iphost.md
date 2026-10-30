@@ -5,7 +5,7 @@ repository, carries both items (`74c6338` the RDNSS and deadline fixes,
 `34b6e2c` `Ipv6ResolverConfig::with_failure_fallback`). The daemon
 enables the fallback; downstream adapter checks and the released crate's
 regressions are recorded in the
-[Phase 2–3 verification](../audit/PHASE23_VERIFICATION_2026-10-29.md).
+Phase 2–3 verification (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`).
 The text below is the instruction as given.
 
 This is an implementation instruction for the general-purpose `iphost`

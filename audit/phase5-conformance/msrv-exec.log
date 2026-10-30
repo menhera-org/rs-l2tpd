@@ -1,0 +1,12 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.03s
+     Running unittests src/bin/rs-l2tpd/main.rs (target/x86_64-unknown-linux-gnu/debug/deps/rs_l2tpd-f075c792bdc53de3)
+
+running 4 tests
+test restart::signal_tests::exec_mask_child ... ok
+test restart::signal_tests::exec_preserves_requests_and_rust_entry_ignores_sigpipe ... ok
+test restart::tests::incompatible_probe_never_executes_or_changes_descriptors ... ok
+test restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.01s
+

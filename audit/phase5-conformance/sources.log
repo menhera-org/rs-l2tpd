@@ -1,0 +1,14 @@
+rustc 1.99.1 (58cf8f9c3 2026-10-13)
+rustc 1.89.0 (29483883e 2025-08-04)
+6.8.0-147-generic
+7c266a01bd2556d277e0d1ceee8c83b725171ad37b63e4ad4fe6b4101154fb12  /tmp/rs-l2tpd-phase5-sources/namei.c
+4c52020646727a7f88f1d6f1f53cd4097dc2eb03c5dfe1af5e614379643c0318  /tmp/rs-l2tpd-phase5-sources/pipe.c
+5e1b3e29e38e0aac4e426a3f0ffbaeb3081aae96261f05d62bf93b1634fa4aaa  /tmp/rs-l2tpd-phase5-sources/signal.c
+50169ea4e4d0bcdc831948b5db1327807b345e1d09e45161d3e635a005efd646  /tmp/rs-l2tpd-phase5-sources/rust-1.89-process.rs
+f578a73e653e159b69e38714b350dd48754ca5f53224a8e89b67bf70dc831fb0  /tmp/rs-l2tpd-phase23-kernel73/fs/namei.c
+c82a3530e61e80eb3da7e3516fc6c89acd56f7e603ea51077a510e5031a47fe6  /tmp/rs-l2tpd-phase23-kernel73/fs/pipe.c
+46f6edf89590adf4176d01a691d31526782f024a6c335590d5c511161e9004ce  /tmp/rs-l2tpd-phase23-kernel73/kernel/signal.c
+c600b1a1375dbe536e600c2677531dd9a0e4bb35b3a2452e9bce0d8a6db0e326  /tmp/rs-l2tpd-phase23-kernel73/fs/exec.c
+26f146f664ad057be3b39b211422b03b1f94cb2c3d66522fd4841811a224bfd5  /tmp/rs-l2tpd-phase23-vm612/root/boot/vmlinuz-virt
+55fcc67c770730412a505df82b80dce098083e5680a7449dc6b4eaed895de21d  /tmp/rs-l2tpd-phase23-vm618/root/boot/vmlinuz-virt
+6956de99db2d7566fed295a36b1cf5ad20757bef01f8b496db5bd0ff4b07950d  /tmp/rs-l2tpd-phase23-kernel73/arch/x86/boot/bzImage

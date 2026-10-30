@@ -306,17 +306,48 @@ fn zero_tunnel_reexec_stays_foreground_and_preserves_pid() {
 /// spec: P26
 #[test]
 fn invalid_reexec_state_fails_without_forking() {
-    let output = command()
-        .arg("--foreground")
-        .env("RS_L2TPD_REEXEC", "1:0")
-        .output()
-        .unwrap();
-    assert_eq!(output.status.code(), Some(1));
-    assert!(
-        String::from_utf8(output.stderr)
-            .unwrap()
-            .contains("invalid re-exec")
+    if std::env::var_os("PHASE5_INVALID_REEXEC_CHILD").is_none() {
+        let output = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "invalid_reexec_state_fails_without_forking",
+                "--nocapture",
+            ])
+            .env("PHASE5_INVALID_REEXEC_CHILD", "1")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        return;
+    }
+    assert_eq!(
+        unsafe { libc::prctl(libc::PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0) },
+        0
     );
+    let dir = Dir::new();
+    let main = config(&dir);
+    let pid = dir.path().join("pid");
+    for state in [false, true] {
+        let mut command = start(&main, false, &pid);
+        if state {
+            command.env("RS_L2TPD_PIDFILE", "1:none");
+        } else {
+            command.env("RS_L2TPD_REEXEC", "1:0");
+        }
+        let output = command.output().unwrap();
+        assert_eq!(output.status.code(), Some(1));
+        assert!(
+            String::from_utf8(output.stderr)
+                .unwrap()
+                .contains("invalid re-exec")
+        );
+        assert!(!pid.exists());
+        let mut status = 0;
+        assert_eq!(unsafe { libc::waitpid(-1, &mut status, libc::WNOHANG) }, -1);
+        assert_eq!(
+            std::io::Error::last_os_error().raw_os_error(),
+            Some(libc::ECHILD)
+        );
+    }
 }
 
 type Stored = Arc<Mutex<HashMap<String, Vec<OwnedFd>>>>;
@@ -663,7 +694,14 @@ fn failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one() {
         }
         let mut process = Process::spawn(command);
         process.event("opening kernel interfaces");
-        assert!(!pid.exists());
+        for _ in 0..10 {
+            assert!(
+                process.child.try_wait().unwrap().is_none(),
+                "process exited while readiness was withheld"
+            );
+            assert!(!pid.exists());
+            std::thread::sleep(Duration::from_millis(10));
+        }
         process.signal(Signal::SIGTERM);
         assert_eq!(process.child.wait().unwrap().code(), Some(1));
         process.done = true;
@@ -922,8 +960,24 @@ fn overlapping_instance_becomes_ready_without_deleting_foreign_objects() {
     first.event("ready");
     let mut kernel = LinuxKernel::new().unwrap();
     let original = index(&mut kernel);
-    let mut second = Process::spawn(start(&main, true, &dir.path().join("second.pid")));
+    let second_pid = dir.path().join("second.pid");
+    let mut second = Process::spawn(start(&main, false, &second_pid));
+    let deadline = Instant::now() + Duration::from_secs(1);
+    while Instant::now() < deadline {
+        assert!(
+            second.child.try_wait().unwrap().is_none(),
+            "parent exited before readiness"
+        );
+        assert!(!second_pid.exists());
+        std::thread::sleep(Duration::from_millis(10));
+    }
     second.event("ready");
+    assert!(second.child.wait().unwrap().success());
+    second.pid = fs::read_to_string(&second_pid)
+        .unwrap()
+        .trim()
+        .parse()
+        .unwrap();
     assert_eq!(index(&mut kernel), original);
     second.stop();
     assert_eq!(index(&mut kernel), original);
@@ -967,4 +1021,42 @@ fn installer_enables_once_and_never_restarts() {
             "--no-pager daemon-reload",
         ]
     );
+}
+
+/// spec: O8 C3
+#[test]
+fn check_and_startup_report_file_errors_in_the_same_words() {
+    let dir = Dir::new();
+    let main = dir.path().join("bad.toml");
+    fs::write(&main, "invalid document").unwrap();
+    let pid = dir.path().join("pid");
+    let output = start(&main, false, &pid).arg("--check").output().unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let check = String::from_utf8(output.stderr).unwrap();
+    assert!(check.contains("; file left out"));
+    let mut command = start(&main, true, &pid);
+    unsafe {
+        command.pre_exec(deny_netlink);
+    }
+    let mut process = Process::spawn(command);
+    assert_eq!(process.event("file left out"), check.trim_end());
+    process.signal(Signal::SIGTERM);
+    assert_eq!(process.child.wait().unwrap().code(), Some(1));
+    process.done = true;
+}
+
+/// spec: P12 P22
+#[test]
+#[ignore = "isolated privileged container"]
+fn sigusr1_retains_its_default_action() {
+    namespace();
+    let dir = Dir::new();
+    let main = dir.path().join("main");
+    fs::write(&main, "[host]\nfix_bindv6only=false").unwrap();
+    let mut process = Process::spawn(start(&main, true, &dir.path().join("pid")));
+    process.event("ready");
+    process.signal(Signal::SIGUSR1);
+    use std::os::unix::process::ExitStatusExt;
+    assert_eq!(process.child.wait().unwrap().signal(), Some(libc::SIGUSR1));
+    process.done = true;
 }

@@ -69,7 +69,11 @@ destination; the installer does not migrate or delete the historical
 
 Reproduction commands are in [tests/process](../tests/process/README.md).
 The binary's real-manager test checks the actual address-family restriction,
-not a full root system-manager boot. Installer systemctl operations are
+not a full root system-manager boot. In particular it does not execute
+ProtectKernelTunables=yes with ReadWritePaths=-/proc/sys/net/ipv6/bindv6only;
+the sandboxed unit's P21/P25 tunable access remains unverified. The namespace
+write case proves the handshake outside that system-unit mount sandbox.
+Installer systemctl operations are
 recorded in a disposable container and prefix file operations tested; no
 installer was run against the host's system service installation.
 
