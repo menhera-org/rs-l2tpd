@@ -367,9 +367,11 @@ Phase 6 can begin.
 
 ## Documented limitations (no fix planned)
 
-- **systemd-networkd before v253 without udev.** In an unprivileged system
-  container `/sys` is read-only, udev does not run, and networkd matches a
-  new link at its first netlink message. networkd v249 (Ubuntu 22.04) and
+- **systemd-networkd before v253 without udev.** In a container whose
+  `/sys` is read-only (Docker; not a stock Incus system container, which
+  mounts `/sys` read-write and runs udev, verified on Incus 6.0 on
+  2026-10-30) udev does not run, and networkd matches a new link at its
+  first netlink message. networkd v249 (Ubuntu 22.04) and
   v252 (Debian 12) do not re-match `.network` files on a rename, so a
   `[Match] Name=l2tp0` file never applies to a device the daemon created
   under a temporary name; v253 and later re-match after the rename.

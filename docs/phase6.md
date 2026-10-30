@@ -255,19 +255,32 @@ fallback taken (K36, R10), module autoload left to the host (K21, R1),
 the `bindv6only` write in the container's own namespace (P25), and the
 descriptor hand-over through the container's systemd (P14).
 
-The maintainer installs Incus on the development host for this package:
-`dev` in the `incus-admin` group, the `images:` remote reachable
-(`ubuntu/24.04`, `debian/12`), no managed bridge needed, and the host's
-L2TP, VRF and dummy modules loaded at boot, because the unprivileged
-container cannot load them and that is what H9 and K21 test. Check with
-`incus list` before starting; where it is absent (CI, another host) the
-runner reports `skipped: no Incus access` with a non-zero exit distinct
-from failure. The gate is green only when it ran. The scenario: launch
-`images:ubuntu/24.04` unprivileged, push the static daemon, a
-configuration and the unit, install with `--setup-systemd` inside, and
-assert the five checks above plus a networkd `.network` match on the
-directly created session device (H11) and the P14 hand-over across a
-`kill -9` under the container's systemd.
+Incus 6.0 is installed on the development host (2026-10-30): `dev` is
+in `incus-admin`, the `images:` remote is reachable, there is no managed
+bridge, and the host's L2TP, VRF, dummy and veth modules are loaded,
+because the unprivileged container cannot load them and that is what H9
+and K21 test. Two facts about this host matter for the runner. The host
+is itself a user-namespaced container with ids 0 to 999,999,999, so the
+root entries of `/etc/subuid` and `/etc/subgid` had to shrink to
+`root:1000000:500000000` and the daemon be restarted before an
+unprivileged container would start (the default profile is
+`security.privileged=true` for that reason; the scenario sets
+`security.privileged=false` per container and must not rely on the
+profile). And a stock Incus container mounts `/sys` read-write and runs
+`systemd-udevd` and `systemd-networkd`, verified by a probe that also
+created a dummy device, an L2TP tunnel and session, a network namespace
+and a veth pair and wrote `bindv6only` inside the container; the
+"no udev" condition of H11 is Docker's read-only `/sys`, not Incus.
+Check with `incus list` before starting; where Incus is absent (CI,
+another host) the runner reports `skipped: no Incus access` with a
+non-zero exit distinct from failure. The gate is green only when it
+ran. The scenario: launch `images:ubuntu/24.04` with
+`security.privileged=false`, push the static daemon, a configuration and
+the unit, install with `--setup-systemd` inside, and assert the five
+checks above plus the H11 behaviour with udev present (a `.network`
+match and the persistent MAC on a directly created session device) and
+the P14 hand-over across a `kill -9` under the container's systemd.
+Delete the container at the end, on failure too.
 
 ## P6. The root system-unit sandbox
 

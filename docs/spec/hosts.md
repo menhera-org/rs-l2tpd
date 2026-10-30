@@ -108,10 +108,12 @@ Known limitation of **staged** sessions ([S4](sessions.md#creation): a
 configured hardware address, or a configured name held by a foreign
 device), verified on 2026-10-30 against systemd 249, 252, 255 and 259:
 systemd-networkd before v253 does not re-match `.network` files when a
-device is renamed, so where udev is not running (an unprivileged system
-container, whose `/sys` is read-only) a `[Match] Name=` file for the
-configured name never applies to a staged device; with udev running,
-every version re-matches on the `move` uevent. Hosts with networkd v253
+device is renamed, so where udev is not running (a container whose
+`/sys` is read-only, as Docker mounts it; a stock Incus system container
+mounts `/sys` read-write and runs udev, verified on Incus 6.0) a
+`[Match] Name=` file for the configured name never applies to a staged
+device; with udev running, every version re-matches on the `move`
+uevent. Hosts with networkd v253
 or later (Ubuntu 24.04 and later) are not affected. udev's
 `MACAddressPolicy=persistent` derives the address from the name the
 device had at its `add` uevent, so a staged device would get an address

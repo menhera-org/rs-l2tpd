@@ -151,8 +151,9 @@ except for the `bindv6only` write (P25), no `dummy` driver, no route, no address
 at start-up. Hosts without IPv6, with `disable_ipv6`, with
 `ipv6.disable=1`, VRFs, routers without a default route, containers and
 `bindv6only=1` are covered by [hosts](spec/hosts.md). One documented
-limitation (H11): in a container without udev, systemd-networkd before
-v253 never applies a `[Match] Name=` file to a session device the daemon
+limitation (H11): in a container without udev (read-only `/sys`, as
+Docker mounts it; Incus system containers run udev), systemd-networkd
+before v253 never applies a `[Match] Name=` file to a session device the daemon
 had to stage under a temporary name (S4: a configured hardware address,
 or a name held by a foreign device); Ubuntu 24.04 and later are not
 affected.
