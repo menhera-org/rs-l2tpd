@@ -55,7 +55,7 @@ their own relevant citations.
 | K41 | shared: commanded deletions announced; live: socket close not announced; review probe tests colliding foreign-namespace IDs on pre-7.3 and 7.3 kernels | linux |
 | K42 | live: namespace move and explicit index/name reuse within one lifetime generation; old proof remains Removed and new registration has a distinct incarnation | linux |
 | K43 | source + live 2026-10-30 (repository directory `audit/phase5-completion/fragmentation/`: current and 0.1.5 daemons, sessions at 1500 and 9000 over a 1500-byte veth, IPv4 and IPv6 underlays, full-size pings both ways, sender fragment counters growing, whole frames on the receiving session device) + Phase 6 scenario H20; no daemon code path depends on it (T5) | source-only |
-| K44 | source + live T5 option setting on every tunnel socket (`kernel::linux` socket creation cites it); the H20 scenario proves the effect; a live case reads the options back with `getsockopt` on both families | linux |
+| K44 | source + live T5 option setting on every tunnel socket (`kernel::linux` socket creation cites it); a live case reads the options back with `getsockopt` on both families; the H20 scenario proves the IPv4 contract and, together with K43, the IPv6 behaviour | linux |
 
 The source-link gate reads the scope column. Every active fact needs an
 explicit scope: linux requires a production function citation; delegated

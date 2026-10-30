@@ -129,10 +129,13 @@ and the remaining Phase 6 gaps; logs are in `phase6/f1-f2/`.
   because `l2tp_xmit_core` marks them `ignore_df` (K43), a kernel
   implementation detail. T5 now requires `IP_MTU_DISCOVER =
   IP_PMTUDISC_DONT` on `AF_INET` sockets, and on `AF_INET6` sockets
-  both `IPV6_MTU_DISCOVER = IPV6_PMTUDISC_DONT` and `IP_MTU_DISCOVER =
-  IP_PMTUDISC_DONT` (mapped IPv4 peers take the IPv4 path) plus
-  `IPV6_DONTFRAG = 0`, set at creation before the first connect, a
-  refusal reported once. `l2tp` 0.5.0's `set_pmtu_discovery(Dont)` and
+  `IP_MTU_DISCOVER = IP_PMTUDISC_DONT` too (mapped IPv4 peers take the
+  IPv4 path, confirmed in 6.8 and 7.3 source) plus `IPV6_MTU_DISCOVER =
+  IPV6_PMTUDISC_DONT` and `IPV6_DONTFRAG = 0`, set at creation before
+  the first connect, a refusal reported once. K44 states what each
+  buys: a contract for IPv4 frames; for native IPv6 frames `ip6_xmit`
+  consults no socket option, so the H20 scenario on every matrix kernel
+  is the guard. `l2tp` 0.5.0's `set_pmtu_discovery(Dont)` and
   `set_ipv6_dontfrag(false)` cover all but `IP_MTU_DISCOVER` on an
   `AF_INET6` socket, which neither `nix` 0.30 nor `socket2` 0.6 exposes;
   that one call is `libc::setsockopt` in `kernel::linux` under L2's new

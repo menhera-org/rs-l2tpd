@@ -60,20 +60,24 @@ tunnel stays disconnected ([T16](#peers-that-cannot-be-reached)) and the
 condition is reported once.
 
 T5. The daemon sets exactly two kinds of socket option: the device
-binding, and the options that make the kernel fragment oversized data
-frames instead of dropping them, so that a session device whose MTU is
-equal to or larger than the underlay's keeps working
-([H20](hosts.md#mtu-and-fragmentation)) whatever the kernel's defaults
-or its L2TP output path do ([K43](kernel.md#facts) describes today's
-`ignore_df` behaviour; the daemon MUST NOT depend on it, only on the
-options the kernel is bound to obey, [K44](kernel.md#facts)). On every
-tunnel socket, at creation and before the first connect: on an
-`AF_INET` socket `IP_MTU_DISCOVER = IP_PMTUDISC_DONT`; on an `AF_INET6`
-socket both `IPV6_MTU_DISCOVER = IPV6_PMTUDISC_DONT` and
-`IP_MTU_DISCOVER = IP_PMTUDISC_DONT`, because an IPv4-mapped peer on
-such a socket takes the IPv4 output path (K44), and `IPV6_DONTFRAG = 0`.
-A refused option is reported once as a host defect and the tunnel still
-works as the kernel allows. Everything else, including the MTU of the
+binding, and the path-MTU options that tell the kernel to fragment
+oversized data frames instead of dropping them, so that a session
+device whose MTU is equal to or larger than the underlay's keeps working
+([H20](hosts.md#mtu-and-fragmentation)) without depending on the
+kernel's defaults. On every tunnel socket, at creation and before the
+first connect: on an `AF_INET` socket `IP_MTU_DISCOVER =
+IP_PMTUDISC_DONT`; on an `AF_INET6` socket `IP_MTU_DISCOVER =
+IP_PMTUDISC_DONT` as well, because an IPv4-mapped peer on such a socket
+takes the IPv4 output path, plus `IPV6_MTU_DISCOVER = IPV6_PMTUDISC_DONT`
+and `IPV6_DONTFRAG = 0`. What these buy is stated exactly in
+[K44](kernel.md#facts): for IPv4 frames the option is a contract (DF is
+cleared and the kernel fragments, whatever the L2TP code does); for
+native IPv6 frames no socket option governs the output path L2TP uses,
+so their fragmentation rests on the kernel's L2TP code
+([K43](kernel.md#facts)), and the options express the intent for any
+path that consults them. The daemon never sets a mode that forbids
+fragmentation. A refused option is reported once as a host defect and
+the tunnel still works as the kernel allows. Everything else, including the MTU of the
 session devices, hop limit and traffic class, keeps the kernel's
 defaults; changing them is the operator's. `IPV6_V6ONLY` cannot be
 changed on an L2TP/IPv6 socket ([K23](kernel.md#facts)) and the daemon
