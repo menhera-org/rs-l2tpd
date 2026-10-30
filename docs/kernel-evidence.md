@@ -54,6 +54,7 @@ their own relevant citations.
 | K40 | live raw-source adapter explicitly receives RDNSS with `accept_ra=0`; netlink gating is source/requirement evidence | delegated |
 | K41 | shared: commanded deletions announced; live: socket close not announced; review probe tests colliding foreign-namespace IDs on pre-7.3 and 7.3 kernels | linux |
 | K42 | live: namespace move and explicit index/name reuse within one lifetime generation; old proof remains Removed and new registration has a distinct incarnation | linux |
+| K43 | source + Phase 6 scenario H20: session MTU equal to and larger than the underlay's over IPv4 and IPv6 underlays, frames of the full MTU delivered both ways, fragment counters observed; the daemon has no code path for it (T5) | source-only |
 
 The source-link gate reads the scope column. Every active fact needs an
 explicit scope: linux requires a production function citation; delegated

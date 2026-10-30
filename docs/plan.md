@@ -457,7 +457,8 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
    no default route, containers, networkd and udev renames, hot-plugged
    devices, address churn, missing modules and capabilities, clock jumps
    (QEMU only: a container shares the wall clock with the host),
-   hundreds of sessions, `bindv6only`, the non-systemd contract, and the
+   hundreds of sessions, `bindv6only`, session MTUs at or above the
+   underlay's (H20, an acceptance condition), the non-systemd contract, and the
    unprivileged Incus/LXD system container that `CONTRIBUTING.md`
    requires ([testing](testing.md#the-scenario-suite)).
 2. The QEMU kernel matrix over the [kernel targets](testing.md#kernel-targets)

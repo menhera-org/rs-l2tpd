@@ -76,8 +76,10 @@ the scenario suite below; read them before writing new scenarios.
 | Incus/LXD | `tests/docker/run.sh incus` ran, not skipped, in an unprivileged system container | P5 |
 
 Exit of the phase: all six green on the running kernel and on every
-required kernel target, the root system-unit sandbox check (P6) run,
-the verification record written (P7), and the strict flags on in CI.
+required kernel target, the fragmentation scenario of H20 (a session
+MTU equal to or larger than the underlay's) passing on every required
+kernel, the root system-unit sandbox check (P6) run, the verification
+record written (P7), and the strict flags on in CI.
 
 ## P1. Traceability: close E5
 
@@ -191,6 +193,7 @@ The scenarios, one test function each, tag in the doc comment:
 | H17, M16, G12, G23 | 300 tunnels and 300 sessions | readiness time, memory and descriptor counts bounded as the rules say; an unrelated link event costs no kernel request |
 | H18, P25, T26 | `bindv6only=1` with the fix on and off | the handshake, the fallback, the read-back |
 | H19, P22 | started by a POSIX `sh` script acting as init: parent exit, PID file, signals | the process contract |
+| H20, K43, G22 | the veth underlay at MTU 1500, session devices at MTU 1500 and at 9000, over an IPv4 and over an IPv6 underlay, with and without a VRF binding | frames of the full session MTU delivered both ways (ping with the maximum payload and don't-fragment set inside the tunnel, plus a bulk transfer), `IpReasmReqds`/`Ip6InReasmReqds` and `FragCreates` counters growing on the hosts, no `tx_dropped` on the session device, the daemon logging nothing; this scenario is an acceptance condition of the phase and of 0.2.0 and runs on every kernel of P3 |
 | G11 | the new daemon on one side, 0.1.5 on the other | frames both ways with the 0.1.5 configuration format |
 | G15–G20 | the convergence bounds table, one row per assertion | each bound measured |
 
@@ -225,7 +228,9 @@ container, and requires the result marker, not QEMU's exit code.
   and re-run before calling the gate green.
 
 Acceptance: `CONFORMANCE_RESULT=0` and `SCENARIO_RESULT=0` for every
-required kernel, the `uname -r` of each in the record.
+required kernel, the `uname -r` of each in the record. The scenario
+subset run in the guests always includes H20 (fragmentation), which
+needs no second container: two namespaces in the guest suffice.
 
 ## P4. Coverage
 

@@ -125,6 +125,9 @@ Whole-daemon tests in Docker, one per row of [hosts](spec/hosts.md)
 and per conditional promise: the daemon binary, a configuration, a
 container network built with iproute2, assertions on `ip l2tp`, `ip
 link`, the daemon's log and frames delivered between two daemons. The
+H20 scenario (a session MTU equal to or larger than the underlay's,
+carried by kernel fragmentation, K43) is an acceptance condition of the
+phase and of the release and runs on every kernel of the matrix. The
 driver waits on events (a log line, a device appearing, a counter
 changing), never on a fixed sleep, and each scenario has a hard timeout.
 Scenarios that need a boot option (`ipv6.disable=1`, a kernel without

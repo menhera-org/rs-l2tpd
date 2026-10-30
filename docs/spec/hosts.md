@@ -179,6 +179,24 @@ reconnect is a disconnect and a connect on the same socket, which loses
 no session and no interface, and a failed one is retried once a second
 until it succeeds.
 
+## MTU and fragmentation
+
+H20. **A session device with an MTU equal to or larger than the
+underlay's** (an `l2tpeth` at 1500 over a 1500-byte path, or at 9000
+over 1500) MUST carry frames in both directions, over IPv4 and over
+IPv6 underlays. The kernel fragments every L2TP data frame that exceeds
+the path MTU at the sending host and reassembles it at the receiving
+host ([K43](kernel.md#facts)); the daemon neither prevents nor helps
+this: it sets no MTU on any device and no path-MTU or
+don't-fragment option on any socket ([T5](tunnels.md#address-families), the
+MTU is the operator's, [R29](requirements.md#the-operator)). 0.1.5
+installations run such setups, and a release is accepted only when
+this scenario passes on every required kernel
+([G22](promises.md#conditional-promises)). Fragmented frames need the
+underlay to deliver IP fragments ([R26](requirements.md#the-peers)); a
+path that drops them is invisible to the daemon, like any other path
+failure.
+
 ## Missing kernel support and privilege
 
 H15. Without the L2TP modules, without `CAP_NET_ADMIN`, or without
