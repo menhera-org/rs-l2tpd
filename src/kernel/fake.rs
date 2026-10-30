@@ -1022,6 +1022,7 @@ impl Kernel for FakeKernel {
     }
 
     fn link_by_index(&mut self, index: u32) -> io::Result<Option<LinkInfo>> {
+        self.injected("link_index")?;
         self.injected("link")?;
         Ok(self.links.get(&index).map(|link| link.info.clone()))
     }

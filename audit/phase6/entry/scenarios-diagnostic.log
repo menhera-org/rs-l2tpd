@@ -1,0 +1,131 @@
+
+running 2 tests
+test hosts::dual_stack_peers_exchange_frames_on_ipv6_tunnels ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd: ready pid=21
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd: ready pid=23
+side 0: Tunnel 1, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From 2001:db8:1::1 to 2001:db8:1::2
+  Peer tunnel 12
+
+
+thread 'hosts::dual_stack_peers_exchange_frames_on_ipv6_tunnels' (7) panicked at tests/scenarios/hosts.rs:77:9:
+assertion `left == right` failed
+  left: 1
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+side 0: ["-s", "link", "show"]
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/tunnel6 :: brd :: permaddr d6c1:6001:daf3::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/gre6 :: brd :: permaddr d2ae:2162:645::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+5: underlay@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether 46:96:09:62:29:a8 brd ff:ff:ff:ff:ff:ff link-netns l2tp-a331b36b-b
+    RX:  bytes packets errors dropped  missed   mcast           
+            90       1      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+            90       1      0       0       0       0 
+
+side 0: ["l2tp", "show", "tunnel"]
+Tunnel 1, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From 2001:db8:1::1 to 2001:db8:1::2
+  Peer tunnel 12
+
+side 0: ["l2tp", "show", "session"]
+
+side 0: ["neigh", "show"]
+
+side 1: ["-s", "link", "show"]
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/tunnel6 :: brd :: permaddr 7a4d:35bd:91d9::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/gre6 :: brd :: permaddr 9ac8:ac10:2105::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+4: underlay@if5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether f6:b4:c0:46:c8:0e brd ff:ff:ff:ff:ff:ff link-netns l2tp-a331b36b-a
+    RX:  bytes packets errors dropped  missed   mcast           
+            90       1      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+            90       1      0       0       0       0 
+
+side 1: ["l2tp", "show", "tunnel"]
+Tunnel 2, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From 2001:db8:1::2 to 2001:db8:1::1
+  Peer tunnel 11
+
+side 1: ["l2tp", "show", "session"]
+
+side 1: ["neigh", "show"]
+
+FAILED
+test hosts::readiness_without_routes_then_frames_after_the_first_route ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=62
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=64
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+failures:
+
+failures:
+    hosts::dual_stack_peers_exchange_frames_on_ipv6_tunnels
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.55s
+

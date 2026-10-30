@@ -67,6 +67,11 @@ name = "process"
 path = "tests/process.rs"
 required-features = ["bin"]
 
+[[test]]
+name = "scenarios"
+path = "tests/scenarios/main.rs"
+required-features = ["bin"]
+
 [dependencies]
 # Library (docs/dependencies.md)
 l2tp = "0.5.0"

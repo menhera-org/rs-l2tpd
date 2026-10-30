@@ -1,0 +1,25 @@
+
+running 1 test
+test hosts::readiness_without_routes_then_frames_after_the_first_route ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=21
+daemon: INFO rs_l2tpd: ready pid=19
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+
+thread 'hosts::readiness_without_routes_then_frames_after_the_first_route' (7) panicked at tests/scenarios/support.rs:130:13:
+side 0: Output { status: ExitStatus(unix_wait_status(256)), stdout: "PING 198.18.0.2 (198.18.0.2): 56 data bytes\n\n--- 198.18.0.2 ping statistics ---\n1 packets transmitted, 0 packets received, 100% packet loss\n", stderr: "" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hosts::readiness_without_routes_then_frames_after_the_first_route
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.10s
+

@@ -1,0 +1,172 @@
+command: docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --env RS_L2TPD_SCENARIO_CONTAINER=1 --entrypoint sh rs-l2tpd-audit-vm:local -ec uname -r; exec "$@" run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e --ignored --test-threads=1 --nocapture foreign_identifiers
+6.8.0-147-generic
+
+running 1 test
+test managers::foreign_identifiers_and_names_are_left_alone_until_they_are_freed ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as rsl2tp-td2d421
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: WARN rs_l2tpd::reconciler::report: session s2 (tunnel_id=21, session_id=121): cannot take the name l2tp2: EEXIST: File exists
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=29
+daemon: WARN rs_l2tpd::reconciler: tunnel t0 (tunnel_id=1): left out after 10 refusals: EEXIST: File exists
+daemon: WARN rs_l2tpd::reconciler: session s1 (tunnel_id=11, session_id=111): left out after 10 refusals: EEXIST: File exists
+daemon: INFO rs_l2tpd: ready pid=27
+
+thread 'managers::foreign_identifiers_and_names_are_left_alone_until_they_are_freed' (8) panicked at tests/scenarios/managers.rs:112:5:
+assertion `left == right` failed
+  left: "Tunnel 1, encap UDP\n  From 192.0.2.1 to 192.0.2.2\n  Peer tunnel 1\n  UDP source / dest ports: 1701/1701\n  UDP checksum: disabled\nTunnel 11, encap IP\n  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2\n  Peer tunnel 12\nTunnel 21, encap IP\n  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2\n  Peer tunnel 22\nTunnel 999, encap UDP\n  From 192.0.2.1 to 192.0.2.2\n  Peer tunnel 999\n  UDP source / dest ports: 1702/1702\n  UDP checksum: disabled\n"
+ right: "Tunnel 1, encap UDP\n  From 192.0.2.1 to 192.0.2.2\n  Peer tunnel 1\n  UDP source / dest ports: 1701/1701\n  UDP checksum: disabled\nTunnel 999, encap UDP\n  From 192.0.2.1 to 192.0.2.2\n  Peer tunnel 999\n  UDP source / dest ports: 1702/1702\n  UDP checksum: disabled\n"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+side 0: ["-s", "link", "show"]
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/tunnel6 :: brd :: permaddr 6667:dc88:b4a4::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/gre6 :: brd :: permaddr fa5b:9212:5d28::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+5: underlay@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether b6:9f:e1:ed:f9:1d brd ff:ff:ff:ff:ff:ff link-netns l2tp-f6e8a61-b
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+6: foreignsession: <BROADCAST,MULTICAST> mtu 1446 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ether 2e:be:61:b1:8b:22 brd ff:ff:ff:ff:ff:ff
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+7: l2tp2: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ether 8a:88:2d:06:94:7c brd ff:ff:ff:ff:ff:ff
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+
+side 0: ["l2tp", "show", "tunnel"]
+Tunnel 1, encap UDP
+  From 192.0.2.1 to 192.0.2.2
+  Peer tunnel 1
+  UDP source / dest ports: 1701/1701
+  UDP checksum: disabled
+Tunnel 21, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 22
+Tunnel 999, encap UDP
+  From 192.0.2.1 to 192.0.2.2
+  Peer tunnel 999
+  UDP source / dest ports: 1702/1702
+  UDP checksum: disabled
+
+side 0: ["l2tp", "show", "session"]
+Session 111 in tunnel 999
+  Peer session 777, tunnel 999
+  interface name: foreignsession
+  offset 0, peer offset 0
+
+
+side 0: ["neigh", "show"]
+
+side 0: ["addr", "show"]
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN group default qlen 1000
+    link/tunnel6 :: brd :: permaddr 6667:dc88:b4a4::
+3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN group default qlen 1000
+    link/gre6 :: brd :: permaddr fa5b:9212:5d28::
+5: underlay@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether b6:9f:e1:ed:f9:1d brd ff:ff:ff:ff:ff:ff link-netns l2tp-f6e8a61-b
+    inet 192.0.2.1/24 scope global underlay
+       valid_lft forever preferred_lft forever
+6: foreignsession: <BROADCAST,MULTICAST> mtu 1446 qdisc noop state DOWN group default qlen 1000
+    link/ether 2e:be:61:b1:8b:22 brd ff:ff:ff:ff:ff:ff
+7: l2tp2: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 8a:88:2d:06:94:7c brd ff:ff:ff:ff:ff:ff
+
+side 0: ["-6", "route", "show", "table", "all"]
+multicast ff00::/8 dev underlay table local proto kernel metric 256 pref medium
+
+side 1: ["-s", "link", "show"]
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/tunnel6 :: brd :: permaddr 6a3e:d90e:e1ea::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/gre6 :: brd :: permaddr 9e6f:2e1f:174f::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+4: underlay@if5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether 5e:d8:af:74:ce:9b brd ff:ff:ff:ff:ff:ff link-netns l2tp-f6e8a61-a
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+
+side 1: ["l2tp", "show", "tunnel"]
+Tunnel 2, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 11
+
+side 1: ["l2tp", "show", "session"]
+
+side 1: ["neigh", "show"]
+
+side 1: ["addr", "show"]
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN group default qlen 1000
+    link/tunnel6 :: brd :: permaddr 6a3e:d90e:e1ea::
+3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN group default qlen 1000
+    link/gre6 :: brd :: permaddr 9e6f:2e1f:174f::
+4: underlay@if5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 5e:d8:af:74:ce:9b brd ff:ff:ff:ff:ff:ff link-netns l2tp-f6e8a61-a
+    inet 192.0.2.2/24 scope global underlay
+       valid_lft forever preferred_lft forever
+
+side 1: ["-6", "route", "show", "table", "all"]
+multicast ff00::/8 dev underlay table local proto kernel metric 256 pref medium
+
+FAILED
+
+failures:
+
+failures:
+    managers::foreign_identifiers_and_names_are_left_alone_until_they_are_freed
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 9.14s
+

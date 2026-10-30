@@ -238,3 +238,33 @@ fn event_traffic_does_not_move_the_absolute_poll_deadline() {
         assert_eq!(r.next_deadline(), Some(due));
     }
 }
+
+/// spec: M16, E4, E6
+#[test]
+fn a_cached_master_is_not_queried_again_on_each_converge() {
+    for vrf in [false, true] {
+        let (mut r, _) = reconciler();
+        let parent = r.kernel_mut().add_link("parent", vrf);
+        let device = r.kernel_mut().add_link("wan", false);
+        r.kernel_mut().set_master(device, Some(parent));
+        r.kernel_mut()
+            .add_addr(device, "192.0.2.1".parse().unwrap());
+        r.reconcile(config(&(TUNNEL.to_owned() + "bind_interface='wan'")));
+        deliver(&mut r);
+        assert!(r.kernel().transmits(10));
+        r.kernel_mut()
+            .fail_next("link_index", nix::errno::Errno::EIO);
+        r.kernel_mut()
+            .add_addr(device, "192.0.2.9".parse().unwrap());
+        deliver(&mut r);
+        assert!(r.kernel().transmits(10));
+        assert_eq!(
+            r.kernel_mut()
+                .link_by_index(parent)
+                .unwrap_err()
+                .raw_os_error(),
+            Some(nix::libc::EIO),
+            "the cached master's query was not issued"
+        );
+    }
+}

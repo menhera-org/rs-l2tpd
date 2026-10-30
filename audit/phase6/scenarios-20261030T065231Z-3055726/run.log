@@ -1,0 +1,436 @@
+command: docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --env RS_L2TPD_SCENARIO_CONTAINER=1 --entrypoint sh rs-l2tpd-audit-vm:local -ec uname -r; exec "$@" run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e --ignored --test-threads=1 --nocapture --skip incus::system_container_store_tunable_networkd_and_udev
+6.8.0-147-generic
+
+running 12 tests
+test hosts::address_churn_reconnects_only_the_bound_tunnel_of_that_family ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd: ready pid=22
+daemon: INFO rs_l2tpd: ready pid=24
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::9
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::bind_devices_can_appear_lose_their_names_and_be_replaced ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected: its bind device is absent
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected: its bind device is absent
+daemon: INFO rs_l2tpd: ready pid=86
+daemon: INFO rs_l2tpd: ready pid=88
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): disconnected
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected: its bind device is absent
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): disconnected
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected: its bind device is absent
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): disconnected
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected: its bind device is absent
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::bindv6only_correction_and_native_ipv4_fallback_both_deliver_frames ... daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=165
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd: ready pid=163
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+daemon: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+daemon: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+daemon: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd: ready pid=233
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd: ready pid=235
+side 0: Tunnel 1, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From 2001:db8:1::1 to 2001:db8:1::2
+  Peer tunnel 12
+
+side 1: Tunnel 2, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From 2001:db8:1::2 to 2001:db8:1::1
+  Peer tunnel 11
+
+daemon: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::dual_stack_peers_exchange_frames_on_ipv6_tunnels ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd: ready pid=302
+daemon: INFO rs_l2tpd: ready pid=304
+side 0: Tunnel 1, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From 2001:db8:1::1 to 2001:db8:1::2
+  Peer tunnel 12
+
+side 1: Tunnel 2, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From 2001:db8:1::2 to 2001:db8:1::1
+  Peer tunnel 11
+
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::ipv4_only_with_ipv6_stack_needs_no_ipv6_configuration ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 2001:db8:1::2 pending: EADDRNOTAVAIL: Cannot assign requested address
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd: ready pid=356
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): disconnected, peer 2001:db8:1::1 pending: EADDRNOTAVAIL: Cannot assign requested address
+daemon: INFO rs_l2tpd: ready pid=358
+side 0: Tunnel 1, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From :: to ::
+  Peer tunnel 12
+
+side 1: Tunnel 2, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From :: to ::
+  Peer tunnel 11
+
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::ipv6_only_keeps_ipv4_disconnected_without_a_source ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd: ready pid=423
+daemon: INFO rs_l2tpd: ready pid=421
+side 0: Tunnel 1, encap IP
+  From :: to ::
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From 2001:db8:1::1 to 2001:db8:1::2
+  Peer tunnel 12
+
+side 1: Tunnel 2, encap IP
+  From :: to ::
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From 2001:db8:1::2 to 2001:db8:1::1
+  Peer tunnel 11
+
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::noninitial_namespace_without_proc_runs_with_only_the_three_capabilities ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=488
+daemon: INFO rs_l2tpd: ready pid=486
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::readiness_without_routes_then_frames_after_the_first_route ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=534
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=532
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::sysctl_disabled_ipv6_still_carries_ipv4_on_ipv6_sockets ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 2001:db8:1::2 pending: EADDRNOTAVAIL: Cannot assign requested address
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd: ready pid=590
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): disconnected, peer 2001:db8:1::1 pending: EADDRNOTAVAIL: Cannot assign requested address
+daemon: INFO rs_l2tpd: ready pid=592
+side 0: Tunnel 1, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From :: to ::
+  Peer tunnel 12
+
+side 1: Tunnel 2, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From :: to ::
+  Peer tunnel 11
+
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::vrf_membership_selects_the_domain_and_scoped_member ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected, peer 192.0.2.1 pending: EHOSTUNREACH: No route to host
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): disconnected: the zone of its peer is neither its bind device nor a member of it
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: EHOSTUNREACH: No route to host
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected: the zone of its peer is neither its bind device nor a member of it
+daemon: INFO rs_l2tpd: ready pid=669
+daemon: INFO rs_l2tpd: ready pid=667
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to fe80::1 from fe80::2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to fe80::2 from fe80::1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: EHOSTUNREACH: No route to host
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): disconnected
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected: the zone of its peer is neither its bind device nor a member of it
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to fe80::2 from fe80::1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test managers::a_child_in_another_namespace_survives_reload_and_dies_with_its_parent ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=744
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=742
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): renamed as renamed0
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test managers::foreign_identifiers_and_names_are_left_alone_until_they_are_freed ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as rsl2tp-t2250d5
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: WARN rs_l2tpd::reconciler::report: session s2 (tunnel_id=21, session_id=121): cannot take the name l2tp2: EEXIST: File exists
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=809
+daemon: WARN rs_l2tpd::reconciler: tunnel t0 (tunnel_id=1): left out after 10 refusals: EEXIST: File exists
+daemon: WARN rs_l2tpd::reconciler: session s1 (tunnel_id=11, session_id=111): left out after 10 refusals: EEXIST: File exists
+daemon: INFO rs_l2tpd: ready pid=807
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): published as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler: tunnel t0 (tunnel_id=1): identifiers free, created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler: session s1 (tunnel_id=11, session_id=111): identifiers free, created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 57.06s
+

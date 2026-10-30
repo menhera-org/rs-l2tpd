@@ -1,0 +1,121 @@
+command: docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --env RS_L2TPD_SCENARIO_CONTAINER=1 --entrypoint sh rs-l2tpd-audit-vm:local -ec uname -r; exec "$@" run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e --ignored --test-threads=1 --nocapture vrf_membership
+6.8.0-147-generic
+
+running 1 test
+test hosts::vrf_membership_selects_the_domain_and_scoped_member ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: EHOSTUNREACH: No route to host
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected: the zone of its peer is neither its bind device nor a member of it
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected, peer 192.0.2.1 pending: EHOSTUNREACH: No route to host
+daemon: INFO rs_l2tpd: ready pid=32
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): disconnected: the zone of its peer is neither its bind device nor a member of it
+daemon: INFO rs_l2tpd: ready pid=34
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+
+thread 'hosts::vrf_membership_selects_the_domain_and_scoped_member' (8) panicked at tests/scenarios/support.rs:310:41:
+waiting for connected to: timed out waiting on channel
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+side 0: ["-s", "link", "show"]
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/tunnel6 :: brd :: permaddr de76:e6de:7713::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/gre6 :: brd :: permaddr de13:b7a5:2d12::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+5: underlay@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master vrfA state UP mode DEFAULT group default qlen 1000
+    link/ether 6e:80:17:6c:10:0f brd ff:ff:ff:ff:ff:ff link-netns l2tp-748d364d-b
+    RX:  bytes packets errors dropped  missed   mcast           
+           340       4      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+           340       4      0       0       0       0 
+6: vrfA: <NOARP,MASTER,UP,LOWER_UP> mtu 65575 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether 66:72:04:13:b9:4f brd ff:ff:ff:ff:ff:ff
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+
+side 0: ["l2tp", "show", "tunnel"]
+Tunnel 1, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From :: to ::
+  Peer tunnel 12
+
+side 0: ["l2tp", "show", "session"]
+
+side 0: ["neigh", "show"]
+
+side 1: ["-s", "link", "show"]
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/tunnel6 :: brd :: permaddr ee5f:bd64:ae8d::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/gre6 :: brd :: permaddr c6df:b2fc:3be::
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+4: underlay@if5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master vrfA state UP mode DEFAULT group default qlen 1000
+    link/ether 9a:52:9c:ab:12:79 brd ff:ff:ff:ff:ff:ff link-netns l2tp-748d364d-a
+    RX:  bytes packets errors dropped  missed   mcast           
+           340       4      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+           340       4      0       0       0       0 
+5: vrfA: <NOARP,MASTER,UP,LOWER_UP> mtu 65575 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether 96:dc:4b:72:64:a1 brd ff:ff:ff:ff:ff:ff
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+
+side 1: ["l2tp", "show", "tunnel"]
+Tunnel 2, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From :: to ::
+  Peer tunnel 11
+
+side 1: ["l2tp", "show", "session"]
+
+side 1: ["neigh", "show"]
+
+FAILED
+
+failures:
+
+failures:
+    hosts::vrf_membership_selects_the_domain_and_scoped_member
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 10.12s
+

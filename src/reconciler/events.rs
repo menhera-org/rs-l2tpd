@@ -517,13 +517,12 @@ impl<K: Kernel> Reconciler<K> {
                 }
             }
         }
-        if let Some(master) = link.master {
-            self.masters.entry(link.index).or_insert(master);
-            if self
-                .k
-                .link_by_index(master)?
-                .is_some_and(|parent| parent.vrf)
-            {
+        if let Some(master) = link.master
+            && self.masters.get(&link.index) != Some(&master)
+        {
+            let parent = self.k.link_by_index(master)?;
+            self.masters.insert(link.index, master);
+            if parent.is_some_and(|parent| parent.vrf) {
                 self.vrfs.insert(master);
             }
         }

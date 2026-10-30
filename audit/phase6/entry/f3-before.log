@@ -1,0 +1,21 @@
+6.8.0-147-generic
+command: cargo test --locked --all-features --test rules a_cached_master -- --nocapture
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.52s
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 1 test
+
+thread 'events::a_cached_master_is_not_queried_again_on_each_converge' (3037573) panicked at tests/rules/events.rs:259:57:
+called `Result::unwrap_err()` on an `Ok` value: Some(LinkInfo { index: 1, name: L2tpIfName("parent"), up: false, vrf: false, master: None })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test events::a_cached_master_is_not_queried_again_on_each_converge ... FAILED
+
+failures:
+
+failures:
+    events::a_cached_master_is_not_queried_again_on_each_converge
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`
