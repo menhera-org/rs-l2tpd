@@ -248,3 +248,20 @@ the cleanup-failure check enabled: 17.56 s, 18.94 s and 12.14 s for the
 system-container case, plus the separately executed buffer case.
 [Final P5 verification](phase6/P5_VERIFICATION_2026-10-30.md) records
 the exact scope, counts, logs and remaining P6 distinction.
+
+
+## P2 follow-up: compatibility, init and route-table independence
+
+G11/G22 now executes an archived v0.1.5 peer with its original lockfile
+and compatible configuration. H19/P22 now executes the daemonizing
+parent/PID/signal contract through a POSIX shell. H8 now observes every
+rtnetlink request through nlmon while startup/reload/shutdown run with
+100,000 routes per family and no defaults. Capture controls and loss
+accounting prevent an empty or dropped capture from passing.
+
+The expanded subset passed three consecutive runs: 16 passed, zero
+failed, 68.20 s / 67.09 s / 66.09 s, kernel 6.8.0-147-generic, all
+features, musl. Formatting, clippy with warnings denied, and the capture
+parser self-check also passed.
+[Scope and evidence](phase6/P2_COMPATIBILITY_AND_ROUTES_2026-10-30.md)
+list the remaining scenarios; the complete P2 gate is still open.

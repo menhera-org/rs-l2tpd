@@ -502,3 +502,62 @@ fn noninitial_namespace_without_proc_runs_with_only_the_three_capabilities() {
     pair.absent(0);
     pair.absent(1);
 }
+
+/// spec: H19, P22
+#[test]
+#[ignore = "disposable privileged container"]
+fn non_systemd_init_observes_parent_exit_pidfile_reload_restart_and_shutdown() {
+    use super::support::{BINARY, Detached};
+    use nix::sys::signal::Signal;
+    let pair = Pair::new();
+    pair.underlay(true, false);
+    let text = config(0, &["192.0.2.2"]);
+    let path = pair.dir.join("init.toml");
+    let pid_file = pair.dir.join("init.pid");
+    std::fs::write(&path, &text).unwrap();
+    let mut peer = pair.start(1, &config(1, &["192.0.2.1"]));
+    peer.event("ready");
+    let mut command = pair.command(0, "sh", &["-ec",
+        "\"$@\" & parent=$!; wait \"$parent\"; test -s \"$PIDFILE\"; kill -0 \"$(cat \"$PIDFILE\")\"",
+        "init", BINARY]);
+    command
+        .arg("--config")
+        .arg(&path)
+        .arg("--config-dir")
+        .arg(pair.dir.join("absent"))
+        .arg("--pid-file")
+        .arg(&pid_file)
+        .env("PIDFILE", &pid_file);
+    let process = Detached::spawn(&pair, 0, command, pid_file, pair.dir.join("init.log"));
+    process.event("ready");
+    let pid = process.pid();
+    let index = pair.index(0, "l2tp0");
+    assert!(
+        pair.ip(0, &["l2tp", "show", "tunnel"])
+            .contains("Tunnel 1,")
+    );
+    assert!(
+        pair.ip(0, &["l2tp", "show", "session"])
+            .contains("Session 101 in tunnel 1")
+    );
+    pair.inner("l2tp0", 0);
+    pair.frames(0);
+    pair.ip(1, &["addr", "add", "192.0.2.3/24", "dev", "underlay"]);
+    std::fs::write(&path, text.replace("192.0.2.2", "192.0.2.3")).unwrap();
+    process.signal(Signal::SIGHUP);
+    process.event("reload completed");
+    assert_eq!(pair.index(0, "l2tp0"), index);
+    assert!(
+        pair.ip(0, &["l2tp", "show", "tunnel"])
+            .contains("to ::ffff:192.0.2.3")
+    );
+    pair.frames(0);
+    process.signal(Signal::SIGUSR2);
+    process.event("re-exec resumed");
+    assert_eq!(process.pid(), pid);
+    assert_eq!(pair.index(0, "l2tp0"), index);
+    pair.frames(0);
+    process.stop(&pair);
+    peer.stop();
+    pair.absent(1);
+}

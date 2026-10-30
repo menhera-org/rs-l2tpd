@@ -2,4 +2,6 @@
 mod hosts;
 mod incus;
 mod managers;
+mod netlink;
+mod promises;
 mod support;

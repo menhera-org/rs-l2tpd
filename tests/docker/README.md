@@ -15,7 +15,9 @@ build output and test results under `audit/phase6/scenarios-<run>/`.
 Provide `rs-l2tpd-audit-vm:local`, prepared from
 `tests/kernel/Dockerfile.review` with iproute2, busybox and util-linux.
 The runner uses the prepared image; it does not give test containers
-external networking. The historical `Dockerfile` and
+external networking. The runner also builds the archived v0.1.5 tag with
+its own lockfile in an isolated cache, and records its commit and binary
+hash for the interoperability case. The historical `Dockerfile` and
 `Dockerfile.networkd` reference removed pre-rewrite scripts.
 
 A libtest filter can select a case while debugging, for example:
@@ -28,14 +30,18 @@ The current subset covers dual stack, IPv4-only, IPv6-only, sysctl-disabled
 IPv6, early readiness without routes, VRF membership, procfs-hidden
 operation with the three capabilities, hotplug, address churn,
 `bindv6only`, a VLAN child in another namespace, and foreign identifiers
-and names. Guards kill daemons and delete namespaces on panic. Frame
+and names, non-systemd parent/PID/signal behavior, 0.1.5 configuration
+and peer interoperability, and 100,000 routes per family without a default.
+The route case requires an already available nlmon module: its packet
+socket sees unicast requests too, uses positive controls and rejects any
+capture loss. Guards kill daemons and delete namespaces on panic. Frame
 delivery and drop counters are asserted, along with interface identity,
 kernel objects, logs and bounded event waits.
 
 This is **not the complete Phase 6 scenario gate**. Boot-only cases,
-large route/session tables, missing modules/capability fallbacks,
-networkd version combinations, the non-systemd init scenario, 0.1.5
-interoperability and the full promise case list remain open. No matrix
+large session tables, missing modules/capability fallbacks,
+networkd version combinations, fragmentation and the full promise case
+list remain open. No matrix
 subcommand is implemented yet.
 
 ## Unprivileged system container

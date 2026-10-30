@@ -274,7 +274,10 @@ impl Drop for Pair {
                     vec!["addr", "show"],
                     vec!["-6", "route", "show", "table", "all"],
                 ] {
-                    eprintln!("side {side}: {args:?}\n{}", self.ip(side, &args));
+                    eprintln!(
+                        "side {side}: {args:?}\n{:?}",
+                        self.command(side, "ip", &args).output()
+                    );
                 }
             }
         }
@@ -372,4 +375,99 @@ pub fn config(side: usize, peers: &[&str]) -> String {
              100+id, 100+other));
     }
     text
+}
+
+pub struct Detached {
+    namespace: String,
+    side: usize,
+    launcher: Child,
+    pid_file: PathBuf,
+    log: PathBuf,
+}
+impl Detached {
+    pub fn spawn(
+        pair: &Pair,
+        side: usize,
+        mut command: Command,
+        pid_file: PathBuf,
+        log: PathBuf,
+    ) -> Self {
+        for key in [
+            "NOTIFY_SOCKET",
+            "LISTEN_FDS",
+            "LISTEN_PID",
+            "LISTEN_FDNAMES",
+            "FDSTORE",
+            "RS_L2TPD_REEXEC",
+            "RS_L2TPD_PIDFILE",
+        ] {
+            command.env_remove(key);
+        }
+        let mut process = Self {
+            namespace: pair.names[side].clone(),
+            side,
+            launcher: command
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(fs::File::create(&log).unwrap())
+                .spawn()
+                .unwrap(),
+            pid_file,
+            log,
+        };
+        wait("daemonizing parent readiness exit", || {
+            process.launcher.try_wait().unwrap().is_some()
+        });
+        assert!(
+            process.launcher.wait().unwrap().success(),
+            "{}",
+            fs::read_to_string(&process.log).unwrap()
+        );
+        assert!(process.pid_file.exists());
+        process
+    }
+    pub fn pid(&self) -> i32 {
+        let pid = fs::read_to_string(&self.pid_file)
+            .unwrap()
+            .trim()
+            .parse()
+            .unwrap();
+        assert!(pid > 1);
+        pid
+    }
+    pub fn signal(&self, signal: Signal) {
+        kill(Pid::from_raw(self.pid()), signal).unwrap();
+    }
+    pub fn event(&self, text: &str) {
+        wait(text, || {
+            fs::read_to_string(&self.log).unwrap().contains(text)
+        });
+    }
+    pub fn stop(&self, pair: &Pair) {
+        self.signal(Signal::SIGTERM);
+        wait("daemonized PID file removed", || !self.pid_file.exists());
+        pair.absent(self.side);
+    }
+}
+impl Drop for Detached {
+    fn drop(&mut self) {
+        if std::thread::panicking() {
+            eprintln!("daemonized log: {:?}", fs::read_to_string(&self.log));
+        }
+        // Covers double-fork startup failure before the PID file is published.
+        if let Ok(output) = Command::new("ip")
+            .args(["netns", "pids", &self.namespace])
+            .output()
+        {
+            for pid in String::from_utf8_lossy(&output.stdout).split_whitespace() {
+                if let Ok(pid) = pid.parse::<i32>()
+                    && pid > 1
+                {
+                    let _ = kill(Pid::from_raw(pid), Signal::SIGKILL);
+                }
+            }
+        }
+        let _ = self.launcher.kill();
+        let _ = self.launcher.wait();
+    }
 }

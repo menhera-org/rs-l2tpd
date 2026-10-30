@@ -97,3 +97,11 @@ for a static binary; `build-release.sh` builds the musl targets with
 `cross` and enables `setup-systemd` by default. Ordinary Cargo builds
 default to `bin`, without the optional installer. Publishing uses
 `--registry crates-io`.
+
+## Verification tools
+
+| Tool | For |
+|---|---|
+| `cargo-llvm-cov` 0.9.1 | Phase 6 combined line/branch coverage; no daemon dependency |
+| Rust `nightly-2026-10-28`, `llvm-tools-preview` | Branch instrumentation for coverage only; shipped builds remain on stable |
+| Archived `rs-l2tpd` v0.1.5 and its own lockfile | G11/G22 peer interoperability only; isolated build cache, no dependency added to the current daemon |
