@@ -1,0 +1,8 @@
+PING 192.168.10.1 (192.168.10.1): 8972 data bytes
+8980 bytes from 192.168.10.1: seq=0 ttl=64 time=0.098 ms
+8980 bytes from 192.168.10.1: seq=1 ttl=64 time=0.120 ms
+8980 bytes from 192.168.10.1: seq=2 ttl=64 time=0.119 ms
+
+--- 192.168.10.1 ping statistics ---
+3 packets transmitted, 3 packets received, 0% packet loss
+round-trip min/avg/max = 0.098/0.112/0.120 ms

@@ -178,7 +178,8 @@ rs-l2tpd = { version = "0.2", default-features = false }               # no TOML
   answers `WriteTunable`, `StoreSocket` and `ForgetSocket` (L12, L13).
 - `Control`: `reload`, `reload_wait`, `shutdown`, `restart`, `config`
   (L6).
-- Errors: one non-exhaustive enum (L11). No unsafe code (L2). Every
+- Errors: one non-exhaustive enum (L11). No unsafe code except the cited
+  `setsockopt` for a socket option no safe crate offers (L2). Every
   foreign type re-exported next to its use; enums non-exhaustive (L3).
 - The library does no standard or file I/O, reads no environment,
   installs no handler, writes no tunable (L1).

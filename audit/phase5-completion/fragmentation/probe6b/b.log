@@ -1,0 +1,4 @@
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): created
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=12, session_id=202): created as l2tp1
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+INFO rs_l2tpd: ready pid=20

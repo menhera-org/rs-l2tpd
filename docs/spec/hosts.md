@@ -186,12 +186,15 @@ underlay's** (an `l2tpeth` at 1500 over a 1500-byte path, or at 9000
 over 1500) MUST carry frames in both directions, over IPv4 and over
 IPv6 underlays. The kernel fragments every L2TP data frame that exceeds
 the path MTU at the sending host and reassembles it at the receiving
-host ([K43](kernel.md#facts)); the daemon neither prevents nor helps
-this: it sets no MTU on any device and no path-MTU or
-don't-fragment option on any socket ([T5](tunnels.md#address-families), the
-MTU is the operator's, [R29](requirements.md#the-operator)). 0.1.5
-installations run such setups, and a release is accepted only when
-this scenario passes on every required kernel
+host; the daemon secures this by contract, not by the current output
+path: it sets the path-MTU discovery options of every tunnel socket to
+"don't" ([T5](tunnels.md#address-families), [K44](kernel.md#facts)),
+which obliges the kernel to fragment whatever [K43](kernel.md#facts)'s
+`ignore_df` does in a later version. It sets no MTU on any device; the
+MTU is the operator's ([R29](requirements.md#the-operator)). 0.1.5
+installations run such setups (verified live on 2026-10-30, both
+daemons, both underlays), and a release is accepted only when this
+scenario passes on every required kernel
 ([G22](promises.md#conditional-promises)). Fragmented frames need the
 underlay to deliver IP fragments ([R26](requirements.md#the-peers)); a
 path that drops them is invisible to the daemon, like any other path

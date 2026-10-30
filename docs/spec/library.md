@@ -27,8 +27,14 @@ Configuration types deserialise through serde when the `serde` feature is
 on, from any format; TOML, the command line and the logger implementation
 belong to the binary behind the `bin` feature.
 
-L2. Unsafe code is denied in the library. Every kernel interaction goes
-through netlink and socket crates.
+L2. Unsafe code is denied in the library, with one bounded exception:
+`kernel::linux` MAY call `libc::setsockopt` for a socket option that no
+safe dependency exposes, today `IP_MTU_DISCOVER` on an `AF_INET6` tunnel
+socket ([T5](tunnels.md#address-families), [K44](kernel.md#facts)). Each
+such call is a function of its own, cites the kernel fact it relies on,
+is covered by a live test that reads the option back, and is the only
+`#[allow(unsafe_code)]` in the library. Every other kernel interaction
+goes through netlink and socket crates.
 
 L3. No type of another crate appears in the public API without being
 re-exported next to its use, so that no dependency of a matching version is

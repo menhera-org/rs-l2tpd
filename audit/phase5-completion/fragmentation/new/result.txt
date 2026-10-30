@@ -1,0 +1,22 @@
+kernel: 6.8.0-147-generic; implementation under test: new
+A daemon log so far:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): created
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=11): created
+   A| INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=1, session_id=101): created as l2tp0
+   A| INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=11, session_id=201): created as l2tp1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=11): connected to fd00::2 from fd00::1
+   A| INFO rs_l2tpd: ready pid=28
+   a tunnel| Tunnel 1, encap IP
+   a tunnel|   From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+   a tunnel|   Peer tunnel 2
+   a tunnel| Tunnel 11, encap IP
+   a tunnel|   From fd00::1 to fd00::2
+   a tunnel|   Peer tunnel 12
+underlay: 5: vA@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
+session devices before the cases: 4: l2tp0: <BROADCAST,MULTICAST> mtu 1442; 6: l2tp1: <BROADCAST,MULTICAST> mtu 1442
+l2tp0 over IPv4 underlay, session mtu 1500, payload 1472: ping a->b ok, b->a ok; a FragCreates +12 ReasmReqds +12; b FragCreates +12 ReasmReqds +12; tx_dropped +0 => PASS
+l2tp0 over IPv4 underlay, session mtu 9000, payload 8972: ping a->b ok, b->a ok; a FragCreates +42 ReasmReqds +42; b FragCreates +42 ReasmReqds +42; tx_dropped +0 => PASS
+l2tp1 over IPv6 underlay, session mtu 1500, payload 1472: ping a->b ok, b->a ok; a FragCreates +12 ReasmReqds +0; b FragCreates +12 ReasmReqds +0; tx_dropped +0 => PASS(no-fragmentation-seen)
+l2tp1 over IPv6 underlay, session mtu 9000, payload 8972: ping a->b ok, b->a ok; a FragCreates +42 ReasmReqds +0; b FragCreates +42 ReasmReqds +0; tx_dropped +0 => PASS(no-fragmentation-seen)
+A daemon log lines during the cases: 7 total

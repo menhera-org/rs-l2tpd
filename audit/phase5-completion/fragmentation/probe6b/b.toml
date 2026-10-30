@@ -1,0 +1,10 @@
+[tunnels.t2]
+tunnel_id = 12
+peer_tunnel_id = 11
+remote_addr = "fd00::1"
+ip_version = "V6"
+[sessions.s2]
+tunnel_name = "t2"
+session_id = 202
+peer_session_id = 201
+interface_name = "l2tp1"

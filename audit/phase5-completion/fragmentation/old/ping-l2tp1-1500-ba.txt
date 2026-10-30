@@ -1,0 +1,8 @@
+PING 192.168.11.1 (192.168.11.1): 1472 data bytes
+1480 bytes from 192.168.11.1: seq=0 ttl=64 time=0.069 ms
+1480 bytes from 192.168.11.1: seq=1 ttl=64 time=0.082 ms
+1480 bytes from 192.168.11.1: seq=2 ttl=64 time=0.093 ms
+
+--- 192.168.11.1 ping statistics ---
+3 packets transmitted, 3 packets received, 0% packet loss
+round-trip min/avg/max = 0.069/0.081/0.093 ms

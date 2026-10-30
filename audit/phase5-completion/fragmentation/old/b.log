@@ -1,0 +1,12 @@
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): created
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): created
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=2, session_id=102): created as l2tp0
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=12, session_id=202): created as l2tp1
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+INFO rs_l2tpd: ready pid=27
+INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=2, session_id=102): removed
+INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=12, session_id=202): removed
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): removed
+INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): removed
+INFO rs_l2tpd: shutdown complete
