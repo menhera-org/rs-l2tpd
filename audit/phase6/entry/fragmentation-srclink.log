@@ -1,5 +1,5 @@
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.63s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running tests/tools/srclink.rs (target/debug/deps/srclink-bc0ad56e4b848a57)
 
 running 4 tests

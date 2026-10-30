@@ -1,4 +1,4 @@
-+ incus launch images:ubuntu/24.04 rs-l2tpd-phase6-3033376 --no-profiles --storage default -c security.privileged=false
++ incus launch images:ubuntu/24.04 rs-l2tpd-phase6-3033376 --no-profiles --storage <host storage pool omitted> -c security.privileged=false
 Launching rs-l2tpd-phase6-3033376
 Retrieving image: Unpacking image: 100% (1.05GB/s)                                                   Retrieving image: Unpacking image: 100% (1.05GB/s)                                                   Retrieving image:                                                    
 The instance you are starting doesn't have any network attached to it.

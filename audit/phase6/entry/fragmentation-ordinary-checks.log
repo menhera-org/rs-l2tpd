@@ -1,7 +1,7 @@
     Checking rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s
+    Finished `dev` profile [unoptimized + debuginfo] target(s)
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.04s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
 
 running 86 tests

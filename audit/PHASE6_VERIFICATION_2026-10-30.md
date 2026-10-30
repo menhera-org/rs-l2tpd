@@ -68,7 +68,7 @@ Logs:
 
 ## Coverage baseline
 
-`cargo-llvm-cov` 0.9.1 was installed for this work, with nightly's LLVM
+The coverage toolchain is pinned to `cargo-llvm-cov` 0.9.1 and nightly's LLVM
 tools. The nightly manifest date is 2026-10-28
 (`rustc 1.101.0-nightly (41089d07a 2026-10-27)`).
 The native run used all features, target
@@ -86,8 +86,7 @@ unexecuted by this native command, as the log records.
 
 - [Native tests with coverage](phase6/entry/coverage-native.log).
 - [Native coverage report](phase6/entry/coverage-native-report.log).
-- [Coverage tool installation](phase6/entry/install-coverage.log).
-- [LLVM tools installation](phase6/entry/install-llvm-tools.log).
+- [Verification tool requirements](../docs/dependencies.md#verification-tools).
 
 ## Remaining work and exclusions
 

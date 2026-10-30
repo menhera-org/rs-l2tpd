@@ -94,6 +94,6 @@ command: cargo build --locked --release --target x86_64-unknown-linux-musl (arch
    Compiling genetlink v0.2.7
    Compiling rtnetlink v0.20.0
    Compiling l2tp v0.2.1
-    Finished `release` profile [optimized] target(s) in 1m 00s
+    Finished `release` profile [optimized] target(s)
 baseline binary git-blob: 108ea840782dfbdfd327e8637e6b5a7335fff294
 rs-l2tpd 0.1.5

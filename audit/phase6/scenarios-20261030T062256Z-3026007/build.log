@@ -2,5 +2,5 @@
 features: all; target: x86_64-unknown-linux-musl
 command: cargo test --locked --all-features --target x86_64-unknown-linux-musl --test scenarios --no-run
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.24s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
   Executable tests/scenarios/main.rs (target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e)

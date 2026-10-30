@@ -6,5 +6,5 @@ exit: 0
 
  Documenting rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
     Building [=========================> ] 80/81: rs-l2tpd(doc)               
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.87s
+    Finished `dev` profile [unoptimized + debuginfo] target(s)
    Generated /home/dev/rs-l2tpd/target/doc/rs_l2tpd/index.html

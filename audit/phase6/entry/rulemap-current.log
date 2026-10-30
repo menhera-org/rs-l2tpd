@@ -1,6 +1,6 @@
 6.8.0-147-generic
 command: RULEMAP_STRICT=1 cargo test --locked --all-features --test rulemap -- --nocapture
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running tests/tools/rulemap.rs (target/debug/deps/rulemap-31ba9e663b443122)
 
 running 3 tests

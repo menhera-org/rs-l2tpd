@@ -1,7 +1,7 @@
 6.8.0-147-generic
 command: TEST_SEED=4 cargo test --locked --all-features
 features: all; native; ordinary tests only
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
 
 running 85 tests

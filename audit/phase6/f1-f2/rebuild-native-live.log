@@ -6,5 +6,5 @@ exit: 0
 
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
     Building [=========================> ] 82/83: kernel-linux(test)          
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.69s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
   Executable tests/kernel/linux.rs (target/debug/deps/kernel_linux-9e7ac3831d996fce)

@@ -2,7 +2,7 @@ cargo test --locked --all-features --lib address_dump_skips_foreign_families_and
 exit=101
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
     Building [=========================> ] 80/81: rs_l2tpd(test)              
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.63s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
 
 running 1 test

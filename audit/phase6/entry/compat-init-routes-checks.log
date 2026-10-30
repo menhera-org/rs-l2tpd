@@ -1,7 +1,7 @@
     Checking rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.42s
+    Finished `dev` profile [unoptimized + debuginfo] target(s)
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.09s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running tests/scenarios/main.rs (target/debug/deps/scenarios-d6b553e0ed687178)
 
 running 1 test

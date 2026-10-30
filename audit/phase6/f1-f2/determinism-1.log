@@ -4,7 +4,7 @@ features: all unless command says otherwise
 elapsed_seconds: 0.85
 exit: 0
 
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running tests/kernel/fake.rs (target/debug/deps/kernel_fake-600afdb1d7a371a0)
 
 running 1 test

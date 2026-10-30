@@ -6,4 +6,4 @@ exit: 0
 
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
     Building [=========================> ] 74/75: rs-l2tpd                    
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.08s
+    Finished `dev` profile [unoptimized + debuginfo] target(s)

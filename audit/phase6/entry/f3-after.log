@@ -1,7 +1,7 @@
 6.8.0-147-generic
 command: cargo test --locked --all-features --test rules a_cached_master -- --nocapture
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.44s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
 
 running 1 test

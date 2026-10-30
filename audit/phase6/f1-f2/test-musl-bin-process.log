@@ -4,7 +4,7 @@ features: all unless command says otherwise
 elapsed_seconds: 1.46
 exit: 0
 
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running unittests src/bin/rs-l2tpd/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-596b36cde4aa41c2)
 
 running 42 tests

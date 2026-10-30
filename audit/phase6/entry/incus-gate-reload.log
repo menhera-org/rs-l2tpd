@@ -1,4 +1,4 @@
-+ incus --quiet launch images:ubuntu/24.04 rs-l2tpd-phase6-3035754 --no-profiles --storage default -c security.privileged=false
++ incus --quiet launch images:ubuntu/24.04 rs-l2tpd-phase6-3035754 --no-profiles --storage <host storage pool omitted> -c security.privileged=false
 
 The instance you are starting doesn't have any network attached to it.
   To create a new network, use: incus network create

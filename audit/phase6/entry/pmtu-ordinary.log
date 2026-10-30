@@ -1,5 +1,5 @@
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.47s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
 
 running 1 test
@@ -9,4 +9,4 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 85 filtered out; fin
 
     Checking iphost v0.4.1
     Checking rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.57s
+    Finished `dev` profile [unoptimized + debuginfo] target(s)

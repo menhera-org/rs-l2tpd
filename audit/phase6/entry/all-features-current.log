@@ -1,7 +1,7 @@
 6.8.0-147-generic
 command: cargo test --locked --all-features
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.55s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
 
 running 85 tests

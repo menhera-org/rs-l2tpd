@@ -14,7 +14,7 @@ exit: 0
     Building [=========================> ] 91/94: service(test), kernel-linux…
     Building [=========================> ] 92/94: service(test), rs-l2tpd(bin…
     Building [=========================> ] 93/94: rs-l2tpd(bin test)          
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.22s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
 
 running 84 tests

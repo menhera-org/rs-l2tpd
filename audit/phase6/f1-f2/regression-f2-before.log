@@ -4,7 +4,7 @@ exit=101
     Building [=========================> ] 80/83: rs-l2tpd                    
     Building [=========================> ] 81/83: rs-l2tpd(bin), rules(test)  
     Building [=========================> ] 82/83: rs-l2tpd(bin)               
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.59s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
 
 running 1 test

@@ -14,6 +14,8 @@ mkdir -p "$record"
     printf '%s\n' 'command: cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --test scenarios --no-run'
     cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --test scenarios --no-run
 } > "$record/build.log" 2>&1 || { cat "$record/build.log"; exit 1; }
+sed 's/\(Finished .*\) in .*/\1/' "$record/build.log" > "$record/build.tmp"
+mv "$record/build.tmp" "$record/build.log"
 unit=$(sed -n 's/^  Executable unittests src\/lib.rs (\(.*\))$/\1/p' "$record/build.log")
 scenario=$(sed -n 's/^  Executable tests\/scenarios\/main.rs (\(.*\))$/\1/p' "$record/build.log")
 absolute() {
@@ -46,9 +48,17 @@ trap 'exit 143' TERM
 # Reuse the default root disk's pool, with no network or other profile devices.
 pool=$(incus profile device get default root pool)
 [ -n "$pool" ]
-set -x
+printf 'command: incus --quiet launch images:ubuntu/24.04 %s --no-profiles --storage "$(incus profile device get default root pool)" -c security.privileged=false\n' "$name"
 incus --quiet launch images:ubuntu/24.04 "$name" --no-profiles --storage "$pool" -c security.privileged=false
-incus config show "$name" --expanded > "$record/config.log"
+config=$(incus config show "$name" --expanded)
+printf '%s\n' "$config" | awk '
+    /^  volatile\./ { skip=1; next }
+    skip && /^    / { next }
+    { skip=0 }
+    /^    pool: / { print "    pool: <host storage pool omitted>"; next }
+    { print }
+' > "$record/config.log"
+set -x
 incus exec "$name" -- uname -r > "$record/kernel.log"
 incus --quiet file push --create-dirs "$binary" "$name$binary"
 incus --quiet file push --create-dirs "$unit" "$name/opt/phase6/kernel-unit"

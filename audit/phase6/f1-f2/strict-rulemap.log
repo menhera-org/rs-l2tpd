@@ -9,7 +9,7 @@ exit: 101
     Building [=========================> ] 81/83: rs-l2tpd(bin)               
     Building [=========================> ] 81/83: rs-l2tpd(bin), rulemap(test)
     Building [=========================> ] 82/83: rs-l2tpd(bin)               
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.50s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running tests/tools/rulemap.rs (target/debug/deps/rulemap-31ba9e663b443122)
 
 running 3 tests

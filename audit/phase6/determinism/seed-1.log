@@ -2,7 +2,7 @@
 command: TEST_SEED=1 cargo test --locked --all-features
 features: all; native; ordinary tests only
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.40s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
 
 running 85 tests

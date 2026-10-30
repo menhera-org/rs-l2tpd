@@ -6,7 +6,7 @@ exit: 101
 
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
     Building [=========================> ] 82/83: srclink(test)               
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.38s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running tests/tools/srclink.rs (target/debug/deps/srclink-2b797d664da25c61)
 
 running 2 tests

@@ -4,7 +4,7 @@ features: all unless command says otherwise
 elapsed_seconds: 0.22
 exit: 0
 
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
   Executable unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
   Executable unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-9efdeacd5b52e729)
   Executable tests/kernel/fake.rs (target/debug/deps/kernel_fake-600afdb1d7a371a0)

@@ -72,7 +72,7 @@ warning: `rs-l2tpd` (manifest) generated 1 warning
    Compiling genetlink v0.3.0
    Compiling netlink-packet-l2tp v0.4.0
    Compiling l2tp v0.5.0
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 31.71s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running unittests src/lib.rs (target/llvm-cov-target/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/19355e4b4fa32df5/out/rs_l2tpd-19355e4b4fa32df5)
 
 running 84 tests

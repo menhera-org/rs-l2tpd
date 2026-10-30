@@ -1,5 +1,5 @@
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.67s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
   Executable tests/kernel/linux.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_linux-24aa97de8de86bfb)
 all features / musl; docker run --rm --privileged --network none; kernel-linux --ignored --exact tunnel_sockets_enable_fragmentation_before_connect
 6.8.0-147-generic

@@ -2,7 +2,7 @@
 command: cargo test --locked --all-features --test rulemap --test srclink -- --nocapture
 features: all; strict flags disabled for baseline report
    Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.53s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running tests/tools/rulemap.rs (target/debug/deps/rulemap-31ba9e663b443122)
 
 running 3 tests

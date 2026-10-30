@@ -1,7 +1,7 @@
 6.8.0-147-generic
 command: SRCLINK_STRICT=1 cargo test --locked --all-features --test srclink -- --nocapture
 features: all
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+    Finished `test` profile [unoptimized + debuginfo] target(s)
      Running tests/tools/srclink.rs (target/debug/deps/srclink-2b797d664da25c61)
 
 running 4 tests

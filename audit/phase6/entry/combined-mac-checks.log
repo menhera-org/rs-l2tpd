@@ -2,4 +2,4 @@
 command: cargo fmt --all --check
 command: cargo clippy --locked --all-targets --all-features -- -D warnings
     Checking rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.25s
+    Finished `dev` profile [unoptimized + debuginfo] target(s)
