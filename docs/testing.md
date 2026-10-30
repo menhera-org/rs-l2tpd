@@ -128,7 +128,9 @@ link`, the daemon's log and frames delivered between two daemons. The
 driver waits on events (a log line, a device appearing, a counter
 changing), never on a fixed sleep, and each scenario has a hard timeout.
 Scenarios that need a boot option (`ipv6.disable=1`, a kernel without
-IPv6) run under QEMU.
+IPv6) or a clock of their own (H16: a container shares `CLOCK_REALTIME`
+with the host, and time namespaces offset only the monotonic and boot
+clocks) run under QEMU.
 
 One scenario is an **unprivileged system container** under Incus or LXD
 (`security.privileged=false`: a user namespace, the container's own

@@ -188,7 +188,7 @@ The scenarios, one test function each, tag in the doc comment:
 | H13 | bind device unplugged, replugged, replaced under the same name | the convergence bounds table rows |
 | H14 | address churn on the bind device, both families | one reconnect per same-family change, none otherwise |
 | H15, R1, R49 | container without `l2tp_eth`; capabilities dropped one at a time | one report each, readiness withheld only for the module/`CAP_NET_ADMIN` case, fallbacks for the other two |
-| H16 | clock stepped with `date -s` inside the namespace | no effect on timers |
+| H16 | a QEMU guest of P3, never a container: `CLOCK_REALTIME` is shared with the host and time namespaces offset only the monotonic and boot clocks, so the wall clock is stepped with `date -s` inside the guest, forwards and backwards, and the guest is paused and resumed through the QEMU monitor (`stop`, `cont`) to stand in for a suspend | no reconnect, retry or refresh fires or is delayed by the step; after the pause, timers resume from the monotonic clock and the host's own link and address events are handled as usual |
 | H17, M16, G12, G23 | 300 tunnels and 300 sessions | readiness time, memory and descriptor counts bounded as the rules say; an unrelated link event costs no kernel request |
 | H18, P25, T26 | `bindv6only=1` with the fix on and off | the handshake, the fallback, the read-back |
 | H19, P22 | started by a POSIX `sh` script acting as init: parent exit, PID file, signals | the process contract |

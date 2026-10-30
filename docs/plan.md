@@ -455,7 +455,8 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
    G promise, against the real kernel: the dual-stack and IPv4-only
    hosts, `disable_ipv6`, `ipv6.disable` (QEMU only), VRFs, routers with
    no default route, containers, networkd and udev renames, hot-plugged
-   devices, address churn, missing modules and capabilities, clock jumps,
+   devices, address churn, missing modules and capabilities, clock jumps
+   (QEMU only: a container shares the wall clock with the host),
    hundreds of sessions, `bindv6only`, the non-systemd contract, and the
    unprivileged Incus/LXD system container that `CONTRIBUTING.md`
    requires ([testing](testing.md#the-scenario-suite)).
