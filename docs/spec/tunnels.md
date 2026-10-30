@@ -195,9 +195,9 @@ the address is removed from the host. The daemon therefore reconnects
 
 T20. A reconnect that fails, or that leaves the socket without a specified
 source (the device has no address of the family yet), leaves the tunnel
-disconnected with its peer pending, and one retry per bound device is
-queued a second later; unbound tunnels share one retry. Retries continue
-until a reconnect succeeds, and stop then. A retry MUST resolve the
+disconnected with its peer pending, and one retry for that tunnel is
+queued a second later. Retries continue until a reconnect succeeds, and
+stop then. A retry MUST resolve the
 configured bind name again, so that it follows a replacement device
 created while the retry was queued.
 

@@ -337,7 +337,9 @@ rs-l2tpd [--config FILE] [--config-dir DIR] [--pid-file FILE] [--verbose]
 `--config` and `--config-dir` replace the built-in paths of
 [C1](configuration.md#files); `--pid-file` that of [P10](#pid-file);
 `--verbose` raises logging to debug ([O1](observability.md#logging)).
-The modes are exclusive: `--check` ([P3](#start-up)); `--foreground`
+For compatibility with 0.1.5 ([G22](promises.md#conditional-promises)),
+`-v`, `-c` and `-p FILE` or `--pidfile FILE` are accepted as aliases of
+`--verbose`, `--check` and `--pid-file FILE`. The modes are exclusive: `--check` ([P3](#start-up)); `--foreground`
 ([P4](#start-up)); `--restart`, which sends `SIGUSR2` to the PID in the
 PID file and exits 0 when the signal was delivered and 1 otherwise;
 `--adopt-version` ([P26](#restart)); `--version`, which prints the crate

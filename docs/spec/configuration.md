@@ -143,6 +143,11 @@ entry is one of:
 | Valid `dhcpv6_identity` or `dhcpv6_duid` outside a DHCPv6 method | Applied, the key ignored. Reported as a warning. |
 | Any other mistake: a missing, zero, out-of-range or duplicate identifier, a missing or invalid name, an invalid cookie, an unknown `tunnel_name` or `resolver_name`, a link-local literal without a zone on an unbound tunnel, an invalid resolver entry, a tunnel or resolver that was left out | Left out, and a left-out tunnel takes its sessions with it; a left-out resolver leaves the tunnels that name it out. Reported as an error. |
 
+A hard mistake takes precedence over a tolerated one: the rows are
+checked in the order that finds a hard mistake first, so a link-local
+literal without a zone on an unbound tunnel is left out whatever
+`ip_version` says, and the family comparison is not what decides it.
+
 The result MAY be empty; that is a valid configuration. The daemon never
 refuses to start because of a configuration.
 
@@ -168,9 +173,13 @@ accepted configuration:
 The conversion runs in two passes so that the outcome does not depend on
 names. First, every entry of the new documents is validated on its own and
 the valid ones are checked for uniqueness in name order ([C9](#tunnel-entries));
-a new valid entry that collides with another new valid entry is left out
-as the later one. Second, every retained entry (a hard mistake with
-values in force) is checked against the result of the first pass; a
+a new valid entry that collides with another new valid entry is the later
+one at fault: it is left out when the accepted configuration has no entry
+of its name, and otherwise keeps its values in force like any other hard
+mistake (the safer outcome: a running entry is never removed because of a
+collision in the new documents). Second, every retained entry (a hard
+mistake with values in force) is checked against the result of the first
+pass; a
 retained entry that collides with a new valid entry, or whose tunnel or
 resolver is gone, makes the reload refused as a whole, naming the retained
 entry, because the operator's new values and the old values in force

@@ -23,9 +23,9 @@ What it does, in order, and all it does:
 |---|---|---|
 | 1 | Refuses unless running as root (or `--prefix` is given, for tests) | exit 1 |
 | 2 | Resolves the executable from its invocation path without procfs and copies it to `<prefix>/usr/local/sbin/rs-l2tpd`: written to a temporary name in the same directory, `fsync`ed, then `rename`d over the old file, so that the path always holds a complete binary and a daemon running from the old one keeps its inode | atomic |
-| 3 | Renders the embedded `contrib/rs-l2tpd.service.in` with `ExecStart=/usr/local/sbin/rs-l2tpd` and installs it at `<prefix>/etc/systemd/system/rs-l2tpd.service` the same way, **unless** a unit exists there that differs byte-for-byte from every known shipped installer unit embedded with this release; then it is left alone and reported, because the operator changed it | never overwrites an edit |
+| 3 | Renders the embedded `contrib/rs-l2tpd.service.in` with `ExecStart=/usr/local/sbin/rs-l2tpd` and installs it at `<prefix>/usr/local/lib/systemd/system/rs-l2tpd.service` the same way: the directory systemd.unit(5) reserves for units the administrator *installed*, next to the binary under `/usr/local`, and where 0.1.5's `--setup` wrote its unit, so an unedited 0.1.5 unit is replaced in place. `/etc/systemd/system` is for units the administrator *created* and shadows ours by precedence: a unit of the same name there, or a `systemctl edit --full` copy, wins and is left alone; drop-ins under `/etc/systemd/system/rs-l2tpd.service.d/` keep working. A unit at the install path that differs byte-for-byte from every shipped installer unit embedded with this release is left alone and reported, because the operator changed it | never overwrites an edit |
 | 4 | Creates `<prefix>/etc/rs-l2tpd.toml.d/` and, when no main file exists, `<prefix>/etc/rs-l2tpd.toml` containing the commented example of [interface](interface.md#configuration-files); an existing main file is never touched | never overwrites configuration |
-| 5 | Runs `systemctl daemon-reload`; on a first installation (the unit was not enabled before) runs `systemctl enable --now rs-l2tpd`; on a re-run it does **not** restart or reload the service | the operator restarts: `rs-l2tpd --restart` keeps the tunnels (P26), `systemctl restart` re-creates them |
+| 5 | Runs `systemctl daemon-reload`; on a first installation (the unit was not enabled before) runs `systemctl enable --now rs-l2tpd`; on a re-run it does **not** restart or reload the service, and prints how to | the operator restarts: `rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid` keeps the tunnels (P26), `systemctl restart` re-creates them. A daemon still running 0.1.5 re-execs its own path, `/usr/local/bin/rs-l2tpd`, which the installer leaves in place, so that one upgrade needs `systemctl restart`; the installer says so |
 | 6 | Prints each step's outcome on standard output; any failure exits 1 after the steps that did not depend on it | idempotent: a second run changes nothing |
 
 Out of scope, on purpose: users and groups, sysctls, firewall rules,
@@ -45,9 +45,9 @@ Test an old unedited unit, an edited old unit and an unknown unit.
 The installer renders the unit with `/usr/local/sbin/rs-l2tpd`. Unit tests
 also render the planned package path, `/usr/sbin/rs-l2tpd`; this does not
 mean the package builder exists. Both installation paths are designed to
-share the same template. The installer unit in `/etc` overrides the package
-unit in `/lib`; installing a package
-does not silently switch an existing installer service to the other binary.
+share the same template. The installer unit in `/usr/local/lib` overrides
+the package unit in `/usr/lib` (`/lib`); installing a package does not
+silently switch an existing installer service to the other binary.
 
 The template passes `--pid-file /run/rs-l2tpd/rs-l2tpd.pid` so its
 dedicated runtime directory is the only writable PID location under
@@ -110,8 +110,9 @@ Rules the maintainer scripts keep:
   add nothing to that.
 - **No restart on upgrade.** `postinst` never restarts the service; the
   tunnels and interfaces of the running daemon stay up. The operator
-  chooses `rs-l2tpd --restart` (same process, tunnels kept, P26) or
-  `systemctl restart rs-l2tpd`. The scripts print one line saying so.
+  chooses `rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid`
+  (same process, tunnels kept, P26) or `systemctl restart rs-l2tpd`. The
+  scripts print one line saying so.
 - **Enabled and started once.** On a first installation `postinst` runs
   `systemctl enable --now rs-l2tpd`; on a host without systemd it prints
   that the process contract (P22) applies and does nothing.

@@ -75,9 +75,8 @@ is the removed address is reconnected, whatever device the address was on
 the address it read from its own socket after the last reconnect
 ([T28](tunnels.md#peer-changes)), not from the kernel's address tables.
 
-E8. A reconnect that fails queues one retry per bound device, or one for
-all unbound tunnels, a second later; an event of the other family MUST
-NOT postpone a queued retry. A retry resolves the configured bind name
+E8. A reconnect that fails queues one retry for that tunnel a second
+later; an event of the other family MUST NOT postpone a queued retry. A retry resolves the configured bind name
 again. Retries stop once the reconnect succeeds.
 
 ## Route events
@@ -185,7 +184,8 @@ shutdown the request is ignored with a report.
 
 ## Monitor loss
 
-E20. The netlink subscriptions have finite buffers (8 MiB, obtained with
+E20. The netlink subscriptions have finite buffers (8 MiB requested for
+each of the three, 16 MiB after the kernel's doubling, obtained with
 `SO_RCVBUFFORCE`, [R10](requirements.md#the-host)). Loss is handled per
 subscription ([M18](model.md#monitor-generations)). When the **event
 monitor** overflows or its socket fails, the daemon reopens it, seeds it

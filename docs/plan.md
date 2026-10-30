@@ -428,9 +428,15 @@ repository file `tests/process/README.md`.
 A whole-tree check on 2026-10-30 (repository file
 `audit/PHASE5_COMPLETION_CONFORMANCE_2026-10-30.md`) ran every suite,
 compared the reconnection paths live against the 0.1.5 binary, and found
-them conforming and better than 0.1.5 throughout; its fix list is open,
-led by the staged-name interaction with udev's persistent MAC policy (A1)
-and a zoned link-local reconnect that fails for good (A2).
+them conforming and better than 0.1.5 throughout. Every item was decided
+the same day (the report's decisions section) and the specification was
+amended where a decision changed a rule: sessions are created directly
+under their configured name and staged only when strictly necessary (S4,
+S7, H11), C10 precedence, the safer C12 collision outcome, three
+subscriptions with 16 MiB effective buffers (R10, E20), retries per
+tunnel (T20, E8), the K31 nuance, the 0.1.5 option aliases (P27), the
+installer's unit under `/usr/local/lib/systemd/system`. The code fixes and
+the strengthened tests are the next step.
 
 The required Ubuntu/vanilla kernel matrix, Incus/LXD, combined coverage,
 strict global gates and whole-daemon resource/timing promises, including

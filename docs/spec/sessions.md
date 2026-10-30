@@ -27,21 +27,30 @@ name without a `%` ([K32](kernel.md#facts)), so that the kernel never
 picks one from its own pool. A session is created whether or not its
 tunnel is connected ([K5](kernel.md#requirements)).
 
-S4. The kernel assigns a random hardware address at creation and cannot
-take one as a creation parameter ([K31](kernel.md#facts)). Every session
-is therefore **staged**: created under a temporary name (`rsl2tp-t`
-followed by six hexadecimal digits, unique, chosen from the kernel's
-random source (`getrandom`, never a counter, the time or the process
-identifier, because the proof of [S22](#identity-loss) rests on the name
-being unpredictable), checked against the namespace's device names, all
-stored session creation names, and the daemon's reserved names, and within
-the kernel's length limit), given its configured address while it is down when one is
-configured, and only then renamed to its configured name, so that a
-manager matching the configured name never sees the device with the
-wrong address. One creation path serves sessions with and without a
-configured address. Reserve the creation name until the session is confirmed
-gone, even after publication; seed reservations from adopted sessions.
-A rename-swap name is not a new creation name.
+S4. A session is created **directly under its configured name** whenever
+that is possible: no `interface_hwaddr` is configured and no device holds
+the name. That is what 0.1.5 did, and what udev's and networkd's `add`
+handling expects ([H11](hosts.md#other-network-managers)): a `.link` or
+`.network` file matching the configured name applies at the device's
+first uevent, and udev's persistent hardware-address policy derives the
+same address at every start. The kernel assigns a random hardware
+address at creation and cannot take one as a creation parameter
+([K31](kernel.md#facts)), so a session **is staged only when strictly
+necessary**: when a hardware address is configured, or when the
+configured name is held by a foreign device at creation ([S7](#creation)).
+Staging means: created under a temporary name (`rsl2tp-t` followed by six
+hexadecimal digits, unique, chosen from the kernel's random source
+(`getrandom`, never a counter, the time or the process identifier,
+because the proof of [S22](#identity-loss) rests on the name being
+unpredictable), checked against the namespace's device names, all stored
+session creation names, and the daemon's reserved names, and within the
+kernel's length limit), given its configured address while it is down
+when one is configured, and only then renamed to its configured name, so
+that a manager matching the configured name never sees the device with
+the wrong address. Whichever name a session was created under is its
+creation name ([S22](#identity-loss)). Reserve the creation name until
+the session is confirmed gone, even after publication; seed reservations
+from adopted sessions. A rename-swap name is not a new creation name.
 
 S5. A manager can match the temporary device nonetheless (by type, by the
 random address) and bring it up or attach children before the daemon has
@@ -59,9 +68,10 @@ parameter changes, or when it can no longer be identified
 
 S7. Creation refused for an identifier already in use is a conflict
 ([T25](tunnels.md#identifier-conflicts)). A configured name occupied by a
-foreign device is a transient failure of publication, retried every
-second, with the session kept under its temporary name meanwhile; the
-foreign device is never touched. A temporary name occupied by a foreign
+foreign device makes the session staged ([S4](#creation)) and its
+publication a transient failure, retried every second, with the session
+kept under its temporary name meanwhile; the foreign device is never
+touched. A temporary name occupied by a foreign
 device at creation makes the kernel refuse the creation without leaving a
 session behind ([K20](kernel.md#facts)); the daemon picks another, up to
 eight draws in one attempt, after which the creation is a transient

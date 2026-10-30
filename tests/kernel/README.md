@@ -128,11 +128,15 @@ tar --exclude=dev --no-same-owner -xf root.tar -C root
 mkdir -p root/dev
 (cd root && find . -print | cpio -o -H newc -R 0:0 > ../initramfs.cpio)
 timeout 120 qemu-system-x86_64 -accel tcg -machine q35 -cpu max \
-  -m 512 -smp 2 -nodefaults -nographic -serial stdio -no-reboot \
+  -m 2048 -smp 2 -nodefaults -nographic -serial stdio -no-reboot \
   -kernel root/boot/vmlinuz-virt -initrd initramfs.cpio \
   -append 'console=ttyS0 rdinit=/init panic=-1' > run.log 2>&1
 grep 'REVIEW_RESULT=0' run.log
 ```
+
+The initramfs holds three unstripped test binaries (about 265 MB), which
+the kernel unpacks into memory; with `-m 512` the unpacking fails and the
+guest panics before `/init`, so give the guest 2048 MB.
 
 QEMU returning zero alone is insufficient: require the result marker. The outer
 timeout also bounds upstream blocking calls used by this disposable test

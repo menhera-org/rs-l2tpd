@@ -229,7 +229,7 @@ attempt never causes a burst.
 | Interval | Value |
 |---|---|
 | Reconcile retry while incomplete | 1 s |
-| Reconnect retry after a failed reconnect | 1 s per bound device, one timer per device; one shared timer for unbound tunnels |
+| Reconnect retry after a failed reconnect | 1 s, one timer per tunnel ([T20](tunnels.md#source-addresses), [E8](events.md#address-events)) |
 | Disconnected tunnel with a real peer: connect retry | 1 s, one shared timer |
 | Conflict retries before an entry is left out | 10 attempts, a second apart, the first attempt counted |
 | Retry of left-out entries | 30 s, and every reload |
@@ -240,12 +240,11 @@ attempt never causes a burst.
 | Descriptor-store withdrawal | 2 s per attempt, separate from the 2 s kernel-deletion window; retry failed retirement every 1 s while running (L13) |
 
 M15. The daemon MUST NOT poll where it can be notified, and MUST NOT loop
-without delay. Every timer is bounded in number: one per bound device, one
-for unbound reconnects, one for disconnected tunnels and left-out
-entries, one per resolver. One tick of one second drives the reconcile
-retry, the pending-peer retry and the unbound-reconnect retry while any
-of them is armed; the bound-device retries and the thirty-second
-left-out retry have timers of their own.
+without delay. Every timer is bounded in number: one reconnect retry per
+tunnel, one for disconnected tunnels and left-out entries, one per
+resolver. One tick of one second drives the reconcile retry and the
+pending-peer retry while either is armed; the per-tunnel reconnect
+retries and the thirty-second left-out retry have timers of their own.
 
 ## Scale
 

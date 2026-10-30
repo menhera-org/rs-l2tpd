@@ -67,7 +67,8 @@ rs-l2tpd [--config FILE] [--config-dir DIR] [--pid-file FILE] [--verbose]
 | `--setup-systemd` | Only in a binary built with the `setup-systemd` feature: installs this binary, the unit and the configuration paths on a systemd host, within the scope of [packaging](packaging.md#--setup-systemd-feature-setup-systemd) | 0 done, 1 a step failed |
 
 Path arguments accept native byte strings, including nonempty values
-beginning with `--`. Empty values are refused. Usage lists the optional
+beginning with `--`. Empty values are refused. The 0.1.5 spellings `-v`,
+`-c` and `-p FILE`/`--pidfile FILE` are accepted as aliases (P27). Usage lists the optional
 installer only when the binary includes it.
 
 Misuse exits 2 with the usage on standard error (P27); so does
@@ -152,7 +153,9 @@ at start-up. Hosts without IPv6, with `disable_ipv6`, with
 `bindv6only=1` are covered by [hosts](spec/hosts.md). One documented
 limitation (H11): in a container without udev, systemd-networkd before
 v253 never applies a `[Match] Name=` file to a session device the daemon
-staged under a temporary name; Ubuntu 24.04 and later are not affected.
+had to stage under a temporary name (S4: a configured hardware address,
+or a name held by a foreign device); Ubuntu 24.04 and later are not
+affected.
 
 ## Library
 

@@ -22,6 +22,27 @@ fixing. Nothing found gives an unprivileged party control of the daemon.
 Everything below is a fix list entry. Tick it when the fix lands and cite
 the number in the commit message.
 
+## Decisions, 2026-10-30
+
+Taken by the maintainer the same day; the specification was amended in
+the same commit where a decision changes a rule. The code and test work
+is still open.
+
+| Item | Decision | Specification |
+|---|---|---|
+| A1 | Staging under a temporary name happens only when strictly necessary: a configured `interface_hwaddr`, or the configured name held by a foreign device. Otherwise the session is created directly under its configured name, as 0.1.5 did. | S4 and S7 rewritten; H11 limitation scoped to staged sessions |
+| A2–A6 | Fix all. | no change |
+| B1–B11 | Fix all. B6: the installer's unit goes to `/usr/local/lib/systemd/system`, where 0.1.5 wrote it; `/etc` copies shadow it by precedence. B9: `-v`, `-c`, `-p`/`--pidfile` accepted as aliases. | P27 aliases; `docs/packaging.md` path and `--restart --pid-file` |
+| C1 | The safer behaviour, which the code has: a new entry colliding with another new entry keeps its values in force when the accepted configuration holds its name. | C12 first-pass sentence |
+| C2 | Fix the code: tolerate `resolver_name` only when the configured text was a literal. | no change |
+| C3 | More buffer memory is fine; the spec follows the code. | R10 and E20: three subscriptions, 8 MiB requested, 16 MiB effective |
+| C4 | The spec follows the code: retries per tunnel. | T20 and E8 |
+| C5 | Fix the code: the hard mistake is found first. | C10 precedence paragraph |
+| C6 | Noted. | K31 nuance and citation |
+| D1–D11 | Fix. D10 with a manual `Debug` implementation that prints no cookie bytes. | no change |
+| D12 | Docs fixed. | `tests/kernel/README.md`: `-m 2048` with the reason |
+| E1–E5 | Strengthen the tests as a whole, not item by item. | no change |
+
 ## A. Must fix before 0.2.0
 
 - [ ] **A1. Staging every session under a temporary name changes the MAC
@@ -42,12 +63,11 @@ the number in the commit message.
   ([networkd report](phase5-completion/review-networkd.md), `phase5-completion/networkd/out-*-native.txt`).
   A configured `interface_hwaddr` avoids it (the daemon sets the address
   first, udev then skips), but G22 says a 0.1.5 configuration must not
-  need to change. Fix: create a session directly under its configured
-  name when no `interface_hwaddr` is configured and the name is free,
-  and stage only when an address is configured (S4's stated reason) or
-  the name is occupied; amend S4, S7 and H11 accordingly. The creation
-  name is then the configured name, which S22's deletion-by-creation-name
-  still handles.
+  need to change. Fix (decided, spec amended): create a session directly
+  under its configured name when no `interface_hwaddr` is configured and
+  the name is free, and stage only when an address is configured (S4's
+  stated reason) or the name is occupied. The creation name is then the
+  configured name, which S22's deletion-by-creation-name still handles.
 
 - [ ] **A2. A failed connect to a zoned link-local peer leaves a kernel
   binding the daemon does not know about; every later reconnect skips the
@@ -245,8 +265,8 @@ the number in the commit message.
 - [ ] D11. A rename of a device with IPv4 addresses reconnects twice: the
   kernel sends one `RTM_NEWADDR` per address for the label change
   (`net/ipv4/devinet.c:1516-1540`) and `events.rs:252-306` takes it as E6.
-- [ ] D12. `tests/kernel/README.md` says `-m 512` for QEMU; the current
-  initramfs needs 2048 (the 512 run panics on unpacking).
+- [x] D12. `tests/kernel/README.md` said `-m 512` for QEMU; the current
+  initramfs needs 2048 (the 512 run panics on unpacking). Docs fixed.
 
 ## E. Missing or weak tests
 
