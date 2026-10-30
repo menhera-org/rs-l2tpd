@@ -1,0 +1,20 @@
+command: docker run --rm --privileged --network none; musl all-features; three classified-fact tests, exact filters below
+6.8.0-147-generic
+
+running 1 test
+test lowering_a_device_discards_ipv6_addresses_unless_preserved ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.03s
+
+
+running 1 test
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 83 filtered out; finished in 0.05s
+
+
+running 1 test
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 83 filtered out; finished in 0.05s
+

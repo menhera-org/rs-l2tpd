@@ -1,0 +1,28 @@
+6.8.0-147-generic
+command: SRCLINK_STRICT=1 cargo test --locked --all-features --test srclink -- --nocapture
+features: all
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/tools/srclink.rs (target/debug/deps/srclink-2b797d664da25c61)
+
+running 2 tests
+test scoped_and_qualified_functions_are_checked ... ok
+source links: 41 facts, 36 cited, 0 functions without a citation
+fact never cited: K13
+fact never cited: K14
+fact never cited: K33
+fact never cited: K38
+fact never cited: K40
+
+thread 'kernel_code_cites_the_facts' (3006167) panicked at tests/tools/srclink.rs:124:9:
+assertion failed: uncited.is_empty() && missing.is_empty()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test kernel_code_cites_the_facts ... FAILED
+
+failures:
+
+failures:
+    kernel_code_cites_the_facts
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test srclink`

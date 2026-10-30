@@ -69,7 +69,7 @@ the scenario suite below; read them before writing new scenarios.
 | Gate | Green when | Package |
 |---|---|---|
 | Rule map | `RULEMAP_STRICT=1 cargo test --test rulemap` passes: every active rule of every spec page is cited by a test declaration | P1 |
-| Source link | `SRCLINK_STRICT=1 cargo test --test srclink` passes: every `kernel::linux` function cites a K fact and every K fact is cited | P1 |
+| Source link | `SRCLINK_STRICT=1 cargo test --test srclink` passes: every `kernel::linux` function cites a K fact; linux-scoped facts need production citations, delegated/source-only facts need classified evidence and test citations | P1 |
 | Scenario suite | `tests/docker/run.sh scenarios` passes on the host kernel: one scenario per H rule and per conditional promise G15–G23, plus G11 interoperability with 0.1.5 | P2 |
 | Kernel matrix | `tests/docker/run.sh matrix required` passes on every kernel of the [kernel targets](testing.md#kernel-targets) table as resolved on the run's date | P3 |
 | Coverage | `cargo llvm-cov` over unit, rules, properties, fake conformance and the container profiles reports 100 % of lines and branches of `src/`, with only the marked `kernel::linux` exclusions | P4 |
@@ -120,12 +120,11 @@ cited by a `kernel::linux` function (K13, K14, K33, K38, K40).
      K33 (addresses dropped on down) is relied on by the reconciler's
      S12 deferral, not by `kernel::linux`. The source-link gate as
      written requires a `kernel::linux` citation for each. Do not add
-     fake citations. Ask the maintainer which of two changes they want:
-     the gate reads the evidence map's classification and accepts a
-     delegated or source-only fact when `docs/kernel-evidence.md` says
-     so and a test cites the fact, or the five facts move to a separate
-     table in `kernel.md` that the gate does not count. Proceed with the
-     other packages meanwhile.
+     fake citations. **Decision, 2026-10-30:** the maintainer selected
+     evidence-map classification. The gate reads the explicit scope in
+     `docs/kernel-evidence.md` and requires a test declaration citation
+     for each delegated/source-only fact. Linux-scoped facts continue to
+     require a production citation.
    - **O2, O4, O9, E26**: log-level and message-content tests on the
      report module and the process tests (E26 is the restart request
      through the control handle and `SIGUSR2`).
@@ -329,8 +328,8 @@ P7 is written as the gates turn green, not at the end.
 - a rule cannot be tested as written (name the rule, the obstacle, the
   smallest change);
 - `l2tp` or `iphost` lacks something the test needs;
-- the source-link gate's treatment of delegated facts (P1) has not been
-  decided;
+- a new fact has no source-link classification (P1's five existing
+  delegated/source-only facts were decided on 2026-10-30);
 - the coverage job's toolchain (P4) has not been decided;
 - Incus/LXD access (P5) is missing;
 - a scenario shows the daemon doing something the specification does

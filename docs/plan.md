@@ -474,8 +474,10 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
    only allowed exclusions being the `kernel::linux` branches that a
    kernel of the verified range cannot reach, each marked and justified.
 4. The source-link check: every function of `kernel::linux` carries a
-   `// kernel:` citation that names a K fact, and every K fact is cited
-   by at least one function.
+   `// kernel:` citation that names a K fact. Every linux-scoped K fact
+   is cited by a function; delegated/source-only facts require explicit
+   classification in the evidence map and a test declaration citation
+   (maintainer decision, 2026-10-30).
 5. The rule map: every numbered rule of every page appears in at least
    one test declaration; the report lists locations per rule. This is
    traceability only: required feature/ignored/live suites must separately

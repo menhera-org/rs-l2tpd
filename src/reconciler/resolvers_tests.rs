@@ -274,7 +274,7 @@ impl Drop for Dns {
     }
 }
 
-/// spec: V14, V4, V6
+/// spec: V14, V4, V6, K13, K38
 #[test]
 #[ignore = "isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW"]
 fn released_unified_adapter_enables_per_family_failure_fallback() {

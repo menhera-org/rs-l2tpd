@@ -819,3 +819,29 @@ fn event_recreation_uses_the_configured_creation_name_on_linux() {
         }
     }
 }
+
+/// spec: K33
+#[test]
+#[ignore = "isolated network namespace with CAP_NET_ADMIN"]
+fn lowering_a_device_discards_ipv6_addresses_unless_preserved() {
+    let mut f = LinuxFixture::new();
+    let dev = f.add_link("down-v6", false);
+    f.set_up(dev, true);
+    let addr: IpAddr = "2001:db8:33::1".parse().unwrap();
+    f.add_addr(dev, addr);
+    let has_addr = |f: &mut LinuxFixture| {
+        f.k()
+            .dump_addrs()
+            .unwrap()
+            .iter()
+            .any(|a| a.index() == dev && a.addr() == addr)
+    };
+    assert!(has_addr(&mut f));
+    f.set_up(dev, false);
+    assert!(!has_addr(&mut f));
+    std::fs::write("/proc/sys/net/ipv6/conf/down-v6/keep_addr_on_down", "1").unwrap();
+    f.set_up(dev, true);
+    f.add_addr(dev, addr);
+    f.set_up(dev, false);
+    assert!(has_addr(&mut f));
+}

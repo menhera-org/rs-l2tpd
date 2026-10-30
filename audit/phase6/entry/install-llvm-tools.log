@@ -1,0 +1,3 @@
+6.8.0-147-generic
+command: rustup component add llvm-tools-preview --toolchain nightly
+info: downloading component llvm-tools

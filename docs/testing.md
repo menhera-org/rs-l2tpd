@@ -150,7 +150,7 @@ as skipped, never as passed.
 |---|---|---|
 | Coverage | `cargo llvm-cov` over unit, rules, properties, the fake conformance run and the container runs (profiles merged) | 100 % lines and branches of `src/`; exclusions only in `kernel::linux` for branches no kernel of the range reaches, each marked `// coverage: unreachable on <range>, <reason>` |
 | Rule map | `tests/tools/rulemap.rs` reads every rule definition of `docs/spec/*.md`, which is a line starting with `X1.` or a table row starting with `\| X1 \|` (letters `A`, `C`, `D`, `E`, `G`, `H`, `K`, `L`, `M`, `O`, `P`, `R`, `S`, `T`, `V`), and `/// spec:` comments attached to `#[test]` or `#[tokio::test]` declarations in `tests/` and `src/` | every active rule has a test declaration citation with path, line and function; removed rules exempt. Lexical traceability only: it does not prove execution, feature selection or semantic coverage |
-| Source link | `tests/tools/srclink.rs` reads every `// kernel:` comment of `src/kernel/linux/` | every function cites a K fact; every K fact is cited |
+| Source link | `tests/tools/srclink.rs` reads every `// kernel:` comment of `src/kernel/linux/` | every function cites a K fact; linux-scoped facts have production citations; delegated/source-only facts have explicit evidence-map classifications and test declaration citations |
 | Determinism | Phase 6 CI will run the fake suites ten times with different seeds and the container suite three times | zero flakes before a gate is enabled |
 | Warnings | `cargo clippy --all-targets --all-features -- -D warnings`, `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps`, builds with no default features and with `serde` | clean |
 
