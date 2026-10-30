@@ -2,10 +2,10 @@
 
 [Documentation index](README.md)
 
-Two ways to put the daemon on a host, besides a distribution's own
-package. Neither is a substitute for distribution packaging: they exist
-for hosts where no package is available, they cover exactly what this
-page lists, and nothing else.
+The optional `--setup-systemd` installer is implemented. The `musl-deb`
+package builder below is a Phase 7 design; its directory and CI packaging
+checks do not exist yet. These paths have a bounded scope for hosts where
+no distribution package is available.
 
 ## `--setup-systemd` (feature `setup-systemd`)
 
@@ -22,7 +22,7 @@ What it does, in order, and all it does:
 | Step | Action | Rule |
 |---|---|---|
 | 1 | Refuses unless running as root (or `--prefix` is given, for tests) | exit 1 |
-| 2 | Copies the running executable to `<prefix>/usr/local/sbin/rs-l2tpd`: written to a temporary name in the same directory, `fsync`ed, then `rename`d over the old file, so that the path always holds a complete binary and a daemon running from the old one keeps its inode | atomic |
+| 2 | Resolves the executable from its invocation path without procfs and copies it to `<prefix>/usr/local/sbin/rs-l2tpd`: written to a temporary name in the same directory, `fsync`ed, then `rename`d over the old file, so that the path always holds a complete binary and a daemon running from the old one keeps its inode | atomic |
 | 3 | Renders the embedded `contrib/rs-l2tpd.service.in` with `ExecStart=/usr/local/sbin/rs-l2tpd` and installs it at `<prefix>/etc/systemd/system/rs-l2tpd.service` the same way, **unless** a unit exists there that differs byte-for-byte from every known shipped installer unit embedded with this release; then it is left alone and reported, because the operator changed it | never overwrites an edit |
 | 4 | Creates `<prefix>/etc/rs-l2tpd.toml.d/` and, when no main file exists, `<prefix>/etc/rs-l2tpd.toml` containing the commented example of [interface](interface.md#configuration-files); an existing main file is never touched | never overwrites configuration |
 | 5 | Runs `systemctl daemon-reload`; on a first installation (the unit was not enabled before) runs `systemctl enable --now rs-l2tpd`; on a re-run it does **not** restart or reload the service | the operator restarts: `rs-l2tpd --restart` keeps the tunnels (P26), `systemctl restart` re-creates them |
@@ -42,10 +42,11 @@ prior shipped installer unit texts alongside the current template so an
 unedited old unit upgrades; unknown variants are preserved and reported.
 Test an old unedited unit, an edited old unit and an unknown unit.
 
-Both installation paths render the same unit template with an absolute
-binary path: installer `/usr/local/sbin/rs-l2tpd`, package
-`/usr/sbin/rs-l2tpd`. Test each with both binaries present. The installer
-unit in `/etc` overrides the package unit in `/lib`; installing a package
+The installer renders the unit with `/usr/local/sbin/rs-l2tpd`. Unit tests
+also render the planned package path, `/usr/sbin/rs-l2tpd`; this does not
+mean the package builder exists. Both installation paths are designed to
+share the same template. The installer unit in `/etc` overrides the package
+unit in `/lib`; installing a package
 does not silently switch an existing installer service to the other binary.
 
 The template passes `--pid-file /run/rs-l2tpd/rs-l2tpd.pid` so its
@@ -57,7 +58,10 @@ PID-file default.
 
 ## `musl-deb`: a minimal Debian package
 
-A directory `musl-deb/` in the repository builds `.deb` files from the
+Planned for [Phase 7](plan.md#phase-7--release), not implemented in the
+current tree. The layout, commands and CI checks below describe that design.
+
+A directory `musl-deb/` will build `.deb` files from the
 static musl binaries, for `amd64` and `arm64`, with **our own code
 only**: no `debhelper`, no `dpkg-deb`, no `debian/` directory, no Debian
 tool at all, so that the packages can be built on any host that builds
@@ -122,7 +126,7 @@ Rules the maintainer scripts keep:
   `0755`, the binary `0755`, the unit and the example `0644`, the
   maintainer scripts `0755`, whatever the building user is.
 
-Build:
+Planned commands, available after the tool is implemented:
 
 ```sh
 cargo run --manifest-path musl-deb/Cargo.toml --                        # both architectures
@@ -132,8 +136,9 @@ cargo run --manifest-path musl-deb/Cargo.toml -- --list rs-l2tpd_0.2.0-1_amd64.d
 
 The host needs `cross`, as `build-release.sh` does, and nothing else.
 The result is `rs-l2tpd_<version>-1_<arch>.deb` in the repository root,
-next to the tarballs. CI builds the `amd64` package and checks, with the
-tool's own `--list` and its unit tests of the two writers (a fixed tree
+next to the tarballs. Phase 7 will add CI to build the `amd64` package and
+check, with the tool's own `--list` and its unit tests of the two writers
+(a fixed tree
 produces a byte-identical archive), that the control file, the
 conffile, the three maintainer scripts and the five installed paths are
 present. Installing the result with `dpkg -i` inside a

@@ -30,8 +30,11 @@ The last release is 0.1.5. The tree is being rewritten against a complete
 [current contract gaps](docs/spec/README.md#current-contract-gaps) list the
 review corrections and their acceptance work. Configuration, kernel,
 reconciler, runtime, service and process code exists; Phases 1–5 have scoped
-verification records, including [binary verification](audit/PHASE5_VERIFICATION_2026-10-29.md).
-The binary runs on musl and glibc. The global Phase 6 gates remain open.
+verification records, including the
+[Phase 5 conformance follow-up](audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md).
+The binary runs on musl and glibc, with fresh process tests on Ubuntu
+6.8.0-147 and QEMU kernels 6.12.114, 6.18.59 and 7.3. The global Phase 6
+gates remain open, including the full system-unit mount-sandbox check.
 The known-gap tables describe historical commit `741117b`.
 
 ## Quick start
@@ -62,7 +65,7 @@ Start with the [documentation index](docs/README.md):
 - [Interface](docs/interface.md): configuration, command line, signals, unit, library
 - [Dependencies](docs/dependencies.md): the supply chain and upstream needs
 - [Testing](docs/testing.md): the suites, the gates, kernel test pitfalls
-- [Packaging](docs/packaging.md): `--setup-systemd` and the `musl-deb` packages, and what they are not
+- [Packaging](docs/packaging.md): the implemented `--setup-systemd` installer and planned `musl-deb` packages
 - [Specification](docs/spec/README.md): requirements, promises, architecture, behaviour in every condition
 
 The audit reports and reviews behind the specification are in

@@ -1,5 +1,10 @@
 # Phase 5 — binary verification, 2026-10-29
 
+This is the original execution record. The
+[October 30 conformance follow-up](PHASE5_CONFORMANCE_FIXES_2026-10-30.md)
+records subsequent fixes, current test counts and fresh source/live checks.
+The counts and executions below describe the initial implementation.
+
 The starting tree was clean at `48753db` on `main`, with Phase 4 and its
 audit follow-up implemented. The binary modules were empty and main exited
 2. This change implements the process layer around the existing blocking

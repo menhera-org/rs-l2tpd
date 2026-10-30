@@ -5,7 +5,11 @@ Phase 2–3 results and the per-K classification are in
 and [kernel evidence map](../../docs/kernel-evidence.md).
 [Phase 4 verification](../../audit/PHASE4_VERIFICATION_2026-10-29.md)
 adds a live service/runtime case to `kernel-linux` and re-runs the host
-suites. It leaves the Phase 6 required kernel matrix as a separate gate.
+suites. The
+[Phase 5 conformance follow-up](../../audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md)
+adds fresh actual-process runs on musl/glibc and QEMU 6.12.114, 6.18.59
+and 7.3. These scoped runs leave the complete required Ubuntu/vanilla
+kernel matrix as a separate Phase 6 gate.
 
 Build every test executable, including the production adapter's private live
 cases in the library test executable:

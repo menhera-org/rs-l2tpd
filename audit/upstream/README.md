@@ -1,7 +1,8 @@
 # l2tp 0.4.2 event sender fix (superseded by the 0.4.3 release)
 
-`l2tp` 0.4.3, published 2026-10-28, carries this fix (and `BoundedEvents`);
-the manifest pins it. The patch below is kept as the reproduction.
+`l2tp` 0.4.3, published 2026-10-28, shipped this fix (and `BoundedEvents`).
+The daemon now depends on `l2tp` 0.5.0 and uses its own raw event transport.
+The patch below is an archived reproduction against 0.4.2.
 
 `l2tp-kernel-event-sender.patch` is the only upstream change prepared here.
 It was developed in an isolated clone at commit
@@ -20,7 +21,8 @@ The included regression fails without the filter and passes with it. In the
 isolated clone, all 128 library tests and all-target/all-feature Clippy pass
 for x86_64-unknown-linux-musl. See ../evidence/upstream-*.log.
 
-Apply to the upstream checkout after checking its current diff:
+Historical reproduction commands for the 0.4.2 checkout used above;
+do not apply this already-shipped fix to current upstream:
 
 ```sh
 git --no-pager apply --check /absolute/path/to/l2tp-kernel-event-sender.patch

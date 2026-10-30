@@ -66,6 +66,10 @@ rs-l2tpd [--config FILE] [--config-dir DIR] [--pid-file FILE] [--verbose]
 | `--version` | Prints the crate version | 0 |
 | `--setup-systemd` | Only in a binary built with the `setup-systemd` feature: installs this binary, the unit and the configuration paths on a systemd host, within the scope of [packaging](packaging.md#--setup-systemd-feature-setup-systemd) | 0 done, 1 a step failed |
 
+Path arguments accept native byte strings, including nonempty values
+beginning with `--`. Empty values are refused. Usage lists the optional
+installer only when the binary includes it.
+
 Misuse exits 2 with the usage on standard error (P27); so does
 `--setup-systemd` in a binary built without the feature. The daemon exits
 0 after a complete shutdown, 1 when a shutdown step failed, 2 when the
@@ -82,7 +86,8 @@ reload callback panicked (O7).
 
 A `SIGTERM` is always a teardown; systemd's `stop` and `restart` are the
 same to the daemon, and a restart that keeps the interfaces is `SIGUSR2`
-or `rs-l2tpd --restart` (P14, P26).
+or `rs-l2tpd --restart` (P14, P26). `SIGUSR1` retains its default action;
+it is not reserved for the signal collector.
 
 ## Readiness and the PID file
 
@@ -113,9 +118,11 @@ bounding and ambient sets limited to `CAP_NET_ADMIN`, `CAP_NET_RAW` and
 `CAP_NET_BIND_SERVICE`, `NoNewPrivileges=yes`, a read-only system
 except the PID file, `ProtectHome=yes`, `PrivateTmp=yes`, address
 `RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6` (`AF_UNIX`
-for the descriptor-store notification socket, independent of resolver needs), and the `net.ipv6.bindv6only`
-write allowed. It is one integration: the process contract (P22) is
-what every init system gets, and a container entry point uses
+for the descriptor-store notification socket, independent of resolver needs).
+The template declares `ReadWritePaths=-/proc/sys/net/ipv6/bindv6only`
+under `ProtectKernelTunables=yes` for the tunable write. It is one
+integration: the process contract (P22) is what every init system gets,
+and a container entry point uses
 `--foreground`.
 
 The unit passes `--pid-file /run/rs-l2tpd/rs-l2tpd.pid` and creates only
@@ -128,6 +135,10 @@ With the store, the daemon pushes each tunnel socket into it as the
 tunnel exists and withdraws it at an explicit shutdown, so that the
 tunnels and interfaces survive a crash and the next instance adopts them
 (P14, S28). No systemd library is linked.
+
+The real-manager test verifies notification transport and the address-family
+filter. The complete root system-unit mount sandbox, including the tunable
+write exception, still needs live verification; see [testing](testing.md).
 
 ## Host requirements
 

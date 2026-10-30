@@ -34,7 +34,8 @@ docker run --rm --network none --privileged \
 ```
 
 The image is built by the [kernel instructions](../kernel/README.md).
-The two permission cases drop a child to uid/gid 65534. The process cases
+Two permission fixtures drop a child to uid/gid 65534; the third changes
+a PID directory's ownership after publication. The process cases
 need writable namespace-local network sysctls for the tunable handshake.
 The overlapping-instance case takes the real ten-second conflict budget.
 Do not run these privileged cases directly on the host.
@@ -44,7 +45,7 @@ glibc. These images select userspace, not another kernel. A separate run
 of `foreground_reload_and_clean_shutdown_without_network`, after
 `mount -t tmpfs tmpfs /proc` inside the privileged container, checks the
 process with procfs absent and tunable fixing disabled. Run
-setup_prefix_preserves_configuration there as well to check the installer's
+`setup_prefix_preserves_configuration` there as well to check the installer's
 procfs-free executable lookup. Docker/runc refuses
 covering /proc directly through its outer mount options.
 
@@ -72,10 +73,15 @@ This tests the actual address-family restriction and descriptor protocol;
 it does not claim to execute the root system unit with every mount and
 capability restriction. It does not verify that ReadWritePaths admits the
 bindv6only write under ProtectKernelTunables=yes; that root system-unit
-mount-sandbox check remains open (P21/P25). The template is also parsed by unit tests and
-checked with `systemd-analyze --no-pager verify`.
+mount-sandbox check remains open (P21/P25). The template is also parsed by
+unit tests and checked with `systemd-analyze --no-pager verify`.
 
-Results and rule/case limits are in the
-[Phase 5 verification record](../../audit/PHASE5_VERIFICATION_2026-10-29.md).
-The full container scenarios, QEMU matrix and global coverage gates belong
-to Phase 6.
+Current results and rule/case limits are in the
+[October 30 conformance follow-up](../../audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md):
+27 ordinary binary cases, seven ordinary and 17 privileged process cases,
+three file/ownership fixtures, both libc userspaces, and fresh process
+runs under QEMU 6.12.114, 6.18.59 and 7.3. The
+[initial Phase 5 record](../../audit/PHASE5_VERIFICATION_2026-10-29.md)
+retains the original executions and repetition evidence. The complete
+Ubuntu/vanilla matrix, whole-daemon scenarios and global coverage gates
+remain Phase 6 work.

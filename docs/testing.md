@@ -20,8 +20,8 @@ tests/
   kernel/         shared operation cases plus live-only fixture/source checks for K facts
   process.rs      actual-binary CLI and live process cases; binary unit tests live in src/bin/
   process/        instructions for privileged and real-manager process checks
-  scenarios/      the scenario suite: whole-daemon tests in containers, one per H rule and G promise
-  docker/         the runner: Dockerfiles, the scenario driver, the QEMU matrix driver
+  scenarios/      planned for Phase 6: whole-daemon tests per H rule and G promise
+  docker/         retained historical Dockerfiles and instructions; Phase 6 runners are not present
   tools/
     rulemap.rs    the rule-map check
     srclink.rs    the source-link check
@@ -30,11 +30,19 @@ tests/
 Every test names the rules it guards in its doc comment,
 `/// spec: T21, K22`, which the rule map reads.
 
-Phase 5's executed process cases and limits are recorded in
-binary verification (repository file `audit/PHASE5_VERIFICATION_2026-10-29.md`);
-tests/process (repository file `tests/process/README.md`) gives musl, glibc, permission
-and native systemd transport commands. They precede the complete Phase 6
-scenario suite below.
+Phase 5's latest executed cases and limits are in repository file
+`audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md`: 27 ordinary binary cases,
+seven ordinary and 17 privileged process cases, three file/ownership
+fixtures, musl/glibc runs on Ubuntu 6.8.0-147, and fresh QEMU process runs
+on 6.12.114, 6.18.59 and 7.3. The initial verification record remains
+`audit/PHASE5_VERIFICATION_2026-10-29.md`.
+
+Repository file `tests/process/README.md` gives the container and native
+systemd transport commands. The manager test covers the address-family
+filter and descriptor protocol, not the complete root system-unit mount
+sandbox. In particular the bindv6only write under ProtectKernelTunables
+with ReadWritePaths remains unverified. The full required kernel matrix,
+Incus/LXD and combined coverage remain Phase 6 work.
 
 ## The four suites
 
@@ -43,7 +51,7 @@ scenario suite below.
 | Unit and `rules/` | fake | `cargo test --all-features`, no privilege | C, M, T, S, V, E, O, L rules |
 | `properties/` | fake | included by the feature-gated `rules` target in `cargo test --all-features` | seeded reload invariants for G3, G5–G7 and G18 |
 | `kernel/` conformance | fake **and** real | `cargo test --all-features` for the fake; a privileged container and the QEMU matrix for the real one | K facts, `kernel::linux` |
-| `scenarios/` | real | privileged containers; QEMU for `ipv6.disable=1` and other boot options | H rules, P rules, the unit, G15–G23 end to end |
+| `scenarios/` (planned, Phase 6) | real | privileged containers; QEMU for `ipv6.disable=1` and other boot options | H rules, P rules, the unit, G15–G23 end to end |
 
 ### The conformance suite
 
@@ -77,7 +85,7 @@ tag):
 
 | Kernel | Rule | How it runs |
 |---|---|---|
-| Ubuntu 24.04 `6.8.0-147-generic` | older of the two latest LTS kernels | the host kernel of CI, in a privileged container |
+| Ubuntu 24.04 `6.8.0-147-generic` | older of the two latest LTS kernels | a privileged container on a host running this kernel, or QEMU |
 | Ubuntu 26.04 `7.0.0-42-generic` (also 24.04's HWE kernel) | newer of the two latest LTS kernels | QEMU, the `vmlinuz` and modules unpacked from the `linux-image` package of the `ubuntu:26.04` image |
 | vanilla `6.8.12` (the last 6.8.y) | vanilla equivalent of the 24.04 kernel | QEMU, built from the kernel.org tarball with `x86_64_defconfig` plus L2TP |
 | vanilla latest `7.0.y` | vanilla equivalent of the 26.04 kernel | QEMU, built the same way |
@@ -85,8 +93,8 @@ tag):
 
 Desired, not gating: every vanilla release between the oldest required
 one and mainline (the matrix below), Debian's stock kernels, and
-RHEL-ish stock kernels. The matrix driver takes the required set from
-this table, so updating the table is what updates the run; a run
+RHEL-ish stock kernels. The planned matrix driver will take the required
+set from this table; it is not implemented yet. Each run
 records `uname -r` next to its result, as the probes of
 `tests/kernel/README.md` do. The verified range of
 [kernel](spec/kernel.md) grows with what the matrix has run.
@@ -141,14 +149,19 @@ as skipped, never as passed.
 | Coverage | `cargo llvm-cov` over unit, rules, properties, the fake conformance run and the container runs (profiles merged) | 100 % lines and branches of `src/`; exclusions only in `kernel::linux` for branches no kernel of the range reaches, each marked `// coverage: unreachable on <range>, <reason>` |
 | Rule map | `tests/tools/rulemap.rs` reads every rule definition of `docs/spec/*.md`, which is a line starting with `X1.` or a table row starting with `\| X1 \|` (letters `A`, `C`, `D`, `E`, `G`, `H`, `K`, `L`, `M`, `O`, `P`, `R`, `S`, `T`, `V`), and `/// spec:` comments attached to `#[test]` or `#[tokio::test]` declarations in `tests/` and `src/` | every active rule has a test declaration citation with path, line and function; removed rules exempt. Lexical traceability only: it does not prove execution, feature selection or semantic coverage |
 | Source link | `tests/tools/srclink.rs` reads every `// kernel:` comment of `src/kernel/linux/` | every function cites a K fact; every K fact is cited |
-| Determinism | CI runs the fake suites ten times with different seeds and the container suite three times | zero flakes before a gate is enabled |
+| Determinism | Phase 6 CI will run the fake suites ten times with different seeds and the container suite three times | zero flakes before a gate is enabled |
 | Warnings | `cargo clippy --all-targets --all-features -- -D warnings`, `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps`, builds with no default features and with `serde` | clean |
 
 Required suites separately record the selected features, ignored/live test
 execution and results. Keep explicit per-clause/table-case coverage;
 a green rule map alone cannot close a phase. The runner layout below is
 the Phase 6 target, not an assertion that those runners already exist.
-Current review probes and exact commands are in `tests/kernel/README.md`.
+Current CI runs formatting, warning-denied Clippy and documentation,
+no-default/serde library builds, and native/musl tests. Rule-map and
+source-link checks run leniently until Phase 6 enables their strict flags;
+a green CI run does not establish the coverage or complete kernel matrix
+gates. Current review probes and exact commands are in repository file
+`tests/kernel/README.md`.
 
 ## Running
 
@@ -179,8 +192,9 @@ These cases are required by the 2026-10-29 contract corrections.
 Phase 2–3 evidence (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`) identifies
 the implemented policy, adapter and live-boundary cases.
 Phase 4 evidence (repository file `audit/PHASE4_VERIFICATION_2026-10-29.md`) adds callback,
-queue, service-drop and library handshake cases. Process crash/re-exec
-and whole-daemon portions still require Phases 5–6.
+queue, service-drop and library handshake cases. Phase 5 and its October 30
+follow-up add actual-process crash/re-exec acceptance; the remaining
+whole-daemon timing, resource and host-matrix portions belong to Phase 6.
 
 | Rules | Deterministic policy case | Real boundary evidence |
 |---|---|---|

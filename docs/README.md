@@ -18,16 +18,19 @@ are in the [GitHub repository](https://github.com/menhera-org/rs-l2tpd).
 | [Dependencies](dependencies.md) | The supply chain after the rewrite, each crate with its reason, and what was removed |
 | [Testing](testing.md) | How 100 % coverage, one test per specification claim, determinism and live-kernel proof are reached: the fake kernel, the conformance suite, the container and QEMU matrices, the rule map |
 | [Kernel evidence](kernel-evidence.md) | Every K fact classified as a shared operation, live host case, delegated requirement or source assertion |
-| [Packaging](packaging.md) | The two installation paths besides distribution packages: `--setup-systemd` (feature `setup-systemd`) with its bounded scope, and the `musl-deb` static packages for `amd64` and `arm64` |
+| [Packaging](packaging.md) | The implemented `--setup-systemd` installer (feature `setup-systemd`) and the planned Phase 7 `musl-deb` builder for `amd64` and `arm64` |
 | [Upstream iphost work](upstream-iphost.md) | Instructions for protocol bug fixes, optional failure fallback, compatibility and daemon integration gates |
 | [Specification](spec/README.md) | The normative behaviour, with the known gaps of the historical pre-rewrite implementation that the rewrite closes |
 
 Version 0.2.0 has not been released; the rewrite ships under that
 number. The tree contains configuration, fake/real kernel, reconciler,
 runtime, services and binary; Phases 1–5 have scoped verification records.
-The Phase 5 record is repository file
-`audit/PHASE5_VERIFICATION_2026-10-29.md`. The binary runs on musl and
-glibc; global Phase 6 gates remain open. The specification's
+The latest Phase 5 evidence is repository file
+`audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md`, following the initial
+`audit/PHASE5_VERIFICATION_2026-10-29.md` record. The binary runs on musl
+and glibc; fresh process tests pass on Ubuntu 6.8.0-147 and QEMU kernels
+6.12.114, 6.18.59 and 7.3. Global Phase 6 gates remain open, including
+the full system-unit mount-sandbox check. The specification's
 [known gaps](spec/README.md#known-gaps) describe historical commit
 `741117b`, removed in Phase 0. The interface page describes the target.
 

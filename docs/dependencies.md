@@ -15,7 +15,7 @@ crates the `l2tp` crate already pulls.
 |---|---|---|
 | `l2tp` 0.5 | Tunnel sockets, shared checked types and `KernelMessage` decoding; production requests/events use the daemon's raw adapter | T6, T21, K16, K41, L13 |
 | `iphost` 0.4.1 | General-purpose system/configured DNS and discovery, with the incremental RDNSS updates of V10 and the opt-in failure fallback of V14; daemon scheduling and retention stay here | V1–V15 |
-| `netlink-sys`, `netlink-packet-core`, `netlink-packet-route`; add direct `netlink-packet-generic` and `netlink-packet-l2tp` imports when Phase 2 uses them | Bounded generic-netlink requests and events, the rtnetlink request socket, event monitor and lifetime subscription: raw sockets on `AsyncFd`, so that the kernel's buffer and `ENOBUFS` are seen (already dependencies of `l2tp`) | A5, A7, E20, E21, K29 |
+| `netlink-sys`, `netlink-packet-core`, `netlink-packet-route`, `netlink-packet-generic`, `netlink-packet-l2tp` | Bounded generic-netlink requests and events, the rtnetlink request socket, event monitor and lifetime subscription: raw sockets on `AsyncFd`, so that the kernel's buffer and `ENOBUFS` are seen (already dependencies of `l2tp`) | A5, A7, E20, E21, K29 |
 | `socket2` | `SO_BINDTOIFINDEX`, `SO_ATTACH_FILTER`, `IPV6_V6ONLY` read-back, `SO_RCVBUF`, socket type and protocol queries for adopted descriptors | T10, K10, T26, R10, P14 |
 | `nix` (`socket`, `process`, `signal`, `fs`, `poll`) | `SO_RCVBUFFORCE`, process/signal/filesystem wrappers; the `bin` feature adds `uio` for `sendmsg` with `SCM_RIGHTS` | R10, P14 |
 | `tokio` (`rt`, `sync`, `time`, `net`) | The loop, the bounded channel, timers, `AsyncFd` | A6, M14 |
@@ -51,7 +51,7 @@ the logger is thirty lines over `log::Log` (O1), the PID file, signals,
 | `clap` | 70 crates for nine options |
 | `env_logger` | Its format and its environment variable contradict O1 |
 | `libc` (library) | Everything the library needs is in `socket2`, `nix`, `getrandom` or `std`; the binary keeps it for `capget` and `fork` |
-| `setup` feature | The installer is gone (plan, phase 0) |
+| Legacy `setup` feature | Removed in Phase 0; Phase 5 implements the bounded installer under `setup-systemd`, without an additional dependency |
 
 ## Upstream needs
 
@@ -93,4 +93,6 @@ regressions, compatibility requirements and integration gate.
 
 Rust 1.89; `cargo build --release --locked --target x86_64-unknown-linux-musl`
 for a static binary; `build-release.sh` builds the musl targets with
-`cross`. Publishing uses `--registry crates-io`.
+`cross` and enables `setup-systemd` by default. Ordinary Cargo builds
+default to `bin`, without the optional installer. Publishing uses
+`--registry crates-io`.

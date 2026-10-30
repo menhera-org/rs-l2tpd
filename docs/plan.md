@@ -280,9 +280,10 @@ Exit: M, T, S, V and E policy cases pass deterministically, as do G3,
 G5–G7 and G18 planner properties. Include cross-tunnel name swaps and
 session-ID reuse delayed by deletion, resolver config generations and
 non-VRF validation, and dual zone/bind dependencies. G14 library behavior
-and actual channel/wakeup concurrency close in Phase 4; G15–G23 process,
-timing and resource promises require Phase 5–6 end-to-end tests. No
-unimplemented service/process promise is claimed from a planner test.
+and actual channel/wakeup concurrency are covered by Phase 4; Phase 5
+adds actual-process acceptance. Remaining G15–G23 timing and resource
+promises require Phase 6 end-to-end tests. A planner test alone does not
+establish service or process behavior.
 The [contract correction cases](testing.md#contract-correction-acceptance-cases)
 are mandatory: staged replacement after loss, tunable completion before
 registration, obsolete lookup accounting, and both upstream resolver
@@ -331,8 +332,9 @@ The verification record (repository file `audit/PHASE4_VERIFICATION_2026-10-29.m
 maps the L rules to executed cases: 12 runtime tests, 14 service tests,
 six doc tests, ten seeded fake-suite repetitions, the warnings/feature
 build gates, and 26 live Linux tests including the two services and
-unordered runtime drop. The binary remains a Phase 5 stub. Coverage,
-the full required kernel matrix and strict global gates remain Phase 6.
+unordered runtime drop. That record predates the binary implementation
+in Phase 5 below. Coverage, the full required kernel matrix and strict
+global gates remain Phase 6.
 
 The Phase 4 audit follow-up (repository file `audit/PHASE4_REMEDIATION_2026-10-29.md`)
 corrects F1–F7 and verifies the amended L7/L8 blocking contracts: reload
@@ -348,7 +350,7 @@ library tests, 22 service tests, ten seeded repetitions and live host results.
 Implements [process](spec/process.md) P1–P27 and
 [observability](spec/observability.md) O1, O7, O8.
 
-1. Command line (P27) by hand, no `clap`: the nine options, exclusive
+1. Command line (P27) by hand, no `clap`: the documented options, exclusive
    modes, exit 2 on misuse.
 2. Files (C1–C4) and `--check` (P3, O8) with its fixed rendering.
 3. Logging (O1): a `log::Log` to standard error, `LEVEL target: message`.
@@ -371,7 +373,9 @@ Implements [process](spec/process.md) P1–P27 and
    report failed cleanup without hanging shutdown.
 9. Restart (P26, E26): the `--adopt-version` probe, close-on-exec cleared
    on the handed sockets only, `execve` of the path the daemon was started
-   with, signal mask reset in the new instance.
+   with. Requests stay blocked across exec until the new instance prepares
+   its signal collector; a pre-exec hook retains `SIGPIPE` ignore even if
+   exec fails.
 10. Capability report (R49): `capget(2)` for the effective set, no
     `/proc`; report each missing one once.
 11. The systemd unit (P21), rendered from `contrib/rs-l2tpd.service.in`
@@ -393,7 +397,8 @@ listener, the restart exec, and the capability report.
 Exit: every P and O rule and the deferred C1, C3, C4 file cases tested; the binary runs on glibc and musl
 targets (P24).
 
-**Status: done on 2026-10-29 within this phase's scope.** The binary now
+**Status: implemented on 2026-10-29, conformance follow-up verified on
+2026-10-30 within this phase's scope.** The binary now
 loads and checks files, logs, double-forks with readiness, publishes and
 removes its PID file by inode, and forwards coalesced signals to the
 existing service. The native descriptor-store transport uses processing
@@ -407,19 +412,25 @@ preserved edits and first-enable-only behavior. The unit selects a
 dedicated writable PID directory; standalone PID defaults are unchanged.
 No dependency was added.
 
-The verification record (repository file `audit/PHASE5_VERIFICATION_2026-10-29.md`)
-maps the process and deferred file rules to explicit cases: 18 ordinary
-binary unit cases, six ordinary process cases, 15 live kernel/process
-cases on both musl and glibc, uid-dropping permission fixtures, an installer
-systemctl recorder, and native notifications under a real systemd
-address-family filter. Ten seeded ordinary and ten live musl repetitions
-pass. Reproduction commands (repository file `tests/process/README.md`) keep privileged
-and real-manager checks separate from ordinary Cargo tests.
-The required QEMU matrix, Incus/LXD, combined coverage, strict global
-gates and whole-daemon resource/timing promises, including comparative
-P15 timing, remain Phase 6.
-The binary's 1,875 physical lines excluding inline tests exceed the
-rewrite's under-1,500 target; that size target remains open.
+The latest conformance record is repository file
+`audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md`. It records 27 ordinary
+binary cases, seven ordinary process cases, 17 privileged process cases
+and three file/ownership fixtures on both musl and glibc. Fresh QEMU runs
+on 6.12.114, 6.18.59 and 7.3 execute all 24 process cases; the real user
+systemd manager and procfs-hidden installer/daemon checks also pass.
+The follow-up fixes the confirmed audit findings, tests full-queue signal
+forwarding and preserves SIGUSR1's default action. Rust's exec preserves
+the signal mask; the reproduced failed-exec SIGPIPE reset is fixed.
+The initial record, `audit/PHASE5_VERIFICATION_2026-10-29.md`, retains its
+dated test counts and repetition evidence. Reproduction commands are in
+repository file `tests/process/README.md`.
+
+The required Ubuntu/vanilla kernel matrix, Incus/LXD, combined coverage,
+strict global gates and whole-daemon resource/timing promises, including
+comparative P15 timing, remain Phase 6. The full root system-unit mount
+sandbox, especially the bindv6only write exception, is still unverified.
+The binary still exceeds the rewrite's under-1,500-line target before
+inline tests; that size target remains open.
 
 ### Phase 6 — proof
 
@@ -478,6 +489,6 @@ finished binary.
 | The discard addresses, null device, grace period and route repair | The disconnected state (K5, T1) |
 | `rtnetlink`, `netlink-proto`'s unbounded queue in the monitors, `futures-util`, `async-trait` | `netlink-sys` sockets on `tokio::io::unix::AsyncFd` ([dependencies](dependencies.md)) |
 | `clap`, `env_logger` | Hand-written option parsing (P27) and a thirty-line logger (O1) |
-| The `--setup` installer and the `setup` feature | `--setup-systemd` behind the `setup-systemd` feature, with the explicit, bounded scope of [packaging](packaging.md): not a substitute for packaging, which the `musl-deb` directory provides for Debian-family hosts |
+| The `--setup` installer and the `setup` feature | `--setup-systemd` behind the `setup-systemd` feature, with the explicit, bounded scope of [packaging](packaging.md): not a substitute for the Debian-family packaging planned in Phase 7's `musl-deb` directory |
 | Per-kind `handle_*` methods as the only dispatch | `handle_event` (L10) |
-| Twenty-one `privileged_` library tests and seventeen shell scenarios | The conformance suite and the scenario suite of [testing](testing.md) |
+| Twenty-one `privileged_` library tests and seventeen shell scenarios | The current conformance and process suites, with the full scenario suite still planned for Phase 6 in [testing](testing.md) |
