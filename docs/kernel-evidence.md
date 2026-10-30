@@ -47,7 +47,7 @@ their own relevant citations.
 | K33 | source: IPv6 down transition; the Kernel boundary has no operation to lower a device, and policy tests preserve administrative state and child records | source-only |
 | K34 | shared/live: unspecified IPv4 source and missing IPv6 source; policy treats an unspecified returned source as a failed connect | linux |
 | K35 | live production unit: every cookie length 0 through 8 is read; invalid configuration lengths stay rejected and Debug hides bytes | linux |
-| K36 | source/requirement: initial-user-namespace capability check; production subscription opens attempt FORCE then ordinary receive buffer; actual finite-buffer overflow is exercised separately | linux |
+| K36 | source/requirement: initial-user-namespace capability check; live production unit: `subscription_buffer_matches_force_or_capped_fallback` compares the production buffer with FORCE or ordinary-buffer behavior; the unprivileged Incus runner requires the EPERM fallback branch to run; finite-buffer overflow is exercised separately | linux |
 | K37 | live: descriptor duplicate/adoption and real systemd manager holds the only reference until acknowledged withdrawal | linux |
 | K38 | delegated source/requirement: released iphost shared DHCPv6 listener and the kernel socket-selection sources; downstream live adapter binds 546 and exchanges a Reply | delegated |
 | K39 | requirement + live: raw RA socket under NET_RAW; fake binding conformance also runs without NET_RAW | linux |

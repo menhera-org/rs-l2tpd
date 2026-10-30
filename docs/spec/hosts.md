@@ -97,7 +97,9 @@ device another manager brought up, defers hardware-address changes until
 the device is down, and publishes a staged device under its configured
 name even when a manager already configured it. A manager that needs a
 particular hardware address before activation must match the configured
-name, not the temporary device; the race is the kernel's and documented.
+name, not the temporary device. Matching the name does not order MAC
+assignment before activation; the limitation below applies to direct
+creation as well.
 systemd-networkd processes router advertisements itself and usually
 disables `accept_ra` on the interfaces it manages, so the kernel forwards
 no RDNSS option for them ([K40](kernel.md#facts)); a resolver using router
@@ -119,8 +121,41 @@ or later (Ubuntu 24.04 and later) are not affected. udev's
 device had at its `add` uevent, so a staged device would get an address
 derived from its temporary name; staging happens only when a hardware
 address is configured, which takes precedence, or when the name is
-occupied. Sessions created directly under their configured name see none
-of this.
+occupied. Direct creation avoids these temporary-name and rename-rematching
+limitations.
+
+**Persistent MAC assignment and activation are separate operations.**
+Even for a session created directly under its configured name, networkd
+may match its `.network` file and bring it up before udev applies
+`MACAddressPolicy=persistent`. The kernel refuses a changed MAC on an
+already-up L2TP session with `EBUSY` ([K31](kernel.md#facts)). udev may
+therefore leave the kernel-assigned random MAC in place. This outcome
+does not prevent networkd from addressing or activating the interface.
+The daemon preserves its index, UP state, addresses and manager changes
+([G4](promises.md#unconditional-promises)); it neither lowers the device
+nor retries udev's MAC policy on udev's behalf.
+
+Where the persistent MAC must be installed before activation, the
+operator must arrange for udev to finish while the interface is down,
+then allow networkd or another manager to activate it. A configured-name
+match alone does not provide that ordering. Successful persistent
+assignment is stable for the same machine identity, stable device
+identifier (the interface name for these virtual devices) and policy.
+Direct creation alone does not guarantee that assignment succeeds, nor
+that a kernel-random MAC retained after a race will survive deletion and
+re-creation. A temporary creation name or a changed machine identity can
+also change the generated persistent value. These are udev policy
+limitations; the daemon's separately configured `interface_hwaddr`
+continues to follow [S12](sessions.md#hardware-addresses), including
+deferral while a manager keeps the device up.
+
+The live acceptance cases cover both contracts: concurrent managers may
+produce either successful persistent assignment or the documented
+MAC-while-up refusal, with the active interface preserved in either
+case; a separately ordered case requires successful persistent
+assignment and the same MAC across clean re-creation before subsequent
+networkd activation. A passing ordered case is not evidence of an
+unconditional persistent-MAC guarantee under concurrent activation.
 
 H12. **Another L2TP user** (a second daemon, `ip l2tp`, a tool holding a
 tunnel or session identifier) makes the daemon's entries conflicts

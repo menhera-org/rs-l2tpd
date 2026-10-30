@@ -1,0 +1,27 @@
++ incus --quiet launch images:ubuntu/24.04 rs-l2tpd-phase6-3038834 --no-profiles --storage default -c security.privileged=false
+
+The instance you are starting doesn't have any network attached to it.
+  To create a new network, use: incus network create
+  To attach a network to an instance, use: incus network attach
+
++ incus exec rs-l2tpd-phase6-3038834 -- sh -ec 
+    state=$(systemctl --no-pager is-system-running --wait) || :
+    printf "boot state: %s\n" "$state"
+    case $state in running|degraded) ;; *) exit 1 ;; esac
+
+Failed to connect to bus: No such file or directory
+boot state: 
++ cleanup
++ result=1
++ incus exec rs-l2tpd-phase6-3038834 -- journalctl --no-pager -n 200 -u rs-l2tpd.service
++ incus exec rs-l2tpd-phase6-3038834 -- sh -c 
+        ip -details addr show
+        udevadm info /sys/class/net/incusl2tp
+        networkctl --no-pager status incusl2tp
+        journalctl --no-pager -n 100 -u systemd-networkd.service -u systemd-udevd.service
+        cat /usr/lib/systemd/network/99-default.link
+    
++ incus delete -f rs-l2tpd-phase6-3038834
++ printf INCUS_RESULT=%s\nrecord: %s\n 1 /home/dev/rs-l2tpd/audit/phase6/incus-20261030T064055Z-3038834
+INCUS_RESULT=1
+record: /home/dev/rs-l2tpd/audit/phase6/incus-20261030T064055Z-3038834

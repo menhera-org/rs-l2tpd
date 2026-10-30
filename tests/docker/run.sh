@@ -3,10 +3,11 @@
 set -eu
 repo=$(CDPATH= cd -P "$(dirname "$0")/../.." && pwd)
 cd "$repo"
-[ "$#" -gt 0 ] || { echo "usage: $0 scenarios [libtest arguments]" >&2; exit 2; }
+[ "$#" -gt 0 ] || { echo "usage: $0 scenarios [libtest arguments] | incus" >&2; exit 2; }
 case $1 in
     scenarios) shift ;;
-    *) echo "usage: $0 scenarios [libtest arguments]" >&2; exit 2 ;;
+    incus) shift; exec sh "$repo/tests/docker/incus.sh" "$@" ;;
+    *) echo "usage: $0 scenarios [libtest arguments] | incus" >&2; exit 2 ;;
 esac
 image=rs-l2tpd-audit-vm:local
 target=x86_64-unknown-linux-musl
@@ -34,7 +35,7 @@ set -- docker run --rm --privileged --network none \
     --mount "type=bind,source=$repo,target=$repo,readonly" \
     --env RS_L2TPD_SCENARIO_CONTAINER=1 \
     --entrypoint sh "$image" -ec 'uname -r; exec "$@"' run \
-    "$test_binary" --ignored --test-threads=1 --nocapture "$@"
+    "$test_binary" --ignored --test-threads=1 --nocapture --skip incus::system_container_store_tunable_networkd_and_udev "$@"
 {
     printf 'command:'
     printf ' %s' "$@"

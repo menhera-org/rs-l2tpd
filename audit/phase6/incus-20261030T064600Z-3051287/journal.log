@@ -1,0 +1,8 @@
+Oct 30 06:46:20 rs-l2tpd-phase6-3051287 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+Oct 30 06:46:20 rs-l2tpd-phase6-3051287 rs-l2tpd[468]: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+Oct 30 06:46:20 rs-l2tpd-phase6-3051287 rs-l2tpd[468]: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+Oct 30 06:46:20 rs-l2tpd-phase6-3051287 rs-l2tpd[468]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+Oct 30 06:46:20 rs-l2tpd-phase6-3051287 rs-l2tpd[468]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as incusl2tp
+Oct 30 06:46:20 rs-l2tpd-phase6-3051287 rs-l2tpd[468]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Oct 30 06:46:20 rs-l2tpd-phase6-3051287 rs-l2tpd[468]: INFO rs_l2tpd: ready pid=468
+Oct 30 06:46:20 rs-l2tpd-phase6-3051287 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.

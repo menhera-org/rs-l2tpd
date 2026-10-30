@@ -1,0 +1,26 @@
++ incus --quiet launch images:ubuntu/24.04 rs-l2tpd-phase6-3035754 --no-profiles --storage default -c security.privileged=false
+
+The instance you are starting doesn't have any network attached to it.
+  To create a new network, use: incus network create
+  To attach a network to an instance, use: incus network attach
+
++ incus config show rs-l2tpd-phase6-3035754 --expanded
++ incus exec rs-l2tpd-phase6-3035754 -- uname -r
++ incus --quiet file push --create-dirs /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/rs-l2tpd rs-l2tpd-phase6-3035754/home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/rs-l2tpd
++ incus --quiet file push /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896 rs-l2tpd-phase6-3035754/tmp/kernel-unit
++ incus --quiet file push /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e rs-l2tpd-phase6-3035754/tmp/scenarios
+Error: file does not exist
++ cleanup
++ result=1
++ incus exec rs-l2tpd-phase6-3035754 -- journalctl --no-pager -n 200 -u rs-l2tpd.service
++ incus exec rs-l2tpd-phase6-3035754 -- sh -c 
+        ip -details addr show
+        udevadm info /sys/class/net/incusl2tp
+        networkctl --no-pager status incusl2tp
+        journalctl --no-pager -n 100 -u systemd-networkd.service -u systemd-udevd.service
+        cat /usr/lib/systemd/network/99-default.link
+    
++ incus delete -f rs-l2tpd-phase6-3035754
++ printf INCUS_RESULT=%s\nrecord: %s\n 1 /home/dev/rs-l2tpd/audit/phase6/incus-20261030T063853Z-3035754
+INCUS_RESULT=1
+record: /home/dev/rs-l2tpd/audit/phase6/incus-20261030T063853Z-3035754

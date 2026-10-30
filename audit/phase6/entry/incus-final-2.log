@@ -1,0 +1,48 @@
++ incus --quiet launch images:ubuntu/24.04 rs-l2tpd-phase6-3073503 --no-profiles --storage default -c security.privileged=false
+
+The instance you are starting doesn't have any network attached to it.
+  To create a new network, use: incus network create
+  To attach a network to an instance, use: incus network attach
+
++ incus config show rs-l2tpd-phase6-3073503 --expanded
++ incus exec rs-l2tpd-phase6-3073503 -- uname -r
++ incus --quiet file push --create-dirs /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/rs-l2tpd rs-l2tpd-phase6-3073503/home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/rs-l2tpd
++ incus --quiet file push --create-dirs /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896 rs-l2tpd-phase6-3073503/opt/phase6/kernel-unit
++ incus --quiet file push --create-dirs /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e rs-l2tpd-phase6-3073503/opt/phase6/scenarios
++ incus exec rs-l2tpd-phase6-3073503 -- /opt/phase6/kernel-unit --ignored --exact kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback --nocapture
++ cat /home/dev/rs-l2tpd/audit/phase6/incus-20261030T072838Z-3073503/buffer.log
+
+running 1 test
+FORCE_RESULT=EPERM
+SUBSCRIPTION_RCVBUF=425984
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 84 filtered out; finished in 0.00s
+
++ grep -q FORCE_RESULT=EPERM /home/dev/rs-l2tpd/audit/phase6/incus-20261030T072838Z-3073503/buffer.log
++ incus exec rs-l2tpd-phase6-3073503 -- env RS_L2TPD_INCUS=1 /opt/phase6/scenarios --ignored --exact incus::system_container_store_tunable_networkd_and_udev --nocapture
++ cat /home/dev/rs-l2tpd/audit/phase6/incus-20261030T072838Z-3073503/scenario.log
+
+running 1 test
+CONCURRENT_MAC=kernel-random; udev MAC write refused with EBUSY; address=8e:bd:70:f5:46:34
+ORDERED_MAC=persistent; address=02:a9:ac:4b:86:c3; ifindex=5
+ORDERED_MAC=persistent; address=02:a9:ac:4b:86:c3; ifindex=6
+test incus::system_container_store_tunable_networkd_and_udev ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 18.94s
+
++ cleanup
++ result=0
++ incus exec rs-l2tpd-phase6-3073503 -- journalctl --no-pager -n 200 -u rs-l2tpd.service
++ incus exec rs-l2tpd-phase6-3073503 -- sh -c 
+        ip -details addr show
+        udevadm info /sys/class/net/incusl2tp
+        networkctl --no-pager status incusl2tp
+        journalctl --no-pager -n 100 -u systemd-networkd.service -u systemd-udevd.service
+        cat /usr/lib/systemd/network/99-default.link
+    
++ incus delete -f rs-l2tpd-phase6-3073503
++ printf INCUS_RESULT=%s\nrecord: %s\n 0 /home/dev/rs-l2tpd/audit/phase6/incus-20261030T072838Z-3073503
+INCUS_RESULT=0
+record: /home/dev/rs-l2tpd/audit/phase6/incus-20261030T072838Z-3073503
++ exit 0

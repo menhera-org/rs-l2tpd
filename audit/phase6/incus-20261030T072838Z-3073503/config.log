@@ -1,0 +1,29 @@
+architecture: x86_64
+config:
+  image.architecture: amd64
+  image.description: Ubuntu noble amd64 (20261018_07:42)
+  image.os: Ubuntu
+  image.release: noble
+  image.requirements.cgroup: v2
+  image.serial: "20261018_07:42"
+  image.type: squashfs
+  image.variant: default
+  security.privileged: "false"
+  volatile.base_image: a8fa6db1a9fa3faa9ff4cd7958b0c758d206088e4d13d8eceda52bbfc53730fe
+  volatile.cloud-init.instance-id: 1caf06cc-9224-4dc4-826a-78c665c1d902
+  volatile.idmap.base: "0"
+  volatile.idmap.current: '[{"Isuid":true,"Isgid":false,"Hostid":1000000,"Nsid":0,"Maprange":500000000},{"Isuid":false,"Isgid":true,"Hostid":1000000,"Nsid":0,"Maprange":500000000}]'
+  volatile.idmap.next: '[{"Isuid":true,"Isgid":false,"Hostid":1000000,"Nsid":0,"Maprange":500000000},{"Isuid":false,"Isgid":true,"Hostid":1000000,"Nsid":0,"Maprange":500000000}]'
+  volatile.last_state.idmap: '[{"Isuid":true,"Isgid":false,"Hostid":1000000,"Nsid":0,"Maprange":500000000},{"Isuid":false,"Isgid":true,"Hostid":1000000,"Nsid":0,"Maprange":500000000}]'
+  volatile.last_state.power: RUNNING
+  volatile.uuid: 1e272d86-29fd-4e6b-a3a3-086b5a20e178
+  volatile.uuid.generation: 1e272d86-29fd-4e6b-a3a3-086b5a20e178
+devices:
+  root:
+    path: /
+    pool: default
+    type: disk
+ephemeral: false
+profiles: []
+stateful: false
+description: ""

@@ -182,7 +182,7 @@ The scenarios, one test function each, tag in the doc comment:
 | H8 | a table of 100 000 routes, no default route | no request from the daemon touches routes (count `RTM_GETROUTE` through a second netlink socket), convergence time unchanged |
 | H9 | the daemon in a non-initial namespace with `/proc` unmounted | works; `SO_RCVBUFFORCE` refused handled (K36) |
 | H10 | a child VLAN of a session device moved to another namespace | shutdown removes it with the parent; the daemon never touches it |
-| H11 | the networkd/udev images of `audit/phase5-completion/networkd/` | direct creation gets the configured name's `.network` and persistent MAC; a staged session (hwaddr configured) is renamed and the limitation of H11 holds as documented |
+| H11 | the networkd/udev images of `audit/phase5-completion/networkd/` | direct creation matches the configured name's `.network`; concurrent activation preserves the active interface whether udev assigns a persistent MAC or receives `EBUSY`; a separately ordered case requires persistent MAC assignment while down and stability across re-creation; staged sessions retain H11's documented limits |
 | H12 | a foreign `ip l2tp` tunnel and session holding configured identifiers and a foreign device holding a configured name | conflicts counted, left out after ten, created when freed; foreign objects untouched |
 | H13 | bind device unplugged, replugged, replaced under the same name | the convergence bounds table rows |
 | H14 | address churn on the bind device, both families | one reconnect per same-family change, none otherwise |
@@ -278,9 +278,26 @@ ran. The scenario: launch `images:ubuntu/24.04` with
 loopback, namespaces and veth pairs are all it uses; no Incus network is
 ever created, by the host-networking rule above), push the static daemon, a configuration and
 the unit, install with `--setup-systemd` inside, and assert the five
-checks above plus the H11 behaviour with udev present (a `.network`
-match and the persistent MAC on a directly created session device) and
-the P14 hand-over across a `kill -9` under the container's systemd.
+checks above plus H11 with udev present, using the combined contract
+approved by the maintainer on 2026-10-30:
+
+- With udev and networkd active concurrently, the configured-name
+  `.network` applies. Either udev's persistent MAC succeeds or its
+  MAC-while-up write is refused with `EBUSY`; the daemon must preserve
+  the interface's identity, UP state, addresses and current MAC.
+- Separately, hold networkd inactive until udev has completed persistent
+  MAC assignment on the down interface, then activate networkd. Repeat a
+  clean removal/re-creation and require the same MAC with unchanged
+  machine identity, configured name and policy.
+- Keep the staged configured-MAC case and the P14 hand-over across a
+  `kill -9` under the container's systemd.
+
+The ordered case proves the stated ordering prerequisite only. It must
+not be reported as a guarantee that persistent assignment always wins
+concurrent activation. Direct creation avoids temporary-name identity
+problems; it does not make udev's MAC write and networkd's activation
+atomic. The daemon must not lower an active device to repair this race
+(G4). Full operator-facing limitations are in [H11](spec/hosts.md#other-network-managers).
 Delete the container at the end, on failure too.
 
 ## P6. The root system-unit sandbox

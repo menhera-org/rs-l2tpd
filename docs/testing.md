@@ -20,8 +20,8 @@ tests/
   kernel/         shared operation cases plus live-only fixture/source checks for K facts
   process.rs      actual-binary CLI and live process cases; binary unit tests live in src/bin/
   process/        instructions for privileged and real-manager process checks
-  scenarios/      planned for Phase 6: whole-daemon tests per H rule and G promise
-  docker/         retained historical Dockerfiles and instructions; Phase 6 runners are not present
+  scenarios/      partial Phase 6 host/manager scenarios plus the Incus system-unit case
+  docker/         run.sh scenarios|incus; full scenario and matrix gates remain open
   tools/
     rulemap.rs    the rule-map check
     srclink.rs    the source-link check
@@ -51,7 +51,7 @@ Incus/LXD and combined coverage remain Phase 6 work.
 | Unit and `rules/` | fake | `cargo test --all-features`, no privilege | C, M, T, S, V, E, O, L rules |
 | `properties/` | fake | included by the feature-gated `rules` target in `cargo test --all-features` | seeded reload invariants for G3, G5–G7 and G18 |
 | `kernel/` conformance | fake **and** real | `cargo test --all-features` for the fake; a privileged container and the QEMU matrix for the real one | K facts, `kernel::linux` |
-| `scenarios/` (planned, Phase 6) | real | privileged containers; QEMU for `ipv6.disable=1` and other boot options | H rules, P rules, the unit, G15–G23 end to end |
+| `scenarios/` (partial, Phase 6) | real | privileged containers; QEMU for `ipv6.disable=1` and other boot options | H rules, P rules, the unit, G15–G23 end to end |
 
 ### The conformance suite
 

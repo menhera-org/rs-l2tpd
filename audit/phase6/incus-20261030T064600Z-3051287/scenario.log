@@ -1,0 +1,15 @@
+
+running 1 test
+
+thread 'incus::system_container_store_tunable_networkd_and_udev' (192) panicked at tests/scenarios/support.rs:24:9:
+timeout: configured-name .network and persistent MAC applied
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test incus::system_container_store_tunable_networkd_and_udev ... FAILED
+
+failures:
+
+failures:
+    incus::system_container_store_tunable_networkd_and_udev
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 23.76s
+

@@ -397,3 +397,32 @@ mod completion_tests {
         assert!(!format!("{message:?}").contains("222"));
     }
 }
+
+#[cfg(test)]
+mod buffer_tests {
+    use super::*;
+    // kernel: (K36) net/core/sock.c SO_RCVBUFFORCE checks capable(CAP_NET_ADMIN),
+    // while SO_RCVBUF caps the requested value and doubles it.
+    /// spec: K36, R10
+    #[test]
+    #[ignore = "live kernel; Incus runner additionally requires the EPERM branch"]
+    fn subscription_buffer_matches_force_or_capped_fallback() {
+        let probe = open(netlink_sys::protocols::NETLINK_ROUTE).unwrap();
+        match setsockopt(&probe, RcvBufForce, &SUBSCRIPTION_BUFFER) {
+            Ok(()) => println!("FORCE_RESULT=allowed"),
+            Err(error) => {
+                assert_eq!(error, nix::errno::Errno::EPERM);
+                println!("FORCE_RESULT=EPERM");
+                SockRef::from(&probe)
+                    .set_recv_buffer_size(SUBSCRIPTION_BUFFER)
+                    .unwrap();
+            }
+        }
+        let expected = SockRef::from(&probe).recv_buffer_size().unwrap();
+        let production = subscribe(netlink_sys::protocols::NETLINK_ROUTE, &[1]).unwrap();
+        let actual = SockRef::from(&production).recv_buffer_size().unwrap();
+        assert_eq!(actual, expected);
+        assert!(actual <= 2 * SUBSCRIPTION_BUFFER);
+        println!("SUBSCRIPTION_RCVBUF={actual}");
+    }
+}

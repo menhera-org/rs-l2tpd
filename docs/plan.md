@@ -490,6 +490,15 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
 Exit: all five gates green on the running kernel and on every required
 kernel target; the Incus/LXD scenario run, not skipped.
 
+**Status: in progress on 2026-10-30.** The classified source-link check
+passes locally; the host/manager scenario runner is partial. Incus
+execution exposed a direct-creation udev/networkd persistent-MAC race
+under H11/P5. The maintainer approved preserving the concurrent outcome
+and separately proving persistent MAC assignment with explicit ordering;
+[H11](spec/hosts.md#other-network-managers) states the limitations. No global gate is declared
+complete and strict CI flags remain off. The evolving record is repository
+file `audit/PHASE6_VERIFICATION_2026-10-30.md`.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

@@ -33,8 +33,11 @@ reconciler, runtime, service and process code exists; Phases 1–5 have scoped
 verification records, including the
 [Phase 5 conformance follow-up](audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md).
 The binary runs on musl and glibc, with fresh process tests on Ubuntu
-6.8.0-147 and QEMU kernels 6.12.114, 6.18.59 and 7.3. The global Phase 6
-gates remain open, including the full system-unit mount-sandbox check.
+6.8.0-147 and QEMU kernels 6.12.114, 6.18.59 and 7.3. Phase 6 is underway: the classified source-link check passes locally,
+and host/manager scenarios are being implemented. The
+[Phase 6 record](audit/PHASE6_VERIFICATION_2026-10-30.md) records a P5
+udev/networkd MAC race and the approved combined acceptance cases. The global gates
+remain open, including the full system-unit mount-sandbox check.
 The known-gap tables describe historical commit `741117b`.
 
 ## Quick start
