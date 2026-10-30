@@ -268,10 +268,10 @@ and K21 test. Two facts about this host matter for the runner. The host
 is itself a user-namespaced container with ids 0 to 999,999,999, so the
 root entries of `/etc/subuid` and `/etc/subgid` had to shrink to
 `root:1000000:500000000` and the daemon be restarted before an
-unprivileged container would start (the default profile is
-`security.privileged=true` for that reason; the scenario sets
-`security.privileged=false` per container and must not rely on the
-profile). And a stock Incus container mounts `/sys` read-write and runs
+unprivileged container would start. The default profile is now
+`security.privileged=false`, verified by a plain `incus launch`; the
+scenario still sets `security.privileged=false` explicitly so that it
+does not depend on a host profile. And a stock Incus container mounts `/sys` read-write and runs
 `systemd-udevd` and `systemd-networkd`, verified by a probe that also
 created a dummy device, an L2TP tunnel and session, a network namespace
 and a veth pair and wrote `bindv6only` inside the container; the
