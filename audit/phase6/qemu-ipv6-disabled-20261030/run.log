@@ -1,0 +1,430 @@
+c[?7l[2J[0mSeaBIOS (version 1.17.0-debian-1.17.0-1ubuntu1)
+Booting from ROM...
+c[?7l[2J[    0.000000] Linux version 7.3.0 (@74f9e1bf80ca) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #2 SMP PREEMPT_DYNAMIC Thu Oct 29 04:23:22 UTC 2026
+[    0.000000] Command line: console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs l2tp_builtin=1 ipv6.disable=1
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000000a0000-0x00000000000effff]
+[    0.000000] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x000000007ffdffff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000007ffe0000-0x000000007fffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x0000000080000000-0x00000000afffffff]
+[    0.000000] BIOS-e820: [mem 0x00000000b0000000-0x00000000bfffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000c0000000-0x00000000fed1bfff]
+[    0.000000] BIOS-e820: [mem 0x00000000fed1c000-0x00000000fed1ffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000fed20000-0x00000000fffbffff]
+[    0.000000] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x0000000100000000-0x000000fcffffffff]
+[    0.000000] BIOS-e820: [mem 0x000000fd00000000-0x000000ffffffffff]  device reserved
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] APIC: Static calls initialized
+[    0.000000] DMI: SMBIOS 2.8 present.
+[    0.000000] DMI: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.17.0-debian-1.17.0-1ubuntu1 04/01/2014
+[    0.000000] DMI: Memory slots populated: 1/1
+[    0.000000] last_pfn = 0x7ffe0 max_arch_pfn = 0x10000000000
+[    0.000000] MTRR map: 4 entries (3 fixed + 1 variable; max 19), built from 8 variable MTRRs
+[    0.000000] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT  
+[    0.000000] found SMP MP-table at [mem 0x000f5460-0x000f546f]
+[    0.000000] Using GB pages for direct mapping
+[    0.000000] RAMDISK: [mem 0x776c4000-0x7ffdffff]
+[    0.000000] ACPI: Early table checksum verification disabled
+[    0.000000] ACPI: RSDP 0x00000000000F5290 000014 (v00 BOCHS )
+[    0.000000] ACPI: RSDT 0x000000007FFE233B 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.000000] ACPI: FACP 0x000000007FFE212B 0000F4 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.000000] ACPI: DSDT 0x000000007FFE0040 0020EB (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.000000] ACPI: FACS 0x000000007FFE0000 000040
+[    0.000000] ACPI: APIC 0x000000007FFE221F 000080 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.000000] ACPI: HPET 0x000000007FFE229F 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.000000] ACPI: MCFG 0x000000007FFE22D7 00003C (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.000000] ACPI: WAET 0x000000007FFE2313 000028 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.000000] ACPI: Reserving FACP table memory at [mem 0x7ffe212b-0x7ffe221e]
+[    0.000000] ACPI: Reserving DSDT table memory at [mem 0x7ffe0040-0x7ffe212a]
+[    0.000000] ACPI: Reserving FACS table memory at [mem 0x7ffe0000-0x7ffe003f]
+[    0.000000] ACPI: Reserving APIC table memory at [mem 0x7ffe221f-0x7ffe229e]
+[    0.000000] ACPI: Reserving HPET table memory at [mem 0x7ffe229f-0x7ffe22d6]
+[    0.000000] ACPI: Reserving MCFG table memory at [mem 0x7ffe22d7-0x7ffe2312]
+[    0.000000] ACPI: Reserving WAET table memory at [mem 0x7ffe2313-0x7ffe233a]
+[    0.000000] No NUMA configuration found
+[    0.000000] Faking a node at [mem 0x0000000000000000-0x000000007ffdffff]
+[    0.000000] NODE_DATA(0) allocated [mem 0x776c0680-0x776c3fff]
+[    0.000000] ACPI: PM-Timer IO Port: 0x608
+[    0.000000] ACPI: LAPIC_NMI (acpi_id[0xff] dfl dfl lint[0x1])
+[    0.000000] IOAPIC[0]: apic_id 0, version 32, address 0xfec00000, GSI 0-23
+[    0.000000] ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)
+[    0.000000] ACPI: INT_SRC_OVR (bus 0 bus_irq 5 global_irq 5 high level)
+[    0.000000] ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)
+[    0.000000] ACPI: INT_SRC_OVR (bus 0 bus_irq 10 global_irq 10 high level)
+[    0.000000] ACPI: INT_SRC_OVR (bus 0 bus_irq 11 global_irq 11 high level)
+[    0.000000] ACPI: Using ACPI (MADT) for SMP configuration information
+[    0.000000] ACPI: HPET id: 0x8086a201 base: 0xfed00000
+[    0.000000] CPU topo: Max. logical packages:   1
+[    0.000000] CPU topo: Max. logical nodes:      1
+[    0.000000] CPU topo: Num. nodes per package:  1
+[    0.000000] CPU topo: Max. logical dies:       1
+[    0.000000] CPU topo: Max. dies per package:   1
+[    0.000000] CPU topo: Max. threads per core:   1
+[    0.000000] CPU topo: Num. cores per package:     2
+[    0.000000] CPU topo: Num. threads per package:   2
+[    0.000000] CPU topo: Allowing 2 present CPUs plus 0 hotplug CPUs
+[    0.000000] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    0.000000] PM: hibernation: Registered nosave memory: [mem 0x0009f000-0x000fffff]
+[    0.000000] [gap 0xc0000000-0xfed1bfff] available for PCI devices
+[    0.000000] Booting paravirtualized kernel on bare hardware
+[    0.000000] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    0.000000]   DMA32    [mem 0x0000000001000000-0x000000007ffdffff]
+[    0.000000]   Normal   empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000001000-0x000000000009efff]
+[    0.000000]   node   0: [mem 0x0000000000100000-0x000000007ffdffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000001000-0x000000007ffdffff]
+[    0.000000] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.000000] On node 0, zone DMA: 97 pages in unavailable ranges
+[    0.000000] On node 0, zone DMA32: 32 pages in unavailable ranges
+[    0.000000] setup_percpu: NR_CPUS:64 nr_cpumask_bits:2 nr_cpu_ids:2 nr_node_ids:1
+[    0.000000] percpu: Embedded 53 pages/cpu s176472 r8192 d32424 u1048576
+[    0.000000] Kernel command line: console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs l2tp_builtin=1 ipv6.disable=1
+[    0.000000] Unknown kernel command line parameters "l2tp_builtin=1", will be passed to user space.
+[    0.000000] random: crng init done
+[    0.000000] printk: log buffer data + meta data: 262144 + 917504 = 1179648 bytes
+[    0.000000] Dentry cache hash table entries: 262144 (order: 9, 2097152 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    0.000000] Fallback order for Node 0: 0 
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 524158
+[    0.000000] Policy zone: DMA32
+[    0.000000] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+[    0.000000] Dynamic Preempt: lazy
+[    0.000000] rcu: Preemptible hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.
+[    0.000000] 	Trampoline variant of Tasks RCU enabled.
+[    0.000000] 	Tracing variant of Tasks RCU enabled.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 100 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2
+[    0.000000] RCU Tasks: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.000000] NR_IRQS: 4352, nr_irqs: 440, preallocated irqs: 16
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+[    0.000000] Console: colour *CGA 80x25
+[    0.000000] printk: console [ttyS0] enabled
+[    0.000000] ACPI: Core revision 20260408
+[    0.000000] clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604467 ns
+[    0.004000] APIC: Switch to symmetric I/O mode setup
+[    0.005000] x2apic: IRQ remapping doesn't support X2APIC mode
+[    0.010000] ..TIMER: vector=0x30 apic1=0 pin1=2 apic2=-1 pin2=-1
+[    0.019000] tsc: Unable to calibrate against PIT
+[    0.019000] tsc: using HPET reference calibration
+[    0.020000] tsc: Detected 1995.287 MHz processor
+[    0.000798] clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x3985943a7df, max_idle_ns: 881590493402 ns
+[    0.002930] Calibrating delay loop (skipped), value calculated using timer frequency.. 3990.57 BogoMIPS (lpj=1995287)
+[    0.011897] x86/cpu: User Mode Instruction Prevention (UMIP) activated
+[    0.025471] Last level iTLB entries: 4KB 0, 2MB 0, 4MB 0
+[    0.026370] Last level dTLB entries: 4KB 0, 2MB 0, 4MB 0, 1GB 0
+[    0.030254] mitigations: Enabled attack vectors: user_kernel, user_user, SMT mitigations: auto
+[    0.032674] Speculative Store Bypass: Vulnerable
+[    0.033729] Spectre V2 : Mitigation: Retpolines
+[    0.035139] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    0.035524] Spectre V2 : Spectre v2 / SpectreRSB: Filling RSB on context switch and VMEXIT
+[    0.045049] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.048397] x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    0.049233] x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    0.050334] x86/fpu: Supporting XSAVE feature 0x008: 'MPX bounds registers'
+[    0.051353] x86/fpu: Supporting XSAVE feature 0x010: 'MPX CSR'
+[    0.052355] x86/fpu: Supporting XSAVE feature 0x200: 'Protection Keys User registers'
+[    0.053668] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.054492] x86/fpu: xstate_offset[3]:  960, xstate_sizes[3]:   64
+[    0.055345] x86/fpu: xstate_offset[4]: 1024, xstate_sizes[4]:   64
+[    0.056344] x86/fpu: xstate_offset[9]: 2688, xstate_sizes[9]:    8
+[    0.057433] x86/fpu: Enabled xstate features 0x21f, context size is 2696 bytes, using 'standard' format.
+[    0.363068] pid_max: default: 32768 minimum: 301
+[    0.377767] SELinux:  Initializing.
+[    0.389197] Mount-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    0.390516] Mountpoint-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    0.410916] VFS: Finished mounting rootfs on nullfs
+[    0.555318] smpboot: CPU0: AMD QEMU TCG CPU version 2.5+ (family: 0x6, model: 0x6, stepping: 0x3)
+[    0.589012] Performance Events: PMU not available due to virtualization, using software events only.
+[    0.597831] signal: max sigframe size: 3632
+[    0.600660] rcu: Hierarchical SRCU implementation.
+[    0.601365] rcu: 	Max phase no-delay instances is 400.
+[    0.604498] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.615136] smp: Bringing up secondary CPUs ...
+[    0.628618] smpboot: x86: Booting SMP configuration:
+[    0.629396] .... node  #0, CPUs:      #1
+[    0.744186] smp: Brought up 1 node, 2 CPUs
+[    0.745576] smpboot: Total of 2 processors activated (7982.37 BogoMIPS)
+[    0.766723] Memory: 1872752K/2096632K available (19690K kernel code, 2994K rwdata, 8124K rodata, 2924K init, 600K bss, 219888K reserved, 0K cma-reserved)
+[    0.785025] devtmpfs: initialized
+[    0.813764] posixtimers hash table entries: 1024 (order: 2, 16384 bytes, linear)
+[    0.815866] futex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).
+[    0.825907] PM: RTC time: 09:07:36, date: 2026-10-30
+[    0.835358] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.841919] audit: initializing netlink subsys (disabled)
+[    0.847743] audit: type=2000 audit(1793351254.867:1): state=initialized audit_enabled=0 res=1
+[    0.855878] thermal_sys: Registered thermal governor 'step_wise'
+[    0.856442] cpuidle: using governor menu
+[    0.865345] PCI: ECAM [mem 0xb0000000-0xbfffffff] (base 0xb0000000) for domain 0000 [bus 00-ff]
+[    0.867943] PCI: ECAM [mem 0xb0000000-0xbfffffff] reserved as E820 entry
+[    0.871643] PCI: Using configuration type 1 for base access
+[    0.873106] mtrr: your CPUs had inconsistent fixed MTRR settings
+[    0.873360] mtrr: your CPUs had inconsistent variable MTRR settings
+[    0.874367] mtrr: your CPUs had inconsistent MTRRdefType settings
+[    0.875255] mtrr: probably your BIOS does not setup all CPUs.
+[    0.876337] mtrr: corrected configuration.
+[    0.881070] kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.
+[    0.889985] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    0.890040] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    0.910396] ACPI: Added _OSI(Module Device)
+[    0.910496] ACPI: Added _OSI(Processor Device)
+[    0.910513] ACPI: Added _OSI(Processor Aggregator Device)
+[    0.978965] ACPI: 1 ACPI AML tables successfully acquired and loaded
+[    1.035764] ACPI: \_SB_: platform _OSC: OS support mask [002a7eee]
+[    1.053607] ACPI: Interpreter enabled
+[    1.057980] ACPI: PM: (supports S0 S3 S4 S5)
+[    1.058116] ACPI: Using IOAPIC for interrupt routing
+[    1.063774] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    1.063922] PCI: Using E820 reservations for host bridge windows
+[    1.068827] ACPI: Enabled 2 GPEs in block 00 to 3F
+[    1.126695] ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])
+[    1.128722] acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI HPX-Type3]
+[    1.132763] acpi PNP0A08:00: _OSC: platform does not support [LTR]
+[    1.135675] acpi PNP0A08:00: _OSC: OS now controls [PME PCIeCapability]
+[    1.142660] PCI host bridge to bus 0000:00
+[    1.143048] pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]
+[    1.143203] pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]
+[    1.143217] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]
+[    1.143229] pci_bus 0000:00: root bus resource [mem 0x80000000-0xafffffff window]
+[    1.143240] pci_bus 0000:00: root bus resource [mem 0xc0000000-0xfebfffff window]
+[    1.143251] pci_bus 0000:00: root bus resource [mem 0x100000000-0x8ffffffff window]
+[    1.146631] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    1.153427] pci 0000:00:00.0: [8086:29c0] type 00 class 0x060000 conventional PCI endpoint
+[    1.162808] pci 0000:00:1f.0: [8086:2918] type 00 class 0x060100 conventional PCI endpoint
+[    1.164703] pci 0000:00:1f.0: quirk: [io  0x0600-0x067f] claimed by ICH6 ACPI/GPIO/TCO
+[    1.167517] pci 0000:00:1f.2: [8086:2922] type 00 class 0x010601 conventional PCI endpoint
+[    1.170362] pci 0000:00:1f.2: BAR 4 [io  0xc040-0xc05f]
+[    1.170433] pci 0000:00:1f.2: BAR 5 [mem 0xfebff000-0xfebfffff]
+[    1.173537] pci 0000:00:1f.3: [8086:2930] type 00 class 0x0c0500 conventional PCI endpoint
+[    1.174250] pci 0000:00:1f.3: BAR 4 [io  0x0700-0x073f]
+[    1.185091] ACPI: PCI: Interrupt link LNKA configured for IRQ 10
+[    1.187542] ACPI: PCI: Interrupt link LNKB configured for IRQ 10
+[    1.189602] ACPI: PCI: Interrupt link LNKC configured for IRQ 11
+[    1.191576] ACPI: PCI: Interrupt link LNKD configured for IRQ 11
+[    1.193439] ACPI: PCI: Interrupt link LNKE configured for IRQ 10
+[    1.195206] ACPI: PCI: Interrupt link LNKF configured for IRQ 10
+[    1.197149] ACPI: PCI: Interrupt link LNKG configured for IRQ 11
+[    1.199053] ACPI: PCI: Interrupt link LNKH configured for IRQ 11
+[    1.200186] ACPI: PCI: Interrupt link GSIA configured for IRQ 16
+[    1.201231] ACPI: PCI: Interrupt link GSIB configured for IRQ 17
+[    1.202233] ACPI: PCI: Interrupt link GSIC configured for IRQ 18
+[    1.203250] ACPI: PCI: Interrupt link GSID configured for IRQ 19
+[    1.204394] ACPI: PCI: Interrupt link GSIE configured for IRQ 20
+[    1.204553] ACPI: PCI: Interrupt link GSIF configured for IRQ 21
+[    1.204689] ACPI: PCI: Interrupt link GSIG configured for IRQ 22
+[    1.204823] ACPI: PCI: Interrupt link GSIH configured for IRQ 23
+[    1.214973] iommu: Default domain type: Translated
+[    1.215038] iommu: DMA domain TLB invalidation policy: lazy mode
+[    1.221238] SCSI subsystem initialized
+[    1.225609] ACPI: bus type USB registered
+[    1.226974] usbcore: registered new interface driver usbfs
+[    1.228361] usbcore: registered new interface driver hub
+[    1.228659] usbcore: registered new device driver usb
+[    1.230458] pps_core: LinuxPPS API ver. 1 registered
+[    1.230492] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    1.230606] PTP clock support registered
+[    1.238699] Advanced Linux Sound Architecture Driver Initialized.
+[    1.254873] NetLabel: Initializing
+[    1.254915] NetLabel:  domain hash size = 128
+[    1.254932] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    1.258088] NetLabel:  unlabeled traffic allowed by default
+[    1.266660] PCI: Using ACPI for IRQ routing
+[    1.273138] e820: register RAM buffer resource [mem 0x0009fc00-0x0009ffff]
+[    1.274418] e820: register RAM buffer resource [mem 0x7ffe0000-0x7fffffff]
+[    1.277887] vgaarb: loaded
+[    1.279553] hpet0: at MMIO 0xfed00000, IRQs 2, 8, 0
+[    1.279685] hpet0: 3 comparators, 64-bit 100.000000 MHz counter
+[    1.287152] clocksource: Switched to clocksource tsc-early
+[    1.297993] VFS: Disk quotas dquot_6.6.0
+[    1.298179] VFS: Dquot-cache hash table entries: 512 (4096 bytes)
+[    1.305837] acpi PNP0C01:00: Reserved [mem 0xb0000000-0xbfffffff]
+[    1.307848] pnp: PnP ACPI init
+[    1.316624] pnp: PnP ACPI: found 3 devices
+[    1.353106] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    1.356978] NET: Registered PF_INET protocol family
+[    1.363490] IP idents hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    1.387221] tcp_listen_portaddr_hash hash table entries: 1024 (order: 2, 16384 bytes, linear)
+[    1.389474] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    1.389702] TCP established hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    1.393973] TCP bind hash table entries: 16384 (order: 7, 524288 bytes, linear)
+[    1.397196] TCP: Hash tables configured (established 16384 bind 16384)
+[    1.400886] UDP hash table entries: 1024 (order: 4, 65536 bytes, linear)
+[    1.405826] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    1.413566] RPC: Registered named UNIX socket transport module.
+[    1.413637] RPC: Registered udp transport module.
+[    1.413649] RPC: Registered tcp transport module.
+[    1.413658] RPC: Registered tcp-with-tls transport module.
+[    1.413668] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    1.423157] pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]
+[    1.423201] pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]
+[    1.423214] pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000bffff window]
+[    1.423226] pci_bus 0000:00: resource 7 [mem 0x80000000-0xafffffff window]
+[    1.423236] pci_bus 0000:00: resource 8 [mem 0xc0000000-0xfebfffff window]
+[    1.423246] pci_bus 0000:00: resource 9 [mem 0x100000000-0x8ffffffff window]
+[    1.428819] PCI: CLS 0 bytes, default 64
+[    1.439901] Unpacking initramfs...
+[    1.451666] Initialise system trusted keyrings
+[    1.456907] workingset: timestamp_bits=56 (anon: 51) max_order=19 bucket_order=0 (anon: 0)
+[    1.469955] NFS: Registering the id_resolver key type
+[    1.470327] Key type id_resolver registered
+[    1.473456] Key type id_legacy registered
+[    1.473622] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    1.474093] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    1.479506] 9p: Installing v9fs 9p2000 file system support
+[    1.508145] Key type asymmetric registered
+[    1.508276] Asymmetric key parser 'x509' registered
+[    1.510077] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 251)
+[    1.511992] io scheduler mq-deadline registered
+[    1.512095] io scheduler kyber registered
+[    1.526293] input: Power Button as /devices/platform/LNXPWRBN:00/input/input0
+[    1.530946] ACPI: button: Power Button [PWRF]
+[    1.551601] Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+[    1.565787] 00:02: ttyS0 I/O:0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    1.600234] Non-volatile memory driver v1.3
+[    1.608670] ACPI: bus type drm_connector registered
+[    1.669795] loop: module loaded
+[    1.786888] ACPI: \_SB_.GSIA: Enabled at IRQ 16
+[    1.861566] ahci 0000:00:1f.2: AHCI vers 0001.0000, 32 command slots, 1.5 Gbps, SATA mode
+[    1.861719] ahci 0000:00:1f.2: 6/6 ports implemented (port mask 0x3f)
+[    1.867901] ahci 0000:00:1f.2: flags: 64bit ncq only 
+[    1.924751] scsi host0: ahci
+[    1.943161] scsi host1: ahci
+[    1.951063] scsi host2: ahci
+[    1.960449] scsi host3: ahci
+[    1.968252] scsi host4: ahci
+[    1.974127] scsi host5: ahci
+[    1.981008] ata1: SATA max UDMA/133 abar m4096@0xfebff000 port 0xfebff100 irq 24 lpm-pol 1
+[    1.982830] ata2: SATA max UDMA/133 abar m4096@0xfebff000 port 0xfebff180 irq 24 lpm-pol 1
+[    1.982856] ata3: SATA max UDMA/133 abar m4096@0xfebff000 port 0xfebff200 irq 24 lpm-pol 1
+[    1.982867] ata4: SATA max UDMA/133 abar m4096@0xfebff000 port 0xfebff280 irq 24 lpm-pol 1
+[    1.982876] ata5: SATA max UDMA/133 abar m4096@0xfebff000 port 0xfebff300 irq 24 lpm-pol 1
+[    1.982885] ata6: SATA max UDMA/133 abar m4096@0xfebff000 port 0xfebff380 irq 24 lpm-pol 1
+[    2.022694] e100: Intel(R) PRO/100 Network Driver
+[    2.022780] e100: Copyright(c) 1999-2006 Intel Corporation
+[    2.023135] e1000: Intel(R) PRO/1000 Network Driver
+[    2.023169] e1000: Copyright (c) 1999-2006 Intel Corporation.
+[    2.023771] e1000e: Intel(R) PRO/1000 Network Driver
+[    2.023808] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    2.024123] sky2: driver version 1.30
+[    2.045722] usbcore: registered new interface driver usblp
+[    2.047939] usbcore: registered new interface driver usb-storage
+[    2.054491] i8042: PNP: PS/2 Controller [PNP0303:KBD,PNP0f13:MOU] at 0x60,0x64 irq 1,12
+[    2.079190] serio: i8042 KBD port at 0x60,0x64 irq 1
+[    2.080029] serio: i8042 AUX port at 0x60,0x64 irq 12
+[    2.105621] rtc_cmos PNP0B00:00: RTC can wake from S4
+[    2.110887] input: AT Translated Set 2 keyboard as /devices/platform/i8042/serio0/input/input1
+[    2.150005] rtc_cmos PNP0B00:00: registered as rtc0
+[    2.159502] rtc_cmos PNP0B00:00: alarms up to one day, y3k, 242 bytes nvram, hpet irqs
+[    2.172580] device-mapper: ioctl: 4.50.0-ioctl (2025-04-28) initialised: dm-devel@lists.linux.dev
+[    2.175785] i801_smbus 0000:00:1f.3: SMBus using PCI interrupt
+[    2.177690] hid: raw HID events driver (C) Jiri Kosina
+[    2.186317] i2c i2c-0: Memory type 0x07 not supported yet, not instantiating SPD
+[    2.188030] usbcore: registered new interface driver usbhid
+[    2.188120] usbhid: USB HID core driver
+[    2.237890] nf_conntrack_irc: The irc conntrack helper is scheduled for removal.
+[    2.237890] Please contact the netfilter-devel mailing list if you still need this.
+[    2.246693] Initializing XFRM netlink socket
+[    2.247085] IPv6: Loaded, but administratively disabled, reboot required to enable
+[    2.247234] IPv6: ah6_init: can't add xfrm type
+[    2.247279] IPv6: esp6_init: can't add xfrm type
+[    2.250650] NET: Registered PF_PACKET protocol family
+[    2.256826] l2tp_core: L2TP core driver, V2.0
+[    2.256865] l2tp_ip: L2TP IP encapsulation support (L2TPv3)
+[    2.257069] l2tp_netlink: L2TP netlink interface
+[    2.260771] l2tp_eth: L2TP ethernet pseudowire support (L2TPv3)
+[    2.260820] l2tp_ip6: L2TP IP encapsulation support for IPv6 (L2TPv3)
+[    2.262935] 9pnet: Installing 9P2000 support
+[    2.263390] Key type dns_resolver registered
+[    2.275637] IPI shorthand broadcast: enabled
+[    2.330115] ata6: SATA link down (SStatus 0 SControl 300)
+[    2.339728] ata1: SATA link down (SStatus 0 SControl 300)
+[    2.341031] ata3: SATA link down (SStatus 0 SControl 300)
+[    2.343487] ata2: SATA link down (SStatus 0 SControl 300)
+[    2.349279] ata5: SATA link down (SStatus 0 SControl 300)
+[    2.349562] ata4: SATA link down (SStatus 0 SControl 300)
+[    2.444798] tsc: Refined TSC clocksource calibration: 1995.289 MHz
+[    2.449788] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x398598447ac, max_idle_ns: 881590731134 ns
+[    2.470877] clocksource: Switched to clocksource tsc
+[    2.606972] input: ImExPS/2 Generic Explorer Mouse as /devices/platform/i8042/serio1/input/input3
+[    2.686147] sched_clock: Marking stable (2706043336, -20681837)->(2746211037, -60849538)
+[    2.709615] registered taskstats version 1
+[    2.709820] Loading compiled-in X.509 certificates
+[    2.772612] Demotion targets for Node 0: null
+[    2.779773] PM:   Magic number: 14:298:122
+[    2.780655] netconsole: network logging started
+[    2.783493] cfg80211: Loading compiled-in X.509 certificates for regulatory database
+[    3.679172] Freeing initrd memory: 140400K
+[    3.835686] modprobe (75) used greatest stack depth: 13136 bytes left
+[    3.861923] modprobe (76) used greatest stack depth: 13024 bytes left
+[    3.874654] Loaded X.509 cert 'sforshee: 00b28ddf47aef9cea7'
+[    3.875716] Loaded X.509 cert 'wens: 61c038651aabdcf94bd0ac7ff06c7248db18c600'
+[    3.876869] ALSA device list:
+[    3.876953]   No soundcards found.
+[    3.879997] faux_driver regulatory: Direct firmware load for regulatory.db failed with error -2
+[    3.880758] cfg80211: failed to load regulatory.db
+[    4.069170] Freeing unused kernel image (initmem) memory: 2924K
+[    4.069899] Write protecting the kernel read-only data: 28672k
+[    4.076976] Freeing unused kernel image (text/rodata gap) memory: 788K
+[    4.078794] Freeing unused kernel image (rodata/data gap) memory: 68K
+[    4.478127] x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    4.478943] Run /init as init process
+Linux (none) 7.3.0 #2 SMP PREEMPT_DYNAMIC Thu Oct 29 04:23:22 UTC 2026 x86_64 Linux
+GUEST_KERNEL_RELEASE=7.3.0
+scope: IPv6-absent boot scenario only
+[    4.947510] ip (91) used greatest stack depth: 12848 bytes left
+[    5.006515] ip (93) used greatest stack depth: 12248 bytes left
+[    5.084296] underlay: renamed from other
+
+running 1 test
+daemon: WARN rs_l2tpd::reconciler::tunnels: AF_INET6 L2TP/IP sockets are refused (EAFNOSUPPORT: Address family not supported by protocol); tunnels use AF_INET sockets (T4)
+daemon: WARN rs_l2tpd::reconciler::tunnels: AF_INET6 L2TP/IP sockets are refused (EAFNOSUPPORT: Address family not supported by protocol); tunnels use AF_INET sockets (T4)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+daemon: INFO rs_l2tpd: ready pid=100
+daemon: INFO rs_l2tpd: ready pid=102
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+test absent_ipv6_stack_uses_native_ipv4_and_keeps_ipv6_peers_disconnected ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.39s
+
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+[    8.339177] ACPI: PM: Preparing to enter system sleep state S5
+[    8.341857] reboot: Power down

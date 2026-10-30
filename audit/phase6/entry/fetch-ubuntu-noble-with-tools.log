@@ -1,0 +1,148 @@
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  1  1.34M   1  15850   0      0  14353      0   01:38   00:01   01:37  14356 55  1.34M  55 765.4k   0      0 363.7k      0   00:03   00:02   00:01 363.8k100  1.34M 100  1.34M   0      0 601.5k      0   00:02   00:02         363.8k100  1.34M 100  1.34M   0      0 601.4k      0   00:02   00:02         363.8k100  1.34M 100  1.34M   0      0 601.2k      0   00:02   00:02         363.8k
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  2  1.09M   2  31850   0      0  26347      0   00:43   00:01   00:42  26365 32  1.09M  32 359.2k   0      0 162.5k      0   00:06   00:02   00:04 162.6k100  1.09M 100  1.09M   0      0 408.1k      0   00:02   00:02         162.6k100  1.09M 100  1.09M   0      0 408.0k      0   00:02   00:02         162.6k100  1.09M 100  1.09M   0      0 407.9k      0   00:02   00:02         162.6k
+UBUNTU_SUITE=noble
+UBUNTU_META_VERSION=6.8.0-147.147
+KERNEL_RELEASE=6.8.0-147-generic
+Package: linux-image-generic
+Source: linux-meta
+Priority: optional
+Section: kernel
+Installed-Size: 18
+Maintainer: Ubuntu Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 6.8.0-147.147
+Recommends: thermald
+Provides: ivsc-modules (= 0~git202311021215.73a044d9), spl-modules (= 2.2.2-0ubuntu9.5), v4l2loopback-modules (= 0.12.7-2ubuntu5.1), virtualbox-guest-modules (= 6.8.0-147), wireguard-modules (= 1.0.0), zfs-modules (= 2.2.2-0ubuntu9.5)
+Depends: linux-image-6.8.0-147-generic, linux-modules-extra-6.8.0-147-generic, linux-firmware, intel-microcode, amd64-microcode
+Filename: pool/main/l/linux-meta/linux-image-generic_6.8.0-147.147_amd64.deb
+Size: 11596
+MD5sum: f3b893acb8cd5bdd5110169af82de8dc
+SHA1: 65a637eeda4718c3a926941ea33e12739640288d
+SHA256: 2b4fb41fff454fd9032806d6d0c26dede869321207e821d0fc891a5b159342a3
+SHA512: 174bf72a7be39bfb1bcb19fe365207c46e5a78c17e5544fd0477c005d85006c08923e5f37246fd10366c923f3fc9153350c29c293e10e8807146d9f7d27bf060
+Description: Generic Linux kernel image
+Description-md5: 6d632579c673704f44b290b16e7dbfd1
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Package: linux-image-6.8.0-147-generic
+Source: linux-signed
+Priority: optional
+Section: kernel
+Installed-Size: 14758
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 6.8.0-147.147
+Recommends: grub-pc | grub-efi-amd64 | grub-efi-ia32 | grub | lilo, initramfs-tools | linux-initramfs-tool
+Suggests: fdutils, linux-tools, linux-headers-6.8.0-147-generic, linux-modules-extra-6.8.0-147-generic
+Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, redhat-cluster-modules, spl-dkms, spl-modules, v4l2loopback-dkms, v4l2loopback-modules, virtualbox-guest-modules, zfs-dkms, zfs-modules
+Depends: kmod, linux-base (>= 4.5ubuntu1~16.04.1), linux-modules-6.8.0-147-generic
+Conflicts: linux-image-unsigned-6.8.0-147-generic
+Filename: pool/main/l/linux-signed/linux-image-6.8.0-147-generic_6.8.0-147.147_amd64.deb
+Size: 14845068
+MD5sum: 8b2249629e823b82a3dc9e813c9d8ba6
+SHA1: 453373b4ab1c6c701a4cdf453c0c8e99aab7713d
+SHA256: 08432502e565a8a3b4ab13bd8b01788a0a83c9398c8a1e9350f1225991bc4fbb
+SHA512: df1f14d5da33961966a5aae1ba8f3752aa4ca94689752bf4a3478e626c366c88c1e9e9373b830b4fe007d329fe87d51c94dbbbf836dcdc6cf1bd2e85953673ae
+Description: Signed kernel image generic
+Description-md5: b0fd0df88b1cd31408007b00d2458952
+Built-Using: linux (= 6.8.0-147.147)
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+/package.deb: OK
+Package: linux-modules-6.8.0-147-generic
+Source: linux
+Priority: optional
+Section: kernel
+Installed-Size: 38590
+Maintainer: Ubuntu Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 6.8.0-147.147
+Filename: pool/main/l/linux/linux-modules-6.8.0-147-generic_6.8.0-147.147_amd64.deb
+Size: 39250112
+MD5sum: e40db2ac2487efe131ca35a3c3622e2d
+SHA1: bd3f0e2dbaf19bc6fd8d21c3b23b698483a29f3c
+SHA256: 3b9188304d600fc35a4f4d1f99751f7ea485bb7f9e0cb87831d4ebf2d3423d9d
+SHA512: a9971c58afbd5818777fb5303ac32ef2473da0b0b38e813b61022a4b91bd6f95cabb0db1a85475a0a746da985f0bafda6d7ac65be2f7d3e92640e6670b8e68fe
+Description: Linux kernel extra modules for version 6.8.0 on 64 bit x86 SMP
+Description-md5: dbc6bcea7e1627ae6360776b31c3ee82
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+/package.deb: OK
+Package: linux-modules-extra-6.8.0-147-generic
+Source: linux
+Priority: optional
+Section: kernel
+Installed-Size: 110073
+Maintainer: Ubuntu Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 6.8.0-147.147
+Depends: linux-modules-6.8.0-147-generic, wireless-regdb
+Filename: pool/main/l/linux/linux-modules-extra-6.8.0-147-generic_6.8.0-147.147_amd64.deb
+Size: 113500352
+MD5sum: d4197f5101bd430a8b11e85718c3e9e3
+SHA1: 6fe7f9daaa0dee4c2ab2cd8400f1d15044cfc211
+SHA256: b3f16d16b54796497884b27810b0942243bdc6ef26da1ce821e948ece39a9492
+SHA512: db40a805db2c8a76e111f6f67b09840942a1076a2746b5b8f0819977d7a56ce48e26fa88ad38bde01120de7cd32176d34b6f6d50ba84585bdc78516a76cefe6b
+Description: Linux kernel extra modules for version 6.8.0 on 64 bit x86 SMP
+Description-md5: aae0720ac9d861c1e457c358cbcb81ae
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+/package.deb: OK
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0 39 99.35k  39  39900   0      0  39537      0   00:02   00:01   00:01  39544100 99.35k 100 99.35k   0      0  81887      0   00:01   00:01          39544100 99.35k 100 99.35k   0      0  81844      0   00:01   00:01          39544100 99.35k 100 99.35k   0      0  81802      0   00:01   00:01          39544
+Package: kmod
+Priority: important
+Section: admin
+Installed-Size: 253
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 31+20240202-2ubuntu7.2
+Depends: libc6 (>= 2.38), liblzma5 (>= 5.4.5-0.2), libssl3t64 (>= 3.0.0), libzstd1 (>= 1.5.5), libkmod2 (= 31+20240202-2ubuntu7.2)
+Filename: pool/main/k/kmod/kmod_31+20240202-2ubuntu7.2_amd64.deb
+Size: 101742
+MD5sum: c2afde57322efea7a807a949a5f82687
+SHA1: e9f76f11a6e981765048d95c86bf5a0ba4d057b1
+SHA256: 687693dfad23c96570d96a1c7cc1b8709d31a93f82ac765a11b2bd9130f1dfae
+SHA512: db5f0c126e20073701f5faf7d6f7ffb864cf48423736d800b692f393d658d4a5892105b4bae0ac0412649a6a3fa9a3ba34a4034391150adfc2f0743a8e9ed51b
+Description: tools for managing Linux kernel modules
+Description-md5: 0cd8f9566ff621a593309a12fd64999f
+Multi-Arch: foreign
+Original-Maintainer: Marco d'Itri <md@linux.it>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Task: cloud-minimal, minimal, server-minimal
+/package.deb: OK
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0 61  51830  61  31902   0      0  31653      0   00:01   00:01          31680100  51830 100  51830   0      0  47575      0   00:01   00:01          31680100  51830 100  51830   0      0  47546      0   00:01   00:01          31680100  51830 100  51830   0      0  47518      0   00:01   00:01          31680
+Package: libkmod2
+Source: kmod
+Priority: important
+Section: libs
+Installed-Size: 144
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 31+20240202-2ubuntu7.2
+Depends: libc6 (>= 2.38), liblzma5 (>= 5.4.5-0.2), libssl3t64 (>= 3.0.0), libzstd1 (>= 1.5.5)
+Filename: pool/main/k/kmod/libkmod2_31+20240202-2ubuntu7.2_amd64.deb
+Size: 51830
+MD5sum: d8713fbc3953b9cc4ddf3eb9c02cdda5
+SHA1: 6c2cd56f66afec0cef260169a31b832b27e7c6d5
+SHA256: a9cbdc424bc0a5c8af3d6445488a48de76df5ff4d76b7dab8aaf88f712358bbc
+SHA512: 6c11e5b68174d8496feb833e1ddae95c374f8712f206c3a468dc345f5d9badf85ff84cd209b685f69f360c236dcbdd26528e0fa876ad40714eb3c9886e881d9a
+Description: libkmod shared library
+Description-md5: e60216aabe72168f06218f037958581e
+Multi-Arch: same
+Original-Maintainer: Marco d'Itri <md@linux.it>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Task: cloud-minimal, minimal, server-minimal
+/package.deb: OK
+KERNEL_IMAGE=/home/dev/rs-l2tpd/target/phase6-kernels/ubuntu-noble-6.8.0-147.147/root/boot/vmlinuz-6.8.0-147-generic
+KERNEL_ROOT=/home/dev/rs-l2tpd/target/phase6-kernels/ubuntu-noble-6.8.0-147.147/root
+KERNEL_MODULES=/home/dev/rs-l2tpd/target/phase6-kernels/ubuntu-noble-6.8.0-147.147/root/lib/modules/6.8.0-147-generic

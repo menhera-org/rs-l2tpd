@@ -65,7 +65,9 @@ impl Pair {
         self.ip(0, &["link", "set", "other", "netns", &self.names[1]]);
         self.ip(1, &["link", "set", "other", "name", "underlay"]);
         for side in 0..2 {
-            self.ip(side, &["link", "set", "underlay", "addrgenmode", "none"]);
+            if std::path::Path::new("/proc/sys/net/ipv6").exists() {
+                self.ip(side, &["link", "set", "underlay", "addrgenmode", "none"]);
+            }
         }
     }
     pub fn command(&self, side: usize, program: &str, args: &[&str]) -> Command {
@@ -155,7 +157,9 @@ impl Pair {
     }
     pub fn inner6(&self, device: &str, subnet: usize) {
         for side in 0..2 {
-            self.ip(side, &["link", "set", device, "addrgenmode", "none"]);
+            if std::path::Path::new("/proc/sys/net/ipv6").exists() {
+                self.ip(side, &["link", "set", device, "addrgenmode", "none"]);
+            }
             self.ip(side, &["link", "set", device, "up"]);
             self.ip(
                 side,
@@ -183,7 +187,9 @@ impl Pair {
     }
     pub fn inner(&self, device: &str, subnet: usize) {
         for side in 0..2 {
-            self.ip(side, &["link", "set", device, "addrgenmode", "none"]);
+            if std::path::Path::new("/proc/sys/net/ipv6").exists() {
+                self.ip(side, &["link", "set", device, "addrgenmode", "none"]);
+            }
             self.ip(side, &["link", "set", device, "up"]);
             self.ip(
                 side,

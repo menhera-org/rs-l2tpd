@@ -1,0 +1,105 @@
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  6  1.34M   6  95850   0      0  95414      0   00:14   00:01   00:13  95468100  1.34M 100  1.34M   0      0 823.4k      0   00:01   00:01          95468100  1.34M 100  1.34M   0      0 823.1k      0   00:01   00:01          95468100  1.34M 100  1.34M   0      0 822.8k      0   00:01   00:01          95468
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  3  1.09M   3  39850   0      0  39793      0   00:28   00:01   00:27  39810100  1.09M 100  1.09M   0      0 577.4k      0   00:01   00:01          39810100  1.09M 100  1.09M   0      0 577.2k      0   00:01   00:01          39810100  1.09M 100  1.09M   0      0 577.0k      0   00:01   00:01          39810
+UBUNTU_SUITE=noble
+UBUNTU_META_VERSION=6.8.0-147.147
+KERNEL_RELEASE=6.8.0-147-generic
+Package: linux-image-generic
+Source: linux-meta
+Priority: optional
+Section: kernel
+Installed-Size: 18
+Maintainer: Ubuntu Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 6.8.0-147.147
+Recommends: thermald
+Provides: ivsc-modules (= 0~git202311021215.73a044d9), spl-modules (= 2.2.2-0ubuntu9.5), v4l2loopback-modules (= 0.12.7-2ubuntu5.1), virtualbox-guest-modules (= 6.8.0-147), wireguard-modules (= 1.0.0), zfs-modules (= 2.2.2-0ubuntu9.5)
+Depends: linux-image-6.8.0-147-generic, linux-modules-extra-6.8.0-147-generic, linux-firmware, intel-microcode, amd64-microcode
+Filename: pool/main/l/linux-meta/linux-image-generic_6.8.0-147.147_amd64.deb
+Size: 11596
+MD5sum: f3b893acb8cd5bdd5110169af82de8dc
+SHA1: 65a637eeda4718c3a926941ea33e12739640288d
+SHA256: 2b4fb41fff454fd9032806d6d0c26dede869321207e821d0fc891a5b159342a3
+SHA512: 174bf72a7be39bfb1bcb19fe365207c46e5a78c17e5544fd0477c005d85006c08923e5f37246fd10366c923f3fc9153350c29c293e10e8807146d9f7d27bf060
+Description: Generic Linux kernel image
+Description-md5: 6d632579c673704f44b290b16e7dbfd1
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  0 14.15M   0  31897   0      0  31532      0   07:50   00:01   07:49  31549 14 14.15M  14  2.01M   0      0  1.00M      0   00:14   00:02   00:12  1.00M100 14.15M 100 14.15M   0      0  4.96M      0   00:02   00:02          1.00M100 14.15M 100 14.15M   0      0  4.96M      0   00:02   00:02          1.00M100 14.15M 100 14.15M   0      0  4.96M      0   00:02   00:02          1.00M
+Package: linux-image-6.8.0-147-generic
+Source: linux-signed
+Priority: optional
+Section: kernel
+Installed-Size: 14758
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 6.8.0-147.147
+Recommends: grub-pc | grub-efi-amd64 | grub-efi-ia32 | grub | lilo, initramfs-tools | linux-initramfs-tool
+Suggests: fdutils, linux-tools, linux-headers-6.8.0-147-generic, linux-modules-extra-6.8.0-147-generic
+Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, redhat-cluster-modules, spl-dkms, spl-modules, v4l2loopback-dkms, v4l2loopback-modules, virtualbox-guest-modules, zfs-dkms, zfs-modules
+Depends: kmod, linux-base (>= 4.5ubuntu1~16.04.1), linux-modules-6.8.0-147-generic
+Conflicts: linux-image-unsigned-6.8.0-147-generic
+Filename: pool/main/l/linux-signed/linux-image-6.8.0-147-generic_6.8.0-147.147_amd64.deb
+Size: 14845068
+MD5sum: 8b2249629e823b82a3dc9e813c9d8ba6
+SHA1: 453373b4ab1c6c701a4cdf453c0c8e99aab7713d
+SHA256: 08432502e565a8a3b4ab13bd8b01788a0a83c9398c8a1e9350f1225991bc4fbb
+SHA512: df1f14d5da33961966a5aae1ba8f3752aa4ca94689752bf4a3478e626c366c88c1e9e9373b830b4fe007d329fe87d51c94dbbbf836dcdc6cf1bd2e85953673ae
+Description: Signed kernel image generic
+Description-md5: b0fd0df88b1cd31408007b00d2458952
+Built-Using: linux (= 6.8.0-147.147)
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+/package.deb: OK
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  0 37.43M   0  31896   0      0  31480      0   20:46   00:01   20:45  31486  2 37.43M   2 937.3k   0      0 465.6k      0   01:22   00:02   01:20 465.9k 28 37.43M  28 10.49M   0      0  3.48M      0   00:10   00:03   00:07  3.48M 59 37.43M  59 22.38M   0      0  5.57M      0   00:06   00:04   00:02  5.57M 91 37.43M  91 34.20M   0      0  6.82M      0   00:05   00:05          6.82M100 37.43M 100 37.43M   0      0  7.09M      0   00:05   00:05          6.82M100 37.43M 100 37.43M   0      0  7.08M      0   00:05   00:05          6.82M100 37.43M 100 37.43M   0      0  7.08M      0   00:05   00:05          6.82M
+Package: linux-modules-6.8.0-147-generic
+Source: linux
+Priority: optional
+Section: kernel
+Installed-Size: 38590
+Maintainer: Ubuntu Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 6.8.0-147.147
+Filename: pool/main/l/linux/linux-modules-6.8.0-147-generic_6.8.0-147.147_amd64.deb
+Size: 39250112
+MD5sum: e40db2ac2487efe131ca35a3c3622e2d
+SHA1: bd3f0e2dbaf19bc6fd8d21c3b23b698483a29f3c
+SHA256: 3b9188304d600fc35a4f4d1f99751f7ea485bb7f9e0cb87831d4ebf2d3423d9d
+SHA512: a9971c58afbd5818777fb5303ac32ef2473da0b0b38e813b61022a4b91bd6f95cabb0db1a85475a0a746da985f0bafda6d7ac65be2f7d3e92640e6670b8e68fe
+Description: Linux kernel extra modules for version 6.8.0 on 64 bit x86 SMP
+Description-md5: dbc6bcea7e1627ae6360776b31c3ee82
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+/package.deb: OK
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  0 108.2M   0 109.2k   0      0 108.9k      0   16:57   00:01   16:56 109.0k  5 108.2M   5  5.85M   0      0  2.92M      0   00:36   00:02   00:34  2.92M 19 108.2M  19 20.89M   0      0  6.96M      0   00:15   00:03   00:12  6.96M 33 108.2M  33 36.75M   0      0  9.18M      0   00:11   00:04   00:07  9.18M 48 108.2M  48 52.13M   0      0 10.42M      0   00:10   00:05   00:05 10.42M 62 108.2M  62 67.36M   0      0 11.22M      0   00:09   00:06   00:03 13.45M 76 108.2M  76 82.61M   0      0 11.79M      0   00:09   00:07   00:02 15.34M 90 108.2M  90 98.22M   0      0 12.27M      0   00:08   00:08         15.46M100 108.2M 100 108.2M   0      0 12.55M      0   00:08   00:08         15.46M100 108.2M 100 108.2M   0      0 12.54M      0   00:08   00:08         15.46M100 108.2M 100 108.2M   0      0 12.54M      0   00:08   00:08         15.46M
+Package: linux-modules-extra-6.8.0-147-generic
+Source: linux
+Priority: optional
+Section: kernel
+Installed-Size: 110073
+Maintainer: Ubuntu Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 6.8.0-147.147
+Depends: linux-modules-6.8.0-147-generic, wireless-regdb
+Filename: pool/main/l/linux/linux-modules-extra-6.8.0-147-generic_6.8.0-147.147_amd64.deb
+Size: 113500352
+MD5sum: d4197f5101bd430a8b11e85718c3e9e3
+SHA1: 6fe7f9daaa0dee4c2ab2cd8400f1d15044cfc211
+SHA256: b3f16d16b54796497884b27810b0942243bdc6ef26da1ce821e948ece39a9492
+SHA512: db40a805db2c8a76e111f6f67b09840942a1076a2746b5b8f0819977d7a56ce48e26fa88ad38bde01120de7cd32176d34b6f6d50ba84585bdc78516a76cefe6b
+Description: Linux kernel extra modules for version 6.8.0 on 64 bit x86 SMP
+Description-md5: aae0720ac9d861c1e457c358cbcb81ae
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+/package.deb: OK
+KERNEL_IMAGE=/home/dev/rs-l2tpd/target/phase6-kernels/ubuntu-noble-6.8.0-147.147/root/boot/vmlinuz-6.8.0-147-generic
+KERNEL_ROOT=/home/dev/rs-l2tpd/target/phase6-kernels/ubuntu-noble-6.8.0-147.147/root
