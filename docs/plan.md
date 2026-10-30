@@ -447,6 +447,9 @@ inline tests; that size target remains open.
 
 ### Phase 6 — proof
 
+The detailed instructions for this phase, with work packages, commands
+and acceptance criteria, are on the [Phase 6 page](phase6.md).
+
 1. The container suite (`tests/docker/`), rewritten as Rust integration
    tests driven by one runner script, one scenario per H rule and per
    G promise, against the real kernel: the dual-stack and IPv4-only

@@ -1,0 +1,12 @@
+Running as unit: rs-l2tpd-store-2938519.service; invocation ID: 6088e30cbb764dc4980e6e7ea0862f50
+
+running 1 test
+test kernel_reference ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.01s
+
+Oct 30 04:06:07 workspace1 systemd[2072]: Starting rs-l2tpd-store-2938519.service - [systemd-run] /usr/bin/env TRANSFER_SOCKET=/tmp/rs-l2tpd-store.wlhiK7/socket /home/dev/rs-l2tpd/target-musl/x86_64-unknown-linux-musl/debug/deps/store_kernel-7ea32c1508557238 --exact manager_bridge --ignored --nocapture...
+Oct 30 04:06:07 workspace1 env[2938527]: running 1 test
+Oct 30 04:06:07 workspace1 systemd[2072]: Started rs-l2tpd-store-2938519.service - [systemd-run] /usr/bin/env TRANSFER_SOCKET=/tmp/rs-l2tpd-store.wlhiK7/socket /home/dev/rs-l2tpd/target-musl/x86_64-unknown-linux-musl/debug/deps/store_kernel-7ea32c1508557238 --exact manager_bridge --ignored --nocapture.
+Oct 30 04:06:17 workspace1 env[2938527]: test manager_bridge ... ok
+Oct 30 04:06:17 workspace1 env[2938527]: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 10.18s

@@ -1,0 +1,98 @@
+[  0s] == S8: bindv6only=1 host with fix off: AF_INET sockets; address events and reloads on them (T26, T4, H18)
+[  1s]   seen (1): tunnel t1 (tunnel_id=2): created
+[  1s]   bindv6only in a: 1
+[  1s]   seen (1): tunnel t1 (tunnel_id=1): connected to
+[  1s]   seen (2): v6only\|IPv6-only\|bindv6only
+[  2s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[  2s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From 10.0.0.1 to 10.0.0.2
+       Peer tunnel 2
+     Tunnel 11, encap IP
+       From :: to ::
+       Peer tunnel 12
+[  2s] == add/remove an IPv4 address on bindA -> two reconnects on the AF_INET socket
+[  3s]   seen (3): tunnel t1 (tunnel_id=1): connected to
+[  3s]   A log:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+[  4s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[  4s] == rename bindA away and back
+[  7s]   A log:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): disconnected
+   A| WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+[  8s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[  8s] == reload: t1 remote -> fd00::2 v6 on an AF_INET socket (T4: stays disconnected, reported once)
+[ 11s]   A log:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): disconnected
+   A| WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| INFO rs_l2tpd::service: reload completed
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+[ 13s]   ping l2tp0 -> 192.168.0.2: FAIL (tx_dropped +2)
+[ 13s] == t2 (v6 peer, IPv6-only AF_INET6 socket): add route -> connects
+[ 14s]   seen (1): tunnel t2 (tunnel_id=11): connected to
+[ 16s]   ping l2tp1 -> 192.168.1.2: ok (tx_dropped +0)
+[ 16s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From 0.0.0.0 to 0.0.0.0
+       Peer tunnel 2
+     Tunnel 11, encap IP
+       From fd00::1 to fd00:9::2
+       Peer tunnel 12
+[ 16s] == done; A log tail:
+   A| WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): created
+   A| WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=11): created
+   A| INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=1, session_id=101): created as l2tp0
+   A| INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=11, session_id=201): created as l2tp1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| INFO rs_l2tpd: ready pid=55
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): disconnected
+   A| WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): disconnected
+   A| WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| INFO rs_l2tpd::service: reload completed
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=11): connected to fd00:9::2 from fd00::1
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: an IPv6 peer cannot be reached on its AF_INET socket
+[ 16s] -- B log (reconnect-related lines):
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2

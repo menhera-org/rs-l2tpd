@@ -1,0 +1,12 @@
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): created
+INFO rs_l2tpd::reconciler::sessions: session s5 (tunnel_id=42, session_id=502): created as l2tp4
+WARN rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected, peer fe80::1 pending: ENETUNREACH: Network is unreachable
+INFO rs_l2tpd: ready pid=15
+DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected, peer fe80::1 pending: ENETUNREACH: Network is unreachable
+DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected, peer fe80::1 pending: ENETUNREACH: Network is unreachable
+DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected, peer fe80::1 pending: ENETUNREACH: Network is unreachable
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2
+INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2

@@ -1,0 +1,13 @@
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): created
+INFO rs_l2tpd::reconciler::sessions: session mac (tunnel_id=1, session_id=103): created as rsl2tp-tbc50fe
+INFO rs_l2tpd::reconciler::sessions: session plain (tunnel_id=1, session_id=101): created as l2tp0
+WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected, peer 10.0.0.2 pending: ENETUNREACH: Network is unreachable
+INFO rs_l2tpd::reconciler::sessions: session mac (tunnel_id=1, session_id=103): published as l2tp1
+INFO rs_l2tpd: ready pid=8
+DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected, peer 10.0.0.2 pending: ENETUNREACH: Network is unreachable
+DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected, peer 10.0.0.2 pending: ENETUNREACH: Network is unreachable
+DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected, peer 10.0.0.2 pending: ENETUNREACH: Network is unreachable
+INFO rs_l2tpd::reconciler::sessions: session plain (tunnel_id=1, session_id=101): removed
+INFO rs_l2tpd::reconciler::sessions: session mac (tunnel_id=1, session_id=103): removed
+INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): removed
+INFO rs_l2tpd: shutdown complete

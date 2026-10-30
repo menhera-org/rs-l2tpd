@@ -1,0 +1,40 @@
+[  0s] == S4: peer unreachable at start, route appears later; route removed (T16, E13, E9, H6, H8)
+[  1s]   seen (1): tunnel t1 (tunnel_id=2): created
+[  1s]   seen (1): tunnel t2 (tunnel_id=11): disconnected, peer
+[  1s]   seen (1): session s2 (tunnel_id=11, session_id=201)
+[  1s]   l2tp1 in a: 6: l2tp1: <BROADCAST,MULTICAST> mtu 1442 qdisc noop state DO
+[  1s]   pid file (readiness) exists: no
+[  1s] == add route fd00:9::2/128 dev bindA in a
+[  2s]   seen (1): tunnel t2 (tunnel_id=11): connected to
+[  2s]   connected within 1s of the route
+[  2s]   A log:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=11): connected to fd00:9::2 from fd00::1
+[  4s]   ping l2tp1 -> 192.168.1.2: ok (tx_dropped +0)
+[  4s] == remove the route again: no event is subscribed; socket stays connected; frames are dropped by routing
+[  6s]   A log lines since route removal: 0
+[  8s]   ping l2tp1 -> 192.168.1.2: FAIL (tx_dropped +2)
+[  8s] == re-add the route: connectivity returns without daemon action
+[ 10s]   ping l2tp1 -> 192.168.1.2: ok (tx_dropped +0)
+[ 10s]   unchanged (1): tunnel t2 (tunnel_id=11): connected to
+[ 10s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 2
+     Tunnel 11, encap IP
+       From fd00::1 to fd00:9::2
+       Peer tunnel 12
+[ 10s] == done; A log tail:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): created
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=11): created
+   A| INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=1, session_id=101): created as l2tp0
+   A| INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=11, session_id=201): created as l2tp1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| INFO rs_l2tpd: ready pid=49
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=11): connected to fd00:9::2 from fd00::1
+[ 10s] -- B log (reconnect-related lines):
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2

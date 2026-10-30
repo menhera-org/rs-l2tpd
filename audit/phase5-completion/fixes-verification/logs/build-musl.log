@@ -1,0 +1,13 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.71s
+  Executable unittests src/lib.rs (target-musl/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896)
+  Executable unittests src/bin/rs-l2tpd/main.rs (target-musl/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-596b36cde4aa41c2)
+  Executable tests/kernel/fake.rs (target-musl/x86_64-unknown-linux-musl/debug/deps/kernel_fake-fcbd4bddcc5e3ae8)
+  Executable tests/kernel/linux.rs (target-musl/x86_64-unknown-linux-musl/debug/deps/kernel_linux-24aa97de8de86bfb)
+  Executable tests/process.rs (target-musl/x86_64-unknown-linux-musl/debug/deps/process-fc1f00b72031adc1)
+  Executable tests/kernel/review.rs (target-musl/x86_64-unknown-linux-musl/debug/deps/review_kernel-a94d1056f1fc43ab)
+  Executable tests/tools/rulemap.rs (target-musl/x86_64-unknown-linux-musl/debug/deps/rulemap-362263b0ae5b86b8)
+  Executable tests/rules/main.rs (target-musl/x86_64-unknown-linux-musl/debug/deps/rules-cc924e8ec42501b2)
+  Executable tests/service.rs (target-musl/x86_64-unknown-linux-musl/debug/deps/service-10036fc238015212)
+  Executable tests/tools/srclink.rs (target-musl/x86_64-unknown-linux-musl/debug/deps/srclink-747d0d283aa962df)
+  Executable tests/kernel/store.rs (target-musl/x86_64-unknown-linux-musl/debug/deps/store_kernel-7ea32c1508557238)

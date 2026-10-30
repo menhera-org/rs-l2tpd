@@ -1,0 +1,168 @@
+[  0s] == S6: VRF bind device: absent, created, member joins/leaves, replaced; link-local peer with zone (T10-T13, T27, E4, H7, H13)
+[  1s]   seen (1): tunnel t1 (tunnel_id=2): created
+[  1s]   seen (1): tunnel t1 (tunnel_id=1): connected to
+[  1s]   seen (1): tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+[  1s]   seen (1): tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+[  1s] == create vrfA (table 100), no members yet
+[  3s]   A log:
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected, peer 10.0.0.2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected, peer 10.0.0.2 pending: no source address was selected
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected, peer 10.0.0.2 pending: no source address was selected
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+[  3s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 2
+     Tunnel 31, encap IP
+       From :: to ::ffff:10.0.0.2
+       Peer tunnel 32
+     Tunnel 41, encap IP
+       From :: to ::
+       Peer tunnel 42
+[  5s]   ping l2tp3 -> 192.168.3.2: FAIL (tx_dropped +2)
+[  5s] == enslave bindA to vrfA (member joins; t1's device changes L3 domain)
+[  5s]   seen (1): tunnel t4 (tunnel_id=31): connected to
+[  5s]   seen (4): tunnel t5 (tunnel_id=41): connected to
+[  5s]   seen (2): tunnel t1 (tunnel_id=1): connected to
+[  5s]   A log:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=31): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fd00::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fd00::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fd00::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fe80::1
+[  7s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[  8s]   ping l2tp3 -> 192.168.3.2: ok (tx_dropped +0)
+[  9s]   ping l2tp4 -> 192.168.4.2: ok (tx_dropped +0)
+[  9s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 2
+     Tunnel 31, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 32
+     Tunnel 41, encap IP
+       From fe80::1 to fe80::2
+       Peer tunnel 42
+[  9s] == add 'unreachable default' routes to the VRF table (the usual VRF setup): no event, nothing expected
+[ 11s]   A log lines since: 0
+[ 12s]   ping l2tp3 -> 192.168.3.2: ok (tx_dropped +0)
+[ 12s] == bindA leaves the VRF (nomaster): VRF has no source any more; zone no longer a member
+[ 15s]   A log:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| WARN rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected, peer 10.0.0.2 pending: EHOSTUNREACH: No route to host
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): disconnected
+   A| WARN rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected, peer 10.0.0.2 pending: EHOSTUNREACH: No route to host
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected, peer 10.0.0.2 pending: EHOSTUNREACH: No route to host
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+[ 16s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 18s]   ping l2tp3 -> 192.168.3.2: FAIL (tx_dropped +2)
+[ 20s]   ping l2tp4 -> 192.168.4.2: FAIL (tx_dropped +2)
+[ 20s] == bindA re-joins the VRF
+[ 23s]   A log:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=31): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fd00::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fd00::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fe80::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fe80::1
+[ 24s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 25s]   ping l2tp3 -> 192.168.3.2: ok (tx_dropped +0)
+[ 26s]   ping l2tp4 -> 192.168.4.2: ok (tx_dropped +0)
+[ 26s] == delete vrfA (bind device disappears; bindA loses its controller)
+[ 29s]   A log:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=31): disconnected
+   A| WARN rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): disconnected
+   A| WARN rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+[ 30s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 32s]   ping l2tp3 -> 192.168.3.2: FAIL (tx_dropped +2)
+[ 32s] == re-create vrfA under the same name (new index) and enslave bindA again (H13 replacement)
+[ 35s]   A log:
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected, peer 10.0.0.2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=31): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fd00::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fd00::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fe80::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fe80::1
+[ 36s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 37s]   ping l2tp3 -> 192.168.3.2: ok (tx_dropped +0)
+[ 38s]   ping l2tp4 -> 192.168.4.2: ok (tx_dropped +0)
+[ 38s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 2
+     Tunnel 31, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 32
+     Tunnel 41, encap IP
+       From fe80::1 to fe80::2
+       Peer tunnel 42
+[ 38s] == done; A log tail:
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected, peer 10.0.0.2 pending: EHOSTUNREACH: No route to host
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected, peer 10.0.0.2 pending: EHOSTUNREACH: No route to host
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=31): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fd00::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fd00::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fe80::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fe80::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=31): disconnected
+   A| WARN rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): disconnected
+   A| WARN rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected, peer 10.0.0.2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: the zone of its peer is neither its bind device nor a member of it
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=31): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fd00::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fd00::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fe80::1
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=41): connected to fe80::2 from fe80::1
+[ 38s] -- B log (reconnect-related lines):
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2

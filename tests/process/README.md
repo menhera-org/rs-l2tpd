@@ -46,7 +46,8 @@ of `foreground_reload_and_clean_shutdown_without_network`, after
 `mount -t tmpfs tmpfs /proc` inside the privileged container, checks the
 process with procfs absent and tunable fixing disabled. Run
 `setup_prefix_preserves_configuration` there as well to check the installer's
-procfs-free executable lookup. Docker/runc refuses
+procfs-free executable lookup; it is an ordinary test, so run it without
+`--ignored`. Docker/runc refuses
 covering /proc directly through its outer mount options.
 
 The ignored `installer_enables_once_and_never_restarts` case installs only

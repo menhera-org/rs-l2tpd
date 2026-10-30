@@ -1,0 +1,31 @@
+[tunnels.t1]
+tunnel_id = 1
+peer_tunnel_id = 2
+remote_addr = "10.0.0.2"
+ip_version = "v4"
+bind_interface = "bindA"
+[sessions.s1]
+tunnel_name = "t1"
+session_id = 101
+peer_session_id = 102
+interface_name = "l2tp0"
+[tunnels.t2]
+tunnel_id = 11
+peer_tunnel_id = 12
+remote_addr = "fd00:9::2"
+ip_version = "v6"
+[sessions.s2]
+tunnel_name = "t2"
+session_id = 201
+peer_session_id = 202
+interface_name = "l2tp1"
+[tunnels.t3]
+tunnel_id = 21
+peer_tunnel_id = 22
+remote_addr = "peerb.test"
+ip_version = "v4"
+[sessions.s3]
+tunnel_name = "t3"
+session_id = 301
+peer_session_id = 302
+interface_name = "l2tp2"

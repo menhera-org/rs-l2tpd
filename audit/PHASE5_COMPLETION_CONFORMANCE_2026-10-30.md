@@ -59,6 +59,67 @@ system-unit sandbox remain open; these runs do not mark them complete.
 | D12 | Docs fixed. | `tests/kernel/README.md`: `-m 2048` with the reason |
 | E1–E5 | Strengthen the tests as a whole, not item by item. | no change |
 
+## F. Follow-up after the fix commit 6075fde
+
+The fix commit was verified twice on 2026-10-30. A fresh run of every
+gate and suite ([record](phase5-completion/fixes-verification/test-run-2.md),
+logs beside it): formatting, Clippy, the feature builds and the docs
+clean; 196 ordinary tests plus the rules, service and conformance
+suites green three times; the privileged container suites on musl and
+glibc (kernel 9/13/5, process 18, fixtures 3), procfs hidden, the real
+user systemd store and the notify filter all pass; the eight live
+reconnection scenarios and the zoned link-local replacement that A2 had
+failed pass with the new binary, with results identical to the
+pre-fix run except for the fixed case; every session without a
+hardware address was created directly under its configured name (61
+of 61) and one with an address was staged and published. An
+independent review of the diff against every item
+([review record](phase5-completion/review-fixes.md)) found all items
+fixed with tests the pre-fix code would fail, except the following. F1
+and F2 are to be fixed before Phase 6 starts; the rest within Phase 6.
+Phase 6 can begin.
+
+- [ ] **F1. D9 regressed (medium).** `src/kernel/linux/rtnl.rs:93-97`
+  returns `None` for an address record of any family other than
+  `AF_INET` or `AF_INET6`, and `dump_addrs` (`:228`) and `dump_links`
+  (`:210`) now turn one undecodable record into `EPROTO` for the whole
+  dump, where the previous code skipped it. The daemon dumps with
+  `AF_UNSPEC`, which also walks the MCTP and Phonet address tables when
+  those families have addresses. On such a host the resync never
+  completes: `monitor_pending` stays set, the "lost notifications"
+  episode never ends, `address_devices` stays empty and every
+  `AddrNew` is ignored (`src/reconciler/events.rs:277-286`), so bound
+  tunnels no longer reconnect when their device gets an address. Fix:
+  skip records of other families and keep `EPROTO` for a truncated
+  inet record only; add a dump-level test with a foreign-family record.
+- [ ] **F2. A1 partly (low to medium).** Re-creation through the event
+  path (`recreate_session` after an observed removal or a failed
+  verification) always stages, because the configured name is still in
+  `reserved` and only `release_departed` drops it, which runs inside
+  `reconcile` only (`src/reconciler/mod.rs:232`). The S27 re-created
+  device therefore gets a temporary-name-derived MAC under udev's
+  persistent policy, the A1 symptom again. Fix: release the reservation
+  (absence was just confirmed) before `create_wanted_sessions` in
+  `recreate_session`; assert the re-created session's name is the
+  configured one in `direct_creation_and_recreation_preserve_publication_rules`.
+- [ ] F3. `remember_device` (`events.rs:518-526` via `ladder.rs:56`)
+  performs a `link_by_index(master)` round trip on every converge of a
+  tunnel whose bind device has a master, even when cached (D4, M16).
+- [ ] F4. `close_from` failure now ends start-up (`fdstore.rs:184-201`,
+  D7); a host that filters `close_range` and sets a hard descriptor limit
+  in the millions previously started slowly and now does not. One
+  sentence on the hosts page.
+- [ ] F5. The E1 test forces synchronous deletion; the asynchronous K18
+  case (the survivor's rename hits the dying device, `EEXIST`, retried)
+  is untested.
+- [ ] F6. B5's checks refuse a 0.1.5 PID file (mode `0666`), so
+  `rs-l2tpd --restart` cannot hand over from a running 0.1.5; the
+  installer says `systemctl restart` is needed once. Say so in
+  `docs/packaging.md`.
+- [ ] F7. `tests/service.rs:1012-1021` was given a hardware address so
+  that staging still blocks the reload during convergence; the direct
+  creation path has no equivalent service test.
+
 ## A. Must fix before 0.2.0
 
 - [x] **A1. Staging every session under a temporary name changes the MAC

@@ -1,0 +1,101 @@
+[  0s] == S1: bind device absent at start; appears under another name; renamed to the configured name (T13, E1, E2)
+[  0s]   seen (1): tunnel t1 (tunnel_id=2): created
+[  0s]   seen (1): tunnel t1 (tunnel_id=1): created
+[  0s]   seen (1): tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+[  0s] == create the veth as tmp0 (wrong name), up, addressed
+[  3s]   new A log lines since device creation under the wrong name:
+   A| INFO rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=21): resolver answers are usable again
+   A| INFO rs_l2tpd::reconciler::resolvers: tunnel t3 (tunnel_id=21): peerb.test resolves to 10.0.0.2
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=21): connected to 10.0.0.2 from 10.0.0.1
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+[  3s]   unchanged (0): tunnel t1 (tunnel_id=1): connected to
+[  3s] == rename tmp0 -> bindA
+[  3s]   seen (1): tunnel t1 (tunnel_id=1): connected to
+[ 10s]   MISSING after 6s (count 0): bound tunnel_id=1 socket to interface bindA
+[ 11s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 11s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 2
+     Tunnel 11, encap IP
+       From :: to ::
+       Peer tunnel 12
+     Tunnel 21, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.2
+       Peer tunnel 22
+     Tunnel 31, encap IP
+       From :: to ::
+       Peer tunnel 32
+     Tunnel 41, encap IP
+       From :: to ::
+       Peer tunnel 42
+[ 11s] == siblings: t3 (fqdn, unbound) connected; t2 (no route) pending; t4/t5 (vrfA absent) pending
+[ 11s]   seen (1): tunnel t3 (tunnel_id=21): connected to
+[ 11s]   seen (11): tunnel t2 (tunnel_id=11): disconnected, peer
+[ 11s]   seen (11): tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+[ 11s]   seen (12): tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+[ 11s] == done; A log tail:
+   A| WARN rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| INFO rs_l2tpd: ready pid=33
+   A| INFO rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=21): resolver answers are usable again
+   A| INFO rs_l2tpd::reconciler::resolvers: tunnel t3 (tunnel_id=21): peerb.test resolves to 10.0.0.2
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=21): connected to 10.0.0.2 from 10.0.0.1
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=11): disconnected, peer fd00:9::2 pending: ENETUNREACH: Network is unreachable
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=31): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=41): disconnected: its bind device is absent
+[ 11s] -- B log (reconnect-related lines):
+   B| WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=2): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=12): disconnected, peer fd00::1 pending: ENETUNREACH: Network is unreachable
+   B| WARN rs_l2tpd::reconciler::report: tunnel t3 (tunnel_id=22): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| WARN rs_l2tpd::reconciler::report: tunnel t4 (tunnel_id=32): disconnected, peer 10.0.0.1 pending: ENETUNREACH: Network is unreachable
+   B| WARN rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected: the zone of its link-local peer is absent
+   B| DEBUG rs_l2tpd::reconciler::report: tunnel t5 (tunnel_id=42): disconnected, peer fe80::1 pending: ENETUNREACH: Network is unreachable
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::4cdf:97ff:fe66:add6

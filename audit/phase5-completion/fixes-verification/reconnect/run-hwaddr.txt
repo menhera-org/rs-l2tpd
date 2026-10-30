@@ -1,0 +1,9 @@
+--- ip link:
+2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN mode DEFAULT group default qlen 1000\    link/tunnel6 :: brd :: permaddr 3ea9:762:ac4d::
+3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN mode DEFAULT group default qlen 1000\    link/gre6 :: brd :: permaddr 2e49:bbd8:888e::
+4: l2tp1: <BROADCAST,MULTICAST> mtu 1442 qdisc noop state DOWN mode DEFAULT group default qlen 1000\    link/ether 02:11:22:33:44:55 brd ff:ff:ff:ff:ff:ff
+5: l2tp0: <BROADCAST,MULTICAST> mtu 1442 qdisc noop state DOWN mode DEFAULT group default qlen 1000\    link/ether 56:37:5d:9c:85:75 brd ff:ff:ff:ff:ff:ff
+--- session log lines:
+INFO rs_l2tpd::reconciler::sessions: session mac (tunnel_id=1, session_id=103): created as rsl2tp-tbc50fe
+INFO rs_l2tpd::reconciler::sessions: session plain (tunnel_id=1, session_id=101): created as l2tp0
+INFO rs_l2tpd::reconciler::sessions: session mac (tunnel_id=1, session_id=103): published as l2tp1

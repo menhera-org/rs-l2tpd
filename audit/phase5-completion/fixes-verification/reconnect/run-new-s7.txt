@@ -1,0 +1,61 @@
+[  0s] == S7: reload changing bind_interface, remote_addr and family in place (T22, G3, G18)
+[  1s]   seen (1): tunnel t1 (tunnel_id=1): connected to
+[  2s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[  2s]   l2tp0 ifindex: 4
+[  2s] == reload: bind_interface -> bindX (absent)
+[  5s]   A log:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): disconnected
+   A| WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| INFO rs_l2tpd::service: reload completed
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+[  5s]   l2tp0 ifindex: 4 (was 4)
+[  7s]   ping l2tp0 -> 192.168.0.2: FAIL (tx_dropped +4)
+[  7s] == reload: bind_interface -> bindA, remote_addr -> 10.0.0.3
+[ 10s]   A log:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.3 from 10.0.0.1
+   A| INFO rs_l2tpd::service: reload completed
+[ 10s]   l2tp0 ifindex: 4 (was 4)
+[ 11s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 11s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From ::ffff:10.0.0.1 to ::ffff:10.0.0.3
+       Peer tunnel 2
+[ 11s] == reload: remote_addr -> fd00::2, ip_version v6 (family change on the same socket)
+[ 14s]   A log:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to fd00::2 from fd00::1
+   A| INFO rs_l2tpd::service: reload completed
+[ 14s]   l2tp0 ifindex: 4 (was 4)
+[ 15s]   ping l2tp0 -> 192.168.0.2: ok (tx_dropped +0)
+[ 15s]   -- ip l2tp show tunnel (a):
+     Tunnel 1, encap IP
+       From fd00::1 to fd00::2
+       Peer tunnel 2
+[ 15s] == reload: unchanged configuration (nothing expected)
+[ 17s]   A log lines since: 1
+   A| INFO rs_l2tpd::service: reload completed
+[ 17s]   l2tp0 ifindex: 4 (was 4)
+[ 17s] == done; A log tail:
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): created
+   A| INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=1, session_id=101): created as l2tp0
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.2 from 10.0.0.1
+   A| INFO rs_l2tpd: ready pid=49
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): disconnected
+   A| WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| INFO rs_l2tpd::service: reload completed
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=1): disconnected: its bind device is absent
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to 10.0.0.3 from 10.0.0.1
+   A| INFO rs_l2tpd::service: reload completed
+   A| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=1): connected to fd00::2 from fd00::1
+   A| INFO rs_l2tpd::service: reload completed
+   A| INFO rs_l2tpd::service: reload completed
+[ 17s] -- B log (reconnect-related lines):
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=2): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=12): connected to fd00::1 from fd00::2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=22): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t4 (tunnel_id=32): connected to 10.0.0.1 from 10.0.0.2
+   B| INFO rs_l2tpd::reconciler::tunnels: tunnel t5 (tunnel_id=42): connected to fe80::1 from fe80::2
