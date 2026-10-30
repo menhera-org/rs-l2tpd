@@ -1,15 +1,16 @@
 #!/bin/sh
 set -eu
-[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6 RECORD" >&2; exit 2; }
+[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|systemd RECORD" >&2; exit 2; }
 repo=$(CDPATH= cd -P "$(dirname "$0")/../.." && pwd)
 cd "$repo"
 kernel=$1; modules=$2; config=$3; mode=$4; record=$5
 case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
 case $record in /*) ;; *) record=$repo/$record ;; esac
-case $mode in normal|ipv6-disable|no-ipv6) ;; *) exit 2 ;; esac
+case $mode in normal|ipv6-disable|no-ipv6|systemd) ;; *) exit 2 ;; esac
 [ -s "$kernel" ] || exit 1
 mkdir -p "$record"
 image=rs-l2tpd-audit-vm:local
+if [ "$mode" = systemd ]; then image=nd-test:u2404; fi
 image_id=$(docker image inspect --format '{{.Id}}' "$image")
 printf '%s\n' "$image_id" > "$record/image.log"
 base=$repo/target/phase6-kernels/base-${image_id#sha256:}
@@ -59,6 +60,7 @@ copy_test 'tests/kernel/review.rs' review-kernel
 copy_test 'tests/process.rs' process-test
 copy_test 'tests/scenarios/main.rs' scenarios
 copy_test 'tests/scenarios/boot.rs' boot-scenarios
+if [ "$mode" = systemd ]; then copy_test 'tests/scenarios/systemd.rs' systemd-scenarios; fi
 binary=$repo/target/x86_64-unknown-linux-musl/debug/rs-l2tpd
 mkdir -p "$guest/root$(dirname "$binary")"
 cp "$binary" "$guest/root$binary"
@@ -74,6 +76,10 @@ if [ "$modules" != - ]; then
 fi
 if [ "$config" != - ]; then cp "$config" "$record/kernel.config"; fi
 cp tests/kernel/matrix-init.sh "$guest/root/init"
+if [ "$mode" = systemd ]; then
+    cp tests/kernel/systemd-init.sh "$guest/root/init"
+    cp -Rp "$modules/../../../usr/." "$guest/root/usr/"
+fi
 chmod 755 "$guest/root/init"
 printf '%s\n' "$mode" > "$guest/root/matrix-mode"
 (cd "$guest/root" && find . -print | cpio -o -H newc -R 0:0 > "$guest/initramfs.cpio") > "$record/initramfs.log" 2>&1
@@ -97,6 +103,7 @@ mv "$record/run.tmp" "$record/run.log"
 grep -E 'Linux version|GUEST_KERNEL_RELEASE|scope:|test result:|_RESULT=' "$record/run.log" || :
 [ "$result" = 0 ] || exit "$result"
 markers='CONFORMANCE_RESULT=0 SCENARIO_RESULT=0 MATRIX_GUEST_RESULT=0'
+if [ "$mode" = systemd ]; then markers='ROOT_SYSTEMD_RESULT=0'; fi
 for marker in $markers; do
     grep -q "^$marker" "$record/run.log" || exit 1
 done

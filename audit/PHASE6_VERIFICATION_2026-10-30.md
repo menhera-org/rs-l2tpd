@@ -7,17 +7,17 @@ been enabled. The entry commit was `886eae9`.
 
 | Gate/package | Executed evidence | Status |
 |---|---|---|
-| Source link, P1 | `SRCLINK_STRICT=1 cargo test --locked --all-features --test srclink -- --nocapture`: 4 passed, 0 failed; 41 active facts, 36 production-cited, 5 classified facts, no uncited production function | Local check passes; CI/determinism gate remains open |
-| Rule map, P1 | Current strict run: 340 rules, 330 active, 252 cited, 78 without citations (entry: 101 missing) | Open |
-| Scenarios, P2 | Implemented 12-case host/manager subset passed three times; missing cases remain | Open |
-| Required kernel matrix, P3 | Not run in Phase 6 | Open |
+| Source link, P1 | `SRCLINK_STRICT=1 cargo test --locked --all-features --test srclink -- --nocapture`: 4 passed, 0 failed; 43 active facts, 37 production-cited, 6 classified facts, no uncited production function | Local check passes; CI/determinism gate remains open |
+| Rule map, P1 | Current strict run: 343 rules, 333 active, 263 cited, 70 without citations (entry: 101 missing) | Open |
+| Scenarios, P2 | Expanded 18-case subset passed three times; H4 boot cases also pass; missing cases remain | Open |
+| Required kernel matrix, P3 | Kernels built; both stock guests passed conformance/process stages but scenario stages timed out; full reruns and matrix dispatch pending | Open |
 | Coverage, P4 | Native baseline recorded separately below; live profiles not merged | Open |
 | Incus, P5 | Combined MAC contract executed successfully three times in an unprivileged system container; buffer fallback also executed | Local gate passes |
-| Root system-unit sandbox, P6 | Not yet run | Open |
+| Root system-unit sandbox, P6 | Actual root systemd QEMU guest, mounts/capabilities/tunable/order/store/restart/cleanup assertions, 1 passed | Local gate passes |
 
-All executed checks in this record used host kernel
-`6.8.0-147-generic`. This is execution evidence, not a claim that the
-moving required kernel set has been re-resolved or verified.
+Initial host checks used `6.8.0-147-generic`. Later QEMU records identify
+their guest releases separately. The complete moving required kernel set
+has not passed.
 
 ## P1 source-link classification
 
@@ -287,3 +287,19 @@ The maintainer updated today's Ubuntu targets to 6.8.0-148.148 and
 7.0.0-42.42 and warned of imminent security revisions. The required
 matrix must re-resolve targets before being called green; the existing
 6.8.0-147 host evidence is historical for that stock-kernel target.
+
+## QEMU and root sandbox checkpoint
+
+H4/T4 passes with IPv6 disabled at boot and compiled out. All required
+vanilla images and both published stock Ubuntu package sets are prepared;
+full matrix execution and freshness comparison remain open.
+[P3 bootstrap evidence](phase6/P3_BOOTSTRAP_2026-10-30.md).
+
+P6 passed under real root systemd with every supplied mount restriction
+active, without daemon-unit overrides. The refactored Incus contract also
+passes and its container was deleted.
+[P6 evidence](phase6/P6_ROOT_SANDBOX_2026-10-30.md).
+
+The maintainer clarified that 6.8.0-148.148 is not ready. Published stock
+metadata currently resolves to 6.8.0-147.147 and 7.0.0-42.42; upcoming
+security updates must trigger target refresh and reruns before completion.

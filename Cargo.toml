@@ -77,6 +77,11 @@ name = "boot-scenarios"
 path = "tests/scenarios/boot.rs"
 required-features = ["bin"]
 
+[[test]]
+name = "systemd-scenarios"
+path = "tests/scenarios/systemd.rs"
+required-features = ["bin", "setup-systemd"]
+
 [dependencies]
 # Library (docs/dependencies.md)
 l2tp = "0.5.0"
