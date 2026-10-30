@@ -44,10 +44,15 @@ the scenario suite below; read them before writing new scenarios.
   the host or in the images. `cargo-llvm-cov` is the one tool installed
   for this phase (`cargo install cargo-llvm-cov --locked`, plus
   `rustup component add llvm-tools-preview`).
-- **The host is not root.** Privileged work runs in disposable
-  containers (`docker run --rm --privileged --network none`) or QEMU
-  guests; nothing changes the host's network, sysctls or units. The
-  user systemd manager may be used through `systemd-run --user`.
+- **The host is not root, and host networking is never touched.**
+  Privileged work runs in disposable containers (`docker run --rm
+  --privileged --network none`), Incus containers or QEMU guests;
+  nothing changes the host's network, sysctls or units, and that
+  includes Incus: no `incus network create`, no managed bridge, no host
+  interface attached to a container, no `--network` other than `none`
+  for Docker. Every link, namespace, address and route a test needs is
+  created inside the container or guest and dies with it. The user
+  systemd manager may be used through `systemd-run --user`.
 - **Commits** go through `./commit.sh`, pushes through `./sync.sh`, one
   package or one gate per commit, the gate's log committed with it under
   `audit/phase6/`. Never `git add -A`.
@@ -275,7 +280,9 @@ Check with `incus list` before starting; where Incus is absent (CI,
 another host) the runner reports `skipped: no Incus access` with a
 non-zero exit distinct from failure. The gate is green only when it
 ran. The scenario: launch `images:ubuntu/24.04` with
-`security.privileged=false`, push the static daemon, a configuration and
+`security.privileged=false` and no network device (the container's own
+loopback, namespaces and veth pairs are all it uses; no Incus network is
+ever created, by the host-networking rule above), push the static daemon, a configuration and
 the unit, install with `--setup-systemd` inside, and assert the five
 checks above plus the H11 behaviour with udev present (a `.network`
 match and the persistent MAC on a directly created session device) and
