@@ -4,9 +4,10 @@
 
 use std::io;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use std::os::fd::OwnedFd;
+use std::os::fd::{AsRawFd, BorrowedFd, OwnedFd};
+use std::sync::Once;
 
-use l2tp::{IpEndpoint, TunnelId, TunnelSocket};
+use l2tp::{IpEndpoint, PmtuDiscovery, TunnelId, TunnelSocket};
 use nix::libc;
 use socket2::{Domain, Protocol, SockRef, Type};
 
@@ -38,10 +39,12 @@ pub(super) struct Tunnel {
 }
 
 impl Tunnel {
-    // kernel: (K2, K4, K19, K21) net/l2tp/l2tp_ip.c l2tp_ip_bind, l2tp_ip6.c
+    // kernel: (K2, K4, K19, K21, K44) net/l2tp/l2tp_ip.c l2tp_ip_bind, l2tp_ip6.c
     // l2tp_ip6_bind (the connection id bound on the unspecified address,
     // EADDRINUSE when taken); net/ipv6/af_inet6.c:164-173 (EAFNOSUPPORT,
     // EPROTONOSUPPORT); the socket is created SOCK_CLOEXEC
+    // K44: net/ipv4/ip_sockglue.c IP_MTU_DISCOVER and net/ipv6/ipv6_sockglue.c
+    // IPV6_MTU_DISCOVER/IPV6_DONTFRAG, applied before the first connect.
     /// A socket of `family` bound to the unspecified address with
     /// `tunnel_id`, unconnected (T1, T6).
     pub(super) fn create(family: Family, tunnel_id: u32, peer_tunnel_id: u32) -> io::Result<Self> {
@@ -56,6 +59,27 @@ impl Tunnel {
             TunnelId(peer_tunnel_id),
         )
         .map_err(os)?;
+        static V4: Once = Once::new();
+        static V6: Once = Once::new();
+        static DONTFRAG: Once = Once::new();
+        option_report(
+            if family == Family::V4 { &V4 } else { &V6 },
+            if family == Family::V4 {
+                "IP_MTU_DISCOVER"
+            } else {
+                "IPV6_MTU_DISCOVER"
+            },
+            socket.set_pmtu_discovery(PmtuDiscovery::Dont).map_err(os),
+        );
+        if family == Family::V6 {
+            use std::os::fd::AsFd;
+            option_report(&V4, "IP_MTU_DISCOVER", ipv4_fragmentation(socket.as_fd()));
+            option_report(
+                &DONTFRAG,
+                "IPV6_DONTFRAG",
+                socket.set_ipv6_dontfrag(false).map_err(os),
+            );
+        }
         Ok(Tunnel { socket, family })
     }
 
@@ -134,4 +158,55 @@ pub(super) fn adopt(
     let peer = peer_of(tunnel_id)?;
     let socket = TunnelSocket::from_fd_with_peer(socket.into_fd(), TunnelId(peer)).map_err(os)?;
     Ok((Tunnel { socket, family }, tunnel_id, peer))
+}
+
+// kernel: (K44) net/ipv6/ipv6_sockglue.c:934-935 delegates SOL_IP on a
+// datagram socket to IPv4; the IPv4 mode also governs mapped peers.
+#[allow(unsafe_code)]
+fn ipv4_fragmentation(fd: BorrowedFd<'_>) -> io::Result<()> {
+    let mode = libc::IP_PMTUDISC_DONT;
+    // SAFETY: fd is borrowed and live, and the option reads a local integer
+    // through its correctly sized pointer. No pointer or descriptor is retained.
+    let result = unsafe {
+        libc::setsockopt(
+            fd.as_raw_fd(),
+            libc::IPPROTO_IP,
+            libc::IP_MTU_DISCOVER,
+            (&mode as *const libc::c_int).cast(),
+            std::mem::size_of_val(&mode) as libc::socklen_t,
+        )
+    };
+    if result == -1 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
+    }
+}
+
+// kernel: (K44) an option refusal leaves the socket usable with host defaults.
+fn option_report(once: &Once, name: &str, result: io::Result<()>) {
+    if let Err(error) = result {
+        once.call_once(|| {
+            log::error!("host refuses {name} required for tunnel fragmentation: {error}");
+        });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::fd::AsFd;
+
+    // kernel: (K44) an option refusal preserves errno and leaves the descriptor live.
+    #[test]
+    fn ipv4_fragmentation_refusal_preserves_io_error_and_socket() {
+        let (socket, _) = std::os::unix::net::UnixStream::pair().unwrap();
+        assert_eq!(
+            ipv4_fragmentation(socket.as_fd())
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::EOPNOTSUPP)
+        );
+        assert!(socket.peer_addr().is_ok());
+    }
 }

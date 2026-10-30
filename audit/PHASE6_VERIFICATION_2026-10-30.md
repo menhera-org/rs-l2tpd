@@ -265,3 +265,26 @@ features, musl. Formatting, clippy with warnings denied, and the capture
 parser self-check also passed.
 [Scope and evidence](phase6/P2_COMPATIBILITY_AND_ROUTES_2026-10-30.md)
 list the remaining scenarios; the complete P2 gate is still open.
+
+
+## T5 socket contract and H20 fragmentation
+
+The newly specified fragmentation options are now set before the first
+connect. A live regression fails before the fix and passes after it on
+both socket families, including the IPv4 option on IPv6 sockets. The
+single direct syscall is L2's bounded, source-linked exception; all
+other options use the existing safe l2tp API. Each option's actual
+kernel refusal is tested through a child-only seccomp filter, requiring
+one report, continued readiness and traffic, and clean shutdown.
+
+H20 passes all eight IPv4/IPv6 × 1500/9000 × unbound/VRF combinations,
+with whole MTU frames, 1 MiB transfers both ways, sender fragment
+counters, unchanged drops and no daemon action during traffic. The
+expanded 18-case subset passed three times (72.92/73.85/74.49 s).
+Ordinary tests, clippy and the strict source-link gate pass.
+[Evidence and limits](phase6/P2_FRAGMENTATION_2026-10-30.md).
+
+The maintainer updated today's Ubuntu targets to 6.8.0-148.148 and
+7.0.0-42.42 and warned of imminent security revisions. The required
+matrix must re-resolve targets before being called green; the existing
+6.8.0-147 host evidence is historical for that stock-kernel target.

@@ -1,0 +1,22 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.11s
+  Executable tests/kernel/linux.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_linux-24aa97de8de86bfb)
+all features / musl; docker run --rm --privileged --network none; kernel-linux --ignored --exact tunnel_sockets_enable_fragmentation_before_connect
+6.8.0-147-generic
+
+running 1 test
+
+thread 'tunnel_sockets_enable_fragmentation_before_connect' (8) panicked at tests/kernel/linux.rs:875:13:
+assertion `left == right` failed: V4, level=0, option=10
+  left: 1
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tunnel_sockets_enable_fragmentation_before_connect ... FAILED
+
+failures:
+
+failures:
+    tunnel_sockets_enable_fragmentation_before_connect
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s
+

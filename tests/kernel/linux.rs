@@ -845,3 +845,39 @@ fn lowering_a_device_discards_ipv6_addresses_unless_preserved() {
     f.set_up(dev, false);
     assert!(has_addr(&mut f));
 }
+
+/// spec: T5, K44, L2
+#[test]
+#[ignore = "live kernel in an isolated network namespace"]
+fn tunnel_sockets_enable_fragmentation_before_connect() {
+    use std::os::fd::AsRawFd;
+    let mut f = LinuxFixture::new();
+    for (n, family) in [Family::V4, Family::V6].into_iter().enumerate() {
+        let socket = f.kernel.create_socket(family, 900 + n as u32, 990).unwrap();
+        let fd = f.kernel.clone_fd(socket).unwrap();
+        let mut options = vec![(libc::IPPROTO_IP, libc::IP_MTU_DISCOVER)];
+        if family == Family::V6 {
+            options.extend([
+                (libc::IPPROTO_IPV6, libc::IPV6_MTU_DISCOVER),
+                (libc::IPPROTO_IPV6, libc::IPV6_DONTFRAG),
+            ]);
+        }
+        for (level, option) in options {
+            let mut value: libc::c_int = -1;
+            let mut length = std::mem::size_of_val(&value) as libc::socklen_t;
+            let result = unsafe {
+                libc::getsockopt(
+                    fd.as_raw_fd(),
+                    level,
+                    option,
+                    (&mut value as *mut libc::c_int).cast(),
+                    &mut length,
+                )
+            };
+            assert_eq!(result, 0, "{}", std::io::Error::last_os_error());
+            assert_eq!(length as usize, std::mem::size_of_val(&value));
+            assert_eq!(value, 0, "{family:?}, level={level}, option={option}");
+        }
+        f.kernel.close(socket);
+    }
+}

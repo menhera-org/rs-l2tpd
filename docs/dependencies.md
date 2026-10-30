@@ -17,7 +17,7 @@ crates the `l2tp` crate already pulls.
 | `iphost` 0.4.1 | General-purpose system/configured DNS and discovery, with the incremental RDNSS updates of V10 and the opt-in failure fallback of V14; daemon scheduling and retention stay here | V1–V15 |
 | `netlink-sys`, `netlink-packet-core`, `netlink-packet-route`, `netlink-packet-generic`, `netlink-packet-l2tp` | Bounded generic-netlink requests and events, the rtnetlink request socket, event monitor and lifetime subscription: raw sockets on `AsyncFd`, so that the kernel's buffer and `ENOBUFS` are seen (already dependencies of `l2tp`) | A5, A7, E20, E21, K29 |
 | `socket2` | `SO_BINDTOIFINDEX`, `SO_ATTACH_FILTER`, `IPV6_V6ONLY` read-back, `SO_RCVBUF`, socket type and protocol queries for adopted descriptors | T10, K10, T26, R10, P14 |
-| `libc` (library too) | The one `setsockopt` no safe crate exposes: `IP_MTU_DISCOVER` on an `AF_INET6` tunnel socket, under L2's bounded exception; `l2tp`'s `set_pmtu_discovery` and `set_ipv6_dontfrag` cover the other T5 options | T5, K44, L2 |
+| `libc` (via `nix::libc` in the library) | The one `setsockopt` no safe crate exposes: `IP_MTU_DISCOVER` on an `AF_INET6` tunnel socket, under L2's bounded exception; `l2tp`'s `set_pmtu_discovery` and `set_ipv6_dontfrag` cover the other T5 options | T5, K44, L2 |
 | `nix` (`socket`, `process`, `signal`, `fs`, `poll`) | `SO_RCVBUFFORCE`, process/signal/filesystem wrappers; the `bin` feature adds `uio` for `sendmsg` with `SCM_RIGHTS` | R10, P14 |
 | `tokio` (`rt`, `sync`, `time`, `net`) | The loop, the bounded channel, timers, `AsyncFd` | A6, M14 |
 | `log` | The facade | O1 |
@@ -34,7 +34,7 @@ registry), so that one copy of the core crate is built.
 |---|---|---|
 | `toml` | Parsing the documents | C1 |
 | `serde` | With it | C5 |
-| `libc` | Capability, fork, descriptor-relative PID-file and exec handover operations; `unshare(CLONE_FILES)` isolates exec descriptor remapping from live threads. Unsafe code stays in the binary; the library denies it | R49, P4, P10, P26, L2 |
+| `libc` | Capability, fork, descriptor-relative PID-file and exec handover operations; `unshare(CLONE_FILES)` isolates exec descriptor remapping from live threads. The library's sole exception is L2's socket-option call | R49, P4, P10, P26, L2 |
 
 The `setup-systemd` feature ([packaging](packaging.md)) adds no crate:
 the unit is embedded with `include_str!`, the copy is `std`, and
@@ -51,7 +51,6 @@ the logger is thirty lines over `log::Log` (O1), the PID file, signals,
 | `rtnetlink`, `netlink-proto`, `futures-util`, `async-trait` | `netlink-proto`'s connection drains the socket into an unbounded queue (the A6 known gap); the handful of requests the daemon makes are shorter to write directly than to adapt |
 | `clap` | 70 crates for nine options |
 | `env_logger` | Its format and its environment variable contradict O1 |
-| `libc` (library) | Everything the library needs is in `socket2`, `nix`, `getrandom` or `std`; the binary keeps it for `capget` and `fork` |
 | Legacy `setup` feature | Removed in Phase 0; Phase 5 implements the bounded installer under `setup-systemd`, without an additional dependency |
 
 ## Upstream needs

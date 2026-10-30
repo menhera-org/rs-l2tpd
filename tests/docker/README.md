@@ -40,9 +40,12 @@ kernel objects, logs and bounded event waits.
 
 This is **not the complete Phase 6 scenario gate**. Boot-only cases,
 large session tables, missing modules/capability fallbacks,
-networkd version combinations, fragmentation and the full promise case
-list remain open. No matrix
-subcommand is implemented yet.
+networkd version combinations and the full promise case
+list remain open. H20 now covers full-MTU frames and 1 MiB transfers over both families,
+1500/9000 session MTUs and VRF/no-VRF binding, with sender fragment and
+session receive/drop counters. A separate live socket test reads back
+T5's options; a child-only seccomp case checks actual option refusals.
+No matrix subcommand is implemented yet.
 
 ## Unprivileged system container
 
