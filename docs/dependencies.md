@@ -17,6 +17,7 @@ crates the `l2tp` crate already pulls.
 | `iphost` 0.4.1 | General-purpose system/configured DNS and discovery, with the incremental RDNSS updates of V10 and the opt-in failure fallback of V14; daemon scheduling and retention stay here | V1–V15 |
 | `netlink-sys`, `netlink-packet-core`, `netlink-packet-route`, `netlink-packet-generic`, `netlink-packet-l2tp` | Bounded generic-netlink requests and events, the rtnetlink request socket, event monitor and lifetime subscription: raw sockets on `AsyncFd`, so that the kernel's buffer and `ENOBUFS` are seen (already dependencies of `l2tp`) | A5, A7, E20, E21, K29 |
 | `socket2` | `SO_BINDTOIFINDEX`, `SO_ATTACH_FILTER`, `IPV6_V6ONLY` read-back, `SO_RCVBUF`, socket type and protocol queries for adopted descriptors | T10, K10, T26, R10, P14 |
+| `libc` (library too) | The one `setsockopt` no safe crate exposes: `IP_MTU_DISCOVER` on an `AF_INET6` tunnel socket, under L2's bounded exception; `l2tp`'s `set_pmtu_discovery` and `set_ipv6_dontfrag` cover the other T5 options | T5, K44, L2 |
 | `nix` (`socket`, `process`, `signal`, `fs`, `poll`) | `SO_RCVBUFFORCE`, process/signal/filesystem wrappers; the `bin` feature adds `uio` for `sendmsg` with `SCM_RIGHTS` | R10, P14 |
 | `tokio` (`rt`, `sync`, `time`, `net`) | The loop, the bounded channel, timers, `AsyncFd` | A6, M14 |
 | `log` | The facade | O1 |

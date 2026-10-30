@@ -33,7 +33,10 @@ safe dependency exposes, today `IP_MTU_DISCOVER` on an `AF_INET6` tunnel
 socket ([T5](tunnels.md#address-families), [K44](kernel.md#facts)). Each
 such call is a function of its own, cites the kernel fact it relies on,
 is covered by a live test that reads the option back, and is the only
-`#[allow(unsafe_code)]` in the library. Every other kernel interaction
+`#[allow(unsafe_code)]` in the library. The call is sound by
+construction: a descriptor the daemon owns, the `libc` constants for
+level and option, a pointer to a local integer and that integer's size;
+`unsafe` marks the foreign call, not a risk. Every other kernel interaction
 goes through netlink and socket crates.
 
 L3. No type of another crate appears in the public API without being
