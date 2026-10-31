@@ -112,33 +112,12 @@ pub fn report_errors(errors: &[String]) {
         log::error!("{error}; file left out");
     }
 }
-pub fn report(config: &Config, problems: &[Problem], reload: bool) {
-    use rs_l2tpd::config::{EntryKind, ProblemKind};
+pub fn report(problems: &[Problem], reload: bool) {
     for problem in problems {
-        let identifiers = match problem.kind() {
-            ProblemKind::Entry {
-                kind: EntryKind::Tunnel,
-                name,
-                ..
-            } => config
-                .tunnels()
-                .get(name)
-                .map(|t| format!(" tunnel_id={}", t.tunnel_id())),
-            ProblemKind::Entry {
-                kind: EntryKind::Session,
-                name,
-                ..
-            } => config
-                .sessions()
-                .get(name)
-                .map(|s| format!(" session_id={}", s.session_id())),
-            _ => None,
-        }
-        .unwrap_or_default();
         if problem.effect() == Effect::Refused || (!reload && problem.effect() == Effect::LeftOut) {
-            log::error!("{problem}{identifiers}");
+            log::error!("{problem}");
         } else {
-            log::warn!("{problem}{identifiers}");
+            log::warn!("{problem}");
         }
     }
 }
@@ -154,11 +133,11 @@ pub fn reload(main: &Path, directory: &Path, previous: Config) -> Result<Config>
     }
     match loaded.partial.into_config_with_previous(&previous) {
         Ok((config, problems)) => {
-            report(&config, &problems, true);
+            report(&problems, true);
             Ok(config)
         }
         Err(problems) => {
-            report(&previous, &problems, true);
+            report(&problems, true);
             Err(Error::InvalidConfig(
                 "reload refused; previous configuration retained".into(),
             ))

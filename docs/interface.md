@@ -200,6 +200,11 @@ completion methods. The blocking service waits for orderly cleanup on drop;
 the Tokio service's drop only requests shutdown. Await its `run` to observe
 cleanup completion and errors while the caller's runtime stays active.
 
+Configuration problems retain valid tunnel/session identifiers from the merged
+input, including for left-out entries and unknown keys. Their display and
+strict-conversion errors include that context; missing or invalid IDs are
+omitted, and cookie values remain redacted.
+
 Reload callbacks do not suspend kernel events, timers or host completions.
 Reloads accepted during initial convergence are ignored; restarts accepted
 at any time, and reloads accepted after convergence, are retained for `run`.

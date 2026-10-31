@@ -1,0 +1,365 @@
+diff --git a/src/bin/rs-l2tpd/check.rs b/src/bin/rs-l2tpd/check.rs
+index 5660d2d..ed274a8 100644
+--- a/src/bin/rs-l2tpd/check.rs
++++ b/src/bin/rs-l2tpd/check.rs
+@@ -3,7 +3,7 @@ use std::path::Path;
+ pub fn run(main: &Path, directory: &Path) -> u8 {
+     let loaded = super::files::load(main, directory);
+     let (config, problems) = loaded.partial.into_config_lenient();
+-    super::files::report(&config, &problems, false);
++    super::files::report(&problems, false);
+     super::files::report_errors(&loaded.errors);
+     match toml::to_string_pretty(&config) {
+         Ok(text) => {
+diff --git a/src/bin/rs-l2tpd/files.rs b/src/bin/rs-l2tpd/files.rs
+index 142cab5..e4b4a80 100644
+--- a/src/bin/rs-l2tpd/files.rs
++++ b/src/bin/rs-l2tpd/files.rs
+@@ -112,33 +112,12 @@ pub fn report_errors(errors: &[String]) {
+         log::error!("{error}; file left out");
+     }
+ }
+-pub fn report(config: &Config, problems: &[Problem], reload: bool) {
+-    use rs_l2tpd::config::{EntryKind, ProblemKind};
++pub fn report(problems: &[Problem], reload: bool) {
+     for problem in problems {
+-        let identifiers = match problem.kind() {
+-            ProblemKind::Entry {
+-                kind: EntryKind::Tunnel,
+-                name,
+-                ..
+-            } => config
+-                .tunnels()
+-                .get(name)
+-                .map(|t| format!(" tunnel_id={}", t.tunnel_id())),
+-            ProblemKind::Entry {
+-                kind: EntryKind::Session,
+-                name,
+-                ..
+-            } => config
+-                .sessions()
+-                .get(name)
+-                .map(|s| format!(" session_id={}", s.session_id())),
+-            _ => None,
+-        }
+-        .unwrap_or_default();
+         if problem.effect() == Effect::Refused || (!reload && problem.effect() == Effect::LeftOut) {
+-            log::error!("{problem}{identifiers}");
++            log::error!("{problem}");
+         } else {
+-            log::warn!("{problem}{identifiers}");
++            log::warn!("{problem}");
+         }
+     }
+ }
+@@ -154,11 +133,11 @@ pub fn reload(main: &Path, directory: &Path, previous: Config) -> Result<Config>
+     }
+     match loaded.partial.into_config_with_previous(&previous) {
+         Ok((config, problems)) => {
+-            report(&config, &problems, true);
++            report(&problems, true);
+             Ok(config)
+         }
+         Err(problems) => {
+-            report(&previous, &problems, true);
++            report(&problems, true);
+             Err(Error::InvalidConfig(
+                 "reload refused; previous configuration retained".into(),
+             ))
+diff --git a/src/bin/rs-l2tpd/main.rs b/src/bin/rs-l2tpd/main.rs
+index 1f0affb..b0a7aad 100644
+--- a/src/bin/rs-l2tpd/main.rs
++++ b/src/bin/rs-l2tpd/main.rs
+@@ -82,7 +82,7 @@ fn run() -> u8 {
+         let executable = restart::executable_at(&argv[0], original)?;
+         let loaded = files::load(&args.config, &args.config_dir);
+         let (config, problems) = loaded.partial.into_config_lenient();
+-        files::report(&config, &problems, false);
++        files::report(&problems, false);
+         files::report_errors(&loaded.errors);
+         let mut pipe = match daemon::start(args.mode == Mode::Foreground || entry.reexec)? {
+             daemon::Started::Parent(code) => return Ok(code),
+diff --git a/src/config/partial.rs b/src/config/partial.rs
+index 6632458..6491dd0 100644
+--- a/src/config/partial.rs
++++ b/src/config/partial.rs
+@@ -245,6 +245,30 @@ impl PartialConfig {
+     /// The flag is a refusal, which `previous = None` never causes.
+     fn convert(mut self, previous: Option<&Config>) -> (Config, Vec<Problem>, bool) {
+         self.label(None);
++        // Diagnostics must retain valid identifiers even when an entry is omitted.
++        let tunnel_ids: BTreeMap<_, _> = self
++            .tunnels
++            .iter()
++            .filter_map(|(name, entry)| {
++                id(entry.tunnel_id, "tunnel_id")
++                    .ok()
++                    .flatten()
++                    .map(|id| (name.clone(), id))
++            })
++            .collect();
++        let session_ids: BTreeMap<_, _> = self
++            .sessions
++            .iter()
++            .map(|(name, entry)| {
++                let tunnel = entry
++                    .tunnel_name
++                    .as_ref()
++                    .and_then(|name| tunnel_ids.get(name))
++                    .copied();
++                let session = id(entry.session_id, "session_id").ok().flatten();
++                (name.clone(), (tunnel, session))
++            })
++            .collect();
+         let mut problems: Vec<Problem> = self
+             .labeled
+             .into_iter()
+@@ -252,6 +276,8 @@ impl PartialConfig {
+                 kind: ProblemKind::Document { source, path },
+                 effect: Effect::Ignored,
+                 message: "unknown key".into(),
++                tunnel_id: None,
++                session_id: None,
+             })
+             .collect();
+         let mut config = Config::new();
+@@ -274,6 +300,32 @@ impl PartialConfig {
+             previous,
+             self.sessions.into_iter().map(|(n, e)| (n, session(e))),
+         );
++        for problem in &mut problems {
++            let entry = match &problem.kind {
++                ProblemKind::Entry { kind, name, .. } => Some((*kind, name.as_str())),
++                ProblemKind::Document { path, .. } => match path.as_slice() {
++                    [table, name, ..] if table == "tunnels" => {
++                        Some((EntryKind::Tunnel, name.as_str()))
++                    }
++                    [table, name, ..] if table == "sessions" => {
++                        Some((EntryKind::Session, name.as_str()))
++                    }
++                    _ => None,
++                },
++            };
++            match entry {
++                Some((EntryKind::Tunnel, name)) => {
++                    problem.tunnel_id = tunnel_ids.get(name).copied()
++                }
++                Some((EntryKind::Session, name)) => {
++                    if let Some(&(tunnel, session)) = session_ids.get(name) {
++                        problem.tunnel_id = tunnel;
++                        problem.session_id = session;
++                    }
++                }
++                _ => {}
++            }
++        }
+         (config, problems, refused)
+     }
+ }
+@@ -645,6 +697,8 @@ pub struct Problem {
+     kind: ProblemKind,
+     effect: Effect,
+     message: String,
++    tunnel_id: Option<u32>,
++    session_id: Option<u32>,
+ }
+ 
+ impl Problem {
+@@ -657,6 +711,8 @@ impl Problem {
+             },
+             effect,
+             message: mistake.message,
++            tunnel_id: None,
++            session_id: None,
+         }
+     }
+ 
+@@ -677,7 +733,7 @@ impl Problem {
+ 
+     /// The problem without its effect.
+     fn subject(&self) -> String {
+-        match &self.kind {
++        let mut subject = match &self.kind {
+             ProblemKind::Entry { kind, name, field } => match field {
+                 Some(field) => format!("{kind} {name:?}, {field}: {}", self.message),
+                 None => format!("{kind} {name:?}: {}", self.message),
+@@ -689,7 +745,14 @@ impl Problem {
+                     None => format!("{path}: {}", self.message),
+                 }
+             }
++        };
++        if let Some(id) = self.tunnel_id {
++            subject.push_str(&format!(" tunnel_id={id}"));
++        }
++        if let Some(id) = self.session_id {
++            subject.push_str(&format!(" session_id={id}"));
+         }
++        subject
+     }
+ }
+ 
+diff --git a/src/config/tests.rs b/src/config/tests.rs
+index ce373b6..9ed1dc7 100644
+--- a/src/config/tests.rs
++++ b/src/config/tests.rs
+@@ -162,7 +162,7 @@ fn unknown_keys_at_every_depth() {
+     assert_eq!(paths, expected.map(|(s, p)| (s.to_string(), p.to_string())));
+     assert_eq!(
+         problems[6].to_string(),
+-        "10-dropin.toml: tunnels.t.\"odd key\": unknown key; ignored"
++        "10-dropin.toml: tunnels.t.\"odd key\": unknown key tunnel_id=1; ignored"
+     );
+     let strict = Config::try_from(main).unwrap_err().to_string();
+     assert!(strict.contains("main.toml: bogus"), "{strict}");
+@@ -739,7 +739,7 @@ fn start_up_leaves_out_and_takes_dependents() {
+     assert_eq!(config.sessions().keys().collect::<Vec<_>>(), ["c"]);
+     assert_eq!(
+         problems[3].to_string(),
+-        "tunnel \"peerless\", remote_addr: ff02::1 is not a unicast address; applied without a peer"
++        "tunnel \"peerless\", remote_addr: ff02::1 is not a unicast address tunnel_id=3; applied without a peer"
+     );
+     assert_eq!(
+         problems[0].to_string(),
+@@ -891,7 +891,7 @@ fn reload_refused_when_a_dependency_is_removed() {
+     .unwrap_err();
+     assert_eq!(
+         problems.last().unwrap().to_string(),
+-        "session \"s\", tunnel_name: no tunnel \"t\" in the configuration; the reload is refused"
++        "session \"s\", tunnel_name: no tunnel \"t\" in the configuration session_id=1; the reload is refused"
+     );
+ }
+ 
+@@ -1028,7 +1028,7 @@ fn strict_conversion() {
+     let err = Config::try_from(partial(&doc)).unwrap_err();
+     assert_eq!(
+         err.to_string(),
+-        "invalid configuration: tunnel \"u\", remote_addr: ff02::1 is not a unicast address"
++        "invalid configuration: tunnel \"u\", remote_addr: ff02::1 is not a unicast address tunnel_id=2"
+     );
+     let err = toml::from_str::<Config>(&doc).unwrap_err().to_string();
+     assert!(err.contains("tunnel \"u\", remote_addr"), "{err}");
+diff --git a/tests/process.rs b/tests/process.rs
+index 0f0b5f0..6e393e2 100644
+--- a/tests/process.rs
++++ b/tests/process.rs
+@@ -208,6 +208,85 @@ fn check_cli_and_no_process_side_effects() {
+     );
+ }
+ 
++/// spec: O4, O5, O8
++#[test]
++fn configuration_diagnostics_keep_known_identifiers_for_omitted_entries() {
++    let dir = Dir::new();
++    let path = dir.path().join("main.toml");
++    let pid = dir.path().join("pid");
++    for (document, name, field, identifiers) in [
++        (
++            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface=''",
++            "wan",
++            "bind_interface",
++            vec!["tunnel_id=10"],
++        ),
++        (
++            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.lan]\ntunnel_name='wan'\nsession_id=100\ninterface_name='l2tp0'\ninterface_hwaddr='bad'",
++            "lan",
++            "interface_hwaddr",
++            vec!["tunnel_id=10", "session_id=100"],
++        ),
++        (
++            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.lan]\ntunnel_name='wan'\nsession_id=100\ninterface_name='l2tp0'\ncookie='secret-cookie'",
++            "lan",
++            "cookie",
++            vec!["tunnel_id=10", "session_id=100"],
++        ),
++        (
++            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\nunknown=true",
++            "wan",
++            "unknown",
++            vec!["tunnel_id=10"],
++        ),
++        (
++            "[tunnels.wan]\nremote_addr='192.0.2.2'",
++            "wan",
++            "tunnel_id",
++            vec![],
++        ),
++        (
++            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.lan]\ntunnel_name='wan'\nsession_id=100\ninterface_name='l2tp0'\nunknown=true",
++            "lan",
++            "unknown",
++            vec!["tunnel_id=10", "session_id=100"],
++        ),
++        (
++            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.lan]\ntunnel_name='wan'\nsession_id=0\ninterface_name='l2tp0'",
++            "lan",
++            "session_id",
++            vec!["tunnel_id=10"],
++        ),
++        (
++            "[tunnels.wan]\ntunnel_id=0\nremote_addr='192.0.2.2'",
++            "wan",
++            "tunnel_id",
++            vec![],
++        ),
++        ("[host]\nunknown=true", "host", "unknown", vec![]),
++    ] {
++        fs::write(&path, document).unwrap();
++        let output = start(&path, false, &pid).arg("--check").output().unwrap();
++        assert_eq!(output.status.code(), Some(1));
++        let diagnostic = String::from_utf8(output.stderr).unwrap();
++        assert_eq!(diagnostic.lines().count(), 1, "{diagnostic}");
++        assert!(
++            diagnostic.contains(name) && diagnostic.contains(field),
++            "{diagnostic}"
++        );
++        assert!(!diagnostic.contains("secret-cookie"));
++        for prefix in ["tunnel_id=", "session_id="] {
++            if !identifiers.iter().any(|id| id.starts_with(prefix)) {
++                assert!(!diagnostic.contains(prefix), "{diagnostic}");
++            }
++        }
++        for identifier in identifiers {
++            assert!(diagnostic.contains(identifier), "{diagnostic}");
++        }
++        assert!(!pid.exists());
++    }
++}
++
+ /// spec: P1 P4 P6 P7 P9 P12 P13 P16 P17 P20 P22 P23 O7 R12 R13
+ #[test]
+ #[ignore = "isolated privileged container"]
+diff --git a/tests/rules/completion.rs b/tests/rules/completion.rs
+index 2ce3135..4353a37 100644
+--- a/tests/rules/completion.rs
++++ b/tests/rules/completion.rs
+@@ -293,7 +293,7 @@ fn an_ipv4_label_notice_does_not_reconnect_a_second_time() {
+     assert!(ops(&mut r).is_empty());
+ }
+ 
+-/// spec: G13, O2, O3, E20, T21, T25, R9
++/// spec: G13, O2, O3, O4, E20, T21, T25, R9
+ #[test]
+ fn completion_report_counts() {
+     // Forking here can temporarily inherit other tests' fake socket references.
+@@ -368,6 +368,21 @@ fn completion_report_counts() {
+             run_for(&mut r, 2);
+             assert!(!r.ready(), "session must still be missing: {error:?}");
+             assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
++            let label = if creating_session {
++                "session s (tunnel_id=10, session_id=100):"
++            } else {
++                "tunnel a (tunnel_id=10):"
++            };
++            assert!(
++                capture
++                    .messages
++                    .lock()
++                    .unwrap()
++                    .iter()
++                    .filter(|(_, message)| message.contains("cannot be created:"))
++                    .all(|(_, message)| message.starts_with(label)),
++                "{label}"
++            );
+             let other = if level == log::Level::Error {
+                 log::Level::Warn
+             } else {

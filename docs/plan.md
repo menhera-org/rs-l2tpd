@@ -511,7 +511,7 @@ cycles and observes zero requests for unrelated links; a fresh mainline
 normal profile passes the expanded 23-scenario suite. Two retained map
 allocations are fixed. The lifetime subscriber now indexes deletion work
 by interface and incarnation, with passing native/live/host cases. There
-are 19 uncited rules. Deadline selection now uses ordered indexes, with
+are 18 uncited rules. Deadline selection now uses ordered indexes, with
 ten seeded rule runs, all host/process cases and a fresh mainline clock
 case passing. Obsolete conflict history is released on removal/shutdown.
 Relevant link/address cache maintenance now updates changed dependencies
@@ -536,6 +536,9 @@ R35 now has a bounded burst/lost-source recovery case; a separate R45 guest
 profile proves ordinary-device operation with the VRF driver unavailable.
 All active R rules have test-declaration citations, with clause coverage still
 subject to the complete proof and coverage gates.
+O4 now has exact entry-label and configuration-diagnostic assertions. A
+reproduced diagnostic defect is fixed: valid IDs survive left-out entries,
+sessions include both IDs, and unknown-key diagnostics retain their context.
 Complete event-cost/resource/history proof, remaining clauses and
 final matrix/coverage refreshes are still open. No global gate is declared
 complete; strict CI flags remain off. The latest record is repository file

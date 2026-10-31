@@ -3,7 +3,7 @@ use std::path::Path;
 pub fn run(main: &Path, directory: &Path) -> u8 {
     let loaded = super::files::load(main, directory);
     let (config, problems) = loaded.partial.into_config_lenient();
-    super::files::report(&config, &problems, false);
+    super::files::report(&problems, false);
     super::files::report_errors(&loaded.errors);
     match toml::to_string_pretty(&config) {
         Ok(text) => {

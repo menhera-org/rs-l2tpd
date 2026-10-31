@@ -245,6 +245,30 @@ impl PartialConfig {
     /// The flag is a refusal, which `previous = None` never causes.
     fn convert(mut self, previous: Option<&Config>) -> (Config, Vec<Problem>, bool) {
         self.label(None);
+        // Diagnostics must retain valid identifiers even when an entry is omitted.
+        let tunnel_ids: BTreeMap<_, _> = self
+            .tunnels
+            .iter()
+            .filter_map(|(name, entry)| {
+                id(entry.tunnel_id, "tunnel_id")
+                    .ok()
+                    .flatten()
+                    .map(|id| (name.clone(), id))
+            })
+            .collect();
+        let session_ids: BTreeMap<_, _> = self
+            .sessions
+            .iter()
+            .map(|(name, entry)| {
+                let tunnel = entry
+                    .tunnel_name
+                    .as_ref()
+                    .and_then(|name| tunnel_ids.get(name))
+                    .copied();
+                let session = id(entry.session_id, "session_id").ok().flatten();
+                (name.clone(), (tunnel, session))
+            })
+            .collect();
         let mut problems: Vec<Problem> = self
             .labeled
             .into_iter()
@@ -252,6 +276,8 @@ impl PartialConfig {
                 kind: ProblemKind::Document { source, path },
                 effect: Effect::Ignored,
                 message: "unknown key".into(),
+                tunnel_id: None,
+                session_id: None,
             })
             .collect();
         let mut config = Config::new();
@@ -274,6 +300,32 @@ impl PartialConfig {
             previous,
             self.sessions.into_iter().map(|(n, e)| (n, session(e))),
         );
+        for problem in &mut problems {
+            let entry = match &problem.kind {
+                ProblemKind::Entry { kind, name, .. } => Some((*kind, name.as_str())),
+                ProblemKind::Document { path, .. } => match path.as_slice() {
+                    [table, name, ..] if table == "tunnels" => {
+                        Some((EntryKind::Tunnel, name.as_str()))
+                    }
+                    [table, name, ..] if table == "sessions" => {
+                        Some((EntryKind::Session, name.as_str()))
+                    }
+                    _ => None,
+                },
+            };
+            match entry {
+                Some((EntryKind::Tunnel, name)) => {
+                    problem.tunnel_id = tunnel_ids.get(name).copied()
+                }
+                Some((EntryKind::Session, name)) => {
+                    if let Some(&(tunnel, session)) = session_ids.get(name) {
+                        problem.tunnel_id = tunnel;
+                        problem.session_id = session;
+                    }
+                }
+                _ => {}
+            }
+        }
         (config, problems, refused)
     }
 }
@@ -645,6 +697,8 @@ pub struct Problem {
     kind: ProblemKind,
     effect: Effect,
     message: String,
+    tunnel_id: Option<u32>,
+    session_id: Option<u32>,
 }
 
 impl Problem {
@@ -657,6 +711,8 @@ impl Problem {
             },
             effect,
             message: mistake.message,
+            tunnel_id: None,
+            session_id: None,
         }
     }
 
@@ -677,7 +733,7 @@ impl Problem {
 
     /// The problem without its effect.
     fn subject(&self) -> String {
-        match &self.kind {
+        let mut subject = match &self.kind {
             ProblemKind::Entry { kind, name, field } => match field {
                 Some(field) => format!("{kind} {name:?}, {field}: {}", self.message),
                 None => format!("{kind} {name:?}: {}", self.message),
@@ -689,7 +745,14 @@ impl Problem {
                     None => format!("{path}: {}", self.message),
                 }
             }
+        };
+        if let Some(id) = self.tunnel_id {
+            subject.push_str(&format!(" tunnel_id={id}"));
         }
+        if let Some(id) = self.session_id {
+            subject.push_str(&format!(" session_id={id}"));
+        }
+        subject
     }
 }
 

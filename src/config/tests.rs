@@ -162,7 +162,7 @@ fn unknown_keys_at_every_depth() {
     assert_eq!(paths, expected.map(|(s, p)| (s.to_string(), p.to_string())));
     assert_eq!(
         problems[6].to_string(),
-        "10-dropin.toml: tunnels.t.\"odd key\": unknown key; ignored"
+        "10-dropin.toml: tunnels.t.\"odd key\": unknown key tunnel_id=1; ignored"
     );
     let strict = Config::try_from(main).unwrap_err().to_string();
     assert!(strict.contains("main.toml: bogus"), "{strict}");
@@ -739,7 +739,7 @@ fn start_up_leaves_out_and_takes_dependents() {
     assert_eq!(config.sessions().keys().collect::<Vec<_>>(), ["c"]);
     assert_eq!(
         problems[3].to_string(),
-        "tunnel \"peerless\", remote_addr: ff02::1 is not a unicast address; applied without a peer"
+        "tunnel \"peerless\", remote_addr: ff02::1 is not a unicast address tunnel_id=3; applied without a peer"
     );
     assert_eq!(
         problems[0].to_string(),
@@ -891,7 +891,7 @@ fn reload_refused_when_a_dependency_is_removed() {
     .unwrap_err();
     assert_eq!(
         problems.last().unwrap().to_string(),
-        "session \"s\", tunnel_name: no tunnel \"t\" in the configuration; the reload is refused"
+        "session \"s\", tunnel_name: no tunnel \"t\" in the configuration session_id=1; the reload is refused"
     );
 }
 
@@ -1028,7 +1028,7 @@ fn strict_conversion() {
     let err = Config::try_from(partial(&doc)).unwrap_err();
     assert_eq!(
         err.to_string(),
-        "invalid configuration: tunnel \"u\", remote_addr: ff02::1 is not a unicast address"
+        "invalid configuration: tunnel \"u\", remote_addr: ff02::1 is not a unicast address tunnel_id=2"
     );
     let err = toml::from_str::<Config>(&doc).unwrap_err().to_string();
     assert!(err.contains("tunnel \"u\", remote_addr"), "{err}");

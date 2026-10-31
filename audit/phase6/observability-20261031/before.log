@@ -1,0 +1,20 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/process.rs (target/debug/deps/process-689b6aafb554068b)
+
+running 1 test
+
+thread 'configuration_diagnostics_keep_known_identifiers_for_omitted_entries' (3848827) panicked at tests/process.rs:263:13:
+ERROR rs_l2tpd::files: tunnel "wan", bind_interface: invalid interface name "": empty name; left out
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test configuration_diagnostics_keep_known_identifiers_for_omitted_entries ... FAILED
+
+failures:
+
+failures:
+    configuration_diagnostics_keep_known_identifiers_for_omitted_entries
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test process`

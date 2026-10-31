@@ -1,0 +1,23 @@
+source: https://github.com/menhera-org/rs-l2tpd/actions/runs/41201228279
+commit: bcd283b7439935acd7706da0b6b0fc793ef532ec
+2026-10-31T12:28:08.8151864Z with:
+2026-10-31T12:28:08.8152766Z   languages: actions, rust
+2026-10-31T12:28:08.8153950Z   build-mode: none
+2026-10-31T12:28:09.1167425Z Job run UUID is d1c89da2-4263-43d5-b0f2-18169d91c37c.
+2026-10-31T12:28:09.5935620Z Using configuration file input from workflow: ./.github/codeql-config.yml
+2026-10-31T12:28:10.7776735Z ##[group]Setup CodeQL tools
+2026-10-31T12:28:14.0896903Z queries:
+2026-10-31T12:28:14.0897246Z   - uses: security-extended
+2026-10-31T12:28:14.0897638Z query-filters:
+2026-10-31T12:28:14.0897951Z   - exclude:
+2026-10-31T12:28:14.0898190Z       id: rust/cleartext-logging
+2026-10-31T12:28:14.0898417Z 
+2026-10-31T12:28:16.9341174Z Running command in /home/runner/work/rs-l2tpd/rs-l2tpd: [/opt/hostedtoolcache/CodeQL/2.27.3/x64/codeql/actions/tools/configure-baseline.sh]
+2026-10-31T12:28:16.9477169Z Calculated baseline information for languages: actions, html, rust (186ms).
+2026-10-31T12:28:17.2034621Z Resolving extractor actions.
+2026-10-31T12:31:26.6830760Z Uploading results
+2026-10-31T12:31:27.3020867Z Successfully uploaded results
+2026-10-31T12:31:27.3021542Z ##[endgroup]
+2026-10-31T12:31:42.2853158Z ##[group]Waiting for processing to finish
+2026-10-31T12:31:47.5728171Z Analysis upload status is complete.
+2026-10-31T12:31:47.5728818Z ##[endgroup]

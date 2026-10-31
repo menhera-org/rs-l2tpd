@@ -82,7 +82,7 @@ fn run() -> u8 {
         let executable = restart::executable_at(&argv[0], original)?;
         let loaded = files::load(&args.config, &args.config_dir);
         let (config, problems) = loaded.partial.into_config_lenient();
-        files::report(&config, &problems, false);
+        files::report(&problems, false);
         files::report_errors(&loaded.errors);
         let mut pipe = match daemon::start(args.mode == Mode::Foreground || entry.reexec)? {
             daemon::Started::Parent(code) => return Ok(code),

@@ -352,6 +352,33 @@ source-link cases pass. Strict rule-map status is 314 cited / 333 active,
 clause proof still open. Coverage, final normal matrix/manager profiles,
 event/resource/history proof and strict CI remain incomplete.
 
+## O4: identifiers in configuration diagnostics
+
+[The observability package](phase6/observability-20261031/README.md)
+reproduces missing valid IDs for left-out entries. Diagnostics previously
+looked them up in accepted configuration, where omitted entries have no record;
+sessions also lacked their tunnel ID and unknown-key reports lacked context.
+Conversion now retains valid numeric identifiers in `Problem`, shared by
+check/startup/reload output and strict conversion errors. Invalid or absent
+IDs are omitted; cookies remain redacted. A nine-input process case and exact
+creation-report labels assert O4. Existing exact-message expectations are
+updated to include IDs, with the intermediate failures retained separately.
+
+Common CI and four strict source-link cases pass. Each of ten seeds passes
+92 ordinary library cases (11 live ignored), 75 rules, 25 service cases and
+nine ordinary process cases (18 live ignored). The privileged musl process
+suite passes all 27 cases on `6.8.0-147-generic`; the full host suite passes
+all 25 scenarios in 163.38 seconds. The strict map remains red at 315 cited /
+333 active, 18 missing. No global gate is closed.
+
+The separate requested CodeQL exclusion is committed in `f42e841`/`bcd283b`.
+The advanced Rust/Actions workflow preserves the extended suite and excludes
+only `rust/cleartext-logging`; its actual GitHub run passes and uploads results,
+with the configuration/filter visible in the log and no open alerts for that
+query after analysis. Default setup is disabled so it cannot override the
+custom workflow. The unavailable organization-property alternative changed
+no organization setting. This does not weaken cookie-redaction assertions.
+
 ## Coverage and exit state
 
 [The merged coverage record](phase6/coverage-20261031/README.md) combines

@@ -208,6 +208,85 @@ fn check_cli_and_no_process_side_effects() {
     );
 }
 
+/// spec: O4, O5, O8
+#[test]
+fn configuration_diagnostics_keep_known_identifiers_for_omitted_entries() {
+    let dir = Dir::new();
+    let path = dir.path().join("main.toml");
+    let pid = dir.path().join("pid");
+    for (document, name, field, identifiers) in [
+        (
+            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface=''",
+            "wan",
+            "bind_interface",
+            vec!["tunnel_id=10"],
+        ),
+        (
+            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.lan]\ntunnel_name='wan'\nsession_id=100\ninterface_name='l2tp0'\ninterface_hwaddr='bad'",
+            "lan",
+            "interface_hwaddr",
+            vec!["tunnel_id=10", "session_id=100"],
+        ),
+        (
+            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.lan]\ntunnel_name='wan'\nsession_id=100\ninterface_name='l2tp0'\ncookie='secret-cookie'",
+            "lan",
+            "cookie",
+            vec!["tunnel_id=10", "session_id=100"],
+        ),
+        (
+            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\nunknown=true",
+            "wan",
+            "unknown",
+            vec!["tunnel_id=10"],
+        ),
+        (
+            "[tunnels.wan]\nremote_addr='192.0.2.2'",
+            "wan",
+            "tunnel_id",
+            vec![],
+        ),
+        (
+            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.lan]\ntunnel_name='wan'\nsession_id=100\ninterface_name='l2tp0'\nunknown=true",
+            "lan",
+            "unknown",
+            vec!["tunnel_id=10", "session_id=100"],
+        ),
+        (
+            "[tunnels.wan]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.lan]\ntunnel_name='wan'\nsession_id=0\ninterface_name='l2tp0'",
+            "lan",
+            "session_id",
+            vec!["tunnel_id=10"],
+        ),
+        (
+            "[tunnels.wan]\ntunnel_id=0\nremote_addr='192.0.2.2'",
+            "wan",
+            "tunnel_id",
+            vec![],
+        ),
+        ("[host]\nunknown=true", "host", "unknown", vec![]),
+    ] {
+        fs::write(&path, document).unwrap();
+        let output = start(&path, false, &pid).arg("--check").output().unwrap();
+        assert_eq!(output.status.code(), Some(1));
+        let diagnostic = String::from_utf8(output.stderr).unwrap();
+        assert_eq!(diagnostic.lines().count(), 1, "{diagnostic}");
+        assert!(
+            diagnostic.contains(name) && diagnostic.contains(field),
+            "{diagnostic}"
+        );
+        assert!(!diagnostic.contains("secret-cookie"));
+        for prefix in ["tunnel_id=", "session_id="] {
+            if !identifiers.iter().any(|id| id.starts_with(prefix)) {
+                assert!(!diagnostic.contains(prefix), "{diagnostic}");
+            }
+        }
+        for identifier in identifiers {
+            assert!(diagnostic.contains(identifier), "{diagnostic}");
+        }
+        assert!(!pid.exists());
+    }
+}
+
 /// spec: P1 P4 P6 P7 P9 P12 P13 P16 P17 P20 P22 P23 O7 R12 R13
 #[test]
 #[ignore = "isolated privileged container"]

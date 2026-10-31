@@ -293,7 +293,7 @@ fn an_ipv4_label_notice_does_not_reconnect_a_second_time() {
     assert!(ops(&mut r).is_empty());
 }
 
-/// spec: G13, O2, O3, E20, T21, T25, R9
+/// spec: G13, O2, O3, O4, E20, T21, T25, R9
 #[test]
 fn completion_report_counts() {
     // Forking here can temporarily inherit other tests' fake socket references.
@@ -368,6 +368,21 @@ fn completion_report_counts() {
             run_for(&mut r, 2);
             assert!(!r.ready(), "session must still be missing: {error:?}");
             assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
+            let label = if creating_session {
+                "session s (tunnel_id=10, session_id=100):"
+            } else {
+                "tunnel a (tunnel_id=10):"
+            };
+            assert!(
+                capture
+                    .messages
+                    .lock()
+                    .unwrap()
+                    .iter()
+                    .filter(|(_, message)| message.contains("cannot be created:"))
+                    .all(|(_, message)| message.starts_with(label)),
+                "{label}"
+            );
             let other = if level == log::Level::Error {
                 log::Level::Warn
             } else {
