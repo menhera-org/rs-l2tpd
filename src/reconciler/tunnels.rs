@@ -28,11 +28,9 @@ impl<K: Kernel> Reconciler<K> {
     /// `tunnel_id`: an entry of the same kernel identity (C14, T23).
     pub(super) fn tunnel_wanted(&self, tunnel_id: u32) -> Option<(String, TunnelConfig)> {
         let record = self.tunnels.get(&tunnel_id)?;
-        self.accepted
-            .tunnels()
-            .iter()
-            .find(|(_, t)| t.identity() == record.identity)
-            .map(|(n, t)| (n.clone(), t.clone()))
+        let name = self.wanted_tunnels.get(&tunnel_id)?;
+        let tunnel = &self.accepted.tunnels()[name];
+        (tunnel.identity() == record.identity).then(|| (name.clone(), tunnel.clone()))
     }
 
     /// Takes over a tunnel socket a previous instance handed over, named
@@ -68,15 +66,16 @@ impl<K: Kernel> Reconciler<K> {
                     peer_cookie,
                 )
             });
-            let matched = self.accepted.sessions().iter().find(|(name, _)| {
+            let matched = self.wanted_sessions.get(&s.session_id).filter(|name| {
                 reported.is_some() && self.accepted.session_identity(name) == reported
             });
-            let Some((name, config)) = matched else {
+            let Some(name) = matched else {
                 // Foreign cookie lengths and identifiers that a configuration
                 // cannot hold are unmatched too; never construct a fake config.
                 self.unmatched_sessions.insert((tunnel_id, s.session_id));
                 continue;
             };
+            let config = &self.accepted.sessions()[name];
             self.sessions.insert(
                 s.session_id,
                 super::records::SessionRecord {
@@ -171,12 +170,7 @@ impl<K: Kernel> Reconciler<K> {
                 self.k.close(record.socket);
                 self.departing.insert(id, self.k.now() + DELETION_WAIT);
             }
-            if !self
-                .accepted
-                .tunnels()
-                .values()
-                .any(|config| config.tunnel_id() == id)
-            {
+            if !self.wanted_tunnels.contains_key(&id) {
                 self.resolvers.forget(id);
             }
             self.report.forget(&label);

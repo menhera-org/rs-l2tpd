@@ -193,11 +193,9 @@ impl<K: Kernel> Reconciler<K> {
                 .filter(|id| name == format!("t{id}"));
             let mut fds = self.store.inherited.remove(&name).unwrap();
             let wanted = id.and_then(|id| {
-                self.accepted
-                    .tunnels()
-                    .values()
-                    .find(|t| t.tunnel_id() == id)
-                    .cloned()
+                self.wanted_tunnels
+                    .get(&id)
+                    .map(|name| self.accepted.tunnels()[name].clone())
             });
             if fds.len() != 1 || wanted.is_none() || self.store.shutdown.is_some() {
                 self.retirement(name, Vec::new(), fds, id);

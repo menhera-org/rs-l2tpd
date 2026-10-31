@@ -155,6 +155,8 @@ mod deadline_cost {
             );
             assert_eq!(r.next_deadline(), None);
             assert_eq!(r.k.tunnel_socket(10), Some(foreign));
+            assert!(r.wanted_tunnels.is_empty());
+            assert!(r.wanted_sessions.is_empty());
         }
     }
 

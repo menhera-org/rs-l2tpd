@@ -1,0 +1,221 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index d8d2275..6370404 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -671,8 +671,10 @@ mod resource_tests {
+         assert!(r.take_requests().is_empty());
+     }
+ 
+-    fn sizes(r: &Reconciler<FakeKernel>) -> [usize; 29] {
++    fn sizes(r: &Reconciler<FakeKernel>) -> [usize; 31] {
+         [
++            r.wanted_tunnels.len(),
++            r.wanted_sessions.len(),
+             r.tunnels.len(),
+             r.sessions.len(),
+             r.reserved.len(),
+diff --git a/src/reconciler/mod.rs b/src/reconciler/mod.rs
+index d055e7d..533f44a 100644
+--- a/src/reconciler/mod.rs
++++ b/src/reconciler/mod.rs
+@@ -75,6 +75,8 @@ pub enum Request {
+ pub struct Reconciler<K: Kernel> {
+     k: K,
+     accepted: Config,
++    wanted_tunnels: BTreeMap<u32, String>,
++    wanted_sessions: BTreeMap<u32, String>,
+     tunnels: BTreeMap<u32, TunnelRecord>,
+     sessions: BTreeMap<u32, SessionRecord>,
+     /// Tunnel identifiers whose socket was closed, until the kernel lets
+@@ -126,6 +128,8 @@ impl<K: Kernel> Reconciler<K> {
+         Reconciler {
+             k: kernel,
+             accepted: Config::new(),
++            wanted_tunnels: BTreeMap::new(),
++            wanted_sessions: BTreeMap::new(),
+             tunnels: BTreeMap::new(),
+             sessions: BTreeMap::new(),
+             departing: Deadlines::default(),
+@@ -229,6 +233,16 @@ impl<K: Kernel> Reconciler<K> {
+ 
+     fn reconcile_current(&mut self, config: Config) -> bool {
+         if config != self.accepted {
++            self.wanted_tunnels = config
++                .tunnels()
++                .iter()
++                .map(|(name, tunnel)| (tunnel.tunnel_id(), name.clone()))
++                .collect();
++            self.wanted_sessions = config
++                .sessions()
++                .iter()
++                .map(|(name, session)| (session.session_id(), name.clone()))
++                .collect();
+             let wanted: BTreeMap<_, _> = config
+                 .tunnels()
+                 .values()
+@@ -255,7 +269,7 @@ impl<K: Kernel> Reconciler<K> {
+                 self.conflicts.remove(&key);
+                 self.conflict_times.remove(&key);
+             }
+-            for id in self.resolvers.reload(&self.accepted, &config) {
++            for id in self.resolvers.reload(&config, &self.wanted_tunnels) {
+                 if let Some(record) = self.tunnels.get(&id) {
+                     self.report.forget(&report::tunnel(&record.name, id));
+                 }
+@@ -307,6 +321,8 @@ impl<K: Kernel> Reconciler<K> {
+         self.requests
+             .retain(|r| !matches!(r, Request::WriteBindv6only { .. }));
+         self.accepted = Config::new();
++        self.wanted_tunnels.clear();
++        self.wanted_sessions.clear();
+         self.conflicts.clear();
+         self.conflict_times = Deadlines::default();
+         self.store
+@@ -318,7 +334,7 @@ impl<K: Kernel> Reconciler<K> {
+         self.remove_unwanted_tunnels();
+         self.reindex();
+         self.retire_sockets();
+-        self.resolvers.reload(&Config::new(), &Config::new());
++        self.resolvers.reload(&self.accepted, &self.wanted_tunnels);
+         !self.incomplete && self.tunnels.is_empty() && self.store.retiring.is_empty()
+     }
+ 
+diff --git a/src/reconciler/resolvers.rs b/src/reconciler/resolvers.rs
+index d40bb27..70befc2 100644
+--- a/src/reconciler/resolvers.rs
++++ b/src/reconciler/resolvers.rs
+@@ -173,15 +173,13 @@ impl Resolvers {
+ 
+     /// Discards the answers whose host name, family, resolver or resolver
+     /// configuration changed (V7).
+-    pub fn reload(&mut self, _old: &Config, new: &Config) -> Vec<u32> {
++    pub fn reload(&mut self, new: &Config, tunnels: &BTreeMap<u32, String>) -> Vec<u32> {
+         let mut changed = Vec::new();
+         let ids: Vec<u32> = self.watches.keys().copied().collect();
+         for id in ids {
+-            let still = new
+-                .tunnels()
+-                .values()
+-                .find(|t| t.tunnel_id() == id)
+-                .and_then(|t| key(new, t));
++            let still = tunnels
++                .get(&id)
++                .and_then(|name| key(new, &new.tunnels()[name]));
+             if still.as_ref() != Some(&self.watches[&id].key) {
+                 self.forget(id);
+                 changed.push(id);
+diff --git a/src/reconciler/sessions.rs b/src/reconciler/sessions.rs
+index 0b7d357..66550aa 100644
+--- a/src/reconciler/sessions.rs
++++ b/src/reconciler/sessions.rs
+@@ -15,6 +15,11 @@ use super::{Reconciler, report};
+ /// Draws of a staging name in one attempt (S7).
+ const DRAWS: usize = 8;
+ 
++#[cfg(all(test, feature = "fake-kernel", feature = "serde"))]
++#[cfg_attr(coverage_nightly, coverage(off))]
++#[path = "wanted_tests.rs"]
++mod wanted_tests;
++
+ impl<K: Kernel> Reconciler<K> {
+     fn session_label(&self, sid: u32) -> String {
+         let r = &self.sessions[&sid];
+@@ -24,11 +29,9 @@ impl<K: Kernel> Reconciler<K> {
+     /// The accepted entry of the same kernel identity as the record.
+     fn session_wanted(&self, sid: u32) -> Option<(String, SessionConfig)> {
+         let record = self.sessions.get(&sid)?;
+-        self.accepted
+-            .sessions()
+-            .iter()
+-            .find(|(n, _)| self.accepted.session_identity(n) == Some(record.identity))
+-            .map(|(n, s)| (n.clone(), s.clone()))
++        let name = self.wanted_sessions.get(&sid)?;
++        (self.accepted.session_identity(name) == Some(record.identity))
++            .then(|| (name.clone(), self.accepted.sessions()[name].clone()))
+     }
+ 
+     /// A name `prefix` followed by six hexadecimal digits from the
+diff --git a/src/reconciler/store.rs b/src/reconciler/store.rs
+index c428883..22be913 100644
+--- a/src/reconciler/store.rs
++++ b/src/reconciler/store.rs
+@@ -193,11 +193,9 @@ impl<K: Kernel> Reconciler<K> {
+                 .filter(|id| name == format!("t{id}"));
+             let mut fds = self.store.inherited.remove(&name).unwrap();
+             let wanted = id.and_then(|id| {
+-                self.accepted
+-                    .tunnels()
+-                    .values()
+-                    .find(|t| t.tunnel_id() == id)
+-                    .cloned()
++                self.wanted_tunnels
++                    .get(&id)
++                    .map(|name| self.accepted.tunnels()[name].clone())
+             });
+             if fds.len() != 1 || wanted.is_none() || self.store.shutdown.is_some() {
+                 self.retirement(name, Vec::new(), fds, id);
+diff --git a/src/reconciler/tests.rs b/src/reconciler/tests.rs
+index a28e2f1..88e9c07 100644
+--- a/src/reconciler/tests.rs
++++ b/src/reconciler/tests.rs
+@@ -155,6 +155,8 @@ mod deadline_cost {
+             );
+             assert_eq!(r.next_deadline(), None);
+             assert_eq!(r.k.tunnel_socket(10), Some(foreign));
++            assert!(r.wanted_tunnels.is_empty());
++            assert!(r.wanted_sessions.is_empty());
+         }
+     }
+ 
+diff --git a/src/reconciler/tunnels.rs b/src/reconciler/tunnels.rs
+index 487d16f..446c236 100644
+--- a/src/reconciler/tunnels.rs
++++ b/src/reconciler/tunnels.rs
+@@ -28,11 +28,9 @@ impl<K: Kernel> Reconciler<K> {
+     /// `tunnel_id`: an entry of the same kernel identity (C14, T23).
+     pub(super) fn tunnel_wanted(&self, tunnel_id: u32) -> Option<(String, TunnelConfig)> {
+         let record = self.tunnels.get(&tunnel_id)?;
+-        self.accepted
+-            .tunnels()
+-            .iter()
+-            .find(|(_, t)| t.identity() == record.identity)
+-            .map(|(n, t)| (n.clone(), t.clone()))
++        let name = self.wanted_tunnels.get(&tunnel_id)?;
++        let tunnel = &self.accepted.tunnels()[name];
++        (tunnel.identity() == record.identity).then(|| (name.clone(), tunnel.clone()))
+     }
+ 
+     /// Takes over a tunnel socket a previous instance handed over, named
+@@ -68,15 +66,16 @@ impl<K: Kernel> Reconciler<K> {
+                     peer_cookie,
+                 )
+             });
+-            let matched = self.accepted.sessions().iter().find(|(name, _)| {
++            let matched = self.wanted_sessions.get(&s.session_id).filter(|name| {
+                 reported.is_some() && self.accepted.session_identity(name) == reported
+             });
+-            let Some((name, config)) = matched else {
++            let Some(name) = matched else {
+                 // Foreign cookie lengths and identifiers that a configuration
+                 // cannot hold are unmatched too; never construct a fake config.
+                 self.unmatched_sessions.insert((tunnel_id, s.session_id));
+                 continue;
+             };
++            let config = &self.accepted.sessions()[name];
+             self.sessions.insert(
+                 s.session_id,
+                 super::records::SessionRecord {
+@@ -171,12 +170,7 @@ impl<K: Kernel> Reconciler<K> {
+                 self.k.close(record.socket);
+                 self.departing.insert(id, self.k.now() + DELETION_WAIT);
+             }
+-            if !self
+-                .accepted
+-                .tunnels()
+-                .values()
+-                .any(|config| config.tunnel_id() == id)
+-            {
++            if !self.wanted_tunnels.contains_key(&id) {
+                 self.resolvers.forget(id);
+             }
+             self.report.forget(&label);

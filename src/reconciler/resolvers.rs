@@ -173,15 +173,13 @@ impl Resolvers {
 
     /// Discards the answers whose host name, family, resolver or resolver
     /// configuration changed (V7).
-    pub fn reload(&mut self, _old: &Config, new: &Config) -> Vec<u32> {
+    pub fn reload(&mut self, new: &Config, tunnels: &BTreeMap<u32, String>) -> Vec<u32> {
         let mut changed = Vec::new();
         let ids: Vec<u32> = self.watches.keys().copied().collect();
         for id in ids {
-            let still = new
-                .tunnels()
-                .values()
-                .find(|t| t.tunnel_id() == id)
-                .and_then(|t| key(new, t));
+            let still = tunnels
+                .get(&id)
+                .and_then(|name| key(new, &new.tunnels()[name]));
             if still.as_ref() != Some(&self.watches[&id].key) {
                 self.forget(id);
                 changed.push(id);

@@ -671,8 +671,10 @@ mod resource_tests {
         assert!(r.take_requests().is_empty());
     }
 
-    fn sizes(r: &Reconciler<FakeKernel>) -> [usize; 29] {
+    fn sizes(r: &Reconciler<FakeKernel>) -> [usize; 31] {
         [
+            r.wanted_tunnels.len(),
+            r.wanted_sessions.len(),
             r.tunnels.len(),
             r.sessions.len(),
             r.reserved.len(),

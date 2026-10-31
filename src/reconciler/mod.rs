@@ -75,6 +75,8 @@ pub enum Request {
 pub struct Reconciler<K: Kernel> {
     k: K,
     accepted: Config,
+    wanted_tunnels: BTreeMap<u32, String>,
+    wanted_sessions: BTreeMap<u32, String>,
     tunnels: BTreeMap<u32, TunnelRecord>,
     sessions: BTreeMap<u32, SessionRecord>,
     /// Tunnel identifiers whose socket was closed, until the kernel lets
@@ -126,6 +128,8 @@ impl<K: Kernel> Reconciler<K> {
         Reconciler {
             k: kernel,
             accepted: Config::new(),
+            wanted_tunnels: BTreeMap::new(),
+            wanted_sessions: BTreeMap::new(),
             tunnels: BTreeMap::new(),
             sessions: BTreeMap::new(),
             departing: Deadlines::default(),
@@ -229,6 +233,16 @@ impl<K: Kernel> Reconciler<K> {
 
     fn reconcile_current(&mut self, config: Config) -> bool {
         if config != self.accepted {
+            self.wanted_tunnels = config
+                .tunnels()
+                .iter()
+                .map(|(name, tunnel)| (tunnel.tunnel_id(), name.clone()))
+                .collect();
+            self.wanted_sessions = config
+                .sessions()
+                .iter()
+                .map(|(name, session)| (session.session_id(), name.clone()))
+                .collect();
             let wanted: BTreeMap<_, _> = config
                 .tunnels()
                 .values()
@@ -255,7 +269,7 @@ impl<K: Kernel> Reconciler<K> {
                 self.conflicts.remove(&key);
                 self.conflict_times.remove(&key);
             }
-            for id in self.resolvers.reload(&self.accepted, &config) {
+            for id in self.resolvers.reload(&config, &self.wanted_tunnels) {
                 if let Some(record) = self.tunnels.get(&id) {
                     self.report.forget(&report::tunnel(&record.name, id));
                 }
@@ -307,6 +321,8 @@ impl<K: Kernel> Reconciler<K> {
         self.requests
             .retain(|r| !matches!(r, Request::WriteBindv6only { .. }));
         self.accepted = Config::new();
+        self.wanted_tunnels.clear();
+        self.wanted_sessions.clear();
         self.conflicts.clear();
         self.conflict_times = Deadlines::default();
         self.store
@@ -318,7 +334,7 @@ impl<K: Kernel> Reconciler<K> {
         self.remove_unwanted_tunnels();
         self.reindex();
         self.retire_sockets();
-        self.resolvers.reload(&Config::new(), &Config::new());
+        self.resolvers.reload(&self.accepted, &self.wanted_tunnels);
         !self.incomplete && self.tunnels.is_empty() && self.store.retiring.is_empty()
     }
 

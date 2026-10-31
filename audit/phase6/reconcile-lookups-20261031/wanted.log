@@ -1,0 +1,14 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-2992259725ba1531)
+
+running 2 tests
+test reconciler::sessions::wanted_tests::desired_indexes_follow_operator_names_and_release_on_shutdown ... ok
+WANTED_LOOKUP entries=1 queries=500 scan_ns=346363 indexed_ns=387877
+WANTED_LOOKUP entries=100 queries=500 scan_ns=48583874 indexed_ns=1559176
+WANTED_LOOKUP entries=300 queries=500 scan_ns=159085580 indexed_ns=1694706
+WANTED_LOOKUP entries=1000 queries=500 scan_ns=764970562 indexed_ns=2175617
+test reconciler::sessions::wanted_tests::wanted_lookup_cost_and_identity_checks ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 122 filtered out; finished in 1.14s
+

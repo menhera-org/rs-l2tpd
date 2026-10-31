@@ -15,6 +15,11 @@ use super::{Reconciler, report};
 /// Draws of a staging name in one attempt (S7).
 const DRAWS: usize = 8;
 
+#[cfg(all(test, feature = "fake-kernel", feature = "serde"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[path = "wanted_tests.rs"]
+mod wanted_tests;
+
 impl<K: Kernel> Reconciler<K> {
     fn session_label(&self, sid: u32) -> String {
         let r = &self.sessions[&sid];
@@ -24,11 +29,9 @@ impl<K: Kernel> Reconciler<K> {
     /// The accepted entry of the same kernel identity as the record.
     fn session_wanted(&self, sid: u32) -> Option<(String, SessionConfig)> {
         let record = self.sessions.get(&sid)?;
-        self.accepted
-            .sessions()
-            .iter()
-            .find(|(n, _)| self.accepted.session_identity(n) == Some(record.identity))
-            .map(|(n, s)| (n.clone(), s.clone()))
+        let name = self.wanted_sessions.get(&sid)?;
+        (self.accepted.session_identity(name) == Some(record.identity))
+            .then(|| (name.clone(), self.accepted.sessions()[name].clone()))
     }
 
     /// A name `prefix` followed by six hexadecimal digits from the
