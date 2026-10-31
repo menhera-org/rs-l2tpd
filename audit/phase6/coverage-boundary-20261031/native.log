@@ -1,0 +1,72 @@
+warning: --branch option is unstable
+info: cargo-llvm-cov currently setting cfg(coverage) and cfg(coverage_nightly); you can opt-out it by passing --no-cfg-coverage and --no-cfg-coverage-nightly
+warning: `package.homepage` is redundant with `package.repository`
+  --> Cargo.toml:11:12
+   |
+10 | repository = "https://github.com/menhera-org/rs-l2tpd"
+   |              -----------------------------------------
+11 | homepage = "https://github.com/menhera-org/rs-l2tpd"
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `rs-l2tpd` (manifest) generated 1 warning
+warning: feature `coverage_attribute` is declared but not used
+  --> src/lib.rs:25:39
+   |
+25 | #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+   |                                       ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_features)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (lib) generated 1 warning
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+warning: feature `coverage_attribute` is declared but not used
+ --> src/bin/rs-l2tpd/main.rs:2:39
+  |
+2 | #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+  |                                       ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_features)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (bin "rs-l2tpd") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/kernel/fake.rs (target/phase6-coverage-production-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/1fafe7b1cf32fc2f/out/kernel_fake-1fafe7b1cf32fc2f)
+
+running 1 test
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/kernel/linux.rs (target/phase6-coverage-production-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/130315a7f381523d/out/kernel_linux-130315a7f381523d)
+
+running 19 tests
+test a_closed_socket_is_not_announced ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test a_handed_over_socket_keeps_its_tunnel ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test a_reused_index_and_creation_name_never_revive_an_old_registration ... ignored, isolated network namespaces with CAP_NET_ADMIN and L2TP modules
+test a_tunable_write_changes_only_fresh_sockets ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test completion_scoped_failure_lookup_and_random_refusal ... ignored, isolated privileged container
+test conformance_on_the_linux_kernel ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test disconnected_sessions_drop_outbound_but_receive_only_matching_cookies ... ignored, isolated namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test event_recreation_uses_the_configured_creation_name_on_linux ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test library_constructors_reject_missing_tokio_and_preserve_adopted_descriptors ... ignored, isolated privileged container; public constructors use the real kernel
+test library_missing_net_admin_withholds_readiness_and_shutdown_still_succeeds ... ignored, isolated privileged container; only this test thread drops CAP_NET_ADMIN
+test library_runtime_drop_closes_active_and_retiring_tunnels_without_touching_foreign_ones ... ignored, isolated privileged container; real socket cleanup and foreign ownership
+test links_are_found_by_name_and_dumped ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test lowering_a_device_discards_ipv6_addresses_unless_preserved ... ignored, isolated network namespace with CAP_NET_ADMIN
+test services_converge_and_orderly_shutdown_on_linux ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test sessions_are_captured_scanned_and_deleted ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test sockets_bind_connect_and_report_their_source ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test the_kernel_keeps_the_previous_ipv6_peer_after_disconnect ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test the_monitor_reports_removals ... ignored, isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules
+test tunnel_sockets_enable_fragmentation_before_connect ... ignored, live kernel in an isolated network namespace
+
+test result: ok. 0 passed; 0 failed; 19 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/startup.rs (target/phase6-coverage-production-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/fb3790aec19c2837/out/startup-fb3790aec19c2837)
+
+running 1 test
+test startup_resource_failures_return_errors_and_preserve_adopted_fds ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

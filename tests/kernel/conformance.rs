@@ -7,7 +7,8 @@ use std::io;
 use std::net::IpAddr;
 
 use rs_l2tpd::kernel::{
-    Family, HwAddr, Kernel, L2tpIfName, Notice, Peer, Proof, SessionCreate, Subscription,
+    Adopted, Cookie, Family, HwAddr, Kernel, L2tpIfName, Notice, Peer, Proof, Registration,
+    ReportedCookie, SessionCreate, SessionInfo, SocketId, Subscription, TunnelInfo,
 };
 
 /// The kernel under test with the host controls and observations a test
@@ -189,6 +190,103 @@ pub fn a_registration_is_proved_until_removal(f: &mut dyn Fixture) {
     f.k().delete_session(9161, 91611).unwrap();
     assert!(eventually(f, |k| k.prove(&registration) == Proof::Removed));
     f.k().release(&registration);
+    f.k().close(socket);
+}
+
+/// Adoption preserves asymmetric identifiers, cookies and device identity (K37, S28).
+pub fn adoption_preserves_tunnel_and_session_records(f: &mut dyn Fixture) {
+    for (family, id) in [(Family::V4, 9241), (Family::V6, 9242)] {
+        let socket = f.k().create_socket(family, id, id + 10).unwrap();
+        f.k().register_tunnel(socket, id, id + 10).unwrap();
+        let request = create(id, id + 100, "conf-adopt")
+            .with_cookie(Some(Cookie::new(&[0x91, 0x23, 0x45, 0x67]).unwrap()))
+            .with_peer_cookie(Some(Cookie::new(&[0x89; 8]).unwrap()));
+        let registration = f.k().create_session(&request).unwrap();
+        let identity = Registration::new(
+            registration.index(),
+            registration.generation(),
+            registration.incarnation(),
+        );
+        let inherited = f.k().clone_fd(socket).unwrap();
+        f.k().close(socket);
+        f.settle();
+        let adopted = f.k().adopt(inherited).unwrap();
+        let expected = Adopted::new(SocketId::new(adopted.socket().get()), family, id, id + 10);
+        assert_eq!(adopted.family(), expected.family());
+        assert_eq!(adopted.tunnel_id(), expected.tunnel_id());
+        assert_eq!(adopted.peer_tunnel_id(), expected.peer_tunnel_id());
+        assert_eq!(
+            f.k().tunnel(adopted.tunnel_id()).unwrap(),
+            Some(TunnelInfo::new(id, id + 10))
+        );
+        let expected_session = SessionInfo::new(
+            request.tunnel_id(),
+            request.session_id(),
+            request.peer_session_id(),
+            request.cookie().into(),
+            request.peer_cookie().into(),
+            Some(request.ifname()),
+        );
+        let mut sessions = Vec::new();
+        f.k()
+            .scan_sessions(Some(adopted.tunnel_id()), &mut |info| {
+                sessions.push(info.clone());
+            })
+            .unwrap();
+        assert_eq!(sessions, [expected_session]);
+        assert_eq!(
+            sessions[0].cookies().unwrap(),
+            (request.cookie(), request.peer_cookie())
+        );
+        assert_eq!(sessions[0].cookie(), request.cookie().into());
+        assert_eq!(sessions[0].peer_cookie(), request.peer_cookie().into());
+        assert_eq!(f.k().prove(&identity), Proof::Proved);
+        assert_eq!(
+            f.k()
+                .link_by_name(&request.ifname())
+                .unwrap()
+                .unwrap()
+                .index(),
+            identity.index()
+        );
+        f.k().close(expected.socket());
+        assert!(eventually(f, |k| k.tunnel(id).unwrap().is_none()));
+        assert_eq!(f.k().prove(&identity), Proof::Removed);
+        f.k().release(&identity);
+    }
+}
+
+/// Foreign cookie lengths cannot match configuration and formatting hides bytes (K35, O5).
+pub fn reported_cookies_preserve_foreign_lengths(f: &mut dyn Fixture) {
+    let socket = tunnel(f.k(), 9251);
+    f.k()
+        .create_session(&create(9251, 92511, "conf-cookie"))
+        .unwrap();
+    let actual = f.k().session(9251, 92511).unwrap().unwrap();
+    for length in 0..=8 {
+        let cookie = ReportedCookie::new(&[0xab; 8][..length]).unwrap();
+        assert_eq!(
+            format!("{cookie:?}"),
+            format!("ReportedCookie({length} bytes)")
+        );
+        for peer in [false, true] {
+            let (sent, received) = if peer {
+                (actual.cookie(), cookie)
+            } else {
+                (cookie, actual.peer_cookie())
+            };
+            let foreign = SessionInfo::new(
+                actual.tunnel_id(),
+                actual.session_id(),
+                actual.peer_session_id(),
+                sent,
+                received,
+                actual.ifname(),
+            );
+            assert_eq!(foreign.cookies().is_ok(), matches!(length, 0 | 4 | 8));
+        }
+    }
+    assert!(ReportedCookie::new(&[0xab; 9]).is_err());
     f.k().close(socket);
 }
 
@@ -401,6 +499,14 @@ pub const CASES: &[(&str, Case)] = &[
     (
         "a_registration_is_proved_until_removal",
         a_registration_is_proved_until_removal,
+    ),
+    (
+        "adoption_preserves_tunnel_and_session_records",
+        adoption_preserves_tunnel_and_session_records,
+    ),
+    (
+        "reported_cookies_preserve_foreign_lengths",
+        reported_cookies_preserve_foreign_lengths,
     ),
     (
         "a_binding_is_set_on_an_unbound_socket",

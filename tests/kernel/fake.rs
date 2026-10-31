@@ -59,7 +59,7 @@ impl Fixture for FakeFixture {
     }
 }
 
-/// spec: K16, K17, K18, K19, K20, K22, K24, K26, K27, K28, K31, K34, K41, S9, S19, E5, T7
+/// spec: K16, K17, K18, K19, K20, K22, K24, K26, K27, K28, K31, K34, K35, K37, K41, S9, S19, S28, E5, T7, O5
 #[test]
 fn conformance_on_the_fake_kernel() {
     for (case, run) in conformance::CASES {

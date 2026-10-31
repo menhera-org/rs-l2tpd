@@ -1,0 +1,36 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 10 tests
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test sessions::failed_removal_preserves_the_session_and_its_parent_until_retry ... ok
+test sessions::a_failed_temporary_rename_retries_the_swap_without_recreation ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.00s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 1 test
+
+thread 'store::an_incomplete_adopted_session_dump_keeps_ownership_for_retry' (4095725) panicked at tests/rules/store.rs:150:5:
+assertion failed: r.shutdown()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test store::an_incomplete_adopted_session_dump_keeps_ownership_for_retry ... FAILED
+
+failures:
+
+failures:
+    store::an_incomplete_adopted_session_dump_keeps_ownership_for_retry
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 77 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`

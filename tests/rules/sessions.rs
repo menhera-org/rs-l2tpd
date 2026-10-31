@@ -271,15 +271,87 @@ fn staged_loss_never_modifies_a_reused_index_and_name() {
 /// spec: S23, S22
 #[test]
 fn failed_staged_verification_and_deletion_preserve_the_record() {
-    for operation in ["scan", "delete-name"] {
+    for operation in ["scan", "delete"] {
         let (mut r, _) = reconciler();
         r.kernel_mut().add_link("l2tp0", false);
         r.reconcile(config(&with_session("")));
         let index = r.kernel().session_index(10, 100).unwrap();
         r.kernel_mut().lose_lifetime();
         r.kernel_mut().fail_next(operation, nix::errno::Errno::EIO);
+        ops(&mut r);
         r.reconcile(config(&with_session("")));
         assert_eq!(r.kernel().session_index(10, 100), Some(index));
+        assert!(!ops(&mut r).iter().any(|op| op.starts_with("delete")));
+        run_for(&mut r, 3);
+        assert_ne!(r.kernel().session_index(10, 100), Some(index));
+    }
+}
+
+/// spec: S22, S25, S26, A14
+#[test]
+fn failed_removal_preserves_the_session_and_its_parent_until_retry() {
+    for (lost, operation) in [(false, "delete"), (true, "scan"), (true, "delete")] {
+        let (mut r, _) = reconciler();
+        r.reconcile(config(&with_session("")));
+        let index = r.kernel().session_index(10, 100).unwrap();
+        let socket = r.kernel().tunnel_socket(10).unwrap();
+        if lost {
+            r.kernel_mut().lose_lifetime();
+        }
+        r.kernel_mut().fail_next(operation, nix::errno::Errno::EIO);
+        ops(&mut r);
+        assert!(!r.reconcile(config(TUNNEL)));
+        assert_eq!(r.kernel().session_index(10, 100), Some(index));
+        assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
+        assert!(!ops(&mut r).iter().any(|op| op.starts_with("close ")));
+        run_for(&mut r, 3);
+        assert!(r.kernel_mut().session(10, 100).unwrap().is_none());
+        assert!(r.kernel_mut().tunnel(10).unwrap().is_some());
+        assert!(r.ready());
+    }
+}
+
+/// spec: S11, S17, M6, M14
+#[test]
+fn a_failed_temporary_rename_retries_the_swap_without_recreation() {
+    for (operation, error) in [
+        ("random", nix::errno::Errno::EIO),
+        ("rename", nix::errno::Errno::EIO),
+        ("rename", nix::errno::Errno::EEXIST),
+    ] {
+        let (mut r, _) = reconciler();
+        let text = format!(
+            "{}\n[sessions.t]\ntunnel_name='a'\nsession_id=101\ninterface_name='l2tp1'",
+            with_session("")
+        );
+        assert!(r.reconcile(config(&text)));
+        let first = r.kernel().session_index(10, 100).unwrap();
+        let second = r.kernel().session_index(10, 101).unwrap();
+        r.kernel_mut().fail_next(operation, error);
+        ops(&mut r);
+        r.reconcile(config(
+            &text
+                .replace("l2tp0", "swap")
+                .replace("l2tp1", "l2tp0")
+                .replace("swap", "l2tp1"),
+        ));
+        run_for(&mut r, 2);
+        assert_eq!(r.kernel().session_index(10, 100), Some(first));
+        assert_eq!(r.kernel().session_index(10, 101), Some(second));
+        assert_eq!(
+            r.kernel().link(first).unwrap().name().to_string_lossy(),
+            "l2tp1"
+        );
+        assert_eq!(
+            r.kernel().link(second).unwrap().name().to_string_lossy(),
+            "l2tp0"
+        );
+        assert!(r.ready());
+        assert!(
+            !ops(&mut r)
+                .iter()
+                .any(|op| op.starts_with("create ") || op.starts_with("delete "))
+        );
     }
 }
 

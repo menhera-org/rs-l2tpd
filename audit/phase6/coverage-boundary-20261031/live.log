@@ -1,0 +1,25 @@
+6.8.0-147-generic
+
+running 1 test
+case disconnected_sessions_count_frame_drops
+case tunnel_identifiers_are_unique
+case session_identifiers_are_unique_in_the_namespace
+case a_taken_name_creates_no_session
+case the_stored_name_is_the_creation_name
+case closing_the_socket_deletes_the_tunnel
+case a_deleted_session_identifier_is_released
+case a_registration_is_proved_until_removal
+case adoption_preserves_tunnel_and_session_records
+case reported_cookies_preserve_foreign_lengths
+case a_binding_is_set_on_an_unbound_socket
+case connect_selects_the_source_of_the_device
+case empty_ipv6_vrf_without_a_source_or_route_cannot_connect
+case a_link_local_zone_must_match_the_binding
+empty IPv6 VRF connect errno: 99
+case a_hardware_address_needs_the_device_down
+case the_monitor_reports_links_and_addresses
+case deletions_are_announced
+test conformance_on_the_linux_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.41s
+

@@ -13,7 +13,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests; H16 has passing required-kernel records | Relevant-event CPU cost, full resource/history proof and remaining clauses; investigate the separate vanilla 7.0.14 capture failure |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
-| P4 coverage | Approved production scope: merged GNU report 90.96% lines / 78.16% branches, including startup faults, real user manager and full Incus case; no production exclusions | 757 missing lines / 384 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: merged GNU report 91.83% lines / 78.56% branches, including startup faults, live adoption, real user manager and full Incus case; no production exclusions | 684 missing lines / 377 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Current unmodified musl full case passes, including manager race/ordered policy/store/re-exec; instrumented GNU full case exports seven daemon profiles | Repeat if relevant source changes; retain documented MAC limitations |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -609,3 +609,12 @@ repetitions pass after moving subprocess faults into a separate test
 executable; the initial isolation failure remains recorded. Production
 implementation is unchanged, so the baseline live profiles remain valid.
 There are still 757 missing production lines and 384 missing branches.
+
+The subsequent [adoption and recovery checks](phase6/coverage-boundary-20261031/README.md)
+raise coverage to 91.83% lines and 78.56% branches, leaving 684 lines and
+377 branches. All 17 shared conformance cases pass on the fake and live
+Ubuntu kernel. Six startup faults and three new policy cases verify actual
+error recovery; an existing staged-deletion test now uses the fake's correct
+fault key. Common checks and ten seeded fake repetitions pass. The production
+implementation remains unchanged; these new live cases still need the final
+required-kernel matrix.

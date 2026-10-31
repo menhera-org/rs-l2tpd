@@ -1,0 +1,1 @@
+Production src/ exactly matches revision 3f9d32a. Earlier live/manager/Incus profiles retained; test-only additions collected with the same compiler, target and features.

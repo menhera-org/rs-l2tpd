@@ -1,0 +1,21 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 1 test
+
+thread 'sessions::failed_removal_preserves_the_session_and_its_parent_until_retry' (4095066) panicked at tests/rules/sessions.rs:301:9:
+assertion `left == right` failed
+  left: None
+ right: Some(SocketId(1))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test sessions::failed_removal_preserves_the_session_and_its_parent_until_retry ... FAILED
+
+failures:
+
+failures:
+    sessions::failed_removal_preserves_the_session_and_its_parent_until_retry
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 77 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`
+DRAFT_RESULT=101

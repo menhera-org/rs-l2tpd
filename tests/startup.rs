@@ -109,6 +109,29 @@ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
                 }
                 service::Service::with_runtime(Config::new(), runtime).map(|_| ())
             }
+            "blocking-thread" | "blocking-engine" | "blocking-open" => {
+                match fault.as_str() {
+                    "blocking-thread" => {
+                        refuse_startup_syscalls(&[libc::SYS_clone, libc::SYS_clone3], libc::EAGAIN);
+                    }
+                    "blocking-engine" => {
+                        refuse_startup_syscalls(&[libc::SYS_epoll_create1], libc::EMFILE);
+                    }
+                    "blocking-open" => refuse_startup_syscalls(&[libc::SYS_socket], libc::EPERM),
+                    _ => unreachable!(),
+                }
+                if fault == "blocking-open" {
+                    rs_l2tpd::blocking::Service::new(Config::new(), adopted).map(|_| ())
+                } else {
+                    rs_l2tpd::blocking::Service::with_kernel(
+                        Config::new(),
+                        FakeKernel::new(42),
+                        Box::new(IphostResolve::default()),
+                        adopted,
+                    )
+                    .map(|_| ())
+                }
+            }
             _ => panic!("unknown startup fault: {fault}"),
         };
         let (error, returned) = result.unwrap_err();
@@ -117,8 +140,10 @@ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
         };
         assert_eq!(
             error.raw_os_error(),
-            Some(if fault == "service-engine" {
+            Some(if fault.ends_with("engine") {
                 libc::EMFILE
+            } else if fault == "blocking-open" {
+                libc::EPERM
             } else {
                 libc::EAGAIN
             })
@@ -141,7 +166,14 @@ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
         println!("STARTUP_FAILURE_CHECKED={fault}");
         return;
     }
-    for fault in ["runtime-thread", "service-thread", "service-engine"] {
+    for fault in [
+        "runtime-thread",
+        "service-thread",
+        "service-engine",
+        "blocking-thread",
+        "blocking-engine",
+        "blocking-open",
+    ] {
         let output = std::process::Command::new(std::env::current_exe().unwrap())
             .args([
                 "--exact",

@@ -1,0 +1,354 @@
+diff --git a/tests/kernel/conformance.rs b/tests/kernel/conformance.rs
+index 746e754..31ae7e9 100644
+--- a/tests/kernel/conformance.rs
++++ b/tests/kernel/conformance.rs
+@@ -7,7 +7,8 @@ use std::io;
+ use std::net::IpAddr;
+ 
+ use rs_l2tpd::kernel::{
+-    Family, HwAddr, Kernel, L2tpIfName, Notice, Peer, Proof, SessionCreate, Subscription,
++    Adopted, Cookie, Family, HwAddr, Kernel, L2tpIfName, Notice, Peer, Proof, Registration,
++    ReportedCookie, SessionCreate, SessionInfo, SocketId, Subscription, TunnelInfo,
+ };
+ 
+ /// The kernel under test with the host controls and observations a test
+@@ -192,6 +193,103 @@ pub fn a_registration_is_proved_until_removal(f: &mut dyn Fixture) {
+     f.k().close(socket);
+ }
+ 
++/// Adoption preserves asymmetric identifiers, cookies and device identity (K37, S28).
++pub fn adoption_preserves_tunnel_and_session_records(f: &mut dyn Fixture) {
++    for (family, id) in [(Family::V4, 9241), (Family::V6, 9242)] {
++        let socket = f.k().create_socket(family, id, id + 10).unwrap();
++        f.k().register_tunnel(socket, id, id + 10).unwrap();
++        let request = create(id, id + 100, "conf-adopt")
++            .with_cookie(Some(Cookie::new(&[0x91, 0x23, 0x45, 0x67]).unwrap()))
++            .with_peer_cookie(Some(Cookie::new(&[0x89; 8]).unwrap()));
++        let registration = f.k().create_session(&request).unwrap();
++        let identity = Registration::new(
++            registration.index(),
++            registration.generation(),
++            registration.incarnation(),
++        );
++        let inherited = f.k().clone_fd(socket).unwrap();
++        f.k().close(socket);
++        f.settle();
++        let adopted = f.k().adopt(inherited).unwrap();
++        let expected = Adopted::new(SocketId::new(adopted.socket().get()), family, id, id + 10);
++        assert_eq!(adopted.family(), expected.family());
++        assert_eq!(adopted.tunnel_id(), expected.tunnel_id());
++        assert_eq!(adopted.peer_tunnel_id(), expected.peer_tunnel_id());
++        assert_eq!(
++            f.k().tunnel(adopted.tunnel_id()).unwrap(),
++            Some(TunnelInfo::new(id, id + 10))
++        );
++        let expected_session = SessionInfo::new(
++            request.tunnel_id(),
++            request.session_id(),
++            request.peer_session_id(),
++            request.cookie().into(),
++            request.peer_cookie().into(),
++            Some(request.ifname()),
++        );
++        let mut sessions = Vec::new();
++        f.k()
++            .scan_sessions(Some(adopted.tunnel_id()), &mut |info| {
++                sessions.push(info.clone());
++            })
++            .unwrap();
++        assert_eq!(sessions, [expected_session]);
++        assert_eq!(
++            sessions[0].cookies().unwrap(),
++            (request.cookie(), request.peer_cookie())
++        );
++        assert_eq!(sessions[0].cookie(), request.cookie().into());
++        assert_eq!(sessions[0].peer_cookie(), request.peer_cookie().into());
++        assert_eq!(f.k().prove(&identity), Proof::Proved);
++        assert_eq!(
++            f.k()
++                .link_by_name(&request.ifname())
++                .unwrap()
++                .unwrap()
++                .index(),
++            identity.index()
++        );
++        f.k().close(expected.socket());
++        assert!(eventually(f, |k| k.tunnel(id).unwrap().is_none()));
++        assert_eq!(f.k().prove(&identity), Proof::Removed);
++        f.k().release(&identity);
++    }
++}
++
++/// Foreign cookie lengths cannot match configuration and formatting hides bytes (K35, O5).
++pub fn reported_cookies_preserve_foreign_lengths(f: &mut dyn Fixture) {
++    let socket = tunnel(f.k(), 9251);
++    f.k()
++        .create_session(&create(9251, 92511, "conf-cookie"))
++        .unwrap();
++    let actual = f.k().session(9251, 92511).unwrap().unwrap();
++    for length in 0..=8 {
++        let cookie = ReportedCookie::new(&[0xab; 8][..length]).unwrap();
++        assert_eq!(
++            format!("{cookie:?}"),
++            format!("ReportedCookie({length} bytes)")
++        );
++        for peer in [false, true] {
++            let (sent, received) = if peer {
++                (actual.cookie(), cookie)
++            } else {
++                (cookie, actual.peer_cookie())
++            };
++            let foreign = SessionInfo::new(
++                actual.tunnel_id(),
++                actual.session_id(),
++                actual.peer_session_id(),
++                sent,
++                received,
++                actual.ifname(),
++            );
++            assert_eq!(foreign.cookies().is_ok(), matches!(length, 0 | 4 | 8));
++        }
++    }
++    assert!(ReportedCookie::new(&[0xab; 9]).is_err());
++    f.k().close(socket);
++}
++
+ /// A binding is replaced only with `CAP_NET_RAW`; a disconnect clears it
+ /// (K22, T10, T21).
+ pub fn a_binding_is_set_on_an_unbound_socket(f: &mut dyn Fixture) {
+@@ -402,6 +500,14 @@ pub const CASES: &[(&str, Case)] = &[
+         "a_registration_is_proved_until_removal",
+         a_registration_is_proved_until_removal,
+     ),
++    (
++        "adoption_preserves_tunnel_and_session_records",
++        adoption_preserves_tunnel_and_session_records,
++    ),
++    (
++        "reported_cookies_preserve_foreign_lengths",
++        reported_cookies_preserve_foreign_lengths,
++    ),
+     (
+         "a_binding_is_set_on_an_unbound_socket",
+         a_binding_is_set_on_an_unbound_socket,
+diff --git a/tests/kernel/fake.rs b/tests/kernel/fake.rs
+index 5ff9d08..b31b7de 100644
+--- a/tests/kernel/fake.rs
++++ b/tests/kernel/fake.rs
+@@ -59,7 +59,7 @@ impl Fixture for FakeFixture {
+     }
+ }
+ 
+-/// spec: K16, K17, K18, K19, K20, K22, K24, K26, K27, K28, K31, K34, K41, S9, S19, E5, T7
++/// spec: K16, K17, K18, K19, K20, K22, K24, K26, K27, K28, K31, K34, K35, K37, K41, S9, S19, S28, E5, T7, O5
+ #[test]
+ fn conformance_on_the_fake_kernel() {
+     for (case, run) in conformance::CASES {
+diff --git a/tests/kernel/linux.rs b/tests/kernel/linux.rs
+index d267353..e2ecb43 100644
+--- a/tests/kernel/linux.rs
++++ b/tests/kernel/linux.rs
+@@ -158,7 +158,7 @@ impl Fixture for LinuxFixture {
+     }
+ }
+ 
+-/// spec: K16, K17, K18, K19, K20, K22, K24, K26, K27, K28, K31, K34, K41, S9, S19, E5, T7
++/// spec: K16, K17, K18, K19, K20, K22, K24, K26, K27, K28, K31, K34, K35, K37, K41, S9, S19, S28, E5, T7, O5
+ #[test]
+ #[ignore = "isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules"]
+ fn conformance_on_the_linux_kernel() {
+diff --git a/tests/rules/sessions.rs b/tests/rules/sessions.rs
+index 521b85f..93a4653 100644
+--- a/tests/rules/sessions.rs
++++ b/tests/rules/sessions.rs
+@@ -271,15 +271,87 @@ fn staged_loss_never_modifies_a_reused_index_and_name() {
+ /// spec: S23, S22
+ #[test]
+ fn failed_staged_verification_and_deletion_preserve_the_record() {
+-    for operation in ["scan", "delete-name"] {
++    for operation in ["scan", "delete"] {
+         let (mut r, _) = reconciler();
+         r.kernel_mut().add_link("l2tp0", false);
+         r.reconcile(config(&with_session("")));
+         let index = r.kernel().session_index(10, 100).unwrap();
+         r.kernel_mut().lose_lifetime();
+         r.kernel_mut().fail_next(operation, nix::errno::Errno::EIO);
++        ops(&mut r);
++        r.reconcile(config(&with_session("")));
++        assert_eq!(r.kernel().session_index(10, 100), Some(index));
++        assert!(!ops(&mut r).iter().any(|op| op.starts_with("delete")));
++        run_for(&mut r, 3);
++        assert_ne!(r.kernel().session_index(10, 100), Some(index));
++    }
++}
++
++/// spec: S22, S25, S26, A14
++#[test]
++fn failed_removal_preserves_the_session_and_its_parent_until_retry() {
++    for (lost, operation) in [(false, "delete"), (true, "scan"), (true, "delete")] {
++        let (mut r, _) = reconciler();
+         r.reconcile(config(&with_session("")));
++        let index = r.kernel().session_index(10, 100).unwrap();
++        let socket = r.kernel().tunnel_socket(10).unwrap();
++        if lost {
++            r.kernel_mut().lose_lifetime();
++        }
++        r.kernel_mut().fail_next(operation, nix::errno::Errno::EIO);
++        ops(&mut r);
++        assert!(!r.reconcile(config(TUNNEL)));
+         assert_eq!(r.kernel().session_index(10, 100), Some(index));
++        assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
++        assert!(!ops(&mut r).iter().any(|op| op.starts_with("close ")));
++        run_for(&mut r, 3);
++        assert!(r.kernel_mut().session(10, 100).unwrap().is_none());
++        assert!(r.kernel_mut().tunnel(10).unwrap().is_some());
++        assert!(r.ready());
++    }
++}
++
++/// spec: S11, S17, M6, M14
++#[test]
++fn a_failed_temporary_rename_retries_the_swap_without_recreation() {
++    for (operation, error) in [
++        ("random", nix::errno::Errno::EIO),
++        ("rename", nix::errno::Errno::EIO),
++        ("rename", nix::errno::Errno::EEXIST),
++    ] {
++        let (mut r, _) = reconciler();
++        let text = format!(
++            "{}\n[sessions.t]\ntunnel_name='a'\nsession_id=101\ninterface_name='l2tp1'",
++            with_session("")
++        );
++        assert!(r.reconcile(config(&text)));
++        let first = r.kernel().session_index(10, 100).unwrap();
++        let second = r.kernel().session_index(10, 101).unwrap();
++        r.kernel_mut().fail_next(operation, error);
++        ops(&mut r);
++        r.reconcile(config(
++            &text
++                .replace("l2tp0", "swap")
++                .replace("l2tp1", "l2tp0")
++                .replace("swap", "l2tp1"),
++        ));
++        run_for(&mut r, 2);
++        assert_eq!(r.kernel().session_index(10, 100), Some(first));
++        assert_eq!(r.kernel().session_index(10, 101), Some(second));
++        assert_eq!(
++            r.kernel().link(first).unwrap().name().to_string_lossy(),
++            "l2tp1"
++        );
++        assert_eq!(
++            r.kernel().link(second).unwrap().name().to_string_lossy(),
++            "l2tp0"
++        );
++        assert!(r.ready());
++        assert!(
++            !ops(&mut r)
++                .iter()
++                .any(|op| op.starts_with("create ") || op.starts_with("delete "))
++        );
+     }
+ }
+ 
+diff --git a/tests/rules/store.rs b/tests/rules/store.rs
+index 06f4f53..ef3df24 100644
+--- a/tests/rules/store.rs
++++ b/tests/rules/store.rs
+@@ -124,6 +124,35 @@ fn adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name() {
+     assert!(r.ready());
+ }
+ 
++/// spec: P14, S28, L13, A14
++#[test]
++fn an_incomplete_adopted_session_dump_keeps_ownership_for_retry() {
++    let (mut r, _) = reconciler();
++    let socket = r.kernel_mut().create_socket(Family::V6, 10, 20).unwrap();
++    r.kernel_mut().register_tunnel(socket, 10, 20).unwrap();
++    let fd = r.kernel().clone_fd(socket).unwrap();
++    r.kernel_mut().close(socket);
++    r.adopt(10, fd).unwrap();
++    r.kernel_mut().fail_next("scan", nix::errno::Errno::EIO);
++    super::ops(&mut r);
++    assert!(!r.reconcile(config(TUNNEL)));
++    assert!(r.kernel_mut().tunnel(10).unwrap().is_some());
++    assert!(r.take_requests().is_empty());
++    run_for(&mut r, 1);
++    assert!(r.ready());
++    assert_eq!(r.kernel().open_sockets(), 1);
++    let trace = super::ops(&mut r);
++    assert!(
++        !trace
++            .iter()
++            .any(|op| op.starts_with("socket ") || op.starts_with("register "))
++    );
++    assert!(!r.shutdown());
++    run_for(&mut r, 1);
++    assert!(r.shutdown());
++    assert!(r.kernel_mut().tunnel(10).unwrap().is_none());
++}
++
+ /// spec: P14, L13, P17
+ #[test]
+ fn malformed_names_and_shutdown_keep_cleanup_authority() {
+diff --git a/tests/startup.rs b/tests/startup.rs
+index 24c309f..14b6844 100644
+--- a/tests/startup.rs
++++ b/tests/startup.rs
+@@ -109,6 +109,29 @@ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
+                 }
+                 service::Service::with_runtime(Config::new(), runtime).map(|_| ())
+             }
++            "blocking-thread" | "blocking-engine" | "blocking-open" => {
++                match fault.as_str() {
++                    "blocking-thread" => {
++                        refuse_startup_syscalls(&[libc::SYS_clone, libc::SYS_clone3], libc::EAGAIN);
++                    }
++                    "blocking-engine" => {
++                        refuse_startup_syscalls(&[libc::SYS_epoll_create1], libc::EMFILE);
++                    }
++                    "blocking-open" => refuse_startup_syscalls(&[libc::SYS_socket], libc::EPERM),
++                    _ => unreachable!(),
++                }
++                if fault == "blocking-open" {
++                    rs_l2tpd::blocking::Service::new(Config::new(), adopted).map(|_| ())
++                } else {
++                    rs_l2tpd::blocking::Service::with_kernel(
++                        Config::new(),
++                        FakeKernel::new(42),
++                        Box::new(IphostResolve::default()),
++                        adopted,
++                    )
++                    .map(|_| ())
++                }
++            }
+             _ => panic!("unknown startup fault: {fault}"),
+         };
+         let (error, returned) = result.unwrap_err();
+@@ -117,8 +140,10 @@ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
+         };
+         assert_eq!(
+             error.raw_os_error(),
+-            Some(if fault == "service-engine" {
++            Some(if fault.ends_with("engine") {
+                 libc::EMFILE
++            } else if fault == "blocking-open" {
++                libc::EPERM
+             } else {
+                 libc::EAGAIN
+             })
+@@ -141,7 +166,14 @@ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
+         println!("STARTUP_FAILURE_CHECKED={fault}");
+         return;
+     }
+-    for fault in ["runtime-thread", "service-thread", "service-engine"] {
++    for fault in [
++        "runtime-thread",
++        "service-thread",
++        "service-engine",
++        "blocking-thread",
++        "blocking-engine",
++        "blocking-open",
++    ] {
+         let output = std::process::Command::new(std::env::current_exe().unwrap())
+             .args([
+                 "--exact",

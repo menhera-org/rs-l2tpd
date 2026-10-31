@@ -124,6 +124,35 @@ fn adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name() {
     assert!(r.ready());
 }
 
+/// spec: P14, S28, L13, A14
+#[test]
+fn an_incomplete_adopted_session_dump_keeps_ownership_for_retry() {
+    let (mut r, _) = reconciler();
+    let socket = r.kernel_mut().create_socket(Family::V6, 10, 20).unwrap();
+    r.kernel_mut().register_tunnel(socket, 10, 20).unwrap();
+    let fd = r.kernel().clone_fd(socket).unwrap();
+    r.kernel_mut().close(socket);
+    r.adopt(10, fd).unwrap();
+    r.kernel_mut().fail_next("scan", nix::errno::Errno::EIO);
+    super::ops(&mut r);
+    assert!(!r.reconcile(config(TUNNEL)));
+    assert!(r.kernel_mut().tunnel(10).unwrap().is_some());
+    assert!(r.take_requests().is_empty());
+    run_for(&mut r, 1);
+    assert!(r.ready());
+    assert_eq!(r.kernel().open_sockets(), 1);
+    let trace = super::ops(&mut r);
+    assert!(
+        !trace
+            .iter()
+            .any(|op| op.starts_with("socket ") || op.starts_with("register "))
+    );
+    assert!(!r.shutdown());
+    run_for(&mut r, 1);
+    assert!(r.shutdown());
+    assert!(r.kernel_mut().tunnel(10).unwrap().is_none());
+}
+
 /// spec: P14, L13, P17
 #[test]
 fn malformed_names_and_shutdown_keep_cleanup_authority() {
