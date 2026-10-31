@@ -102,3 +102,13 @@ No strict flag or global gate is enabled by this package.
 [final source snapshot](final-source.patch) and
 [final helper identity](final-extra-source-hashes.log) complete the record.
 The strict map remains at 275 cited / 58 missing active rules (exit 101).
+
+The shared pre-commit script was added by concurrent contributions while
+this package was running. It was missed before commit 0f8818e; the complete
+[shared CI gates](ci-gates.log) subsequently passed on that source, before
+this verification follow-up. This adds repository-wide ShellCheck,
+no-default/serde library and daemon builds, native/musl tests and
+warning-denied documentation to the package's earlier checks. Its map
+checks retain the script's lenient defaults; no full Phase 6 gate is
+claimed. The intervening contributions changed CI/quality configuration,
+documentation and shell helpers; the tested Rust sources were unchanged.
