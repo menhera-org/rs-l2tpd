@@ -1,0 +1,4 @@
+# Tunnel and session identifiers are public protocol metadata, not credentials.
+query-filters:
+  - exclude:
+      id: rust/cleartext-logging
