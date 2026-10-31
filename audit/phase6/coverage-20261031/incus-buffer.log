@@ -1,0 +1,17 @@
+features: all; target: x86_64-unknown-linux-gnu; nightly branch coverage
+command: incus launch images:ubuntu/24.04 NAME --no-profiles --storage "$(incus profile device get default root pool)" -c security.privileged=false
+
+The instance you are starting doesn't have any network attached to it.
+  To create a new network, use: incus network create
+  To attach a network to an instance, use: incus network attach
+
+6.8.0-147-generic
+
+running 1 test
+FORCE_RESULT=EPERM
+SUBSCRIPTION_RCVBUF=425984
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 85 filtered out; finished in 0.00s
+
+Error: file does not exist

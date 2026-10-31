@@ -1,0 +1,17 @@
+source snapshot: 8fd9ae8; production sources before readiness/signal-order fix
+features: all; target: x86_64-unknown-linux-gnu
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/19355e4b4fa32df5/out/rs_l2tpd-19355e4b4fa32df5 git-blob: c48f37a659839070271cad554bbabdb9a64ba5a4
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/7dc53dd3944ffb67/out/rs_l2tpd-7dc53dd3944ffb67 git-blob: 11fe0e3109ac51fc06a39fe441d86a804383eeb7
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/d0f792f80d0caa9e/out/boot_scenarios-d0f792f80d0caa9e git-blob: d233c12d33f3ea8ab218bd3f1d1a7e36347c8eb0
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/1fafe7b1cf32fc2f/out/kernel_fake-1fafe7b1cf32fc2f git-blob: 5aa0ec130e3f815863fa6553d489bf697a7bdcde
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/130315a7f381523d/out/kernel_linux-130315a7f381523d git-blob: 0b2c8b565639093f4c10845ebec7a8d754d450fd
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/f886b2841f18ed36/out/process-f886b2841f18ed36 git-blob: 52847c49e23f7d21c21c2a2a0027b20bb19f1223
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/faf9bbda3eb844fc/out/review_kernel-faf9bbda3eb844fc git-blob: a6fde34d6864f2197656031e3625adc642b57d03
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/980e1fc02d9141a4/out/rulemap-980e1fc02d9141a4 git-blob: 65ed8dda37ba7314068bd0cf57e82d539070abab
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/53de27be93d67776/out/rules-53de27be93d67776 git-blob: 27ddf84140f841b11ae6a95ec619b3512f6e889c
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/4e719f810ca916a4/out/scenarios-4e719f810ca916a4 git-blob: b608fca4e0bb6296f14cbd790675b0f3e5d35393
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/be36c07fa5c0b6a6/out/service-be36c07fa5c0b6a6 git-blob: 9d289694e11d58d9a01cf964c01c4a4619267512
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/74d48d9d81609579/out/srclink-74d48d9d81609579 git-blob: 77a6c58f74297b0c25c17c05b09b9e5060942b65
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/528a234751631bfc/out/store_kernel-528a234751631bfc git-blob: 9b948d32a642c0722a5bb6fce99746a26a8a17bd
+target/phase6-coverage-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/e31fb37b261c6444/out/systemd_scenarios-e31fb37b261c6444 git-blob: 9071b36b2dd884af76945dca88397094882bdf00
+daemon git-blob: 6506a262f4b58a2a5b4bea624bfebc563d4ab62c

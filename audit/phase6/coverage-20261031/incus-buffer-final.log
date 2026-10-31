@@ -1,0 +1,24 @@
+features: all; target: x86_64-unknown-linux-gnu; nightly branch coverage
+command: incus launch images:ubuntu/24.04 NAME --no-profiles --storage "$(incus profile device get default root pool)" -c security.privileged=false
+
+The instance you are starting doesn't have any network attached to it.
+  To create a new network, use: incus network create
+  To attach a network to an instance, use: incus network attach
+
+6.8.0-147-generic
+
+running 1 test
+FORCE_RESULT=EPERM
+SUBSCRIPTION_RCVBUF=425984
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 85 filtered out; finished in 0.00s
+
+profile bytes: 127432
+INCUS_COVERAGE_EXPORT=0
+Controller commands (NAME is the disposable instance, UNIT the instrumented lib test executable):
+incus file push UNIT NAME/opt/kernel-unit
+incus exec NAME -- env LLVM_PROFILE_FILE=/opt/buffer.profraw /opt/kernel-unit --ignored --exact kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback --nocapture
+incus file pull NAME/opt/buffer.profraw target/phase6-coverage-20261031/incus-buffer.profraw
+incus delete -f NAME
+Controller exited 0, including cleanup.

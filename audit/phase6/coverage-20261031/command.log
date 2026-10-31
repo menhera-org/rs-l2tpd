@@ -1,0 +1,7 @@
+6.8.0-147-generic
+rustc 1.101.0-nightly (41089d07a 2026-10-27)
+toolchain manifest: nightly-2026-10-28; cargo-llvm-cov 0.9.1
+source snapshot: 8fd9ae8, before readiness-order fix
+features: all; target: x86_64-unknown-linux-gnu
+command: CARGO_LLVM_COV_TARGET_DIR=target/phase6-coverage-20261031 cargo +nightly llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report
+command: cargo +nightly llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines

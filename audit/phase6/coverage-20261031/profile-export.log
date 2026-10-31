@@ -1,0 +1,6 @@
+All selected live suites passed. The first host-side profile copy could
+not read four profiles created with restrictive test-process umasks.
+Corrective export command, without rerunning the suites:
+docker run --rm --network none --mount type=bind,source=PROFILE_DIRECTORY,target=/profiles --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'chmod a+r /profiles/*.profraw'
+cp PROFILE_DIRECTORY/*.profraw COVERAGE_TARGET/
+PROFILE_EXPORT_RESULT=0
