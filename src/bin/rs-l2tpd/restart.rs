@@ -416,6 +416,78 @@ mod signal_tests {
 mod completion_tests {
     use super::*;
     use std::os::unix::fs::{PermissionsExt, symlink};
+    /// spec: P26
+    #[test]
+    fn malformed_entry_child() {
+        let Some(case) = std::env::var_os("PHASE6_ENTRY_CASE") else {
+            return;
+        };
+        let (state, diagnostic) = match case.to_str().unwrap() {
+            "missing" => (None, "missing re-exec PID-file state"),
+            "encoding" => (
+                Some(OsString::from_vec(vec![0xff])),
+                "invalid re-exec state encoding",
+            ),
+            "version" => (Some("2:none".into()), "invalid re-exec PID-file state"),
+            "fields" => (Some("1:1:2".into()), "invalid re-exec PID-file state"),
+            "odd-hex" => (Some("1:1:2:2f0".into()), "invalid re-exec pathname"),
+            "bad-hex" => (Some("1:1:2:zz".into()), "invalid re-exec pathname"),
+            "relative" => (Some("1:1:2:706964".into()), "invalid re-exec PID path"),
+            "nul" => (Some("1:1:2:2f00".into()), "invalid re-exec PID path"),
+            "device" => (Some("1:bad:2:2f706964".into()), "invalid re-exec inode"),
+            "inode" => (Some("1:1:bad:2f706964".into()), "invalid re-exec inode"),
+            "announcement" => (
+                Some("1:none".into()),
+                "invalid re-exec descriptor announcement",
+            ),
+            _ => panic!("unknown entry case"),
+        };
+        // This dedicated child runs only this test; no other code accesses its environment.
+        unsafe {
+            std::env::set_var("RS_L2TPD_REEXEC", format!("1:{}", std::process::id()));
+            std::env::set_var("LISTEN_PID", std::process::id().to_string());
+            std::env::set_var(
+                "LISTEN_FDS",
+                if case == "announcement" { "bad" } else { "0" },
+            );
+            std::env::remove_var("RS_L2TPD_PIDFILE");
+            if let Some(state) = state {
+                std::env::set_var("RS_L2TPD_PIDFILE", state);
+            }
+        }
+        assert_eq!(entry().err().unwrap().to_string(), diagnostic);
+        assert!(std::env::var_os("RS_L2TPD_REEXEC").is_none());
+        assert!(std::env::var_os("RS_L2TPD_PIDFILE").is_none());
+    }
+    /// spec: P26
+    #[test]
+    fn malformed_entry_state_is_consumed_and_refused() {
+        for case in [
+            "missing",
+            "encoding",
+            "version",
+            "fields",
+            "odd-hex",
+            "bad-hex",
+            "relative",
+            "nul",
+            "device",
+            "inode",
+            "announcement",
+        ] {
+            let output = Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "restart::completion_tests::malformed_entry_child",
+                    "--nocapture",
+                    "--test-threads=1",
+                ])
+                .env("PHASE6_ENTRY_CASE", case)
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{case}: {output:?}");
+        }
+    }
     /// spec: P27
     #[test]
     fn restart_file_checks_precede_any_signal() {

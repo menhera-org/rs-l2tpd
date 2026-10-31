@@ -1,0 +1,308 @@
+diff --git a/src/bin/rs-l2tpd/fdstore.rs b/src/bin/rs-l2tpd/fdstore.rs
+index c67733a..0481c1b 100644
+--- a/src/bin/rs-l2tpd/fdstore.rs
++++ b/src/bin/rs-l2tpd/fdstore.rs
+@@ -315,6 +315,93 @@ mod tests {
+             io::ErrorKind::TimedOut
+         );
+     }
++    /// spec: P14, P17
++    #[test]
++    fn a_barrier_requires_eof_and_rejects_data_or_an_unreleased_descriptor() {
++        use std::io::Write;
++        for hold in [false, true] {
++            let dir = crate::testdir::Dir::new();
++            let path = dir.path().join("notify");
++            let listener = UnixDatagram::bind(&path).unwrap();
++            listener
++                .set_read_timeout(Some(Duration::from_secs(3)))
++                .unwrap();
++            let (release, wait) = std::sync::mpsc::channel();
++            let manager = std::thread::spawn(move || {
++                let mut bytes = [0; 32];
++                let mut iov = [IoSliceMut::new(&mut bytes)];
++                let mut cmsg = nix::cmsg_space!([i32; 1]);
++                let message = recvmsg::<()>(
++                    listener.as_raw_fd(),
++                    &mut iov,
++                    Some(&mut cmsg),
++                    MsgFlags::MSG_CMSG_CLOEXEC,
++                )
++                .unwrap();
++                let mut rights = Vec::new();
++                for control in message.cmsgs().unwrap() {
++                    if let ControlMessageOwned::ScmRights(fds) = control {
++                        rights.extend(
++                            fds.into_iter()
++                                .map(|fd| unsafe { OwnedFd::from_raw_fd(fd) }),
++                        );
++                    }
++                }
++                assert_eq!(message.bytes, 9);
++                assert_eq!(rights.len(), 1);
++                if hold {
++                    wait.recv_timeout(Duration::from_secs(3)).unwrap();
++                } else {
++                    std::fs::File::from(rights.pop().unwrap())
++                        .write_all(b"x")
++                        .unwrap();
++                }
++            });
++            let store = Store::new(path.as_os_str()).unwrap();
++            let error = store
++                .barrier(Instant::now() + Duration::from_millis(200))
++                .unwrap_err();
++            if hold {
++                assert_eq!(error.kind(), io::ErrorKind::TimedOut);
++                release.send(()).unwrap();
++            } else {
++                assert_eq!(error.to_string(), "invalid barrier response");
++            }
++            manager.join().unwrap();
++        }
++    }
++    /// spec: P14, P23
++    #[test]
++    fn abstract_stores_validate_names_before_sending() {
++        let dir = crate::testdir::Dir::new();
++        let address = UnixAddr::new_abstract(dir.path().as_os_str().as_bytes()).unwrap();
++        let listener = UnixDatagram::unbound().unwrap();
++        nix::sys::socket::bind(listener.as_raw_fd(), &address).unwrap();
++        listener.set_nonblocking(true).unwrap();
++        let path = OsString::from(format!("@{}", dir.path().display()));
++        let store = Store::new(&path).unwrap();
++        store.send("READY=1", None).unwrap();
++        let mut bytes = [0; 32];
++        assert_eq!(listener.recv(&mut bytes).unwrap(), 7);
++        assert_eq!(&bytes[..7], b"READY=1");
++        let file = std::fs::File::open("/dev/null").unwrap().into();
++        for name in ["", ":", "bad\n", "bad\r", "bad\0"] {
++            assert_eq!(
++                store.store(name, &file).unwrap_err().kind(),
++                io::ErrorKind::InvalidInput
++            );
++            assert_eq!(
++                store.forget(name, Instant::now()).unwrap_err().kind(),
++                io::ErrorKind::InvalidInput
++            );
++        }
++        assert_eq!(
++            listener.recv(&mut bytes).unwrap_err().kind(),
++            io::ErrorKind::WouldBlock
++        );
++        store.socket.shutdown(std::net::Shutdown::Write).unwrap();
++        assert!(store.store("t1", &file).is_err());
++    }
+ }
+ 
+ #[cfg(test)]
+diff --git a/src/bin/rs-l2tpd/pidfile.rs b/src/bin/rs-l2tpd/pidfile.rs
+index 29cdd54..c3b07af 100644
+--- a/src/bin/rs-l2tpd/pidfile.rs
++++ b/src/bin/rs-l2tpd/pidfile.rs
+@@ -323,6 +323,47 @@ mod tests {
+         pid.remove().unwrap();
+         assert_eq!(std::fs::read_to_string(&victim).unwrap(), "keep");
+     }
++    /// spec: P10, P11
++    #[test]
++    fn invalid_paths_and_missing_files_leave_other_inodes_alone() {
++        let dir = Dir::new();
++        let victim = dir.path().join("victim");
++        std::fs::write(&victim, "keep").unwrap();
++        for path in [
++            PathBuf::from("/"),
++            PathBuf::from("nul\0pid"),
++            dir.path().join("nul\0parent/pid"),
++            dir.path().join("../victim"),
++        ] {
++            assert_eq!(
++                PidFile::publish(&path).err().unwrap().kind(),
++                io::ErrorKind::InvalidInput
++            );
++        }
++        assert_eq!(
++            PidFile::publish(&victim.join("pid"))
++                .err()
++                .unwrap()
++                .raw_os_error(),
++            Some(libc::ENOTDIR)
++        );
++        let pid = PidFile::publish(&dir.path().join("sub/pid")).unwrap();
++        std::fs::remove_file(&pid.path).unwrap();
++        assert!(!pid.matches().unwrap());
++        pid.remove().unwrap();
++        std::fs::remove_dir(pid.path.parent().unwrap()).unwrap();
++        pid.remove().unwrap();
++        let invalid = PidFile {
++            path: victim.join("pid"),
++            ..pid
++        };
++        assert_eq!(
++            invalid.matches().unwrap_err().raw_os_error(),
++            Some(libc::ENOTDIR)
++        );
++        invalid.remove().unwrap();
++        assert_eq!(std::fs::read_to_string(victim).unwrap(), "keep");
++    }
+ }
+ 
+ #[cfg(test)]
+diff --git a/src/bin/rs-l2tpd/restart.rs b/src/bin/rs-l2tpd/restart.rs
+index cd8d9ae..21c6e68 100644
+--- a/src/bin/rs-l2tpd/restart.rs
++++ b/src/bin/rs-l2tpd/restart.rs
+@@ -416,6 +416,78 @@ mod signal_tests {
+ mod completion_tests {
+     use super::*;
+     use std::os::unix::fs::{PermissionsExt, symlink};
++    /// spec: P26
++    #[test]
++    fn malformed_entry_child() {
++        let Some(case) = std::env::var_os("PHASE6_ENTRY_CASE") else {
++            return;
++        };
++        let (state, diagnostic) = match case.to_str().unwrap() {
++            "missing" => (None, "missing re-exec PID-file state"),
++            "encoding" => (
++                Some(OsString::from_vec(vec![0xff])),
++                "invalid re-exec state encoding",
++            ),
++            "version" => (Some("2:none".into()), "invalid re-exec PID-file state"),
++            "fields" => (Some("1:1:2".into()), "invalid re-exec PID-file state"),
++            "odd-hex" => (Some("1:1:2:2f0".into()), "invalid re-exec pathname"),
++            "bad-hex" => (Some("1:1:2:zz".into()), "invalid re-exec pathname"),
++            "relative" => (Some("1:1:2:706964".into()), "invalid re-exec PID path"),
++            "nul" => (Some("1:1:2:2f00".into()), "invalid re-exec PID path"),
++            "device" => (Some("1:bad:2:2f706964".into()), "invalid re-exec inode"),
++            "inode" => (Some("1:1:bad:2f706964".into()), "invalid re-exec inode"),
++            "announcement" => (
++                Some("1:none".into()),
++                "invalid re-exec descriptor announcement",
++            ),
++            _ => panic!("unknown entry case"),
++        };
++        // This dedicated child runs only this test; no other code accesses its environment.
++        unsafe {
++            std::env::set_var("RS_L2TPD_REEXEC", format!("1:{}", std::process::id()));
++            std::env::set_var("LISTEN_PID", std::process::id().to_string());
++            std::env::set_var(
++                "LISTEN_FDS",
++                if case == "announcement" { "bad" } else { "0" },
++            );
++            std::env::remove_var("RS_L2TPD_PIDFILE");
++            if let Some(state) = state {
++                std::env::set_var("RS_L2TPD_PIDFILE", state);
++            }
++        }
++        assert_eq!(entry().err().unwrap().to_string(), diagnostic);
++        assert!(std::env::var_os("RS_L2TPD_REEXEC").is_none());
++        assert!(std::env::var_os("RS_L2TPD_PIDFILE").is_none());
++    }
++    /// spec: P26
++    #[test]
++    fn malformed_entry_state_is_consumed_and_refused() {
++        for case in [
++            "missing",
++            "encoding",
++            "version",
++            "fields",
++            "odd-hex",
++            "bad-hex",
++            "relative",
++            "nul",
++            "device",
++            "inode",
++            "announcement",
++        ] {
++            let output = Command::new(std::env::current_exe().unwrap())
++                .args([
++                    "--exact",
++                    "restart::completion_tests::malformed_entry_child",
++                    "--nocapture",
++                    "--test-threads=1",
++                ])
++                .env("PHASE6_ENTRY_CASE", case)
++                .output()
++                .unwrap();
++            assert!(output.status.success(), "{case}: {output:?}");
++        }
++    }
+     /// spec: P27
+     #[test]
+     fn restart_file_checks_precede_any_signal() {
+diff --git a/src/kernel/linux/monitor.rs b/src/kernel/linux/monitor.rs
+index 2549ed0..2a6ce9a 100644
+--- a/src/kernel/linux/monitor.rs
++++ b/src/kernel/linux/monitor.rs
+@@ -191,6 +191,42 @@ pub(super) fn monitor() -> io::Result<Feed> {
+ mod tests {
+     use super::*;
+ 
++    // kernel: (K29) include/uapi/linux/netlink.h NLMSG_OVERRUN and framing.
++    /// spec: E20, E21, E22, A13
++    #[test]
++    fn broken_datagrams_and_reopen_failure_keep_loss_observable() {
++        let socket = super::super::request::open(NETLINK_ROUTE).unwrap();
++        let mut feed = Feed::new(
++            socket,
++            Box::new(decode),
++            Box::new(|| Err(io::Error::from_raw_os_error(libc::EMFILE))),
++        );
++        let mut header = [0; 16];
++        header[..4].copy_from_slice(&16u32.to_ne_bytes());
++        header[4..6].copy_from_slice(&netlink_packet_core::NLMSG_OVERRUN.to_ne_bytes());
++        feed.receive(&[0]);
++        feed.receive(&header);
++        let runtime = tokio::runtime::Builder::new_current_thread()
++            .enable_all()
++            .build()
++            .unwrap();
++        runtime.block_on(async {
++            let mut cx = Context::from_waker(std::task::Waker::noop());
++            assert_eq!(feed.poll_notice(&mut cx), Poll::Ready(Notice::Loss));
++            assert_eq!(feed.poll_notice(&mut cx), Poll::Ready(Notice::Loss));
++            feed.opened.take();
++            assert_eq!(feed.poll_notice(&mut cx), Poll::Ready(Notice::Loss));
++            assert!(feed.poll_notice(&mut cx).is_pending());
++            let notice = tokio::time::timeout(
++                std::time::Duration::from_secs(3),
++                std::future::poll_fn(|cx| feed.poll_notice(cx)),
++            )
++            .await
++            .unwrap();
++            assert_eq!(notice, Notice::Loss);
++        });
++    }
++
+     // kernel: net/netlink/af_netlink.c netlink_sendmsg, netlink_recvmsg
+     // (K29, K30); the userspace sender's address must be checked (E22)
+     /// spec: E22, K30
+diff --git a/tests/process.rs b/tests/process.rs
+index fd2e72b..40d917e 100644
+--- a/tests/process.rs
++++ b/tests/process.rs
+@@ -163,6 +163,23 @@ fn check_cli_and_no_process_side_effects() {
+     let rendered = String::from_utf8(output.stdout).unwrap();
+     assert!(rendered.contains("tunnel_id = 10"));
+     assert_eq!(fs::read_to_string(&pid).unwrap(), "sentinel");
++    let output = start(&main, false, &pid)
++        .arg("--check")
++        .stdout(Stdio::from(
++            fs::OpenOptions::new()
++                .write(true)
++                .open("/dev/full")
++                .unwrap(),
++        ))
++        .output()
++        .unwrap();
++    assert_eq!(output.status.code(), Some(1));
++    assert!(
++        String::from_utf8(output.stderr)
++            .unwrap()
++            .contains("check output:")
++    );
++    assert_eq!(fs::read_to_string(&pid).unwrap(), "sentinel");
+     fs::write(&main, "[sessions.a]\ncookie='secret-cookie'\nunknown=true").unwrap();
+     let output = start(&main, false, &pid).arg("--check").output().unwrap();
+     assert_eq!(output.status.code(), Some(1));

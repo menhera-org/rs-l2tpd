@@ -1,0 +1,9 @@
+export CARGO_LLVM_COV_TARGET_DIR="$PWD/target/phase6-coverage-production-final-20261031"
+cargo +nightly llvm-cov --color never --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report --test kernel-fake --test kernel-linux --test startup
+# binary is the tests/kernel/linux.rs executable printed in native.log.
+profiles="$CARGO_LLVM_COV_TARGET_DIR/live-profiles"
+docker run --rm --privileged --network none --mount "type=bind,source=$PWD,target=$PWD,readonly" --mount "type=bind,source=$profiles,target=$profiles" --env "LLVM_PROFILE_FILE=$profiles/boundary-%p-%m.profraw" --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'uname -r; exec "$@"' run "$PWD/$binary" --ignored --exact conformance_on_the_linux_kernel --nocapture
+docker run --rm --network none --mount "type=bind,source=$profiles,target=/profiles" --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'chmod a+r /profiles/boundary-*.profraw'
+cp "$profiles/"boundary-*.profraw "$CARGO_LLVM_COV_TARGET_DIR/"
+cargo +nightly llvm-cov --color never --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report --test rules
+cargo +nightly llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines

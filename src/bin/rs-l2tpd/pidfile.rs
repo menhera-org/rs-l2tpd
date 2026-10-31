@@ -323,6 +323,47 @@ mod tests {
         pid.remove().unwrap();
         assert_eq!(std::fs::read_to_string(&victim).unwrap(), "keep");
     }
+    /// spec: P10, P11
+    #[test]
+    fn invalid_paths_and_missing_files_leave_other_inodes_alone() {
+        let dir = Dir::new();
+        let victim = dir.path().join("victim");
+        std::fs::write(&victim, "keep").unwrap();
+        for path in [
+            PathBuf::from("/"),
+            PathBuf::from("nul\0pid"),
+            dir.path().join("nul\0parent/pid"),
+            dir.path().join("../victim"),
+        ] {
+            assert_eq!(
+                PidFile::publish(&path).err().unwrap().kind(),
+                io::ErrorKind::InvalidInput
+            );
+        }
+        assert_eq!(
+            PidFile::publish(&victim.join("pid"))
+                .err()
+                .unwrap()
+                .raw_os_error(),
+            Some(libc::ENOTDIR)
+        );
+        let pid = PidFile::publish(&dir.path().join("sub/pid")).unwrap();
+        std::fs::remove_file(&pid.path).unwrap();
+        assert!(!pid.matches().unwrap());
+        pid.remove().unwrap();
+        std::fs::remove_dir(pid.path.parent().unwrap()).unwrap();
+        pid.remove().unwrap();
+        let invalid = PidFile {
+            path: victim.join("pid"),
+            ..pid
+        };
+        assert_eq!(
+            invalid.matches().unwrap_err().raw_os_error(),
+            Some(libc::ENOTDIR)
+        );
+        invalid.remove().unwrap();
+        assert_eq!(std::fs::read_to_string(victim).unwrap(), "keep");
+    }
 }
 
 #[cfg(test)]

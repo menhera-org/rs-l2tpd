@@ -1,0 +1,12 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-9efdeacd5b52e729)
+
+running 4 tests
+test fdstore::tests::abstract_stores_validate_names_before_sending ... ok
+test fdstore::tests::barrier_timeout_is_a_failure ... ok
+test fdstore::tests::rights_and_ordered_processing_barrier ... ok
+test fdstore::tests::a_barrier_requires_eof_and_rejects_data_or_an_unreleased_descriptor ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.20s
+

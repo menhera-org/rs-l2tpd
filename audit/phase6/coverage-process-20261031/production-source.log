@@ -1,0 +1,4 @@
+src/bin/rs-l2tpd/fdstore.rs: production prefix unchanged; additions are inside existing coverage(off) test modules
+src/bin/rs-l2tpd/pidfile.rs: production prefix unchanged; additions are inside existing coverage(off) test modules
+src/bin/rs-l2tpd/restart.rs: production prefix unchanged; additions are inside existing coverage(off) test modules
+src/kernel/linux/monitor.rs: production prefix unchanged; additions are inside existing coverage(off) test modules

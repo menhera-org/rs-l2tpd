@@ -315,6 +315,93 @@ mod tests {
             io::ErrorKind::TimedOut
         );
     }
+    /// spec: P14, P17
+    #[test]
+    fn a_barrier_requires_eof_and_rejects_data_or_an_unreleased_descriptor() {
+        use std::io::Write;
+        for hold in [false, true] {
+            let dir = crate::testdir::Dir::new();
+            let path = dir.path().join("notify");
+            let listener = UnixDatagram::bind(&path).unwrap();
+            listener
+                .set_read_timeout(Some(Duration::from_secs(3)))
+                .unwrap();
+            let (release, wait) = std::sync::mpsc::channel();
+            let manager = std::thread::spawn(move || {
+                let mut bytes = [0; 32];
+                let mut iov = [IoSliceMut::new(&mut bytes)];
+                let mut cmsg = nix::cmsg_space!([i32; 1]);
+                let message = recvmsg::<()>(
+                    listener.as_raw_fd(),
+                    &mut iov,
+                    Some(&mut cmsg),
+                    MsgFlags::MSG_CMSG_CLOEXEC,
+                )
+                .unwrap();
+                let mut rights = Vec::new();
+                for control in message.cmsgs().unwrap() {
+                    if let ControlMessageOwned::ScmRights(fds) = control {
+                        rights.extend(
+                            fds.into_iter()
+                                .map(|fd| unsafe { OwnedFd::from_raw_fd(fd) }),
+                        );
+                    }
+                }
+                assert_eq!(message.bytes, 9);
+                assert_eq!(rights.len(), 1);
+                if hold {
+                    wait.recv_timeout(Duration::from_secs(3)).unwrap();
+                } else {
+                    std::fs::File::from(rights.pop().unwrap())
+                        .write_all(b"x")
+                        .unwrap();
+                }
+            });
+            let store = Store::new(path.as_os_str()).unwrap();
+            let error = store
+                .barrier(Instant::now() + Duration::from_millis(200))
+                .unwrap_err();
+            if hold {
+                assert_eq!(error.kind(), io::ErrorKind::TimedOut);
+                release.send(()).unwrap();
+            } else {
+                assert_eq!(error.to_string(), "invalid barrier response");
+            }
+            manager.join().unwrap();
+        }
+    }
+    /// spec: P14, P23
+    #[test]
+    fn abstract_stores_validate_names_before_sending() {
+        let dir = crate::testdir::Dir::new();
+        let address = UnixAddr::new_abstract(dir.path().as_os_str().as_bytes()).unwrap();
+        let listener = UnixDatagram::unbound().unwrap();
+        nix::sys::socket::bind(listener.as_raw_fd(), &address).unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let path = OsString::from(format!("@{}", dir.path().display()));
+        let store = Store::new(&path).unwrap();
+        store.send("READY=1", None).unwrap();
+        let mut bytes = [0; 32];
+        assert_eq!(listener.recv(&mut bytes).unwrap(), 7);
+        assert_eq!(&bytes[..7], b"READY=1");
+        let file = std::fs::File::open("/dev/null").unwrap().into();
+        for name in ["", ":", "bad\n", "bad\r", "bad\0"] {
+            assert_eq!(
+                store.store(name, &file).unwrap_err().kind(),
+                io::ErrorKind::InvalidInput
+            );
+            assert_eq!(
+                store.forget(name, Instant::now()).unwrap_err().kind(),
+                io::ErrorKind::InvalidInput
+            );
+        }
+        assert_eq!(
+            listener.recv(&mut bytes).unwrap_err().kind(),
+            io::ErrorKind::WouldBlock
+        );
+        store.socket.shutdown(std::net::Shutdown::Write).unwrap();
+        assert!(store.store("t1", &file).is_err());
+    }
 }
 
 #[cfg(test)]

@@ -1,0 +1,246 @@
+warning: --branch option is unstable
+info: cargo-llvm-cov currently setting cfg(coverage) and cfg(coverage_nightly); you can opt-out it by passing --no-cfg-coverage and --no-cfg-coverage-nightly
+warning: `package.homepage` is redundant with `package.repository`
+  --> Cargo.toml:11:12
+   |
+10 | repository = "https://github.com/menhera-org/rs-l2tpd"
+   |              -----------------------------------------
+11 | homepage = "https://github.com/menhera-org/rs-l2tpd"
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `rs-l2tpd` (manifest) generated 1 warning
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+warning: feature `coverage_attribute` is declared but not used
+  --> src/lib.rs:25:39
+   |
+25 | #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+   |                                       ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_features)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (lib) generated 1 warning
+warning: feature `coverage_attribute` is declared but not used
+ --> src/bin/rs-l2tpd/main.rs:2:39
+  |
+2 | #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+  |                                       ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_features)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (bin "rs-l2tpd") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/phase6-coverage-production-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/19355e4b4fa32df5/out/rs_l2tpd-19355e4b4fa32df5)
+
+running 105 tests
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::completion_empty_tables_do_not_remove_merged_values ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::completion_new_collision_keeps_an_accepted_name ... ok
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::completion_corrected_host_retains_resolver ... ok
+test config::tests::completion_hard_endpoint_mistake_precedes_tolerated_family ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::configuration_names ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::host_settings ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::merging ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test config::tests::resolver_methods ... ok
+test config::tests::completion_host_names_and_mapped_family ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::strict_conversion ... ok
+test config::tests::interface_names ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::session_fields ... ok
+test config::tests::session_cookies ... ok
+test error::tests::non_io_failures_preserve_their_diagnostic_without_an_io_source ... ok
+test error::tests::propagated_io_errors_keep_their_errno_name_and_original_source ... ok
+test config::tests::tunnel_identifiers ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test config::tests::tunnel_resolver_name ... ok
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... ignored, live kernel; Incus runner additionally requires the EPERM branch
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test kernel::linux::lifetime::tests::deletion_and_release_are_scoped_by_index_and_incarnation ... ok
+test kernel::linux::request::completion_tests::payload_debug_is_redacted_without_changing_serialization ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::resources_tests::socket_storage_follows_survivors_after_a_large_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test config::tests::tunnel_ip_version ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test config::tests::tunnel_host_names ... ok
+test kernel::linux::rtnl::tests::address_dump_skips_foreign_families_and_rejects_malformed_inet_records ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test config::tests::tunnel_literals ... ok
+test kernel::linux::socket::tests::ipv4_fragmentation_refusal_preserves_io_error_and_socket ... ok
+test kernel::linux::rtnl::tests::malformed_dump_records_are_not_usable_entries ... ok
+test kernel::linux::lifetime::tests::retired_registrations_leave_only_survivors_and_generation_loss_clears_them ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test reconciler::tests::cache_cost::failed_address_seed_is_retried_by_monitor_resync ... ok
+test reconciler::tests::cache_cost::monitor_resync_discards_addresses_missing_from_the_complete_snapshot ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::tests::completion::obsolete_creation_names_are_not_recorded_as_overrides_and_create_episode_ends ... ok
+test reconciler::tests::completion::removal_query_retries_and_old_deletion_does_not_poll_a_new_incarnation ... ok
+test reconciler::tests::deadline_cost::reconnect_deadlines_keep_their_time_and_cancel_on_success_and_removal ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test reconciler::tests::cache_cost::vrf_cache_references_follow_binding_removal_and_member_moves ... ok
+test reconciler::tests::deadline_cost::removing_a_left_out_entry_cancels_its_conflict_and_retry ... ok
+test runtime::tests::a_dropped_source_removal_stays_stale_until_resync_is_forwarded ... ok
+test runtime::tests::dropping_runtime_stops_both_subscription_tasks_and_closes_the_queue ... ok
+test runtime::tests::cleanup_verifies_kernel_absence_and_reports_a_remaining_reference ... ok
+test runtime::tests::absent_log_sink_does_not_change_kernel_refusal_or_recovery ... ok
+test runtime::tests::blocking_completions_work_inside_spawn_blocking ... ok
+test runtime::tests::event_wait_without_tokio_reports_an_error_and_channels_remain_usable ... ok
+test runtime::tests::shutdown_keeps_withdrawal_and_kernel_deletion_windows_separate ... ok
+test runtime::tests::store_submission_and_withdrawal_acknowledgements_keep_the_incarnation ... ok
+test runtime::tests::adopted_names_are_verified_or_retired_and_store_wait_is_bounded ... ok
+test service::tests::panic_completion_during_shutdown_is_reported_after_cleanup ... ok
+test runtime::tests::tunable_handshake_is_observed_forwarded_and_answered_without_host_io ... ok
+test runtime::tests::library_boundary_and_extensible_api ... ok
+test service::tests::refused_host_delivery_releases_capacity_and_needs_no_withdrawal ... ok
+test runtime::tests::lifetime_proofs_do_not_use_the_full_event_queue ... ok
+test runtime::tests::queue_full_waiter_and_shutdown_precedence ... ok
+test runtime::tests::subscription_loss_survives_a_full_queue_and_a_second_loss ... ok
+test runtime::tests::tunable_timeout_ignores_late_success_and_shutdown_cancels_pending ... ok
+test runtime::tests::l2tp_queue_loss_uses_its_own_resync_flag ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test runtime::tests::cancelling_unaccepted_reload_wait_does_not_inflate_admission_capacity ... ok
+test reconciler::tests::completion::unrelated_interfaces_do_not_accumulate_in_the_device_caches ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+test reconciler::tests::cache_cost::unbound_siblings_of_a_bound_vrf_member_never_enter_the_cache ... ok
+test reconciler::tests::deadline_cost::deadline_selection_preserves_the_earliest_deletion_under_large_workloads ... ok
+test reconciler::deadlines::tests::replacement_cancellation_and_ties_keep_one_deadline_per_owner ... ok
+test kernel::linux::lifetime::tests::foreign_deletion_workload_preserves_current_registrations ... ok
+test reconciler::tests::cache_cost::unchanged_bound_link_workload_preserves_other_dependencies ... ok
+test kernel::linux::monitor::tests::broken_datagrams_and_reopen_failure_keep_loss_observable ... ok
+
+test result: ok. 94 passed; 0 failed; 11 ignored; 0 measured; 0 filtered out; finished in 1.01s
+
+     Running unittests src/bin/rs-l2tpd/main.rs (target/phase6-coverage-production-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/7dc53dd3944ffb67/out/rs_l2tpd-7dc53dd3944ffb67)
+
+running 47 tests
+
+running 1 test
+test args::completion_tests::legacy_aliases_share_validation ... ok
+test args::tests::byte_paths_and_option_like_values ... ok
+test caps::tests::effective_set_without_proc ... ok
+test args::tests::modes_and_errors ... ok
+test daemon::tests::broken_pipe_and_collector_shutdown_child ... ok
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ignored, run in a user systemd service with the template address-family restrictions
+test files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths ... ignored, root in an isolated container, drops child uid
+test pidfile::permission_tests::precreated_permissions_links_and_owner ... ignored, root in an isolated container, drops child uid
+test pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes ... ignored, root in an isolated container, changes directory owner
+test check::tests::fixed_order_corrected_values_and_omitted_defaults ... ok
+test fdstore::tests::abstract_stores_validate_names_before_sending ... ok
+test pidfile::permission_tests::precreated_child ... ok
+test pidfile::edge_tests::pid_edge_child ... ok
+test files::filesystem_tests::permission_child ... ok
+test restart::completion_tests::absolute_executable_does_not_need_a_working_directory ... ok
+test restart::completion_tests::pid_inspection_error_child ... ok
+test restart::completion_tests::malformed_entry_child ... ok
+test fdstore::tests::barrier_timeout_is_a_failure ... ok
+test fdstore::tests::rights_and_ordered_processing_barrier ... ok
+test restart::signal_tests::exec_mask_child ... ok
+test setup::completion_tests::directory_modes_child ... ok
+test files::filesystem_tests::followed_links_and_absence_on_reload ... ok
+test setup::tests::parses_required_unit_keys_and_install_paths ... ok
+test stream_tests::closed_streams_child ... ok
+test files::tests::failed_documents_are_omitted_and_diagnostics_redact_input ... ok
+test daemon::tests::vanished_parent_is_logged_and_signal_threads_join ... ok
+test tunable::tests::writes_only_when_needed ... ok
+test restart::completion_tests::restart_file_checks_precede_any_signal ... ok
+test files::tests::discovery_merging_and_reload_refusal ... ok
+test restart::completion_tests::pid_inspection_error_discards_only_removal_authority ... ok
+test stream_tests::sockets_cannot_take_the_place_of_closed_standard_streams ... ok
+test signals::tests::pending_requests_coalesce_and_shutdown_bypasses_a_full_fake_queue ... ok
+test restart::signal_tests::exec_preserves_requests_and_rust_entry_ignores_sigpipe ... ok
+test restart::tests::incompatible_probe_never_executes_or_changes_descriptors ... ok
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 46 filtered out; finished in 0.01s
+
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... ok
+test signals::forwarder_tests::forwarder_retries_a_full_queue_and_delivers_after_capacity_returns ... ok
+test restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table ... ok
+test restart::completion_tests::malformed_entry_state_is_consumed_and_refused ... ok
+test files::completion_tests::bounded_regular_files_and_special_files ... ok
+test fdstore::tests::a_barrier_requires_eof_and_rejects_data_or_an_unreleased_descriptor ... ok
+test pidfile::removal_tests::uninspectable_removal_is_not_a_shutdown_failure ... ok
+test pidfile::tests::invalid_paths_and_missing_files_leave_other_inodes_alone ... ok
+test pidfile::tests::symlink_refusal_and_directory_permissions_preserved ... ok
+test pidfile::tests::fresh_inode_and_conditional_removal ... ok
+test pidfile::edge_tests::sticky_warning_and_unwritable_directory_fallbacks ... ok
+test setup::tests::atomic_idempotent_and_preserves_edits_and_configuration ... ok
+test setup::completion_tests::umask_does_not_weaken_installation_or_shadow_admin_units ... ok
+
+test result: ok. 43 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 4.37s
+
+     Running tests/process.rs (target/phase6-coverage-production-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/f886b2841f18ed36/out/process-f886b2841f18ed36)
+
+running 27 tests
+test an_unusable_notify_store_does_not_abort_startup ... ignored, isolated privileged container
+test binary_tunable_handshake_and_opt_out ... ignored, isolated privileged container with namespace-local writable network sysctls
+test crash_store_adoption_and_ordered_withdrawal ... ignored, isolated privileged container
+test crash_without_store_closes_tunnel ... ignored, isolated privileged container
+test daemon_readiness_pid_inode_and_reexec ... ignored, isolated privileged container
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ignored, isolated privileged container
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ignored, isolated privileged container
+test foreground_reload_and_clean_shutdown_without_network ... ignored, isolated privileged container
+test incompatible_replacement_keeps_running_interfaces ... ignored, isolated privileged container
+test installer_enables_once_and_never_restarts ... ignored, root in disposable container, records systemctl without contacting a manager
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ignored, isolated privileged container, drops child uid
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ignored, isolated privileged container; exercises the ten-second conflict budget
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ignored, isolated privileged container
+test rejected_store_name_is_withdrawn_before_replacement ... ignored, isolated privileged container
+test handover_launcher ... ok
+test sigusr1_retains_its_default_action ... ignored, isolated privileged container
+test stored_descriptors_survive_double_fork ... ignored, isolated privileged container
+test unannounced_descriptors_close_before_service_start ... ignored, isolated privileged container
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ignored, isolated privileged container
+test startup_changes_directory_before_loading_and_logs_problems ... ok
+test an_absolute_executable_starts_from_a_deleted_working_directory ... ok
+test check_and_startup_report_file_errors_in_the_same_words ... ok
+test invalid_reexec_state_fails_without_forking ... ok
+test malformed_and_closed_announcements_are_errors_without_panics ... ok
+test check_cli_and_no_process_side_effects ... ok
+test configuration_diagnostics_keep_known_identifiers_for_omitted_entries ... ok
+binary: done
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+test setup_prefix_preserves_configuration ... ok
+
+test result: ok. 9 passed; 0 failed; 18 ignored; 0 measured; 0 filtered out; finished in 2.13s
+

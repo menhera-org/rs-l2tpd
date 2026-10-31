@@ -163,6 +163,23 @@ fn check_cli_and_no_process_side_effects() {
     let rendered = String::from_utf8(output.stdout).unwrap();
     assert!(rendered.contains("tunnel_id = 10"));
     assert_eq!(fs::read_to_string(&pid).unwrap(), "sentinel");
+    let output = start(&main, false, &pid)
+        .arg("--check")
+        .stdout(Stdio::from(
+            fs::OpenOptions::new()
+                .write(true)
+                .open("/dev/full")
+                .unwrap(),
+        ))
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    assert!(
+        String::from_utf8(output.stderr)
+            .unwrap()
+            .contains("check output:")
+    );
+    assert_eq!(fs::read_to_string(&pid).unwrap(), "sentinel");
     fs::write(&main, "[sessions.a]\ncookie='secret-cookie'\nunknown=true").unwrap();
     let output = start(&main, false, &pid).arg("--check").output().unwrap();
     assert_eq!(output.status.code(), Some(1));

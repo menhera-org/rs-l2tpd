@@ -198,8 +198,8 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-[adoption and recovery record](../audit/phase6/coverage-boundary-20261031/README.md)
-is 91.83% lines / 78.56% branches, with no production exclusions; 100%
+[process failure record](../audit/phase6/coverage-process-20261031/README.md)
+is 92.23% lines / 79.41% branches, with no production exclusions; 100%
 remains required.
 
 ## Running

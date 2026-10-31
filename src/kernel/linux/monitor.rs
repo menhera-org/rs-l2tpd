@@ -191,6 +191,42 @@ pub(super) fn monitor() -> io::Result<Feed> {
 mod tests {
     use super::*;
 
+    // kernel: (K29) include/uapi/linux/netlink.h NLMSG_OVERRUN and framing.
+    /// spec: E20, E21, E22, A13
+    #[test]
+    fn broken_datagrams_and_reopen_failure_keep_loss_observable() {
+        let socket = super::super::request::open(NETLINK_ROUTE).unwrap();
+        let mut feed = Feed::new(
+            socket,
+            Box::new(decode),
+            Box::new(|| Err(io::Error::from_raw_os_error(libc::EMFILE))),
+        );
+        let mut header = [0; 16];
+        header[..4].copy_from_slice(&16u32.to_ne_bytes());
+        header[4..6].copy_from_slice(&netlink_packet_core::NLMSG_OVERRUN.to_ne_bytes());
+        feed.receive(&[0]);
+        feed.receive(&header);
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        runtime.block_on(async {
+            let mut cx = Context::from_waker(std::task::Waker::noop());
+            assert_eq!(feed.poll_notice(&mut cx), Poll::Ready(Notice::Loss));
+            assert_eq!(feed.poll_notice(&mut cx), Poll::Ready(Notice::Loss));
+            feed.opened.take();
+            assert_eq!(feed.poll_notice(&mut cx), Poll::Ready(Notice::Loss));
+            assert!(feed.poll_notice(&mut cx).is_pending());
+            let notice = tokio::time::timeout(
+                std::time::Duration::from_secs(3),
+                std::future::poll_fn(|cx| feed.poll_notice(cx)),
+            )
+            .await
+            .unwrap();
+            assert_eq!(notice, Notice::Loss);
+        });
+    }
+
     // kernel: net/netlink/af_netlink.c netlink_sendmsg, netlink_recvmsg
     // (K29, K30); the userspace sender's address must be checked (E22)
     /// spec: E22, K30
