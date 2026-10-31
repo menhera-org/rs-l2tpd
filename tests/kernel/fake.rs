@@ -250,6 +250,9 @@ fn link_local_scope_checks_precede_source_selection_and_disconnect_releases_the_
         nix::libc::EADDRNOTAVAIL
     );
     k.remove_link(b);
+    k.take_monitor();
+    k.remove_link(b);
+    assert!(k.take_monitor().is_empty());
     assert_eq!(
         errno(k.connect(socket, &peer("2001:db8::2", None))),
         nix::libc::ENODEV

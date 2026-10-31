@@ -330,22 +330,26 @@ pub fn reported_cookies_preserve_foreign_lengths(f: &mut dyn Fixture) {
 pub fn a_binding_is_set_on_an_unbound_socket(f: &mut dyn Fixture) {
     let a = f.add_link("conf-bind-a", false);
     let b = f.add_link("conf-bind-b", false);
-    let socket = f.k().create_socket(Family::V6, 9171, 9171).unwrap();
+    let socket = tunnel(f.k(), 9171);
+    let fd = f.k().clone_fd(socket).unwrap();
+    let alias = f.k().adopt(fd).unwrap().socket();
     f.k().bind_index(socket, a).unwrap();
-    let rebound = f.k().bind_index(socket, b);
+    let rebound = f.k().bind_index(alias, b);
     if f.net_raw() {
         rebound.unwrap();
     } else {
         assert_eq!(errno(rebound), nix::libc::EPERM);
     }
-    f.k().disconnect(socket).unwrap();
+    f.k().disconnect(alias).unwrap();
     f.k().bind_index(socket, b).unwrap();
+    f.k().close(alias);
     f.k().close(socket);
 }
 
 /// A connect through a bound device selects its address; an IPv4 peer of
 /// an `AF_INET6` socket is mapped; a connected socket refuses an IPv6
-/// peer after a mapped one until disconnected (K24, K28, T21, T28).
+/// peer after a mapped one until disconnected. Adopted aliases share that
+/// connection and binding state (K24, K28, K37, T21, T28).
 pub fn connect_selects_the_source_of_the_device(f: &mut dyn Fixture) {
     let device = f.add_link("conf-conn", false);
     f.set_up(device, true);
@@ -353,6 +357,8 @@ pub fn connect_selects_the_source_of_the_device(f: &mut dyn Fixture) {
     f.add_addr(device, "2001:db8:91::1".parse().unwrap());
     let socket = f.k().create_socket(Family::V6, 9181, 9181).unwrap();
     f.k().register_tunnel(socket, 9181, 9181).unwrap();
+    let fd = f.k().clone_fd(socket).unwrap();
+    let alias = f.k().adopt(fd).unwrap().socket();
     f.k().bind_index(socket, device).unwrap();
     let v4 = Peer::new("192.0.2.2".parse().unwrap(), None);
     eprintln!("connect peer={} zone={:?}", v4.addr(), v4.zone());
@@ -367,12 +373,16 @@ pub fn connect_selects_the_source_of_the_device(f: &mut dyn Fixture) {
     );
     let v6 = Peer::new("2001:db8:91::2".parse().unwrap(), None);
     assert_eq!(errno(f.k().connect(socket, &v6)), nix::libc::EAFNOSUPPORT);
-    f.k().disconnect(socket).unwrap();
-    f.k().bind_index(socket, device).unwrap();
+    assert_eq!(errno(f.k().connect(alias, &v6)), nix::libc::EAFNOSUPPORT);
+    let another_v4 = Peer::new("192.0.2.3".parse().unwrap(), None);
+    assert_eq!(f.k().connect(alias, &another_v4).unwrap(), source);
+    f.k().disconnect(alias).unwrap();
+    f.k().bind_index(alias, device).unwrap();
     assert_eq!(
         f.k().connect(socket, &v6).unwrap(),
         "2001:db8:91::1".parse::<IpAddr>().unwrap()
     );
+    f.k().close(alias);
     f.k().close(socket);
 }
 

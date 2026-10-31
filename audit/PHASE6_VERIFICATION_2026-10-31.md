@@ -15,7 +15,7 @@ fix proposed in upstream PR #2852; no daemon workaround is applied.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and fresh profiles; H16 has passing required-kernel records; table/index/queue history checks pass | G23 witnesses retain 100–10,000 current address/member records with one configured tunnel; complete this bound, event-cost proof and remaining clauses |
 | P3 matrix | Latest required driver returns MATRIX_RESULT=0: five normal and five clock profiles, both IPv6-absent boots and missing-Ethernet-driver recovery pass; published versions match before/after | Later test additions need final consistent-source qualification; complete P2/delegated proof remains open |
-| P4 coverage | Approved production scope: fresh GNU report 95.01% lines / 84.92% branches after removing redundant configuration correction, with no production exclusions or saturated counts | 425 missing lines / 273 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: merged GNU report 95.03% lines / 84.97% branches after shared alias-state correction; production mappings match across final fixture additions, with no exclusions or saturated counts | 424 missing lines / 272 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -1002,3 +1002,15 @@ the restriction on unrelated kernel queries.
 The upstream signal regression is now scoped to native 64-bit Linux and
 skipped under QEMU user-mode emulation; final GNU/musl suites and formatting
 pass again. PR #2852 is ready for review, with integration pending release.
+
+## Shared socket aliases
+
+[The alias record](phase6/alias-state-20261031/README.md) corrects the fake's
+copied binding/peer/source fields to shared state. The old fake fails the
+strengthened case that passes on Linux. Final GNU and musl shared suites
+pass three times each with CAP_NET_RAW present and absent; the fixture now
+reads actual capabilities. Ten final seeds, common checks, three cross-target
+builds and compatible GNU profiles pass. The fake reaches 100% lines and
+94.20% branches. Overall coverage is 95.03% lines / 84.97% branches, leaving
+424 lines and 272 branches with no production exclusions or saturated regions.
+The H11/G23 decisions and other global proof requirements remain open.

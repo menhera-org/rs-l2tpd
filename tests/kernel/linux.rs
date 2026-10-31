@@ -121,7 +121,16 @@ impl Fixture for LinuxFixture {
         std::thread::yield_now();
     }
     fn net_raw(&self) -> bool {
-        true
+        // kernel: capget's v3 header and two three-word capability records.
+        let mut header = [0x2008_0522u32, 0];
+        let mut data = [0u32; 6];
+        assert_eq!(
+            unsafe { libc::syscall(libc::SYS_capget, header.as_mut_ptr(), data.as_mut_ptr()) },
+            0
+        );
+        let available = data[0] & (1 << 13) != 0;
+        eprintln!("LIVE_NET_RAW={available}");
+        available
     }
     fn send_frame(&mut self, index: u32) {
         let before = self.tx_drops(index);

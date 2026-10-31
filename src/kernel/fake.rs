@@ -31,13 +31,19 @@ struct FakeSocket {
     tunnel_id: u32,
     peer_tunnel_id: u32,
     only_v6: bool,
-    bound: Option<u32>,
-    peer: Option<IpAddr>,
-    source: Option<IpAddr>,
+    // kernel: duplicated descriptors share connect and binding state (K24, K37).
+    state: Arc<Mutex<SocketState>>,
     // The descriptor handed out by `clone_fd` shares this inode.
     fd: Option<UnixStream>,
     lifetime: UnixStream,
     inode: u64,
+}
+
+#[derive(Clone, Copy, Default)]
+struct SocketState {
+    bound: Option<u32>,
+    peer: Option<IpAddr>,
+    source: Option<IpAddr>,
 }
 
 impl FakeSocket {
@@ -504,7 +510,7 @@ impl FakeKernel {
                 .find(|s| s.tunnel_id == tunnel_id),
             None => None,
         };
-        socket.is_some_and(|s| s.peer.is_some() && !s.last_reference_closed())
+        socket.is_some_and(|s| s.state.lock().unwrap().peer.is_some() && !s.last_reference_closed())
     }
 
     /// Emits one fixture frame, counting disconnected-session drops (K5).
@@ -523,12 +529,13 @@ impl FakeKernel {
     /// A socket's peer and source, `None` while disconnected.
     pub fn connection(&self, socket: SocketId) -> Option<(IpAddr, IpAddr)> {
         let s = self.sockets.get(&socket)?;
-        Some((s.peer?, s.source?))
+        let state = s.state.lock().unwrap();
+        Some((state.peer?, state.source?))
     }
 
     /// A socket's device binding.
     pub fn binding(&self, socket: SocketId) -> Option<u32> {
-        self.sockets.get(&socket)?.bound
+        self.sockets.get(&socket)?.state.lock().unwrap().bound
     }
 
     /// The socket a registered tunnel lives on.
@@ -647,9 +654,7 @@ impl Kernel for FakeKernel {
                 peer_tunnel_id,
                 // kernel: fixed at creation from bindv6only (K23)
                 only_v6: family == Family::V6 && self.bindv6only,
-                bound: None,
-                peer: None,
-                source: None,
+                state: Arc::default(),
                 fd: Some(fd),
                 lifetime,
                 inode,
@@ -687,14 +692,16 @@ impl Kernel for FakeKernel {
         let net_raw = self.net_raw;
         let present = self.links.contains_key(&index);
         let s = self.socket(socket)?;
+        let mut state = s.state.lock().unwrap();
         // kernel: replacing a binding needs CAP_NET_RAW (K22)
-        if s.bound.is_some() && !net_raw {
+        if state.bound.is_some() && !net_raw {
             return fail(Errno::EPERM);
         }
         if !present {
             return fail(Errno::ENODEV);
         }
-        s.bound = Some(index);
+        state.bound = Some(index);
+        drop(state);
         self.ops.push(format!("bind {} {index}", socket.0));
         Ok(())
     }
@@ -710,8 +717,9 @@ impl Kernel for FakeKernel {
             .get(&socket)
             .filter(|s| s.fd.is_some())
             .ok_or(io::Error::from_raw_os_error(Errno::EBADF as i32))?;
+        let state = *s.state.lock().unwrap();
         let (family, only_v6, connected, mut bound, previous) =
-            (s.family, s.only_v6, s.peer, s.bound, s.source);
+            (s.family, s.only_v6, state.peer, state.bound, state.source);
         let addr = peer.addr.to_canonical();
         if family == Family::V4 && addr.is_ipv6() {
             return fail(Errno::EAFNOSUPPORT);
@@ -748,7 +756,7 @@ impl Kernel for FakeKernel {
             }
         }
         // kernel: net/ipv6/datagram.c ip6_datagram_connect stores the scope before routing (K27).
-        self.sockets.get_mut(&socket).unwrap().bound = bound;
+        self.socket(socket)?.state.lock().unwrap().bound = bound;
         if let Some(errno) = self.refused.get(&addr) {
             return fail(*errno);
         }
@@ -767,9 +775,10 @@ impl Kernel for FakeKernel {
             _ => a,
         };
         let s = self.socket(socket)?;
-        s.peer = Some(addr);
-        s.source = Some(source);
-        s.bound = bound;
+        let mut state = s.state.lock().unwrap();
+        state.peer = Some(addr);
+        state.source = Some(source);
+        state.bound = bound;
         Ok(mapped(source))
     }
 
@@ -777,9 +786,7 @@ impl Kernel for FakeKernel {
         self.injected("disconnect")?;
         let s = self.socket(socket)?;
         // kernel: clears the peer, the source and the binding (K22, K24)
-        s.peer = None;
-        s.source = None;
-        s.bound = None;
+        *s.state.lock().unwrap() = SocketState::default();
         self.ops.push(format!("disconnect {}", socket.0));
         Ok(())
     }
@@ -836,9 +843,7 @@ impl Kernel for FakeKernel {
             tunnel_id,
             peer_tunnel_id,
             only_v6: s.only_v6,
-            bound: s.bound,
-            peer: s.peer,
-            source: s.source,
+            state: s.state.clone(),
             fd: Some(UnixStream::from(fd)),
             lifetime: s.lifetime.try_clone()?,
             inode,

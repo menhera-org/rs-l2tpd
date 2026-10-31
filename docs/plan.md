@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 95.01% lines /
-84.92% branches: 425 missing lines and 273 missing branches, with no
+approved production-code scope, the latest merged report is 95.03% lines /
+84.97% branches: 424 missing lines and 272 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner has passing records and the later H11 failure described below.
@@ -701,6 +701,13 @@ with that host state. This differs from the completed-history checks and does
 not establish the written configuration-only bound. Repository record
 `audit/phase6/resource-cache-bounds-20261031/` gives exact counts and source;
 the specification remains unchanged and G23 remains open.
+
+The fake backend now shares binding/peer/source state across adopted socket
+aliases, matching the strengthened live conformance case. Final shared suites
+pass three times on GNU and musl with CAP_NET_RAW present and absent. Ten
+seeds, common checks and compatible GNU profiles pass; the fake reaches 100%
+line coverage. Repository record `audit/phase6/alias-state-20261031/` gives
+the baseline failure, production mapping checks and remaining scope.
 
 ### Phase 7 — release
 
