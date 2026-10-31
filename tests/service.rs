@@ -1216,3 +1216,72 @@ fn panicking_kernel_initializer_returns_descriptors_to_the_caller() {
     assert_eq!(returned[0].fd().as_raw_fd(), original);
     assert!(returned[0].fd().try_clone().is_ok());
 }
+
+/// spec: L5, L8, L11, L7, G14, P16
+#[test]
+fn services_return_final_cleanup_query_errors_and_release_local_descriptors() {
+    for blocking in [false, true] {
+        let host = Host::new();
+        host.with(|k| k.set_tunnel_delete_delay(Duration::from_secs(10)));
+        let fail_cleanup = |control: rs_l2tpd::Control| {
+            assert!(!control.config().tunnels().is_empty());
+            let observer = control.clone();
+            let host = host.clone();
+            let advance = std::thread::spawn(move || {
+                // The empty snapshot follows retirement and its fixed deadline.
+                wait(|| observer.config().tunnels().is_empty());
+                host.with(|k| {
+                    k.advance(Duration::from_secs(2));
+                    // One query may already have captured the preceding time.
+                    k.fail_next("tunnel", nix::errno::Errno::EIO);
+                    k.fail_next("tunnel", nix::errno::Errno::EIO);
+                });
+                observer.shutdown();
+            });
+            control.shutdown();
+            advance
+        };
+        let error = if blocking {
+            let mut service = start(&host, config(10));
+            service.converge().unwrap();
+            host.with(|k| k.clear_ops());
+            let advance = fail_cleanup(service.control());
+            let result = service.run(Ok, |_| Ok(()));
+            advance.join().unwrap();
+            result.unwrap_err()
+        } else {
+            engine().block_on(async {
+                let runtime = Runtime::with_kernel(host.clone(), Box::new(NoDns), vec![]).unwrap();
+                let mut service = service::Service::with_runtime(config(10), runtime).unwrap();
+                service.converge().await.unwrap();
+                host.with(|k| k.clear_ops());
+                let advance = fail_cleanup(service.control());
+                let result = service.run(Ok, |_| Ok(())).await;
+                advance.join().unwrap();
+                result.unwrap_err()
+            })
+        };
+        let Error::Io(error) = error else {
+            panic!("unexpected failure: {error}")
+        };
+        assert_eq!(error.raw_os_error(), Some(nix::libc::EIO));
+        host.with(|k| {
+            assert_eq!(k.open_sockets(), 0);
+            k.advance(Duration::from_secs(10));
+            k.tick();
+            assert!(k.tunnel_socket(10).is_none());
+            assert!(k.session_index(10, 110).is_none());
+            let deleted = k
+                .ops()
+                .iter()
+                .position(|op| op.starts_with("delete "))
+                .unwrap();
+            let closed = k
+                .ops()
+                .iter()
+                .position(|op| op.starts_with("close "))
+                .unwrap();
+            assert!(deleted < closed);
+        });
+    }
+}

@@ -13,7 +13,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
-| P4 coverage | Approved production scope: merged GNU report 94.72% lines / 84.20% branches after monitor fault cases; production mappings match across test-only corrections, with no exclusions or saturated counts | 450 missing lines / 286 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: fresh GNU report 94.81% lines / 84.36% branches after process/service fault cases, with no production exclusions or saturated counts | 443 missing lines / 283 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -905,3 +905,15 @@ corrections; totals are 94.72% lines / 84.20% branches, with 450 lines and
 286 branches missing and zero saturated regions. The earlier production
 source passes both CI jobs in run `41245243701`. P5 and the other global
 proof obligations remain open.
+
+## Daemon and final cleanup errors
+
+[The process/service record](phase6/process-errors-20261031/README.md) adds
+six early daemon failure paths and final cleanup-query errors for both service
+APIs. Original errors, bounded exit, PID-file preservation and descriptor
+release are asserted. Common checks, ten seeds, three GNU and three musl
+focused repetitions and fresh native/live, normal, manager and Incus profiles
+pass. Coverage is 94.81% lines / 84.36% branches, leaving 443 lines and 283
+branches, with zero saturated regions. Shipping code is unchanged. Both
+preceding monitor CI jobs pass in run `41247879444`, about ten minutes overall.
+H11/P5 and the other global proof requirements remain open.

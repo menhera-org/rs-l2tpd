@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 94.72% lines /
-84.20% branches: 450 missing lines and 286 missing branches, with no
+approved production-code scope, the latest merged report is 94.81% lines /
+84.36% branches: 443 missing lines and 283 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner has passing records and the later H11 failure described below.
@@ -653,6 +653,13 @@ serially and pass three GNU and three musl repetitions. ARM64, RISC-V64 and
 PowerPC64LE all-target test builds pass after fixing syscall assumptions.
 Common checks, ten seeds and compatible GNU profiles pass; the repository
 record is `audit/phase6/monitor-faults-20261031/`. No shipping logic changes.
+
+Daemon setup faults now verify original errors, bounded parent exit and an
+untouched PID file before kernel startup. Both service APIs return final
+cleanup-query errors while releasing local descriptors. Common checks, ten
+seeds, three GNU and three musl fault repetitions and fresh GNU profiles pass;
+`audit/phase6/process-errors-20261031/` records the results. Shipping logic
+and dependencies are unchanged.
 
 ### Phase 7 — release
 

@@ -1,0 +1,9 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-fake-baseline)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/service.rs (/home/dev/rs-l2tpd/target/phase6-fake-baseline/debug/deps/service-2be296bb95ae8e05)
+
+running 1 test
+test services_return_final_cleanup_query_errors_and_release_local_descriptors ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
+

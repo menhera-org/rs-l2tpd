@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-fake-baseline)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/service.rs (/home/dev/rs-l2tpd/target/phase6-fake-baseline/debug/deps/service-2be296bb95ae8e05)
+
+running 1 test
+
+thread 'services_return_cleanup_query_errors_after_releasing_owned_objects' (637341) panicked at tests/service.rs:1243:51:
+called `Result::unwrap_err()` on an `Ok` value: ()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test services_return_cleanup_query_errors_after_releasing_owned_objects ... FAILED
+
+failures:
+
+failures:
+    services_return_cleanup_query_errors_after_releasing_owned_objects
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test service`

@@ -15,6 +15,12 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::time::{Duration, Instant};
 
 const BINARY: &str = env!("CARGO_BIN_EXE_rs-l2tpd");
+#[allow(
+    dead_code,
+    reason = "process fixtures use only the prepared exec filter"
+)]
+#[path = "tools/syscall_fault.rs"]
+mod syscall_fault;
 struct Dir(PathBuf);
 impl Dir {
     fn new() -> Self {
@@ -1248,4 +1254,91 @@ fn an_absolute_executable_starts_from_a_deleted_working_directory() {
     process.signal(Signal::SIGTERM);
     assert_eq!(process.child.wait().unwrap().code(), Some(1));
     process.done = true;
+}
+
+/// spec: P2, P4, P6, P16, P23, O1, R37
+#[test]
+#[ignore = "isolated process suite; container/guest cleanup also owns daemon descendants"]
+fn daemon_setup_failures_return_the_original_error_before_kernel_startup() {
+    use nix::libc;
+    let fork_syscalls = &[
+        #[cfg(any(
+            target_arch = "arm",
+            target_arch = "x86",
+            target_arch = "x86_64",
+            target_arch = "powerpc",
+            target_arch = "powerpc64",
+            target_arch = "s390x",
+            target_arch = "sparc",
+            target_arch = "sparc64",
+            target_arch = "mips",
+            target_arch = "mips64",
+            target_arch = "mips32r6",
+            target_arch = "mips64r6",
+            target_arch = "m68k"
+        ))]
+        libc::SYS_fork,
+        libc::SYS_clone,
+        libc::SYS_clone3,
+    ];
+    for (case, syscalls, error, diagnostic) in [
+        (
+            "streams",
+            &[libc::SYS_fcntl][..],
+            libc::EIO,
+            Some("standard streams:"),
+        ),
+        (
+            "directory",
+            &[libc::SYS_chdir][..],
+            libc::EACCES,
+            Some("chdir /:"),
+        ),
+        ("executable", &[libc::SYS_getcwd][..], libc::ENOENT, None),
+        ("pipe", &[libc::SYS_pipe2][..], libc::EMFILE, None),
+        ("fork", fork_syscalls, libc::EAGAIN, None),
+        ("session", &[libc::SYS_setsid][..], libc::EPERM, None),
+    ] {
+        let dir = Dir::new();
+        let config = config(&dir);
+        let pid = dir.path().join("pid");
+        fs::write(&pid, "sentinel").unwrap();
+        let mut command = start(&config, false, &pid);
+        if case == "executable" {
+            command.arg0("relative/rs-l2tpd");
+        }
+        let mut fault = syscall_fault::on_exec(syscalls, error);
+        let mut sockets = syscall_fault::on_exec(&[libc::SYS_socket], libc::EACCES);
+        let mut next_stage =
+            (case == "fork").then(|| syscall_fault::on_exec(&[libc::SYS_setsid], libc::EACCES));
+        // Filters are allocated in the parent; this hook only performs raw syscalls.
+        unsafe {
+            command.pre_exec(move || {
+                sockets()?;
+                if let Some(guard) = &mut next_stage {
+                    guard()?;
+                }
+                fault()
+            });
+        }
+        let mut process = Process::spawn(command);
+        let expected = format!("os error {error}");
+        let line = process.event(diagnostic.unwrap_or(&expected));
+        assert!(line.contains(&expected), "{case}: {line}");
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let status = loop {
+            if let Some(status) = process.child.try_wait().unwrap() {
+                break status;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "{case}: daemon parent did not exit"
+            );
+            std::thread::sleep(Duration::from_millis(5));
+        };
+        process.done = true;
+        assert_eq!(status.code(), Some(1), "{case}");
+        assert_eq!(fs::read_to_string(&pid).unwrap(), "sentinel");
+        println!("DAEMON_FAULT_CHECKED={case}");
+    }
 }

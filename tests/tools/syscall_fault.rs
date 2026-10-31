@@ -55,10 +55,18 @@ pub(crate) fn refuse_open(errno: i32) {
 }
 
 // Test-only fault injection: include/uapi/linux/seccomp.h and filter.h.
-// The child and its future worker do not exec; syscall numbers use its target ABI.
+// Syscall numbers use this target's ABI; exec hooks retain only prepared data.
 pub(crate) fn refuse(syscalls: &[libc::c_long], errno: i32) {
     #[cfg(coverage_nightly)]
     keep_profile_output();
+    on_exec(syscalls, errno)().unwrap();
+}
+
+/// Builds the filter now; the returned exec hook only issues raw syscalls.
+pub(crate) fn on_exec(
+    syscalls: &[libc::c_long],
+    errno: i32,
+) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
     let mut filter = vec![libc::sock_filter {
         code: 0x20,
         jt: 0,
@@ -85,32 +93,34 @@ pub(crate) fn refuse(syscalls: &[libc::c_long], errno: i32) {
         jf: 0,
         k: 0x7fff0000,
     });
-    let program = libc::sock_fprog {
-        len: filter.len().try_into().unwrap(),
-        filter: filter.as_mut_ptr(),
-    };
+    let length = filter.len().try_into().unwrap();
     // TSYNC also covers an already-started dispatcher in this subprocess.
     // The kernel copies the filter while its allocation is still alive.
-    unsafe {
-        assert_eq!(
-            libc::prctl(
-                libc::PR_SET_NO_NEW_PRIVS,
-                1 as libc::c_ulong,
-                0 as libc::c_ulong,
-                0 as libc::c_ulong,
-                0 as libc::c_ulong
-            ),
-            0
-        );
-        assert_eq!(
-            libc::syscall(
-                libc::SYS_seccomp,
-                libc::SECCOMP_SET_MODE_FILTER,
-                libc::SECCOMP_FILTER_FLAG_TSYNC,
-                &program as *const _,
-            ),
-            0
-        );
+    move || unsafe {
+        let program = libc::sock_fprog {
+            len: length,
+            filter: filter.as_mut_ptr(),
+        };
+        if libc::prctl(
+            libc::PR_SET_NO_NEW_PRIVS,
+            1 as libc::c_ulong,
+            0 as libc::c_ulong,
+            0 as libc::c_ulong,
+            0 as libc::c_ulong,
+        ) != 0
+        {
+            return Err(std::io::Error::last_os_error());
+        }
+        if libc::syscall(
+            libc::SYS_seccomp,
+            libc::SECCOMP_SET_MODE_FILTER,
+            libc::SECCOMP_FILTER_FLAG_TSYNC,
+            &program as *const _,
+        ) != 0
+        {
+            return Err(std::io::Error::last_os_error());
+        }
+        Ok(())
     }
 }
 
