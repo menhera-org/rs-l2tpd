@@ -607,6 +607,28 @@ fn session_cookies() {
     }
 }
 
+/// spec: C8, O5
+#[test]
+fn malformed_cookies_preserve_the_exact_redacted_diagnostic() {
+    for text in [
+        "",
+        "001122",
+        "001122334455",
+        "001122334455667788",
+        "zz112233",
+        "0011223",
+        "機密🦀",
+    ] {
+        assert_eq!(
+            super::text::cookie(text).unwrap_err(),
+            format!(
+                "a cookie is 8 or 16 hexadecimal digits; this one has {} characters",
+                text.chars().count()
+            )
+        );
+    }
+}
+
 /// spec: C16, V2
 #[test]
 fn resolver_addresses() {

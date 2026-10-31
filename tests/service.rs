@@ -239,6 +239,44 @@ fn blocking_converges_and_drop_removes_children_before_parents() {
     });
 }
 
+/// spec: L8, L12, L13, T26, P25, G10, G14
+#[test]
+fn absent_host_integration_refuses_tunable_writes_and_keeps_local_socket_ownership() {
+    for capacity in [0, 1] {
+        let host = Host::new();
+        host.with(|kernel| kernel.set_bindv6only(true));
+        let mut wanted = config(10);
+        wanted
+            .insert_tunnel(
+                "wan",
+                TunnelConfig::builder(10)
+                    .ip_version(Family::V4)
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        let mut service = start(&host, wanted);
+        service.set_store_capacity(capacity).unwrap();
+        service.converge().unwrap();
+        host.with(|kernel| {
+            assert!(kernel.bindv6only());
+            assert!(kernel.session_index(10, 110).is_some());
+            let socket = kernel.tunnel_socket(10).unwrap();
+            assert_eq!(
+                kernel.only_v6(socket).unwrap_err().raw_os_error(),
+                Some(nix::libc::ENOPROTOOPT)
+            );
+        });
+        service.control().shutdown();
+        service.run(Ok, |_| Ok(())).unwrap();
+        host.with(|kernel| {
+            kernel.tick();
+            assert!(kernel.tunnel_socket(10).is_none());
+            assert!(kernel.session_index(10, 110).is_none());
+        });
+    }
+}
+
 /// spec: L5, L8
 #[test]
 fn drop_before_run_retires_inherited_entries_and_works_inside_tokio() {

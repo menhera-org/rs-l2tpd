@@ -1,0 +1,54 @@
+    1|       |use std::os::unix::process::CommandExt;
+    2|       |unsafe extern "C" {
+    3|       |    fn fork() -> i32;
+    4|       |    fn waitpid(pid: i32, status: *mut i32, options: i32) -> i32;
+    5|       |    fn _exit(status: i32) -> !;
+    6|       |    fn __llvm_profile_write_file() -> i32;
+    7|       |}
+    8|       |#[inline(never)]
+    9|      1|fn child_only() {
+   10|      1|    println!("child path");
+   11|      1|}
+   12|       |#[inline(never)]
+   13|      1|fn before_exec() {
+   14|      1|    println!("exec path");
+   15|      1|}
+   16|       |#[inline(never)]
+   17|      1|fn after_exec() {
+   18|      1|    println!("replacement path");
+   19|      1|}
+   20|      4|fn main() {
+   21|      4|    if std::env::args().nth(1).as_deref() == Some("after-exec") {
+   22|      1|        after_exec();
+   23|      1|        return;
+   24|      3|    }
+   25|      3|    if std::env::args().nth(1).as_deref() == Some("exec-self") {
+   26|      1|        before_exec();
+   27|      1|        assert_eq!(unsafe { __llvm_profile_write_file() }, 0);
+   28|      0|        panic!(
+   29|       |            "exec failed: {}",
+   30|       |            std::process::Command::new(std::env::current_exe().unwrap())
+   31|       |                .arg("after-exec")
+   32|       |                .exec()
+   33|       |        );
+   34|      2|    }
+   35|      2|    if std::env::args().nth(1).as_deref() == Some("exec") {
+   36|      0|        before_exec();
+   37|      0|        assert_eq!(unsafe { __llvm_profile_write_file() }, 0);
+   38|      0|        panic!(
+   39|       |            "exec failed: {}",
+   40|       |            std::process::Command::new("/usr/bin/true").exec()
+   41|       |        );
+   42|      2|    }
+   43|      2|    let pid = unsafe { fork() };
+   44|      2|    assert!(pid >= 0);
+   45|      2|    if pid == 0 {
+   46|      1|        child_only();
+   47|      1|        assert_eq!(unsafe { __llvm_profile_write_file() }, 0);
+   48|      0|        unsafe { _exit(0) }
+   49|      1|    }
+   50|      1|    let mut status = 0;
+   51|      1|    assert_eq!(unsafe { waitpid(pid, &mut status, 0) }, pid);
+   52|      1|    assert_eq!(status, 0);
+   53|      2|}
+

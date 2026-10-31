@@ -304,13 +304,8 @@ fn worker<K: Kernel + 'static>(
             log::info!("reload completed");
             reload_pending = false;
         }
-        let pending_ready = converged
-            && in_flight.is_none()
-            && serving.is_some()
-            && !pending.is_empty()
-            && !control.shared.shutdown.load(Ordering::Acquire);
         if !poll_background
-            && pending_ready
+            && converged
             && in_flight.is_none()
             && !control.shared.shutdown.load(Ordering::Acquire)
             && let Some(callbacks) = serving.as_mut()
@@ -377,6 +372,11 @@ fn worker<K: Kernel + 'static>(
         }
         // Interleave policy and host work with deferred operator requests;
         // neither a full input queue nor a long restart backlog may starve the other.
+        let pending_ready = converged
+            && in_flight.is_none()
+            && serving.is_some()
+            && !pending.is_empty()
+            && !control.shared.shutdown.load(Ordering::Acquire);
         let event = if pending_ready {
             let mut next = pin!(runtime.next_event());
             engine.block_on(poll_fn(|cx| {
@@ -421,35 +421,37 @@ fn worker<K: Kernel + 'static>(
                     _ => {}
                 }
             }
-            ControlEvent::Service(Operation(action))
+            ControlEvent::Service(Operation(Action::StoreCapacity(capacity, tx)))
                 if !control.shared.shutdown.load(Ordering::Acquire) =>
             {
-                match action {
-                    Action::StoreCapacity(capacity, tx) => {
-                        let result = if started {
-                            Err(Error::Other("set store capacity before convergence".into()))
-                        } else {
-                            runtime.set_store_capacity(capacity);
-                            Ok(())
-                        };
-                        let _ = tx.send(result);
-                        continue;
-                    }
-                    Action::Converge(tx) => {
-                        if converged {
-                            let _ = tx.send(Ok(runtime.left_out()));
-                        } else {
-                            convergence = Some(tx);
-                        }
-                    }
-                    Action::Run(reload, restart) => {
-                        serving = Some(Callbacks {
-                            reload: Some(reload),
-                            restart,
-                        });
-                    }
-                    Action::Reloaded { .. } => unreachable!("handled above"),
+                let result = if started {
+                    Err(Error::Other("set store capacity before convergence".into()))
+                } else {
+                    runtime.set_store_capacity(capacity);
+                    Ok(())
+                };
+                let _ = tx.send(result);
+            }
+            ControlEvent::Service(Operation(Action::Converge(tx)))
+                if !control.shared.shutdown.load(Ordering::Acquire) =>
+            {
+                if converged {
+                    let _ = tx.send(Ok(runtime.left_out()));
+                } else {
+                    convergence = Some(tx);
                 }
+                if !started {
+                    runtime.reconcile(config.clone());
+                    started = true;
+                }
+            }
+            ControlEvent::Service(Operation(Action::Run(reload, restart)))
+                if !control.shared.shutdown.load(Ordering::Acquire) =>
+            {
+                serving = Some(Callbacks {
+                    reload: Some(reload),
+                    restart,
+                });
                 if !started {
                     runtime.reconcile(config.clone());
                     started = true;

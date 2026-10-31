@@ -42,7 +42,11 @@ pub fn start(foreground: bool) -> io::Result<Started> {
             match unsafe { libc::fork() } {
                 -1 => return Err(io::Error::last_os_error()),
                 0 => (),
-                _ => unsafe { libc::_exit(0) },
+                _ => unsafe {
+                    #[cfg(coverage_nightly)]
+                    crate::flush_profile();
+                    libc::_exit(0)
+                },
             }
             notify(&mut write, &std::process::id().to_ne_bytes())?;
             let null = File::open("/dev/null")?;

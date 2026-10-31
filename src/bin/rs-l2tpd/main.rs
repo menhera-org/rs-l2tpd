@@ -222,6 +222,22 @@ fn run() -> u8 {
 
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
+#[path = "../../../tests/tools/syscall_fault.rs"]
+mod syscall_fault;
+
+// The intermediate child's _exit skips the profiling runtime's exit hook.
+#[cfg(coverage_nightly)]
+fn flush_profile() {
+    unsafe extern "C" {
+        fn __llvm_profile_write_file() -> libc::c_int;
+    }
+    unsafe {
+        __llvm_profile_write_file();
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod testdir {
     use std::path::{Path, PathBuf};
     pub struct Dir(PathBuf);

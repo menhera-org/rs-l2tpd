@@ -130,15 +130,14 @@ pub(crate) fn hwaddr(text: &str) -> Result<HwAddr, String> {
 /// 8 or 16 hexadecimal digits, either case (C8). The message never
 /// repeats the value (O5).
 pub(crate) fn cookie(text: &str) -> Result<Cookie, String> {
-    match hex(text) {
-        Some(bytes) if bytes.len() == 4 || bytes.len() == 8 => {
-            Cookie::new(&bytes).map_err(|e| e.to_string())
-        }
-        _ => Err(format!(
-            "a cookie is 8 or 16 hexadecimal digits; this one has {} characters",
-            text.chars().count()
-        )),
-    }
+    hex(text)
+        .and_then(|bytes| Cookie::new(&bytes).ok())
+        .ok_or_else(|| {
+            format!(
+                "a cookie is 8 or 16 hexadecimal digits; this one has {} characters",
+                text.chars().count()
+            )
+        })
 }
 
 /// An element of `addresses` (C16): a literal as for `remote_addr`, with

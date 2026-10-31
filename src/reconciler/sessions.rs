@@ -398,27 +398,29 @@ impl<K: Kernel> Reconciler<K> {
         let targets: BTreeMap<_, _> = self
             .sessions
             .iter()
-            .filter(|(_, record)| {
-                record.name_state == Enforce::Pending && matches!(record.state, Identity::Proved(_))
+            .filter_map(|(sid, record)| {
+                if let Identity::Proved(registration) = record.state
+                    && record.name_state == Enforce::Pending
+                {
+                    Some((*sid, (*record.config.interface_name(), registration)))
+                } else {
+                    None
+                }
             })
-            .map(|(sid, record)| (*sid, *record.config.interface_name()))
             .collect();
-        for (sid, target) in &targets {
+        for (sid, (target, _)) in &targets {
             let holder = holders
                 .get(target)
                 .and_then(|ids| ids.iter().find(|other| *other != sid))
                 .copied();
             let Some(holder) = holder else { continue };
-            if !targets
-                .get(&holder)
-                .is_some_and(|name| Some(*name) != self.sessions[&holder].current_name)
-            {
-                continue;
-            }
-            let Identity::Proved(registration) = self.sessions[&holder].state else {
+            let Some((wanted, registration)) = targets.get(&holder) else {
                 continue;
             };
-            if self.k.prove(&registration) != Proof::Proved {
+            if Some(*wanted) == self.sessions[&holder].current_name {
+                continue;
+            }
+            if self.k.prove(registration) != Proof::Proved {
                 continue;
             }
             for _ in 0..DRAWS {

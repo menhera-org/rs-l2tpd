@@ -54,6 +54,44 @@ pub fn report() {
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
+    /// spec: R49, P23, G1
+    #[test]
+    fn capget_refusal_preserves_the_errno_and_reports_the_failure() {
+        const CHILD: &str = "RS_L2TPD_TEST_CAPGET_REFUSAL";
+        if std::env::var_os(CHILD).is_some() {
+            crate::logger::init(false);
+            crate::syscall_fault::refuse(&[nix::libc::SYS_capget], nix::libc::EPERM);
+            assert_eq!(
+                super::effective().unwrap_err().raw_os_error(),
+                Some(nix::libc::EPERM)
+            );
+            super::report();
+            println!("CAPGET_REFUSAL_VERIFIED");
+            return;
+        }
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "caps::tests::capget_refusal_preserves_the_errno_and_reports_the_failure",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env(CHILD, "1")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert!(
+            String::from_utf8(output.stdout)
+                .unwrap()
+                .contains("CAPGET_REFUSAL_VERIFIED")
+        );
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(
+            stderr.contains("capget: Operation not permitted"),
+            "{stderr}"
+        );
+    }
+
     /// spec: R49 P23
     #[test]
     fn effective_set_without_proc() {

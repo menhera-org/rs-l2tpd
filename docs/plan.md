@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 93.29% lines /
-80.91% branches: 569 missing lines and 341 missing branches, with no
+approved production-code scope, the latest merged report is 93.45% lines /
+81.23% branches: 555 missing lines and 336 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner also passes. The required-kernel refresh found a vanilla 7.0.14
@@ -608,6 +608,16 @@ Repository records `audit/phase6/reconcile-lookups-20261031/` and
 `audit/phase6/rename-cost-20261031/` retain comparisons and exact scope.
 The standalone documentation check also passes after removing 36 links to
 files outside `docs/`; its record is `audit/phase6/standalone-docs-20261031/`.
+
+The latest validation/control simplification and error cases pass common
+checks and ten seeds, with fresh GNU live and manager profiles. The coverage
+record `audit/phase6/coverage-simplify-20261031/` excludes two profiling
+experiments with invalid inferred counts. A new unmodified Incus failure
+shows udev replacing a staged configured MAC; the preceding committed daemon
+reproduces it. H11 precedence wording and its proposed explicit-authority
+test await a maintainer decision. The evidence and unapplied correction are
+in `audit/phase6/staged-mac-override-20261031/`; later individual passing
+manager runs do not establish P5 determinism.
 
 ### Phase 7 — release
 
