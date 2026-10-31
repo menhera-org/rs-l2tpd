@@ -1,0 +1,10 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-fake-baseline)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/bin/rs-l2tpd/main.rs (/home/dev/rs-l2tpd/target/phase6-fake-baseline/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 2 tests
+test restart::completion_tests::executable_search_child ... ok
+test restart::completion_tests::executable_search_skips_missing_directories_and_nonexecutable_files ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 49 filtered out; finished in 0.00s
+

@@ -204,6 +204,14 @@ fn link_local_scope_checks_precede_source_selection_and_disconnect_releases_the_
         nix::libc::EAFNOSUPPORT
     );
     k.close(v4);
+    k.set_bindv6only(true);
+    let only_v6 = k.create_socket(Family::V6, 101, 201).unwrap();
+    assert_eq!(
+        errno(k.connect(only_v6, &peer("192.0.2.2", None))),
+        nix::libc::ENETUNREACH
+    );
+    k.close(only_v6);
+    k.set_bindv6only(false);
     let socket = k.create_socket(Family::V6, 300, 400).unwrap();
     assert_eq!(
         errno(k.connect(socket, &peer("fe80::2", None))),
@@ -240,6 +248,11 @@ fn link_local_scope_checks_precede_source_selection_and_disconnect_releases_the_
     assert_eq!(
         errno(k.connect(socket, &peer("2001:db8::2", None))),
         nix::libc::EADDRNOTAVAIL
+    );
+    k.remove_link(b);
+    assert_eq!(
+        errno(k.connect(socket, &peer("2001:db8::2", None))),
+        nix::libc::ENODEV
     );
     k.close(socket);
 }

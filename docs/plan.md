@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 93.81% lines /
-82.37% branches: 528 missing lines and 318 missing branches, with no
+approved production-code scope, the latest merged report is 94.34% lines /
+83.48% branches: 483 missing lines and 299 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner has passing records and the later H11 failure described below.
@@ -631,6 +631,13 @@ descriptors retain their tunnels, matching the Linux backend. Strengthened
 shared adoption assertions and four fake observation cases pass ten seeds
 and fresh GNU profiles. `audit/phase6/fake-handles-20261031/` records the two
 baseline failures and current proof scope.
+
+The shared identifier case now verifies unregistered external ownership and
+adoption refusal in both families. The fake matches the Linux backend's
+observed behavior. Socket-backed proof failures, executable search/probe bounds
+and mismatched inherited metadata have additional assertions, passing common
+checks, ten seeds and fresh GNU profiles. Repository record
+`audit/phase6/ownership-proof-20261031/` gives exact scope and limitations.
 
 ### Phase 7 — release
 

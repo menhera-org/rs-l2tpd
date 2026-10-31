@@ -834,4 +834,124 @@ mod tests {
         // The ordered lookup is queued after the forged datagram.
         assert_eq!(lifetime.prove(&registration), Proof::Proved);
     }
+
+    // kernel: (K29, K42) rtnl_getlink replies resolve only the current ordered lookup.
+    /// spec: S9, E21, M18
+    #[test]
+    fn ordered_lookup_completion_keeps_removal_and_generation_authority() {
+        for (mode, expected) in [
+            (0, Proof::Proved),
+            (1, Proof::Removed),
+            (2, Proof::Lost),
+            (3, Proof::Removed),
+            (4, Proof::Lost),
+            (5, Proof::Lost),
+        ] {
+            let mut initial = state();
+            initial.socket = Some(Arc::new(open().unwrap()));
+            initial.tracked.insert((1, 1), false);
+            let lifetime = Lifetime {
+                shared: Arc::new(Shared {
+                    state: Mutex::new(initial),
+                    changed: Condvar::new(),
+                }),
+                thread: None,
+            };
+            std::thread::scope(|scope| {
+                let reply = scope.spawn(|| {
+                    let until = Instant::now() + DEADLINE;
+                    loop {
+                        let mut state = lifetime.shared.lock();
+                        if let Some(seq) = state.lookups.keys().next().copied() {
+                            match mode {
+                                0 => {
+                                    state.lookups.insert(seq, Answer::Found);
+                                }
+                                1 => {
+                                    state.tracked.insert((1, 1), true);
+                                    state.lookups.insert(seq, Answer::Found);
+                                }
+                                2 => {
+                                    state.tracked.remove(&(1, 1));
+                                    state.lookups.insert(seq, Answer::Found);
+                                }
+                                3 => {
+                                    state.lookups.insert(seq, Answer::Absent);
+                                }
+                                4 => {
+                                    state.lookups.insert(seq, Answer::Failed);
+                                }
+                                5 => state.end_generation(),
+                                _ => unreachable!(),
+                            }
+                            lifetime.shared.changed.notify_all();
+                            return;
+                        }
+                        drop(state);
+                        assert!(Instant::now() < until, "no lookup was submitted");
+                        std::thread::yield_now();
+                    }
+                });
+                assert_eq!(lifetime.prove(&Registration::new(1, 0, 1)), expected);
+                reply.join().unwrap();
+            });
+            let state = lifetime.shared.lock();
+            assert!(state.lookups.is_empty());
+            match mode {
+                0 | 4 => assert_eq!(state.tracked.get(&(1, 1)), Some(&false)),
+                1 | 3 => assert_eq!(state.tracked.get(&(1, 1)), Some(&true)),
+                2 | 5 => assert!(state.tracked.is_empty()),
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    // kernel: (K29, K36) an unanswered ordered rtnl_getlink ends the proof generation.
+    /// spec: S9, E21, M18
+    #[test]
+    fn an_unanswered_lookup_times_out_and_discards_every_old_proof() {
+        let mut initial = state();
+        initial.socket = Some(Arc::new(open().unwrap()));
+        initial.tracked.insert((1, 1), false);
+        initial.tracked.insert((2, 2), false);
+        let lifetime = Lifetime {
+            shared: Arc::new(Shared {
+                state: Mutex::new(initial),
+                changed: Condvar::new(),
+            }),
+            thread: None,
+        };
+        let started = Instant::now();
+        assert_eq!(lifetime.prove(&Registration::new(1, 0, 1)), Proof::Lost);
+        assert!(started.elapsed() >= DEADLINE);
+        assert_eq!(lifetime.prove(&Registration::new(2, 0, 2)), Proof::Lost);
+        let state = lifetime.shared.lock();
+        assert_eq!(state.generation, 1);
+        assert!(state.tracked.is_empty() && state.lookups.is_empty());
+    }
+
+    // kernel: (K29) netlink_unicast returns ECONNREFUSED for a missing peer.
+    /// spec: S9, E21, M18
+    #[test]
+    fn a_refused_lookup_send_ends_the_generation_without_leaking_a_pending_answer() {
+        let mut socket = Socket::new(netlink_sys::protocols::NETLINK_USERSOCK).unwrap();
+        socket.bind_auto().unwrap();
+        socket.connect(&SocketAddr::new(0, 0)).unwrap();
+        let error = send_lookup(&socket, 1, 1).unwrap_err();
+        assert_eq!(error.raw_os_error(), Some(libc::ECONNREFUSED));
+        let mut initial = state();
+        initial.socket = Some(Arc::new(socket));
+        initial.tracked.insert((1, 1), false);
+        let lifetime = Lifetime {
+            shared: Arc::new(Shared {
+                state: Mutex::new(initial),
+                changed: Condvar::new(),
+            }),
+            thread: None,
+        };
+        assert_eq!(lifetime.prove(&Registration::new(1, 0, 1)), Proof::Lost);
+        let state = lifetime.shared.lock();
+        assert_eq!(state.generation, 1);
+        assert!(state.tracked.is_empty() && state.lookups.is_empty());
+    }
 }

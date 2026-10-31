@@ -1,0 +1,17 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 9 tests
+test restart::completion_tests::executable_search_child ... ok
+test restart::completion_tests::absolute_executable_does_not_need_a_working_directory ... ok
+test restart::completion_tests::malformed_entry_child ... ok
+test restart::completion_tests::pid_inspection_error_child ... ok
+test restart::completion_tests::restart_file_checks_precede_any_signal ... ok
+test restart::completion_tests::pid_inspection_error_discards_only_removal_authority ... ok
+test restart::completion_tests::executable_search_skips_missing_directories_and_nonexecutable_files ... ok
+test restart::completion_tests::malformed_entry_state_is_consumed_and_refused ... ok
+test restart::completion_tests::adoption_probes_bound_output_and_time_before_any_exec ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 3.04s
+

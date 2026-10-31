@@ -1,0 +1,9 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-fake-baseline)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-fake-baseline/debug/deps/rs_l2tpd-2992259725ba1531)
+
+running 1 test
+test kernel::linux::lifetime::tests::ordered_lookup_completion_keeps_removal_and_generation_authority ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 131 filtered out; finished in 0.00s
+

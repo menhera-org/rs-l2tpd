@@ -76,6 +76,29 @@ fn eventually(f: &mut dyn Fixture, mut check: impl FnMut(&mut dyn Kernel) -> boo
 
 /// A tunnel identifier is refused while bound or registered (K19, T7).
 pub fn tunnel_identifiers_are_unique(f: &mut dyn Fixture) {
+    for (family, id) in [(Family::V4, 9261), (Family::V6, 9262)] {
+        let socket = f.k().create_socket(family, id, id).unwrap();
+        let external = f.k().clone_fd(socket).unwrap();
+        assert_eq!(
+            errno(f.k().adopt(external.try_clone().unwrap())),
+            nix::libc::ENODEV
+        );
+        assert!(f.k().tunnel(id).unwrap().is_none());
+        f.k().close(socket);
+        f.settle();
+        assert_eq!(
+            errno(f.k().create_socket(family, id, id)),
+            nix::libc::EADDRINUSE
+        );
+        drop(external);
+        let mut replacement = None;
+        assert!(eventually(f, |k| {
+            replacement = k.create_socket(family, id, id).ok();
+            replacement.is_some()
+        }));
+        f.k().close(replacement.unwrap());
+        f.settle();
+    }
     let first = tunnel(f.k(), 9101);
     assert_eq!(
         errno(f.k().create_socket(Family::V6, 9101, 9101)),

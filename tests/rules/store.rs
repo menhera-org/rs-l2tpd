@@ -153,6 +153,50 @@ fn an_incomplete_adopted_session_dump_keeps_ownership_for_retry() {
     assert!(r.kernel_mut().tunnel(10).unwrap().is_none());
 }
 
+/// spec: P14, S28, L13, T8
+#[test]
+fn inherited_metadata_mismatch_retires_the_exact_name_before_replacement() {
+    for (tunnel_id, peer_id) in [(11, 20), (10, 21)] {
+        let (mut r, _) = reconciler();
+        r.set_store_capacity(1);
+        let socket = r
+            .kernel_mut()
+            .create_socket(Family::V6, tunnel_id, peer_id)
+            .unwrap();
+        r.kernel_mut()
+            .register_tunnel(socket, tunnel_id, peer_id)
+            .unwrap();
+        let fd = r.kernel().clone_fd(socket).unwrap();
+        let manager = fd.try_clone().unwrap();
+        r.kernel_mut().close(socket);
+        r.inherit("t10".into(), fd);
+        assert!(!r.reconcile(config(TUNNEL)));
+        let id = withdrawal(r.take_requests(), "t10");
+        assert_eq!(r.kernel().open_sockets(), 1);
+        assert_eq!(
+            r.kernel_mut()
+                .tunnel(tunnel_id)
+                .unwrap()
+                .unwrap()
+                .peer_tunnel_id(),
+            peer_id
+        );
+        drop(manager);
+        r.socket_forgotten(id, true);
+        run_for(&mut r, 1);
+        assert!(r.ready());
+        assert_eq!(r.kernel().open_sockets(), 1);
+        assert_eq!(
+            r.kernel_mut().tunnel(10).unwrap().unwrap().peer_tunnel_id(),
+            20
+        );
+        if tunnel_id != 10 {
+            assert!(r.kernel_mut().tunnel(tunnel_id).unwrap().is_none());
+        }
+        let _replacement_manager = stored(r.take_requests());
+    }
+}
+
 /// spec: P14, L13, P17
 #[test]
 fn malformed_names_and_shutdown_keep_cleanup_authority() {

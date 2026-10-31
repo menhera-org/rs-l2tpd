@@ -13,7 +13,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
-| P4 coverage | Approved production scope: fresh merged GNU report 93.81% lines / 82.37% branches after fake-handle correction; no production exclusions or saturated inferred counts | 528 missing lines / 318 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: fresh merged GNU report 94.34% lines / 83.48% branches after ownership/proof cases; no production exclusions or saturated inferred counts | 483 missing lines / 299 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -861,3 +861,18 @@ GNU live, normal, manager and Incus profiles pass. Coverage is 93.81% lines /
 82.37% branches, leaving 528 lines and 318 branches, with no saturated counts.
 The shipping Linux implementation is unchanged; its preceding unmodified P6
 profile remains applicable. The separate H11/P5 decision remains open.
+
+## Unregistered ownership and ordered proof failures
+
+[The ownership/proof record](phase6/ownership-proof-20261031/README.md)
+reproduces two further fake defects: accepting unregistered adoption and
+releasing a bound identifier while an external descriptor holds the socket.
+The expanded shared case passes against Linux in both families; the corrected
+fake matches it. Socket-backed lifetime completion/refusal/timeout cases,
+executable search and probe bounds, and exact-name retirement of mismatched
+inherited descriptors add observable assertions. Common checks, ten seeds and
+fresh GNU native/live, normal, manager and Incus profiles pass. Coverage is
+94.34% lines / 83.48% branches, leaving 483 lines and 299 branches, with zero
+saturated inferred regions. Shipping Linux/binary behavior is unchanged.
+Both jobs pass for the preceding Store source in CI run `41242087168`.
+H11/P5 and the other global proof requirements remain open.

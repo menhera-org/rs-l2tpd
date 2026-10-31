@@ -307,6 +307,8 @@ impl FakeKernel {
             .map(|(k, _)| *k)
             .collect();
         doomed.into_iter().for_each(|k| self.remove_session(k));
+        self.sockets
+            .retain(|_, s| self.tunnels.contains_key(&s.tunnel_id) || !s.last_reference_closed());
     }
 
     /// Adds a device and returns its index; indexes are allocated
@@ -626,7 +628,8 @@ impl Kernel for FakeKernel {
         }
         // kernel: a bound connection id is refused (K19, T7)
         if self.sockets.values().any(|s| {
-            s.tunnel_id == tunnel_id && (s.fd.is_some() || self.tunnels.contains_key(&tunnel_id))
+            s.tunnel_id == tunnel_id
+                && (!s.last_reference_closed() || self.tunnels.contains_key(&tunnel_id))
         }) {
             return fail(Errno::EADDRINUSE);
         }
@@ -797,7 +800,7 @@ impl Kernel for FakeKernel {
                 }
             }
             self.ops.push(format!("close {}", socket.0));
-            if !self.tunnels.contains_key(&s.tunnel_id) {
+            if !self.tunnels.contains_key(&s.tunnel_id) && s.last_reference_closed() {
                 self.sockets.remove(&socket);
             }
         }
@@ -823,6 +826,9 @@ impl Kernel for FakeKernel {
             .find(|s| s.inode == inode)
             .ok_or(io::Error::from_raw_os_error(Errno::ENOTSOCK as i32))?;
         let (family, tunnel_id, peer_tunnel_id) = (s.family, s.tunnel_id, s.peer_tunnel_id);
+        if !self.tunnels.contains_key(&tunnel_id) {
+            return fail(Errno::ENODEV);
+        }
         self.next_socket += 1;
         let socket = SocketId(self.next_socket);
         let adopted = FakeSocket {

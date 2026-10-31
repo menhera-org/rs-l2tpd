@@ -1,0 +1,22 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-2992259725ba1531)
+
+running 11 tests
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test kernel::linux::lifetime::tests::a_refused_lookup_send_ends_the_generation_without_leaking_a_pending_answer ... ok
+test kernel::linux::lifetime::tests::deletion_and_release_are_scoped_by_index_and_incarnation ... ok
+test kernel::linux::lifetime::tests::unavailable_duplicate_and_expired_captures_never_create_proofs ... ok
+test kernel::linux::lifetime::tests::only_the_requested_kernel_reply_can_resolve_a_lookup ... ok
+test kernel::linux::lifetime::tests::retired_registrations_leave_only_survivors_and_generation_loss_clears_them ... ok
+test kernel::linux::lifetime::tests::ordered_lookup_completion_keeps_removal_and_generation_authority ... ok
+LIFETIME_COST registrations=1 events=20000 elapsed_ns=24528560
+LIFETIME_COST registrations=300 events=20000 elapsed_ns=30211229
+LIFETIME_COST registrations=20000 events=20000 elapsed_ns=39168248
+test kernel::linux::lifetime::tests::foreign_deletion_workload_preserves_current_registrations ... ok
+test kernel::linux::lifetime::tests::an_unanswered_lookup_times_out_and_discards_every_old_proof ... ok
+
+test result: ok. 9 passed; 0 failed; 2 ignored; 0 measured; 126 filtered out; finished in 5.00s
+

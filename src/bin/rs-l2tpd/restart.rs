@@ -583,4 +583,82 @@ mod completion_tests {
             .unwrap();
         assert!(output.status.success(), "{output:?}");
     }
+
+    /// spec: P23 P26
+    #[test]
+    fn executable_search_child() {
+        let Some(root) = std::env::var_os("PHASE6_EXECUTABLE_SEARCH") else {
+            return;
+        };
+        let root = PathBuf::from(root);
+        assert_eq!(
+            executable_at(std::ffi::OsStr::new("daemon"), Ok(root.clone())).unwrap(),
+            root.join("good/daemon")
+        );
+        assert_eq!(
+            executable_at(std::ffi::OsStr::new("./relative/daemon"), Ok(root.clone())).unwrap(),
+            root.join("./relative/daemon")
+        );
+        let error = executable_at(std::ffi::OsStr::new("missing"), Ok(root)).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::NotFound);
+        assert_eq!(error.to_string(), "cannot resolve executable path");
+    }
+
+    /// spec: P23 P26
+    #[test]
+    fn executable_search_skips_missing_directories_and_nonexecutable_files() {
+        let dir = crate::testdir::Dir::new();
+        for part in ["directory/daemon", "nonexec", "good"] {
+            std::fs::create_dir_all(dir.path().join(part)).unwrap();
+        }
+        for (part, mode) in [("nonexec", 0o600), ("good", 0o700)] {
+            let path = dir.path().join(part).join("daemon");
+            std::fs::write(&path, "fixture").unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).unwrap();
+        }
+        let output = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "restart::completion_tests::executable_search_child",
+            ])
+            .env("PATH", "missing:directory:nonexec:good")
+            .env("PHASE6_EXECUTABLE_SEARCH", dir.path())
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+    }
+
+    /// spec: P26
+    #[test]
+    fn adoption_probes_bound_output_and_time_before_any_exec() {
+        let dir = crate::testdir::Dir::new();
+        for (name, script, error) in [
+            ("compatible", "printf 'rs-l2tpd-adopt 1\\n'", None),
+            (
+                "failed",
+                "printf 'rs-l2tpd-adopt 1\\n'; exit 1",
+                Some(io::ErrorKind::Other),
+            ),
+            (
+                "oversized",
+                "printf '%064d' 0; exec /bin/sleep 30",
+                Some(io::ErrorKind::Other),
+            ),
+            (
+                "silent",
+                "exec /bin/sleep 30",
+                Some(io::ErrorKind::TimedOut),
+            ),
+        ] {
+            let path = dir.path().join(name);
+            std::fs::write(&path, format!("#!/bin/sh\n{script}\n")).unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+            let started = Instant::now();
+            match error {
+                None => probe(&path).unwrap(),
+                Some(expected) => assert_eq!(probe(&path).unwrap_err().kind(), expected),
+            }
+            assert!(started.elapsed() < Duration::from_secs(10));
+        }
+    }
 }
