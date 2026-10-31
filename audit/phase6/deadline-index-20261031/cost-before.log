@@ -1,0 +1,12 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+DEADLINE_COST records=1 queries=20000 elapsed_ns=16213751
+DEADLINE_COST records=300 queries=20000 elapsed_ns=447922136
+DEADLINE_COST records=20000 queries=20000 elapsed_ns=29174281347
+test reconciler::tests::deadline_cost::deadline_selection_preserves_the_earliest_deletion_under_large_workloads ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 91 filtered out; finished in 29.66s
+

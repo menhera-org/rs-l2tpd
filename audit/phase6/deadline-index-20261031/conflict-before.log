@@ -1,0 +1,23 @@
+    Blocking waiting for file lock on build directory
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+test reconciler::tests::deadline_cost::removing_a_left_out_entry_cancels_its_conflict_and_retry ... FAILED
+
+failures:
+
+---- reconciler::tests::deadline_cost::removing_a_left_out_entry_cancels_its_conflict_and_retry stdout ----
+
+thread 'reconciler::tests::deadline_cost::removing_a_left_out_entry_cancels_its_conflict_and_retry' (3668268) panicked at src/reconciler/tests.rs:133:9:
+removed configuration retains conflict history
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    reconciler::tests::deadline_cost::removing_a_left_out_entry_cancels_its_conflict_and_retry
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 93 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

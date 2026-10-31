@@ -108,7 +108,6 @@ impl<K: Kernel> Reconciler<K> {
                 connection: Connection::Disconnected { pending: None },
                 // Its connection is unknown: the first converge disconnects.
                 stale: true,
-                retry_at: None,
             },
         );
         log::info!(
@@ -167,6 +166,7 @@ impl<K: Kernel> Reconciler<K> {
                 self.report.forget(&report::session("", tid, sid));
             }
             let record = self.tunnels.remove(&id).unwrap();
+            self.retries.remove(&id);
             if !self.withdraw_socket(id, record.socket) {
                 self.k.close(record.socket);
                 self.departing.insert(id, self.k.now() + DELETION_WAIT);
@@ -194,7 +194,12 @@ impl<K: Kernel> Reconciler<K> {
                 self.departing.remove(&id);
             }
         }
-        for (key, deadline) in self.deleting_sessions.clone() {
+        for (key, deadline) in self
+            .deleting_sessions
+            .iter()
+            .map(|(key, at)| (*key, *at))
+            .collect::<Vec<_>>()
+        {
             if deadline <= now || matches!(self.k.session(key.0, key.1), Ok(None)) {
                 self.deleting_sessions.remove(&key);
             }
@@ -341,7 +346,6 @@ impl<K: Kernel> Reconciler<K> {
                 zone_index: None,
                 connection: Connection::Disconnected { pending: None },
                 stale: false,
-                retry_at: None,
             },
         );
         self.store_socket(id, socket);
@@ -484,7 +488,7 @@ impl<K: Kernel> Reconciler<K> {
                     source: source.to_canonical(),
                 };
                 record.bound = zone.or(bind);
-                record.retry_at = None;
+                self.retries.remove(&id);
                 self.report.forget_condition(&label, "pending");
                 log::info!(
                     "{label}: connected to {} from {}",
@@ -524,8 +528,9 @@ impl<K: Kernel> Reconciler<K> {
     /// Queues a retry a second later, without postponing one queued (E8).
     pub(super) fn arm_retry(&mut self, id: u32) {
         let at = self.k.now() + RETRY;
-        let record = self.tunnels.get_mut(&id).unwrap();
-        record.retry_at.get_or_insert(at);
+        if !self.retries.contains_key(&id) {
+            self.retries.insert(id, at);
+        }
     }
 
     /// The source a connected tunnel reported (E7).

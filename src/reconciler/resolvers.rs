@@ -134,13 +134,13 @@ struct Watch {
     started: Option<ResolverSpec>,
     dependencies: Vec<(L2tpIfName, u32)>,
     selected: Option<IpAddr>,
-    retry_at: Option<Instant>,
 }
 
 pub(crate) struct Resolvers {
     resolve: Box<dyn Resolve>,
     next_id: u64,
     watches: BTreeMap<u32, Watch>,
+    retries: super::deadlines::Deadlines<u32>,
     names: BTreeMap<L2tpIfName, BTreeSet<u32>>,
     devices: BTreeMap<u32, BTreeSet<u32>>,
 }
@@ -163,6 +163,7 @@ impl Resolvers {
             resolve,
             next_id: 1,
             watches: BTreeMap::new(),
+            retries: super::deadlines::Deadlines::default(),
             names: BTreeMap::new(),
             devices: BTreeMap::new(),
         }
@@ -188,6 +189,7 @@ impl Resolvers {
     }
 
     pub fn forget(&mut self, tunnel_id: u32) {
+        self.retries.remove(&tunnel_id);
         self.unindex(tunnel_id);
         if let Some(watch) = self.watches.remove(&tunnel_id) {
             self.resolve.unwatch(watch.id);
@@ -233,7 +235,7 @@ impl Resolvers {
     }
 
     pub fn next_deadline(&self) -> Option<Instant> {
-        self.watches.values().filter_map(|w| w.retry_at).min()
+        self.retries.first_deadline()
     }
 
     pub fn any(&self) -> bool {
@@ -291,11 +293,10 @@ impl<K: Kernel> Reconciler<K> {
                 started: None,
                 dependencies: Vec::new(),
                 selected: None,
-                retry_at: None,
             }
         });
-        let skip = watch.retry_at.is_some_and(|t| t > now)
-            || (watch.started.is_some() && watch.retry_at.is_none());
+        let retry = r.retries.get(&tunnel_id);
+        let skip = retry.is_some_and(|t| *t > now) || (watch.started.is_some() && retry.is_none());
         let (host, mut id) = (watch.key.0.clone(), watch.id);
         self.resolvers.index(tunnel_id);
         if skip {
@@ -348,7 +349,11 @@ impl<K: Kernel> Reconciler<K> {
                     || self.resolvers.resolve.retry_discovery(watch.id);
                 watch.started = Some(spec);
                 watch.dependencies = dependencies;
-                watch.retry_at = partial.then_some(now + DEVICE_RETRY);
+                if partial {
+                    self.resolvers.retries.insert(tunnel_id, now + DEVICE_RETRY);
+                } else {
+                    self.resolvers.retries.remove(&tunnel_id);
+                }
                 if watch.selected.is_none() {
                     self.report.begin(&label, "answer", || {
                         "waiting for its resolver's first usable answer (V8)".into()
@@ -364,7 +369,7 @@ impl<K: Kernel> Reconciler<K> {
                     watch.id = self.resolvers.next_id;
                 }
                 watch.dependencies.clear();
-                watch.retry_at = Some(now + DEVICE_RETRY);
+                self.resolvers.retries.insert(tunnel_id, now + DEVICE_RETRY);
                 let message = || format!("its resolver waits: {why} (V9, V12)");
                 if host_defect {
                     self.report.begin_error(&label, "resolver", message);
@@ -561,7 +566,7 @@ impl<K: Kernel> Reconciler<K> {
                 self.resolvers.next_id += 1;
                 watch.id = self.resolvers.next_id;
             }
-            watch.retry_at = None;
+            self.resolvers.retries.remove(&tunnel_id);
             self.ensure_lookup(tunnel_id);
         }
     }
@@ -569,13 +574,7 @@ impl<K: Kernel> Reconciler<K> {
     /// The thirty-second device retries that are due (V9, V12).
     pub(super) fn retry_resolvers(&mut self) {
         let now = self.k.now();
-        let due: Vec<u32> = self
-            .resolvers
-            .watches
-            .iter()
-            .filter(|(_, w)| w.retry_at.is_some_and(|t| t <= now))
-            .map(|(id, _)| *id)
-            .collect();
+        let due: Vec<u32> = self.resolvers.retries.due(now).copied().collect();
         for id in due {
             self.ensure_lookup(id);
         }

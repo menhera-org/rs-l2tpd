@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
 use crate::config::{Config, L2tpIfName};
 use crate::kernel::Kernel;
 
+mod deadlines;
 mod events;
 mod ladder;
 mod records;
@@ -27,6 +28,7 @@ mod workers;
 pub use events::Source;
 pub use resolvers::{ClientId, IphostResolve, Lookup, Resolve, ResolverSpec};
 
+use deadlines::Deadlines;
 use records::{Conflict, ConflictIdentity, SessionRecord, TunnelRecord};
 use report::Report;
 
@@ -77,14 +79,16 @@ pub struct Reconciler<K: Kernel> {
     sessions: BTreeMap<u32, SessionRecord>,
     /// Tunnel identifiers whose socket was closed, until the kernel lets
     /// them go or the wait ends (T8).
-    departing: BTreeMap<u32, Instant>,
+    departing: Deadlines<u32>,
     /// Creation names reserved until their session is confirmed gone (S4).
     reserved: BTreeMap<L2tpIfName, (u32, u32)>,
-    deleting_sessions: BTreeMap<(u32, u32), Instant>,
+    deleting_sessions: Deadlines<(u32, u32)>,
     unmatched_sessions: BTreeSet<(u32, u32)>,
     verify_sessions: BTreeSet<u32>,
     verify_tunnels: BTreeSet<u32>,
     conflicts: BTreeMap<(bool, u32), Conflict>,
+    conflict_times: Deadlines<(bool, u32)>,
+    retries: Deadlines<u32>,
     resolvers: resolvers::Resolvers,
     report: Report,
     requests: Vec<Request>,
@@ -121,13 +125,15 @@ impl<K: Kernel> Reconciler<K> {
             accepted: Config::new(),
             tunnels: BTreeMap::new(),
             sessions: BTreeMap::new(),
-            departing: BTreeMap::new(),
+            departing: Deadlines::default(),
             reserved: BTreeMap::new(),
-            deleting_sessions: BTreeMap::new(),
+            deleting_sessions: Deadlines::default(),
             unmatched_sessions: BTreeSet::new(),
             verify_sessions: BTreeSet::new(),
             verify_tunnels: BTreeSet::new(),
             conflicts: BTreeMap::new(),
+            conflict_times: Deadlines::default(),
+            retries: Deadlines::default(),
             resolvers: resolvers::Resolvers::new(resolve),
             report: Report::default(),
             requests: Vec::new(),
@@ -203,8 +209,11 @@ impl<K: Kernel> Reconciler<K> {
     /// everything is applied; otherwise the tick retries (E12).
     pub fn reconcile(&mut self, config: Config) -> bool {
         let now = self.k.now();
-        for conflict in self.conflicts.values_mut() {
+        for (key, conflict) in &mut self.conflicts {
             conflict.next = now;
+            if conflict.left_out {
+                self.conflict_times.insert(*key, now);
+            }
         }
         if self.tunable_pending.is_none() {
             self.tunable = None;
@@ -214,6 +223,32 @@ impl<K: Kernel> Reconciler<K> {
 
     fn reconcile_current(&mut self, config: Config) -> bool {
         if config != self.accepted {
+            let wanted: BTreeMap<_, _> = config
+                .tunnels()
+                .values()
+                .map(|t| {
+                    (
+                        (false, t.tunnel_id()),
+                        ConflictIdentity::Tunnel(t.identity()),
+                    )
+                })
+                .chain(config.sessions().iter().filter_map(|(name, s)| {
+                    Some((
+                        (true, s.session_id()),
+                        ConflictIdentity::Session(config.session_identity(name)?),
+                    ))
+                }))
+                .collect();
+            let obsolete: Vec<_> = self
+                .conflicts
+                .iter()
+                .filter(|(key, c)| wanted.get(key) != Some(&c.identity))
+                .map(|(key, _)| *key)
+                .collect();
+            for key in obsolete {
+                self.conflicts.remove(&key);
+                self.conflict_times.remove(&key);
+            }
             for id in self.resolvers.reload(&self.accepted, &config) {
                 if let Some(record) = self.tunnels.get(&id) {
                     self.report.forget(&report::tunnel(&record.name, id));
@@ -266,6 +301,8 @@ impl<K: Kernel> Reconciler<K> {
         self.requests
             .retain(|r| !matches!(r, Request::WriteBindv6only { .. }));
         self.accepted = Config::new();
+        self.conflicts.clear();
+        self.conflict_times = Deadlines::default();
         self.store
             .shutdown
             .get_or_insert(self.k.now() + DELETION_WAIT);
@@ -282,7 +319,12 @@ impl<K: Kernel> Reconciler<K> {
     pub(crate) fn shutdown_deletions(&mut self) -> crate::Result<bool> {
         let now = self.k.now();
         let mut failure = None;
-        for (id, deadline) in self.departing.clone() {
+        for (id, deadline) in self
+            .departing
+            .iter()
+            .map(|(id, at)| (*id, *at))
+            .collect::<Vec<_>>()
+        {
             match self.k.tunnel(id) {
                 Ok(None) => {
                     self.departing.remove(&id);
@@ -304,7 +346,7 @@ impl<K: Kernel> Reconciler<K> {
         self.store
             .next_deadline(self.k.now())
             .into_iter()
-            .chain(self.departing.values().copied())
+            .chain(self.departing.first_deadline())
             .min()
     }
 
@@ -386,6 +428,7 @@ impl<K: Kernel> Reconciler<K> {
         match self.conflicts.get(&(session, id)) {
             Some(c) if c.identity != identity => {
                 self.conflicts.remove(&(session, id));
+                self.conflict_times.remove(&(session, id));
                 true
             }
             Some(c) => c.next <= now,
@@ -425,10 +468,14 @@ impl<K: Kernel> Reconciler<K> {
             self.incomplete = true;
             log::debug!("{entry}: identifiers refused: {}", report::describe(error));
         }
+        if c.left_out {
+            self.conflict_times.insert((session, id), c.next);
+        }
     }
 
     /// The entry got its identifiers (T25).
     fn conflict_over(&mut self, session: bool, id: u32, entry: &str) {
+        self.conflict_times.remove(&(session, id));
         if let Some(c) = self.conflicts.remove(&(session, id))
             && c.left_out
         {

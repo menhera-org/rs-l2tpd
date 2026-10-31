@@ -27,8 +27,6 @@ pub(crate) struct TunnelRecord {
     pub connection: Connection,
     /// Reconnect for a fresh source at the next converge (T19, E20).
     pub stale: bool,
-    /// The next reconnect retry (T20, E13).
-    pub retry_at: Option<Instant>,
 }
 
 /// Whether the socket is connected (T1, T16).

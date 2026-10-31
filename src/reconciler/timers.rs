@@ -18,14 +18,10 @@ impl<K: Kernel> Reconciler<K> {
             self.store.next_deadline(now),
             self.tick_at,
             self.resolvers.next_deadline(),
-            self.tunnels.values().filter_map(|t| t.retry_at).min(),
-            self.conflicts
-                .values()
-                .filter(|c| c.left_out)
-                .map(|c| c.next)
-                .min(),
-            self.departing.values().min().copied(),
-            self.deleting_sessions.values().min().copied(),
+            self.retries.first_deadline(),
+            self.conflict_times.first_deadline(),
+            self.departing.first_deadline(),
+            self.deleting_sessions.first_deadline(),
         ]
         .into_iter()
         .flatten()
@@ -53,25 +49,23 @@ impl<K: Kernel> Reconciler<K> {
         }
         self.poll_answers();
         self.retry_resolvers();
-        let left_out_due = self.conflicts.values().any(|c| c.left_out && c.next <= now);
-        let departed_due = self.departing.values().any(|d| *d <= now)
+        let left_out_due = self
+            .conflict_times
+            .first_deadline()
+            .is_some_and(|at| at <= now);
+        let departed_due = self.departing.first_deadline().is_some_and(|at| at <= now)
             || self
                 .deleting_sessions
-                .values()
-                .any(|deadline| *deadline <= now);
+                .first_deadline()
+                .is_some_and(|at| at <= now);
         if self.reconcile_at.is_some_and(|t| t <= now) || left_out_due || departed_due {
             self.reconcile_at = None;
             let config = self.accepted.clone();
             self.reconcile_current(config);
         }
-        let due: Vec<u32> = self
-            .tunnels
-            .iter()
-            .filter(|(_, t)| t.retry_at.is_some_and(|r| r <= now))
-            .map(|(id, _)| *id)
-            .collect();
+        let due: Vec<u32> = self.retries.due(now).copied().collect();
         for id in due {
-            self.tunnels.get_mut(&id).unwrap().retry_at = None;
+            self.retries.remove(&id);
             self.converge_tunnel(id);
         }
         let verify: Vec<_> = self.verify_sessions.iter().copied().collect();

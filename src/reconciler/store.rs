@@ -14,6 +14,7 @@ pub(super) struct Store {
     names: BTreeSet<String>,
     inherited: BTreeMap<String, Vec<OwnedFd>>,
     pub retiring: BTreeMap<String, Retirement>,
+    deadlines: super::deadlines::Deadlines<String>,
     pub shutdown: Option<Instant>,
 }
 
@@ -33,9 +34,9 @@ impl Store {
         if self.shutdown.is_some_and(|deadline| now >= deadline) {
             return None;
         }
-        self.retiring
-            .values()
-            .map(|r| r.pending.map_or(r.next, |(_, d)| d))
+        self.deadlines
+            .first_deadline()
+            .into_iter()
             .chain(self.shutdown)
             .min()
     }
@@ -128,7 +129,7 @@ impl<K: Kernel> Reconciler<K> {
         let r = self
             .store
             .retiring
-            .entry(name)
+            .entry(name.clone())
             .or_insert_with(|| Retirement {
                 sockets: Vec::new(),
                 fds: Vec::new(),
@@ -142,6 +143,9 @@ impl<K: Kernel> Reconciler<K> {
         r.sockets.extend(sockets);
         r.fds.extend(fds);
         r.ids.extend(id);
+        self.store
+            .deadlines
+            .insert(name, r.pending.map_or(r.next, |(_, at)| at));
     }
 
     /// A withdrawal outcome. `processed` means the manager's processing
@@ -272,6 +276,7 @@ impl<K: Kernel> Reconciler<K> {
                     .all(|id| matches!(self.k.tunnel(*id), Ok(None)));
             if r.withdrawn && absent {
                 self.store.retiring.remove(&name);
+                self.store.deadlines.remove(&name);
                 self.store.names.remove(&name);
                 continue;
             }
@@ -282,6 +287,9 @@ impl<K: Kernel> Reconciler<K> {
                     log::error!("descriptor store cleanup incomplete for {name}");
                     r.reported = true;
                 }
+                self.store
+                    .deadlines
+                    .insert(name, r.pending.map_or(r.next, |(_, at)| at));
                 continue;
             }
             if !r.withdrawn && r.pending.is_none() && now >= r.next {
@@ -290,7 +298,7 @@ impl<K: Kernel> Reconciler<K> {
                 r.pending = Some((self.next_request, deadline));
                 self.requests.retain(|r| !matches!(r, Request::ForgetSocket { name: pending, .. } if pending == &name));
                 self.requests.push(Request::ForgetSocket {
-                    name,
+                    name: name.clone(),
                     id: self.next_request,
                     deadline,
                 });
@@ -298,6 +306,9 @@ impl<K: Kernel> Reconciler<K> {
             if r.pending.is_none() && r.next <= now {
                 r.next = now + RETRY;
             }
+            self.store
+                .deadlines
+                .insert(name, r.pending.map_or(r.next, |(_, at)| at));
         }
     }
 }

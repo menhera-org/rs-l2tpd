@@ -1,0 +1,16 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 5 tests
+test reconciler::tests::deadline_cost::reconnect_deadlines_keep_their_time_and_cancel_on_success_and_removal ... ok
+test reconciler::tests::deadline_cost::removing_a_left_out_entry_cancels_its_conflict_and_retry ... ok
+DEADLINE_COST records=1 queries=20000 elapsed_ns=10015841
+DEADLINE_COST records=300 queries=20000 elapsed_ns=9652442
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+DEADLINE_COST records=20000 queries=20000 elapsed_ns=8837297
+test reconciler::tests::deadline_cost::deadline_selection_preserves_the_earliest_deletion_under_large_workloads ... ok
+test reconciler::deadlines::tests::replacement_cancellation_and_ties_keep_one_deadline_per_owner ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 90 filtered out; finished in 0.15s
+

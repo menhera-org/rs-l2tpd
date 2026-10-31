@@ -1,0 +1,881 @@
+TEST_SEED=1
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 74 tests
+
+running 1 test
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test sessions::sessions_swap_names ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test completion::completion_report_counts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.01s
+
+test completion::completion_report_counts ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+TEST_SEED=2
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 74 tests
+
+running 1 test
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::sessions_swap_names ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test completion::completion_report_counts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.01s
+
+test completion::completion_report_counts ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+
+TEST_SEED=3
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 74 tests
+
+running 1 test
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::sessions_swap_names ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test completion::completion_report_counts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.01s
+
+test completion::completion_report_counts ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+TEST_SEED=4
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 74 tests
+
+running 1 test
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test sessions::sessions_swap_names ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test completion::completion_report_counts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.01s
+
+test completion::completion_report_counts ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+
+TEST_SEED=5
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 74 tests
+
+running 1 test
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test sessions::sessions_swap_names ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test completion::completion_report_counts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.01s
+
+test completion::completion_report_counts ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+
+TEST_SEED=6
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 74 tests
+
+running 1 test
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test sessions::sessions_swap_names ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test completion::completion_report_counts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.01s
+
+test completion::completion_report_counts ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+TEST_SEED=7
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 74 tests
+
+running 1 test
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test sessions::sessions_swap_names ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test completion::completion_report_counts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.01s
+
+test completion::completion_report_counts ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+
+TEST_SEED=8
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 74 tests
+
+running 1 test
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test sessions::sessions_swap_names ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test completion::completion_report_counts ... test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... okok
+
+
+test result: oktest tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... . 1 passed; 0 failed; 0 ignored; 0 measured; 73 filtered outok; finished in 0.01s
+
+
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test completion::completion_report_counts ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+
+TEST_SEED=9
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 74 tests
+
+running 1 test
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test sessions::sessions_swap_names ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test completion::completion_report_counts ... test tunnels::shutdown_cancels_the_tunable_handshake ... okok
+
+
+test result: test tunnels::shutdown_closes_the_sockets ... okok. 1 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out
+; finished in 0.01s
+
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test completion::completion_report_counts ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
+
+TEST_SEED=10
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 74 tests
+
+running 1 test
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test sessions::sessions_swap_names ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test completion::completion_report_counts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.01s
+
+test completion::completion_report_counts ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+
+SEEDS_RESULT=0

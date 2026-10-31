@@ -1,0 +1,598 @@
+diff --git a/src/reconciler/mod.rs b/src/reconciler/mod.rs
+index d153e62..1360f8c 100644
+--- a/src/reconciler/mod.rs
++++ b/src/reconciler/mod.rs
+@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
+ use crate::config::{Config, L2tpIfName};
+ use crate::kernel::Kernel;
+ 
++mod deadlines;
+ mod events;
+ mod ladder;
+ mod records;
+@@ -27,6 +28,7 @@ mod workers;
+ pub use events::Source;
+ pub use resolvers::{ClientId, IphostResolve, Lookup, Resolve, ResolverSpec};
+ 
++use deadlines::Deadlines;
+ use records::{Conflict, ConflictIdentity, SessionRecord, TunnelRecord};
+ use report::Report;
+ 
+@@ -77,14 +79,16 @@ pub struct Reconciler<K: Kernel> {
+     sessions: BTreeMap<u32, SessionRecord>,
+     /// Tunnel identifiers whose socket was closed, until the kernel lets
+     /// them go or the wait ends (T8).
+-    departing: BTreeMap<u32, Instant>,
++    departing: Deadlines<u32>,
+     /// Creation names reserved until their session is confirmed gone (S4).
+     reserved: BTreeMap<L2tpIfName, (u32, u32)>,
+-    deleting_sessions: BTreeMap<(u32, u32), Instant>,
++    deleting_sessions: Deadlines<(u32, u32)>,
+     unmatched_sessions: BTreeSet<(u32, u32)>,
+     verify_sessions: BTreeSet<u32>,
+     verify_tunnels: BTreeSet<u32>,
+     conflicts: BTreeMap<(bool, u32), Conflict>,
++    conflict_times: Deadlines<(bool, u32)>,
++    retries: Deadlines<u32>,
+     resolvers: resolvers::Resolvers,
+     report: Report,
+     requests: Vec<Request>,
+@@ -121,13 +125,15 @@ impl<K: Kernel> Reconciler<K> {
+             accepted: Config::new(),
+             tunnels: BTreeMap::new(),
+             sessions: BTreeMap::new(),
+-            departing: BTreeMap::new(),
++            departing: Deadlines::default(),
+             reserved: BTreeMap::new(),
+-            deleting_sessions: BTreeMap::new(),
++            deleting_sessions: Deadlines::default(),
+             unmatched_sessions: BTreeSet::new(),
+             verify_sessions: BTreeSet::new(),
+             verify_tunnels: BTreeSet::new(),
+             conflicts: BTreeMap::new(),
++            conflict_times: Deadlines::default(),
++            retries: Deadlines::default(),
+             resolvers: resolvers::Resolvers::new(resolve),
+             report: Report::default(),
+             requests: Vec::new(),
+@@ -203,8 +209,11 @@ impl<K: Kernel> Reconciler<K> {
+     /// everything is applied; otherwise the tick retries (E12).
+     pub fn reconcile(&mut self, config: Config) -> bool {
+         let now = self.k.now();
+-        for conflict in self.conflicts.values_mut() {
++        for (key, conflict) in &mut self.conflicts {
+             conflict.next = now;
++            if conflict.left_out {
++                self.conflict_times.insert(*key, now);
++            }
+         }
+         if self.tunable_pending.is_none() {
+             self.tunable = None;
+@@ -214,6 +223,32 @@ impl<K: Kernel> Reconciler<K> {
+ 
+     fn reconcile_current(&mut self, config: Config) -> bool {
+         if config != self.accepted {
++            let wanted: BTreeMap<_, _> = config
++                .tunnels()
++                .values()
++                .map(|t| {
++                    (
++                        (false, t.tunnel_id()),
++                        ConflictIdentity::Tunnel(t.identity()),
++                    )
++                })
++                .chain(config.sessions().iter().filter_map(|(name, s)| {
++                    Some((
++                        (true, s.session_id()),
++                        ConflictIdentity::Session(config.session_identity(name)?),
++                    ))
++                }))
++                .collect();
++            let obsolete: Vec<_> = self
++                .conflicts
++                .iter()
++                .filter(|(key, c)| wanted.get(key) != Some(&c.identity))
++                .map(|(key, _)| *key)
++                .collect();
++            for key in obsolete {
++                self.conflicts.remove(&key);
++                self.conflict_times.remove(&key);
++            }
+             for id in self.resolvers.reload(&self.accepted, &config) {
+                 if let Some(record) = self.tunnels.get(&id) {
+                     self.report.forget(&report::tunnel(&record.name, id));
+@@ -266,6 +301,8 @@ impl<K: Kernel> Reconciler<K> {
+         self.requests
+             .retain(|r| !matches!(r, Request::WriteBindv6only { .. }));
+         self.accepted = Config::new();
++        self.conflicts.clear();
++        self.conflict_times = Deadlines::default();
+         self.store
+             .shutdown
+             .get_or_insert(self.k.now() + DELETION_WAIT);
+@@ -282,7 +319,12 @@ impl<K: Kernel> Reconciler<K> {
+     pub(crate) fn shutdown_deletions(&mut self) -> crate::Result<bool> {
+         let now = self.k.now();
+         let mut failure = None;
+-        for (id, deadline) in self.departing.clone() {
++        for (id, deadline) in self
++            .departing
++            .iter()
++            .map(|(id, at)| (*id, *at))
++            .collect::<Vec<_>>()
++        {
+             match self.k.tunnel(id) {
+                 Ok(None) => {
+                     self.departing.remove(&id);
+@@ -304,7 +346,7 @@ impl<K: Kernel> Reconciler<K> {
+         self.store
+             .next_deadline(self.k.now())
+             .into_iter()
+-            .chain(self.departing.values().copied())
++            .chain(self.departing.first_deadline())
+             .min()
+     }
+ 
+@@ -386,6 +428,7 @@ impl<K: Kernel> Reconciler<K> {
+         match self.conflicts.get(&(session, id)) {
+             Some(c) if c.identity != identity => {
+                 self.conflicts.remove(&(session, id));
++                self.conflict_times.remove(&(session, id));
+                 true
+             }
+             Some(c) => c.next <= now,
+@@ -425,10 +468,14 @@ impl<K: Kernel> Reconciler<K> {
+             self.incomplete = true;
+             log::debug!("{entry}: identifiers refused: {}", report::describe(error));
+         }
++        if c.left_out {
++            self.conflict_times.insert((session, id), c.next);
++        }
+     }
+ 
+     /// The entry got its identifiers (T25).
+     fn conflict_over(&mut self, session: bool, id: u32, entry: &str) {
++        self.conflict_times.remove(&(session, id));
+         if let Some(c) = self.conflicts.remove(&(session, id))
+             && c.left_out
+         {
+diff --git a/src/reconciler/records.rs b/src/reconciler/records.rs
+index 56d1f54..d977f03 100644
+--- a/src/reconciler/records.rs
++++ b/src/reconciler/records.rs
+@@ -27,8 +27,6 @@ pub(crate) struct TunnelRecord {
+     pub connection: Connection,
+     /// Reconnect for a fresh source at the next converge (T19, E20).
+     pub stale: bool,
+-    /// The next reconnect retry (T20, E13).
+-    pub retry_at: Option<Instant>,
+ }
+ 
+ /// Whether the socket is connected (T1, T16).
+diff --git a/src/reconciler/resolvers.rs b/src/reconciler/resolvers.rs
+index dbc788a..be43d12 100644
+--- a/src/reconciler/resolvers.rs
++++ b/src/reconciler/resolvers.rs
+@@ -134,13 +134,13 @@ struct Watch {
+     started: Option<ResolverSpec>,
+     dependencies: Vec<(L2tpIfName, u32)>,
+     selected: Option<IpAddr>,
+-    retry_at: Option<Instant>,
+ }
+ 
+ pub(crate) struct Resolvers {
+     resolve: Box<dyn Resolve>,
+     next_id: u64,
+     watches: BTreeMap<u32, Watch>,
++    retries: super::deadlines::Deadlines<u32>,
+     names: BTreeMap<L2tpIfName, BTreeSet<u32>>,
+     devices: BTreeMap<u32, BTreeSet<u32>>,
+ }
+@@ -163,6 +163,7 @@ impl Resolvers {
+             resolve,
+             next_id: 1,
+             watches: BTreeMap::new(),
++            retries: super::deadlines::Deadlines::default(),
+             names: BTreeMap::new(),
+             devices: BTreeMap::new(),
+         }
+@@ -188,6 +189,7 @@ impl Resolvers {
+     }
+ 
+     pub fn forget(&mut self, tunnel_id: u32) {
++        self.retries.remove(&tunnel_id);
+         self.unindex(tunnel_id);
+         if let Some(watch) = self.watches.remove(&tunnel_id) {
+             self.resolve.unwatch(watch.id);
+@@ -233,7 +235,7 @@ impl Resolvers {
+     }
+ 
+     pub fn next_deadline(&self) -> Option<Instant> {
+-        self.watches.values().filter_map(|w| w.retry_at).min()
++        self.retries.first_deadline()
+     }
+ 
+     pub fn any(&self) -> bool {
+@@ -291,11 +293,10 @@ impl<K: Kernel> Reconciler<K> {
+                 started: None,
+                 dependencies: Vec::new(),
+                 selected: None,
+-                retry_at: None,
+             }
+         });
+-        let skip = watch.retry_at.is_some_and(|t| t > now)
+-            || (watch.started.is_some() && watch.retry_at.is_none());
++        let retry = r.retries.get(&tunnel_id);
++        let skip = retry.is_some_and(|t| *t > now) || (watch.started.is_some() && retry.is_none());
+         let (host, mut id) = (watch.key.0.clone(), watch.id);
+         self.resolvers.index(tunnel_id);
+         if skip {
+@@ -348,7 +349,11 @@ impl<K: Kernel> Reconciler<K> {
+                     || self.resolvers.resolve.retry_discovery(watch.id);
+                 watch.started = Some(spec);
+                 watch.dependencies = dependencies;
+-                watch.retry_at = partial.then_some(now + DEVICE_RETRY);
++                if partial {
++                    self.resolvers.retries.insert(tunnel_id, now + DEVICE_RETRY);
++                } else {
++                    self.resolvers.retries.remove(&tunnel_id);
++                }
+                 if watch.selected.is_none() {
+                     self.report.begin(&label, "answer", || {
+                         "waiting for its resolver's first usable answer (V8)".into()
+@@ -364,7 +369,7 @@ impl<K: Kernel> Reconciler<K> {
+                     watch.id = self.resolvers.next_id;
+                 }
+                 watch.dependencies.clear();
+-                watch.retry_at = Some(now + DEVICE_RETRY);
++                self.resolvers.retries.insert(tunnel_id, now + DEVICE_RETRY);
+                 let message = || format!("its resolver waits: {why} (V9, V12)");
+                 if host_defect {
+                     self.report.begin_error(&label, "resolver", message);
+@@ -561,7 +566,7 @@ impl<K: Kernel> Reconciler<K> {
+                 self.resolvers.next_id += 1;
+                 watch.id = self.resolvers.next_id;
+             }
+-            watch.retry_at = None;
++            self.resolvers.retries.remove(&tunnel_id);
+             self.ensure_lookup(tunnel_id);
+         }
+     }
+@@ -569,13 +574,7 @@ impl<K: Kernel> Reconciler<K> {
+     /// The thirty-second device retries that are due (V9, V12).
+     pub(super) fn retry_resolvers(&mut self) {
+         let now = self.k.now();
+-        let due: Vec<u32> = self
+-            .resolvers
+-            .watches
+-            .iter()
+-            .filter(|(_, w)| w.retry_at.is_some_and(|t| t <= now))
+-            .map(|(id, _)| *id)
+-            .collect();
++        let due: Vec<u32> = self.resolvers.retries.due(now).copied().collect();
+         for id in due {
+             self.ensure_lookup(id);
+         }
+diff --git a/src/reconciler/store.rs b/src/reconciler/store.rs
+index 58c2539..1ddd0b9 100644
+--- a/src/reconciler/store.rs
++++ b/src/reconciler/store.rs
+@@ -14,6 +14,7 @@ pub(super) struct Store {
+     names: BTreeSet<String>,
+     inherited: BTreeMap<String, Vec<OwnedFd>>,
+     pub retiring: BTreeMap<String, Retirement>,
++    deadlines: super::deadlines::Deadlines<String>,
+     pub shutdown: Option<Instant>,
+ }
+ 
+@@ -33,9 +34,9 @@ impl Store {
+         if self.shutdown.is_some_and(|deadline| now >= deadline) {
+             return None;
+         }
+-        self.retiring
+-            .values()
+-            .map(|r| r.pending.map_or(r.next, |(_, d)| d))
++        self.deadlines
++            .first_deadline()
++            .into_iter()
+             .chain(self.shutdown)
+             .min()
+     }
+@@ -128,7 +129,7 @@ impl<K: Kernel> Reconciler<K> {
+         let r = self
+             .store
+             .retiring
+-            .entry(name)
++            .entry(name.clone())
+             .or_insert_with(|| Retirement {
+                 sockets: Vec::new(),
+                 fds: Vec::new(),
+@@ -142,6 +143,9 @@ impl<K: Kernel> Reconciler<K> {
+         r.sockets.extend(sockets);
+         r.fds.extend(fds);
+         r.ids.extend(id);
++        self.store
++            .deadlines
++            .insert(name, r.pending.map_or(r.next, |(_, at)| at));
+     }
+ 
+     /// A withdrawal outcome. `processed` means the manager's processing
+@@ -272,6 +276,7 @@ impl<K: Kernel> Reconciler<K> {
+                     .all(|id| matches!(self.k.tunnel(*id), Ok(None)));
+             if r.withdrawn && absent {
+                 self.store.retiring.remove(&name);
++                self.store.deadlines.remove(&name);
+                 self.store.names.remove(&name);
+                 continue;
+             }
+@@ -282,6 +287,9 @@ impl<K: Kernel> Reconciler<K> {
+                     log::error!("descriptor store cleanup incomplete for {name}");
+                     r.reported = true;
+                 }
++                self.store
++                    .deadlines
++                    .insert(name, r.pending.map_or(r.next, |(_, at)| at));
+                 continue;
+             }
+             if !r.withdrawn && r.pending.is_none() && now >= r.next {
+@@ -290,7 +298,7 @@ impl<K: Kernel> Reconciler<K> {
+                 r.pending = Some((self.next_request, deadline));
+                 self.requests.retain(|r| !matches!(r, Request::ForgetSocket { name: pending, .. } if pending == &name));
+                 self.requests.push(Request::ForgetSocket {
+-                    name,
++                    name: name.clone(),
+                     id: self.next_request,
+                     deadline,
+                 });
+@@ -298,6 +306,9 @@ impl<K: Kernel> Reconciler<K> {
+             if r.pending.is_none() && r.next <= now {
+                 r.next = now + RETRY;
+             }
++            self.store
++                .deadlines
++                .insert(name, r.pending.map_or(r.next, |(_, at)| at));
+         }
+     }
+ }
+diff --git a/src/reconciler/tests.rs b/src/reconciler/tests.rs
+index 4084d5a..3582d2d 100644
+--- a/src/reconciler/tests.rs
++++ b/src/reconciler/tests.rs
+@@ -109,3 +109,116 @@ mod completion {
+         assert_eq!(r.next_deadline(), None);
+     }
+ }
++
++#[cfg(feature = "fake-kernel")]
++mod deadline_cost {
++    use super::super::*;
++    use crate::kernel::fake::FakeKernel;
++
++    /// spec: G23, M15, T25
++    #[test]
++    fn removing_a_left_out_entry_cancels_its_conflict_and_retry() {
++        for shutdown in [false, true] {
++            let mut kernel = FakeKernel::new(42);
++            let foreign = kernel.operator_replace_tunnel(10, 20);
++            let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
++            let config = toml::from_str(
++                "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'",
++            )
++            .unwrap();
++            r.reconcile(config);
++            for _ in 0..10 {
++                r.k.advance(RETRY);
++                r.tick();
++            }
++            assert_eq!(r.left_out(), ["a"]);
++            assert!(r.conflict_times.first_deadline().is_some());
++            if shutdown {
++                assert!(r.shutdown());
++                r.k.advance(DELETION_WAIT);
++            } else {
++                r.reconcile(Config::new());
++            }
++            assert!(
++                r.conflicts.is_empty(),
++                "removed configuration retains conflict history"
++            );
++            assert!(
++                r.conflict_times.is_empty(),
++                "removed configuration retains slow retry"
++            );
++            assert_eq!(r.next_deadline(), None);
++            assert_eq!(r.k.tunnel_socket(10), Some(foreign));
++        }
++    }
++
++    /// spec: M14, M15, E8, E13, G23
++    #[test]
++    fn reconnect_deadlines_keep_their_time_and_cancel_on_success_and_removal() {
++        let mut kernel = FakeKernel::new(42);
++        let device = kernel.add_link("eth", false);
++        kernel.add_addr(device, "192.0.2.1".parse().unwrap());
++        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
++        let text =
++            "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'";
++        r.k.fail_next("connect", nix::errno::Errno::ENETUNREACH);
++        r.reconcile(toml::from_str(text).unwrap());
++        let at = r.k.now() + RETRY;
++        assert_eq!(r.next_deadline(), Some(at));
++        r.k.advance(Duration::from_millis(250));
++        r.handle(
++            Source::Monitor,
++            crate::kernel::Notice::LinkNew(crate::kernel::LinkInfo::new(
++                999,
++                L2tpIfName::new(b"foreign").unwrap(),
++                true,
++                false,
++                None,
++            )),
++        );
++        assert_eq!(
++            r.next_deadline(),
++            Some(at),
++            "unrelated traffic postponed retry"
++        );
++        r.k.advance(Duration::from_millis(750));
++        r.tick();
++        assert!(r.retries.is_empty());
++        assert_eq!(r.next_deadline(), None);
++        r.k.fail_next("connect", nix::errno::Errno::ENETUNREACH);
++        r.reconcile(toml::from_str(&text.replace("192.0.2.2", "192.0.2.3")).unwrap());
++        assert_eq!(r.next_deadline(), Some(r.k.now() + RETRY));
++        r.reconcile(Config::new());
++        assert!(
++            r.retries.is_empty(),
++            "removed tunnel retained a reconnect timer"
++        );
++        r.k.advance(DELETION_WAIT);
++        r.tick();
++        assert_eq!(r.next_deadline(), None);
++        assert_eq!(r.k.open_sockets(), 0);
++    }
++
++    /// spec: G12, M14, M15, M16
++    #[test]
++    fn deadline_selection_preserves_the_earliest_deletion_under_large_workloads() {
++        for count in [1, 300, 20_000] {
++            let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
++            let now = r.k.now();
++            for id in 0..count {
++                r.departing
++                    .insert(id, now + Duration::from_secs(u64::from(id % 31) + 1));
++            }
++            let expected = Some(now + Duration::from_secs(1));
++            let started = Instant::now();
++            for _ in 0..20_000 {
++                assert_eq!(std::hint::black_box(&r).next_deadline(), expected);
++            }
++            println!(
++                "DEADLINE_COST records={count} queries=20000 elapsed_ns={}",
++                started.elapsed().as_nanos()
++            );
++            assert_eq!(r.departing.len(), count as usize);
++        }
++    }
++}
+diff --git a/src/reconciler/timers.rs b/src/reconciler/timers.rs
+index 041f724..3119036 100644
+--- a/src/reconciler/timers.rs
++++ b/src/reconciler/timers.rs
+@@ -18,14 +18,10 @@ impl<K: Kernel> Reconciler<K> {
+             self.store.next_deadline(now),
+             self.tick_at,
+             self.resolvers.next_deadline(),
+-            self.tunnels.values().filter_map(|t| t.retry_at).min(),
+-            self.conflicts
+-                .values()
+-                .filter(|c| c.left_out)
+-                .map(|c| c.next)
+-                .min(),
+-            self.departing.values().min().copied(),
+-            self.deleting_sessions.values().min().copied(),
++            self.retries.first_deadline(),
++            self.conflict_times.first_deadline(),
++            self.departing.first_deadline(),
++            self.deleting_sessions.first_deadline(),
+         ]
+         .into_iter()
+         .flatten()
+@@ -53,25 +49,23 @@ impl<K: Kernel> Reconciler<K> {
+         }
+         self.poll_answers();
+         self.retry_resolvers();
+-        let left_out_due = self.conflicts.values().any(|c| c.left_out && c.next <= now);
+-        let departed_due = self.departing.values().any(|d| *d <= now)
++        let left_out_due = self
++            .conflict_times
++            .first_deadline()
++            .is_some_and(|at| at <= now);
++        let departed_due = self.departing.first_deadline().is_some_and(|at| at <= now)
+             || self
+                 .deleting_sessions
+-                .values()
+-                .any(|deadline| *deadline <= now);
++                .first_deadline()
++                .is_some_and(|at| at <= now);
+         if self.reconcile_at.is_some_and(|t| t <= now) || left_out_due || departed_due {
+             self.reconcile_at = None;
+             let config = self.accepted.clone();
+             self.reconcile_current(config);
+         }
+-        let due: Vec<u32> = self
+-            .tunnels
+-            .iter()
+-            .filter(|(_, t)| t.retry_at.is_some_and(|r| r <= now))
+-            .map(|(id, _)| *id)
+-            .collect();
++        let due: Vec<u32> = self.retries.due(now).copied().collect();
+         for id in due {
+-            self.tunnels.get_mut(&id).unwrap().retry_at = None;
++            self.retries.remove(&id);
+             self.converge_tunnel(id);
+         }
+         let verify: Vec<_> = self.verify_sessions.iter().copied().collect();
+diff --git a/src/reconciler/tunnels.rs b/src/reconciler/tunnels.rs
+index 89719e7..3ff53b6 100644
+--- a/src/reconciler/tunnels.rs
++++ b/src/reconciler/tunnels.rs
+@@ -108,7 +108,6 @@ impl<K: Kernel> Reconciler<K> {
+                 connection: Connection::Disconnected { pending: None },
+                 // Its connection is unknown: the first converge disconnects.
+                 stale: true,
+-                retry_at: None,
+             },
+         );
+         log::info!(
+@@ -167,6 +166,7 @@ impl<K: Kernel> Reconciler<K> {
+                 self.report.forget(&report::session("", tid, sid));
+             }
+             let record = self.tunnels.remove(&id).unwrap();
++            self.retries.remove(&id);
+             if !self.withdraw_socket(id, record.socket) {
+                 self.k.close(record.socket);
+                 self.departing.insert(id, self.k.now() + DELETION_WAIT);
+@@ -194,7 +194,12 @@ impl<K: Kernel> Reconciler<K> {
+                 self.departing.remove(&id);
+             }
+         }
+-        for (key, deadline) in self.deleting_sessions.clone() {
++        for (key, deadline) in self
++            .deleting_sessions
++            .iter()
++            .map(|(key, at)| (*key, *at))
++            .collect::<Vec<_>>()
++        {
+             if deadline <= now || matches!(self.k.session(key.0, key.1), Ok(None)) {
+                 self.deleting_sessions.remove(&key);
+             }
+@@ -341,7 +346,6 @@ impl<K: Kernel> Reconciler<K> {
+                 zone_index: None,
+                 connection: Connection::Disconnected { pending: None },
+                 stale: false,
+-                retry_at: None,
+             },
+         );
+         self.store_socket(id, socket);
+@@ -484,7 +488,7 @@ impl<K: Kernel> Reconciler<K> {
+                     source: source.to_canonical(),
+                 };
+                 record.bound = zone.or(bind);
+-                record.retry_at = None;
++                self.retries.remove(&id);
+                 self.report.forget_condition(&label, "pending");
+                 log::info!(
+                     "{label}: connected to {} from {}",
+@@ -524,8 +528,9 @@ impl<K: Kernel> Reconciler<K> {
+     /// Queues a retry a second later, without postponing one queued (E8).
+     pub(super) fn arm_retry(&mut self, id: u32) {
+         let at = self.k.now() + RETRY;
+-        let record = self.tunnels.get_mut(&id).unwrap();
+-        record.retry_at.get_or_insert(at);
++        if !self.retries.contains_key(&id) {
++            self.retries.insert(id, at);
++        }
+     }
+ 
+     /// The source a connected tunnel reported (E7).

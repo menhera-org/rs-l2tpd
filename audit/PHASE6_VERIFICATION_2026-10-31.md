@@ -10,7 +10,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 |---|---|---|
 | P1 source link | Fresh strict run: four tests pass; 43 facts, 37 production-cited and six classified; no uncited functions | Enable in CI only with required determinism and remaining phase proof |
 | P1 rule map | Fresh strict run fails: 343 total / 333 active / 275 cited / 58 missing | Genuine assertions/citations for the remaining rules; strict flag stays off |
-| P2 scenarios | 23-case host subset passes, including the 300-tunnel H17 case; H16 passes on all five required kernels; scoped missing-Ethernet-driver guest also passes | Deadline-selection event cost, full resource/history proof, remaining clauses, manager/promise cases and final repetitions |
+| P2 scenarios | 23-case host subset passes, including the 300-tunnel H17 case; H16 passes on all five required kernels; scoped missing-Ethernet-driver guest also passes | Relevant-event cache cost, full resource/history proof, remaining clauses, manager/promise cases and final repetitions |
 | P3 matrix | Pre-H15 required driver returns MATRIX_RESULT=0: five 18-scenario profiles plus both H4 boots; H15 adds a scoped stock-kernel driver-availability boot; H16 adds a passing clock profile on every required target; fresh mainline normal profile passes all 23 scenarios and current conformance | Complete P2/delegated proof and rerun all latest targets with the expanded suite and current report fixes; partial profiles do not close the whole gate |
 | P4 coverage | First merged GNU report: 91.03% lines / 77.02% branches, source snapshot before the readiness fix | The previous source snapshot has 897 missing lines / 410 branches; recollect current-source profiles after readiness/H15 fixes; no exclusions introduced |
 | P5 Incus | October 30 full case passed, including manager race/ordered policy/store/re-exec; fresh GNU buffer case proves EPERM and exports coverage | Final-code full-case refresh as part of phase exit |
@@ -18,6 +18,8 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P7 docs/CI | Documentation updated to the actual partial runners and new records | Full verification, determinism/coverage jobs, strict CI and CI execution remain open |
 
 Current P1/ordinary/warning checks are in
+[deadline-index-20261031](phase6/deadline-index-20261031/README.md). Lifetime
+indexing evidence is in
 [lifetime-index-20261031](phase6/lifetime-index-20261031/README.md). Earlier
 H17 scale/storage evidence is in
 [H17-20261031](phase6/H17-20261031/README.md). Clock evidence is in
@@ -201,6 +203,30 @@ change, so the final full matrix still needs refreshing. Runtime deadline
 selection still scans all tunnel timers after events; complete G12/M16
 event cost and the other phase gates remain open. The first empty-loop
 live harness invocation is retained as a harness error, not counted.
+
+## Indexed deadlines and conflict cancellation
+
+[The deadline-index package](phase6/deadline-index-20261031/README.md)
+replaces per-event timer scans with ordered indexes. Replacing or
+cancelling an owner's deadline removes the previous entry; due iteration
+visits only due owners. A 10,000-mutation model checks exact minima,
+contents, due sets and bounded cardinality. Fixed retry times survive
+unrelated traffic and are cancelled on success/removal.
+
+The selector's 20,000-query/20,000-record native workload falls from
+29.17 seconds to 8.84 milliseconds in the recorded debug profile; this is
+diagnostic evidence, not a new SLA. A regression also found existing
+conflict counters/slow retries retained after configuration removal.
+Removal, identity replacement and shutdown now discard obsolete conflict
+state; removal/shutdown cases preserve the foreign tunnel.
+
+All 23 host scenarios, 26 privileged process cases, ordinary tests, Clippy,
+four strict source-link checks and ten TEST_SEED=1..10 rule runs pass.
+Each rule run passes 74 tests; its 32-seed planner ranges overlap. Mainline
+7.3.0 also passes the scoped H16 clock/pause case with current deadlines
+and all result markers zero. The full current-source/latest-target matrix
+still needs its final run. Relevant-event cache maintenance and the rest
+of the G12/M16/resource proof remain open; no global gate is closed.
 
 ## Coverage and exit state
 

@@ -1,0 +1,21 @@
+cargo test --locked --all-features --lib deadline_selection_preserves_the_earliest_deletion_under_large_workloads -- --nocapture
+cargo test --locked --all-features --lib removing_a_left_out_entry_cancels_its_conflict_and_retry
+cargo test --locked --all-features --lib deadline -- --nocapture
+cargo test --locked --all-features
+cargo clippy --locked --all-features --all-targets -- -D warnings
+SRCLINK_STRICT=1 cargo test --locked --all-features --test srclink
+RULEMAP_STRICT=1 cargo test --locked --all-features --test rulemap
+TEST_SEED=1 cargo test --locked --all-features --test rules
+TEST_SEED=2 cargo test --locked --all-features --test rules
+TEST_SEED=3 cargo test --locked --all-features --test rules
+TEST_SEED=4 cargo test --locked --all-features --test rules
+TEST_SEED=5 cargo test --locked --all-features --test rules
+TEST_SEED=6 cargo test --locked --all-features --test rules
+TEST_SEED=7 cargo test --locked --all-features --test rules
+TEST_SEED=8 cargo test --locked --all-features --test rules
+TEST_SEED=9 cargo test --locked --all-features --test rules
+TEST_SEED=10 cargo test --locked --all-features --test rules
+tests/docker/run.sh scenarios
+tests/kernel/run-guest.sh target/phase6-kernels/linux-7.3-ipv6/arch/x86/boot/bzImage - target/phase6-kernels/linux-7.3-ipv6/.config clock audit/phase6/qemu-deadline-clock-20261031
+cargo test --locked --all-features --target x86_64-unknown-linux-musl --test process --no-run
+docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --entrypoint sh rs-l2tpd-audit-vm:local -ec 'uname -r; exec "$@"' run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/process-fc1f00b72031adc1 --include-ignored --test-threads=1 --nocapture
