@@ -1,0 +1,384 @@
+diff --git a/src/bin/rs-l2tpd/files.rs b/src/bin/rs-l2tpd/files.rs
+index 036ce92..a61ad92 100644
+--- a/src/bin/rs-l2tpd/files.rs
++++ b/src/bin/rs-l2tpd/files.rs
+@@ -327,6 +327,68 @@ fn read_file(path: &Path) -> io::Result<String> {
+ mod completion_tests {
+     use super::*;
+     use std::os::unix::ffi::OsStrExt;
++
++    /// spec: C1 C3 C4 P13
++    #[test]
++    fn file_io_faults_refuse_reload_and_keep_successfully_read_documents() {
++        const CHILD: &str = "PHASE6_FILE_FAULT";
++        if let Ok(case) = std::env::var(CHILD) {
++            let root = std::path::PathBuf::from(std::env::var_os("PHASE6_FILE_ROOT").unwrap());
++            let main = root.join("main.toml");
++            let dropins = root.join("dropins");
++            let previous: Config =
++                toml::from_str("[tunnels.previous]\ntunnel_id=11\nremote_addr='192.0.2.1'")
++                    .unwrap();
++            crate::logger::init(true);
++            match case.as_str() {
++                "enumeration" => crate::syscall_fault::refuse(&[libc::SYS_getdents64], libc::EIO),
++                "read" => crate::syscall_fault::refuse(&[libc::SYS_read], libc::EIO),
++                "open" => crate::syscall_fault::refuse_open(libc::ENOENT),
++                "metadata" => {
++                    crate::syscall_fault::refuse(&[libc::SYS_fstat, libc::SYS_statx], libc::EIO);
++                    assert_eq!(
++                        read_file(&main).unwrap_err().raw_os_error(),
++                        Some(libc::EIO)
++                    );
++                    return;
++                }
++                _ => panic!("unknown file fault"),
++            }
++            let loaded = load(&main, &dropins);
++            let (config, problems) = loaded.partial.into_config_lenient();
++            assert!(problems.is_empty());
++            assert_eq!(loaded.errors.len(), if case == "open" { 2 } else { 1 });
++            if case == "enumeration" {
++                assert_eq!(config.tunnels()["retained"].tunnel_id(), 10);
++                assert!(loaded.errors[0].starts_with(dropins.to_str().unwrap()));
++            } else {
++                assert!(config.tunnels().is_empty());
++                assert!(loaded.errors[0].starts_with(main.to_str().unwrap()));
++            }
++            assert!(reload(&main, &dropins, previous.clone()).is_err());
++            assert_eq!(previous.tunnels()["previous"].tunnel_id(), 11);
++            return;
++        }
++        let dir = crate::testdir::Dir::new();
++        fs::write(
++            dir.path().join("main.toml"),
++            "[tunnels.retained]\ntunnel_id=10\nremote_addr='192.0.2.2'",
++        )
++        .unwrap();
++        fs::create_dir(dir.path().join("dropins")).unwrap();
++        for case in ["enumeration", "read", "open", "metadata"] {
++            let output = std::process::Command::new(std::env::current_exe().unwrap())
++                .args(["--exact", "files::completion_tests::file_io_faults_refuse_reload_and_keep_successfully_read_documents", "--nocapture", "--test-threads=1"])
++                .env(CHILD, case)
++                .env("PHASE6_FILE_ROOT", dir.path())
++                .output()
++                .unwrap();
++            assert!(output.status.success(), "{case}: {output:?}");
++            assert!(!String::from_utf8_lossy(&output.stderr).contains("LLVM Profile Error"));
++            println!("FILE_FAULT_VERIFIED={case}");
++        }
++    }
++
+     /// spec: C3 C4 P2 P13
+     #[test]
+     fn bounded_regular_files_and_special_files() {
+diff --git a/src/bin/rs-l2tpd/main.rs b/src/bin/rs-l2tpd/main.rs
+index afbffa0..50d6350 100644
+--- a/src/bin/rs-l2tpd/main.rs
++++ b/src/bin/rs-l2tpd/main.rs
+@@ -292,6 +292,64 @@ fn streams() -> io::Result<()> {
+ #[cfg(test)]
+ #[cfg_attr(coverage_nightly, coverage(off))]
+ mod stream_tests {
++    /// spec: P2 O1
++    #[test]
++    fn failed_standard_stream_setup_returns_the_original_error() {
++        const CHILD: &str = "PHASE6_STREAM_FAULT";
++        if let Ok(case) = std::env::var(CHILD) {
++            match case.as_str() {
++                "fcntl" => crate::syscall_fault::refuse(&[libc::SYS_fcntl], libc::EIO),
++                "open" => {
++                    crate::syscall_fault::refuse_open(libc::EACCES);
++                    assert_eq!(unsafe { libc::close(0) }, 0);
++                }
++                "dup-failure" | "dup-success" => {
++                    // Model a descriptor being reused between the probe and open.
++                    crate::syscall_fault::refuse(&[libc::SYS_fcntl], libc::EBADF);
++                    if case == "dup-failure" {
++                        crate::syscall_fault::refuse(&[libc::SYS_dup2], libc::EIO);
++                    }
++                }
++                _ => panic!("unknown stream fault"),
++            }
++            if case == "dup-success" {
++                super::streams().unwrap();
++                for fd in 0..=2 {
++                    let mut stat = std::mem::MaybeUninit::<libc::stat>::uninit();
++                    assert_eq!(unsafe { libc::fstat(fd, stat.as_mut_ptr()) }, 0);
++                    assert_eq!(
++                        unsafe { stat.assume_init() }.st_mode & libc::S_IFMT,
++                        libc::S_IFCHR
++                    );
++                }
++            } else {
++                assert_eq!(
++                    super::streams().unwrap_err().raw_os_error(),
++                    Some(if case == "open" {
++                        libc::EACCES
++                    } else {
++                        libc::EIO
++                    })
++                );
++            }
++            return;
++        }
++        for case in ["fcntl", "open", "dup-failure", "dup-success"] {
++            let output = std::process::Command::new(std::env::current_exe().unwrap())
++                .args([
++                    "--exact",
++                    "stream_tests::failed_standard_stream_setup_returns_the_original_error",
++                    "--test-threads=1",
++                ])
++                .env(CHILD, case)
++                .output()
++                .unwrap();
++            assert!(output.status.success(), "{case}: {output:?}");
++            assert!(!String::from_utf8_lossy(&output.stderr).contains("LLVM Profile Error"));
++            println!("STREAM_FAULT_VERIFIED={case}");
++        }
++    }
++
+     /// spec: P2 O1
+     #[test]
+     fn closed_streams_child() {
+diff --git a/src/bin/rs-l2tpd/restart.rs b/src/bin/rs-l2tpd/restart.rs
+index ef0b685..47e32bc 100644
+--- a/src/bin/rs-l2tpd/restart.rs
++++ b/src/bin/rs-l2tpd/restart.rs
+@@ -631,6 +631,16 @@ mod completion_tests {
+     /// spec: P26
+     #[test]
+     fn adoption_probes_bound_output_and_time_before_any_exec() {
++        if std::env::var_os("PHASE6_ISOLATED_PROBES").is_none() {
++            let output = Command::new(std::env::current_exe().unwrap())
++                .args(["--exact", "restart::completion_tests::adoption_probes_bound_output_and_time_before_any_exec", "--nocapture", "--test-threads=1"])
++                .env("PHASE6_ISOLATED_PROBES", "1")
++                .output()
++                .unwrap();
++            assert!(output.status.success(), "{output:?}");
++            return;
++        }
++        // Other tests' forks must never inherit these scripts' writable descriptors.
+         let dir = crate::testdir::Dir::new();
+         for (name, script, error) in [
+             ("compatible", "printf 'rs-l2tpd-adopt 1\\n'", None),
+diff --git a/src/reconciler/ladder.rs b/src/reconciler/ladder.rs
+index a5b2bf8..0b7a6da 100644
+--- a/src/reconciler/ladder.rs
++++ b/src/reconciler/ladder.rs
+@@ -73,7 +73,11 @@ impl<K: Kernel> Reconciler<K> {
+             why: Some(why),
+         };
+         let Some(peer) = peer.clone() else {
+-            return Ok(disconnect("it has no peer").without_reason());
++            return Ok(Target::Disconnect {
++                bind: bind.as_ref().map(|link| link.index),
++                pending: None,
++                why: None,
++            });
+         };
+         if family == Family::V4 && peer.addr.is_ipv6() {
+             return Ok(disconnect(
+@@ -105,17 +109,3 @@ impl<K: Kernel> Reconciler<K> {
+         })
+     }
+ }
+-
+-impl Target {
+-    /// A peerless tunnel waits for nothing: no reason to report.
+-    fn without_reason(self) -> Self {
+-        match self {
+-            Target::Disconnect { bind, pending, .. } => Target::Disconnect {
+-                bind,
+-                pending,
+-                why: None,
+-            },
+-            other => other,
+-        }
+-    }
+-}
+diff --git a/tests/startup.rs b/tests/startup.rs
+index 9f19a2c..74ddb91 100644
+--- a/tests/startup.rs
++++ b/tests/startup.rs
+@@ -14,6 +14,116 @@ use rs_l2tpd::{Error, service};
+ mod syscall_fault;
+ use syscall_fault::refuse as refuse_startup_syscalls;
+ 
++/// spec: L13, P14, G23
++#[test]
++fn descriptor_resource_failures_preserve_inheritance_and_release_partial_sockets() {
++    const CHILD: &str = "PHASE6_DESCRIPTOR_FAULT";
++    if let Ok(case) = std::env::var(CHILD) {
++        use rs_l2tpd::config::TunnelConfig;
++        use rs_l2tpd::kernel::{Family, Kernel};
++        use rs_l2tpd::reconciler::Reconciler;
++        use std::os::fd::{AsFd, BorrowedFd};
++        // opendir inspects metadata; keep this enumeration open before denying it.
++        let directory = unsafe { libc::opendir(c"/proc/self/fd".as_ptr()) };
++        assert!(!directory.is_null());
++        let count = || unsafe {
++            libc::rewinddir(directory);
++            let mut count = 0;
++            while !libc::readdir(directory).is_null() {
++                count += 1;
++            }
++            assert!(count >= 5);
++            count
++        };
++        if case == "inherited-duplicate" {
++            let (fd, peer) = std::os::unix::net::UnixStream::pair().unwrap();
++            let raw = fd.as_raw_fd();
++            let mut r = Reconciler::new(FakeKernel::new(7), Box::new(IphostResolve::default()));
++            r.inherit("t10".into(), fd.into());
++            let mut config = Config::new();
++            config
++                .insert_tunnel(
++                    "a",
++                    TunnelConfig::builder(10)
++                        .ip_version(Family::V6)
++                        .build()
++                        .unwrap(),
++                )
++                .unwrap();
++            refuse_startup_syscalls(&[libc::SYS_fcntl], libc::EMFILE);
++            assert!(!r.reconcile(config));
++            assert!(!r.ready());
++            assert_eq!(r.kernel().open_sockets(), 0);
++            assert!(r.take_requests().is_empty());
++            // The original remains readable even though every duplication fails.
++            let borrowed = unsafe { BorrowedFd::borrow_raw(raw) };
++            assert_eq!(
++                unsafe { libc::write(peer.as_fd().as_raw_fd(), c"alive".as_ptr().cast(), 5) },
++                5
++            );
++            let mut bytes = [0u8; 5];
++            assert_eq!(
++                unsafe { libc::read(borrowed.as_raw_fd(), bytes.as_mut_ptr().cast(), bytes.len()) },
++                5
++            );
++            assert_eq!(&bytes, b"alive");
++            assert!(r.shutdown());
++            assert_eq!(
++                unsafe { libc::read(raw, bytes.as_mut_ptr().cast(), bytes.len()) },
++                -1
++            );
++            assert_eq!(
++                std::io::Error::last_os_error().raw_os_error(),
++                Some(libc::EBADF)
++            );
++        } else {
++            let mut k = FakeKernel::new(7);
++            match case.as_str() {
++                "socket-duplicate" => refuse_startup_syscalls(&[libc::SYS_fcntl], libc::EMFILE),
++                "socket-metadata" => {
++                    refuse_startup_syscalls(&[libc::SYS_fstat, libc::SYS_statx], libc::EIO)
++                }
++                _ => panic!("unknown descriptor fault"),
++            }
++            let before = count();
++            assert_eq!(
++                k.create_socket(Family::V6, 10, 20)
++                    .unwrap_err()
++                    .raw_os_error(),
++                Some(if case == "socket-duplicate" {
++                    libc::EMFILE
++                } else {
++                    libc::EIO
++                })
++            );
++            assert_eq!(k.open_sockets(), 0);
++            assert_eq!(count(), before);
++        }
++        assert_eq!(unsafe { libc::closedir(directory) }, 0);
++        println!("DESCRIPTOR_FAULT_CHECKED={case}");
++        return;
++    }
++    for case in ["inherited-duplicate", "socket-duplicate", "socket-metadata"] {
++        let output = std::process::Command::new(std::env::current_exe().unwrap())
++            .args([
++                "--exact",
++                "descriptor_resource_failures_preserve_inheritance_and_release_partial_sockets",
++                "--nocapture",
++                "--test-threads=1",
++            ])
++            .env(CHILD, case)
++            .output()
++            .unwrap();
++        assert!(output.status.success(), "{case}: {output:?}");
++        assert!(
++            String::from_utf8_lossy(&output.stdout)
++                .contains(&format!("DESCRIPTOR_FAULT_CHECKED={case}"))
++        );
++        assert!(!String::from_utf8_lossy(&output.stderr).contains("LLVM Profile Error"));
++        println!("DESCRIPTOR_FAULT_VERIFIED={case}");
++    }
++}
++
+ /// spec: V3, V4, V15, A9, G23
+ #[test]
+ fn resolver_spawn_failures_return_errors_and_release_worker_permits() {
+diff --git a/tests/tools/syscall_fault.rs b/tests/tools/syscall_fault.rs
+index f338852..84a3cf3 100644
+--- a/tests/tools/syscall_fault.rs
++++ b/tests/tools/syscall_fault.rs
+@@ -1,8 +1,37 @@
+ use nix::libc;
+ 
++#[allow(
++    dead_code,
++    reason = "shared helper; not every test binary denies file opens"
++)]
++pub(crate) fn refuse_open(errno: i32) {
++    let syscalls = &[
++        #[cfg(any(
++            target_arch = "arm",
++            target_arch = "x86",
++            target_arch = "x86_64",
++            target_arch = "powerpc",
++            target_arch = "powerpc64",
++            target_arch = "s390x",
++            target_arch = "sparc",
++            target_arch = "sparc64",
++            target_arch = "mips",
++            target_arch = "mips64",
++            target_arch = "mips32r6",
++            target_arch = "mips64r6",
++            target_arch = "m68k"
++        ))]
++        libc::SYS_open,
++        libc::SYS_openat,
++    ];
++    refuse(syscalls, errno);
++}
++
+ // Test-only fault injection: include/uapi/linux/seccomp.h and filter.h.
+ // The child and its future worker do not exec; syscall numbers use its target ABI.
+ pub(crate) fn refuse(syscalls: &[libc::c_long], errno: i32) {
++    #[cfg(coverage_nightly)]
++    keep_profile_output();
+     let mut filter = vec![libc::sock_filter {
+         code: 0x20,
+         jt: 0,
+@@ -57,3 +86,22 @@ pub(crate) fn refuse(syscalls: &[libc::c_long], errno: i32) {
+         );
+     }
+ }
++
++#[cfg(coverage_nightly)]
++fn keep_profile_output() {
++    unsafe extern "C" {
++        fn __llvm_profile_get_filename() -> *const libc::c_char;
++        fn __llvm_profile_set_filename(path: *const libc::c_char);
++        fn __llvm_profile_set_file_object(file: *mut libc::FILE, merge: libc::c_int)
++        -> libc::c_int;
++    }
++    // LLVM retains this allocated name and FILE until this fault-test child exits.
++    unsafe {
++        let path = __llvm_profile_get_filename();
++        assert!(!path.is_null() && *path != 0);
++        __llvm_profile_set_filename(path);
++        let file = libc::fopen(path, c"w+b".as_ptr());
++        assert!(!file.is_null());
++        assert_eq!(__llvm_profile_set_file_object(file, 0), 0);
++    }
++}

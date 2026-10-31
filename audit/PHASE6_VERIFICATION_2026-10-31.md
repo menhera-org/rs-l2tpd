@@ -12,7 +12,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 source link | Strict local and CI passes: 43 facts, 37 production-cited and six classified; no uncited functions. Ten CI repetitions passed | Maintain strict enforcement as sources change |
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
-| P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
+| P3 matrix | Latest required driver returns MATRIX_RESULT=0: five normal and five clock profiles, both IPv6-absent boots and missing-Ethernet-driver recovery pass; published versions match before/after | Later test additions need final consistent-source qualification; complete P2/delegated proof remains open |
 | P4 coverage | Approved production scope: merged GNU report 94.90% lines / 84.48% branches after inheritance/parser cases; production mappings match, with no exclusions or saturated counts | 435 missing lines / 281 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
@@ -930,3 +930,22 @@ Only excluded test bodies change; production coverage mappings match the
 preceding collection. Coverage is 94.90% lines / 84.48% branches, leaving
 435 lines and 281 branches, with zero saturated regions. The new Linux case
 has not yet run on every required kernel; global proof requirements remain open.
+
+## Required matrix refresh
+
+[The latest matrix](phase6/matrix-20261031T213935Z-567802/README.md)
+returns MATRIX_RESULT=0. All five normal profiles pass 26 scenarios and
+27 process cases, including full fragmentation and scale cases. All five
+separate clock/pause profiles pass. Mainline's two IPv6-absent boots and
+Ubuntu 7.0's missing-Ethernet-driver recovery also pass. Initial and final
+publication sets match; the isolated source patch is unchanged and matches
+the I/O-fault package. Closed/unregistered socket ownership assertions pass
+in both families on every target. Per-target results, source distinctions
+and manager limitations are updated in
+[the kernel behavior page](../docs/kernel-behavior.md).
+
+This matrix uses the production source committed as 6f832c4 and its fixture
+set. Subsequent monitor, process/service and inheritance tests have separate
+Ubuntu 6.8 evidence and are absent from that matrix. H11/P5, final
+consistent-source qualification, full clause/resource/event-cost proof and
+100% production coverage remain open.

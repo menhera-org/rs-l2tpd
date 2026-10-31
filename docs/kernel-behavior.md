@@ -5,14 +5,13 @@
 This page records the behavior relevant to rs-l2tpd for **each required
 kernel**, resolved on 2026-10-31. The specification defines the contract;
 this page distinguishes observations, source evidence and remaining tests.
-The latest full refresh passes four normal profiles and fails one H8
-request-count assertion on vanilla 7.0.14. A subsequent targeted run passes
-that kernel's full normal and clock profiles after correcting the fixture's
-shutdown measurement boundary. All five targets pass their H20 and
-300-tunnel scenarios; a final consistent-source matrix is still required.
-Repository files `audit/phase6/matrix-20261031T133318Z-3943822/README.md`
-and `audit/phase6/vanilla7014-refresh-20261031/README.md` record exact
-sources, results and the targeted correction.
+The latest required matrix passes all five normal and clock profiles,
+including H20 fragmentation and both 300-entry daemons. It also passes both
+IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
+publication checks select the same versions. Repository record
+`audit/phase6/matrix-20261031T213935Z-567802/README.md` identifies the I/O
+source and fixture set tested. Later test-only additions and the unresolved
+H11 manager-policy case still need final qualification.
 
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.
@@ -85,7 +84,7 @@ not mean that every possible failure mode was exercised on that target.
 - **Vanilla `7.0.14`:** the empty VRF refuses with `EADDRNOTAVAIL`;
   deletion events can cross namespaces. Session deletion is queued and
   dump traversal is identifier-based. L2TP/VRF are built in. Its normal
-  profile passes all 26 scenarios after the H8 fixture correction, including
+  profile passes all 26 scenarios with the H8 fixture correction, including
   capability and scale cases. The separate current clock profile also passes.
   No system-container profile has run on this target.
 - **Mainline `7.3.0`:** the empty VRF refuses with `EADDRNOTAVAIL`;
@@ -102,24 +101,59 @@ not mean that every possible failure mode was exercised on that target.
 “Not run” is a missing test result, not a known kernel incompatibility.
 The normal profile proves the shared assertions it actually executes,
 including all eight H20 fragmentation combinations. The additional
-profiles below use the dated source snapshots linked later on this page;
-they are not a single final run of the current daemon on all targets.
+profiles below use the I/O source identified by the latest matrix record.
+Subsequent monitor/process/inheritance fixtures have separate Ubuntu 6.8
+evidence and are not included in that five-target fixture set.
 
 | Required kernel | Current normal profile / H20 | Capability/netlink degradation | H16 clock/pause | H17 300 tunnels | H11/unprivileged system container |
 |---|---|---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 26 pass / pass | Pass | Pass | Pass | Pass, with documented MAC race and buffer fallback |
+| Ubuntu `6.8.0-147-generic` | 26 pass / pass | Pass | Pass | Pass | Individual passes; later staged configured-MAC override leaves H11/P5 unresolved |
 | Vanilla `6.8.12` | 26 pass / pass | Pass | Pass | Pass | Not run |
 | Ubuntu `7.0.0-42-generic` | 26 pass / pass; cold-boot KHO override | Pass; missing-driver recovery also passes | Pass | Pass | Not run |
-| Vanilla `7.0.14` | 26 pass after H8 fixture correction / pass | Pass | Current targeted rerun passes | Pass | Not run |
+| Vanilla `7.0.14` | 26 pass / pass | Pass | Pass | Pass | Not run |
 | Mainline `7.3.0` | 26 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the
-current matrix (`audit/phase6/matrix-20261031T133318Z-3943822/README.md`).
-Current Incus/H11 (`audit/phase6/incus-20261031T134611Z-3957335/scenario.log`)
-and root-systemd (`audit/phase6/root-systemd-current-20261031/README.md`)
-results apply to Ubuntu 6.8.0-147 only. The dated packages below retain
+latest matrix (`audit/phase6/matrix-20261031T213935Z-567802/README.md`).
+The latest individual instrumented Incus pass is recorded in
+`audit/phase6/process-errors-20261031/README.md`; the unmodified failure and
+unapplied H11 correction are in `audit/phase6/staged-mac-override-20261031/`.
+The latest unmodified root-systemd pass is in
+`audit/phase6/io-faults-20261031/README.md`. All these manager results apply
+to Ubuntu 6.8.0-147 only. The dated packages below retain
 their original scope; the current table supersedes their per-target
 execution summaries.
+
+### Latest matrix counts and ownership observations
+
+Each normal guest runs twelve live library cases, nineteen Linux cases
+(including the seventeen shared conformance cases), five review cases, fifty
+ordinary binary cases and three privileged binary cases. Eight descriptor
+fault paths run separately in those binary fixtures. All 27 process cases
+and 26 normal scenarios pass on each target; the real-manager and clock
+declarations are outside the normal scenario profile. The clock profile runs
+one case per target with controller-confirmed pause/resume.
+
+| Required target | Normal scenarios | H16 clock/pause | Closed and unregistered socket ownership |
+|---|---|---|---|
+| Ubuntu `6.8.0-147-generic` | 26 pass, 542.06 s | Pass, 64.74 s | Both families pass |
+| Vanilla `6.8.12` | 26 pass, 474.47 s | Pass, 64.30 s | Both families pass |
+| Ubuntu `7.0.0-42-generic` | 26 pass, 492.10 s | Pass, 64.50 s | Both families pass |
+| Vanilla `7.0.14` | 26 pass, 459.38 s | Pass, 64.27 s | Both families pass |
+| Mainline `7.3.0` | 26 pass, 446.56 s | Pass, 64.40 s | Both families pass |
+
+After a local socket handle closes, its five socket operations return EBADF
+even while an external descriptor retains the tunnel. An unregistered
+socket cannot be adopted through the daemon's kernel adapter (ENODEV).
+An external descriptor of that unregistered socket still reserves its
+connection identifier until the last close. These are shared live
+observations in both families on every target; the fake backend now matches
+them. They do not imply immediate tunnel deletion after the last close.
+
+Mainline also passes separate `ipv6.disable=1` and `CONFIG_IPV6=n` profiles,
+one boot case each. The modular Ubuntu 7.0 target passes missing-Ethernet-driver
+degradation and recovery in a separate boot. No new system-container result
+is inferred for any other kernel.
 
 ## Session deletion and dump traversal by target
 
@@ -368,7 +402,7 @@ now passed on every required target in the current refresh. Repository record
 proofs; `audit/phase6/deadline-index-20261031/README.md` records indexed
 deadlines, conflict cancellation and fresh host/mainline-clock checks.
 
-Current merged production coverage is 93.32% of lines and 80.95% of branches;
+Current merged production coverage is 94.90% of lines and 84.48% of branches;
 the threshold remains 100%. The earlier 92.26% line report included inline
 test code. Both strict map flags are enabled after ten CI qualification
 passes, and the strict workflow and pinned-nightly coverage workflow pass.

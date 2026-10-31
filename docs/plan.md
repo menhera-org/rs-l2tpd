@@ -574,7 +574,12 @@ The required-kernel refresh found a vanilla 7.0.14
 fixture failure: asynchronous shutdown checks made total netlink counts vary.
 Comparing drained startup/reload work fixes that measurement; three focused
 repetitions and the full normal/clock profiles now pass on that kernel.
-A final consistent-source matrix and full coverage remain open. The ten-run CI evidence is
+A later full required matrix passes all five normal and clock profiles,
+both IPv6-absent boots and the missing-Ethernet-driver case. Published targets
+match before and after. Its exact I/O source and earlier fixture set are in
+`audit/phase6/matrix-20261031T213935Z-567802/README.md`. Later test additions
+still need final consistent-source qualification, and full coverage remains
+open. The ten-run CI evidence is
 in repository file `audit/phase6/strict-gates-20261031/README.md`.
 Resource-history tests now verify record/index/watch cleanup across repeated
 300-entry configurations and fix retained DNS/outgoing queue capacity. Fresh

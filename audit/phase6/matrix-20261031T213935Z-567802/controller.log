@@ -1,0 +1,222 @@
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0100 412.3k 100 412.3k   0      0  1.10M      0                              0100 412.3k 100 412.3k   0      0  1.10M      0                              0100 412.3k 100 412.3k   0      0  1.10M      0                              0
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0100  25867 100  25867   0      0 376.7k      0                              0100  25867 100  25867   0      0 373.5k      0                              0100  25867 100  25867   0      0 370.7k      0                              0
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0100   8376 100   8376   0      0 205.8k      0                              0100   8376 100   8376   0      0 203.3k      0                              0100   8376 100   8376   0      0 200.9k      0                              0
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  1  1.33M   1  15850   0      0  14416      0   01:37   00:01   01:36  14422 55  1.33M  55 765.4k   0      0 364.7k      0   00:03   00:02   00:01 364.8k100  1.33M 100  1.33M   0      0 600.2k      0   00:02   00:02         364.8k100  1.33M 100  1.33M   0      0 600.0k      0   00:02   00:02         364.8k100  1.33M 100  1.33M   0      0 599.9k      0   00:02   00:02         364.8k
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  0      0   0      0   0      0      0      0           00:01              0 27  1.34M  27 374.8k   0      0 179.9k      0   00:07   00:02   00:05 179.9k100  1.34M 100  1.34M   0      0 554.3k      0   00:02   00:02         179.9k100  1.34M 100  1.34M   0      0 554.2k      0   00:02   00:02         179.9k100  1.34M 100  1.34M   0      0 554.1k      0   00:02   00:02         179.9k
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  1  1.09M   1  15850   0      0  14479      0   01:19   00:01   01:18  14488 69  1.09M  69 773.2k   0      0 369.3k      0   00:03   00:02   00:01 369.4k100  1.09M 100  1.09M   0      0 507.0k      0   00:02   00:02         369.4k100  1.09M 100  1.09M   0      0 506.9k      0   00:02   00:02         369.4k100  1.09M 100  1.09M   0      0 506.8k      0   00:02   00:02         369.4k
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  1  1.41M   1  15850   0      0  14732      0   01:40   00:01   01:39  14744 52  1.41M  52 757.6k   0      0 365.1k      0   00:03   00:02   00:01 365.3k100  1.41M 100  1.41M   0      0 635.8k      0   00:02   00:02         365.3k100  1.41M 100  1.41M   0      0 635.7k      0   00:02   00:02         365.3k100  1.41M 100  1.41M   0      0 635.6k      0   00:02   00:02         365.3k
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  4 783.7k   4  39852   0      0  39558      0   00:20   00:01   00:19  39574100 783.7k 100 783.7k   0      0 414.6k      0   00:01   00:01          39574100 783.7k 100 783.7k   0      0 414.4k      0   00:01   00:01          39574100 783.7k 100 783.7k   0      0 414.3k      0   00:01   00:01          39574
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  6 592.4k   6  39852   0      0  39861      0   00:15           00:15  39852100 592.4k 100 592.4k   0      0 331.4k      0   00:01   00:01          39852100 592.4k 100 592.4k   0      0 331.2k      0   00:01   00:01          39852100 592.4k 100 592.4k   0      0 331.1k      0   00:01   00:01          39852
+c[?7l[2J[    0.000000] Linux version 6.8.0-147-generic (buildd@lcy02-amd64-081) (x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 (Ubuntu 6.8.0-147.147-generic 6.8.12)
+GUEST_KERNEL_RELEASE=6.8.0-147-generic
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... FORCE_RESULT=allowed
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 125 filtered out; finished in 2.94s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.83s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.71s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 50 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 5.45s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.10s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.03s
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 29.96s
+CONFORMANCE_RESULT=0
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 542.06s
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+c[?7l[2J[    0.000000] Linux version 6.8.0-147-generic (buildd@lcy02-amd64-081) (x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 (Ubuntu 6.8.0-147.147-generic 6.8.12)
+GUEST_KERNEL_RELEASE=6.8.0-147-generic
+scope: H16 wall-clock and QMP pause scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 64.74s
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+H16_CONTROLLER_RESULT=0
+c[?7l[2J[    0.000000] Linux version 6.8.12 (phase6@builder) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Thu Jan 1 00:00:00 UTC 1970
+GUEST_KERNEL_RELEASE=6.8.12
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... FORCE_RESULT=allowed
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 125 filtered out; finished in 2.65s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.14s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.67s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 50 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 5.16s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.08s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.02s
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 25.67s
+CONFORMANCE_RESULT=0
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 474.47s
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+c[?7l[2J[    0.000000] Linux version 6.8.12 (phase6@builder) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Thu Jan 1 00:00:00 UTC 1970
+GUEST_KERNEL_RELEASE=6.8.12
+scope: H16 wall-clock and QMP pause scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 64.30s
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+H16_CONTROLLER_RESULT=0
+c[?7l[2J[    0.000000] Linux version 7.0.0-42-generic (buildd@lcy02-amd64-049) (x86_64-linux-gnu-gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0, GNU ld (GNU Binutils for Ubuntu) 2.46) #42-Ubuntu SMP PREEMPT_DYNAMIC Thu Oct 15 08:06:44 UTC 2026 (Ubuntu 7.0.0-42.42-generic 7.0.14)
+GUEST_KERNEL_RELEASE=7.0.0-42-generic
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... FORCE_RESULT=allowed
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 125 filtered out; finished in 2.74s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.72s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.23s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 50 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 5.47s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.12s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.04s
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 31.62s
+CONFORMANCE_RESULT=0
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 492.10s
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+c[?7l[2J[    0.000000] Linux version 7.0.0-42-generic (buildd@lcy02-amd64-049) (x86_64-linux-gnu-gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0, GNU ld (GNU Binutils for Ubuntu) 2.46) #42-Ubuntu SMP PREEMPT_DYNAMIC Thu Oct 15 08:06:44 UTC 2026 (Ubuntu 7.0.0-42.42-generic 7.0.14)
+GUEST_KERNEL_RELEASE=7.0.0-42-generic
+scope: H16 wall-clock and QMP pause scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 64.50s
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+H16_CONTROLLER_RESULT=0
+c[?7l[2J[    0.000000] Linux version 7.0.14 (phase6@builder) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Thu Jan 1 00:00:00 UTC 1970
+GUEST_KERNEL_RELEASE=7.0.14
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... FORCE_RESULT=allowed
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 125 filtered out; finished in 2.53s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.84s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 50 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 5.13s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.08s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.02s
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 27.09s
+CONFORMANCE_RESULT=0
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 459.38s
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+c[?7l[2J[    0.000000] Linux version 7.0.14 (phase6@builder) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Thu Jan 1 00:00:00 UTC 1970
+GUEST_KERNEL_RELEASE=7.0.14
+scope: H16 wall-clock and QMP pause scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 64.27s
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+H16_CONTROLLER_RESULT=0
+c[?7l[2J[    0.000000] Linux version 7.3.0 (phase6@builder) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Thu Jan 1 00:00:00 UTC 1970
+GUEST_KERNEL_RELEASE=7.3.0
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... FORCE_RESULT=allowed
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 125 filtered out; finished in 2.61s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.91s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.12s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 50 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 5.16s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.08s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.03s
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 27.67s
+CONFORMANCE_RESULT=0
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 446.56s
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+c[?7l[2J[    0.000000] Linux version 7.3.0 (phase6@builder) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Thu Jan 1 00:00:00 UTC 1970
+GUEST_KERNEL_RELEASE=7.3.0
+scope: H16 wall-clock and QMP pause scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 64.40s
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+H16_CONTROLLER_RESULT=0
+c[?7l[2J[    0.000000] Linux version 7.3.0 (phase6@builder) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Thu Jan 1 00:00:00 UTC 1970
+GUEST_KERNEL_RELEASE=7.3.0
+scope: IPv6-absent boot scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 2.90s
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+c[?7l[2J[    0.000000] Linux version 7.3.0 (phase6@builder) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Thu Jan 1 00:00:00 UTC 1970
+GUEST_KERNEL_RELEASE=7.3.0
+scope: IPv6-absent boot scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 2.89s
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+c[?7l[2J[    0.000000] Linux version 7.0.0-42-generic (buildd@lcy02-amd64-049) (x86_64-linux-gnu-gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0, GNU ld (GNU Binutils for Ubuntu) 2.46) #42-Ubuntu SMP PREEMPT_DYNAMIC Thu Oct 15 08:06:44 UTC 2026 (Ubuntu 7.0.0-42.42-generic 7.0.14)
+GUEST_KERNEL_RELEASE=7.0.0-42-generic
+scope: missing Ethernet driver host-defect scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 4.70s
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0100 412.3k 100 412.3k   0      0  5.96M      0                              0100 412.3k 100 412.3k   0      0  5.91M      0                              0100 412.3k 100 412.3k   0      0  5.87M      0                              0
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0100  25867 100  25867   0      0 700.8k      0                              0100  25867 100  25867   0      0 690.1k      0                              0100  25867 100  25867   0      0 680.8k      0                              0
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0100   8376 100   8376   0      0 199.1k      0                              0100   8376 100   8376   0      0 196.8k      0                              0100   8376 100   8376   0      0 194.6k      0                              0
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  1  1.33M   1  15850   0      0  14426      0   01:37   00:01   01:36  14435 55  1.33M  55 757.6k   0      0 361.1k      0   00:03   00:02   00:01 361.3k100  1.33M 100  1.33M   0      0 600.1k      0   00:02   00:02         361.3k100  1.33M 100  1.33M   0      0 600.0k      0   00:02   00:02         361.3k100  1.33M 100  1.33M   0      0 599.9k      0   00:02   00:02         361.3k
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  1  1.34M   1  15850   0      0  14076      0   01:40   00:01   01:39  14088 42  1.34M  42 585.7k   0      0 275.5k      0   00:04   00:02   00:02 275.6k100  1.34M 100  1.34M   0      0 571.1k      0   00:02   00:02         275.6k100  1.34M 100  1.34M   0      0 570.9k      0   00:02   00:02         275.6k100  1.34M 100  1.34M   0      0 570.8k      0   00:02   00:02         275.6k
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  2  1.09M   2  31850   0      0  31744      0   00:36   00:01   00:35  31754100  1.09M 100  1.09M   0      0 600.8k      0   00:01   00:01          31754100  1.09M 100  1.09M   0      0 600.6k      0   00:01   00:01          31754100  1.09M 100  1.09M   0      0 600.5k      0   00:01   00:01          31754
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  2  1.41M   2  39850   0      0  39784      0   00:37   00:01   00:36  39810 80  1.41M  80  1.13M   0      0 581.5k      0   00:02   00:02         581.6k100  1.41M 100  1.41M   0      0 699.3k      0   00:02   00:02         581.6k100  1.41M 100  1.41M   0      0 699.2k      0   00:02   00:02         581.6k100  1.41M 100  1.41M   0      0 699.0k      0   00:02   00:02         581.6k
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0 10 783.7k  10  87852   0      0  87905      0   00:09           00:09  87852100 783.7k 100 783.7k   0      0 497.9k      0   00:01   00:01          87852100 783.7k 100 783.7k   0      0 497.8k      0   00:01   00:01          87852100 783.7k 100 783.7k   0      0 497.6k      0   00:01   00:01          87852
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  7 592.4k   7  47852   0      0  47308      0   00:12   00:01   00:11  47331100 592.4k 100 592.4k   0      0 332.5k      0   00:01   00:01          47331100 592.4k 100 592.4k   0      0 332.3k      0   00:01   00:01          47331100 592.4k 100 592.4k   0      0 332.2k      0   00:01   00:01          47331
+MATRIX_RESULT=0
+record: /tmp/phase6-required-kernel-snapshot/audit/phase6/matrix-20261031T213935Z-567802
