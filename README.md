@@ -32,9 +32,10 @@ review corrections and their acceptance work. Configuration, kernel,
 reconciler, runtime, service and process code exists; Phases 1–5 have scoped
 verification records, including the
 [Phase 5 conformance follow-up](audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md).
-The binary runs on musl and glibc. All five required kernels have fresh
-passing records for the implemented conformance/process/scenario profile,
-including fragmentation. Phase 6 is underway: the source-link check,
+The binary runs on musl and glibc. All five required kernels passed the
+recorded 18-scenario profile, including fragmentation. H15's newer
+capability/netlink and missing-driver cases have passing host/guest records;
+the current host subset passes 22 scenarios and needs a final matrix refresh. Phase 6 is underway: the source-link check,
 unprivileged Incus case and root system-unit sandbox also have passing
 local records. [Required-kernel behavior](docs/kernel-behavior.md) records
 each target's differences, source evidence and limitations. The

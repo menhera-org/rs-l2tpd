@@ -203,9 +203,17 @@ impl<K: Kernel> Reconciler<K> {
                 }
                 Err(e) => {
                     self.incomplete = true;
-                    self.report.begin(&label, "create", || {
-                        format!("cannot be created: {}", report::describe(&e))
-                    });
+                    let message = || format!("cannot be created: {}", report::describe(&e));
+                    match Errno::from_raw(errno(&e)) {
+                        // Missing pseudowire support or privilege is a host defect (H15, O2).
+                        Errno::EPERM
+                        | Errno::EACCES
+                        | Errno::EPROTONOSUPPORT
+                        | Errno::EOPNOTSUPP => {
+                            self.report.begin_error(&label, "create", message);
+                        }
+                        _ => self.report.begin(&label, "create", message),
+                    }
                 }
             }
         }

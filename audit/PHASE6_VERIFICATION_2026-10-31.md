@@ -9,15 +9,16 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | Gate/package | Current evidence | Remaining work |
 |---|---|---|
 | P1 source link | Fresh strict run: four tests pass; 43 facts, 37 production-cited and six classified; no uncited functions | Enable in CI only with required determinism and remaining phase proof |
-| P1 rule map | Fresh strict run fails: 343 total / 333 active / 263 cited / 70 missing | Genuine assertions/citations for the remaining rules; strict flag stays off |
-| P2 scenarios | 18-case implemented subset; prior three host repetitions; fresh process/H8 tests after the readiness fix | H15 capability/module fallbacks, H16 guest clocks/pause, full H17 resource/event-cost checks, remaining manager/promise cases and final repetitions |
-| P3 matrix | Fresh required driver returns MATRIX_RESULT=0: all five implemented profiles and both scoped H4 boots pass; versions/source state unchanged | Complete P2/delegated proof and a consistent latest-target phase-exit rerun; partial profiles do not close the whole gate |
-| P4 coverage | First merged GNU report: 91.03% lines / 77.02% branches, source snapshot before the readiness fix | 897 missing lines / 410 branches, remaining live profiles and final-code collection; no exclusions introduced |
+| P1 rule map | Fresh strict run fails: 343 total / 333 active / 271 cited / 62 missing | Genuine assertions/citations for the remaining rules; strict flag stays off |
+| P2 scenarios | 22-case host subset passes after H15/report fixes; scoped missing-Ethernet-driver guest also passes | H16 guest clocks/pause, full H17 resource/event-cost checks, remaining clauses (including low unprivileged-port-range DHCPv6), manager/promise cases and final repetitions |
+| P3 matrix | Pre-H15 required driver returns MATRIX_RESULT=0: five 18-scenario profiles plus both H4 boots; H15 adds a scoped stock-kernel driver-availability boot | Complete P2/delegated proof and rerun all latest targets with the expanded suite and current report fixes; partial profiles do not close the whole gate |
+| P4 coverage | First merged GNU report: 91.03% lines / 77.02% branches, source snapshot before the readiness fix | The previous source snapshot has 897 missing lines / 410 branches; recollect current-source profiles after readiness/H15 fixes; no exclusions introduced |
 | P5 Incus | October 30 full case passed, including manager race/ordered policy/store/re-exec; fresh GNU buffer case proves EPERM and exports coverage | Final-code full-case refresh as part of phase exit |
 | P6 root sandbox | October 30 full real-root-systemd sandbox case passed, without drop-ins | Final phase validation; no new sandbox claim from the coverage-only user-manager case |
 | P7 docs/CI | Documentation updated to the actual partial runners and new records | Full verification, determinism/coverage jobs, strict CI and CI execution remain open |
 
-Fresh P1, ordinary-test and warning-check logs are in
+Current P1/ordinary/warning checks are in
+[H15-20261031](phase6/H15-20261031/README.md). Earlier readiness-fix logs are in
 [ready-signal-race-20261031](phase6/ready-signal-race-20261031/README.md).
 The record names exact commands, features, kernel releases, counts and
 scope. Test durations are retained; host allocation details and elapsed
@@ -106,6 +107,28 @@ An [exploratory scale probe](phase6/scale-probe-20261031/README.md) also
 passed 300-to-one reload cycles. Descriptors returned from 314 to 15.
 Its limits are explicit: it is not yet the H17/G23 Rust scenario or a
 proof of all resource/history bounds.
+
+## H15 degradation and host-defect reporting
+
+[H15's record](phase6/H15-20261031/README.md) adds four live capability/netlink
+scenarios and a stock-kernel guest with the Ethernet driver genuinely
+unavailable until explicitly loaded inside that guest. The final source
+passes all 22 host scenarios and the one scoped guest case. It also passes
+ordinary tests, Clippy and strict source links. Strict rule-map citations
+improve from 263 to 271, leaving 62 uncited active rules.
+
+The cases found and fixed warning-level reports for missing pseudowire
+support and refused resolver initialization, a missing errno name in
+propagated startup I/O errors, and suppression of an error after a preceding
+transient warning. Repeated retries stay quiet; one severity promotion is
+allowed per episode. Fake tests retain transient allocation severity and
+exercise mixed-error recovery; live cases prove real kernel refusals.
+
+These report corrections postdate the five-target matrix above, which
+retains its original 18-case scope. The expanded suite/current binary still
+needs a complete latest-target run. H16 and full H17 remain unimplemented;
+the low-port-range DHCPv6 exception still needs its positive case. No full
+Phase 6 gate is closed merely by adding a test citation.
 
 ## Coverage and exit state
 

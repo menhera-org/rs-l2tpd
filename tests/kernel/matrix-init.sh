@@ -24,10 +24,22 @@ export RS_L2TPD_SCENARIO_CONTAINER=1
 if grep -q 'l2tp_builtin=1' /proc/cmdline; then export RS_L2TPD_BUILTIN_NLMON=1; fi
 if ! grep -q 'l2tp_builtin=1' /proc/cmdline; then
     depmod -a
-    for module in l2tp_core l2tp_netlink l2tp_ip l2tp_eth dummy veth; do modprobe "$module"; done
+    for module in l2tp_core l2tp_netlink l2tp_ip dummy veth; do modprobe "$module"; done
+    if [ "$mode" != no-ethernet ]; then modprobe l2tp_eth; fi
     if [ "$mode" = normal ]; then
         for module in l2tp_ip6 vrf bridge 8021q nlmon; do modprobe "$module"; done
     fi
+fi
+if [ "$mode" = no-ethernet ]; then
+    modprobe l2tp_ip6
+    # The guest alone owns this autoload policy; the test later loads the driver explicitly.
+    printf '%s\n' /no-module-loader > /proc/sys/kernel/modprobe
+    export RS_L2TPD_NO_ETHERNET=1
+    echo 'scope: missing Ethernet driver host-defect scenario only'
+    run_suite /boot-scenarios --ignored --exact missing_ethernet_driver_withholds_readiness_until_the_driver_is_loaded --nocapture
+    echo CONFORMANCE_RESULT=0
+    echo SCENARIO_RESULT=0
+    exit 0
 fi
 if [ "$mode" != normal ]; then
     export RS_L2TPD_IPV6_ABSENT=1

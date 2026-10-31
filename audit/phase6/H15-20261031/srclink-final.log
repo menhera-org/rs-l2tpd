@@ -1,0 +1,12 @@
+command: SRCLINK_STRICT=1 cargo test --locked --all-features --test srclink
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/tools/srclink.rs (target/debug/deps/srclink-2b797d664da25c61)
+
+running 4 tests
+test citations::only_doc_comments_attached_to_tests_are_citations ... ok
+test classified_facts_need_the_evidence_and_the_right_citation ... ok
+test scoped_and_qualified_functions_are_checked ... ok
+test kernel_code_cites_the_facts ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+

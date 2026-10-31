@@ -142,6 +142,16 @@ else
     [ -s "$record/range" ] || { echo "empty range" >&2; exit 1; }
     while IFS= read -r version; do run_vanilla "$version" || result=1; done < "$record/range"
 fi
+if [ "$selection" = required ]; then
+    packages=$record/resolute-packages.log
+    image=$(field KERNEL_IMAGE "$packages")
+    modules=$(field KERNEL_MODULES "$packages")
+    root=$(field KERNEL_ROOT "$packages")
+    release=$(field KERNEL_RELEASE "$packages")
+    if tests/kernel/run-guest.sh "$image" "$modules" "$root/boot/config-$release" no-ethernet "$record/no-ethernet"; then
+        grep -qx "GUEST_KERNEL_RELEASE=$release" "$record/no-ethernet/run.log" || result=1
+    else result=1; fi
+fi
 resolve "$record/final"
 if ! cmp -s "$record/initial/versions" "$record/final/versions"; then
     echo 'published targets changed; refresh documentation and rerun before claiming a pass' >&2

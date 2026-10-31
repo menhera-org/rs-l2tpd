@@ -1,0 +1,21 @@
+command: docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --env RS_L2TPD_SCENARIO_CONTAINER=1 --env RS_L2TPD_BASELINE=/home/dev/rs-l2tpd/target/phase6-baseline/15529bab567862b6617c9c5b948a74271bc9c44c/target/x86_64-unknown-linux-musl/release/rs-l2tpd --entrypoint sh rs-l2tpd-audit-vm:local -ec uname -r; exec "$@" run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e --ignored --test-threads=1 --nocapture --skip incus::system_container_store_tunable_networkd_and_udev capabilities::
+6.8.0-147-generic
+
+running 3 tests
+test capabilities::missing_net_admin_reports_once_and_withholds_nonempty_readiness ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_ADMIN: tunnel, session and device operations may fail
+daemon: ERROR rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): cannot be created: EPERM: Operation not permitted
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test capabilities::without_bind_service_dhcpv6_degrades_and_unified_discovery_uses_ra ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_BIND_SERVICE: DHCPv6 port 546 may be unavailable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 2001:db8::1 from 2001:db8::53
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd: ready pid=55
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): its resolver waits: EACCES: Permission denied (V9, V12)
+daemon: INFO rs_l2tpd: ready pid=57
+
+thread 'capabilities::without_bind_service_dhcpv6_degrades_and_unified_discovery_uses_ra' (33) panicked at tests/scenarios/support.rs:338:41:
+waiting for Permission denied: timed out waiting on channel
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

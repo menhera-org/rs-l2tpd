@@ -1,0 +1,559 @@
+diff --git a/src/error.rs b/src/error.rs
+index ecf090e..db7c6ac 100644
+--- a/src/error.rs
++++ b/src/error.rs
+@@ -21,7 +21,10 @@ impl std::fmt::Display for Error {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+         match self {
+             Error::InvalidConfig(msg) => write!(f, "invalid configuration: {msg}"),
+-            Error::Io(err) => err.fmt(f),
++            Error::Io(err) => match err.raw_os_error() {
++                Some(errno) => write!(f, "{:?}: {err}", nix::errno::Errno::from_raw(errno)),
++                None => err.fmt(f),
++            },
+             Error::ReloadPanicked => f.write_str("reload callback panicked"),
+             Error::RestartPanicked => f.write_str("restart callback panicked"),
+             Error::Other(msg) => f.write_str(msg),
+@@ -46,3 +49,25 @@ impl From<std::io::Error> for Error {
+ 
+ /// `Result` with the library's [`Error`].
+ pub type Result<T> = std::result::Result<T, Error>;
++
++#[cfg(test)]
++mod tests {
++    /// spec: O6, L3
++    #[test]
++    fn propagated_io_errors_keep_their_errno_name_and_original_source() {
++        let error = super::Error::from(std::io::Error::from_raw_os_error(nix::libc::EPERM));
++        assert!(error.to_string().starts_with("EPERM: "));
++        assert_eq!(
++            std::error::Error::source(&error)
++                .unwrap()
++                .downcast_ref::<std::io::Error>()
++                .unwrap()
++                .raw_os_error(),
++            Some(nix::libc::EPERM)
++        );
++        assert_eq!(
++            super::Error::from(std::io::Error::other("controlled failure")).to_string(),
++            "controlled failure"
++        );
++    }
++}
+diff --git a/src/reconciler/report.rs b/src/reconciler/report.rs
+index 62d2a27..1ba086f 100644
+--- a/src/reconciler/report.rs
++++ b/src/reconciler/report.rs
+@@ -2,13 +2,13 @@
+ //! and once when it ends, keyed by the entry and the condition; kernel
+ //! errors carry their errno names; cookies never appear.
+ 
+-use std::collections::BTreeSet;
++use std::collections::BTreeMap;
+ use std::io;
+ 
+-/// The open episodes.
++/// Open episodes; true means their error-level report was emitted.
+ #[derive(Default)]
+ pub(crate) struct Report {
+-    open: BTreeSet<(String, &'static str)>,
++    open: BTreeMap<(String, &'static str), bool>,
+ }
+ 
+ impl Report {
+@@ -19,7 +19,10 @@ impl Report {
+         condition: &'static str,
+         message: impl FnOnce() -> String,
+     ) {
+-        if self.open.insert((entry.to_owned(), condition)) {
++        if let std::collections::btree_map::Entry::Vacant(slot) =
++            self.open.entry((entry.to_owned(), condition))
++        {
++            slot.insert(false);
+             log::warn!("{entry}: {}", message());
+         } else {
+             log::debug!("{entry}: {}", message());
+@@ -33,14 +36,17 @@ impl Report {
+         condition: &'static str,
+         message: impl FnOnce() -> String,
+     ) {
+-        if self.open.insert((entry.to_owned(), condition)) {
++        if !std::mem::replace(
++            self.open.entry((entry.to_owned(), condition)).or_default(),
++            true,
++        ) {
+             log::error!("{entry}: {}", message());
+         }
+     }
+ 
+     /// Ends the episode with an information message, if it was open.
+     pub fn end(&mut self, entry: &str, condition: &'static str, message: impl FnOnce() -> String) {
+-        if self.open.remove(&(entry.to_owned(), condition)) {
++        if self.open.remove(&(entry.to_owned(), condition)).is_some() {
+             log::info!("{entry}: {}", message());
+         }
+     }
+@@ -52,13 +58,13 @@ impl Report {
+ 
+     #[cfg(test)]
+     pub fn is_open(&self, entry: &str, condition: &'static str) -> bool {
+-        self.open.contains(&(entry.to_owned(), condition))
++        self.open.contains_key(&(entry.to_owned(), condition))
+     }
+ 
+     /// Forgets every episode of an entry that left the configuration or
+     /// changed (O3).
+     pub fn forget(&mut self, entry: &str) {
+-        self.open.retain(|(e, _)| e != entry);
++        self.open.retain(|(e, _), _| e != entry);
+     }
+ }
+ 
+diff --git a/src/reconciler/resolvers.rs b/src/reconciler/resolvers.rs
+index 35cc3c6..dbc788a 100644
+--- a/src/reconciler/resolvers.rs
++++ b/src/reconciler/resolvers.rs
+@@ -308,6 +308,7 @@ impl<K: Kernel> Reconciler<K> {
+                 self.resolver_spec(config).map(|spec| (spec, dependencies))
+             }),
+         };
++        let mut host_defect = false;
+         let started = spec.and_then(|(spec, dependencies)| {
+             if self.resolvers.watches[&tunnel_id].started.as_ref() == Some(&spec)
+                 && self.resolvers.watches[&tunnel_id].dependencies == dependencies
+@@ -329,7 +330,10 @@ impl<K: Kernel> Reconciler<K> {
+                     resolver: spec.clone(),
+                 })
+                 .map(|()| (spec, dependencies))
+-                .map_err(|e| report::describe(&e))
++                .map_err(|e| {
++                    host_defect = true;
++                    report::describe(&e)
++                })
+         });
+         let watch = self.resolvers.watches.get_mut(&tunnel_id).unwrap();
+         match started {
+@@ -361,9 +365,12 @@ impl<K: Kernel> Reconciler<K> {
+                 }
+                 watch.dependencies.clear();
+                 watch.retry_at = Some(now + DEVICE_RETRY);
+-                self.report.begin(&label, "resolver", || {
+-                    format!("its resolver waits: {why} (V9, V12)")
+-                });
++                let message = || format!("its resolver waits: {why} (V9, V12)");
++                if host_defect {
++                    self.report.begin_error(&label, "resolver", message);
++                } else {
++                    self.report.begin(&label, "resolver", message);
++                }
+             }
+         }
+         self.resolvers.index(tunnel_id);
+diff --git a/src/reconciler/resolvers_tests.rs b/src/reconciler/resolvers_tests.rs
+index 2d0a71b..b90aa86 100644
+--- a/src/reconciler/resolvers_tests.rs
++++ b/src/reconciler/resolvers_tests.rs
+@@ -2,7 +2,10 @@
+ use super::*;
+ use socket2::{Domain, Protocol, Socket, Type};
+ use std::net::{Ipv6Addr, UdpSocket};
+-use std::sync::atomic::{AtomicUsize, Ordering};
++use std::sync::atomic::Ordering;
++#[path = "../../tests/support/discovery.rs"]
++mod discovery;
++use discovery::{Dns, advertise};
+ 
+ /// spec: V5, V6
+ #[test]
+@@ -118,8 +121,8 @@ fn fixture() -> (Socket, SocketAddrV6, Dns, Dns, UdpSocket) {
+         send.send((
+             sender,
+             SocketAddrV6::new("fe80::2".parse().unwrap(), 0, 0, index),
+-            Dns::new("2001:db8::53"),
+-            Dns::new("2001:db8::54"),
++            Dns::new("2001:db8::53", "dns-router"),
++            Dns::new("2001:db8::54", "dns-router"),
+             UdpSocket::from(dhcp),
+         ))
+         .unwrap();
+@@ -139,16 +142,6 @@ fn fixture() -> (Socket, SocketAddrV6, Dns, Dns, UdpSocket) {
+     fixture
+ }
+ 
+-fn advertise(sender: &Socket, destination: SocketAddrV6, servers: &[(Ipv6Addr, u32)]) {
+-    let mut packet = vec![134, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+-    for (server, lifetime) in servers {
+-        packet.extend([25, 3, 0, 0]);
+-        packet.extend(lifetime.to_be_bytes());
+-        packet.extend(server.octets());
+-    }
+-    sender.send_to(&packet, &destination.into()).unwrap();
+-}
+-
+ fn until(mut predicate: impl FnMut() -> bool) {
+     let deadline = Instant::now() + Duration::from_secs(5);
+     while !predicate() {
+@@ -201,79 +194,6 @@ fn released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository() {
+     );
+ }
+ 
+-struct Dns {
+-    mode: Arc<AtomicUsize>,
+-    calls: Arc<AtomicUsize>,
+-    socket: UdpSocket,
+-    thread: Option<std::thread::JoinHandle<()>>,
+-}
+-
+-impl Dns {
+-    fn new(address: &str) -> Self {
+-        let socket = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP)).unwrap();
+-        socket.bind_device(Some(b"dns-router")).unwrap();
+-        socket
+-            .bind(&SocketAddrV6::new(address.parse().unwrap(), 53, 0, 0).into())
+-            .unwrap();
+-        let socket: UdpSocket = socket.into();
+-        let reader = socket.try_clone().unwrap();
+-        let mode = Arc::new(AtomicUsize::new(0));
+-        let calls = Arc::new(AtomicUsize::new(0));
+-        let (policy, count) = (mode.clone(), calls.clone());
+-        let thread = std::thread::spawn(move || {
+-            let mut packet = [0; 512];
+-            while let Ok((len, peer)) = reader.recv_from(&mut packet) {
+-                if len == 1 {
+-                    return;
+-                }
+-                count.fetch_add(1, Ordering::SeqCst);
+-                let query = &packet[..len];
+-                let qtype = u16::from_be_bytes(query[len - 4..len - 2].try_into().unwrap());
+-                let mode = policy.load(Ordering::SeqCst);
+-                let failure = mode == 1 || (mode == 3 && qtype == 28);
+-                let negative = mode == 2;
+-                let mut reply = query.to_vec();
+-                reply[2..4].copy_from_slice(&[
+-                    0x81,
+-                    if failure {
+-                        0x82
+-                    } else if negative {
+-                        0x83
+-                    } else {
+-                        0x80
+-                    },
+-                ]);
+-                if !failure && !negative {
+-                    reply[6..8].copy_from_slice(&1u16.to_be_bytes());
+-                    reply.extend([0xc0, 0x0c]);
+-                    reply.extend(qtype.to_be_bytes());
+-                    reply.extend([0, 1, 0, 0, 0, 30]);
+-                    if qtype == 1 {
+-                        reply.extend([0, 4, 192, 0, 2, 9]);
+-                    } else {
+-                        reply.extend([0, 16]);
+-                        reply.extend("2001:db8::9".parse::<Ipv6Addr>().unwrap().octets());
+-                    }
+-                }
+-                reader.send_to(&reply, peer).unwrap();
+-            }
+-        });
+-        Self {
+-            mode,
+-            calls,
+-            socket,
+-            thread: Some(thread),
+-        }
+-    }
+-}
+-
+-impl Drop for Dns {
+-    fn drop(&mut self) {
+-        let _ = self.socket.send_to(&[0], self.socket.local_addr().unwrap());
+-        let _ = self.thread.take().unwrap().join();
+-    }
+-}
+-
+ /// spec: V14, V4, V6, K13, K38
+ #[test]
+ #[ignore = "isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW"]
+diff --git a/src/reconciler/sessions.rs b/src/reconciler/sessions.rs
+index e782104..2a37974 100644
+--- a/src/reconciler/sessions.rs
++++ b/src/reconciler/sessions.rs
+@@ -203,9 +203,17 @@ impl<K: Kernel> Reconciler<K> {
+                 }
+                 Err(e) => {
+                     self.incomplete = true;
+-                    self.report.begin(&label, "create", || {
+-                        format!("cannot be created: {}", report::describe(&e))
+-                    });
++                    let message = || format!("cannot be created: {}", report::describe(&e));
++                    match Errno::from_raw(errno(&e)) {
++                        // Missing pseudowire support or privilege is a host defect (H15, O2).
++                        Errno::EPERM
++                        | Errno::EACCES
++                        | Errno::EPROTONOSUPPORT
++                        | Errno::EOPNOTSUPP => {
++                            self.report.begin_error(&label, "create", message);
++                        }
++                        _ => self.report.begin(&label, "create", message),
++                    }
+                 }
+             }
+         }
+diff --git a/tests/kernel/matrix-init.sh b/tests/kernel/matrix-init.sh
+index 3f5e54b..a26afbc 100755
+--- a/tests/kernel/matrix-init.sh
++++ b/tests/kernel/matrix-init.sh
+@@ -24,11 +24,23 @@ export RS_L2TPD_SCENARIO_CONTAINER=1
+ if grep -q 'l2tp_builtin=1' /proc/cmdline; then export RS_L2TPD_BUILTIN_NLMON=1; fi
+ if ! grep -q 'l2tp_builtin=1' /proc/cmdline; then
+     depmod -a
+-    for module in l2tp_core l2tp_netlink l2tp_ip l2tp_eth dummy veth; do modprobe "$module"; done
++    for module in l2tp_core l2tp_netlink l2tp_ip dummy veth; do modprobe "$module"; done
++    if [ "$mode" != no-ethernet ]; then modprobe l2tp_eth; fi
+     if [ "$mode" = normal ]; then
+         for module in l2tp_ip6 vrf bridge 8021q nlmon; do modprobe "$module"; done
+     fi
+ fi
++if [ "$mode" = no-ethernet ]; then
++    modprobe l2tp_ip6
++    # The guest alone owns this autoload policy; the test later loads the driver explicitly.
++    printf '%s\n' /no-module-loader > /proc/sys/kernel/modprobe
++    export RS_L2TPD_NO_ETHERNET=1
++    echo 'scope: missing Ethernet driver host-defect scenario only'
++    run_suite /boot-scenarios --ignored --exact missing_ethernet_driver_withholds_readiness_until_the_driver_is_loaded --nocapture
++    echo CONFORMANCE_RESULT=0
++    echo SCENARIO_RESULT=0
++    exit 0
++fi
+ if [ "$mode" != normal ]; then
+     export RS_L2TPD_IPV6_ABSENT=1
+     echo 'scope: IPv6-absent boot scenario only'
+diff --git a/tests/kernel/matrix.sh b/tests/kernel/matrix.sh
+index 7a39fff..6c426c3 100755
+--- a/tests/kernel/matrix.sh
++++ b/tests/kernel/matrix.sh
+@@ -142,6 +142,16 @@ else
+     [ -s "$record/range" ] || { echo "empty range" >&2; exit 1; }
+     while IFS= read -r version; do run_vanilla "$version" || result=1; done < "$record/range"
+ fi
++if [ "$selection" = required ]; then
++    packages=$record/resolute-packages.log
++    image=$(field KERNEL_IMAGE "$packages")
++    modules=$(field KERNEL_MODULES "$packages")
++    root=$(field KERNEL_ROOT "$packages")
++    release=$(field KERNEL_RELEASE "$packages")
++    if tests/kernel/run-guest.sh "$image" "$modules" "$root/boot/config-$release" no-ethernet "$record/no-ethernet"; then
++        grep -qx "GUEST_KERNEL_RELEASE=$release" "$record/no-ethernet/run.log" || result=1
++    else result=1; fi
++fi
+ resolve "$record/final"
+ if ! cmp -s "$record/initial/versions" "$record/final/versions"; then
+     echo 'published targets changed; refresh documentation and rerun before claiming a pass' >&2
+diff --git a/tests/kernel/run-guest.sh b/tests/kernel/run-guest.sh
+index c8e2b74..29dd7df 100755
+--- a/tests/kernel/run-guest.sh
++++ b/tests/kernel/run-guest.sh
+@@ -1,13 +1,14 @@
+ #!/bin/sh
+ set -eu
+-[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|systemd RECORD" >&2; exit 2; }
++[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|no-ethernet|systemd RECORD" >&2; exit 2; }
+ repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
+ cd "$repo"
+ kernel=$1; modules=$2; config=$3; mode=$4; record=$5
+ case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
+ case $record in /*) ;; *) record=$repo/$record ;; esac
+-case $mode in normal|ipv6-disable|no-ipv6|systemd) ;; *) exit 2 ;; esac
++case $mode in normal|ipv6-disable|no-ipv6|no-ethernet|systemd) ;; *) exit 2 ;; esac
+ [ -s "$kernel" ] || exit 1
++[ "$mode" != no-ethernet ] || [ "$modules" != - ] || { echo 'no-ethernet needs a modular stock kernel' >&2; exit 2; }
+ mkdir -p "$record"
+ image=rs-l2tpd-audit-vm:local
+ if [ "$mode" = systemd ]; then image=nd-test:u2404; fi
+diff --git a/tests/rules/completion.rs b/tests/rules/completion.rs
+index 283f7b9..6813ff7 100644
+--- a/tests/rules/completion.rs
++++ b/tests/rules/completion.rs
+@@ -335,6 +335,73 @@ fn completion_report_counts() {
+             .filter(|(l, message)| *l == level && message.contains(text))
+             .count()
+     };
++    for (error, level) in [
++        (Errno::EPERM, log::Level::Error),
++        (Errno::EACCES, log::Level::Error),
++        (Errno::EPROTONOSUPPORT, log::Level::Error),
++        (Errno::EOPNOTSUPP, log::Level::Error),
++        (Errno::EAGAIN, log::Level::Warn),
++        (Errno::ENOMEM, log::Level::Warn),
++        (Errno::ENOBUFS, log::Level::Warn),
++    ] {
++        capture.0.lock().unwrap().clear();
++        let (mut r, _) = reconciler();
++        r.reconcile(config(TUNNEL));
++        for _ in 0..3 {
++            r.kernel_mut().fail_next("create", error);
++        }
++        r.reconcile(config(&session("")));
++        run_for(&mut r, 2);
++        assert!(!r.ready(), "session must still be missing: {error:?}");
++        assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
++        let other = if level == log::Level::Error {
++            log::Level::Warn
++        } else {
++            log::Level::Error
++        };
++        assert_eq!(count(other, "cannot be created:"), 0, "{error:?}");
++        run_for(&mut r, 1);
++        assert!(r.ready(), "retry must recover: {error:?}");
++        assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
++    }
++    capture.0.lock().unwrap().clear();
++    let (mut mixed, _) = reconciler();
++    mixed.reconcile(config(TUNNEL));
++    for error in [
++        Errno::EAGAIN,
++        Errno::EPROTONOSUPPORT,
++        Errno::EAGAIN,
++        Errno::EPROTONOSUPPORT,
++    ] {
++        mixed.kernel_mut().fail_next("create", error);
++    }
++    mixed.reconcile(config(&session("")));
++    run_for(&mut mixed, 3);
++    assert!(!mixed.ready());
++    assert_eq!(count(log::Level::Warn, "cannot be created:"), 1);
++    assert_eq!(
++        count(log::Level::Error, "cannot be created:"),
++        1,
++        "a newly observed host defect must be promoted once"
++    );
++    run_for(&mut mixed, 1);
++    assert!(mixed.ready());
++    capture.0.lock().unwrap().clear();
++    let (mut resolver_case, answers) = reconciler();
++    answers.refuse(true);
++    let named = TUNNEL.replace("\"192.0.2.2\"", "\"controlled.example\"\nip_version='V6'");
++    resolver_case.reconcile(config(&named));
++    assert!(
++        resolver_case.ready(),
++        "resolver defects do not withhold readiness"
++    );
++    run_for(&mut resolver_case, 30);
++    assert_eq!(count(log::Level::Error, "its resolver waits:"), 1);
++    assert_eq!(count(log::Level::Warn, "its resolver waits:"), 0);
++    answers.refuse(false);
++    run_for(&mut resolver_case, 30);
++    assert_eq!(count(log::Level::Info, "its resolver started"), 1);
++    capture.0.lock().unwrap().clear();
+     let (mut r, _) = reconciler();
+     r.reconcile(config(TUNNEL));
+     for _ in 0..6 {
+diff --git a/tests/scenarios/boot.rs b/tests/scenarios/boot.rs
+index d14a536..842f392 100644
+--- a/tests/scenarios/boot.rs
++++ b/tests/scenarios/boot.rs
+@@ -70,3 +70,48 @@ fn absent_ipv6_stack_uses_native_ipv4_and_keeps_ipv6_peers_disconnected() {
+     pair.absent(0);
+     pair.absent(1);
+ }
++
++/// spec: H15, R1, K3, O2
++#[test]
++#[ignore = "stock-kernel QEMU guest with l2tp_eth absent and module autoload disabled"]
++fn missing_ethernet_driver_withholds_readiness_until_the_driver_is_loaded() {
++    use std::path::Path;
++    use std::process::Command;
++    use std::time::{Duration, Instant};
++    assert_eq!(std::env::var("RS_L2TPD_NO_ETHERNET").as_deref(), Ok("1"));
++    assert!(Path::new("/sys/module/l2tp_core").exists());
++    assert!(!Path::new("/sys/module/l2tp_eth").exists());
++    assert_eq!(
++        std::fs::read_to_string("/proc/sys/kernel/modprobe")
++            .unwrap()
++            .trim(),
++        "/no-module-loader"
++    );
++    let pair = Pair::new();
++    pair.underlay(true, true);
++    let mut daemon = pair.start(0, &config(0, &["192.0.2.2"]));
++    daemon.event("session s0 (tunnel_id=1, session_id=101): cannot be created:");
++    daemon.assert_unready_for(Duration::from_millis(2200));
++    assert_eq!(daemon.count("cannot be created:"), 1);
++    assert_eq!(
++        daemon.count("ERROR rs_l2tpd::reconciler::report: session"),
++        1
++    );
++    assert!(pair.ip(0, &["l2tp", "show", "tunnel"]).contains("Tunnel 1"));
++    assert!(pair.ip(0, &["l2tp", "show", "session"]).trim().is_empty());
++    assert!(!Path::new("/sys/module/l2tp_eth").exists());
++    let output = Command::new("modprobe").arg("l2tp_eth").output().unwrap();
++    assert!(output.status.success(), "{output:?}");
++    let available = Instant::now();
++    let ready = daemon.event("ready pid=");
++    assert!(ready.saturating_duration_since(available) <= Duration::from_secs(1));
++    assert_eq!(daemon.count("cannot be created:"), 1);
++    let mut peer = pair.start(1, &config(1, &["192.0.2.1"]));
++    peer.event("ready");
++    pair.inner("l2tp0", 0);
++    pair.frames(0);
++    daemon.stop();
++    peer.stop();
++    pair.absent(0);
++    pair.absent(1);
++}
+diff --git a/tests/scenarios/main.rs b/tests/scenarios/main.rs
+index 519944e..0398df7 100644
+--- a/tests/scenarios/main.rs
++++ b/tests/scenarios/main.rs
+@@ -1,4 +1,5 @@
+ //! Whole-daemon scenarios. Run only inside a disposable privileged container.
++mod capabilities;
+ mod fragmentation;
+ mod hosts;
+ mod incus;
+diff --git a/tests/scenarios/support.rs b/tests/scenarios/support.rs
+index 56a1635..7ff1af0 100644
+--- a/tests/scenarios/support.rs
++++ b/tests/scenarios/support.rs
+@@ -356,11 +356,40 @@ impl Daemon {
+         kill(Pid::from_raw(self.child.id() as i32), Signal::SIGHUP).unwrap();
+         self.event("reload complete");
+     }
++    pub fn assert_unready_for(&mut self, duration: Duration) {
++        let deadline = Instant::now() + duration;
++        assert_eq!(self.count("ready pid="), 0);
++        while Instant::now() < deadline {
++            assert!(
++                self.child.try_wait().unwrap().is_none(),
++                "exited before readiness"
++            );
++            match self.events.recv_timeout(
++                deadline
++                    .saturating_duration_since(Instant::now())
++                    .min(Duration::from_millis(100)),
++            ) {
++                Ok((_, line)) => assert!(!line.contains("ready pid="), "false readiness: {line}"),
++                Err(mpsc::RecvTimeoutError::Timeout) => (),
++                Err(error) => panic!("daemon log closed before readiness: {error}"),
++            }
++        }
++    }
++    pub fn wait_exit(&mut self, code: i32) {
++        wait("process exit", || self.child.try_wait().unwrap().is_some());
++        assert_eq!(self.child.wait().unwrap().code(), Some(code));
++        loop {
++            match self.events.recv_timeout(Duration::from_secs(5)) {
++                Ok(_) => (),
++                Err(mpsc::RecvTimeoutError::Disconnected) => break,
++                Err(error) => panic!("daemon log did not close: {error}"),
++            }
++        }
++    }
+     pub fn stop(&mut self) {
+         kill(Pid::from_raw(self.child.id() as i32), Signal::SIGTERM).unwrap();
+         self.event("shutdown complete");
+-        wait("process exit", || self.child.try_wait().unwrap().is_some());
+-        assert!(self.child.wait().unwrap().success());
++        self.wait_exit(0);
+     }
+ }
+ impl Drop for Daemon {

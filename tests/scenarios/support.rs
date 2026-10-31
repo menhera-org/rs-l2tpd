@@ -356,11 +356,40 @@ impl Daemon {
         kill(Pid::from_raw(self.child.id() as i32), Signal::SIGHUP).unwrap();
         self.event("reload complete");
     }
+    pub fn assert_unready_for(&mut self, duration: Duration) {
+        let deadline = Instant::now() + duration;
+        assert_eq!(self.count("ready pid="), 0);
+        while Instant::now() < deadline {
+            assert!(
+                self.child.try_wait().unwrap().is_none(),
+                "exited before readiness"
+            );
+            match self.events.recv_timeout(
+                deadline
+                    .saturating_duration_since(Instant::now())
+                    .min(Duration::from_millis(100)),
+            ) {
+                Ok((_, line)) => assert!(!line.contains("ready pid="), "false readiness: {line}"),
+                Err(mpsc::RecvTimeoutError::Timeout) => (),
+                Err(error) => panic!("daemon log closed before readiness: {error}"),
+            }
+        }
+    }
+    pub fn wait_exit(&mut self, code: i32) {
+        wait("process exit", || self.child.try_wait().unwrap().is_some());
+        assert_eq!(self.child.wait().unwrap().code(), Some(code));
+        loop {
+            match self.events.recv_timeout(Duration::from_secs(5)) {
+                Ok(_) => (),
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                Err(error) => panic!("daemon log did not close: {error}"),
+            }
+        }
+    }
     pub fn stop(&mut self) {
         kill(Pid::from_raw(self.child.id() as i32), Signal::SIGTERM).unwrap();
         self.event("shutdown complete");
-        wait("process exit", || self.child.try_wait().unwrap().is_some());
-        assert!(self.child.wait().unwrap().success());
+        self.wait_exit(0);
     }
 }
 impl Drop for Daemon {

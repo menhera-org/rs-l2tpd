@@ -1,0 +1,72 @@
+command: docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --env RS_L2TPD_SCENARIO_CONTAINER=1 --env RS_L2TPD_BASELINE=/home/dev/rs-l2tpd/target/phase6-baseline/15529bab567862b6617c9c5b948a74271bc9c44c/target/x86_64-unknown-linux-musl/release/rs-l2tpd --entrypoint sh rs-l2tpd-audit-vm:local -ec uname -r; exec "$@" run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e --ignored --test-threads=1 --nocapture --skip incus::system_container_store_tunable_networkd_and_udev capabilities::
+6.8.0-147-generic
+
+running 3 tests
+test capabilities::missing_net_admin_reports_once_and_withholds_nonempty_readiness ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_ADMIN: tunnel, session and device operations may fail
+daemon: ERROR rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): cannot be created: EPERM: Operation not permitted
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test capabilities::without_bind_service_dhcpv6_degrades_and_unified_discovery_uses_ra ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_BIND_SERVICE: DHCPv6 port 546 may be unavailable
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 2001:db8::1 from 2001:db8::53
+daemon: INFO rs_l2tpd: ready pid=55
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): its resolver waits: EACCES: Permission denied (V9, V12)
+daemon: INFO rs_l2tpd: ready pid=57
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_BIND_SERVICE: DHCPv6 port 546 may be unavailable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 2001:db8::1 from 2001:db8::53
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd: ready pid=102
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): waiting for its resolver's first usable answer (V8)
+daemon: INFO rs_l2tpd: ready pid=104
+daemon: WARN rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): the answer contains unusable addresses of V6; skipped (V5)
+daemon: INFO rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): resolver answers are usable again
+daemon: INFO rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): controlled.example resolves to 2001:db8::9
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 2001:db8::9 from 2001:db8::1
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test capabilities::without_net_raw_router_discovery_requires_accept_ra_and_binding_still_reconnects ... daemon: WARN rs_l2tpd::files: resolver "dns", dhcpv6_identity: used only with method dhcpv6 or ipv6; applied, the key ignored
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_RAW: device binding and raw router discovery may fail
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 2001:db8::1 from 2001:db8::53
+daemon: INFO rs_l2tpd: ready pid=172
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): waiting for its resolver's first usable answer (V8)
+daemon: INFO rs_l2tpd: ready pid=174
+daemon: WARN rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): the answer contains unusable addresses of V6; skipped (V5)
+daemon: INFO rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): resolver answers are usable again
+daemon: INFO rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): controlled.example resolves to 2001:db8::9
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 2001:db8::9 from 2001:db8::1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 2001:db8::9 from 2001:db8::3
+daemon: WARN rs_l2tpd::files: resolver "dns", dhcpv6_identity: used only with method dhcpv6 or ipv6; applied, the key ignored
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 6.70s
+

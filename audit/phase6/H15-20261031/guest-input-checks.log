@@ -1,0 +1,8 @@
+check: invalid guest inputs are rejected before creating an output directory or invoking Docker
+directory: expected exit 1, no output created
+module directory missing
+empty-module: expected exit 1, no output created
+kernel config missing
+missing-config: expected exit 1, no output created
+no-ethernet needs a modular stock kernel
+built-in-missing-driver: expected exit 2, no output created

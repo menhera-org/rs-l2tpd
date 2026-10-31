@@ -502,8 +502,10 @@ to default-enabled kexec-handover scratch reservation; the cold-boot helper
 disables that unused feature when the supplied config enables it.
 A readiness/signal-order race found
 by that guest is fixed and retested. Initial merged coverage is 91.03%
-lines / 77.02% branches, before that fix; 70 rule citations and remaining
-scenarios are still open. No global gate is declared complete; strict CI
+lines / 77.02% branches, before the readiness/H15 fixes. H15 now has four
+capability/netlink scenarios and a scoped missing-driver guest pass; the
+host subset passes 22 scenarios. There are 62 uncited rules, and H16, full
+H17, remaining clauses and final matrix/coverage refreshes are still open. No global gate is declared complete; strict CI
 flags remain off. The latest record is repository file
 `audit/PHASE6_VERIFICATION_2026-10-31.md`; the approved H11 MAC limitations
 remain in [H11](spec/hosts.md#other-network-managers).

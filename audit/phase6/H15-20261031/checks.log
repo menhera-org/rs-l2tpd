@@ -1,0 +1,7 @@
+command: cargo fmt --check
+command: sh -n tests/kernel/run-guest.sh tests/kernel/matrix-init.sh tests/kernel/matrix.sh
+command: shellcheck tests/kernel/run-guest.sh tests/kernel/matrix-init.sh tests/kernel/matrix.sh
+command: tests/kernel/matrix.sh self-test
+matrix publication parser: passed
+check: local Markdown target files (external URLs and fragments excluded)
+local Markdown link targets checked: 127

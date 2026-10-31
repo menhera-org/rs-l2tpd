@@ -73,7 +73,7 @@ K12 was removed and carries no obligation.
 
 | Facts | Behavior relevant to the daemon | Evidence and limits |
 |---|---|---|
-| K1–K4, K8, K9 | Generic-netlink L2TPv3, Ethernet sessions, IPv4/IPv6 sockets and VRFs work with namespace-local `CAP_NET_ADMIN` | Live positive socket/tunnel/session/VRF operations. Capability-denied and missing-module H15 cases are still incomplete. |
+| K1–K4, K8, K9 | Generic-netlink L2TPv3, Ethernet sessions, IPv4/IPv6 sockets and VRFs work with namespace-local `CAP_NET_ADMIN` | Live positive socket/tunnel/session/VRF operations. H15 adds denied-capability/netlink cases on Ubuntu 6.8.0-147 and a missing-Ethernet-driver/recovery case on Ubuntu 7.0.0-42; the degraded profiles have not run separately on every target. |
 | K5 | An unconnected socket can own a tunnel; outbound session frames are dropped while disconnected | Shared conformance and live frame/drop-counter checks. |
 | K6, K24, K25 | Disconnect/reconnect reselects the source; bare reconnect can retain it; an IPv6 tunnel dump can retain its previous peer after disconnect | Shared and live socket/dump assertions; the daemon disconnects before reconnecting. |
 | K7, K10 | Link/address monitoring works without route subscriptions; the production classic BPF filter admits required events | Live monitor/filter tests. H8 also observes daemon requests with nlmon, including a positive capture control. |
@@ -216,6 +216,11 @@ start and end; superseded versions cannot pass the final Phase 6 gate.
 Ubuntu's mentioned `6.8.0-148.148` was not published in the inspected
 release/updates/security indexes; proposed packages and a planned
 `6.8.0-149.149` do not substitute for a fetchable required target.
-Coverage, rule completeness, H15/H16/full H17, the final manager/profile
-refreshes and strict CI remain open. This page does not declare Phase 6
+[H15 degradation cases](../audit/phase6/H15-20261031/README.md) now add four
+passing host scenarios and a passing scoped missing-driver guest, and fix
+host-defect severity/errno reporting. They postdate the five-target
+18-scenario matrix above; the expanded suite/current reports still need
+a complete latest-target rerun. The low-port-range DHCPv6 exception also
+needs its positive case. Coverage, rule completeness, H16/full H17, final
+manager/profile refreshes and strict CI remain open. This page does not declare Phase 6
 complete or claim behavior for kernels that have not executed a case.

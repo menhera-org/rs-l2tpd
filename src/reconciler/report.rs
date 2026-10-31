@@ -2,13 +2,13 @@
 //! and once when it ends, keyed by the entry and the condition; kernel
 //! errors carry their errno names; cookies never appear.
 
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::io;
 
-/// The open episodes.
+/// Open episodes; true means their error-level report was emitted.
 #[derive(Default)]
 pub(crate) struct Report {
-    open: BTreeSet<(String, &'static str)>,
+    open: BTreeMap<(String, &'static str), bool>,
 }
 
 impl Report {
@@ -19,7 +19,10 @@ impl Report {
         condition: &'static str,
         message: impl FnOnce() -> String,
     ) {
-        if self.open.insert((entry.to_owned(), condition)) {
+        if let std::collections::btree_map::Entry::Vacant(slot) =
+            self.open.entry((entry.to_owned(), condition))
+        {
+            slot.insert(false);
             log::warn!("{entry}: {}", message());
         } else {
             log::debug!("{entry}: {}", message());
@@ -33,14 +36,17 @@ impl Report {
         condition: &'static str,
         message: impl FnOnce() -> String,
     ) {
-        if self.open.insert((entry.to_owned(), condition)) {
+        if !std::mem::replace(
+            self.open.entry((entry.to_owned(), condition)).or_default(),
+            true,
+        ) {
             log::error!("{entry}: {}", message());
         }
     }
 
     /// Ends the episode with an information message, if it was open.
     pub fn end(&mut self, entry: &str, condition: &'static str, message: impl FnOnce() -> String) {
-        if self.open.remove(&(entry.to_owned(), condition)) {
+        if self.open.remove(&(entry.to_owned(), condition)).is_some() {
             log::info!("{entry}: {}", message());
         }
     }
@@ -52,13 +58,13 @@ impl Report {
 
     #[cfg(test)]
     pub fn is_open(&self, entry: &str, condition: &'static str) -> bool {
-        self.open.contains(&(entry.to_owned(), condition))
+        self.open.contains_key(&(entry.to_owned(), condition))
     }
 
     /// Forgets every episode of an entry that left the configuration or
     /// changed (O3).
     pub fn forget(&mut self, entry: &str) {
-        self.open.retain(|(e, _)| e != entry);
+        self.open.retain(|(e, _), _| e != entry);
     }
 }
 

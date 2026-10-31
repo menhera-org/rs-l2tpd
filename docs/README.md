@@ -30,8 +30,10 @@ runtime, services and binary; Phases 1–5 have scoped verification records.
 The latest Phase 5 evidence is repository file
 `audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md`, following the initial
 `audit/PHASE5_VERIFICATION_2026-10-29.md` record. The binary runs on musl
-and glibc; all five required kernels now have fresh passing implemented
-conformance/process/scenario profiles, including fragmentation. Phase 6
+and glibc; all five required kernels passed the recorded 18-scenario
+profile, including fragmentation. Newer H15 capability/netlink and
+missing-driver cases pass in their host/guest profiles; the current host
+subset passes 22 scenarios and still needs a final matrix refresh. Phase 6
 is underway: source links, the unprivileged Incus case and the root unit
 sandbox have passing local records.
 [Required-kernel behavior](kernel-behavior.md) records each target's

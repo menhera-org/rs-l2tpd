@@ -335,6 +335,73 @@ fn completion_report_counts() {
             .filter(|(l, message)| *l == level && message.contains(text))
             .count()
     };
+    for (error, level) in [
+        (Errno::EPERM, log::Level::Error),
+        (Errno::EACCES, log::Level::Error),
+        (Errno::EPROTONOSUPPORT, log::Level::Error),
+        (Errno::EOPNOTSUPP, log::Level::Error),
+        (Errno::EAGAIN, log::Level::Warn),
+        (Errno::ENOMEM, log::Level::Warn),
+        (Errno::ENOBUFS, log::Level::Warn),
+    ] {
+        capture.0.lock().unwrap().clear();
+        let (mut r, _) = reconciler();
+        r.reconcile(config(TUNNEL));
+        for _ in 0..3 {
+            r.kernel_mut().fail_next("create", error);
+        }
+        r.reconcile(config(&session("")));
+        run_for(&mut r, 2);
+        assert!(!r.ready(), "session must still be missing: {error:?}");
+        assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
+        let other = if level == log::Level::Error {
+            log::Level::Warn
+        } else {
+            log::Level::Error
+        };
+        assert_eq!(count(other, "cannot be created:"), 0, "{error:?}");
+        run_for(&mut r, 1);
+        assert!(r.ready(), "retry must recover: {error:?}");
+        assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
+    }
+    capture.0.lock().unwrap().clear();
+    let (mut mixed, _) = reconciler();
+    mixed.reconcile(config(TUNNEL));
+    for error in [
+        Errno::EAGAIN,
+        Errno::EPROTONOSUPPORT,
+        Errno::EAGAIN,
+        Errno::EPROTONOSUPPORT,
+    ] {
+        mixed.kernel_mut().fail_next("create", error);
+    }
+    mixed.reconcile(config(&session("")));
+    run_for(&mut mixed, 3);
+    assert!(!mixed.ready());
+    assert_eq!(count(log::Level::Warn, "cannot be created:"), 1);
+    assert_eq!(
+        count(log::Level::Error, "cannot be created:"),
+        1,
+        "a newly observed host defect must be promoted once"
+    );
+    run_for(&mut mixed, 1);
+    assert!(mixed.ready());
+    capture.0.lock().unwrap().clear();
+    let (mut resolver_case, answers) = reconciler();
+    answers.refuse(true);
+    let named = TUNNEL.replace("\"192.0.2.2\"", "\"controlled.example\"\nip_version='V6'");
+    resolver_case.reconcile(config(&named));
+    assert!(
+        resolver_case.ready(),
+        "resolver defects do not withhold readiness"
+    );
+    run_for(&mut resolver_case, 30);
+    assert_eq!(count(log::Level::Error, "its resolver waits:"), 1);
+    assert_eq!(count(log::Level::Warn, "its resolver waits:"), 0);
+    answers.refuse(false);
+    run_for(&mut resolver_case, 30);
+    assert_eq!(count(log::Level::Info, "its resolver started"), 1);
+    capture.0.lock().unwrap().clear();
     let (mut r, _) = reconciler();
     r.reconcile(config(TUNNEL));
     for _ in 0..6 {

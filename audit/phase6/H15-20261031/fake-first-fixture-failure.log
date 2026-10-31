@@ -1,0 +1,37 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 1 test
+
+running 1 test
+
+thread 'completion::completion_report_counts' (3554398) panicked at tests/rules/completion.rs:354:9:
+session must still be missing: EPERM
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test completion::completion_report_counts ... FAILED
+
+failures:
+
+failures:
+    completion::completion_report_counts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.00s
+
+test completion::completion_report_counts ... FAILED
+
+failures:
+
+---- completion::completion_report_counts stdout ----
+
+thread 'completion::completion_report_counts' (3554396) panicked at tests/rules/completion.rs:309:9:
+assertion failed: status.success()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    completion::completion_report_counts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`

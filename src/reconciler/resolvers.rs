@@ -308,6 +308,7 @@ impl<K: Kernel> Reconciler<K> {
                 self.resolver_spec(config).map(|spec| (spec, dependencies))
             }),
         };
+        let mut host_defect = false;
         let started = spec.and_then(|(spec, dependencies)| {
             if self.resolvers.watches[&tunnel_id].started.as_ref() == Some(&spec)
                 && self.resolvers.watches[&tunnel_id].dependencies == dependencies
@@ -329,7 +330,10 @@ impl<K: Kernel> Reconciler<K> {
                     resolver: spec.clone(),
                 })
                 .map(|()| (spec, dependencies))
-                .map_err(|e| report::describe(&e))
+                .map_err(|e| {
+                    host_defect = true;
+                    report::describe(&e)
+                })
         });
         let watch = self.resolvers.watches.get_mut(&tunnel_id).unwrap();
         match started {
@@ -361,9 +365,12 @@ impl<K: Kernel> Reconciler<K> {
                 }
                 watch.dependencies.clear();
                 watch.retry_at = Some(now + DEVICE_RETRY);
-                self.report.begin(&label, "resolver", || {
-                    format!("its resolver waits: {why} (V9, V12)")
-                });
+                let message = || format!("its resolver waits: {why} (V9, V12)");
+                if host_defect {
+                    self.report.begin_error(&label, "resolver", message);
+                } else {
+                    self.report.begin(&label, "resolver", message);
+                }
             }
         }
         self.resolvers.index(tunnel_id);

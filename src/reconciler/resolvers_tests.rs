@@ -2,7 +2,10 @@
 use super::*;
 use socket2::{Domain, Protocol, Socket, Type};
 use std::net::{Ipv6Addr, UdpSocket};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::Ordering;
+#[path = "../../tests/support/discovery.rs"]
+mod discovery;
+use discovery::{Dns, advertise};
 
 /// spec: V5, V6
 #[test]
@@ -118,8 +121,8 @@ fn fixture() -> (Socket, SocketAddrV6, Dns, Dns, UdpSocket) {
         send.send((
             sender,
             SocketAddrV6::new("fe80::2".parse().unwrap(), 0, 0, index),
-            Dns::new("2001:db8::53"),
-            Dns::new("2001:db8::54"),
+            Dns::new("2001:db8::53", "dns-router"),
+            Dns::new("2001:db8::54", "dns-router"),
             UdpSocket::from(dhcp),
         ))
         .unwrap();
@@ -137,16 +140,6 @@ fn fixture() -> (Socket, SocketAddrV6, Dns, Dns, UdpSocket) {
     let fixture = result.recv_timeout(Duration::from_secs(5)).unwrap();
     router.join().unwrap();
     fixture
-}
-
-fn advertise(sender: &Socket, destination: SocketAddrV6, servers: &[(Ipv6Addr, u32)]) {
-    let mut packet = vec![134, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    for (server, lifetime) in servers {
-        packet.extend([25, 3, 0, 0]);
-        packet.extend(lifetime.to_be_bytes());
-        packet.extend(server.octets());
-    }
-    sender.send_to(&packet, &destination.into()).unwrap();
 }
 
 fn until(mut predicate: impl FnMut() -> bool) {
@@ -199,79 +192,6 @@ fn released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository() {
         ra.nameservers(),
         many[..64].iter().map(|(a, _)| *a).collect::<Vec<_>>()
     );
-}
-
-struct Dns {
-    mode: Arc<AtomicUsize>,
-    calls: Arc<AtomicUsize>,
-    socket: UdpSocket,
-    thread: Option<std::thread::JoinHandle<()>>,
-}
-
-impl Dns {
-    fn new(address: &str) -> Self {
-        let socket = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP)).unwrap();
-        socket.bind_device(Some(b"dns-router")).unwrap();
-        socket
-            .bind(&SocketAddrV6::new(address.parse().unwrap(), 53, 0, 0).into())
-            .unwrap();
-        let socket: UdpSocket = socket.into();
-        let reader = socket.try_clone().unwrap();
-        let mode = Arc::new(AtomicUsize::new(0));
-        let calls = Arc::new(AtomicUsize::new(0));
-        let (policy, count) = (mode.clone(), calls.clone());
-        let thread = std::thread::spawn(move || {
-            let mut packet = [0; 512];
-            while let Ok((len, peer)) = reader.recv_from(&mut packet) {
-                if len == 1 {
-                    return;
-                }
-                count.fetch_add(1, Ordering::SeqCst);
-                let query = &packet[..len];
-                let qtype = u16::from_be_bytes(query[len - 4..len - 2].try_into().unwrap());
-                let mode = policy.load(Ordering::SeqCst);
-                let failure = mode == 1 || (mode == 3 && qtype == 28);
-                let negative = mode == 2;
-                let mut reply = query.to_vec();
-                reply[2..4].copy_from_slice(&[
-                    0x81,
-                    if failure {
-                        0x82
-                    } else if negative {
-                        0x83
-                    } else {
-                        0x80
-                    },
-                ]);
-                if !failure && !negative {
-                    reply[6..8].copy_from_slice(&1u16.to_be_bytes());
-                    reply.extend([0xc0, 0x0c]);
-                    reply.extend(qtype.to_be_bytes());
-                    reply.extend([0, 1, 0, 0, 0, 30]);
-                    if qtype == 1 {
-                        reply.extend([0, 4, 192, 0, 2, 9]);
-                    } else {
-                        reply.extend([0, 16]);
-                        reply.extend("2001:db8::9".parse::<Ipv6Addr>().unwrap().octets());
-                    }
-                }
-                reader.send_to(&reply, peer).unwrap();
-            }
-        });
-        Self {
-            mode,
-            calls,
-            socket,
-            thread: Some(thread),
-        }
-    }
-}
-
-impl Drop for Dns {
-    fn drop(&mut self) {
-        let _ = self.socket.send_to(&[0], self.socket.local_addr().unwrap());
-        let _ = self.thread.take().unwrap().join();
-    }
 }
 
 /// spec: V14, V4, V6, K13, K38

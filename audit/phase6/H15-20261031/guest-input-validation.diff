@@ -1,0 +1,13 @@
+--- a/tests/kernel/run-guest.sh
++++ b/tests/kernel/run-guest.sh
+@@ -7,7 +7,9 @@
+ case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
+ case $record in /*) ;; *) record=$repo/$record ;; esac
+ case $mode in normal|ipv6-disable|no-ipv6|no-ethernet|systemd) ;; *) exit 2 ;; esac
+-[ -s "$kernel" ] || exit 1
++[ -f "$kernel" ] && [ -s "$kernel" ] || exit 1
++[ "$modules" = - ] || [ -d "$modules" ] || { echo 'module directory missing' >&2; exit 1; }
++[ "$config" = - ] || [ -f "$config" ] || { echo 'kernel config missing' >&2; exit 1; }
+ [ "$mode" != no-ethernet ] || [ "$modules" != - ] || { echo 'no-ethernet needs a modular stock kernel' >&2; exit 2; }
+ mkdir -p "$record"
+ image=rs-l2tpd-audit-vm:local

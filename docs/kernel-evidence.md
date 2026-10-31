@@ -28,7 +28,7 @@ their own relevant citations.
 | K11 | live: `a_tunable_write_changes_only_fresh_sockets` | linux |
 | K12 | removed; no evidence obligation | removed |
 | K13 | delegated requirement: released iphost DHCPv6 socket implementation; live positive port-546 bind in `released_unified_adapter_enables_per_family_failure_fallback` | delegated |
-| K14 | delegated requirement: released iphost RA netlink source; upstream `parses_netlink_useropt` and raw/netlink equivalence regressions; no claim that the downstream raw-source run executes capability-denied fallback | delegated |
+| K14 | delegated implementation plus live daemon fallback: H15's `without_net_raw_router_discovery_requires_accept_ra_and_binding_still_reconnects` removes CAP_NET_RAW, proves accept_ra gating and actual DNS/frames; upstream `parses_netlink_useropt` and raw/netlink equivalence regressions remain separate source evidence | delegated |
 | K15 | live: `disconnected_sessions_drop_outbound_but_receive_only_matching_cookies`, foreign source and correct/wrong/absent cookies | linux |
 | K16 | shared: stored-name and rename cases; live review: duplicate stored creation names; policy: ambiguity refuses deletion | linux |
 | K17 | shared: closing the socket deletes tunnel and sessions; live real-manager reference test and handover test | linux |

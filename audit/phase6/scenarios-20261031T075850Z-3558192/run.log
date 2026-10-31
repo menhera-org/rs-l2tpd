@@ -1,0 +1,105 @@
+command: docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --env RS_L2TPD_SCENARIO_CONTAINER=1 --env RS_L2TPD_BASELINE=/home/dev/rs-l2tpd/target/phase6-baseline/15529bab567862b6617c9c5b948a74271bc9c44c/target/x86_64-unknown-linux-musl/release/rs-l2tpd --entrypoint sh rs-l2tpd-audit-vm:local -ec uname -r; exec "$@" run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e --ignored --test-threads=1 --nocapture --skip incus::system_container_store_tunable_networkd_and_udev capabilities::
+6.8.0-147-generic
+
+running 4 tests
+test capabilities::missing_net_admin_reports_once_and_withholds_nonempty_readiness ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_ADMIN: tunnel, session and device operations may fail
+daemon: ERROR rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): cannot be created: EPERM: Operation not permitted
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test capabilities::refused_netlink_reports_once_keeps_running_and_withholds_readiness ... daemon: ERROR rs_l2tpd: opening kernel interfaces: Operation not permitted (os error 1); retrying
+
+thread 'capabilities::refused_netlink_reports_once_keeps_running_and_withholds_readiness' (33) panicked at tests/scenarios/support.rs:338:41:
+waiting for opening kernel interfaces: EPERM: timed out waiting on channel
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+side 0: ["-s", "link", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n    RX:  bytes packets errors dropped  missed   mcast           \n             0       0      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n             0       0      0       0       0       0 \n2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN mode DEFAULT group default qlen 1000\n    link/tunnel6 :: brd :: permaddr c2b5:18d9:27ad::\n    RX:  bytes packets errors dropped  missed   mcast           \n             0       0      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n             0       0      0       0       0       0 \n3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN mode DEFAULT group default qlen 1000\n    link/gre6 :: brd :: permaddr 1268:a5c1:b3d1::\n    RX:  bytes packets errors dropped  missed   mcast           \n             0       0      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n             0       0      0       0       0       0 \n5: underlay@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000\n    link/ether 12:55:c9:91:3a:cf brd ff:ff:ff:ff:ff:ff link-netns l2tp-e6cd529b-b\n    RX:  bytes packets errors dropped  missed   mcast           \n             0       0      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n             0       0      0       0       0       0 \n", stderr: "" })
+side 0: ["l2tp", "show", "tunnel"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 0: ["l2tp", "show", "session"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 0: ["neigh", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 0: ["addr", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN group default qlen 1000\n    link/tunnel6 :: brd :: permaddr c2b5:18d9:27ad::\n3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN group default qlen 1000\n    link/gre6 :: brd :: permaddr 1268:a5c1:b3d1::\n5: underlay@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000\n    link/ether 12:55:c9:91:3a:cf brd ff:ff:ff:ff:ff:ff link-netns l2tp-e6cd529b-b\n    inet 192.0.2.1/24 scope global underlay\n       valid_lft forever preferred_lft forever\n", stderr: "" })
+side 0: ["-6", "route", "show", "table", "all"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "multicast ff00::/8 dev underlay table local proto kernel metric 256 pref medium\n", stderr: "" })
+side 1: ["-s", "link", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n    RX:  bytes packets errors dropped  missed   mcast           \n             0       0      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n             0       0      0       0       0       0 \n2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN mode DEFAULT group default qlen 1000\n    link/tunnel6 :: brd :: permaddr 5666:d1ba:1929::\n    RX:  bytes packets errors dropped  missed   mcast           \n             0       0      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n             0       0      0       0       0       0 \n3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN mode DEFAULT group default qlen 1000\n    link/gre6 :: brd :: permaddr d665:ba2:94a::\n    RX:  bytes packets errors dropped  missed   mcast           \n             0       0      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n             0       0      0       0       0       0 \n4: underlay@if5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000\n    link/ether 0e:80:c1:8a:38:ce brd ff:ff:ff:ff:ff:ff link-netns l2tp-e6cd529b-a\n    RX:  bytes packets errors dropped  missed   mcast           \n             0       0      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n             0       0      0       0       0       0 \n", stderr: "" })
+side 1: ["l2tp", "show", "tunnel"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 1: ["l2tp", "show", "session"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 1: ["neigh", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 1: ["addr", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN group default qlen 1000\n    link/tunnel6 :: brd :: permaddr 5666:d1ba:1929::\n3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN group default qlen 1000\n    link/gre6 :: brd :: permaddr d665:ba2:94a::\n4: underlay@if5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000\n    link/ether 0e:80:c1:8a:38:ce brd ff:ff:ff:ff:ff:ff link-netns l2tp-e6cd529b-a\n    inet 192.0.2.2/24 scope global underlay\n       valid_lft forever preferred_lft forever\n", stderr: "" })
+side 1: ["-6", "route", "show", "table", "all"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "multicast ff00::/8 dev underlay table local proto kernel metric 256 pref medium\n", stderr: "" })
+FAILED
+test capabilities::without_bind_service_dhcpv6_degrades_and_unified_discovery_uses_ra ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_BIND_SERVICE: DHCPv6 port 546 may be unavailable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 2001:db8::1 from 2001:db8::53
+daemon: INFO rs_l2tpd: ready pid=95
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): its resolver waits: EACCES: Permission denied (V9, V12)
+daemon: INFO rs_l2tpd: ready pid=97
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_BIND_SERVICE: DHCPv6 port 546 may be unavailable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 2001:db8::1 from 2001:db8::53
+daemon: INFO rs_l2tpd: ready pid=142
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): waiting for its resolver's first usable answer (V8)
+daemon: INFO rs_l2tpd: ready pid=144
+daemon: WARN rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): the answer contains unusable addresses of V6; skipped (V5)
+daemon: INFO rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): resolver answers are usable again
+daemon: INFO rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): controlled.example resolves to 2001:db8::9
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 2001:db8::9 from 2001:db8::1
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test capabilities::without_net_raw_router_discovery_requires_accept_ra_and_binding_still_reconnects ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_RAW: device binding and raw router discovery may fail
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 2001:db8::1 from 2001:db8::53
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd: ready pid=212
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): waiting for its resolver's first usable answer (V8)
+daemon: INFO rs_l2tpd: ready pid=214
+daemon: WARN rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): the answer contains unusable addresses of V6; skipped (V5)
+daemon: INFO rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): resolver answers are usable again
+daemon: INFO rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): controlled.example resolves to 2001:db8::9
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 2001:db8::9 from 2001:db8::1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 2001:db8::9 from 2001:db8::3
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+failures:
+
+failures:
+    capabilities::refused_netlink_reports_once_keeps_running_and_withholds_readiness
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 20 filtered out; finished in 16.80s
+

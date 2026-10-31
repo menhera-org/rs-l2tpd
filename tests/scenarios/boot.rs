@@ -70,3 +70,48 @@ fn absent_ipv6_stack_uses_native_ipv4_and_keeps_ipv6_peers_disconnected() {
     pair.absent(0);
     pair.absent(1);
 }
+
+/// spec: H15, R1, K3, O2
+#[test]
+#[ignore = "stock-kernel QEMU guest with l2tp_eth absent and module autoload disabled"]
+fn missing_ethernet_driver_withholds_readiness_until_the_driver_is_loaded() {
+    use std::path::Path;
+    use std::process::Command;
+    use std::time::{Duration, Instant};
+    assert_eq!(std::env::var("RS_L2TPD_NO_ETHERNET").as_deref(), Ok("1"));
+    assert!(Path::new("/sys/module/l2tp_core").exists());
+    assert!(!Path::new("/sys/module/l2tp_eth").exists());
+    assert_eq!(
+        std::fs::read_to_string("/proc/sys/kernel/modprobe")
+            .unwrap()
+            .trim(),
+        "/no-module-loader"
+    );
+    let pair = Pair::new();
+    pair.underlay(true, true);
+    let mut daemon = pair.start(0, &config(0, &["192.0.2.2"]));
+    daemon.event("session s0 (tunnel_id=1, session_id=101): cannot be created:");
+    daemon.assert_unready_for(Duration::from_millis(2200));
+    assert_eq!(daemon.count("cannot be created:"), 1);
+    assert_eq!(
+        daemon.count("ERROR rs_l2tpd::reconciler::report: session"),
+        1
+    );
+    assert!(pair.ip(0, &["l2tp", "show", "tunnel"]).contains("Tunnel 1"));
+    assert!(pair.ip(0, &["l2tp", "show", "session"]).trim().is_empty());
+    assert!(!Path::new("/sys/module/l2tp_eth").exists());
+    let output = Command::new("modprobe").arg("l2tp_eth").output().unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let available = Instant::now();
+    let ready = daemon.event("ready pid=");
+    assert!(ready.saturating_duration_since(available) <= Duration::from_secs(1));
+    assert_eq!(daemon.count("cannot be created:"), 1);
+    let mut peer = pair.start(1, &config(1, &["192.0.2.1"]));
+    peer.event("ready");
+    pair.inner("l2tp0", 0);
+    pair.frames(0);
+    daemon.stop();
+    peer.stop();
+    pair.absent(0);
+    pair.absent(1);
+}
