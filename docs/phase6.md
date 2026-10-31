@@ -145,8 +145,9 @@ passed all ten seeded fake/live repetitions on its first attempt. The
 [retained qualification](../audit/phase6/strict-gates-20261031/README.md)
 identifies the source and each result. Both strict flags are now set in
 the common CI script; regular CI retains one full guest per run. This
-establishes declaration traceability, subject to the new strict CI run,
-and does not close the remaining clause, matrix or coverage gates.
+establishes declaration traceability. The updated strict workflow also
+[passes in CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41211013318).
+The remaining clause, matrix and coverage gates stay open.
 
 ## P2. The scenario suite
 

@@ -3,20 +3,20 @@
 Phase 6 is not complete. This record extends
 [the October 30 record](PHASE6_VERIFICATION_2026-10-30.md).
 Strict CI map flags were enabled after the ten-run qualification recorded
-below; their new workflow run is pending. The maintainer approved the K26/K34
+below; the updated strict workflow also passed. The maintainer approved the K26/K34
 kernel distinction on 2026-10-31, and the correction is applied. The
 previously approved evidence-map and H11 MAC decisions remain in force.
 
 | Gate/package | Current evidence | Remaining work |
 |---|---|---|
-| P1 source link | Strict local pass: 43 facts, 37 production-cited and six classified; no uncited functions. Ten CI repetitions passed; strict flags now set | Verify the updated strict workflow in CI |
-| P1 rule map | Strict local pass: 343 total / 333 active / 333 cited / zero missing | Verify the updated strict workflow in CI; declaration traceability does not establish clause coverage |
+| P1 source link | Strict local and CI passes: 43 facts, 37 production-cited and six classified; no uncited functions. Ten CI repetitions passed | Maintain strict enforcement as sources change |
+| P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests; H16 has passing required-kernel records | Relevant-event CPU cost, full resource/history proof and remaining clauses; investigate the separate vanilla 7.0.14 capture failure |
 | P3 matrix | Current refresh passes full normal profiles on both Ubuntu kernels, vanilla 6.8.12 and mainline 7.3.0; vanilla 7.0.14 fails one netlink-count assertion | Resolve that failure and finish current matrix/clock validation; complete P2/delegated proof |
 | P4 coverage | Current merged GNU report: 92.26% lines / 78.16% branches, including real user manager and full Incus case; no exclusions | 804 missing lines / 408 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Current unmodified musl full case passes, including manager race/ordered policy/store/re-exec; instrumented GNU full case exports seven daemon profiles | Repeat if relevant source changes; retain documented MAC limitations |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
-| P7 docs/CI | Ten seeded CI repetitions pass on their first attempt; both strict map flags set; regular CI retains one full live guest | Updated strict workflow run, complete verification and coverage enforcement remain open |
+| P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
 
 Current P1/ordinary/warning checks are in
 [deadline-index-20261031](phase6/deadline-index-20261031/README.md). Lifetime
@@ -550,3 +550,13 @@ actual supplied unit has no drop-ins; private mounts, protected root and
 tunables, the writable exception, exact capabilities, autoload/readiness,
 manager store/re-exec and cleanup assertions pass. This is uninstrumented
 musl evidence, separate from the coverage-only manager drop-in profile.
+
+## Strict workflow execution confirmed
+
+CI run 41211013318, revision `26fe9ba`, attempt 1, passes both jobs.
+The build log confirms all 333 active rules cited and all 43 source facts
+accounted for, with no uncited Linux functions. Its single normal guest
+passes all 26 scenarios and the live kernel/process suites. Retained
+metadata and normalized logs are in the qualification record's `enforced-ci`
+directory. This establishes both P1 traceability gates in CI; other Phase 6
+requirements remain open. The later H8 fixture change has a separate CI run.

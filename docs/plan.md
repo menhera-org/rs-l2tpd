@@ -549,8 +549,9 @@ entries, measured connection, in-place stability/fidelity and ordered cleanup
 with a successful process exit. The conflict process case enforces ten-second
 readiness. Local traceability is complete. The required ten seeded fake/live
 CI repetitions passed on their first attempt, and the common CI script now
-enforces both strict map flags. The updated strict workflow still needs its
-own passing run; declaration traceability does not imply complete clause proof.
+enforces both strict map flags. The updated strict workflow passes both its
+build and full live guest jobs; declaration traceability does not imply
+complete clause proof.
 Complete event-cost/resource/history proof, remaining clauses and
 final matrix/coverage refreshes are still open. No global gate is declared
 complete. The latest record is repository file

@@ -30,7 +30,10 @@ After retaining these ten passes, the shared `test-ci-gates.sh` sets
 complete fake/live guest job per push or pull request. This removes repeated
 qualification jobs after the required initial ten passes; it keeps the full
 live suite, bounded step/job/QEMU timeouts, failure logs and no automatic
-retries. The new strict workflow still needs its own successful CI run.
+retries. [CI run 41211013318](https://github.com/menhera-org/rs-l2tpd/actions/runs/41211013318)
+then passed both the strict build job and the single full live guest on
+its first attempt at revision `26fe9ba`. The `enforced-ci` directory retains
+job/run/artifact metadata, strict map output and the successful live logs.
 
 The rule map links all 333 active rules. The source map covers 43 facts:
 37 production-cited and six classified in the evidence map, with no uncited

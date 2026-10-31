@@ -1,0 +1,10 @@
+2026-10-31T14:37:55.3897578Z ##[group]Run ./test-ci-gates.sh
+2026-10-31T14:39:02.0358794Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+2026-10-31T14:39:02.5284555Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+2026-10-31T14:39:02.9937219Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-31T14:39:35.8833450Z rule map: 343 rules (333 active), 333 linked to test declarations, 0 without citations
+2026-10-31T14:39:35.9649615Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+2026-10-31T14:39:35.9657867Z source links: 43 facts, 37 cited, 0 functions without a citation
+2026-10-31T14:39:35.9658236Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+2026-10-31T14:41:03.8453181Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+2026-10-31T14:41:04.3015440Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
