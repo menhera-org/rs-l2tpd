@@ -446,7 +446,7 @@ impl Drop for Manager {
     }
 }
 
-/// spec: P14 P18 P26
+/// spec: P14 P18 P26 G9
 #[test]
 #[ignore = "isolated privileged container"]
 fn crash_store_adoption_and_ordered_withdrawal() {
@@ -574,7 +574,7 @@ fn handover_launcher() {
     panic!("launch failed: {error}");
 }
 
-/// spec: P18 P17
+/// spec: P18 P17 G9 R22
 #[test]
 #[ignore = "isolated privileged container"]
 fn crash_without_store_closes_tunnel() {
@@ -593,6 +593,7 @@ fn crash_without_store_closes_tunnel() {
         assert!(Instant::now() < deadline);
         std::thread::yield_now();
     }
+    assert!(kernel.session(10, 100).unwrap().is_none());
 }
 
 /// spec: P27

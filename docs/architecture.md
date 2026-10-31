@@ -305,6 +305,14 @@ thread (L7) and a restart callback (L6); `blocking::Service` (L8) hosts a
 current-thread runtime on a thread of its own and implements `Drop` as a
 shutdown.
 
+Program-driven `Runtime` drop closes owned active and retiring sockets even
+when the kernel backend is shared. It performs no ordered deletion or manager
+handshake; use explicit shutdown for those results. Constructors keep their
+synchronous, ownership-preserving startup errors. `next_event` synchronously
+prepares callbacks outside Tokio and returns the waiting future; if a timed
+wait lacks Tokio context, it yields `ControlEvent::Failed` for `handle_event`
+to return as an error. Channel-only operations need no Tokio context.
+
 The binary (A1) owns nothing kernel-related. Its modules are the list in
 the map; the only state it keeps is the published PID-file inode (P10),
 the stored descriptors' names (P14) and the path it was started with

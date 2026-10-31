@@ -285,6 +285,28 @@ uncited. Initial fixture/compiler failures and real reporting failures
 remain separate in the record. These additional cases have not run on
 the other required targets or in Incus. No global gate is closed.
 
+## Library requirements and recoverable runtime errors
+
+[The library package](phase6/library-requirements-20261031/README.md)
+tests absent runtime, capability and logging, a caller-dropped source event,
+overlapping owners and active/retiring socket cleanup. It reproduces and fixes
+two defects: dropping a runtime leaked owned sockets when its kernel backend
+outlived it, and polling a timed event wait without Tokio panicked. Drop now
+closes those sockets without ordered deletion; the timed wait yields a
+non-exhaustive `ControlEvent::Failed` and forwarding it returns the error.
+Synchronous startup and event preparation retain their useful ownership/thread
+contracts; channel-only futures remain usable outside Tokio.
+
+The common CI gate and four strict source-link cases pass. Each of ten seeded
+runs passes 92 ordinary library cases (11 live cases ignored), 74 rule cases
+and 25 service cases. The privileged musl run on `6.8.0-147-generic` passes
+19 kernel cases and 26 process cases. The full host run passes 25 scenarios
+in 161.19 seconds. Separate logs retain the two demonstrated product failures
+and the two initial live-fixture mistakes. The strict rule map remains red:
+343 total / 333 active / 289 cited / 44 missing. The new citations cover
+A2, A21, G9, G14, R22 and R37–R42; they do not close every clause of those
+rules or the final matrix, manager and coverage refreshes.
+
 ## Coverage and exit state
 
 [The merged coverage record](phase6/coverage-20261031/README.md) combines

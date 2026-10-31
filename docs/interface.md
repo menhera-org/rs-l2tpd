@@ -210,5 +210,14 @@ backlog. Injected blocking callbacks run outside Tokio context and may build
 and drive a runtime of their own.
 
 `Runtime::next_event` is the program-driven receive operation.
+Its synchronous preparation keeps injected kernel callbacks on the caller's
+thread; the returned future performs the wait. Constructors remain synchronous
+so startup errors immediately return the adopted descriptors. Runtime-dependent
+work checks for Tokio context; a missing context during a timed event wait
+produces `ControlEvent::Failed`, which `handle_event` returns as an error.
+Channel-only control/completion futures also work with other executors.
 `Runtime::shutdown` returns `Ok(false)` while cleanup is pending; keep
 forwarding events until it returns `Ok(true)` or a cleanup error.
+Dropping a program-driven runtime closes its active and retiring tunnel sockets
+without performing ordered session deletion. Explicit shutdown is needed to
+observe cleanup completion and errors, particularly with external socket copies.

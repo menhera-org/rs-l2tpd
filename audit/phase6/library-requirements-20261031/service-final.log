@@ -1,0 +1,40 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/service.rs (target/debug/deps/service-09f802d44b2efd34)
+
+running 25 tests
+test public_dependency_types_are_reexported ... ok
+test overlapping_runtimes_conflict_and_the_nonowner_cannot_remove_the_owner ... ok
+test startup_failure_returns_exact_names_and_live_descriptors ... ok
+test blocking_service_verifies_and_reuses_a_named_adopted_tunnel ... ok
+test drop_before_run_retires_inherited_entries_and_works_inside_tokio ... ok
+test shutdown_does_not_wait_for_blocked_callback_or_apply_its_result ... ok
+test converge_ignores_reloads_and_reports_conflicts_after_ten_attempts ... ok
+test blocking_service_exposes_host_requests_and_waits_for_processing_acknowledgement ... ok
+test reload_error_keeps_config_then_success_applies_and_restart_resumes ... ok
+
+thread 'l2tp-reconciler' (3800402) panicked at tests/service.rs:346:65:
+restart panic
+test runtime_drop_closes_owned_sockets_without_ordered_session_deletion ... note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ok
+
+thread 'l2tp-reload' (3800443) panicked at tests/service.rs:322:17:
+callback panic
+test blocking_converges_and_drop_removes_children_before_parents ... ok
+test tokio_service_run_converges_without_explicit_converge ... ok
+test tokio_drop_returns_without_blocking_host_request_processing ... ok
+test run_after_shutdown_reports_the_completed_cleanup ... ok
+test restart_callback_panic_returns_only_after_cleanup ... ok
+test retry_timer_keeps_running_during_a_blocked_reload ... ok
+test callback_panic_returns_only_after_cleanup ... ok
+test superseded_reload_is_discarded_and_the_latest_runs_next ... ok
+test withdrawal_completion_is_processed_during_a_blocked_reload ... ok
+test tunable_completion_is_processed_during_a_blocked_reload ... ok
+test reload_accepted_during_convergence_is_ignored_even_when_dequeued_after_readiness ... ok
+test subscriptions_drain_during_a_kernel_call_and_loss_during_resync_survives ... ok
+test requests_between_converge_and_run_keep_their_order ... ok
+test spawn_blocking_callers_and_injected_callbacks_can_own_their_runtimes ... ok
+test deferred_restarts_are_bounded_and_each_accepted_request_runs ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

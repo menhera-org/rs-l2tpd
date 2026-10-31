@@ -219,7 +219,7 @@ fn synchronize(control: &rs_l2tpd::runtime::Control, ready: &mpsc::Receiver<()>)
     }
 }
 
-/// spec: L5, L8, L11
+/// spec: L5, L8, L11, A2, G14, R37
 #[test]
 fn blocking_converges_and_drop_removes_children_before_parents() {
     let host = Host::new();
@@ -257,7 +257,7 @@ fn drop_before_run_retires_inherited_entries_and_works_inside_tokio() {
     });
 }
 
-/// spec: L5, L6, L7
+/// spec: L5, L6, L7, A2, G14
 #[test]
 fn reload_error_keeps_config_then_success_applies_and_restart_resumes() {
     let host = Host::new();
@@ -431,22 +431,91 @@ fn converge_ignores_reloads_and_reports_conflicts_after_ten_attempts() {
     drop(thread.join().unwrap());
 }
 
-/// spec: L5, L9
+/// spec: L5, L9, R37, G14
 #[test]
 fn startup_failure_returns_exact_names_and_live_descriptors() {
     let (fd, _) = std::os::unix::net::UnixStream::pair().unwrap();
     let adopted = vec![AdoptedSocket::new("malformed t10", fd.into())];
     // No Tokio runtime: failure occurs before adoption, not by dropping inputs.
-    let (_, returned) = match Runtime::with_kernel(Host::new(), Box::new(NoDns), adopted) {
+    let (error, returned) = match Runtime::with_kernel(Host::new(), Box::new(NoDns), adopted) {
         Ok(_) => panic!("expected startup failure"),
         Err(error) => error,
     };
+    assert!(matches!(error, Error::Other(_)), "{error}");
     assert_eq!(returned[0].name(), "malformed t10");
     assert_eq!(returned[0].tunnel_id(), None);
     assert!(returned[0].fd().try_clone().is_ok());
 }
 
-/// spec: L5, L8, L9
+/// spec: R40, G9, G14, L9
+#[test]
+fn runtime_drop_closes_owned_sockets_without_ordered_session_deletion() {
+    for retiring in [false, true] {
+        engine().block_on(async {
+            let host = Host::new();
+            let mut runtime = Runtime::with_kernel(host.clone(), Box::new(NoDns), vec![])
+                .map_err(|(e, _)| e)
+                .unwrap();
+            if retiring {
+                runtime.set_store_capacity(1);
+            }
+            assert!(runtime.reconcile(config(10)));
+            assert!(host.with(|k| k.session_index(10, 110).is_some()));
+            if retiring {
+                runtime.reconcile(Config::new());
+                assert!(host.with(|k| k.tunnel_socket(10).is_some()));
+            }
+            host.with(|k| k.clear_ops());
+            let control = runtime.control();
+            drop(runtime);
+            host.with(|k| {
+                k.tick();
+                assert!(k.session_index(10, 110).is_none());
+                assert!(k.tunnel_socket(10).is_none());
+                assert_eq!(
+                    k.ops().iter().filter(|op| op.starts_with("close ")).count(),
+                    1
+                );
+                assert!(!k.ops().iter().any(|op| op.starts_with("delete")));
+            });
+            assert!(control.reload().is_err());
+        });
+    }
+}
+
+/// spec: R42, G2, G14, L9
+#[test]
+fn overlapping_runtimes_conflict_and_the_nonowner_cannot_remove_the_owner() {
+    engine().block_on(async {
+        let host = Host::new();
+        let mut owner = Runtime::with_kernel(host.clone(), Box::new(NoDns), vec![])
+            .map_err(|(e, _)| e)
+            .unwrap();
+        assert!(owner.reconcile(config(10)));
+        let original = host.with(|k| (k.tunnel_socket(10), k.session_index(10, 110)));
+        let mut other = Runtime::with_kernel(host.clone(), Box::new(NoDns), vec![])
+            .map_err(|(e, _)| e)
+            .unwrap();
+        assert!(!other.reconcile(config(10)));
+        assert!(!other.ready());
+        assert!(other.shutdown().unwrap());
+        drop(other);
+        assert_eq!(
+            host.with(|k| (k.tunnel_socket(10), k.session_index(10, 110))),
+            original
+        );
+        host.with(|k| k.clear_ops());
+        assert!(owner.reconcile(config(10)));
+        assert!(host.with(|k| k.ops().is_empty()));
+        if !owner.shutdown().unwrap() {
+            host.with(|k| k.tick());
+            assert!(owner.shutdown().unwrap());
+        }
+        assert!(host.with(|k| k.tunnel_socket(10).is_none()));
+    });
+}
+
+/// spec: L5, L8, L9, A2, G14
 #[test]
 fn tokio_service_run_converges_without_explicit_converge() {
     engine().block_on(async {

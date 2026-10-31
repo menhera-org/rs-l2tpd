@@ -184,6 +184,151 @@ fn create(tunnel_id: u32, session_id: u32, ifname: &str) -> SessionCreate {
     )
 }
 
+fn library_config(id: u32) -> rs_l2tpd::config::Config {
+    use rs_l2tpd::config::{Config, HostConfig, SessionConfig, TunnelConfig};
+    let mut config = Config::new();
+    config.set_host(HostConfig::new().with_fix_bindv6only(false));
+    config
+        .insert_tunnel(
+            "wan",
+            TunnelConfig::builder(id)
+                .ip_version(Family::V6)
+                .build()
+                .unwrap(),
+        )
+        .unwrap();
+    config
+        .insert_session(
+            "lan",
+            SessionConfig::builder("wan", id + 100, name("rslive0"))
+                .build()
+                .unwrap(),
+        )
+        .unwrap();
+    config
+}
+
+/// spec: R37, G14, L5, L8, L9
+#[test]
+#[ignore = "isolated privileged container; public constructors use the real kernel"]
+fn library_constructors_reject_missing_tokio_and_preserve_adopted_descriptors() {
+    use rs_l2tpd::{AdoptedSocket, Error, Runtime, blocking, service};
+    let _fixture = LinuxFixture::new();
+    assert!(tokio::runtime::Handle::try_current().is_err());
+    let (fd, _peer) = std::os::unix::net::UnixStream::pair().unwrap();
+    let Err((error, returned)) = Runtime::new(vec![AdoptedSocket::new("t10", fd.into())]) else {
+        panic!("Runtime needs a Tokio context");
+    };
+    assert!(matches!(error, Error::Other(_)), "{error}");
+    assert_eq!(returned[0].name(), "t10");
+    assert!(returned[0].fd().try_clone().is_ok());
+    let Err((error, returned)) = service::Service::new(rs_l2tpd::config::Config::new(), returned)
+    else {
+        panic!("Service needs a Tokio context");
+    };
+    assert!(matches!(error, Error::Other(_)), "{error}");
+    assert_eq!(returned[0].name(), "t10");
+    assert!(returned[0].fd().try_clone().is_ok());
+    let mut blocking = blocking::Service::new(rs_l2tpd::config::Config::new(), vec![])
+        .map_err(|(e, _)| e)
+        .unwrap();
+    assert!(blocking.converge().unwrap().is_empty());
+    assert!(tokio::runtime::Handle::try_current().is_err());
+    drop(blocking);
+}
+
+/// spec: R38, R3, G8, G14, L9
+#[test]
+#[ignore = "isolated privileged container; only this test thread drops CAP_NET_ADMIN"]
+fn library_missing_net_admin_withholds_readiness_and_shutdown_still_succeeds() {
+    let fixture = LinuxFixture::new();
+    let mut observer_kernel = fixture.kernel;
+    let (query, requested) = std::sync::mpsc::sync_channel(0);
+    let observer = std::thread::spawn(move || {
+        requested.recv().unwrap();
+        observer_kernel.tunnel(10)
+    });
+    #[repr(C)]
+    struct Header {
+        version: u32,
+        pid: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct Caps {
+        effective: u32,
+        permitted: u32,
+        inheritable: u32,
+    }
+    let mut header = Header {
+        version: 0x20080522,
+        pid: 0,
+    };
+    let mut caps = [Caps::default(); 2];
+    assert_eq!(
+        unsafe { libc::syscall(libc::SYS_capget, &mut header, caps.as_mut_ptr()) },
+        0
+    );
+    assert_ne!(caps[0].effective & (1 << 12), 0);
+    caps[0].effective &= !(1 << 12);
+    assert_eq!(
+        unsafe { libc::syscall(libc::SYS_capset, &header, caps.as_ptr()) },
+        0
+    );
+    let mut runtime = {
+        let _entered = fixture.runtime.enter();
+        rs_l2tpd::Runtime::new(vec![]).map_err(|(e, _)| e).unwrap()
+    };
+    assert!(!runtime.reconcile(library_config(10)));
+    assert!(!runtime.ready());
+    query.send(()).unwrap();
+    assert!(observer.join().unwrap().unwrap().is_none());
+    assert!(runtime.shutdown().unwrap());
+}
+
+/// spec: R40, G2, G9, G14, L9, L13
+#[test]
+#[ignore = "isolated privileged container; real socket cleanup and foreign ownership"]
+fn library_runtime_drop_closes_active_and_retiring_tunnels_without_touching_foreign_ones() {
+    for retiring in [false, true] {
+        let mut fixture = LinuxFixture::new();
+        let foreign = fixture
+            .kernel
+            .create_socket(Family::V6, 9000, 9001)
+            .unwrap();
+        fixture.kernel.register_tunnel(foreign, 9000, 9001).unwrap();
+        fixture
+            .kernel
+            .create_session(&create(9000, 9002, "foreign"))
+            .unwrap();
+        let foreign_index = index_of("foreign");
+        let mut runtime = {
+            let _entered = fixture.runtime.enter();
+            rs_l2tpd::Runtime::new(vec![]).map_err(|(e, _)| e).unwrap()
+        };
+        if retiring {
+            runtime.set_store_capacity(1);
+        }
+        assert!(runtime.reconcile(library_config(10)));
+        assert!(fixture.kernel.session(10, 110).unwrap().is_some());
+        if retiring {
+            runtime.reconcile(rs_l2tpd::config::Config::new());
+            assert!(fixture.kernel.tunnel(10).unwrap().is_some());
+        }
+        drop(runtime);
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while fixture.kernel.tunnel(10).unwrap().is_some() {
+            assert!(std::time::Instant::now() < deadline);
+            std::thread::yield_now();
+        }
+        assert!(fixture.kernel.session(10, 110).unwrap().is_none());
+        assert!(fixture.kernel.tunnel(9000).unwrap().is_some());
+        assert!(fixture.kernel.session(9000, 9002).unwrap().is_some());
+        assert_eq!(index_of("foreign"), foreign_index);
+        fixture.kernel.close(foreign);
+    }
+}
+
 /// spec: T1, T3, T4, T6, T26, T28, K2, K4, K11, K23, K28, K34
 #[test]
 #[ignore = "isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules"]

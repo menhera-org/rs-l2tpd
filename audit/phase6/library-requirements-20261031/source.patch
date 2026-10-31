@@ -1,0 +1,496 @@
+diff --git a/src/reconciler/store.rs b/src/reconciler/store.rs
+index 1ddd0b9..c428883 100644
+--- a/src/reconciler/store.rs
++++ b/src/reconciler/store.rs
+@@ -29,6 +29,19 @@ pub(super) struct Retirement {
+     closed: Option<Instant>,
+ }
+ 
++impl<K: Kernel> Drop for Reconciler<K> {
++    fn drop(&mut self) {
++        for socket in self.tunnels.values().map(|record| record.socket).chain(
++            self.store
++                .retiring
++                .values()
++                .flat_map(|record| record.sockets.iter().copied()),
++        ) {
++            self.k.close(socket);
++        }
++    }
++}
++
+ impl Store {
+     pub fn next_deadline(&self, now: Instant) -> Option<Instant> {
+         if self.shutdown.is_some_and(|deadline| now >= deadline) {
+diff --git a/src/runtime.rs b/src/runtime.rs
+index 29287ca..b8b5037 100644
+--- a/src/runtime.rs
++++ b/src/runtime.rs
+@@ -94,12 +94,15 @@ pub type StartResult<T> = std::result::Result<T, (Error, Vec<AdoptedSocket>)>;
+ ///         ControlEvent::Shutdown | ControlEvent::Restart |
+ ///         ControlEvent::WriteTunable { .. } | ControlEvent::StoreSocket { .. } |
+ ///         ControlEvent::ForgetSocket { .. } | ControlEvent::TunableWritten { .. } |
+-///         ControlEvent::SocketForgotten { .. } | ControlEvent::Service(_) => {}
++///         ControlEvent::SocketForgotten { .. } | ControlEvent::Failed(_) |
++///         ControlEvent::Service(_) => {}
+ ///     }
+ /// }
+ /// ```
+ #[non_exhaustive]
+ pub enum ControlEvent {
++    /// Waiting for an event failed. Forwarding this event returns its error.
++    Failed(Error),
+     /// A notice from one of the independently drained subscriptions.
+     Kernel {
+         /// Its source.
+@@ -511,6 +514,11 @@ impl<K: Kernel + 'static> Runtime<K> {
+             if wake_at.is_some_and(|deadline| deadline <= Instant::now()) {
+                 return ControlEvent::Tick;
+             }
++            if wake_at.is_some()
++                && let Err(error) = tokio::runtime::Handle::try_current()
++            {
++                return ControlEvent::Failed(Error::Other(error.to_string()));
++            }
+             let mut timer = pin!(async {
+                 if let Some(deadline) = wake_at {
+                     tokio::time::sleep_until(tokio::time::Instant::from_std(deadline)).await;
+@@ -539,6 +547,7 @@ impl<K: Kernel + 'static> Runtime<K> {
+     /// forwarding never writes a tunable or speaks a descriptor-store protocol.
+     pub fn handle_event(&mut self, event: ControlEvent) -> Result<()> {
+         match event {
++            ControlEvent::Failed(error) => return Err(error),
+             ControlEvent::Kernel { source, notice } if self.stopping.is_none() => {
+                 self.reconciler.handle(source, notice)
+             }
+diff --git a/src/runtime/tests.rs b/src/runtime/tests.rs
+index 7cafa48..6dba860 100644
+--- a/src/runtime/tests.rs
++++ b/src/runtime/tests.rs
+@@ -55,6 +55,123 @@ fn config() -> Config {
+     config
+ }
+ 
++/// spec: R39, L10, E20, G14
++#[test]
++fn a_dropped_source_removal_stays_stale_until_resync_is_forwarded() {
++    engine().block_on(async {
++        let mut r = runtime();
++        let device = r.reconciler.kernel_mut().add_link("wan", false);
++        let source = "192.0.2.1".parse().unwrap();
++        r.reconciler.kernel_mut().add_addr(device, source);
++        let mut config = Config::new();
++        config
++            .insert_tunnel(
++                "a",
++                TunnelConfig::builder(10)
++                    .ip_version(Family::V4)
++                    .remote_addr(crate::config::RemoteAddr::Ip {
++                        addr: "192.0.2.2".parse().unwrap(),
++                        zone: None,
++                    })
++                    .build()
++                    .unwrap(),
++            )
++            .unwrap();
++        assert!(r.reconcile(config));
++        assert!(r.reconciler.kernel().transmits(10));
++        r.reconciler.kernel_mut().take_monitor();
++        r.reconciler.kernel_mut().clear_ops();
++        r.reconciler.kernel_mut().del_addr(device, source);
++        let dropped = r.reconciler.kernel_mut().take_monitor();
++        assert!(matches!(dropped.as_slice(), [Notice::AddrDel(_)]));
++        assert!(
++            r.reconciler.kernel().transmits(10),
++            "an unforwarded event cannot update the record"
++        );
++        assert!(r.reconciler.kernel().ops().is_empty());
++        r.handle_event(ControlEvent::Kernel {
++            source: Source::Monitor,
++            notice: Notice::Loss,
++        })
++        .unwrap();
++        assert!(!r.reconciler.kernel().transmits(10));
++        assert!(
++            r.ready(),
++            "connectivity does not control existence/readiness"
++        );
++        finish(&mut r);
++    });
++}
++
++/// spec: R41, R38, G14, L11
++#[test]
++fn absent_log_sink_does_not_change_kernel_refusal_or_recovery() {
++    assert_eq!(log::max_level(), log::LevelFilter::Off);
++    engine().block_on(async {
++        let mut r = runtime();
++        r.reconciler
++            .kernel_mut()
++            .fail_next("socket", nix::errno::Errno::EPERM);
++        assert!(!r.reconcile(config()));
++        assert!(!r.ready());
++        r.reconciler.kernel_mut().advance(Duration::from_secs(1));
++        r.handle_event(ControlEvent::Tick).unwrap();
++        assert!(r.ready());
++        assert!(r.reconciler.kernel().session_index(10, 100).is_some());
++        finish(&mut r);
++    });
++}
++
++/// spec: R37, L10, L11, A21, G14
++#[test]
++fn event_wait_without_tokio_reports_an_error_and_channels_remain_usable() {
++    let engine = engine();
++    let mut r = engine.block_on(async { runtime() });
++    assert!(tokio::runtime::Handle::try_current().is_err());
++    let control = r.control();
++    let mut cx = Context::from_waker(Waker::noop());
++    assert!(matches!(
++        pin!(control.reload_wait()).poll(&mut cx),
++        Poll::Ready(Ok(()))
++    ));
++    assert!(matches!(
++        pin!(control.tunable_written(1, false)).poll(&mut cx),
++        Poll::Ready(Ok(()))
++    ));
++    assert!(matches!(
++        pin!(control.socket_forgotten(2, false)).poll(&mut cx),
++        Poll::Ready(Ok(()))
++    ));
++    let Poll::Ready(event) = pin!(r.next_event()).poll(&mut cx) else {
++        panic!("the queued reload must be available without a timer");
++    };
++    assert!(matches!(event, ControlEvent::Reload { .. }));
++    r.handle_event(event).unwrap();
++    for id in [1, 2] {
++        let Poll::Ready(event) = pin!(r.next_event()).poll(&mut cx) else {
++            panic!("the queued completion must be available without a timer");
++        };
++        assert!(
++            matches!(event, ControlEvent::TunableWritten { id: 1, .. }) && id == 1
++                || matches!(event, ControlEvent::SocketForgotten { id: 2, .. }) && id == 2
++        );
++        r.handle_event(event).unwrap();
++    }
++    // A distant synthetic deadline exercises timer construction without a wait.
++    r.stopping = Some(r.reconciler.kernel().now() + Duration::from_secs(3600));
++    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++        let Poll::Ready(event) = pin!(r.next_event()).poll(&mut cx) else {
++            panic!("a missing Tokio context must be reported immediately");
++        };
++        event
++    }));
++    assert!(outcome.is_ok(), "waiting outside Tokio must not panic");
++    let event = outcome.unwrap();
++    assert!(matches!(r.handle_event(event), Err(Error::Other(_))));
++    r.stopping = None;
++    finish(&mut r);
++}
++
+ /// spec: L6, L9, L10, A6, A13
+ #[test]
+ fn queue_full_waiter_and_shutdown_precedence() {
+diff --git a/tests/kernel/linux.rs b/tests/kernel/linux.rs
+index 3c4188a..becb169 100644
+--- a/tests/kernel/linux.rs
++++ b/tests/kernel/linux.rs
+@@ -184,6 +184,151 @@ fn create(tunnel_id: u32, session_id: u32, ifname: &str) -> SessionCreate {
+     )
+ }
+ 
++fn library_config(id: u32) -> rs_l2tpd::config::Config {
++    use rs_l2tpd::config::{Config, HostConfig, SessionConfig, TunnelConfig};
++    let mut config = Config::new();
++    config.set_host(HostConfig::new().with_fix_bindv6only(false));
++    config
++        .insert_tunnel(
++            "wan",
++            TunnelConfig::builder(id)
++                .ip_version(Family::V6)
++                .build()
++                .unwrap(),
++        )
++        .unwrap();
++    config
++        .insert_session(
++            "lan",
++            SessionConfig::builder("wan", id + 100, name("rslive0"))
++                .build()
++                .unwrap(),
++        )
++        .unwrap();
++    config
++}
++
++/// spec: R37, G14, L5, L8, L9
++#[test]
++#[ignore = "isolated privileged container; public constructors use the real kernel"]
++fn library_constructors_reject_missing_tokio_and_preserve_adopted_descriptors() {
++    use rs_l2tpd::{AdoptedSocket, Error, Runtime, blocking, service};
++    let _fixture = LinuxFixture::new();
++    assert!(tokio::runtime::Handle::try_current().is_err());
++    let (fd, _peer) = std::os::unix::net::UnixStream::pair().unwrap();
++    let Err((error, returned)) = Runtime::new(vec![AdoptedSocket::new("t10", fd.into())]) else {
++        panic!("Runtime needs a Tokio context");
++    };
++    assert!(matches!(error, Error::Other(_)), "{error}");
++    assert_eq!(returned[0].name(), "t10");
++    assert!(returned[0].fd().try_clone().is_ok());
++    let Err((error, returned)) = service::Service::new(rs_l2tpd::config::Config::new(), returned)
++    else {
++        panic!("Service needs a Tokio context");
++    };
++    assert!(matches!(error, Error::Other(_)), "{error}");
++    assert_eq!(returned[0].name(), "t10");
++    assert!(returned[0].fd().try_clone().is_ok());
++    let mut blocking = blocking::Service::new(rs_l2tpd::config::Config::new(), vec![])
++        .map_err(|(e, _)| e)
++        .unwrap();
++    assert!(blocking.converge().unwrap().is_empty());
++    assert!(tokio::runtime::Handle::try_current().is_err());
++    drop(blocking);
++}
++
++/// spec: R38, R3, G8, G14, L9
++#[test]
++#[ignore = "isolated privileged container; only this test thread drops CAP_NET_ADMIN"]
++fn library_missing_net_admin_withholds_readiness_and_shutdown_still_succeeds() {
++    let fixture = LinuxFixture::new();
++    let mut observer_kernel = fixture.kernel;
++    let (query, requested) = std::sync::mpsc::sync_channel(0);
++    let observer = std::thread::spawn(move || {
++        requested.recv().unwrap();
++        observer_kernel.tunnel(10)
++    });
++    #[repr(C)]
++    struct Header {
++        version: u32,
++        pid: i32,
++    }
++    #[repr(C)]
++    #[derive(Clone, Copy, Default)]
++    struct Caps {
++        effective: u32,
++        permitted: u32,
++        inheritable: u32,
++    }
++    let mut header = Header {
++        version: 0x20080522,
++        pid: 0,
++    };
++    let mut caps = [Caps::default(); 2];
++    assert_eq!(
++        unsafe { libc::syscall(libc::SYS_capget, &mut header, caps.as_mut_ptr()) },
++        0
++    );
++    assert_ne!(caps[0].effective & (1 << 12), 0);
++    caps[0].effective &= !(1 << 12);
++    assert_eq!(
++        unsafe { libc::syscall(libc::SYS_capset, &header, caps.as_ptr()) },
++        0
++    );
++    let mut runtime = {
++        let _entered = fixture.runtime.enter();
++        rs_l2tpd::Runtime::new(vec![]).map_err(|(e, _)| e).unwrap()
++    };
++    assert!(!runtime.reconcile(library_config(10)));
++    assert!(!runtime.ready());
++    query.send(()).unwrap();
++    assert!(observer.join().unwrap().unwrap().is_none());
++    assert!(runtime.shutdown().unwrap());
++}
++
++/// spec: R40, G2, G9, G14, L9, L13
++#[test]
++#[ignore = "isolated privileged container; real socket cleanup and foreign ownership"]
++fn library_runtime_drop_closes_active_and_retiring_tunnels_without_touching_foreign_ones() {
++    for retiring in [false, true] {
++        let mut fixture = LinuxFixture::new();
++        let foreign = fixture
++            .kernel
++            .create_socket(Family::V6, 9000, 9001)
++            .unwrap();
++        fixture.kernel.register_tunnel(foreign, 9000, 9001).unwrap();
++        fixture
++            .kernel
++            .create_session(&create(9000, 9002, "foreign"))
++            .unwrap();
++        let foreign_index = index_of("foreign");
++        let mut runtime = {
++            let _entered = fixture.runtime.enter();
++            rs_l2tpd::Runtime::new(vec![]).map_err(|(e, _)| e).unwrap()
++        };
++        if retiring {
++            runtime.set_store_capacity(1);
++        }
++        assert!(runtime.reconcile(library_config(10)));
++        assert!(fixture.kernel.session(10, 110).unwrap().is_some());
++        if retiring {
++            runtime.reconcile(rs_l2tpd::config::Config::new());
++            assert!(fixture.kernel.tunnel(10).unwrap().is_some());
++        }
++        drop(runtime);
++        let deadline = std::time::Instant::now() + Duration::from_secs(2);
++        while fixture.kernel.tunnel(10).unwrap().is_some() {
++            assert!(std::time::Instant::now() < deadline);
++            std::thread::yield_now();
++        }
++        assert!(fixture.kernel.session(10, 110).unwrap().is_none());
++        assert!(fixture.kernel.tunnel(9000).unwrap().is_some());
++        assert!(fixture.kernel.session(9000, 9002).unwrap().is_some());
++        assert_eq!(index_of("foreign"), foreign_index);
++        fixture.kernel.close(foreign);
++    }
++}
++
+ /// spec: T1, T3, T4, T6, T26, T28, K2, K4, K11, K23, K28, K34
+ #[test]
+ #[ignore = "isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules"]
+diff --git a/tests/process.rs b/tests/process.rs
+index c1e645b..2fcfbf5 100644
+--- a/tests/process.rs
++++ b/tests/process.rs
+@@ -446,7 +446,7 @@ impl Drop for Manager {
+     }
+ }
+ 
+-/// spec: P14 P18 P26
++/// spec: P14 P18 P26 G9
+ #[test]
+ #[ignore = "isolated privileged container"]
+ fn crash_store_adoption_and_ordered_withdrawal() {
+@@ -574,7 +574,7 @@ fn handover_launcher() {
+     panic!("launch failed: {error}");
+ }
+ 
+-/// spec: P18 P17
++/// spec: P18 P17 G9 R22
+ #[test]
+ #[ignore = "isolated privileged container"]
+ fn crash_without_store_closes_tunnel() {
+@@ -593,6 +593,7 @@ fn crash_without_store_closes_tunnel() {
+         assert!(Instant::now() < deadline);
+         std::thread::yield_now();
+     }
++    assert!(kernel.session(10, 100).unwrap().is_none());
+ }
+ 
+ /// spec: P27
+diff --git a/tests/service.rs b/tests/service.rs
+index 480509f..f447ffa 100644
+--- a/tests/service.rs
++++ b/tests/service.rs
+@@ -219,7 +219,7 @@ fn synchronize(control: &rs_l2tpd::runtime::Control, ready: &mpsc::Receiver<()>)
+     }
+ }
+ 
+-/// spec: L5, L8, L11
++/// spec: L5, L8, L11, A2, G14, R37
+ #[test]
+ fn blocking_converges_and_drop_removes_children_before_parents() {
+     let host = Host::new();
+@@ -257,7 +257,7 @@ fn drop_before_run_retires_inherited_entries_and_works_inside_tokio() {
+     });
+ }
+ 
+-/// spec: L5, L6, L7
++/// spec: L5, L6, L7, A2, G14
+ #[test]
+ fn reload_error_keeps_config_then_success_applies_and_restart_resumes() {
+     let host = Host::new();
+@@ -431,22 +431,91 @@ fn converge_ignores_reloads_and_reports_conflicts_after_ten_attempts() {
+     drop(thread.join().unwrap());
+ }
+ 
+-/// spec: L5, L9
++/// spec: L5, L9, R37, G14
+ #[test]
+ fn startup_failure_returns_exact_names_and_live_descriptors() {
+     let (fd, _) = std::os::unix::net::UnixStream::pair().unwrap();
+     let adopted = vec![AdoptedSocket::new("malformed t10", fd.into())];
+     // No Tokio runtime: failure occurs before adoption, not by dropping inputs.
+-    let (_, returned) = match Runtime::with_kernel(Host::new(), Box::new(NoDns), adopted) {
++    let (error, returned) = match Runtime::with_kernel(Host::new(), Box::new(NoDns), adopted) {
+         Ok(_) => panic!("expected startup failure"),
+         Err(error) => error,
+     };
++    assert!(matches!(error, Error::Other(_)), "{error}");
+     assert_eq!(returned[0].name(), "malformed t10");
+     assert_eq!(returned[0].tunnel_id(), None);
+     assert!(returned[0].fd().try_clone().is_ok());
+ }
+ 
+-/// spec: L5, L8, L9
++/// spec: R40, G9, G14, L9
++#[test]
++fn runtime_drop_closes_owned_sockets_without_ordered_session_deletion() {
++    for retiring in [false, true] {
++        engine().block_on(async {
++            let host = Host::new();
++            let mut runtime = Runtime::with_kernel(host.clone(), Box::new(NoDns), vec![])
++                .map_err(|(e, _)| e)
++                .unwrap();
++            if retiring {
++                runtime.set_store_capacity(1);
++            }
++            assert!(runtime.reconcile(config(10)));
++            assert!(host.with(|k| k.session_index(10, 110).is_some()));
++            if retiring {
++                runtime.reconcile(Config::new());
++                assert!(host.with(|k| k.tunnel_socket(10).is_some()));
++            }
++            host.with(|k| k.clear_ops());
++            let control = runtime.control();
++            drop(runtime);
++            host.with(|k| {
++                k.tick();
++                assert!(k.session_index(10, 110).is_none());
++                assert!(k.tunnel_socket(10).is_none());
++                assert_eq!(
++                    k.ops().iter().filter(|op| op.starts_with("close ")).count(),
++                    1
++                );
++                assert!(!k.ops().iter().any(|op| op.starts_with("delete")));
++            });
++            assert!(control.reload().is_err());
++        });
++    }
++}
++
++/// spec: R42, G2, G14, L9
++#[test]
++fn overlapping_runtimes_conflict_and_the_nonowner_cannot_remove_the_owner() {
++    engine().block_on(async {
++        let host = Host::new();
++        let mut owner = Runtime::with_kernel(host.clone(), Box::new(NoDns), vec![])
++            .map_err(|(e, _)| e)
++            .unwrap();
++        assert!(owner.reconcile(config(10)));
++        let original = host.with(|k| (k.tunnel_socket(10), k.session_index(10, 110)));
++        let mut other = Runtime::with_kernel(host.clone(), Box::new(NoDns), vec![])
++            .map_err(|(e, _)| e)
++            .unwrap();
++        assert!(!other.reconcile(config(10)));
++        assert!(!other.ready());
++        assert!(other.shutdown().unwrap());
++        drop(other);
++        assert_eq!(
++            host.with(|k| (k.tunnel_socket(10), k.session_index(10, 110))),
++            original
++        );
++        host.with(|k| k.clear_ops());
++        assert!(owner.reconcile(config(10)));
++        assert!(host.with(|k| k.ops().is_empty()));
++        if !owner.shutdown().unwrap() {
++            host.with(|k| k.tick());
++            assert!(owner.shutdown().unwrap());
++        }
++        assert!(host.with(|k| k.tunnel_socket(10).is_none()));
++    });
++}
++
++/// spec: L5, L8, L9, A2, G14
+ #[test]
+ fn tokio_service_run_converges_without_explicit_converge() {
+     engine().block_on(async {

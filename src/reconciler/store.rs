@@ -29,6 +29,19 @@ pub(super) struct Retirement {
     closed: Option<Instant>,
 }
 
+impl<K: Kernel> Drop for Reconciler<K> {
+    fn drop(&mut self) {
+        for socket in self.tunnels.values().map(|record| record.socket).chain(
+            self.store
+                .retiring
+                .values()
+                .flat_map(|record| record.sockets.iter().copied()),
+        ) {
+            self.k.close(socket);
+        }
+    }
+}
+
 impl Store {
     pub fn next_deadline(&self, now: Instant) -> Option<Instant> {
         if self.shutdown.is_some_and(|deadline| now >= deadline) {

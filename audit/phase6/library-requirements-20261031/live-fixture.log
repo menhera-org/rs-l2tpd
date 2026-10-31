@@ -1,0 +1,23 @@
+command: kernel-linux --ignored --test-threads=1 library_ --nocapture; all features; x86_64-unknown-linux-musl; disposable privileged Docker, network none
+6.8.0-147-generic
+
+running 3 tests
+test library_constructors_reject_missing_tokio_and_preserve_adopted_descriptors ... ok
+test library_missing_net_admin_withholds_readiness_and_shutdown_still_succeeds ... 
+thread 'library_missing_net_admin_withholds_readiness_and_shutdown_still_succeeds' (17) panicked at tests/kernel/linux.rs:192:65:
+called `Result::unwrap()` on an `Err` value: InvalidConfig("ip_version: required for a tunnel without a peer")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test library_runtime_drop_closes_active_and_retiring_tunnels_without_touching_foreign_ones ... 
+thread 'library_runtime_drop_closes_active_and_retiring_tunnels_without_touching_foreign_ones' (22) panicked at tests/kernel/linux.rs:192:65:
+called `Result::unwrap()` on an `Err` value: InvalidConfig("ip_version: required for a tunnel without a peer")
+FAILED
+
+failures:
+
+failures:
+    library_missing_net_admin_withholds_readiness_and_shutdown_still_succeeds
+    library_runtime_drop_closes_active_and_retiring_tunnels_without_touching_foreign_ones
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.02s
+

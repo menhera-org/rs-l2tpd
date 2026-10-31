@@ -1,0 +1,22 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+
+thread 'runtime::tests::event_wait_without_tokio_reports_an_error_and_channels_remain_usable' (3798476) panicked at src/runtime.rs:516:21:
+there is no reactor running, must be called from the context of a Tokio 1.x runtime
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'runtime::tests::event_wait_without_tokio_reports_an_error_and_channels_remain_usable' (3798476) panicked at src/runtime/tests.rs:150:5:
+waiting outside Tokio must not panic
+test runtime::tests::event_wait_without_tokio_reports_an_error_and_channels_remain_usable ... FAILED
+
+failures:
+
+failures:
+    runtime::tests::event_wait_without_tokio_reports_an_error_and_channels_remain_usable
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 102 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

@@ -94,12 +94,15 @@ pub type StartResult<T> = std::result::Result<T, (Error, Vec<AdoptedSocket>)>;
 ///         ControlEvent::Shutdown | ControlEvent::Restart |
 ///         ControlEvent::WriteTunable { .. } | ControlEvent::StoreSocket { .. } |
 ///         ControlEvent::ForgetSocket { .. } | ControlEvent::TunableWritten { .. } |
-///         ControlEvent::SocketForgotten { .. } | ControlEvent::Service(_) => {}
+///         ControlEvent::SocketForgotten { .. } | ControlEvent::Failed(_) |
+///         ControlEvent::Service(_) => {}
 ///     }
 /// }
 /// ```
 #[non_exhaustive]
 pub enum ControlEvent {
+    /// Waiting for an event failed. Forwarding this event returns its error.
+    Failed(Error),
     /// A notice from one of the independently drained subscriptions.
     Kernel {
         /// Its source.
@@ -511,6 +514,11 @@ impl<K: Kernel + 'static> Runtime<K> {
             if wake_at.is_some_and(|deadline| deadline <= Instant::now()) {
                 return ControlEvent::Tick;
             }
+            if wake_at.is_some()
+                && let Err(error) = tokio::runtime::Handle::try_current()
+            {
+                return ControlEvent::Failed(Error::Other(error.to_string()));
+            }
             let mut timer = pin!(async {
                 if let Some(deadline) = wake_at {
                     tokio::time::sleep_until(tokio::time::Instant::from_std(deadline)).await;
@@ -539,6 +547,7 @@ impl<K: Kernel + 'static> Runtime<K> {
     /// forwarding never writes a tunable or speaks a descriptor-store protocol.
     pub fn handle_event(&mut self, event: ControlEvent) -> Result<()> {
         match event {
+            ControlEvent::Failed(error) => return Err(error),
             ControlEvent::Kernel { source, notice } if self.stopping.is_none() => {
                 self.reconciler.handle(source, notice)
             }

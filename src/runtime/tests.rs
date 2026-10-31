@@ -55,6 +55,123 @@ fn config() -> Config {
     config
 }
 
+/// spec: R39, L10, E20, G14
+#[test]
+fn a_dropped_source_removal_stays_stale_until_resync_is_forwarded() {
+    engine().block_on(async {
+        let mut r = runtime();
+        let device = r.reconciler.kernel_mut().add_link("wan", false);
+        let source = "192.0.2.1".parse().unwrap();
+        r.reconciler.kernel_mut().add_addr(device, source);
+        let mut config = Config::new();
+        config
+            .insert_tunnel(
+                "a",
+                TunnelConfig::builder(10)
+                    .ip_version(Family::V4)
+                    .remote_addr(crate::config::RemoteAddr::Ip {
+                        addr: "192.0.2.2".parse().unwrap(),
+                        zone: None,
+                    })
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        assert!(r.reconcile(config));
+        assert!(r.reconciler.kernel().transmits(10));
+        r.reconciler.kernel_mut().take_monitor();
+        r.reconciler.kernel_mut().clear_ops();
+        r.reconciler.kernel_mut().del_addr(device, source);
+        let dropped = r.reconciler.kernel_mut().take_monitor();
+        assert!(matches!(dropped.as_slice(), [Notice::AddrDel(_)]));
+        assert!(
+            r.reconciler.kernel().transmits(10),
+            "an unforwarded event cannot update the record"
+        );
+        assert!(r.reconciler.kernel().ops().is_empty());
+        r.handle_event(ControlEvent::Kernel {
+            source: Source::Monitor,
+            notice: Notice::Loss,
+        })
+        .unwrap();
+        assert!(!r.reconciler.kernel().transmits(10));
+        assert!(
+            r.ready(),
+            "connectivity does not control existence/readiness"
+        );
+        finish(&mut r);
+    });
+}
+
+/// spec: R41, R38, G14, L11
+#[test]
+fn absent_log_sink_does_not_change_kernel_refusal_or_recovery() {
+    assert_eq!(log::max_level(), log::LevelFilter::Off);
+    engine().block_on(async {
+        let mut r = runtime();
+        r.reconciler
+            .kernel_mut()
+            .fail_next("socket", nix::errno::Errno::EPERM);
+        assert!(!r.reconcile(config()));
+        assert!(!r.ready());
+        r.reconciler.kernel_mut().advance(Duration::from_secs(1));
+        r.handle_event(ControlEvent::Tick).unwrap();
+        assert!(r.ready());
+        assert!(r.reconciler.kernel().session_index(10, 100).is_some());
+        finish(&mut r);
+    });
+}
+
+/// spec: R37, L10, L11, A21, G14
+#[test]
+fn event_wait_without_tokio_reports_an_error_and_channels_remain_usable() {
+    let engine = engine();
+    let mut r = engine.block_on(async { runtime() });
+    assert!(tokio::runtime::Handle::try_current().is_err());
+    let control = r.control();
+    let mut cx = Context::from_waker(Waker::noop());
+    assert!(matches!(
+        pin!(control.reload_wait()).poll(&mut cx),
+        Poll::Ready(Ok(()))
+    ));
+    assert!(matches!(
+        pin!(control.tunable_written(1, false)).poll(&mut cx),
+        Poll::Ready(Ok(()))
+    ));
+    assert!(matches!(
+        pin!(control.socket_forgotten(2, false)).poll(&mut cx),
+        Poll::Ready(Ok(()))
+    ));
+    let Poll::Ready(event) = pin!(r.next_event()).poll(&mut cx) else {
+        panic!("the queued reload must be available without a timer");
+    };
+    assert!(matches!(event, ControlEvent::Reload { .. }));
+    r.handle_event(event).unwrap();
+    for id in [1, 2] {
+        let Poll::Ready(event) = pin!(r.next_event()).poll(&mut cx) else {
+            panic!("the queued completion must be available without a timer");
+        };
+        assert!(
+            matches!(event, ControlEvent::TunableWritten { id: 1, .. }) && id == 1
+                || matches!(event, ControlEvent::SocketForgotten { id: 2, .. }) && id == 2
+        );
+        r.handle_event(event).unwrap();
+    }
+    // A distant synthetic deadline exercises timer construction without a wait.
+    r.stopping = Some(r.reconciler.kernel().now() + Duration::from_secs(3600));
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let Poll::Ready(event) = pin!(r.next_event()).poll(&mut cx) else {
+            panic!("a missing Tokio context must be reported immediately");
+        };
+        event
+    }));
+    assert!(outcome.is_ok(), "waiting outside Tokio must not panic");
+    let event = outcome.unwrap();
+    assert!(matches!(r.handle_event(event), Err(Error::Other(_))));
+    r.stopping = None;
+    finish(&mut r);
+}
+
 /// spec: L6, L9, L10, A6, A13
 #[test]
 fn queue_full_waiter_and_shutdown_precedence() {

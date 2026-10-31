@@ -373,3 +373,20 @@ the internal tunable wait and checks both tunnel/session creation reports.
 These new cases extend the host suite to 25 scenarios. They have not
 run separately on the other four required targets or in Incus, and do
 not extend those targets' recorded coverage automatically.
+
+### Library ownership and missing privileges
+
+The [library requirement package](../audit/phase6/library-requirements-20261031/README.md)
+adds three live cases on Ubuntu `6.8.0-147-generic`. Missing Tokio context
+returns constructor errors with adopted descriptors still owned by the caller;
+the blocking service works without a caller runtime. Dropping only the test
+thread's effective `CAP_NET_ADMIN` withholds readiness without preventing
+shutdown. Dropping a runtime closes active and retiring L2TP tunnel sockets
+while preserving a foreign tunnel, session and interface index.
+
+The expanded live kernel suite passes all 19 cases, the process suite all 26,
+and the full host suite all 25 on this target. A SIGKILL assertion also checks
+that both the tunnel and its session disappear without an external socket
+store. These additions and the ownership fix still need the other four targets
+and current-code Incus/manager refreshes; prior target records keep their
+original scope.

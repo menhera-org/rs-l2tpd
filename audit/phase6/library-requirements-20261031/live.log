@@ -1,0 +1,10 @@
+command: kernel-linux --ignored --test-threads=1 library_ --nocapture; all features; x86_64-unknown-linux-musl; disposable privileged Docker, network none
+6.8.0-147-generic
+
+running 3 tests
+test library_constructors_reject_missing_tokio_and_preserve_adopted_descriptors ... ok
+test library_missing_net_admin_withholds_readiness_and_shutdown_still_succeeds ... ok
+test library_runtime_drop_closes_active_and_retiring_tunnels_without_touching_foreign_ones ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.09s
+
