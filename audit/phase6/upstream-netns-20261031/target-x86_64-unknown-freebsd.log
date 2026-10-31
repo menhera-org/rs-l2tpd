@@ -1,0 +1,13 @@
+   Compiling libc v0.2.191
+   Compiling serde_core v1.0.229
+    Checking pin-project-lite v0.2.17
+    Checking once_cell v1.21.4
+    Checking punycode v0.4.1
+   Compiling serde v1.0.229
+    Checking tokio v1.54.1
+    Checking fqdn v0.5.2
+    Checking tracing-core v0.1.36
+    Checking tracing v0.1.44
+    Checking socket2 v0.6.5
+    Checking iphost v0.4.1 (/tmp/phase6-iphost-netns)
+    Finished `dev` profile [unoptimized + debuginfo] target(s)

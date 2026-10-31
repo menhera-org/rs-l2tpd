@@ -589,8 +589,13 @@ creation failures and configuration conversions. Its common checks and ten
 seeds pass. Repository file `audit/phase6/coverage-errors-20261031/README.md`
 records the unchanged production source and incremental profiles. The
 preceding resolver commit's CI live guest exposes upstream DHCPv6 listener
-sharing across equally named interfaces in different namespaces; upstream
-correction and released-crate integration remain open.
+sharing across equally named interfaces in different namespaces. Released
+`iphost` 0.4.2 fixes that cache and dead listener records; fresh full normal
+guest, GNU coverage, Incus and root-systemd profiles pass. Repository record
+`audit/phase6/upstream-netns-20261031/README.md` identifies the release and
+source. Subscriber cleanup and finite pending datagrams still need the
+upstream follow-up recorded under
+`audit/phase6/upstream-dhcp-queues-20261031/`.
 
 ### Phase 7 — release
 

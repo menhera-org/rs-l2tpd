@@ -1,0 +1,4 @@
+FROM rs-l2tpd-audit-vm:local
+COPY main /packages/main
+COPY community /packages/community
+RUN apk --no-network --repositories-file /dev/null --repository /packages/main --repository /packages/community add dnsmasq radvd && rm -rf /packages

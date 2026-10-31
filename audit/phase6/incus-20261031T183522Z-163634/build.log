@@ -1,0 +1,5 @@
+6.8.0-147-generic
+command: cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --lib --test scenarios --no-run
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+  Executable unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-af9748489cc725ef)
+  Executable tests/scenarios/main.rs (target/x86_64-unknown-linux-musl/debug/deps/scenarios-e913b47d0fd2edfa)

@@ -1,0 +1,11 @@
+6.8.0-147-generic
+
+running 5 tests
+test dhcpv6::tests::dropped_listeners_release_cache_records ... ok
+test dhcpv6::tests::namespace_cookie_needs_no_procfs ... ok
+test dhcpv6::tests::receiver_spawn_failure_releases_cache_lock_and_socket ... ok
+test dhcpv6::tests::same_named_interfaces_share_only_within_their_network_namespace ... ok
+test dhcpv6::tests::unsupported_namespace_cookie_uses_namespace_inode ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 58 filtered out; finished in 0.01s
+

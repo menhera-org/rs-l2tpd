@@ -1,0 +1,84 @@
+   Compiling iphost v0.4.1 (/tmp/phase6-iphost-netns)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-iphost-netns/debug/deps/iphost-bd5eb6b0b0b47896)
+
+running 48 tests
+test custom::tests::builds_query ... ok
+test custom::tests::definitive_answers_never_consult_second_source ... ok
+test custom::tests::no_nameservers ... ok
+test custom::tests::parses_answers ... ok
+test custom::tests::failed_family_cache_not_returned_without_use_cached_on_error ... ok
+test custom::tests::fallback_result_for_obsolete_configuration_is_discarded ... ok
+test custom::tests::rcodes ... ok
+test custom::tests::rejects_malformed ... ok
+test custom::tests::rejects_mismatches ... ok
+test custom::tests::missing_interface_is_a_failure_not_a_dns_negative ... ok
+test custom::tests::failure_beside_nodata_is_not_an_error ... ok
+test custom::tests::scope_only_for_link_local ... ok
+test custom::tests::time_bound ... ok
+test custom::tests::source_failures_exhaust_retries_before_fallback ... ok
+test custom::tests::failing_server_is_skipped ... ok
+test custom::tests::failed_family_is_marked ... ok
+test duid::tests::client_ids ... ok
+test custom::tests::failed_family_keeps_cache ... ok
+test duid::tests::validates_raw_lengths ... ok
+test custom::tests::source_fallback_is_per_family_and_retries_primary_next_time ... ok
+test custom::tests::virtual_time_bounds_for_two_sources_and_partial_families ... ok
+test ipv6::tests::discovery_waits_once_and_snapshots_both_sources ... ok
+test ipv6::tests::selection_and_interface_are_preserved_for_both_sources ... ok
+test ipv6::tests::policy_clones_and_bounds ... ok
+test custom::tests::lookup_via_udp ... ok
+test ra::tests::capacity_and_eviction_order ... ok
+test ra::tests::clones_share_repository ... ok
+test ra::tests::delayed_netlink_options_and_interleaved_routers_match_raw_lifetimes ... ok
+test custom::tests::truncation_falls_back_to_tcp ... ok
+test ra::tests::delayed_updates_preserve_servers ... ok
+test ra::tests::empty_and_malformed_ra_do_not_change_repository ... ok
+test custom::tests::fallback_uses_real_udp_and_tcp_transport ... ok
+test ra::tests::filter_passes_only_ra ... ok
+test ra::tests::lifetimes ... ok
+test ra::tests::new_ra_preserves_omitted_servers ... ok
+test ra::tests::parses_netlink_useropt ... ok
+test ra::tests::parses_rdnss ... ok
+test ra::tests::refresh_preserves_expiry_and_stale_withdrawal_is_permanent ... ok
+test ra::tests::validates_ra ... ok
+test ra::tests::withdrawal_preserves_omitted_server ... ok
+test resolver::tests::lookup_time_bound ... ok
+test resolver::tests::replace_resets_cache ... ok
+test resolver::tests::stable_pick_keeps_previous ... ok
+test resolver::tests::set_resolver_resets_cache ... ok
+test resolver::tests::resolve_localhost ... ok
+test custom::tests::fallback_outcomes_preserve_cache_options_and_stable_selection ... ok
+test custom::tests::unrelated_udp_traffic_does_not_restart_deadline ... ok
+test custom::tests::udp_and_trickling_tcp_share_one_deadline ... ok
+
+test result: ok. 48 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/linux_bind.rs (/home/dev/rs-l2tpd/target/phase6-iphost-netns/debug/deps/linux_bind-53fb249a55c8082b)
+
+running 12 tests
+test interface_global_nameserver ... ignored, needs tests/linux-bind.sh
+test link_local_explicit_scope ... ignored, needs tests/linux-bind.sh
+test link_local_scope_from_interface ... ignored, needs tests/linux-bind.sh
+test link_local_tcp_fallback ... ignored, needs tests/linux-bind.sh
+test link_local_without_scope_fails ... ignored, needs tests/linux-bind.sh
+test ra_resolver ... ignored, needs tests/linux-bind.sh
+test ra_vrf ... ignored, needs tests/linux-bind.sh
+test swap_resolver ... ignored, needs tests/linux-bind.sh
+test vrf ... ignored, needs tests/linux-bind.sh
+test vrf_tcp_fallback ... ignored, needs tests/linux-bind.sh
+test vrf_unbound_fails ... ignored, needs tests/linux-bind.sh
+test wrong_interface_fails ... ignored, needs tests/linux-bind.sh
+
+test result: ok. 0 passed; 0 failed; 12 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests iphost
+
+running 3 tests
+test src/duid.rs - duid::ClientId::Raw (line 57) ... ok
+test src/lib.rs - (line 14) ... ok
+test src/duid.rs - duid::ClientId::DuidLl (line 37) ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.22s

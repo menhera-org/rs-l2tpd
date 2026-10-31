@@ -1,0 +1,10 @@
+command: systemd-run user notify; exact fdstore::manager_tests::actual_manager_processing_and_address_family_filter; executable=/home/dev/rs-l2tpd/target/phase6-coverage-iphost042-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/d783d2499111790a/out/rs_l2tpd-d783d2499111790a
+Running as unit: phase6-iphost042-manager-20261031.service; invocation ID: 60eb81b8406a41daaba781c6c1a130ff
+
+running 1 test
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 46 filtered out; finished in 0.05s
+
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS

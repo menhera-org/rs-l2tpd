@@ -385,8 +385,12 @@ Additional error-channel, worker-spawn and configuration cases improve
 coverage without changing production code; repository file
 `audit/phase6/coverage-errors-20261031/README.md` records that collection.
 The resolver commit's CI live guest exposes an upstream DHCPv6 cache that
-shares equally named interfaces across namespaces. Upstream correction and
-released-crate integration remain required before the final matrix.
+shares equally named interfaces across namespaces. Released `iphost` 0.4.2
+fixes that cache; the full Ubuntu 6.8 normal guest now passes, including all
+26 scenarios in 575.52 seconds. Fresh GNU, Incus and root-systemd profiles
+also pass. Repository record `audit/phase6/upstream-netns-20261031/README.md`
+gives source and scope. Its separate DHCPv6 subscriber/queue follow-up
+remains required for G23 before the final matrix.
 
 ### Refused monitor filters and descriptor exhaustion
 

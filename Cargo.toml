@@ -89,7 +89,7 @@ required-features = ["bin", "setup-systemd"]
 [dependencies]
 # Library (docs/dependencies.md)
 l2tp = "0.5.0"
-iphost = { version = "0.4.1", default-features = false, features = ["custom", "ra", "dhcpv6"] }
+iphost = { version = "0.4.2", default-features = false, features = ["custom", "ra", "dhcpv6"] }
 netlink-sys = { version = "0.9", features = ["tokio_socket"] }
 netlink-packet-core = "0.9"
 netlink-packet-route = "0.33"

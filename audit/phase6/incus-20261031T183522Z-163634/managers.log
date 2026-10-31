@@ -1,0 +1,133 @@
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00 promiscuity 0  allmulti 0 minmtu 0 maxmtu 0 numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535 tso_max_size 524280 tso_max_segs 65535 gro_max_size 65536 
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host noprefixroute 
+       valid_lft forever preferred_lft forever
+2: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN group default qlen 1000
+    link/tunnel6 :: brd :: permaddr a29:83d6:f6b8:: promiscuity 0  allmulti 0 minmtu 68 maxmtu 65535 
+    ip6tnl ip6ip6 remote any local any hoplimit inherit encaplimit 0 tclass 0x00 flowlabel 0x00000 numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535 tso_max_size 65536 tso_max_segs 65535 gro_max_size 65536 
+3: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN group default qlen 1000
+    link/gre6 :: brd :: permaddr 66db:c6fa:697e:: promiscuity 0  allmulti 0 minmtu 0 maxmtu 0 
+    ip6gre remote any local any hoplimit inherit encaplimit 0 tclass 0x00 flowlabel 0x00000 numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535 tso_max_size 65536 tso_max_segs 65535 gro_max_size 65536 
+Unknown device "/sys/class/net/incusl2tp": No such device
+Interface "incusl2tp" not found.
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd[1]: Starting systemd-udevd.service - Rule-based Manager for Device Events and Files...
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd-udevd[166]: Using default interface naming scheme 'v255'.
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd[1]: Started systemd-udevd.service - Rule-based Manager for Device Events and Files.
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd[1]: Starting systemd-networkd.service - Network Configuration...
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd-networkd[169]: Failed to increase receive buffer size for general netlink socket, ignoring: Operation not permitted
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd-networkd[169]: lo: Link UP
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd-networkd[169]: lo: Gained carrier
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd-networkd[169]: Enumeration completed
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd[1]: Started systemd-networkd.service - Network Configuration.
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:28 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:29 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:29 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:29 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:29 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:33 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:34 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd[1]: Stopping systemd-networkd.service - Network Configuration...
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Deactivated successfully.
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd[1]: Stopped systemd-networkd.service - Network Configuration.
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd[1]: Starting systemd-networkd.service - Network Configuration...
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd-networkd[231]: Failed to increase receive buffer size for general netlink socket, ignoring: Operation not permitted
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd-networkd[231]: lo: Link UP
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd-networkd[231]: lo: Gained carrier
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd-networkd[231]: Enumeration completed
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd[1]: Started systemd-networkd.service - Network Configuration.
+Oct 31 18:35:37 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:38 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:39 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:39 rs-l2tpd-phase6-163634 systemd-networkd[231]: incusl2tp: Configuring with /etc/systemd/network/10-phase6.network.
+Oct 31 18:35:39 rs-l2tpd-phase6-163634 systemd-networkd[231]: incusl2tp: Link UP
+Oct 31 18:35:39 rs-l2tpd-phase6-163634 systemd-networkd[231]: incusl2tp: Gained carrier
+Oct 31 18:35:39 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:39 rs-l2tpd-phase6-163634 (udev-worker)[477]: incusl2tp: Could not set Alias=, MACAddress=/MACAddressPolicy=, TransmitQueues=, ReceiveQueues=, TransmitQueueLength=, MTUBytes=, GenericSegmentOffloadMaxBytes= or GenericSegmentOffloadMaxSegments=, ignoring: Device or resource busy
+Oct 31 18:35:39 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:39 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:39 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:39 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:40 rs-l2tpd-phase6-163634 systemd-networkd[231]: incusl2tp: Gained IPv6LL
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[231]: incusl2tp: Link DOWN
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[231]: incusl2tp: Lost carrier
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: Stopping systemd-networkd.service - Network Configuration...
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Deactivated successfully.
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: Stopped systemd-networkd.service - Network Configuration.
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: Starting systemd-networkd.service - Network Configuration...
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[578]: Failed to increase receive buffer size for general netlink socket, ignoring: Operation not permitted
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[578]: lo: Link UP
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[578]: lo: Gained carrier
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[578]: incusl2tp: Configuring with /etc/systemd/network/10-phase6.network.
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[578]: Enumeration completed
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: Started systemd-networkd.service - Network Configuration.
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[578]: incusl2tp: Link UP
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[578]: incusl2tp: Gained carrier
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[578]: incusl2tp: Link DOWN
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[578]: incusl2tp: Lost carrier
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: Stopping systemd-networkd.service - Network Configuration...
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Deactivated successfully.
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: Stopped systemd-networkd.service - Network Configuration.
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: Starting systemd-networkd.service - Network Configuration...
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: Failed to increase receive buffer size for general netlink socket, ignoring: Operation not permitted
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: lo: Link UP
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: lo: Gained carrier
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: incusl2tp: Configuring with /etc/systemd/network/10-phase6.network.
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: Enumeration completed
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: Started systemd-networkd.service - Network Configuration.
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: incusl2tp: Link UP
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: incusl2tp: Gained carrier
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: incusl2tp: Link DOWN
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: incusl2tp: Lost carrier
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: rsl2tp-tcc5fcd: Interface name change detected, renamed to incusl2tp.
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: incusl2tp: Reconfiguring with /etc/systemd/network/10-phase6.network.
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: incusl2tp: Link UP
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd-networkd[605]: incusl2tp: Gained carrier
+Oct 31 18:35:42 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:43 rs-l2tpd-phase6-163634 systemd-networkd[605]: incusl2tp: Link DOWN
+Oct 31 18:35:43 rs-l2tpd-phase6-163634 systemd-networkd[605]: incusl2tp: Lost carrier
+Oct 31 18:35:43 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+Oct 31 18:35:43 rs-l2tpd-phase6-163634 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+# SPDX-License-Identifier: MIT-0
+#
+# This config file is installed as part of systemd.
+# It may be freely copied and edited (following the MIT No Attribution license).
+#
+# To make local modifications, one of the following methods may be used:
+# 1. add a drop-in file that extends this file by creating the
+#    /etc/systemd/network/99-default.link.d/ directory and creating a
+#    new .conf file there.
+# 2. copy this file into /etc/systemd/network or one of the other paths checked
+#    by systemd-udevd and edit it there.
+# This file should not be edited in place, because it'll be overwritten on upgrades.
+
+[Match]
+OriginalName=*
+
+[Link]
+NamePolicy=keep kernel database onboard slot path
+AlternativeNamesPolicy=database onboard slot path
+MACAddressPolicy=persistent

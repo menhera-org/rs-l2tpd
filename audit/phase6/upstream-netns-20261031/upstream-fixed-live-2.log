@@ -1,0 +1,7 @@
+6.8.0-147-generic
+
+running 1 test
+test dhcpv6::tests::same_named_interfaces_share_only_within_their_network_namespace ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 58 filtered out; finished in 0.00s
+

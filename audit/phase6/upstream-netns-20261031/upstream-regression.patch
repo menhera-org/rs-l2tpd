@@ -1,0 +1,27 @@
+diff --git a/src/dhcpv6.rs b/src/dhcpv6.rs
+index f33541a..9ce089e 100644
+--- a/src/dhcpv6.rs
++++ b/src/dhcpv6.rs
+@@ -495,6 +495,22 @@ fn parse_reply(msg: &[u8], xid: [u8; 3], duid: Option<&[u8]>) -> Option<Reply> {
+ mod tests {
+     use super::*;
+ 
++    #[cfg(target_os = "linux")]
++    #[test]
++    #[ignore = "isolated container with CAP_SYS_ADMIN and CAP_NET_RAW"]
++    fn same_named_interfaces_share_only_within_their_network_namespace() {
++        let get = || std::thread::spawn(|| {
++            // This test thread and its listener stay in their disposable netns.
++            assert_eq!(unsafe { libc::unshare(libc::CLONE_NEWNET) }, 0);
++            let listener = Listener::get("lo").unwrap();
++            assert!(Arc::ptr_eq(&listener, &Listener::get("lo").unwrap()));
++            listener
++        }).join().unwrap();
++        let first = get();
++        let second = get();
++        assert!(!Arc::ptr_eq(&first, &second), "reused another network namespace's DHCPv6 listener");
++    }
++
+     const XID: [u8; 3] = [1, 2, 3];
+     const DNS1: Ipv6Addr = Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0x53);
+     const DNS2: Ipv6Addr = Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0x54);

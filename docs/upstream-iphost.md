@@ -8,6 +8,16 @@ regressions are recorded in the
 Phase 2–3 verification (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`).
 The text below is the instruction as given.
 
+The Phase 6 shared-discovery regression later exposed DHCPv6 listener
+reuse across equally named interfaces in different network namespaces.
+`iphost` 0.4.2, published 2026-10-31 and pinned, fixes that cache key and
+releases dead listener records. The compatible release preserves public
+APIs, features and DNS policy. Namespace cookies require no procfs or extra
+privilege; older Linux kernels without that option use the namespace inode
+from `/proc/thread-self/ns/net`. Repository record
+`audit/phase6/upstream-netns-20261031/` retains the failing counterexamples,
+upstream checks and downstream integration results.
+
 This is an implementation instruction for the general-purpose `iphost`
 crate, based on its published 0.4.0 behavior and the source inspected on
 2026-10-29. Recheck the current upstream tree before editing: a correction

@@ -1,0 +1,137 @@
+diff --git a/src/dhcpv6.rs b/src/dhcpv6.rs
+index f33541a..9a4397e 100644
+--- a/src/dhcpv6.rs
++++ b/src/dhcpv6.rs
+@@ -231,7 +231,56 @@ struct Listener {
+ }
+ 
+ /// Per interface, held strongly only by clients (and briefly by the receive thread).
+-static LISTENERS: Mutex<Vec<(String, Weak<Listener>)>> = Mutex::new(Vec::new());
++#[derive(PartialEq, Eq)]
++enum Namespace {
++    #[cfg(any(target_os = "linux", target_os = "android"))]
++    Cookie(u64),
++    #[cfg(any(target_os = "linux", target_os = "android"))]
++    Inode(u64, u64),
++    #[cfg(not(any(target_os = "linux", target_os = "android")))]
++    Native,
++}
++
++static LISTENERS: Mutex<Vec<(Namespace, String, Weak<Listener>)>> = Mutex::new(Vec::new());
++
++fn namespace() -> io::Result<Namespace> {
++    #[cfg(any(target_os = "linux", target_os = "android"))]
++    {
++        use std::os::fd::AsRawFd;
++        // Linux UAPI asm-generic/socket.h and arch/sparc/include/uapi/asm/socket.h.
++        let option = if cfg!(any(target_arch = "sparc", target_arch = "sparc64")) {
++            0x0050
++        } else {
++            71
++        };
++        let socket = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP))?;
++        let mut cookie = 0u64;
++        let mut length = std::mem::size_of_val(&cookie) as libc::socklen_t;
++        // SO_NETNS_COOKIE returns the socket namespace's u64 identity without
++        // procfs or privileges. The writable buffer has exactly that size.
++        if unsafe {
++            libc::getsockopt(
++                socket.as_raw_fd(),
++                libc::SOL_SOCKET,
++                option,
++                (&mut cookie as *mut u64).cast(),
++                &mut length,
++            )
++        } < 0
++        {
++            let error = io::Error::last_os_error();
++            if error.raw_os_error() != Some(libc::ENOPROTOOPT) {
++                return Err(error);
++            }
++            use std::os::unix::fs::MetadataExt;
++            let namespace = std::fs::metadata("/proc/thread-self/ns/net")?;
++            return Ok(Namespace::Inode(namespace.dev(), namespace.ino()));
++        }
++        Ok(Namespace::Cookie(cookie))
++    }
++    #[cfg(not(any(target_os = "linux", target_os = "android")))]
++    Ok(Namespace::Native)
++}
+ 
+ /// A UDP socket on port 546, tied to `interface` if it exists.
+ fn open_socket(interface: &str) -> io::Result<(Arc<UdpSocket>, Option<u32>)> {
+@@ -250,12 +299,13 @@ fn open_socket(interface: &str) -> io::Result<(Arc<UdpSocket>, Option<u32>)> {
+ impl Listener {
+     /// The listener for `interface`, binding port 546 if no client there holds one yet.
+     fn get(interface: &str) -> io::Result<Arc<Self>> {
++        let namespace = namespace()?;
+         let mut listeners = LISTENERS.lock().unwrap_or_else(PoisonError::into_inner);
+-        listeners.retain(|(_, weak)| weak.strong_count() > 0);
++        listeners.retain(|(_, _, weak)| weak.strong_count() > 0);
+         if let Some(listener) = listeners
+             .iter()
+-            .find(|(name, _)| name == interface)
+-            .and_then(|(_, weak)| weak.upgrade())
++            .find(|(ns, name, _)| *ns == namespace && name == interface)
++            .and_then(|(_, _, weak)| weak.upgrade())
+         {
+             return Ok(listener);
+         }
+@@ -269,7 +319,7 @@ impl Listener {
+         std::thread::Builder::new()
+             .name("iphost-dhcpv6-rx".into())
+             .spawn(move || Self::receive(&weak))?;
+-        listeners.push((interface.into(), Arc::downgrade(&listener)));
++        listeners.push((namespace, interface.into(), Arc::downgrade(&listener)));
+         Ok(listener)
+     }
+ 
+@@ -495,6 +545,48 @@ fn parse_reply(msg: &[u8], xid: [u8; 3], duid: Option<&[u8]>) -> Option<Reply> {
+ mod tests {
+     use super::*;
+ 
++    #[cfg(target_os = "linux")]
++    #[test]
++    #[ignore = "isolated container with CAP_SYS_ADMIN and CAP_NET_RAW"]
++    fn dropped_listeners_release_cache_records() {
++        assert_eq!(unsafe { libc::unshare(libc::CLONE_NEWNET) }, 0);
++        let listener = Listener::get("lo").unwrap();
++        let weak = Arc::downgrade(&listener);
++        drop(listener);
++        let deadline = Instant::now() + Duration::from_secs(5);
++        while !LISTENERS.lock().unwrap().is_empty() && Instant::now() < deadline {
++            std::thread::yield_now();
++        }
++        assert_eq!(weak.strong_count(), 0);
++        assert!(
++            LISTENERS.lock().unwrap().is_empty(),
++            "dead listener still occupies the global cache"
++        );
++    }
++
++    #[cfg(target_os = "linux")]
++    #[test]
++    #[ignore = "isolated container with CAP_SYS_ADMIN and CAP_NET_RAW"]
++    fn same_named_interfaces_share_only_within_their_network_namespace() {
++        let get = || {
++            std::thread::spawn(|| {
++                // This test thread and its listener stay in their disposable netns.
++                assert_eq!(unsafe { libc::unshare(libc::CLONE_NEWNET) }, 0);
++                let listener = Listener::get("lo").unwrap();
++                assert!(Arc::ptr_eq(&listener, &Listener::get("lo").unwrap()));
++                listener
++            })
++            .join()
++            .unwrap()
++        };
++        let first = get();
++        let second = get();
++        assert!(
++            !Arc::ptr_eq(&first, &second),
++            "reused another network namespace's DHCPv6 listener"
++        );
++    }
++
+     const XID: [u8; 3] = [1, 2, 3];
+     const DNS1: Ipv6Addr = Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0x53);
+     const DNS2: Ipv6Addr = Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0x54);

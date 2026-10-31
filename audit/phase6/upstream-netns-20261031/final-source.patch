@@ -1,0 +1,29 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 7bf5fe5..8163ac9 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -180,9 +180,9 @@ dependencies = [
+ 
+ [[package]]
+ name = "iphost"
+-version = "0.4.1"
++version = "0.4.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2a076848529a71001a0ef99e77414e5dd9eca515c458fa6252bb2c6b0958d974"
++checksum = "aae80899d65a02de184e6c3cecbcb0d8d34b23b2ff4dce5e82475603b41fe166"
+ dependencies = [
+  "fqdn",
+  "libc",
+diff --git a/Cargo.toml b/Cargo.toml
+index d03a2d3..afa31da 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -89,7 +89,7 @@ required-features = ["bin", "setup-systemd"]
+ [dependencies]
+ # Library (docs/dependencies.md)
+ l2tp = "0.5.0"
+-iphost = { version = "0.4.1", default-features = false, features = ["custom", "ra", "dhcpv6"] }
++iphost = { version = "0.4.2", default-features = false, features = ["custom", "ra", "dhcpv6"] }
+ netlink-sys = { version = "0.9", features = ["tokio_socket"] }
+ netlink-packet-core = "0.9"
+ netlink-packet-route = "0.33"

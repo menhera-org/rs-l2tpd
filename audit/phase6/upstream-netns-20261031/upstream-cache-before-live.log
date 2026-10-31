@@ -1,0 +1,16 @@
+6.8.0-147-generic
+
+running 1 test
+
+thread 'dhcpv6::tests::dropped_listeners_release_cache_records' (8) panicked at src/dhcpv6.rs:561:9:
+dead listener still occupies the global cache
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test dhcpv6::tests::dropped_listeners_release_cache_records ... FAILED
+
+failures:
+
+failures:
+    dhcpv6::tests::dropped_listeners_release_cache_records
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 59 filtered out; finished in 5.00s
+

@@ -1,0 +1,16 @@
+6.8.0-147-generic
+
+running 1 test
+
+thread 'dhcpv6::tests::same_named_interfaces_share_only_within_their_network_namespace' (8) panicked at src/dhcpv6.rs:511:9:
+reused another network namespace's DHCPv6 listener
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test dhcpv6::tests::same_named_interfaces_share_only_within_their_network_namespace ... FAILED
+
+failures:
+
+failures:
+    dhcpv6::tests::same_named_interfaces_share_only_within_their_network_namespace
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 58 filtered out; finished in 0.00s
+

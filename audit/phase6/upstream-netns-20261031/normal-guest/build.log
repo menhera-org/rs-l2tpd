@@ -1,0 +1,21 @@
+features: all; target: x86_64-unknown-linux-musl
+command: cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run
+    Blocking waiting for file lock on build directory
+   Compiling iphost v0.4.2
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+  Executable unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-af9748489cc725ef)
+  Executable unittests src/bin/rs-l2tpd/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-a9017a2a1565d312)
+  Executable tests/scenarios/boot.rs (target/x86_64-unknown-linux-musl/debug/deps/boot_scenarios-27267fee099aea42)
+  Executable tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-29b3db4558cd3664)
+  Executable tests/kernel/linux.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_linux-4dc70742ae57da1c)
+  Executable tests/process.rs (target/x86_64-unknown-linux-musl/debug/deps/process-b72634a3a7ed9e8a)
+  Executable tests/kernel/review.rs (target/x86_64-unknown-linux-musl/debug/deps/review_kernel-39dfcd536085be33)
+  Executable tests/tools/rulemap.rs (target/x86_64-unknown-linux-musl/debug/deps/rulemap-fb2d0055376e4926)
+  Executable tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-1824c787d3c8e580)
+  Executable tests/scenarios/main.rs (target/x86_64-unknown-linux-musl/debug/deps/scenarios-e913b47d0fd2edfa)
+  Executable tests/service.rs (target/x86_64-unknown-linux-musl/debug/deps/service-f42d826a65243c0b)
+  Executable tests/tools/srclink.rs (target/x86_64-unknown-linux-musl/debug/deps/srclink-1251603301fae59c)
+  Executable tests/startup.rs (target/x86_64-unknown-linux-musl/debug/deps/startup-cdfd89c9c7c6690d)
+  Executable tests/kernel/store.rs (target/x86_64-unknown-linux-musl/debug/deps/store_kernel-1fe369c5fcacfed8)
+  Executable tests/scenarios/systemd.rs (target/x86_64-unknown-linux-musl/debug/deps/systemd_scenarios-baf3795645d1c353)

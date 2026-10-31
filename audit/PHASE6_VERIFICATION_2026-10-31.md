@@ -722,3 +722,30 @@ the shared-discovery case in the live guest. The failure exposes upstream
 namespaces. Its focused upstream regression fails independently. The
 upstream-boundary work is recorded under `phase6/upstream-netns-20261031/`;
 it is required before final live/matrix acceptance. No gate is weakened.
+
+## Released upstream namespace fix
+
+[The upstream record](phase6/upstream-netns-20261031/README.md) retains the
+CI failure, focused namespace-reuse failure and dead-cache-record failure.
+`iphost` 0.4.2 is published and pinned from signed commit `9674ff6`; the
+downloaded crate source matches it. Namespace/interface indexes isolate
+listeners and release dead records. Five live upstream probes pass three
+times, covering namespace isolation, cache cleanup, no-proc operation,
+legacy fallback and receiver-spawn failure. Feature, Rust 1.89, lint, docs,
+existing-consumer and nine cross-target checks pass. The existing Linux
+binding fixture passes 18 privileged and two unprivileged cases.
+
+Downstream common gates and ten seeds pass. Fresh GNU profiles include
+12 live library, 19 kernel, five review and three privileged binary probes,
+27 process cases, all 26 scenarios in 158.46 seconds, the real user manager
+and full Incus case in 19.74 seconds. Coverage remains 93.32% lines /
+80.95% branches, with 563 lines and 338 branches missing and no production
+exclusions. The unmodified musl normal guest now passes its formerly failing
+library case and all 26 scenarios in 575.52 seconds. It exits within the
+900-second QEMU limit. Unmodified musl Incus passes in 14.62 seconds and
+root-systemd in 25.88 seconds with no drop-ins.
+
+A separate upstream resource probe still reproduces retained closed
+subscribers and unbounded pending datagrams. Its work is recorded under
+`phase6/upstream-dhcp-queues-20261031/`. Remaining G23, coverage, clauses/
+event cost, final matrix and this package's CI result remain open.
