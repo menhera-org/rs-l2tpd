@@ -1,0 +1,289 @@
+command: docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --env RS_L2TPD_SCENARIO_CONTAINER=1 --env RS_L2TPD_BASELINE=/home/dev/rs-l2tpd/target/phase6-baseline/15529bab567862b6617c9c5b948a74271bc9c44c/target/x86_64-unknown-linux-musl/release/rs-l2tpd --entrypoint sh rs-l2tpd-audit-vm:local -ec uname -r; exec "$@" run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e --ignored --test-threads=1 --nocapture --skip incus::system_container_store_tunable_networkd_and_udev capabilities::
+6.8.0-147-generic
+
+running 6 tests
+test capabilities::descriptor_exhaustion_is_transient_and_recovers_after_the_limit_is_raised ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra01 (tunnel_id=101): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra02 (tunnel_id=102): created
+daemon: INFO rs_l2tpd: ready pid=22
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra03 (tunnel_id=103): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra04 (tunnel_id=104): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra05 (tunnel_id=105): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra06 (tunnel_id=106): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra07 (tunnel_id=107): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra08 (tunnel_id=108): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra09 (tunnel_id=109): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra10 (tunnel_id=110): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra11 (tunnel_id=111): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra12 (tunnel_id=112): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra13 (tunnel_id=113): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra14 (tunnel_id=114): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra15 (tunnel_id=115): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra16 (tunnel_id=116): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra17 (tunnel_id=117): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra18 (tunnel_id=118): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra19 (tunnel_id=119): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra20 (tunnel_id=120): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra21 (tunnel_id=121): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra22 (tunnel_id=122): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra23 (tunnel_id=123): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra24 (tunnel_id=124): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra25 (tunnel_id=125): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra26 (tunnel_id=126): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra27 (tunnel_id=127): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra28 (tunnel_id=128): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra29 (tunnel_id=129): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra30 (tunnel_id=130): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra31 (tunnel_id=131): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra32 (tunnel_id=132): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra33 (tunnel_id=133): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra34 (tunnel_id=134): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra35 (tunnel_id=135): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra36 (tunnel_id=136): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra37 (tunnel_id=137): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra38 (tunnel_id=138): cannot be created: EMFILE: Too many open files
+daemon: WARN rs_l2tpd::reconciler::report: tunnel extra39 (tunnel_id=139): cannot be created: EMFILE: Too many open files
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra01 (tunnel_id=101): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra02 (tunnel_id=102): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra03 (tunnel_id=103): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra04 (tunnel_id=104): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra05 (tunnel_id=105): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra06 (tunnel_id=106): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra07 (tunnel_id=107): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra08 (tunnel_id=108): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra09 (tunnel_id=109): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra10 (tunnel_id=110): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra11 (tunnel_id=111): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra12 (tunnel_id=112): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra13 (tunnel_id=113): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra14 (tunnel_id=114): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra15 (tunnel_id=115): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra16 (tunnel_id=116): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra17 (tunnel_id=117): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra18 (tunnel_id=118): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra18 (tunnel_id=118): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra19 (tunnel_id=119): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra19 (tunnel_id=119): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra20 (tunnel_id=120): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra20 (tunnel_id=120): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra21 (tunnel_id=121): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra21 (tunnel_id=121): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra22 (tunnel_id=122): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra22 (tunnel_id=122): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra23 (tunnel_id=123): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra23 (tunnel_id=123): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra24 (tunnel_id=124): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra24 (tunnel_id=124): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra25 (tunnel_id=125): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra25 (tunnel_id=125): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra26 (tunnel_id=126): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra26 (tunnel_id=126): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra27 (tunnel_id=127): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra27 (tunnel_id=127): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra28 (tunnel_id=128): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra28 (tunnel_id=128): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra29 (tunnel_id=129): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra29 (tunnel_id=129): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra30 (tunnel_id=130): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra30 (tunnel_id=130): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra31 (tunnel_id=131): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra31 (tunnel_id=131): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra32 (tunnel_id=132): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra32 (tunnel_id=132): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra33 (tunnel_id=133): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra33 (tunnel_id=133): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra34 (tunnel_id=134): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra34 (tunnel_id=134): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra35 (tunnel_id=135): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra35 (tunnel_id=135): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra36 (tunnel_id=136): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra36 (tunnel_id=136): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra37 (tunnel_id=137): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra37 (tunnel_id=137): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra38 (tunnel_id=138): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra38 (tunnel_id=138): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra39 (tunnel_id=139): created
+daemon: INFO rs_l2tpd::reconciler::report: tunnel extra39 (tunnel_id=139): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra18 (tunnel_id=118): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra19 (tunnel_id=119): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra20 (tunnel_id=120): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra21 (tunnel_id=121): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra22 (tunnel_id=122): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra23 (tunnel_id=123): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra24 (tunnel_id=124): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra25 (tunnel_id=125): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra26 (tunnel_id=126): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra27 (tunnel_id=127): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra28 (tunnel_id=128): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra29 (tunnel_id=129): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra30 (tunnel_id=130): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra31 (tunnel_id=131): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra32 (tunnel_id=132): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra33 (tunnel_id=133): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra34 (tunnel_id=134): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra35 (tunnel_id=135): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra36 (tunnel_id=136): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra37 (tunnel_id=137): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra38 (tunnel_id=138): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra39 (tunnel_id=139): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=20
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra01 (tunnel_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra02 (tunnel_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra03 (tunnel_id=103): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra04 (tunnel_id=104): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra05 (tunnel_id=105): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra06 (tunnel_id=106): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra07 (tunnel_id=107): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra08 (tunnel_id=108): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra09 (tunnel_id=109): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra10 (tunnel_id=110): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra11 (tunnel_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra12 (tunnel_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra13 (tunnel_id=113): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra14 (tunnel_id=114): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra15 (tunnel_id=115): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra16 (tunnel_id=116): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra17 (tunnel_id=117): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra18 (tunnel_id=118): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra19 (tunnel_id=119): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra20 (tunnel_id=120): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra21 (tunnel_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra22 (tunnel_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra23 (tunnel_id=123): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra24 (tunnel_id=124): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra25 (tunnel_id=125): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra26 (tunnel_id=126): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra27 (tunnel_id=127): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra28 (tunnel_id=128): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra29 (tunnel_id=129): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra30 (tunnel_id=130): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra31 (tunnel_id=131): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra32 (tunnel_id=132): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra33 (tunnel_id=133): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra34 (tunnel_id=134): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra35 (tunnel_id=135): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra36 (tunnel_id=136): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra37 (tunnel_id=137): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra38 (tunnel_id=138): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel extra39 (tunnel_id=139): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test capabilities::missing_net_admin_reports_once_and_withholds_nonempty_readiness ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_ADMIN: tunnel, session and device operations may fail
+daemon: ERROR rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): cannot be created: EPERM: Operation not permitted
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test capabilities::refused_monitor_filter_warns_once_and_address_events_still_reconnect ... daemon: WARN rs_l2tpd::kernel::linux::monitor: event monitor runs unfiltered: Operation not permitted (os error 1)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=96
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=98
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test capabilities::refused_netlink_reports_once_keeps_running_and_withholds_readiness ... daemon: ERROR rs_l2tpd: opening kernel interfaces: EPERM: Operation not permitted (os error 1); retrying
+ok
+test capabilities::without_bind_service_dhcpv6_degrades_and_unified_discovery_uses_ra ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_BIND_SERVICE: DHCPv6 port 546 may be unavailable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 2001:db8::1 from 2001:db8::53
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd: ready pid=380
+daemon: ERROR rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): its resolver waits: EACCES: Permission denied (V9, V12)
+daemon: INFO rs_l2tpd: ready pid=382
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_BIND_SERVICE: DHCPv6 port 546 may be unavailable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 2001:db8::1 from 2001:db8::53
+daemon: INFO rs_l2tpd: ready pid=427
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): waiting for its resolver's first usable answer (V8)
+daemon: INFO rs_l2tpd: ready pid=429
+daemon: WARN rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): the answer contains unusable addresses of V6; skipped (V5)
+daemon: INFO rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): resolver answers are usable again
+daemon: INFO rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): controlled.example resolves to 2001:db8::9
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 2001:db8::9 from 2001:db8::1
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_BIND_SERVICE: DHCPv6 port 546 may be unavailable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 2001:db8::1 from 2001:db8::53
+daemon: INFO rs_l2tpd: ready pid=496
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): waiting for its resolver's first usable answer (V8)
+daemon: INFO rs_l2tpd: ready pid=498
+daemon: WARN rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): the answer contains unusable addresses of V6; skipped (V5)
+daemon: INFO rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): resolver answers are usable again
+daemon: INFO rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): controlled.example resolves to 2001:db8::9
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 2001:db8::9 from 2001:db8::1
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test capabilities::without_net_raw_router_discovery_requires_accept_ra_and_binding_still_reconnects ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_RAW: device binding and raw router discovery may fail
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 2001:db8::1 from 2001:db8::53
+daemon: INFO rs_l2tpd: ready pid=567
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): waiting for its resolver's first usable answer (V8)
+daemon: INFO rs_l2tpd: ready pid=569
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): waiting for its resolver's first usable answer (V8)
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: WARN rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): the answer contains unusable addresses of V6; skipped (V5)
+daemon: INFO rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): resolver answers are usable again
+daemon: INFO rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): renewed.example resolves to 2001:db8::9
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 2001:db8::9 from 2001:db8::1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 2001:db8::9 from 2001:db8::3
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 21 filtered out; finished in 21.49s
+

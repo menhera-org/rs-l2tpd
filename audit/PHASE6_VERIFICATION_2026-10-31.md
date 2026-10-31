@@ -259,6 +259,32 @@ runs remain archived. Strict rule-map coverage remains 275/333, with 58
 uncited active rules. Final matrix, coverage and manager refreshes are
 still open; no global strict flag is enabled.
 
+## R6/R9: filter refusal and process descriptor limits
+
+[The R6/R9 package](phase6/R6-R9-20261031/README.md) adds live child-only
+SO_ATTACH_FILTER refusal and real EMFILE at a descriptor limit of 32.
+The unfiltered monitor preserves traffic and session identity across
+unrelated churn and address loss/recovery. Its warning now includes
+EPERM. Under EMFILE, existing traffic works, missing entries withhold
+readiness, and raising the child's soft limit permits all 40 tunnels
+without a reload. No host networking or process limit is changed.
+
+The first live test reproduces error-level reports for transient tunnel
+creation failures. Tunnel and session creation now share the existing
+support/privilege-versus-transient classification. Expanded fake cases
+also expose a silent EAGAIN mistaken for the internal tunable wait;
+the silent arm now requires an actual pending handshake. All 16 error/
+creation-kind combinations and the original episode-promotion cases pass.
+
+The focused host run passes six cases and the first full host run passes
+all 25 scenarios. A fresh final-source run also passes all 25 in 161.26
+seconds after the EPERM-display follow-up. Shared CI,
+four strict source-link cases and ten seeded 74-case rule runs pass.
+The strict rule map improves to 278 cited of 333 active rules, leaving 55
+uncited. Initial fixture/compiler failures and real reporting failures
+remain separate in the record. These additional cases have not run on
+the other required targets or in Incus. No global gate is closed.
+
 ## Coverage and exit state
 
 [The merged coverage record](phase6/coverage-20261031/README.md) combines

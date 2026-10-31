@@ -1,0 +1,15 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+error[E0425]: cannot find value `r` in this scope
+   --> tests/rules/completion.rs:378:22
+    |
+378 |         run_for(&mut r, 1);
+    |                      ^ not found in this scope
+
+error[E0425]: cannot find value `r` in this scope
+   --> tests/rules/completion.rs:379:17
+    |
+379 |         assert!(r.ready(), "retry must recover: {error:?}");
+    |                 ^ not found in this scope
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `rs-l2tpd` (test "rules") due to 2 previous errors

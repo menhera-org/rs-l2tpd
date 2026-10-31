@@ -504,14 +504,14 @@ A readiness/signal-order race found
 by that guest is fixed and retested. Initial merged coverage is 91.03%
 lines / 77.02% branches, before the readiness/H15 fixes. H15 now has four
 capability/netlink scenarios and a scoped missing-driver guest pass; the
-host subset now passes 23 scenarios, including the 300-tunnel scale case. H16 clock steps and monitored pause/resume
+host subset now passes 25 scenarios, including the 300-tunnel scale case. H16 clock steps and monitored pause/resume
 pass on all five required kernels, and the low-port-range DHCPv6 positive
 case passes. H17 exercises every session, bounds descriptors across shrink
 cycles and observes zero requests for unrelated links; a fresh mainline
 normal profile passes the expanded 23-scenario suite. Two retained map
 allocations are fixed. The lifetime subscriber now indexes deletion work
 by interface and incarnation, with passing native/live/host cases. There
-are 58 uncited rules. Deadline selection now uses ordered indexes, with
+are 55 uncited rules. Deadline selection now uses ordered indexes, with
 ten seeded rule runs, all host/process cases and a fresh mainline clock
 case passing. Obsolete conflict history is released on removal/shutdown.
 Relevant link/address cache maintenance now updates changed dependencies
@@ -519,6 +519,10 @@ instead of scanning all bindings. Regressions fix stale addresses after
 resync and unbound VRF sibling records retained from notifications; five
 focused cases, all host scenarios and ten seeded rule runs pass. The
 rule-suite logger no longer forks across other fake socket owners.
+R6/R9 now have live filter-refusal and descriptor-exhaustion/recovery
+cases; the host suite passes 25 scenarios. Tunnel/session creation share
+severity classification, and kernel EAGAIN is distinguished from the
+internal tunable wait.
 Complete event-cost/resource/history proof, remaining clauses and
 final matrix/coverage refreshes are still open. No global gate is declared
 complete; strict CI flags remain off. The latest record is repository file

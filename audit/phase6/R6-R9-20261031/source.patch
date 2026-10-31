@@ -1,0 +1,366 @@
+diff --git a/src/reconciler/report.rs b/src/reconciler/report.rs
+index 1ba086f..13519ce 100644
+--- a/src/reconciler/report.rs
++++ b/src/reconciler/report.rs
+@@ -12,6 +12,21 @@ pub(crate) struct Report {
+ }
+ 
+ impl Report {
++    pub fn cannot_create(&mut self, entry: &str, condition: &'static str, error: &io::Error) {
++        let message = || format!("cannot be created: {}", describe(error));
++        match error.raw_os_error().map(nix::errno::Errno::from_raw) {
++            Some(
++                nix::errno::Errno::EPERM
++                | nix::errno::Errno::EACCES
++                | nix::errno::Errno::EPROTONOSUPPORT
++                | nix::errno::Errno::EOPNOTSUPP,
++            ) => {
++                self.begin_error(entry, condition, message);
++            }
++            _ => self.begin(entry, condition, message),
++        }
++    }
++
+     /// Reports `message` at warning level unless the episode is open.
+     pub fn begin(
+         &mut self,
+diff --git a/src/reconciler/sessions.rs b/src/reconciler/sessions.rs
+index 2a37974..0b7d357 100644
+--- a/src/reconciler/sessions.rs
++++ b/src/reconciler/sessions.rs
+@@ -203,17 +203,7 @@ impl<K: Kernel> Reconciler<K> {
+                 }
+                 Err(e) => {
+                     self.incomplete = true;
+-                    let message = || format!("cannot be created: {}", report::describe(&e));
+-                    match Errno::from_raw(errno(&e)) {
+-                        // Missing pseudowire support or privilege is a host defect (H15, O2).
+-                        Errno::EPERM
+-                        | Errno::EACCES
+-                        | Errno::EPROTONOSUPPORT
+-                        | Errno::EOPNOTSUPP => {
+-                            self.report.begin_error(&label, "create", message);
+-                        }
+-                        _ => self.report.begin(&label, "create", message),
+-                    }
++                    self.report.cannot_create(&label, "create", &e);
+                 }
+             }
+         }
+diff --git a/src/reconciler/tunnels.rs b/src/reconciler/tunnels.rs
+index 3ff53b6..487d16f 100644
+--- a/src/reconciler/tunnels.rs
++++ b/src/reconciler/tunnels.rs
+@@ -246,14 +246,14 @@ impl<K: Kernel> Reconciler<K> {
+                 Err(e) if is(&e, &[Errno::EEXIST, Errno::EADDRINUSE]) => {
+                     self.conflict(false, id, identity, &label, &e)
+                 }
+-                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
++                Err(e)
++                    if e.kind() == io::ErrorKind::WouldBlock && self.tunable_pending.is_some() =>
++                {
+                     self.incomplete = true;
+                 }
+                 Err(e) => {
+                     self.incomplete = true;
+-                    self.report.begin_error(&label, "defect", || {
+-                        format!("cannot be created: {}", report::describe(&e))
+-                    });
++                    self.report.cannot_create(&label, "defect", &e);
+                 }
+             }
+         }
+diff --git a/tests/rules/completion.rs b/tests/rules/completion.rs
+index 35fe9e9..2ce3135 100644
+--- a/tests/rules/completion.rs
++++ b/tests/rules/completion.rs
+@@ -293,7 +293,7 @@ fn an_ipv4_label_notice_does_not_reconnect_a_second_time() {
+     assert!(ops(&mut r).is_empty());
+ }
+ 
+-/// spec: G13, O2, O3, E20, T21, T25
++/// spec: G13, O2, O3, E20, T21, T25, R9
+ #[test]
+ fn completion_report_counts() {
+     // Forking here can temporarily inherit other tests' fake socket references.
+@@ -342,26 +342,42 @@ fn completion_report_counts() {
+         (Errno::EAGAIN, log::Level::Warn),
+         (Errno::ENOMEM, log::Level::Warn),
+         (Errno::ENOBUFS, log::Level::Warn),
++        (Errno::EMFILE, log::Level::Warn),
+     ] {
+-        capture.messages.lock().unwrap().clear();
+-        let (mut r, _) = reconciler();
+-        r.reconcile(config(TUNNEL));
+-        for _ in 0..3 {
+-            r.kernel_mut().fail_next("create", error);
++        for creating_session in [false, true] {
++            capture.messages.lock().unwrap().clear();
++            let (mut r, _) = reconciler();
++            if creating_session {
++                r.reconcile(config(TUNNEL));
++            }
++            for _ in 0..3 {
++                r.kernel_mut().fail_next(
++                    if creating_session {
++                        "create"
++                    } else {
++                        "register"
++                    },
++                    error,
++                );
++            }
++            r.reconcile(config(&if creating_session {
++                session("")
++            } else {
++                TUNNEL.to_owned()
++            }));
++            run_for(&mut r, 2);
++            assert!(!r.ready(), "session must still be missing: {error:?}");
++            assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
++            let other = if level == log::Level::Error {
++                log::Level::Warn
++            } else {
++                log::Level::Error
++            };
++            assert_eq!(count(other, "cannot be created:"), 0, "{error:?}");
++            run_for(&mut r, 1);
++            assert!(r.ready(), "retry must recover: {error:?}");
++            assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
+         }
+-        r.reconcile(config(&session("")));
+-        run_for(&mut r, 2);
+-        assert!(!r.ready(), "session must still be missing: {error:?}");
+-        assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
+-        let other = if level == log::Level::Error {
+-            log::Level::Warn
+-        } else {
+-            log::Level::Error
+-        };
+-        assert_eq!(count(other, "cannot be created:"), 0, "{error:?}");
+-        run_for(&mut r, 1);
+-        assert!(r.ready(), "retry must recover: {error:?}");
+-        assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
+     }
+     capture.messages.lock().unwrap().clear();
+     let (mut mixed, _) = reconciler();
+diff --git a/tests/scenarios/capabilities.rs b/tests/scenarios/capabilities.rs
+index 404d46c..e95aa0b 100644
+--- a/tests/scenarios/capabilities.rs
++++ b/tests/scenarios/capabilities.rs
+@@ -3,13 +3,111 @@
+ #[path = "../support/discovery.rs"]
+ mod discovery;
+ 
+-use super::support::{Pair, checked, config, wait};
++use super::support::{Pair, checked, config, deny_socket_option, wait};
+ use discovery::{Dns, advertise};
+ use socket2::{Domain, Protocol, Socket, Type};
+ use std::net::{Ipv6Addr, SocketAddrV6, UdpSocket};
+ use std::sync::atomic::Ordering;
+ use std::time::Duration;
+ 
++/// spec: R6, A18, K10, G1
++#[test]
++#[ignore = "disposable privileged container or QEMU guest; child-only filter refusal"]
++fn refused_monitor_filter_warns_once_and_address_events_still_reconnect() {
++    let pair = Pair::new();
++    pair.underlay(true, false);
++    let path = pair.dir.join("monitor-filter.bpf");
++    deny_socket_option(&path, nix::libc::SOL_SOCKET, nix::libc::SO_ATTACH_FILTER);
++    let mut daemon = pair.start_with(
++        0,
++        &config(0, &["192.0.2.2"]),
++        &[
++            "setpriv",
++            "--no-new-privs",
++            "--seccomp-filter",
++            path.to_str().unwrap(),
++        ],
++    );
++    let mut peer = pair.start(1, &config(1, &["192.0.2.1"]));
++    daemon.event("WARN rs_l2tpd::kernel::linux::monitor: event monitor runs unfiltered:");
++    daemon.event("ready");
++    peer.event("ready");
++    pair.inner("l2tp0", 0);
++    pair.frames(0);
++    let index = pair.index(0, "l2tp0");
++    for _ in 0..100 {
++        pair.ip(0, &["link", "add", "foreign", "type", "dummy"]);
++        pair.ip(0, &["link", "del", "foreign"]);
++    }
++    pair.ip(0, &["addr", "del", "192.0.2.1/24", "dev", "underlay"]);
++    daemon.event("disconnected, peer 192.0.2.2 pending:");
++    pair.ip(0, &["addr", "add", "192.0.2.1/24", "dev", "underlay"]);
++    daemon.event("connected to 192.0.2.2 from 192.0.2.1");
++    assert_eq!(pair.index(0, "l2tp0"), index);
++    pair.frames(0);
++    daemon.reload();
++    assert_eq!(daemon.count("event monitor runs unfiltered:"), 1);
++    assert_eq!(peer.count("event monitor runs unfiltered:"), 0);
++    daemon.stop();
++    peer.stop();
++    pair.absent(0);
++    pair.absent(1);
++}
++
++/// spec: R9, G6, G8, M13, O2, O3
++#[test]
++#[ignore = "disposable privileged container or QEMU guest; child-only descriptor limit"]
++fn descriptor_exhaustion_is_transient_and_recovers_after_the_limit_is_raised() {
++    let pair = Pair::new();
++    pair.underlay(true, false);
++    let mut text = config(0, &["192.0.2.2"]).replace("t0", "a0");
++    for n in 1..40 {
++        text += &format!(
++            "\n[tunnels.extra{n:02}]\ntunnel_id={}\nremote_addr='192.0.2.2'\n",
++            n + 100
++        );
++    }
++    let mut daemon = pair.start_with(0, &text, &["prlimit", "--nofile=32:256", "--"]);
++    let mut peer = pair.start(1, &config(1, &["192.0.2.1"]));
++    daemon.event("EMFILE");
++    daemon.assert_unready_for(Duration::from_millis(2200));
++    assert_eq!(
++        daemon.count("ERROR"),
++        0,
++        "descriptor exhaustion is transient"
++    );
++    let partial = pair
++        .ip(0, &["l2tp", "show", "tunnel"])
++        .lines()
++        .filter(|l| l.starts_with("Tunnel "))
++        .count();
++    assert!(
++        partial > 0 && partial < 40,
++        "partial tunnel count: {partial}"
++    );
++    assert_eq!(daemon.count(": cannot be created: EMFILE:"), 40 - partial);
++    peer.event("ready");
++    pair.inner("l2tp0", 0);
++    pair.frames(0);
++    let index = pair.index(0, "l2tp0");
++    let mut limit = std::process::Command::new("prlimit");
++    limit.args(["--pid", &daemon.pid().to_string(), "--nofile=256:256"]);
++    checked(limit);
++    daemon.event("ready");
++    let complete = pair
++        .ip(0, &["l2tp", "show", "tunnel"])
++        .lines()
++        .filter(|l| l.starts_with("Tunnel "))
++        .count();
++    assert_eq!(complete, 40);
++    assert_eq!(pair.index(0, "l2tp0"), index);
++    pair.frames(0);
++    daemon.stop();
++    peer.stop();
++    pair.absent(0);
++    pair.absent(1);
++}
++
+ fn capabilities(pid: u32, expected: u64) {
+     let status = std::fs::read_to_string(format!("/proc/{pid}/status")).unwrap();
+     let effective = status
+diff --git a/tests/scenarios/fragmentation.rs b/tests/scenarios/fragmentation.rs
+index 151da6d..4bb0e08 100644
+--- a/tests/scenarios/fragmentation.rs
++++ b/tests/scenarios/fragmentation.rs
+@@ -1,4 +1,4 @@
+-use super::support::{Pair, checked, config, wait};
++use super::support::{Pair, checked, config, deny_socket_option, wait};
+ use std::io::{Read, Write};
+ use std::net::{Shutdown, TcpListener, TcpStream};
+ use std::time::Duration;
+@@ -211,13 +211,6 @@ fn full_session_mtu_frames_and_bulk_data_fragment_over_both_underlays_and_vrf()
+ #[test]
+ #[ignore = "disposable privileged container or QEMU guest; setpriv seccomp support"]
+ fn refused_fragmentation_option_is_reported_once_and_tunnels_still_work() {
+-    let architecture = match std::env::consts::ARCH {
+-        "x86_64" => 0xc000003e,
+-        "aarch64" => 0xc00000b7,
+-        other => panic!("unsupported seccomp fixture ABI: {other}"),
+-    };
+-    // Linux UAPI seccomp_data: architecture at 4, syscall at 0, arguments
+-    // at 16. Refuse one fragmentation option at a time; allow all other calls.
+     for (level, option, label) in [
+         (libc::IPPROTO_IP, libc::IP_MTU_DISCOVER, "IP_MTU_DISCOVER"),
+         (
+@@ -227,27 +220,6 @@ fn refused_fragmentation_option_is_reported_once_and_tunnels_still_work() {
+         ),
+         (libc::IPPROTO_IPV6, libc::IPV6_DONTFRAG, "IPV6_DONTFRAG"),
+     ] {
+-        let filter: [(u16, u8, u8, u32); 11] = [
+-            (0x20, 0, 0, 4),
+-            (0x15, 1, 0, architecture),
+-            (0x06, 0, 0, 0x80000000),
+-            (0x20, 0, 0, 0),
+-            (0x15, 0, 5, libc::SYS_setsockopt as u32),
+-            (0x20, 0, 0, 24),
+-            (0x15, 0, 3, level as u32),
+-            (0x20, 0, 0, 32),
+-            (0x15, 0, 1, option as u32),
+-            (0x06, 0, 0, 0x00050000 | libc::EPERM as u32),
+-            (0x06, 0, 0, 0x7fff0000),
+-        ];
+-        let bytes: Vec<u8> = filter
+-            .into_iter()
+-            .flat_map(|(code, jt, jf, value)| {
+-                let [a, b] = code.to_ne_bytes();
+-                let [c, d, e, f] = value.to_ne_bytes();
+-                [a, b, jt, jf, c, d, e, f]
+-            })
+-            .collect();
+         for native_v4 in [false, true] {
+             let pair = Pair::new();
+             pair.underlay(true, true);
+@@ -257,7 +229,7 @@ fn refused_fragmentation_option_is_reported_once_and_tunnels_still_work() {
+                 }
+             }
+             let path = pair.dir.join("pmtu-filter.bpf");
+-            std::fs::write(&path, &bytes).unwrap();
++            deny_socket_option(&path, level, option);
+             let prefix = [
+                 "setpriv",
+                 "--no-new-privs",
+diff --git a/tests/scenarios/support.rs b/tests/scenarios/support.rs
+index e5f7d62..b9862bc 100644
+--- a/tests/scenarios/support.rs
++++ b/tests/scenarios/support.rs
+@@ -15,6 +15,37 @@ pub fn checked(mut command: Command) -> String {
+     String::from_utf8(output.stdout).unwrap()
+ }
+ 
++pub fn deny_socket_option(path: &std::path::Path, level: i32, option: i32) {
++    let architecture = match std::env::consts::ARCH {
++        "x86_64" => 0xc000003e,
++        "aarch64" => 0xc00000b7,
++        other => panic!("unsupported seccomp fixture ABI: {other}"),
++    };
++    // Linux seccomp_data: arch at 4, syscall at 0, setsockopt arguments at 16.
++    let filter: [(u16, u8, u8, u32); 11] = [
++        (0x20, 0, 0, 4),
++        (0x15, 1, 0, architecture),
++        (0x06, 0, 0, 0x80000000),
++        (0x20, 0, 0, 0),
++        (0x15, 0, 5, nix::libc::SYS_setsockopt as u32),
++        (0x20, 0, 0, 24),
++        (0x15, 0, 3, level as u32),
++        (0x20, 0, 0, 32),
++        (0x15, 0, 1, option as u32),
++        (0x06, 0, 0, 0x00050000 | nix::libc::EPERM as u32),
++        (0x06, 0, 0, 0x7fff0000),
++    ];
++    let bytes: Vec<u8> = filter
++        .into_iter()
++        .flat_map(|(code, jt, jf, value)| {
++            let [a, b] = code.to_ne_bytes();
++            let [c, d, e, f] = value.to_ne_bytes();
++            [a, b, jt, jf, c, d, e, f]
++        })
++        .collect();
++    fs::write(path, bytes).unwrap();
++}
++
+ pub fn wait(label: &str, predicate: impl FnMut() -> bool) {
+     wait_with_timeout(label, Duration::from_secs(10), predicate);
+ }

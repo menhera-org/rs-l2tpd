@@ -3,12 +3,110 @@
 #[path = "../support/discovery.rs"]
 mod discovery;
 
-use super::support::{Pair, checked, config, wait};
+use super::support::{Pair, checked, config, deny_socket_option, wait};
 use discovery::{Dns, advertise};
 use socket2::{Domain, Protocol, Socket, Type};
 use std::net::{Ipv6Addr, SocketAddrV6, UdpSocket};
 use std::sync::atomic::Ordering;
 use std::time::Duration;
+
+/// spec: R6, A18, K10, G1, O6
+#[test]
+#[ignore = "disposable privileged container or QEMU guest; child-only filter refusal"]
+fn refused_monitor_filter_warns_once_and_address_events_still_reconnect() {
+    let pair = Pair::new();
+    pair.underlay(true, false);
+    let path = pair.dir.join("monitor-filter.bpf");
+    deny_socket_option(&path, nix::libc::SOL_SOCKET, nix::libc::SO_ATTACH_FILTER);
+    let mut daemon = pair.start_with(
+        0,
+        &config(0, &["192.0.2.2"]),
+        &[
+            "setpriv",
+            "--no-new-privs",
+            "--seccomp-filter",
+            path.to_str().unwrap(),
+        ],
+    );
+    let mut peer = pair.start(1, &config(1, &["192.0.2.1"]));
+    daemon.event("WARN rs_l2tpd::kernel::linux::monitor: event monitor runs unfiltered: EPERM:");
+    daemon.event("ready");
+    peer.event("ready");
+    pair.inner("l2tp0", 0);
+    pair.frames(0);
+    let index = pair.index(0, "l2tp0");
+    for _ in 0..100 {
+        pair.ip(0, &["link", "add", "foreign", "type", "dummy"]);
+        pair.ip(0, &["link", "del", "foreign"]);
+    }
+    pair.ip(0, &["addr", "del", "192.0.2.1/24", "dev", "underlay"]);
+    daemon.event("disconnected, peer 192.0.2.2 pending:");
+    pair.ip(0, &["addr", "add", "192.0.2.1/24", "dev", "underlay"]);
+    daemon.event("connected to 192.0.2.2 from 192.0.2.1");
+    assert_eq!(pair.index(0, "l2tp0"), index);
+    pair.frames(0);
+    daemon.reload();
+    assert_eq!(daemon.count("event monitor runs unfiltered:"), 1);
+    assert_eq!(peer.count("event monitor runs unfiltered:"), 0);
+    daemon.stop();
+    peer.stop();
+    pair.absent(0);
+    pair.absent(1);
+}
+
+/// spec: R9, G6, G8, M13, O2, O3
+#[test]
+#[ignore = "disposable privileged container or QEMU guest; child-only descriptor limit"]
+fn descriptor_exhaustion_is_transient_and_recovers_after_the_limit_is_raised() {
+    let pair = Pair::new();
+    pair.underlay(true, false);
+    let mut text = config(0, &["192.0.2.2"]).replace("t0", "a0");
+    for n in 1..40 {
+        text += &format!(
+            "\n[tunnels.extra{n:02}]\ntunnel_id={}\nremote_addr='192.0.2.2'\n",
+            n + 100
+        );
+    }
+    let mut daemon = pair.start_with(0, &text, &["prlimit", "--nofile=32:256", "--"]);
+    let mut peer = pair.start(1, &config(1, &["192.0.2.1"]));
+    daemon.event("EMFILE");
+    daemon.assert_unready_for(Duration::from_millis(2200));
+    assert_eq!(
+        daemon.count("ERROR"),
+        0,
+        "descriptor exhaustion is transient"
+    );
+    let partial = pair
+        .ip(0, &["l2tp", "show", "tunnel"])
+        .lines()
+        .filter(|l| l.starts_with("Tunnel "))
+        .count();
+    assert!(
+        partial > 0 && partial < 40,
+        "partial tunnel count: {partial}"
+    );
+    assert_eq!(daemon.count(": cannot be created: EMFILE:"), 40 - partial);
+    peer.event("ready");
+    pair.inner("l2tp0", 0);
+    pair.frames(0);
+    let index = pair.index(0, "l2tp0");
+    let mut limit = std::process::Command::new("prlimit");
+    limit.args(["--pid", &daemon.pid().to_string(), "--nofile=256:256"]);
+    checked(limit);
+    daemon.event("ready");
+    let complete = pair
+        .ip(0, &["l2tp", "show", "tunnel"])
+        .lines()
+        .filter(|l| l.starts_with("Tunnel "))
+        .count();
+    assert_eq!(complete, 40);
+    assert_eq!(pair.index(0, "l2tp0"), index);
+    pair.frames(0);
+    daemon.stop();
+    peer.stop();
+    pair.absent(0);
+    pair.absent(1);
+}
 
 fn capabilities(pid: u32, expected: u64) {
     let status = std::fs::read_to_string(format!("/proc/{pid}/status")).unwrap();

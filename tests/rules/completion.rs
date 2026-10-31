@@ -293,7 +293,7 @@ fn an_ipv4_label_notice_does_not_reconnect_a_second_time() {
     assert!(ops(&mut r).is_empty());
 }
 
-/// spec: G13, O2, O3, E20, T21, T25
+/// spec: G13, O2, O3, E20, T21, T25, R9
 #[test]
 fn completion_report_counts() {
     // Forking here can temporarily inherit other tests' fake socket references.
@@ -342,26 +342,42 @@ fn completion_report_counts() {
         (Errno::EAGAIN, log::Level::Warn),
         (Errno::ENOMEM, log::Level::Warn),
         (Errno::ENOBUFS, log::Level::Warn),
+        (Errno::EMFILE, log::Level::Warn),
     ] {
-        capture.messages.lock().unwrap().clear();
-        let (mut r, _) = reconciler();
-        r.reconcile(config(TUNNEL));
-        for _ in 0..3 {
-            r.kernel_mut().fail_next("create", error);
+        for creating_session in [false, true] {
+            capture.messages.lock().unwrap().clear();
+            let (mut r, _) = reconciler();
+            if creating_session {
+                r.reconcile(config(TUNNEL));
+            }
+            for _ in 0..3 {
+                r.kernel_mut().fail_next(
+                    if creating_session {
+                        "create"
+                    } else {
+                        "register"
+                    },
+                    error,
+                );
+            }
+            r.reconcile(config(&if creating_session {
+                session("")
+            } else {
+                TUNNEL.to_owned()
+            }));
+            run_for(&mut r, 2);
+            assert!(!r.ready(), "session must still be missing: {error:?}");
+            assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
+            let other = if level == log::Level::Error {
+                log::Level::Warn
+            } else {
+                log::Level::Error
+            };
+            assert_eq!(count(other, "cannot be created:"), 0, "{error:?}");
+            run_for(&mut r, 1);
+            assert!(r.ready(), "retry must recover: {error:?}");
+            assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
         }
-        r.reconcile(config(&session("")));
-        run_for(&mut r, 2);
-        assert!(!r.ready(), "session must still be missing: {error:?}");
-        assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
-        let other = if level == log::Level::Error {
-            log::Level::Warn
-        } else {
-            log::Level::Error
-        };
-        assert_eq!(count(other, "cannot be created:"), 0, "{error:?}");
-        run_for(&mut r, 1);
-        assert!(r.ready(), "retry must recover: {error:?}");
-        assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
     }
     capture.messages.lock().unwrap().clear();
     let (mut mixed, _) = reconciler();

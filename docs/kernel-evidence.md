@@ -24,7 +24,7 @@ their own relevant citations.
 | K7 | shared: `the_monitor_reports_links_and_addresses`; live: ordered lifetime requests and loss tests | linux |
 | K8 | requirement: kernel command capability checks cited by `LinuxKernel::new` and the L2TP adapter; privileged positive operation runs | linux |
 | K9 | live: `links_are_found_by_name_and_dumped`; shared VRF/zone/source cases | linux |
-| K10 | unit: BPF instruction cases; live: production filtered monitor observes link and address changes | linux |
+| K10 | unit: BPF instruction cases; live: production filtered monitor observes link and address changes; R6's child-only SO_ATTACH_FILTER refusal proves unfiltered address recovery and real frames on Ubuntu 6.8.0-147 | linux |
 | K11 | live: `a_tunable_write_changes_only_fresh_sockets` | linux |
 | K12 | removed; no evidence obligation | removed |
 | K13 | delegated requirement: released iphost DHCPv6 socket implementation; live positive port-546 bind in `released_unified_adapter_enables_per_family_failure_fallback`; capability scenario proves EACCES at unprivileged-port start 1024 and an actual port-546 exchange without CAP_NET_BIND_SERVICE at start 0 | delegated |

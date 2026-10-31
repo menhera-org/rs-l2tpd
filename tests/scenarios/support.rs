@@ -15,6 +15,37 @@ pub fn checked(mut command: Command) -> String {
     String::from_utf8(output.stdout).unwrap()
 }
 
+pub fn deny_socket_option(path: &std::path::Path, level: i32, option: i32) {
+    let architecture = match std::env::consts::ARCH {
+        "x86_64" => 0xc000003e,
+        "aarch64" => 0xc00000b7,
+        other => panic!("unsupported seccomp fixture ABI: {other}"),
+    };
+    // Linux seccomp_data: arch at 4, syscall at 0, setsockopt arguments at 16.
+    let filter: [(u16, u8, u8, u32); 11] = [
+        (0x20, 0, 0, 4),
+        (0x15, 1, 0, architecture),
+        (0x06, 0, 0, 0x80000000),
+        (0x20, 0, 0, 0),
+        (0x15, 0, 5, nix::libc::SYS_setsockopt as u32),
+        (0x20, 0, 0, 24),
+        (0x15, 0, 3, level as u32),
+        (0x20, 0, 0, 32),
+        (0x15, 0, 1, option as u32),
+        (0x06, 0, 0, 0x00050000 | nix::libc::EPERM as u32),
+        (0x06, 0, 0, 0x7fff0000),
+    ];
+    let bytes: Vec<u8> = filter
+        .into_iter()
+        .flat_map(|(code, jt, jf, value)| {
+            let [a, b] = code.to_ne_bytes();
+            let [c, d, e, f] = value.to_ne_bytes();
+            [a, b, jt, jf, c, d, e, f]
+        })
+        .collect();
+    fs::write(path, bytes).unwrap();
+}
+
 pub fn wait(label: &str, predicate: impl FnMut() -> bool) {
     wait_with_timeout(label, Duration::from_secs(10), predicate);
 }

@@ -1,0 +1,18 @@
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+failures:
+
+failures:
+    capabilities::descriptor_exhaustion_is_transient_and_recovers_after_the_limit_is_raised
+    capabilities::refused_monitor_filter_warns_once_and_address_events_still_reconnect
+
+test result: FAILED. 4 passed; 2 failed; 0 ignored; 0 measured; 21 filtered out; finished in 29.19s
+
+SCENARIO_RESULT=1
+record: /home/dev/rs-l2tpd/audit/phase6/scenarios-20261031T111538Z-3759543

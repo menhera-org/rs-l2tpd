@@ -153,7 +153,8 @@ fn socket() -> io::Result<Socket> {
         ],
     )?;
     if let Err(error) = SockRef::from(&socket).attach_filter(&bpf::filter()) {
-        log::warn!("event monitor runs unfiltered: {error}");
+        let errno = nix::errno::Errno::from_raw(crate::kernel::errno(&error));
+        log::warn!("event monitor runs unfiltered: {errno:?}: {error}");
     }
     Ok(socket)
 }

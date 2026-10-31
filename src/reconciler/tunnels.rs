@@ -246,14 +246,14 @@ impl<K: Kernel> Reconciler<K> {
                 Err(e) if is(&e, &[Errno::EEXIST, Errno::EADDRINUSE]) => {
                     self.conflict(false, id, identity, &label, &e)
                 }
-                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                Err(e)
+                    if e.kind() == io::ErrorKind::WouldBlock && self.tunable_pending.is_some() =>
+                {
                     self.incomplete = true;
                 }
                 Err(e) => {
                     self.incomplete = true;
-                    self.report.begin_error(&label, "defect", || {
-                        format!("cannot be created: {}", report::describe(&e))
-                    });
+                    self.report.cannot_create(&label, "defect", &e);
                 }
             }
         }

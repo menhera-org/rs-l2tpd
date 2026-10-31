@@ -12,6 +12,21 @@ pub(crate) struct Report {
 }
 
 impl Report {
+    pub fn cannot_create(&mut self, entry: &str, condition: &'static str, error: &io::Error) {
+        let message = || format!("cannot be created: {}", describe(error));
+        match error.raw_os_error().map(nix::errno::Errno::from_raw) {
+            Some(
+                nix::errno::Errno::EPERM
+                | nix::errno::Errno::EACCES
+                | nix::errno::Errno::EPROTONOSUPPORT
+                | nix::errno::Errno::EOPNOTSUPP,
+            ) => {
+                self.begin_error(entry, condition, message);
+            }
+            _ => self.begin(entry, condition, message),
+        }
+    }
+
     /// Reports `message` at warning level unless the episode is open.
     pub fn begin(
         &mut self,

@@ -352,3 +352,24 @@ deadlines, conflict cancellation and fresh host/mainline-clock checks.
 Coverage, rule completeness, full resource/event-cost proof, the expanded
 normal matrix, final manager/profile refreshes and strict CI remain open. This page does not
 declare Phase 6 complete or claim behavior for unexecuted cases.
+
+### Refused monitor filters and descriptor exhaustion
+
+The [R6/R9 package](../audit/phase6/R6-R9-20261031/README.md) adds two
+host cases on Ubuntu `6.8.0-147-generic`. Denying `SO_ATTACH_FILTER` to
+the daemon child produces one warning; the unfiltered monitor still
+handles address removal/recovery, preserves the session index and carries
+bidirectional traffic after 100 unrelated device create/delete cycles.
+The warning includes the kernel's `EPERM` name.
+
+A second child is limited to 32 descriptors with 40 configured tunnels.
+Kernel `EMFILE` withholds readiness and produces one transient warning
+per missing tunnel; the already-created session keeps carrying frames.
+Raising that child's limit to 256, without a reload, permits all 40
+tunnels and readiness while preserving the session index. No host limit
+is changed. The package also distinguishes a real kernel `EAGAIN` from
+the internal tunable wait and checks both tunnel/session creation reports.
+
+These new cases extend the host suite to 25 scenarios. They have not
+run separately on the other four required targets or in Incus, and do
+not extend those targets' recorded coverage automatically.

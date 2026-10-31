@@ -1,4 +1,4 @@
-use super::support::{Pair, checked, config, wait};
+use super::support::{Pair, checked, config, deny_socket_option, wait};
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::time::Duration;
@@ -211,13 +211,6 @@ fn full_session_mtu_frames_and_bulk_data_fragment_over_both_underlays_and_vrf() 
 #[test]
 #[ignore = "disposable privileged container or QEMU guest; setpriv seccomp support"]
 fn refused_fragmentation_option_is_reported_once_and_tunnels_still_work() {
-    let architecture = match std::env::consts::ARCH {
-        "x86_64" => 0xc000003e,
-        "aarch64" => 0xc00000b7,
-        other => panic!("unsupported seccomp fixture ABI: {other}"),
-    };
-    // Linux UAPI seccomp_data: architecture at 4, syscall at 0, arguments
-    // at 16. Refuse one fragmentation option at a time; allow all other calls.
     for (level, option, label) in [
         (libc::IPPROTO_IP, libc::IP_MTU_DISCOVER, "IP_MTU_DISCOVER"),
         (
@@ -227,27 +220,6 @@ fn refused_fragmentation_option_is_reported_once_and_tunnels_still_work() {
         ),
         (libc::IPPROTO_IPV6, libc::IPV6_DONTFRAG, "IPV6_DONTFRAG"),
     ] {
-        let filter: [(u16, u8, u8, u32); 11] = [
-            (0x20, 0, 0, 4),
-            (0x15, 1, 0, architecture),
-            (0x06, 0, 0, 0x80000000),
-            (0x20, 0, 0, 0),
-            (0x15, 0, 5, libc::SYS_setsockopt as u32),
-            (0x20, 0, 0, 24),
-            (0x15, 0, 3, level as u32),
-            (0x20, 0, 0, 32),
-            (0x15, 0, 1, option as u32),
-            (0x06, 0, 0, 0x00050000 | libc::EPERM as u32),
-            (0x06, 0, 0, 0x7fff0000),
-        ];
-        let bytes: Vec<u8> = filter
-            .into_iter()
-            .flat_map(|(code, jt, jf, value)| {
-                let [a, b] = code.to_ne_bytes();
-                let [c, d, e, f] = value.to_ne_bytes();
-                [a, b, jt, jf, c, d, e, f]
-            })
-            .collect();
         for native_v4 in [false, true] {
             let pair = Pair::new();
             pair.underlay(true, true);
@@ -257,7 +229,7 @@ fn refused_fragmentation_option_is_reported_once_and_tunnels_still_work() {
                 }
             }
             let path = pair.dir.join("pmtu-filter.bpf");
-            std::fs::write(&path, &bytes).unwrap();
+            deny_socket_option(&path, level, option);
             let prefix = [
                 "setpriv",
                 "--no-new-privs",

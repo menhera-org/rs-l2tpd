@@ -1,0 +1,21 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 1 test
+
+thread 'completion::completion_report_counts' (3763753) panicked at tests/rules/completion.rs:370:13:
+assertion `left == right` failed: EAGAIN
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test completion::completion_report_counts ... FAILED
+
+failures:
+
+failures:
+    completion::completion_report_counts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`
