@@ -29,3 +29,8 @@ jobs:
 
       - name: CI gates
         run: ./test-ci-gates.sh
+
+      - uses: qltysh/qlty-action/coverage@ebcd284bf32e36a030afe15f1e136c7be08b9506
+        with:
+          token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
+          files: target/lcov.info
