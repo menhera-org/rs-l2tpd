@@ -1,0 +1,72 @@
+--- a/docs/spec/kernel.md
++++ b/docs/spec/kernel.md
+@@ -56,7 +56,7 @@
+ | K23 | `net.ipv6.bindv6only` sets `IPV6_V6ONLY` at socket creation; the option cannot be changed on an L2TP/IPv6 socket (`inet_num` is pinned at open) but can always be read; a connect to an IPv4-mapped address on such a socket fails `ENETUNREACH`. | `net/ipv6/af_inet6.c:228`, `datagram.c:185-191`, `ipv6_sockglue.c:656-662`, `1212-1214`, `l2tp_ip6.c:228-233` |
+ | K24 | A `connect()` on a connected datagram socket keeps the previous source address; only a disconnect resets it. A connect from an IPv4-mapped peer to an IPv6 peer without a disconnect fails `EAFNOSUPPORT`; the reverse succeeds but the socket keeps reporting the IPv6 source. | `net/ipv4/datagram.c:38-39`, `64-65`; `net/ipv6/datagram.c:51`, `206-208`; `net/ipv6/ip6_output.c:1215-1219`; `net/ipv4/udp.c:2010-2011` |
+ | K25 | A disconnect resets the IPv4 destination and both sources but not `sk_v6_daddr`; the kernel's tunnel record of a disconnected `AF_INET6` socket shows the previous peer and an empty source. | `net/ipv4/udp.c:2006-2011`; `l2tp_netlink.c:337`, `359` |
+-| K26 | Errno of a refused connect: no route `ENETUNREACH`; `unreachable` route `EHOSTUNREACH`; `prohibit` `EACCES`; `blackhole` `EINVAL`; `throw` ends as `ENETUNREACH`; no usable source address in the socket's L3 domain `EADDRNOTAVAIL`, raised before the route is consulted; link-local peer without a scope or binding `EINVAL`. | `net/ipv4/fib_semantics.c:124-137`, `net/core/fib_rules.c:328-335`, `net/ipv6/route.c:1083-1096`, `include/net/ip6_route.h:128-152`, `net/ipv6/datagram.c:221-238` |
++| K26 | Errno of a refused connect: no route `ENETUNREACH`; `unreachable` route `EHOSTUNREACH`; `prohibit` `EACCES`; `blackhole` `EINVAL`; `throw` ends as `ENETUNREACH`; no usable source address in the socket's L3 domain `EADDRNOTAVAIL`, except that the empty-VRF/no-route case returns `ENETUNREACH` on vanilla 6.8.12; link-local peer without a scope or binding `EINVAL`. The verified Ubuntu 6.8.0-147 and newer tested kernels return `EADDRNOTAVAIL` for that empty-VRF case. | `net/ipv4/fib_semantics.c:124-137`, `net/core/fib_rules.c:328-335`, `net/ipv6/route.c:1083-1096`, `net/ipv6/datagram.c:221-238`; source selection: v6.8.12 `include/net/ip6_route.h:128-145`, `net/ipv6/ip6_output.c:1097-1151`; v7.3 `include/net/ip6_route.h:156-184` |
+ | K27 | Connecting to a link-local IPv6 peer with a scope id binds the socket to the scope device; the scope must equal the bound device or be a member of the bound VRF. | `net/ipv6/datagram.c:221-238`, `include/net/sock.h:3023-3035` |
+ | K28 | IPv4 output through a bound ordinary device with no matching route assumes the destination is on-link and succeeds; a lookup with an output device matches only routes through that device; a bound device that is a VRF member is routed in the VRF's table. | `net/ipv4/route.c:2785-2817`, `fib_trie.c:1419-1420`, `fib_rules.c:81-105`, `net/l3mdev/l3mdev.c:271-300` |
+ | K29 | A netlink socket whose receive queue cannot take a message the kernel sends it, whether a multicast notification or a unicast reply, dump chunk or acknowledgement, reports `ENOBUFS` once on its next receive unless `NETLINK_NO_ENOBUFS` is set, and the dropped message is lost; the condition clears when the queue is drained. Only a unicast from another user-space process is dropped silently. A dump is flow-controlled: its chunks wait for room instead of being dropped. A socket filter also drops unicast and dump replies. | `net/netlink/af_netlink.c:350-358` (`netlink_overrun`), `1211-1235` (`netlink_attachskb`: a kernel sender with no timeout calls `netlink_overrun`), `1347-1352`, `1481-1485`, `2278-2281`; `net/core/datagram.c:97-99`, `251-254`; reproduced on the host (`audit/SPEC_REVIEW_2026-10-28.md`) |
+@@ -64,7 +64,7 @@
+ | K31 | An l2tpeth device gets a random hardware address at creation, refuses a hardware-address change while up (`EBUSY`), and can be renamed while up. Setting the address the device already has succeeds while up: `dev_set_mac_address` compares first and calls the driver only on a difference. | `l2tp_eth.c:95-115`, `net/core/dev.c:1264-1308`, `net/core/dev.c:9020-9044` |
+ | K32 | A device name may not be empty, 16 bytes or longer, `.`, `..`, or contain `/`, `:` or whitespace; a `%` in a requested name is a format pattern the kernel expands. | `net/core/dev.c:1119-1134`, `1210-1225` |
+ | K33 | Taking a device down removes its IPv6 addresses unless `keep_addr_on_down` is set on the device or on `all`; routes and neighbour state through it go regardless. | `net/ipv6/addrconf.c:3890-3898`, defaults `226`, `288` |
+-| K34 | An IPv4 connect succeeds with source `0.0.0.0` when no IPv4 address exists; an IPv6 connect fails `EADDRNOTAVAIL` when no IPv6 address exists in the socket's L3 domain; `::1` is selected outside a VRF when nothing else exists. | `net/ipv4/devinet.c:1370-1376`, `include/net/ip6_route.h:128-152` |
++| K34 | An IPv4 connect succeeds with source `0.0.0.0` when no IPv4 address exists; an IPv6 connect fails `EADDRNOTAVAIL` when no IPv6 address exists in the socket's L3 domain, with K26's vanilla 6.8.12 exception when that VRF has no route either; `::1` is selected outside a VRF when nothing else exists. | `net/ipv4/devinet.c:1370-1376`; v6.8.12 `include/net/ip6_route.h:128-145`, `net/ipv6/ip6_output.c:1097-1151`; v7.3 `include/net/ip6_route.h:156-184` |
+ | K35 | The kernel accepts a cookie of any length up to 8 bytes. | `l2tp_netlink.c:584-600`, `913-920` |
+ | K37 | A tunnel lives as long as any descriptor of its socket is open, in any process: a descriptor passed with `SCM_RIGHTS` or inherited across `execve` keeps the tunnel, its sessions and their devices intact, and the receiving program can register sessions on it, connect and disconnect it. | `l2tp_ip.c:236-246` (deletion only in the socket's destructor); shown by F1 and F8 of the feasibility report |
+ | K40 | The kernel processes a router advertisement, and forwards its user options on `RTNLGRP_ND_USEROPT`, only when `accept_ra` is enabled on the receiving interface; with `accept_ra=0` the advertisement is dropped before any option is looked at. | `net/ipv6/ndisc.c:1287` and `1505` (early returns), `1599` (forwarding) |
+--- a/docs/spec/tunnels.md
++++ b/docs/spec/tunnels.md
+@@ -180,7 +180,7 @@
+ | `EHOSTUNREACH` | an `unreachable` route | transient |
+ | `EACCES` | a `prohibit` route | transient |
+ | `EINVAL` | a `blackhole` route | transient |
+-| `EADDRNOTAVAIL` | no source address of the family in the socket's L3 domain, whatever the routes | transient |
++| `EADDRNOTAVAIL` | source selection found no usable address of the family; when both source and route are absent, the kernel may instead return `ENETUNREACH` (K26, K34) | transient |
+ | `ENODEV`, `ENETDOWN` | the bound device is gone or down | transient; the binding is re-evaluated ([T12](#bind-devices)) |
+ | an IPv6 peer on an `AF_INET` socket | not attempted | transient, until the host changes ([T4](#address-families)) |
+ | `EINVAL` for a link-local peer without a zone or binding | prevented at load time ([C7](configuration.md#tunnel-entries)) | configuration mistake |
+--- a/tests/kernel/conformance.rs
++++ b/tests/kernel/conformance.rs
+@@ -242,18 +242,20 @@
+     f.k().close(socket);
+ }
+ 
+-/// Without an IPv6 address in the socket's L3 domain an IPv6 connect
+-/// fails `EADDRNOTAVAIL` (K26, K34).
+-pub fn no_ipv6_source_is_eaddrnotavail(f: &mut dyn Fixture) {
++/// An empty IPv6 VRF without a usable source or route refuses the
++/// connection with either verified kernel errno (K26, K34).
++pub fn empty_ipv6_vrf_without_a_source_or_route_cannot_connect(f: &mut dyn Fixture) {
+     let vrf = f.add_link("conf-vrf", true);
+     f.set_up(vrf, true);
+     let socket = f.k().create_socket(Family::V6, 9191, 9191).unwrap();
+     f.k().bind_index(socket, vrf).unwrap();
+     let peer = Peer::new("2001:db8:92::2".parse().unwrap(), None);
+-    assert_eq!(
+-        errno(f.k().connect(socket, &peer)),
+-        nix::libc::EADDRNOTAVAIL
+-    );
++    let error = errno(f.k().connect(socket, &peer));
++    println!("empty IPv6 VRF connect errno: {error}");
++    assert!(matches!(
++        error,
++        nix::libc::EADDRNOTAVAIL | nix::libc::ENETUNREACH
++    ));
+     f.k().close(socket);
+ }
+ 
+@@ -409,8 +411,8 @@
+         connect_selects_the_source_of_the_device,
+     ),
+     (
+-        "no_ipv6_source_is_eaddrnotavail",
+-        no_ipv6_source_is_eaddrnotavail,
++        "empty_ipv6_vrf_without_a_source_or_route_cannot_connect",
++        empty_ipv6_vrf_without_a_source_or_route_cannot_connect,
+     ),
+     (
+         "a_link_local_zone_must_match_the_binding",

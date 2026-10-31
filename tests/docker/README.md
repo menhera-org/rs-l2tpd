@@ -45,7 +45,33 @@ list remain open. H20 now covers full-MTU frames and 1 MiB transfers over both f
 1500/9000 session MTUs and VRF/no-VRF binding, with sender fragment and
 session receive/drop counters. A separate live socket test reads back
 T5's options; a child-only seccomp case checks actual option refusals.
-No matrix subcommand is implemented yet.
+The matrix driver runs this implemented subset; it cannot close missing
+scenario coverage by itself.
+
+## Kernel matrix
+
+```sh
+tests/docker/run.sh matrix required
+tests/docker/run.sh matrix v6.8..v7.3
+```
+
+The required selection resolves the published Ubuntu updates/security
+packages for the two LTS suites, each vanilla equivalent, and kernel.org
+mainline. It records publication metadata before and after the run and
+fails if a required version changes. Each guest must print passing
+conformance and scenario markers and its expected kernel release; QEMU
+exiting successfully is insufficient. H20 runs in every normal guest.
+Two extra mainline boots cover `ipv6.disable=1` and `CONFIG_IPV6=n`.
+The range selects the newest patch release in each requested series.
+
+Provide QEMU, cpio, strip, curl, xz and the prepared review and kernel
+builder images from `tests/kernel/Dockerfile.review` and
+`tests/kernel/Dockerfile.builder`. Downloads occur outside test containers;
+all Docker invocations use `--network none`. Kernels and the archived
+0.1.5 peer are cached under `target/`. Records include exact artifact
+hashes under `audit/phase6/matrix-<run>/`. Missing or changed publication
+formats fail closed. Mainline release candidates are not yet accepted by
+the tarball builder; add and verify that path when mainline moves to one.
 
 ## Unprivileged system container
 

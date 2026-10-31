@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 [ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|systemd RECORD" >&2; exit 2; }
-repo=$(CDPATH= cd -P "$(dirname "$0")/../.." && pwd)
+repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
 cd "$repo"
 kernel=$1; modules=$2; config=$3; mode=$4; record=$5
 case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
@@ -52,7 +52,10 @@ copy_test() {
     [ -x "$path" ] || { echo "missing executable for $1" >&2; exit 1; }
     cp "$path" "$guest/root/$2"
     strip --strip-debug "$guest/root/$2"
+    printf '%s git-blob: ' "$2" >> "$record/artifacts.log"
+    git --no-pager hash-object "$path" >> "$record/artifacts.log"
 }
+: > "$record/artifacts.log"
 copy_test 'unittests src/lib.rs' kernel-unit
 copy_test 'unittests src/bin/rs-l2tpd/main.rs' binary-unit
 copy_test 'tests/kernel/linux.rs' kernel-linux
@@ -65,9 +68,10 @@ binary=$repo/target/x86_64-unknown-linux-musl/debug/rs-l2tpd
 mkdir -p "$guest/root$(dirname "$binary")"
 cp "$binary" "$guest/root$binary"
 strip --strip-debug "$guest/root$binary"
+printf 'daemon git-blob: ' >> "$record/artifacts.log"
+git --no-pager hash-object "$binary" >> "$record/artifacts.log"
 baseline_revision=$(git --no-pager rev-parse 'v0.1.5^{commit}')
-baseline=$repo/target/phase6-baseline/$baseline_revision/target/x86_64-unknown-linux-musl/release/rs-l2tpd
-[ -x "$baseline" ] || { echo "prepare the v0.1.5 baseline through tests/docker/run.sh scenarios first" >&2; exit 1; }
+baseline=$(sh tests/docker/baseline.sh "$record")
 cp "$baseline" "$guest/root/baseline"
 if [ "$modules" != - ]; then
     release=${modules##*/}

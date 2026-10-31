@@ -104,3 +104,8 @@ default to `bin`, without the optional installer. Publishing uses
 | `cargo-llvm-cov` 0.9.1 | Phase 6 combined line/branch coverage; no daemon dependency |
 | Rust `nightly-2026-10-28`, `llvm-tools-preview` | Branch instrumentation for coverage only; shipped builds remain on stable |
 | Archived `rs-l2tpd` v0.1.5 and its own lockfile | G11/G22 peer interoperability only; isolated build cache, no dependency added to the current daemon |
+| QEMU TCG, cpio, binutils | Disposable kernel guests, initramfs creation and stripping only; not linked into the daemon |
+| curl, xz, tar | Published kernel/package metadata and source archives for the matrix |
+| Docker; Debian kernel build toolchain (build-essential, flex, bison, bc, libelf/libssl headers); kmod/libkmod2 | Kernel builds and package extraction in networkless containers, module loading inside guests; recipes and package digests recorded with runs |
+| Incus/LXD, systemd, iproute2, BusyBox, util-linux | Disposable system-container and host-condition fixtures; no daemon dependency |
+| GNU libc and libgcc from Ubuntu 24.04 | GNU coverage executables in the review image; shipped binaries remain musl |

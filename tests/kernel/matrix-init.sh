@@ -20,6 +20,8 @@ run_suite() {
 }
 mode=$(cat /matrix-mode)
 export RS_L2TPD_SCENARIO_CONTAINER=1
+# Parameterless built-in drivers need not have a /sys/module directory.
+if grep -q 'l2tp_builtin=1' /proc/cmdline; then export RS_L2TPD_BUILTIN_NLMON=1; fi
 if ! grep -q 'l2tp_builtin=1' /proc/cmdline; then
     depmod -a
     for module in l2tp_core l2tp_netlink l2tp_ip l2tp_eth dummy veth; do modprobe "$module"; done

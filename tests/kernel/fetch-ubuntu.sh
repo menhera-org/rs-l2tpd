@@ -1,7 +1,7 @@
 #!/bin/sh
 # Fetch official published packages; unpack in a networkless Ubuntu container.
 set -eu
-repo=$(CDPATH= cd -P "$(dirname "$0")/../.." && pwd)
+repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
 [ "$#" -ge 1 ] && [ "$#" -le 2 ] || { echo "usage: $0 noble|resolute [resolve]" >&2; exit 2; }
 suite=$1
 case $suite in noble) release=24.04 ;; resolute) release=26.04 ;; *) exit 2 ;; esac
@@ -10,9 +10,14 @@ cache=$repo/target/phase6-kernels
 mkdir -p "$cache/downloads"
 metadata=$cache/downloads/$suite-Packages
 : > "$metadata"
-for pocket in updates security; do
-    case $pocket in updates) host=archive.ubuntu.com ;; security) host=security.ubuntu.com ;; esac
-    url=https://$host/ubuntu/dists/$suite-$pocket/main/binary-amd64/Packages.xz
+for pocket in release updates security; do
+    distribution=$suite-$pocket
+    case $pocket in
+        release) host=archive.ubuntu.com; distribution=$suite ;;
+        updates) host=archive.ubuntu.com ;;
+        security) host=security.ubuntu.com ;;
+    esac
+    url=https://$host/ubuntu/dists/$distribution/main/binary-amd64/Packages.xz
     index=$cache/downloads/$suite-$pocket-Packages.xz
     curl --fail --location --max-time 90 --header 'Cache-Control: no-cache' \
         --output "$index.part" "$url"
@@ -57,7 +62,7 @@ for package in "linux-image-$kernel" "linux-modules-$kernel" "linux-modules-extr
     row=$(stanza "$package" "$package_version")
     if [ -z "$row" ]; then
         case $package in linux-modules-extra-*) continue ;; esac
-        echo "missing package $package $version" >&2
+        echo "missing package $package $package_version" >&2
         exit 1
     fi
     filename=$(printf '%s\n' "$row" | sed -n 's/^Filename: //p')

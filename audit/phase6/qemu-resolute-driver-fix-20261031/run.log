@@ -1,0 +1,1643 @@
+c[?7l[2J[0mSeaBIOS (version 1.17.0-debian-1.17.0-1ubuntu1)
+Booting from ROM...
+c[?7l[2J[    0.000000] Linux version 7.0.0-42-generic (buildd@lcy02-amd64-049) (x86_64-linux-gnu-gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0, GNU ld (GNU Binutils for Ubuntu) 2.46) #42-Ubuntu SMP PREEMPT_DYNAMIC Thu Oct 15 08:06:44 UTC 2026 (Ubuntu 7.0.0-42.42-generic 7.0.14)
+[    0.000000] Command line: console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs
+[    0.000000] KERNEL supported cpus:
+[    0.000000]   Intel GenuineIntel
+[    0.000000]   AMD AuthenticAMD
+[    0.000000]   Hygon HygonGenuine
+[    0.000000]   Centaur CentaurHauls
+[    0.000000]   zhaoxin   Shanghai  
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000000a0000-0x00000000000effff]
+[    0.000000] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x000000007ffdffff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000007ffe0000-0x000000007fffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x0000000080000000-0x00000000afffffff]
+[    0.000000] BIOS-e820: [mem 0x00000000b0000000-0x00000000bfffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000c0000000-0x00000000fed1bfff]
+[    0.000000] BIOS-e820: [mem 0x00000000fed1c000-0x00000000fed1ffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000fed20000-0x00000000fffbffff]
+[    0.000000] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x0000000100000000-0x000000fcffffffff]
+[    0.000000] BIOS-e820: [mem 0x000000fd00000000-0x000000ffffffffff]  device reserved
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] APIC: Static calls initialized
+[    0.000000] SMBIOS 2.8 present.
+[    0.000000] DMI: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.17.0-debian-1.17.0-1ubuntu1 04/01/2014
+[    0.000000] DMI: Memory slots populated: 1/1
+[    0.000000] tsc: Fast TSC calibration using PIT
+[    0.000000] tsc: Detected 1995.233 MHz processor
+[    0.010405] last_pfn = 0x7ffe0 max_arch_pfn = 0x10000000000
+[    0.011644] MTRR map: 4 entries (3 fixed + 1 variable; max 19), built from 8 variable MTRRs
+[    0.012000] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT  
+[    0.051170] found SMP MP-table at [mem 0x000f5460-0x000f546f]
+[    0.054519] Using GB pages for direct mapping
+[    0.060798] RAMDISK: [mem 0x6e530000-0x7ffdffff]
+[    0.075667] ACPI: Early table checksum verification disabled
+[    0.076688] ACPI: RSDP 0x00000000000F5290 000014 (v00 BOCHS )
+[    0.077318] ACPI: RSDT 0x000000007FFE233B 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.078535] ACPI: FACP 0x000000007FFE212B 0000F4 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.079668] ACPI: DSDT 0x000000007FFE0040 0020EB (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.079892] ACPI: FACS 0x000000007FFE0000 000040
+[    0.080009] ACPI: APIC 0x000000007FFE221F 000080 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.080063] ACPI: HPET 0x000000007FFE229F 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.080111] ACPI: MCFG 0x000000007FFE22D7 00003C (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.080157] ACPI: WAET 0x000000007FFE2313 000028 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.080330] ACPI: Reserving FACP table memory at [mem 0x7ffe212b-0x7ffe221e]
+[    0.080374] ACPI: Reserving DSDT table memory at [mem 0x7ffe0040-0x7ffe212a]
+[    0.080389] ACPI: Reserving FACS table memory at [mem 0x7ffe0000-0x7ffe003f]
+[    0.080400] ACPI: Reserving APIC table memory at [mem 0x7ffe221f-0x7ffe229e]
+[    0.080411] ACPI: Reserving HPET table memory at [mem 0x7ffe229f-0x7ffe22d6]
+[    0.080421] ACPI: Reserving MCFG table memory at [mem 0x7ffe22d7-0x7ffe2312]
+[    0.080432] ACPI: Reserving WAET table memory at [mem 0x7ffe2313-0x7ffe233a]
+[    0.085490] No NUMA configuration found
+[    0.085533] Faking a node at [mem 0x0000000000000000-0x000000007ffdffff]
+[    0.086871] NODE_DATA(0) allocated [mem 0x6e505280-0x6e52ffff]
+[    0.091796] ACPI: PM-Timer IO Port: 0x608
+[    0.092586] ACPI: LAPIC_NMI (acpi_id[0xff] dfl dfl lint[0x1])
+[    0.093467] IOAPIC[0]: apic_id 0, version 32, address 0xfec00000, GSI 0-23
+[    0.093680] ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)
+[    0.094214] ACPI: INT_SRC_OVR (bus 0 bus_irq 5 global_irq 5 high level)
+[    0.094311] ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)
+[    0.094492] ACPI: INT_SRC_OVR (bus 0 bus_irq 10 global_irq 10 high level)
+[    0.094514] ACPI: INT_SRC_OVR (bus 0 bus_irq 11 global_irq 11 high level)
+[    0.094862] ACPI: Using ACPI (MADT) for SMP configuration information
+[    0.094937] ACPI: HPET id: 0x8086a201 base: 0xfed00000
+[    0.095612] CPU topo: Max. logical packages:   1
+[    0.095748] CPU topo: Max. logical nodes:      1
+[    0.095767] CPU topo: Num. nodes per package:  1
+[    0.095920] CPU topo: Max. logical dies:       1
+[    0.095941] CPU topo: Max. dies per package:   1
+[    0.096030] CPU topo: Max. threads per core:   1
+[    0.096255] CPU topo: Num. cores per package:     2
+[    0.096283] CPU topo: Num. threads per package:   2
+[    0.096300] CPU topo: Allowing 2 present CPUs plus 0 hotplug CPUs
+[    0.097982] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    0.098051] PM: hibernation: Registered nosave memory: [mem 0x0009f000-0x000fffff]
+[    0.098272] [gap 0xc0000000-0xfed1bfff] available for PCI devices
+[    0.098398] Booting paravirtualized kernel on bare hardware
+[    0.099062] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns
+[    0.103597] Zone ranges:
+[    0.103658]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    0.103808]   DMA32    [mem 0x0000000001000000-0x000000007ffdffff]
+[    0.103830]   Normal   empty
+[    0.103867]   Device   empty
+[    0.103891] Movable zone start for each node
+[    0.103943] Early memory node ranges
+[    0.103990]   node   0: [mem 0x0000000000001000-0x000000000009efff]
+[    0.105077]   node   0: [mem 0x0000000000100000-0x000000007ffdffff]
+[    0.105361] Initmem setup node 0 [mem 0x0000000000001000-0x000000007ffdffff]
+[    0.108106] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.108562] On node 0, zone DMA: 97 pages in unavailable ranges
+[    0.136552] On node 0, zone DMA32: 32 pages in unavailable ranges
+[    0.138092] setup_percpu: NR_CPUS:8192 nr_cpumask_bits:2 nr_cpu_ids:2 nr_node_ids:1
+[    0.143529] percpu: Embedded 85 pages/cpu s225280 r8192 d114688 u1048576
+[    0.146086] Kernel command line: console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs
+[    0.149079] random: crng init done
+[    0.149238] printk: log buffer data + meta data: 262144 + 1114112 = 1376256 bytes
+[    0.150233] Dentry cache hash table entries: 262144 (order: 9, 2097152 bytes, linear)
+[    0.151492] Inode-cache hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    0.158139] Fallback order for Node 0: 0 
+[    0.158752] Built 1 zonelists, mobility grouping on.  Total pages: 524158
+[    0.158795] Policy zone: DMA32
+[    0.159716] mem auto-init: stack:all(zero), heap alloc:on, heap free:off
+[    0.160418] KHO: Failed to reserve nid 0 scratch buffer
+[    0.160500] KHO: Failed to reserve scratch area, disabling kexec handover
+[    0.208196] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+[    0.302717] ftrace: allocating 64116 entries in 252 pages
+[    0.303089] ftrace: allocated 252 pages with 6 groups
+[    0.324132] Dynamic Preempt: lazy
+[    0.331524] rcu: Preemptible hierarchical RCU implementation.
+[    0.331629] rcu: 	RCU restricting CPUs from NR_CPUS=8192 to nr_cpu_ids=2.
+[    0.331883] 	Trampoline variant of Tasks RCU enabled.
+[    0.331902] 	Rude variant of Tasks RCU enabled.
+[    0.331913] 	Tracing variant of Tasks RCU enabled.
+[    0.332150] rcu: RCU calculated value of scheduler-enlistment delay is 100 jiffies.
+[    0.332209] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2
+[    0.334618] RCU Tasks: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.334675] RCU Tasks Rude: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.398958] NR_IRQS: 524544, nr_irqs: 440, preallocated irqs: 16
+[    0.417417] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.418799] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+[    0.430016] Console: colour *CGA 80x25
+[    0.434026] printk: console [ttyS0] enabled
+[    0.532436] ACPI: Core revision 20251212
+[    0.544390] clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604467 ns
+[    0.555553] APIC: Switch to symmetric I/O mode setup
+[    0.557408] x2apic: IRQ remapping doesn't support X2APIC mode
+[    0.567038] ..TIMER: vector=0x30 apic1=0 pin1=2 apic2=-1 pin2=-1
+[    0.575807] clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x39852e72bc9, max_idle_ns: 881590722634 ns
+[    0.578158] Calibrating delay loop (skipped), value calculated using timer frequency.. 3990.46 BogoMIPS (lpj=1995233)
+[    0.583659] x86/cpu: User Mode Instruction Prevention (UMIP) activated
+[    0.601547] Last level iTLB entries: 4KB 0, 2MB 0, 4MB 0
+[    0.602705] Last level dTLB entries: 4KB 0, 2MB 0, 4MB 0, 1GB 0
+[    0.606508] mitigations: Enabled attack vectors: user_kernel, user_user, guest_host, guest_guest, SMT mitigations: auto
+[    0.609063] Speculative Store Bypass: Vulnerable
+[    0.610801] Spectre V2 : Mitigation: Retpolines
+[    0.611588] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    0.612949] Spectre V2 : Spectre v2 / SpectreRSB: Filling RSB on context switch and VMEXIT
+[    0.623221] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.626983] x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    0.627703] x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    0.628688] x86/fpu: Supporting XSAVE feature 0x008: 'MPX bounds registers'
+[    0.629685] x86/fpu: Supporting XSAVE feature 0x010: 'MPX CSR'
+[    0.630510] x86/fpu: Supporting XSAVE feature 0x200: 'Protection Keys User registers'
+[    0.631918] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.632720] x86/fpu: xstate_offset[3]:  960, xstate_sizes[3]:   64
+[    0.633691] x86/fpu: xstate_offset[4]: 1024, xstate_sizes[4]:   64
+[    0.634684] x86/fpu: xstate_offset[9]: 2688, xstate_sizes[9]:    8
+[    0.635731] x86/fpu: Enabled xstate features 0x21f, context size is 2696 bytes, using 'standard' format.
+[    0.969829] Freeing SMP alternatives memory: 56K
+[    0.972908] pid_max: default: 32768 minimum: 301
+[    0.997526] landlock: Up and running.
+[    0.997731] Yama: becoming mindful.
+[    1.008048] AppArmor: AppArmor initialized
+[    1.008751] AppArmor: AppArmor secmark mediation reserved: ready to be enabled
+[    1.011954] LSM support for eBPF active
+[    1.023453] Mount-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    1.024792] Mountpoint-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    1.047183] VFS: Finished mounting rootfs on nullfs
+[    1.210667] smpboot: CPU0: AMD QEMU TCG CPU version 2.5+ (family: 0x6, model: 0x6, stepping: 0x3)
+[    1.238604] Performance Events: PMU not available due to virtualization, using software events only.
+[    1.243415] signal: max sigframe size: 3632
+[    1.249515] rcu: Hierarchical SRCU implementation.
+[    1.250908] rcu: 	Max phase no-delay instances is 400.
+[    1.256300] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    1.274285] NMI watchdog: Perf NMI watchdog permanently disabled
+[    1.284363] smp: Bringing up secondary CPUs ...
+[    1.298414] smpboot: x86: Booting SMP configuration:
+[    1.298473] .... node  #0, CPUs:      #1
+[    1.396831] smp: Brought up 1 node, 2 CPUs
+[    1.397096] smpboot: Total of 2 processors activated (7979.97 BogoMIPS)
+[    1.415636] Memory: 1702516K/2096632K available (23904K kernel code, 4961K rwdata, 16720K rodata, 5312K init, 5832K bss, 387280K reserved, 0K cma-reserved)
+[    1.434620] devtmpfs: initialized
+[    1.442739] x86/mm: Memory block size: 128MB
+[    1.466120] posixtimers hash table entries: 1024 (order: 2, 16384 bytes, linear)
+[    1.466348] futex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).
+[    1.485465] PM: RTC time: 06:40:33, date: 2026-10-31
+[    1.519163] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    1.533267] DMA: preallocated 256 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    1.534936] DMA: preallocated 256 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+[    1.535334] audit: initializing netlink subsys (disabled)
+[    1.541114] audit: type=2000 audit(1793428832.982:1): state=initialized audit_enabled=0 res=1
+[    1.547358] thermal_sys: Registered thermal governor 'fair_share'
+[    1.547413] thermal_sys: Registered thermal governor 'bang_bang'
+[    1.547433] thermal_sys: Registered thermal governor 'step_wise'
+[    1.547441] thermal_sys: Registered thermal governor 'user_space'
+[    1.547449] thermal_sys: Registered thermal governor 'power_allocator'
+[    1.551860] cpuidle: using governor ladder
+[    1.551975] cpuidle: using governor menu
+[    1.557077] acpiphp: ACPI Hot Plug PCI Controller Driver version: 0.5
+[    1.563564] PCI: ECAM [mem 0xb0000000-0xbfffffff] (base 0xb0000000) for domain 0000 [bus 00-ff]
+[    1.565262] PCI: ECAM [mem 0xb0000000-0xbfffffff] reserved as E820 entry
+[    1.568436] PCI: Using configuration type 1 for base access
+[    1.569354] mtrr: your CPUs had inconsistent fixed MTRR settings
+[    1.569379] mtrr: your CPUs had inconsistent variable MTRR settings
+[    1.569397] mtrr: your CPUs had inconsistent MTRRdefType settings
+[    1.569407] mtrr: probably your BIOS does not setup all CPUs.
+[    1.569417] mtrr: corrected configuration.
+[    1.574955] kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.
+[    1.586322] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    1.586475] HugeTLB: 16380 KiB vmemmap can be freed for a 1.00 GiB page
+[    1.586512] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    1.586522] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    1.699067] ACPI: Added _OSI(Module Device)
+[    1.699171] ACPI: Added _OSI(Processor Device)
+[    1.699191] ACPI: Added _OSI(Processor Aggregator Device)
+[    1.762220] ACPI: 1 ACPI AML tables successfully acquired and loaded
+[    1.798367] ACPI: \_SB_: platform _OSC: OS support mask [006e7eff]
+[    1.809129] ACPI: Interpreter enabled
+[    1.812493] ACPI: PM: (supports S0 S3 S4 S5)
+[    1.812571] ACPI: Using IOAPIC for interrupt routing
+[    1.817636] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    1.817721] PCI: Using E820 reservations for host bridge windows
+[    1.822915] ACPI: Enabled 2 GPEs in block 00 to 3F
+[    1.880309] ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])
+[    1.881555] acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI EDR HPX-Type3]
+[    1.884589] acpi PNP0A08:00: _OSC: platform does not support [PCIeHotplug LTR DPC]
+[    1.886343] acpi PNP0A08:00: _OSC: OS now controls [SHPCHotplug PME AER PCIeCapability]
+[    1.895712] PCI host bridge to bus 0000:00
+[    1.896200] pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]
+[    1.896345] pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]
+[    1.896360] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]
+[    1.896374] pci_bus 0000:00: root bus resource [mem 0x80000000-0xafffffff window]
+[    1.896386] pci_bus 0000:00: root bus resource [mem 0xc0000000-0xfebfffff window]
+[    1.896398] pci_bus 0000:00: root bus resource [mem 0x100000000-0x8ffffffff window]
+[    1.896716] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    1.901418] pci 0000:00:00.0: [8086:29c0] type 00 class 0x060000 conventional PCI endpoint
+[    1.916408] pci 0000:00:1f.0: [8086:2918] type 00 class 0x060100 conventional PCI endpoint
+[    1.917399] pci 0000:00:1f.0: quirk: [io  0x0600-0x067f] claimed by ICH6 ACPI/GPIO/TCO
+[    1.920486] pci 0000:00:1f.2: [8086:2922] type 00 class 0x010601 conventional PCI endpoint
+[    1.922941] pci 0000:00:1f.2: BAR 4 [io  0xc040-0xc05f]
+[    1.923730] pci 0000:00:1f.2: BAR 5 [mem 0xfebff000-0xfebfffff]
+[    1.925758] pci 0000:00:1f.3: [8086:2930] type 00 class 0x0c0500 conventional PCI endpoint
+[    1.927749] pci 0000:00:1f.3: BAR 4 [io  0x0700-0x073f]
+[    1.938089] ACPI: PCI: Interrupt link LNKA configured for IRQ 10
+[    1.939667] ACPI: PCI: Interrupt link LNKB configured for IRQ 10
+[    1.941836] ACPI: PCI: Interrupt link LNKC configured for IRQ 11
+[    1.942957] ACPI: PCI: Interrupt link LNKD configured for IRQ 11
+[    1.945481] ACPI: PCI: Interrupt link LNKE configured for IRQ 10
+[    1.947351] ACPI: PCI: Interrupt link LNKF configured for IRQ 10
+[    1.949383] ACPI: PCI: Interrupt link LNKG configured for IRQ 11
+[    1.951393] ACPI: PCI: Interrupt link LNKH configured for IRQ 11
+[    1.952829] ACPI: PCI: Interrupt link GSIA configured for IRQ 16
+[    1.952975] ACPI: PCI: Interrupt link GSIB configured for IRQ 17
+[    1.953102] ACPI: PCI: Interrupt link GSIC configured for IRQ 18
+[    1.953225] ACPI: PCI: Interrupt link GSID configured for IRQ 19
+[    1.953347] ACPI: PCI: Interrupt link GSIE configured for IRQ 20
+[    1.953479] ACPI: PCI: Interrupt link GSIF configured for IRQ 21
+[    1.953827] ACPI: PCI: Interrupt link GSIG configured for IRQ 22
+[    1.953961] ACPI: PCI: Interrupt link GSIH configured for IRQ 23
+[    1.965007] iommu: Default domain type: Translated
+[    1.965065] iommu: DMA domain TLB invalidation policy: lazy mode
+[    1.974704] SCSI subsystem initialized
+[    1.978607] ACPI: bus type USB registered
+[    1.979294] usbcore: registered new interface driver usbfs
+[    1.979667] usbcore: registered new interface driver hub
+[    1.979667] usbcore: registered new device driver usb
+[    1.980311] pps_core: LinuxPPS API ver. 1 registered
+[    1.980336] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    1.980444] PTP clock support registered
+[    1.985018] EDAC MC: Ver: 3.0.0
+[    2.009714] NetLabel: Initializing
+[    2.009751] NetLabel:  domain hash size = 128
+[    2.009770] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    2.011323] NetLabel:  unlabeled traffic allowed by default
+[    2.020158] mctp: management component transport protocol core
+[    2.020187] NET: Registered PF_MCTP protocol family
+[    2.021202] PCI: Using ACPI for IRQ routing
+[    2.034840] e820: register RAM buffer resource [mem 0x0009fc00-0x0009ffff]
+[    2.035090] e820: register RAM buffer resource [mem 0x7ffe0000-0x7fffffff]
+[    2.036832] vgaarb: loaded
+[    2.040295] hpet0: at MMIO 0xfed00000, IRQs 2, 8, 0
+[    2.040464] hpet0: 3 comparators, 64-bit 100.000000 MHz counter
+[    2.046381] clocksource: Switched to clocksource tsc-early
+[    2.060356] VFS: Disk quotas dquot_6.6.0
+[    2.060742] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    2.075961] AppArmor: AppArmor Filesystem Enabled
+[    2.077987] acpi PNP0C01:00: Reserved [mem 0xb0000000-0xbfffffff]
+[    2.080030] pnp: PnP ACPI init
+[    2.093104] pnp: PnP ACPI: found 3 devices
+[    2.159260] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    2.162819] NET: Registered PF_INET protocol family
+[    2.165944] IP idents hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    2.383242] tcp_listen_portaddr_hash hash table entries: 1024 (order: 2, 16384 bytes, linear)
+[    2.384326] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    2.385038] TCP established hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    2.388226] TCP bind hash table entries: 16384 (order: 7, 524288 bytes, linear)
+[    2.388820] TCP: Hash tables configured (established 16384 bind 16384)
+[    2.394017] MPTCP token hash table entries: 2048 (order: 4, 49152 bytes, linear)
+[    2.395057] UDP hash table entries: 1024 (order: 4, 65536 bytes, linear)
+[    2.395193] UDP-Lite hash table entries: 1024 (order: 4, 65536 bytes, linear)
+[    2.400666] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    2.401920] NET: Registered PF_XDP protocol family
+[    2.404582] pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]
+[    2.404658] pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]
+[    2.404683] pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000bffff window]
+[    2.404708] pci_bus 0000:00: resource 7 [mem 0x80000000-0xafffffff window]
+[    2.404731] pci_bus 0000:00: resource 8 [mem 0xc0000000-0xfebfffff window]
+[    2.404765] pci_bus 0000:00: resource 9 [mem 0x100000000-0x8ffffffff window]
+[    2.407003] PCI: CLS 0 bytes, default 64
+[    2.420358] Trying to unpack rootfs image as initramfs...
+[    2.444656] Initialise system trusted keyrings
+[    2.450768] Key type blacklist registered
+[    2.453122] workingset: timestamp_bits=36 max_order=19 bucket_order=0
+[    2.467628] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    2.472704] fuse: init (API version 7.45)
+[    2.486818] integrity: Platform Keyring initialized
+[    2.487862] integrity: Machine keyring initialized
+[    2.692885] Key type asymmetric registered
+[    2.693103] Asymmetric key parser 'x509' registered
+[    2.694135] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 242)
+[    2.697089] io scheduler mq-deadline registered
+[    2.701591] ledtrig-cpu: registered to indicate activity on CPUs
+[    2.713055] input: Power Button as /devices/platform/LNXPWRBN:00/input/input0
+[    2.716312] ACPI: button: Power Button [PWRF]
+[    2.733913] Serial: 8250/16550 driver, 32 ports, IRQ sharing enabled
+[    2.765709] 00:02: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    2.817469] Linux agpgart interface v0.103
+[    2.864441] loop: module loaded
+[    2.871683] ACPI: bus type drm_connector registered
+[    2.878364] tun: Universal TUN/TAP device driver, 1.6
+[    2.880111] PPP generic driver version 2.4.2
+[    2.886950] i8042: PNP: PS/2 Controller [PNP0303:KBD,PNP0f13:MOU] at 0x60,0x64 irq 1,12
+[    2.895343] serio: i8042 KBD port at 0x60,0x64 irq 1
+[    2.895771] serio: i8042 AUX port at 0x60,0x64 irq 12
+[    2.900576] mousedev: PS/2 mouse device common for all mice
+[    2.906325] rtc_cmos PNP0B00:00: RTC can wake from S4
+[    2.914982] input: AT Translated Set 2 keyboard as /devices/platform/i8042/serio0/input/input1
+[    2.920051] rtc_cmos PNP0B00:00: registered as rtc0
+[    2.922680] rtc_cmos PNP0B00:00: setting system clock to 2026-10-31T06:40:34 UTC (1793428834)
+[    2.926938] rtc_cmos PNP0B00:00: alarms up to one day, y3k, 242 bytes nvram, hpet irqs
+[    2.928519] i2c_dev: i2c /dev entries driver
+[    2.930016] device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is disabled. Duplicate IMA measurements will not be recorded in the IMA log.
+[    2.932383] device-mapper: uevent: version 1.0.3
+[    2.934493] device-mapper: ioctl: 4.50.0-ioctl (2025-04-28) initialised: dm-devel@lists.linux.dev
+[    2.936608] amd_pstate: the _CPC object is not present in SBIOS or ACPI disabled
+[    2.939767] drop_monitor: Initializing network drop monitor service
+[    2.943211] NET: Registered PF_INET6 protocol family
+[    2.960875] Segment Routing with IPv6
+[    2.962065] In-situ OAM (IOAM) with IPv6
+[    2.964019] NET: Registered PF_PACKET protocol family
+[    2.966286] Key type dns_resolver registered
+[    2.973624] IPI shorthand broadcast: enabled
+[    3.018742] sched_clock: Marking stable (2880060144, 138128757)->(3119476969, -101288068)
+[    3.032759] registered taskstats version 1
+[    3.050208] Loading compiled-in X.509 certificates
+[    3.088740] Loaded X.509 cert 'Build time autogenerated kernel key: 8df598ea26dc2d469b62b1ba893cb18575c2f2b9'
+[    3.093061] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing 2025 Kmod: d541cef61dc7e793b7eb7e899970a2eef0b5dc8c'
+[    3.098058] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing: 14df34d1a87cf37625abec039ef2bf521249b969'
+[    3.101830] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing 2025 Kmod: 4627603d2357a2a3f81006370894c221175893e9'
+[    3.106705] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing: 88f752e560a1e0737e31163a466ad7b70a850c19'
+[    3.106803] blacklist: Loading compiled-in revocation X.509 certificates
+[    3.110017] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing: 61482aa2830d0ab2ad5af10b7250da9033ddcef0'
+[    3.111933] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2017): 242ade75ac4a15e50d50c84b0d45ff3eae707a03'
+[    3.113894] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (ESM 2018): 365188c1d374d6b07c3c8f240f8ef722433d6a8b'
+[    3.114122] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2019): c0746fd6c5da3ae827864651ad66ae47fe24b3e8'
+[    3.117527] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v1): a8d54bbb3825cfb94fa13c9f8a594a195c107b8d'
+[    3.117699] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v2): 4cf046892d6fd3c9a5b03f98d845f90851dc6a8c'
+[    3.117834] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v3): 100437bb6de6e469b581e61cd66bce3ef4ed53af'
+[    3.117963] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (Ubuntu Core 2019): c1d57b8f6b743f23ee41f4f7ee292f06eecadfb9'
+[    3.284724] Demotion targets for Node 0: null
+[    3.289500] Key type .fscrypt registered
+[    3.289550] Key type fscrypt-provisioning registered
+[    3.295352] Key type big_key registered
+[    3.472354] tsc: Refined TSC clocksource calibration: 1995.276 MHz
+[    3.472950] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x39858008966, max_idle_ns: 881590718396 ns
+[    3.475345] clocksource: Switched to clocksource tsc
+[    6.989934] Freeing initrd memory: 289472K
+[    7.305842] Key type encrypted registered
+[    7.305996] AppArmor: AppArmor sha256 policy hashing enabled
+[    7.306770] ima: No TPM chip found, activating TPM-bypass!
+[    7.306922] Loading compiled-in module X.509 certificates
+[    7.311040] Loaded X.509 cert 'Build time autogenerated kernel key: 8df598ea26dc2d469b62b1ba893cb18575c2f2b9'
+[    7.311276] ima: Allocated hash algorithm: sha256
+[    7.315976] ima: No architecture policies found
+[    7.317407] evm: Initialising EVM extended attributes:
+[    7.317460] evm: security.selinux
+[    7.317509] evm: security.SMACK64
+[    7.317517] evm: security.SMACK64EXEC
+[    7.317523] evm: security.SMACK64TRANSMUTE
+[    7.317529] evm: security.SMACK64MMAP
+[    7.317535] evm: security.apparmor
+[    7.317540] evm: security.ima
+[    7.317546] evm: security.capability
+[    7.317564] evm: HMAC attrs: 0x1
+[    7.324501] PM:   Magic number: 14:123:672
+[    7.329828] RAS: Correctable Errors collector initialized.
+[    7.334925] clk: Disabling unused clocks
+[    7.335502] PM: genpd: Disabling unused power domains
+[    7.410106] Freeing unused decrypted memory: 2028K
+[    7.670959] Freeing unused kernel image (initmem) memory: 5312K
+[    7.671691] Write protecting the kernel read-only data: 43008k
+[    7.681512] Freeing unused kernel image (text/rodata gap) memory: 668K
+[    7.686006] Freeing unused kernel image (rodata/data gap) memory: 1712K
+[    8.467428] x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    8.469003] Run /init as init process
+Linux (none) 7.0.0-42-generic #42-Ubuntu SMP PREEMPT_DYNAMIC Thu Oct 15 08:06:44 UTC 2026 x86_64 Linux
+GUEST_KERNEL_RELEASE=7.0.0-42-generic
+[   42.380062] l2tp_core: L2TP core driver, V2.0
+[   42.428829] l2tp_netlink: L2TP netlink interface
+[   42.467862] l2tp_ip: L2TP IP encapsulation support (L2TPv3)
+[   42.504910] l2tp_eth: L2TP ethernet pseudowire support (L2TPv3)
+[   42.626480] l2tp_ip6: L2TP IP encapsulation support for IPv6 (L2TPv3)
+[   42.850667] bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+[   42.918541] 8021q: 802.1Q VLAN Support v1.8
+
+running 10 tests
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ok
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ok
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ok
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... FORCE_RESULT=allowed
+SUBSCRIPTION_RCVBUF=16777216
+ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ok
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ok
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 76 filtered out; finished in 2.17s
+
+
+running 16 tests
+test a_closed_socket_is_not_announced ... ok
+test a_handed_over_socket_keeps_its_tunnel ... ok
+test a_reused_index_and_creation_name_never_revive_an_old_registration ... ok
+test a_tunable_write_changes_only_fresh_sockets ... ok
+test completion_scoped_failure_lookup_and_random_refusal ... ok
+test conformance_on_the_linux_kernel ... case disconnected_sessions_count_frame_drops
+case tunnel_identifiers_are_unique
+case session_identifiers_are_unique_in_the_namespace
+case a_taken_name_creates_no_session
+case the_stored_name_is_the_creation_name
+[   48.335552] conf-renamed: renamed from conf-stage
+case closing_the_socket_deletes_the_tunnel
+case a_deleted_session_identifier_is_released
+case a_registration_is_proved_until_removal
+[   48.511101] conf-proof2: renamed from conf-proof
+case a_binding_is_set_on_an_unbound_socket
+case connect_selects_the_source_of_the_device
+case no_ipv6_source_is_eaddrnotavail
+case a_link_local_zone_must_match_the_binding
+case a_hardware_address_needs_the_device_down
+[   49.271335] conf-mac-up: renamed from conf-mac (while UP)
+case the_monitor_reports_links_and_addresses
+case deletions_are_announced
+ok
+test disconnected_sessions_drop_outbound_but_receive_only_matching_cookies ... ok
+test event_recreation_uses_the_configured_creation_name_on_linux ... ok
+test links_are_found_by_name_and_dumped ... [   50.123929] live-dummy2: renamed from live-dummy (while UP)
+ok
+test lowering_a_device_discards_ipv6_addresses_unless_preserved ... ok
+test services_converge_and_orderly_shutdown_on_linux ... ok
+test sessions_are_captured_scanned_and_deleted ... ok
+test sockets_bind_connect_and_report_their_source ... ok
+test the_kernel_keeps_the_previous_ipv6_peer_after_disconnect ... ok
+test the_monitor_reports_removals ... ok
+test tunnel_sockets_enable_fragmentation_before_connect ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.01s
+
+
+running 5 tests
+test creation_name_is_not_current_or_unique ... [   51.779630] audit-first: renamed from rsl2tp-tabc123
+[   51.818052] audit-second: renamed from rsl2tp-tabc123
+ok
+test foreign_namespace_deletion_does_not_delete_local_session ... ok
+test session_identifier_reuse_waits_for_deletion ... identifier reuse: 0 EEXIST retries over 32 deletions
+ok
+test unconnected_tunnel_and_sessions_survive_a_descriptor_duplicate ... ok
+test unconnected_tunnel_drops_outbound_frames ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.37s
+
+
+running 42 tests
+test args::completion_tests::legacy_aliases_share_validation ... ok
+test args::tests::byte_paths_and_option_like_values ... ok
+test args::tests::modes_and_errors ... ok
+test caps::tests::effective_set_without_proc ... ok
+test check::tests::fixed_order_corrected_values_and_omitted_defaults ... ok
+test daemon::tests::broken_pipe_and_collector_shutdown_child ... ok
+test daemon::tests::vanished_parent_is_logged_and_signal_threads_join ... ok
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... 
+running 1 test
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.01s
+
+ok
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ignored, run in a user systemd service with the template address-family restrictions
+test fdstore::tests::barrier_timeout_is_a_failure ... ok
+test fdstore::tests::rights_and_ordered_processing_barrier ... ok
+test files::completion_tests::bounded_regular_files_and_special_files ... ok
+test files::filesystem_tests::followed_links_and_absence_on_reload ... ok
+test files::filesystem_tests::permission_child ... ok
+test files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths ... ignored, root in an isolated container, drops child uid
+test files::tests::discovery_merging_and_reload_refusal ... ok
+test files::tests::failed_documents_are_omitted_and_diagnostics_redact_input ... ok
+test pidfile::edge_tests::pid_edge_child ... ok
+test pidfile::edge_tests::sticky_warning_and_unwritable_directory_fallbacks ... ok
+test pidfile::permission_tests::precreated_child ... ok
+test pidfile::permission_tests::precreated_permissions_links_and_owner ... ignored, root in an isolated container, drops child uid
+test pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes ... ignored, root in an isolated container, changes directory owner
+test pidfile::removal_tests::uninspectable_removal_is_not_a_shutdown_failure ... ok
+test pidfile::tests::fresh_inode_and_conditional_removal ... ok
+test pidfile::tests::symlink_refusal_and_directory_permissions_preserved ... ok
+test restart::completion_tests::absolute_executable_does_not_need_a_working_directory ... ok
+test restart::completion_tests::pid_inspection_error_child ... ok
+test restart::completion_tests::pid_inspection_error_discards_only_removal_authority ... ok
+test restart::completion_tests::restart_file_checks_precede_any_signal ... ok
+test restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table ... ok
+test restart::signal_tests::exec_mask_child ... ok
+test restart::signal_tests::exec_preserves_requests_and_rust_entry_ignores_sigpipe ... ok
+test restart::tests::incompatible_probe_never_executes_or_changes_descriptors ... ok
+test setup::completion_tests::directory_modes_child ... ok
+test setup::completion_tests::umask_does_not_weaken_installation_or_shadow_admin_units ... ok
+test setup::tests::atomic_idempotent_and_preserves_edits_and_configuration ... binary: done
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+ok
+test setup::tests::parses_required_unit_keys_and_install_paths ... ok
+test signals::forwarder_tests::forwarder_retries_a_full_queue_and_delivers_after_capacity_returns ... ok
+test signals::tests::pending_requests_coalesce_and_shutdown_bypasses_a_full_fake_queue ... ok
+test stream_tests::closed_streams_child ... ok
+test stream_tests::sockets_cannot_take_the_place_of_closed_standard_streams ... ok
+test tunable::tests::writes_only_when_needed ... ok
+
+test result: ok. 38 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 1.54s
+
+
+running 1 test
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.01s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.01s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.01s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+
+test pidfile::permission_tests::precreated_permissions_links_and_owner ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.11s
+
+
+running 1 test
+test pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.01s
+
+
+running 1 test
+
+running 1 test
+test files::filesystem_tests::permission_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.01s
+
+test files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.03s
+
+
+running 26 tests
+test an_absolute_executable_starts_from_a_deleted_working_directory ... daemon: ERROR rs_l2tpd: opening kernel interfaces: Operation not permitted (os error 1); retrying
+ok
+test an_unusable_notify_store_does_not_abort_startup ... daemon: ERROR rs_l2tpd: descriptor store unavailable: Filename too long (os error 36); continuing without a store
+daemon: INFO rs_l2tpd: ready pid=574
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: ERROR rs_l2tpd: descriptor store unavailable: No such file or directory (os error 2); continuing without a store
+daemon: INFO rs_l2tpd: ready pid=583
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: ERROR rs_l2tpd: descriptor store unavailable: Operation not permitted (os error 1); continuing without a store
+daemon: INFO rs_l2tpd: ready pid=592
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test binary_tunable_handshake_and_opt_out ... daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=602
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+daemon: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=611
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test check_and_startup_report_file_errors_in_the_same_words ... daemon: ERROR rs_l2tpd::files: /tmp/rs-l2tpd-process-52b6660e5149346f/bad.toml: invalid TOML document at byte 8; file left out
+daemon: ERROR rs_l2tpd: opening kernel interfaces: Operation not permitted (os error 1); retrying
+ok
+test check_cli_and_no_process_side_effects ... ok
+test crash_store_adoption_and_ordered_withdrawal ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=639
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: WARN rs_l2tpd::reconciler::report: session a (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+daemon: INFO rs_l2tpd: ready pid=649
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test crash_without_store_closes_tunnel ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=660
+ok
+test daemon_readiness_pid_inode_and_reexec ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=674
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: WARN rs_l2tpd::reconciler::report: session a (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... daemon: ERROR rs_l2tpd: opening kernel interfaces: Operation not permitted (os error 1); retrying
+daemon: ERROR rs_l2tpd: opening kernel interfaces: Operation not permitted (os error 1); retrying
+ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=707
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: ERROR rs_l2tpd::reconciler::store: descriptor store cleanup incomplete for t10
+daemon: ERROR rs_l2tpd: service: kernel or descriptor-store cleanup incomplete
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test foreground_reload_and_clean_shutdown_without_network ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=718
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: ERROR rs_l2tpd::files: /tmp/rs-l2tpd-process-d4a47b1c712246a6/main.toml: invalid TOML document at byte 8; reload refused
+daemon: ERROR rs_l2tpd::service: reload failed; retaining accepted configuration: invalid configuration: file problems; previous configuration retained
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test handover_launcher ... ok
+test incompatible_replacement_keeps_running_interfaces ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=732
+daemon: WARN rs_l2tpd::service: restart failed; resuming: incompatible adoption protocol
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: done
+systemd: existing services are never restarted
+To use the installed binary, run rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid; upgrading a running 0.1.5 daemon at /usr/local/bin/rs-l2tpd requires systemctl restart rs-l2tpd once.
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+To use the installed binary, run rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid; upgrading a running 0.1.5 daemon at /usr/local/bin/rs-l2tpd requires systemctl restart rs-l2tpd once.
+ok
+test invalid_reexec_state_fails_without_forking ... ok
+test malformed_and_closed_announcements_are_errors_without_panics ... ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_ADMIN: tunnel, session and device operations may fail
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_RAW: device binding and raw router discovery may fail
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_BIND_SERVICE: DHCPv6 port 546 may be unavailable
+daemon: INFO rs_l2tpd: ready pid=763
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=773
+daemon: WARN rs_l2tpd::reconciler: tunnel a (tunnel_id=10): left out after 10 refusals: EADDRINUSE: Address already in use
+daemon: INFO rs_l2tpd: ready pid=786
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: ERROR rs_l2tpd: PID file /tmp/rs-l2tpd-process-1dff624c6c55aa63/pid: PID file is a symbolic link; readiness still valid
+daemon: INFO rs_l2tpd: ready pid=798
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test rejected_store_name_is_withdrawn_before_replacement ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=809
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=819
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test setup_prefix_preserves_configuration ... binary: done
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+ok
+test sigusr1_retains_its_default_action ... daemon: INFO rs_l2tpd: ready pid=833
+ok
+test startup_changes_directory_before_loading_and_logs_problems ... ok
+test stored_descriptors_survive_double_fork ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=846
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: WARN rs_l2tpd::reconciler::report: session a (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+daemon: INFO rs_l2tpd: ready pid=860
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test unannounced_descriptors_close_before_service_start ... daemon: INFO rs_l2tpd: ready pid=869
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... daemon: INFO rs_l2tpd: ready pid=879
+daemon: INFO rs_l2tpd: re-exec resumed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 25.87s
+
+CONFORMANCE_RESULT=0
+
+running 18 tests
+test fragmentation::full_session_mtu_frames_and_bulk_data_fragment_over_both_underlays_and_vrf ... [   80.894825] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd: ready pid=922
+daemon: INFO rs_l2tpd: ready pid=920
+vrf=false, outer_v6=false, session_mtu=1500: full-size frames and 1 MiB each way
+vrf=false, outer_v6=false, session_mtu=9000: full-size frames and 1 MiB each way
+vrf=false, outer_v6=true, session_mtu=1500: full-size frames and 1 MiB each way
+vrf=false, outer_v6=true, session_mtu=9000: full-size frames and 1 MiB each way
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+[   89.124377] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd: ready pid=1077
+daemon: INFO rs_l2tpd: ready pid=1079
+vrf=true, outer_v6=false, session_mtu=1500: full-size frames and 1 MiB each way
+vrf=true, outer_v6=false, session_mtu=9000: full-size frames and 1 MiB each way
+vrf=true, outer_v6=true, session_mtu=1500: full-size frames and 1 MiB each way
+vrf=true, outer_v6=true, session_mtu=9000: full-size frames and 1 MiB each way
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test fragmentation::refused_fragmentation_option_is_reported_once_and_tunnels_still_work ... [   97.355095] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: ERROR rs_l2tpd::kernel::linux::socket: host refuses IP_MTU_DISCOVER required for tunnel fragmentation: Operation not permitted (os error 1)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=1229
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=1227
+[   98.484882] hrtimer: interrupt took 60070523 ns
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd: shutdown complete
+[   99.643295] underlay: renamed from other
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: ERROR rs_l2tpd::kernel::linux::socket: host refuses IP_MTU_DISCOVER required for tunnel fragmentation: Operation not permitted (os error 1)
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=22): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=21): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=1295
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=1293
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd: shutdown complete
+[  101.081133] underlay: renamed from other
+daemon: ERROR rs_l2tpd::kernel::linux::socket: host refuses IPV6_MTU_DISCOVER required for tunnel fragmentation: Operation not permitted (os error 1)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=1357
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=1359
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd: shutdown complete
+[  102.436376] underlay: renamed from other
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: ERROR rs_l2tpd::kernel::linux::socket: host refuses IPV6_MTU_DISCOVER required for tunnel fragmentation: Operation not permitted (os error 1)
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=21): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=22): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=1423
+daemon: INFO rs_l2tpd: ready pid=1425
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd: shutdown complete
+[  103.747442] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: ERROR rs_l2tpd::kernel::linux::socket: host refuses IPV6_DONTFRAG required for tunnel fragmentation: Operation not permitted (os error 1)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=1489
+daemon: INFO rs_l2tpd: ready pid=1487
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd: shutdown complete
+[  105.070854] underlay: renamed from other
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=22): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: ERROR rs_l2tpd::kernel::linux::socket: host refuses IPV6_DONTFRAG required for tunnel fragmentation: Operation not permitted (os error 1)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t2 (tunnel_id=21): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd: ready pid=1555
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=1553
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::address_churn_reconnects_only_the_bound_tunnel_of_that_family ... [  106.498991] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd: ready pid=1619
+daemon: INFO rs_l2tpd: ready pid=1621
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::9
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::bind_devices_can_appear_lose_their_names_and_be_replaced ... [  107.779333] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected: its bind device is absent
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected: its bind device is absent
+daemon: INFO rs_l2tpd: ready pid=1685
+daemon: INFO rs_l2tpd: ready pid=1683
+[  108.007898] bindA: renamed from underlay (while UP)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+[  108.033137] bindA: renamed from underlay (while UP)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+[  108.206099] away: renamed from bindA (while UP)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): disconnected
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected: its bind device is absent
+[  109.284316] bindA: renamed from away (while UP)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): disconnected
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected: its bind device is absent
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): disconnected
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected: its bind device is absent
+[  109.489995] underlay: renamed from other
+[  109.609392] bindA: renamed from underlay (while UP)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+[  109.630331] bindA: renamed from underlay (while UP)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::bindv6only_correction_and_native_ipv4_fallback_both_deliver_frames ... [  110.144708] underlay: renamed from other
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd: ready pid=1762
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd: ready pid=1760
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+[  111.451591] underlay: renamed from other
+daemon: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+daemon: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+daemon: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+daemon: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd: ready pid=1832
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd: ready pid=1830
+side 0: Tunnel 1, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From 2001:db8:1::1 to 2001:db8:1::2
+  Peer tunnel 12
+
+side 1: Tunnel 2, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From 2001:db8:1::2 to 2001:db8:1::1
+  Peer tunnel 11
+
+daemon: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::dual_stack_peers_exchange_frames_on_ipv6_tunnels ... [  112.657680] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd: ready pid=1899
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd: ready pid=1901
+side 0: Tunnel 1, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From 2001:db8:1::1 to 2001:db8:1::2
+  Peer tunnel 12
+
+side 1: Tunnel 2, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From 2001:db8:1::2 to 2001:db8:1::1
+  Peer tunnel 11
+
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::ipv4_only_with_ipv6_stack_needs_no_ipv6_configuration ... [  113.674422] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): disconnected, peer 2001:db8:1::1 pending: EADDRNOTAVAIL: Cannot assign requested address
+daemon: INFO rs_l2tpd: ready pid=1955
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 2001:db8:1::2 pending: EADDRNOTAVAIL: Cannot assign requested address
+daemon: INFO rs_l2tpd: ready pid=1953
+side 0: Tunnel 1, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From :: to ::
+  Peer tunnel 12
+
+side 1: Tunnel 2, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From :: to ::
+  Peer tunnel 11
+
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::ipv6_only_keeps_ipv4_disconnected_without_a_source ... [  116.093339] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd: ready pid=2018
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 2001:db8:1::1 from 2001:db8:1::2
+daemon: INFO rs_l2tpd: ready pid=2020
+side 0: Tunnel 1, encap IP
+  From :: to ::
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From 2001:db8:1::1 to 2001:db8:1::2
+  Peer tunnel 12
+
+side 1: Tunnel 2, encap IP
+  From :: to ::
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From 2001:db8:1::2 to 2001:db8:1::1
+  Peer tunnel 11
+
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::non_systemd_init_observes_parent_exit_pidfile_reload_restart_and_shutdown ... [  118.758081] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=2083
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::noninitial_namespace_without_proc_runs_with_only_the_three_capabilities ... [  120.204657] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=2152
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=2154
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::readiness_without_routes_then_frames_after_the_first_route ... [  121.063127] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=2200
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=2198
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::sysctl_disabled_ipv6_still_carries_ipv4_on_ipv6_sockets ... [  125.897619] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): disconnected, peer 2001:db8:1::1 pending: EADDRNOTAVAIL: Cannot assign requested address
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 2001:db8:1::2 pending: EADDRNOTAVAIL: Cannot assign requested address
+daemon: INFO rs_l2tpd: ready pid=2258
+daemon: INFO rs_l2tpd: ready pid=2256
+side 0: Tunnel 1, encap IP
+  From ::ffff:192.0.2.1 to ::ffff:192.0.2.2
+  Peer tunnel 2
+Tunnel 11, encap IP
+  From :: to ::
+  Peer tunnel 12
+
+side 1: Tunnel 2, encap IP
+  From ::ffff:192.0.2.2 to ::ffff:192.0.2.1
+  Peer tunnel 1
+Tunnel 12, encap IP
+  From :: to ::
+  Peer tunnel 11
+
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test hosts::vrf_membership_selects_the_domain_and_scoped_member ... [  128.198447] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=2): disconnected, peer 192.0.2.1 pending: EHOSTUNREACH: No route to host
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=12): disconnected: the zone of its peer is neither its bind device nor a member of it
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: EHOSTUNREACH: No route to host
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected: the zone of its peer is neither its bind device nor a member of it
+daemon: INFO rs_l2tpd: ready pid=2335
+daemon: INFO rs_l2tpd: ready pid=2333
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to fe80::1 from fe80::2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to fe80::2 from fe80::1
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected, peer 192.0.2.2 pending: EHOSTUNREACH: No route to host
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): disconnected
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected: the zone of its peer is neither its bind device nor a member of it
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to fe80::2 from fe80::1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test managers::a_child_in_another_namespace_survives_reload_and_dies_with_its_parent ... [  133.919880] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=2408
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=2412
+daemon: INFO rs_l2tpd::service: reload completed
+[  134.612447] renamed0: renamed from l2tp0 (while UP)
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): renamed as renamed0
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test managers::foreign_identifiers_and_names_are_left_alone_until_they_are_freed ... [  135.227481] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as rsl2tp-t795e8e
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: WARN rs_l2tpd::reconciler::report: session s2 (tunnel_id=21, session_id=121): cannot take the name l2tp2: EEXIST: File exists
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=2477
+daemon: WARN rs_l2tpd::reconciler: tunnel t0 (tunnel_id=1): left out after 10 refusals: EEXIST: File exists
+daemon: WARN rs_l2tpd::reconciler: session s1 (tunnel_id=11, session_id=111): left out after 10 refusals: EEXIST: File exists
+daemon: INFO rs_l2tpd: ready pid=2475
+[  145.735658] l2tp2: renamed from rsl2tp-t795e8e
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): published as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler: tunnel t0 (tunnel_id=1): identifiers free, created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler: session s1 (tunnel_id=11, session_id=111): identifiers free, created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test netlink::large_default_free_tables_do_not_add_daemon_route_queries ... [  175.887162] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd: ready pid=3106
+
+thread 'netlink::large_default_free_tables_do_not_add_daemon_route_queries' (3088) panicked at tests/scenarios/support.rs:338:41:
+waiting for reload complete: timed out waiting on channel
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+side 0: ["-s", "link", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n    RX:  bytes packets errors dropped  missed   mcast           \n             0       0      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n             0       0      0       0       0       0 \n3: underlay@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000\n    link/ether 16:54:e1:fa:65:d3 brd ff:ff:ff:ff:ff:ff link-netns l2tp-aeb3a594-b\n    RX:  bytes packets errors dropped  missed   mcast           \n           180       2      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n           180       2      0       1       0       0 \n4: nltrace: <NOARP,UP,LOWER_UP> mtu 3776 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000\n    link/netlink \n    RX:  bytes packets errors dropped  missed   mcast           \n         25528      64      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n             0       0      0       0       0       0 \n", stderr: "" })
+side 0: ["l2tp", "show", "tunnel"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 0: ["l2tp", "show", "session"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 0: ["neigh", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 0: ["addr", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n3: underlay@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000\n    link/ether 16:54:e1:fa:65:d3 brd ff:ff:ff:ff:ff:ff link-netns l2tp-aeb3a594-b\n    inet 192.0.2.1/24 scope global underlay\n       valid_lft forever preferred_lft forever\n    inet6 2001:db8:1::1/64 scope global nodad \n       valid_lft forever preferred_lft forever\n4: nltrace: <NOARP,UP,LOWER_UP> mtu 3776 qdisc noqueue state UNKNOWN group default qlen 1000\n    link/netlink \n", stderr: "" })
+side 0: ["-6", "route", "show", "table", "all"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "2001:db8:1::/64 dev underlay proto kernel metric 256 pref medium\nlocal 2001:db8:1::1 dev underlay table local proto kernel metric 0 pref medium\nmulticast ff00::/8 dev underlay table local proto kernel metric 256 pref medium\n", stderr: "" })
+side 1: ["-s", "link", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n    RX:  bytes packets errors dropped  missed   mcast           \n             0       0      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n             0       0      0       0       0       0 \n2: underlay@if3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000\n    link/ether 9a:c7:9f:93:84:d9 brd ff:ff:ff:ff:ff:ff link-netns l2tp-aeb3a594-a\n    RX:  bytes packets errors dropped  missed   mcast           \n           180       2      0       0       0       0 \n    TX:  bytes packets errors dropped carrier collsns           \n           180       2      0       0       0       0 \n", stderr: "" })
+side 1: ["l2tp", "show", "tunnel"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 1: ["l2tp", "show", "session"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 1: ["neigh", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "" })
+side 1: ["addr", "show"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n2: underlay@if3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000\n    link/ether 9a:c7:9f:93:84:d9 brd ff:ff:ff:ff:ff:ff link-netns l2tp-aeb3a594-a\n    inet 192.0.2.2/24 scope global underlay\n       valid_lft forever preferred_lft forever\n    inet6 2001:db8:1::2/64 scope global nodad \n       valid_lft forever preferred_lft forever\n", stderr: "" })
+side 1: ["-6", "route", "show", "table", "all"]
+Ok(Output { status: ExitStatus(unix_wait_status(0)), stdout: "2001:db8:1::/64 dev underlay proto kernel metric 256 pref medium\nlocal 2001:db8:1::2 dev underlay table local proto kernel metric 0 pref medium\nmulticast ff00::/8 dev underlay table local proto kernel metric 256 pref medium\n", stderr: "" })
+FAILED
+test netlink::nlmon_sees_fixture_route_requests_without_packet_loss ... [  186.655139] underlay: renamed from other
+nlmon counts: Counts { requests: 4, route_queries: 2, packets: 8 }
+ok
+test promises::version_015_configuration_and_peer_exchange_frames ... [  187.110118] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 2001:db8:1::2 from 2001:db8:1::1
+daemon: INFO rs_l2tpd: ready pid=3165
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+failures:
+
+failures:
+    netlink::large_default_free_tables_do_not_add_daemon_route_queries
+
+test result: FAILED. 17 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 107.45s
+
+MATRIX_GUEST_RESULT=1
+[  188.230769] ACPI: PM: Preparing to enter system sleep state S5
+[  188.234031] reboot: Power down

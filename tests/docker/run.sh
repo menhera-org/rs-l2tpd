@@ -1,13 +1,14 @@
 #!/bin/sh
 # Whole-daemon tests; privileged operations stay in the disposable container.
 set -eu
-repo=$(CDPATH= cd -P "$(dirname "$0")/../.." && pwd)
+repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
 cd "$repo"
-[ "$#" -gt 0 ] || { echo "usage: $0 scenarios [libtest arguments] | incus" >&2; exit 2; }
+[ "$#" -gt 0 ] || { echo "usage: $0 scenarios [libtest arguments] | incus | matrix required|v6.8..v7.3" >&2; exit 2; }
 case $1 in
     scenarios) shift ;;
+    matrix) shift; exec sh "$repo/tests/kernel/matrix.sh" "$@" ;;
     incus) shift; exec sh "$repo/tests/docker/incus.sh" "$@" ;;
-    *) echo "usage: $0 scenarios [libtest arguments] | incus" >&2; exit 2 ;;
+    *) echo "usage: $0 scenarios [libtest arguments] | incus | matrix required|v6.8..v7.3" >&2; exit 2 ;;
 esac
 image=rs-l2tpd-audit-vm:local
 target=x86_64-unknown-linux-musl
@@ -22,6 +23,9 @@ mkdir -p "$record"
     cat "$record/build.log"
     exit 1
 }
+# Build-time duration is a machine fact, not verification evidence.
+sed 's/\(Finished .*\) in .*/\1/' "$record/build.log" > "$record/build.tmp"
+mv "$record/build.tmp" "$record/build.log"
 test_binary=$(sed -n 's/^  Executable .* (\(.*\))$/\1/p' "$record/build.log")
 case $test_binary in
     /*) ;;
@@ -31,26 +35,7 @@ esac
 # Prepare the image from tests/kernel/Dockerfile.review separately; the runner
 # never gives a test container external networking.
 docker image inspect --format '{{.Id}}' "$image" > "$record/image.log"
-baseline_revision=$(git --no-pager rev-parse 'v0.1.5^{commit}')
-baseline_dir=$repo/target/phase6-baseline/$baseline_revision
-baseline=$baseline_dir/target/x86_64-unknown-linux-musl/release/rs-l2tpd
-{
-    printf 'baseline commit: %s\n' "$baseline_revision"
-    printf '%s\n' 'target: x86_64-unknown-linux-musl; features: v0.1.5 defaults; own Cargo.lock'
-    if [ ! -x "$baseline" ]; then
-        mkdir -p "$baseline_dir/source"
-        git --no-pager archive --format=tar --output="$baseline_dir/source.tar" "$baseline_revision"
-        tar -xf "$baseline_dir/source.tar" -C "$baseline_dir/source"
-        printf '%s\n' 'command: cargo build --locked --release --target x86_64-unknown-linux-musl (archived baseline)'
-        CARGO_TARGET_DIR="$baseline_dir/target" \
-            CONFIG_FILE_PATH=/etc/rs-l2tpd.toml CONFIG_DIR_PATH=/etc/rs-l2tpd.toml.d \
-            cargo build --locked --release --target x86_64-unknown-linux-musl \
-            --manifest-path "$baseline_dir/source/Cargo.toml"
-    fi
-    printf 'baseline binary git-blob: '
-    git --no-pager hash-object "$baseline"
-    "$baseline" --version
-} > "$record/baseline.log" 2>&1 || { cat "$record/baseline.log"; exit 1; }
+baseline=$(sh tests/docker/baseline.sh "$record")
 set -- docker run --rm --privileged --network none \
     --mount "type=bind,source=$repo,target=$repo,readonly" \
     --env RS_L2TPD_SCENARIO_CONTAINER=1 \
@@ -65,5 +50,6 @@ set -- docker run --rm --privileged --network none \
 result=0
 "$@" >> "$record/run.log" 2>&1 || result=$?
 cat "$record/run.log"
+if ! grep -Eq 'test result: ok\. [1-9][0-9]* passed;' "$record/run.log"; then result=1; fi
 printf 'SCENARIO_RESULT=%s\nrecord: %s\n' "$result" "$record"
 exit "$result"

@@ -79,22 +79,23 @@ new mainline tag appears, the table MUST be updated and the matrix
 re-run on the new versions before the phase 6 gate is called green;
 a matrix run on a superseded version does not count.
 
-Resolved on 2026-10-29 (from the `linux-image-generic` candidates of
-the `ubuntu:24.04` and `ubuntu:26.04` images and the newest kernel.org
-tag):
+Resolved on 2026-10-31 from the published Ubuntu updates/security
+`linux-image-generic` candidates and kernel.org releases and source
+indexes. Proposed packages do not replace the published targets:
 
 | Kernel | Rule | How it runs |
 |---|---|---|
 | Ubuntu 24.04 `6.8.0-147-generic` | older of the two latest LTS kernels | a privileged container on a host running this kernel, or QEMU |
 | Ubuntu 26.04 `7.0.0-42-generic` (also 24.04's HWE kernel) | newer of the two latest LTS kernels | QEMU, the `vmlinuz` and modules unpacked from the `linux-image` package of the `ubuntu:26.04` image |
 | vanilla `6.8.12` (the last 6.8.y) | vanilla equivalent of the 24.04 kernel | QEMU, built from the kernel.org tarball with `x86_64_defconfig` plus L2TP |
-| vanilla latest `7.0.y` | vanilla equivalent of the 26.04 kernel | QEMU, built the same way |
+| vanilla `7.0.14` | vanilla equivalent of the 26.04 kernel | QEMU, built the same way |
 | mainline `v7.3` | the newest release | QEMU, built the same way |
 
 Desired, not gating: every vanilla release between the oldest required
 one and mainline (the matrix below), Debian's stock kernels, and
-RHEL-ish stock kernels. The planned matrix driver will take the required
-set from this table; it is not implemented yet. Each run
+RHEL-ish stock kernels. The matrix driver resolves the required set before and after each run
+and rejects a changed target. It also boots mainline with IPv6 disabled
+and builds it without IPv6 for H4/T4. Each run
 records `uname -r` next to its result, as the probes of
 `tests/kernel/README.md` do. The verified range of
 [kernel](spec/kernel.md) grows with what the matrix has run.

@@ -42,7 +42,8 @@ fn requests(bytes: &[u8]) -> io::Result<(usize, usize)> {
 impl RouteTrace {
     pub fn start(pair: &Pair, side: usize) -> Self {
         assert!(
-            std::path::Path::new("/sys/module/nlmon").exists(),
+            std::path::Path::new("/sys/module/nlmon").exists()
+                || std::env::var("RS_L2TPD_BUILTIN_NLMON").as_deref() == Ok("1"),
             "nlmon must already be available; the fixture never loads host modules"
         );
         pair.ip(side, &["link", "add", "nltrace", "type", "nlmon"]);
