@@ -478,15 +478,37 @@ it does not establish the full latest matrix.
 
 ## Coverage and exit state
 
-[The merged coverage record](phase6/coverage-20261031/README.md) combines
+[The first merged coverage record](phase6/coverage-20261031/README.md) combines
 ordinary native, fake, privileged GNU container, real user-systemd and
 unprivileged Incus buffer profiles. It reports 9,101/9,998 lines and
 1,374/1,784 branches. Source snapshot: 8fd9ae8, before the later readiness
 fix. Test helpers in src/ have not been silently suppressed. No coverage
 exclusion is claimed; this report does not pass the gate.
 
+[The current-source coverage refresh](phase6/coverage-current-20261031/README.md)
+uses Rust source `0f5292e` and combines native/fake, all 26 host scenarios,
+the live kernel/process suites, the real user manager and the full
+unprivileged Incus manager scenario. All executed suites pass. The result
+is 9,586/10,390 lines (92.26%) and 1,460/1,868 branches (78.16%), with no
+exclusions. It leaves 804 lines and 408 branches, including reachable error
+paths, inline-test compound assertions and missing boot/root-sandbox
+profiles. The coverage-only Incus drop-in preserves the existing writable
+runtime directory for profile export. Escaped systemd percent specifiers
+and an explicit multi-process profile check retain seven daemon profiles.
+The initial filename-expansion defect and its diagnostic report are kept
+separately; the final merge uses only the corrected Incus collection.
+
+The unmodified musl Incus gate also passes through
+`CARGO_TERM_COLOR=always tests/docker/run.sh incus`: its buffer case requires
+`FORCE_RESULT=EPERM`, the full system-manager scenario passes in 17.19 seconds,
+and `INCUS_RESULT=0` follows successful container deletion. Its record is
+[incus-20261031T134611Z-3957335](phase6/incus-20261031T134611Z-3957335/scenario.log).
+The concurrent H11 MAC write gets EBUSY; both ordered cases assign a persistent
+MAC. This remains the approved combined contract.
+
 Commits use commit.sh, signatures and sign-offs; completed packages are
 synced through sync.sh. No global strict-CI success is claimed.
-All test guests, transient user services and probe
-containers have exited or been deleted. The worktree's latest status
-pages point here; earlier records retain their original scoped outcomes.
+Completed profiles clean up their transient user services and containers.
+The separate current required-kernel matrix refresh is still running;
+its final result is not claimed here. Earlier records retain their scoped
+outcomes.

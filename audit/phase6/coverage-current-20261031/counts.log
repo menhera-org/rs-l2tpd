@@ -1,0 +1,57 @@
+6.8.0-147-generic
+features: all; target: x86_64-unknown-linux-gnu; nightly branch instrumentation
+rustc 1.101.0-nightly (41089d07a 2026-10-27)
+cargo-llvm-cov 0.9.1
+Native suite results:
+     Running unittests src/lib.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/19355e4b4fa32df5/out/rs_l2tpd-19355e4b4fa32df5)
+test result: ok. 92 passed; 0 failed; 11 ignored; 0 measured; 0 filtered out; finished in 0.31s
+     Running unittests src/bin/rs-l2tpd/main.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/7dc53dd3944ffb67/out/rs_l2tpd-7dc53dd3944ffb67)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.02s
+test result: ok. 38 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 0.11s
+     Running tests/scenarios/boot.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/d0f792f80d0caa9e/out/boot_scenarios-d0f792f80d0caa9e)
+test result: ok. 0 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/kernel/fake.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/1fafe7b1cf32fc2f/out/kernel_fake-1fafe7b1cf32fc2f)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/kernel/linux.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/130315a7f381523d/out/kernel_linux-130315a7f381523d)
+test result: ok. 0 passed; 0 failed; 19 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/process.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/f886b2841f18ed36/out/process-f886b2841f18ed36)
+test result: ok. 9 passed; 0 failed; 18 ignored; 0 measured; 0 filtered out; finished in 1.20s
+     Running tests/kernel/review.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/faf9bbda3eb844fc/out/review_kernel-faf9bbda3eb844fc)
+test result: ok. 0 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/tools/rulemap.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/980e1fc02d9141a4/out/rulemap-980e1fc02d9141a4)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+     Running tests/rules/main.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/53de27be93d67776/out/rules-53de27be93d67776)
+test result: ok. 75 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+     Running tests/scenarios/main.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/4e719f810ca916a4/out/scenarios-4e719f810ca916a4)
+test result: ok. 1 passed; 0 failed; 27 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/service.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/be36c07fa5c0b6a6/out/service-be36c07fa5c0b6a6)
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+     Running tests/tools/srclink.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/74d48d9d81609579/out/srclink-74d48d9d81609579)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+     Running tests/kernel/store.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/528a234751631bfc/out/store_kernel-528a234751631bfc)
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/scenarios/systemd.rs (target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/e31fb37b261c6444/out/systemd_scenarios-e31fb37b261c6444)
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+Live suite results (nested child results are not added to parent counts):
+command: /home/dev/rs-l2tpd/target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/19355e4b4fa32df5/out/rs_l2tpd-19355e4b4fa32df5 --ignored --test-threads=1 --nocapture
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 92 filtered out; finished in 1.43s
+command: /home/dev/rs-l2tpd/target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/130315a7f381523d/out/kernel_linux-130315a7f381523d --ignored --test-threads=1 --nocapture
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.27s
+command: /home/dev/rs-l2tpd/target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/faf9bbda3eb844fc/out/review_kernel-faf9bbda3eb844fc --ignored --test-threads=1 --nocapture
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+command: /home/dev/rs-l2tpd/target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/7dc53dd3944ffb67/out/rs_l2tpd-7dc53dd3944ffb67 --ignored --exact pidfile::permission_tests::precreated_permissions_links_and_owner --nocapture
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.01s
+command: /home/dev/rs-l2tpd/target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/7dc53dd3944ffb67/out/rs_l2tpd-7dc53dd3944ffb67 --ignored --exact pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes --nocapture
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+command: /home/dev/rs-l2tpd/target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/7dc53dd3944ffb67/out/rs_l2tpd-7dc53dd3944ffb67 --ignored --exact files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths --nocapture
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+command: /home/dev/rs-l2tpd/target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/f886b2841f18ed36/out/process-f886b2841f18ed36 --include-ignored --test-threads=1 --nocapture
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.01s
+command: /home/dev/rs-l2tpd/target/phase6-coverage-current-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/4e719f810ca916a4/out/scenarios-4e719f810ca916a4 --ignored --test-threads=1 --nocapture --skip incus::system_container_store_tunable_networkd_and_udev
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 157.73s
+LIVE_COVERAGE_RESULT=0

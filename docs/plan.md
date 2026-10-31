@@ -557,6 +557,12 @@ remain in [H11](spec/hosts.md#other-network-managers).
 [Required-kernel behavior](kernel-behavior.md) records all five targets'
 observations, proof scope and limitations.
 
+The latest coverage refresh on Rust source `0f5292e` includes the current
+26-scenario host suite, real user manager and full Incus manager scenario:
+92.26% lines / 78.16% branches, without exclusions. The unmodified musl
+Incus runner also passes. The required-kernel refresh and ten-run CI
+qualification are in progress; full coverage remains open.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

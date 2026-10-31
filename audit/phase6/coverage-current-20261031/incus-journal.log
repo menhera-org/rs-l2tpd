@@ -1,0 +1,67 @@
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 rs-l2tpd[471]: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 rs-l2tpd[471]: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 rs-l2tpd[471]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 rs-l2tpd[471]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as incusl2tp
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 rs-l2tpd[471]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 rs-l2tpd[471]: INFO rs_l2tpd: ready pid=471
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 systemd[1]: Reloading rs-l2tpd.service - Resilient L2TPv3 daemon...
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 rs-l2tpd[471]: INFO rs_l2tpd::service: reload completed
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 systemd[1]: Reloaded rs-l2tpd.service - Resilient L2TPv3 daemon.
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 systemd[1]: rs-l2tpd.service: Main process exited, code=killed, status=9/KILL
+Oct 31 13:48:38 rs-l2tpd-coverage-current-3959663 systemd[1]: rs-l2tpd.service: Failed with result 'signal'.
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: rs-l2tpd.service: Scheduled restart job, restart counter is at 1.
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[531]: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[531]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[531]: WARN rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[531]: INFO rs_l2tpd: ready pid=531
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[531]: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[531]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[531]: WARN rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[531]: INFO rs_l2tpd: re-exec resumed
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[531]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[531]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[531]: INFO rs_l2tpd: shutdown complete
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[571]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[571]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as incusl2tp
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[571]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[571]: INFO rs_l2tpd: ready pid=571
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[571]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[571]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[571]: INFO rs_l2tpd: shutdown complete
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[598]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[598]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as incusl2tp
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[598]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[598]: INFO rs_l2tpd: ready pid=598
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[598]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[598]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[598]: INFO rs_l2tpd: shutdown complete
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[623]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[623]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as rsl2tp-t0336a1
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[623]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[623]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): published as incusl2tp
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 rs-l2tpd[623]: INFO rs_l2tpd: ready pid=623
+Oct 31 13:48:41 rs-l2tpd-coverage-current-3959663 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+Oct 31 13:48:42 rs-l2tpd-coverage-current-3959663 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+Oct 31 13:48:42 rs-l2tpd-coverage-current-3959663 rs-l2tpd[623]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+Oct 31 13:48:42 rs-l2tpd-coverage-current-3959663 rs-l2tpd[623]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+Oct 31 13:48:42 rs-l2tpd-coverage-current-3959663 rs-l2tpd[623]: INFO rs_l2tpd: shutdown complete
+Oct 31 13:48:42 rs-l2tpd-coverage-current-3959663 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+Oct 31 13:48:42 rs-l2tpd-coverage-current-3959663 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
