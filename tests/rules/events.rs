@@ -4,6 +4,57 @@ use super::{TUNNEL, config, deliver, ops, reconciler};
 use rs_l2tpd::kernel::{AddrInfo, Kernel, Notice};
 use rs_l2tpd::reconciler::Source;
 
+/// spec: R35, E20, E21, M18
+#[test]
+fn a_link_address_burst_coalesces_loss_and_recovers_the_final_source() {
+    let (mut r, _) = reconciler();
+    let wan = r.kernel_mut().add_link("wan", false);
+    let old = "192.0.2.1".parse().unwrap();
+    let new = "192.0.2.9".parse().unwrap();
+    r.kernel_mut().add_addr(wan, old);
+    let text = format!(
+        "{TUNNEL}bind_interface='wan'\n[sessions.s]\ntunnel_name='a'\nsession_id=100\ninterface_name='l2tp0'"
+    );
+    assert!(r.reconcile(config(&text)));
+    deliver(&mut r);
+    let socket = r.kernel().tunnel_socket(10).unwrap();
+    let session = r.kernel().session_index(10, 100);
+    ops(&mut r);
+    r.kernel_mut().set_monitor_capacity(4);
+    for _ in 0..1000 {
+        let foreign = r.kernel_mut().add_link("foreign", false);
+        r.kernel_mut().add_addr(foreign, old);
+        r.kernel_mut().remove_link(foreign);
+    }
+    r.kernel_mut().del_addr(wan, old);
+    r.kernel_mut().add_addr(wan, new);
+    let notices = r.kernel_mut().take_monitor();
+    assert_eq!(
+        notices.iter().filter(|n| matches!(n, Notice::Loss)).count(),
+        1
+    );
+    assert!(notices.len() <= 5);
+    for notice in notices {
+        r.handle(Source::Monitor, notice);
+    }
+    assert!(r.ready());
+    assert_eq!(r.kernel().session_index(10, 100), session);
+    assert_eq!(
+        r.kernel().connection(socket).map(|(_, source)| source),
+        Some(new)
+    );
+    assert_eq!(
+        ops(&mut r),
+        [
+            format!("disconnect {}", socket.get()),
+            format!("bind {} {wan}", socket.get()),
+            format!("connect {} 192.0.2.2", socket.get())
+        ]
+    );
+    assert_eq!(r.next_deadline(), None);
+    assert!(r.kernel_mut().take_monitor().is_empty());
+}
+
 /// An address added to the bind device reconnects the connected tunnel
 /// for a fresh source; one elsewhere touches nothing (E6, M16).
 /// spec: E6, T19, M16

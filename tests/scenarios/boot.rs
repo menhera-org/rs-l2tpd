@@ -7,6 +7,69 @@ mod clocks;
 
 use support::{Pair, config};
 
+/// spec: R45, T10, G8
+#[test]
+#[ignore = "stock-kernel QEMU guest with vrf absent and module autoload disabled"]
+fn unavailable_vrf_driver_keeps_ordinary_device_binding_and_frames() {
+    assert_eq!(std::env::var("RS_L2TPD_NO_VRF").as_deref(), Ok("1"));
+    assert!(!std::path::Path::new("/sys/module/vrf").exists());
+    assert_eq!(
+        std::fs::read_to_string("/proc/sys/kernel/modprobe")
+            .unwrap()
+            .trim(),
+        "/no-module-loader"
+    );
+    let pair = Pair::new();
+    let refused = pair.output(
+        0,
+        "ip",
+        &["link", "add", "vrfprobe", "type", "vrf", "table", "100"],
+    );
+    assert!(!refused.status.success(), "{refused:?}");
+    assert!(!std::path::Path::new("/sys/module/vrf").exists());
+    pair.underlay(true, true);
+    for side in 0..2 {
+        pair.ip(side, &["link", "set", "underlay", "name", "vrf0"]);
+        assert!(
+            !pair
+                .ip(side, &["-d", "link", "show", "vrf0"])
+                .contains("vrf table")
+        );
+    }
+    let bound = |side, peers: &[&str]| {
+        config(side, peers).replace("[sessions.s", "bind_interface='vrf0'\n[sessions.s")
+    };
+    let mut a = pair.start(0, &bound(0, &["192.0.2.2", "2001:db8:1::2"]));
+    let mut b = pair.start(1, &bound(1, &["192.0.2.1", "2001:db8:1::1"]));
+    a.event("ready");
+    b.event("ready");
+    for daemon in [&a, &b] {
+        assert_eq!(daemon.count("connected to"), 2);
+    }
+    for n in 0..2 {
+        pair.inner(&format!("l2tp{n}"), n);
+        pair.frames(n);
+    }
+    let indices = [pair.index(0, "l2tp0"), pair.index(0, "l2tp1")];
+    pair.ip(0, &["link", "set", "vrf0", "name", "away"]);
+    support::wait("both ordinary-device bindings lost", || {
+        a.count("disconnected: its bind device is absent") == 2
+    });
+    pair.ip(0, &["link", "set", "away", "name", "vrf0"]);
+    support::wait("both ordinary-device bindings restored", || {
+        a.count("connected to") == 4
+    });
+    for (n, index) in indices.into_iter().enumerate() {
+        assert_eq!(pair.index(0, &format!("l2tp{n}")), index);
+        pair.frames(n);
+    }
+    a.stop();
+    b.stop();
+    pair.absent(0);
+    pair.absent(1);
+    assert!(!std::path::Path::new("/sys/module/vrf").exists());
+}
+
 /// spec: H4, T4, R27
 #[test]
 #[ignore = "QEMU guest booted with ipv6.disable=1 or CONFIG_IPV6=n"]

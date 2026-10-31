@@ -1,16 +1,17 @@
 #!/bin/sh
 set -eu
-[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|no-ethernet|clock|systemd RECORD" >&2; exit 2; }
+[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd RECORD" >&2; exit 2; }
 repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
 cd "$repo"
 kernel=$1; modules=$2; config=$3; mode=$4; record=$5
 case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
 case $record in /*) ;; *) record=$repo/$record ;; esac
-case $mode in normal|ipv6-disable|no-ipv6|no-ethernet|clock|systemd) ;; *) exit 2 ;; esac
+case $mode in normal|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd) ;; *) exit 2 ;; esac
 [ -f "$kernel" ] && [ -s "$kernel" ] || exit 1
 [ "$modules" = - ] || [ -d "$modules" ] || { echo 'module directory missing' >&2; exit 1; }
 [ "$config" = - ] || [ -f "$config" ] || { echo 'kernel config missing' >&2; exit 1; }
 [ "$mode" != no-ethernet ] || [ "$modules" != - ] || { echo 'no-ethernet needs a modular stock kernel' >&2; exit 2; }
+[ "$mode" != no-vrf ] || [ "$modules" != - ] || { echo 'no-vrf needs a modular stock kernel' >&2; exit 2; }
 mkdir -p "$record"
 image=rs-l2tpd-audit-vm:local
 if [ "$mode" = systemd ]; then image=nd-test:u2404; fi

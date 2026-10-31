@@ -204,6 +204,14 @@ account and the kernel images the driver builds or fetches.
 
 ## Contract correction acceptance cases
 
+The guest-only `no-vrf` profile tests R45 with a modular stock kernel:
+`tests/kernel/run-guest.sh IMAGE MODULES CONFIG no-vrf RECORD`. It leaves
+the VRF driver unloaded and disables guest module autoload, requires a real
+VRF creation refusal, then tests ordinary-device binding and frames over both
+families. It is a scoped profile, separate from the normal suite; it never
+changes the host's modules or autoload policy. See the
+[host-requirement record](../audit/phase6/host-requirements-20261031/README.md).
+
 These cases are required by the 2026-10-29 contract corrections.
 Phase 2–3 evidence (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`) identifies
 the implemented policy, adapter and live-boundary cases.

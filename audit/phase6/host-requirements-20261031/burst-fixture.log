@@ -1,0 +1,21 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 1 test
+
+thread 'events::a_link_address_burst_coalesces_loss_and_recovers_the_final_source' (3841434) panicked at tests/rules/events.rs:46:5:
+assertion `left == right` failed
+  left: ["disconnect 1", "bind 1 1", "connect 1 192.0.2.2"]
+ right: ["disconnect 1", "connect 1 192.0.2.2"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test events::a_link_address_burst_coalesces_loss_and_recovers_the_final_source ... FAILED
+
+failures:
+
+failures:
+    events::a_link_address_burst_coalesces_loss_and_recovers_the_final_source
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`

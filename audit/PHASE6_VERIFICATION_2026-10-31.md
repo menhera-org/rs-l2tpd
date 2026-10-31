@@ -330,6 +330,28 @@ coverage, resource/event-cost proof and strict CI are still open.
 The full host suite also passes all 25 scenarios in 164.59 seconds, including
 the strengthened empty-`/proc`/`/sys` case.
 
+## Final host-requirement citations: R35 and R45
+
+[The host-requirement package](phase6/host-requirements-20261031/README.md)
+overflows a four-notice fake monitor with 1,000 foreign link/address cycles,
+then loses a relevant source change behind the full queue. One loss/resync
+recovers the final source with exactly one disconnect/rebind/connect, unchanged
+socket/session identity, readiness and no pending timer. Its first expected
+trace omitted the required rebind and is retained as a fixture failure.
+
+The new guest-only `no-vrf` profile passes on `6.8.0-147-generic` and
+`7.0.0-42-generic`. Both positively refuse VRF creation with the driver absent
+and autoload disabled, then carry IPv4/IPv6 frames bound to ordinary `vrf0`
+devices. Bind-name loss/restoration reconnects without session replacement.
+Each scoped run requires all three guest result markers; neither is a full
+normal-matrix result or a CONFIG_NET_VRF=n build. The host is untouched.
+
+All 75 rule cases pass under each of ten seeds; common CI and four strict
+source-link cases pass. Strict rule-map status is 314 cited / 333 active,
+19 uncited. Every active R rule now has declaration traceability, with full
+clause proof still open. Coverage, final normal matrix/manager profiles,
+event/resource/history proof and strict CI remain incomplete.
+
 ## Coverage and exit state
 
 [The merged coverage record](phase6/coverage-20261031/README.md) combines

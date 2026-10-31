@@ -1,0 +1,181 @@
+diff --git a/tests/kernel/matrix-init.sh b/tests/kernel/matrix-init.sh
+index ba9a1f8..75290bc 100755
+--- a/tests/kernel/matrix-init.sh
++++ b/tests/kernel/matrix-init.sh
+@@ -41,6 +41,16 @@ if [ "$mode" = no-ethernet ]; then
+     echo SCENARIO_RESULT=0
+     exit 0
+ fi
++if [ "$mode" = no-vrf ]; then
++    for module in l2tp_ip6 l2tp_eth; do modprobe "$module"; done
++    printf '%s\n' /no-module-loader > /proc/sys/kernel/modprobe
++    export RS_L2TPD_NO_VRF=1
++    echo 'scope: unavailable VRF driver with ordinary named-device binding only'
++    run_suite /boot-scenarios --ignored --exact unavailable_vrf_driver_keeps_ordinary_device_binding_and_frames --nocapture
++    echo CONFORMANCE_RESULT=0
++    echo SCENARIO_RESULT=0
++    exit 0
++fi
+ if [ "$mode" = clock ]; then
+     export RS_L2TPD_CLOCK_GUEST=1
+     echo 'scope: H16 wall-clock and QMP pause scenario only'
+diff --git a/tests/kernel/run-guest.sh b/tests/kernel/run-guest.sh
+index 22a1309..f557770 100755
+--- a/tests/kernel/run-guest.sh
++++ b/tests/kernel/run-guest.sh
+@@ -1,16 +1,17 @@
+ #!/bin/sh
+ set -eu
+-[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|no-ethernet|clock|systemd RECORD" >&2; exit 2; }
++[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd RECORD" >&2; exit 2; }
+ repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
+ cd "$repo"
+ kernel=$1; modules=$2; config=$3; mode=$4; record=$5
+ case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
+ case $record in /*) ;; *) record=$repo/$record ;; esac
+-case $mode in normal|ipv6-disable|no-ipv6|no-ethernet|clock|systemd) ;; *) exit 2 ;; esac
++case $mode in normal|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd) ;; *) exit 2 ;; esac
+ [ -f "$kernel" ] && [ -s "$kernel" ] || exit 1
+ [ "$modules" = - ] || [ -d "$modules" ] || { echo 'module directory missing' >&2; exit 1; }
+ [ "$config" = - ] || [ -f "$config" ] || { echo 'kernel config missing' >&2; exit 1; }
+ [ "$mode" != no-ethernet ] || [ "$modules" != - ] || { echo 'no-ethernet needs a modular stock kernel' >&2; exit 2; }
++[ "$mode" != no-vrf ] || [ "$modules" != - ] || { echo 'no-vrf needs a modular stock kernel' >&2; exit 2; }
+ mkdir -p "$record"
+ image=rs-l2tpd-audit-vm:local
+ if [ "$mode" = systemd ]; then image=nd-test:u2404; fi
+diff --git a/tests/rules/events.rs b/tests/rules/events.rs
+index db99072..3b2273a 100644
+--- a/tests/rules/events.rs
++++ b/tests/rules/events.rs
+@@ -4,6 +4,57 @@ use super::{TUNNEL, config, deliver, ops, reconciler};
+ use rs_l2tpd::kernel::{AddrInfo, Kernel, Notice};
+ use rs_l2tpd::reconciler::Source;
+ 
++/// spec: R35, E20, E21, M18
++#[test]
++fn a_link_address_burst_coalesces_loss_and_recovers_the_final_source() {
++    let (mut r, _) = reconciler();
++    let wan = r.kernel_mut().add_link("wan", false);
++    let old = "192.0.2.1".parse().unwrap();
++    let new = "192.0.2.9".parse().unwrap();
++    r.kernel_mut().add_addr(wan, old);
++    let text = format!(
++        "{TUNNEL}bind_interface='wan'\n[sessions.s]\ntunnel_name='a'\nsession_id=100\ninterface_name='l2tp0'"
++    );
++    assert!(r.reconcile(config(&text)));
++    deliver(&mut r);
++    let socket = r.kernel().tunnel_socket(10).unwrap();
++    let session = r.kernel().session_index(10, 100);
++    ops(&mut r);
++    r.kernel_mut().set_monitor_capacity(4);
++    for _ in 0..1000 {
++        let foreign = r.kernel_mut().add_link("foreign", false);
++        r.kernel_mut().add_addr(foreign, old);
++        r.kernel_mut().remove_link(foreign);
++    }
++    r.kernel_mut().del_addr(wan, old);
++    r.kernel_mut().add_addr(wan, new);
++    let notices = r.kernel_mut().take_monitor();
++    assert_eq!(
++        notices.iter().filter(|n| matches!(n, Notice::Loss)).count(),
++        1
++    );
++    assert!(notices.len() <= 5);
++    for notice in notices {
++        r.handle(Source::Monitor, notice);
++    }
++    assert!(r.ready());
++    assert_eq!(r.kernel().session_index(10, 100), session);
++    assert_eq!(
++        r.kernel().connection(socket).map(|(_, source)| source),
++        Some(new)
++    );
++    assert_eq!(
++        ops(&mut r),
++        [
++            format!("disconnect {}", socket.get()),
++            format!("bind {} {wan}", socket.get()),
++            format!("connect {} 192.0.2.2", socket.get())
++        ]
++    );
++    assert_eq!(r.next_deadline(), None);
++    assert!(r.kernel_mut().take_monitor().is_empty());
++}
++
+ /// An address added to the bind device reconnects the connected tunnel
+ /// for a fresh source; one elsewhere touches nothing (E6, M16).
+ /// spec: E6, T19, M16
+diff --git a/tests/scenarios/boot.rs b/tests/scenarios/boot.rs
+index 3175a34..27de47a 100644
+--- a/tests/scenarios/boot.rs
++++ b/tests/scenarios/boot.rs
+@@ -7,6 +7,69 @@ mod clocks;
+ 
+ use support::{Pair, config};
+ 
++/// spec: R45, T10, G8
++#[test]
++#[ignore = "stock-kernel QEMU guest with vrf absent and module autoload disabled"]
++fn unavailable_vrf_driver_keeps_ordinary_device_binding_and_frames() {
++    assert_eq!(std::env::var("RS_L2TPD_NO_VRF").as_deref(), Ok("1"));
++    assert!(!std::path::Path::new("/sys/module/vrf").exists());
++    assert_eq!(
++        std::fs::read_to_string("/proc/sys/kernel/modprobe")
++            .unwrap()
++            .trim(),
++        "/no-module-loader"
++    );
++    let pair = Pair::new();
++    let refused = pair.output(
++        0,
++        "ip",
++        &["link", "add", "vrfprobe", "type", "vrf", "table", "100"],
++    );
++    assert!(!refused.status.success(), "{refused:?}");
++    assert!(!std::path::Path::new("/sys/module/vrf").exists());
++    pair.underlay(true, true);
++    for side in 0..2 {
++        pair.ip(side, &["link", "set", "underlay", "name", "vrf0"]);
++        assert!(
++            !pair
++                .ip(side, &["-d", "link", "show", "vrf0"])
++                .contains("vrf table")
++        );
++    }
++    let bound = |side, peers: &[&str]| {
++        config(side, peers).replace("[sessions.s", "bind_interface='vrf0'\n[sessions.s")
++    };
++    let mut a = pair.start(0, &bound(0, &["192.0.2.2", "2001:db8:1::2"]));
++    let mut b = pair.start(1, &bound(1, &["192.0.2.1", "2001:db8:1::1"]));
++    a.event("ready");
++    b.event("ready");
++    for daemon in [&a, &b] {
++        assert_eq!(daemon.count("connected to"), 2);
++    }
++    for n in 0..2 {
++        pair.inner(&format!("l2tp{n}"), n);
++        pair.frames(n);
++    }
++    let indices = [pair.index(0, "l2tp0"), pair.index(0, "l2tp1")];
++    pair.ip(0, &["link", "set", "vrf0", "name", "away"]);
++    support::wait("both ordinary-device bindings lost", || {
++        a.count("disconnected: its bind device is absent") == 2
++    });
++    pair.ip(0, &["link", "set", "away", "name", "vrf0"]);
++    support::wait("both ordinary-device bindings restored", || {
++        a.count("connected to") == 4
++    });
++    for (n, index) in indices.into_iter().enumerate() {
++        assert_eq!(pair.index(0, &format!("l2tp{n}")), index);
++        pair.frames(n);
++    }
++    a.stop();
++    b.stop();
++    pair.absent(0);
++    pair.absent(1);
++    assert!(!std::path::Path::new("/sys/module/vrf").exists());
++}
++
+ /// spec: H4, T4, R27
+ #[test]
+ #[ignore = "QEMU guest booted with ipv6.disable=1 or CONFIG_IPV6=n"]

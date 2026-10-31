@@ -398,3 +398,15 @@ daemon in the H9 container case. All 19 kernel, 26 process and 25 host cases
 pass on `6.8.0-147-generic`; the new assertions have not yet run on the other
 four targets. Its real user-manager store case passes separately from the
 41-case container binary suite and does not replace the root P6 sandbox test.
+
+### Unavailable VRF driver
+
+The [R45 guest profile](../audit/phase6/host-requirements-20261031/README.md)
+passes on both modular Ubuntu targets, `6.8.0-147-generic` and
+`7.0.0-42-generic`. With `vrf` unloaded and guest autoload disabled, actual
+VRF creation is refused. Ordinary veth devices named `vrf0` still support
+binding, readiness and bidirectional frames for IPv4 and IPv6 peers. Losing
+and restoring the configured bind name disconnects/reconnects both tunnels
+without replacing sessions; the VRF driver remains absent. The name alone
+does not supply VRF semantics. This is one scoped case per stock kernel,
+separate from their normal profiles and from CONFIG_NET_VRF=n vanilla builds.

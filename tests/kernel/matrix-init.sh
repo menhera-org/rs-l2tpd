@@ -41,6 +41,16 @@ if [ "$mode" = no-ethernet ]; then
     echo SCENARIO_RESULT=0
     exit 0
 fi
+if [ "$mode" = no-vrf ]; then
+    for module in l2tp_ip6 l2tp_eth; do modprobe "$module"; done
+    printf '%s\n' /no-module-loader > /proc/sys/kernel/modprobe
+    export RS_L2TPD_NO_VRF=1
+    echo 'scope: unavailable VRF driver with ordinary named-device binding only'
+    run_suite /boot-scenarios --ignored --exact unavailable_vrf_driver_keeps_ordinary_device_binding_and_frames --nocapture
+    echo CONFORMANCE_RESULT=0
+    echo SCENARIO_RESULT=0
+    exit 0
+fi
 if [ "$mode" = clock ]; then
     export RS_L2TPD_CLOCK_GUEST=1
     echo 'scope: H16 wall-clock and QMP pause scenario only'
