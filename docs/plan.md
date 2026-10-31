@@ -509,8 +509,10 @@ pass on all five required kernels, and the low-port-range DHCPv6 positive
 case passes. H17 exercises every session, bounds descriptors across shrink
 cycles and observes zero requests for unrelated links; a fresh mainline
 normal profile passes the expanded 23-scenario suite. Two retained map
-allocations are fixed. There are 58 uncited rules; lifetime-subscriber
-indexed event cost, complete resource/history proof, remaining clauses and
+allocations are fixed. The lifetime subscriber now indexes deletion work
+by interface and incarnation, with passing native/live/host cases. There
+are 58 uncited rules; deadline-selection event cost, complete
+resource/history proof, remaining clauses and
 final matrix/coverage refreshes are still open. No global gate is declared
 complete; strict CI flags remain off. The latest record is repository file
 `audit/PHASE6_VERIFICATION_2026-10-31.md`; the approved H11 MAC limitations

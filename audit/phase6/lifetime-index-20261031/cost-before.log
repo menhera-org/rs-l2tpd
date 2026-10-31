@@ -1,0 +1,12 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+LIFETIME_COST registrations=1 events=20000 elapsed_ns=23274213
+LIFETIME_COST registrations=300 events=20000 elapsed_ns=209188249
+LIFETIME_COST registrations=20000 events=20000 elapsed_ns=12315357503
+test kernel::linux::lifetime::tests::foreign_deletion_workload_preserves_current_registrations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 12.65s
+

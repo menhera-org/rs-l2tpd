@@ -1,0 +1,362 @@
+diff --git a/src/kernel/linux/lifetime.rs b/src/kernel/linux/lifetime.rs
+index 97a4d20..7bbefc6 100644
+--- a/src/kernel/linux/lifetime.rs
++++ b/src/kernel/linux/lifetime.rs
+@@ -12,7 +12,7 @@
+ //! A new generation needs no seed: nothing captured in an ended one is
+ //! provable, and a new registration is captured from its own broadcast.
+ 
+-use std::collections::HashMap;
++use std::collections::{BTreeMap, HashMap};
+ use std::io;
+ use std::sync::{Arc, Condvar, Mutex, MutexGuard, PoisonError};
+ use std::thread::JoinHandle;
+@@ -52,13 +52,6 @@ enum Answer {
+     Failed,
+ }
+ 
+-/// A registration still tracked: its index, and whether a removal of the
+-/// index was seen since.
+-struct Tracked {
+-    index: u32,
+-    removed: bool,
+-}
+-
+ struct State {
+     stop: bool,
+     generation: u64,
+@@ -67,7 +60,8 @@ struct State {
+     incarnations: u64,
+     seq: u32,
+     captures: HashMap<L2tpIfName, Capture>,
+-    tracked: HashMap<u64, Tracked>,
++    /// (interface index, incarnation) -> whether removal was observed.
++    tracked: BTreeMap<(u32, u64), bool>,
+     lookups: HashMap<u32, Answer>,
+ }
+ 
+@@ -78,7 +72,7 @@ impl State {
+     fn end_generation(&mut self) {
+         self.generation += 1;
+         self.captures.clear();
+-        self.tracked = HashMap::new();
++        self.tracked.clear();
+         self.lookups.clear();
+         self.socket = open().map(Arc::new).ok();
+     }
+@@ -127,18 +121,12 @@ impl State {
+                         self.incarnations += 1;
+                         let incarnation = self.incarnations;
+                         *capture = Capture::Seen(index, incarnation);
+-                        self.tracked.insert(
+-                            incarnation,
+-                            Tracked {
+-                                index,
+-                                removed: false,
+-                            },
+-                        );
++                        self.tracked.insert((index, incarnation), false);
+                     }
+                 }
+                 libc::RTM_DELLINK => {
+-                    for tracked in self.tracked.values_mut().filter(|t| t.index == index) {
+-                        tracked.removed = true;
++                    for (_, removed) in self.tracked.range_mut((index, 0)..=(index, u64::MAX)) {
++                        *removed = true;
+                     }
+                 }
+                 _ => {}
+@@ -262,7 +250,7 @@ impl Lifetime {
+                 incarnations: 0,
+                 seq: 0,
+                 captures: HashMap::new(),
+-                tracked: HashMap::new(),
++                tracked: BTreeMap::new(),
+                 lookups: HashMap::new(),
+             }),
+             changed: Condvar::new(),
+@@ -330,8 +318,8 @@ impl Lifetime {
+     /// was a foreign device of that name.
+     pub(super) fn disarm(&self, name: &L2tpIfName) {
+         let mut state = self.shared.lock();
+-        if let Some(Capture::Seen(_, incarnation)) = state.captures.remove(name) {
+-            state.tracked.remove(&incarnation);
++        if let Some(Capture::Seen(index, incarnation)) = state.captures.remove(name) {
++            state.tracked.remove(&(index, incarnation));
+         }
+     }
+ 
+@@ -341,15 +329,16 @@ impl Lifetime {
+     /// seen or the lookup finds no device; lost when the generation ended
+     /// or the reply did not come within the deadline (E21).
+     pub(super) fn prove(&self, registration: &Registration) -> Proof {
++        let key = (registration.index, registration.incarnation);
+         let deadline = Instant::now() + DEADLINE;
+         let (seq, socket) = {
+             let mut state = self.shared.lock();
+             if state.generation != registration.generation {
+                 return Proof::Lost;
+             }
+-            match state.tracked.get(&registration.incarnation) {
++            match state.tracked.get(&key) {
+                 None => return Proof::Lost,
+-                Some(tracked) if tracked.removed => return Proof::Removed,
++                Some(true) => return Proof::Removed,
+                 Some(_) => {}
+             }
+             let Some(socket) = state.socket.clone() else {
+@@ -375,8 +364,8 @@ impl Lifetime {
+             }
+             let answer = state.lookups.get(&seq).copied().unwrap_or(Answer::Failed);
+             let removed = |state: &mut State| {
+-                if let Some(tracked) = state.tracked.get_mut(&registration.incarnation) {
+-                    tracked.removed = true;
++                if let Some(removed) = state.tracked.get_mut(&key) {
++                    *removed = true;
+                 }
+                 Proof::Removed
+             };
+@@ -384,9 +373,9 @@ impl Lifetime {
+                 Answer::Pending => {}
+                 Answer::Found => {
+                     state.lookups.remove(&seq);
+-                    let tracked = state.tracked.get(&registration.incarnation);
++                    let tracked = state.tracked.get(&key);
+                     return match tracked {
+-                        Some(tracked) if !tracked.removed => Proof::Proved,
++                        Some(false) => Proof::Proved,
+                         Some(_) => Proof::Removed,
+                         None => Proof::Lost,
+                     };
+@@ -413,13 +402,10 @@ impl Lifetime {
+     // kernel: net/core/dev.c:11205-11224 (K29)
+     /// Stops tracking a registration.
+     pub(super) fn release(&self, registration: &Registration) {
+-        let mut state = self.shared.lock();
+-        state.tracked.remove(&registration.incarnation);
+-        // Retired registrations must not retain a former configuration's allocation (G23).
+-        if state.tracked.capacity() > state.tracked.len().saturating_mul(4).max(16) {
+-            let remaining = state.tracked.len();
+-            state.tracked.shrink_to(remaining);
+-        }
++        self.shared
++            .lock()
++            .tracked
++            .remove(&(registration.index, registration.incarnation));
+     }
+ }
+ 
+@@ -472,24 +458,49 @@ mod tests {
+             incarnations: 0,
+             seq: 0,
+             captures: HashMap::new(),
+-            tracked: HashMap::new(),
++            tracked: BTreeMap::new(),
+             lookups: HashMap::new(),
+         }
+     }
+ 
++    // kernel: net/core/dev.c unregister_netdevice broadcasts RTM_DELLINK (K29)
++    /// spec: G12, M16
++    #[test]
++    fn foreign_deletion_workload_preserves_current_registrations() {
++        let from = SocketAddr::new(0, libc::RTNLGRP_LINK);
++        let notice = link(libc::RTM_DELLINK, 0, 100_000, b"foreign");
++        for count in [1, 300, 20_000] {
++            let mut state = state();
++            for index in 1..=count {
++                let name = format!("owned{index}");
++                let key = L2tpIfName::new(name.as_bytes()).unwrap();
++                state.captures.insert(key, Capture::Armed);
++                state.receive(&link(libc::RTM_NEWLINK, 0, index, name.as_bytes()), &from);
++                state.captures.remove(&key);
++            }
++            let started = Instant::now();
++            for _ in 0..20_000 {
++                state.receive(std::hint::black_box(&notice), &from);
++            }
++            println!(
++                "LIFETIME_COST registrations={count} events=20000 elapsed_ns={}",
++                started.elapsed().as_nanos()
++            );
++            assert_eq!(state.tracked.len(), count as usize);
++            assert_eq!(state.incarnations, u64::from(count));
++            assert!(state.captures.is_empty() && state.lookups.is_empty());
++        }
++    }
++
+     // kernel: net/core/dev.c unregister_netdevice and RTM_DELLINK (K29)
+     /// spec: G23, M16
+     #[test]
+-    fn retired_registrations_release_their_storage() {
++    fn retired_registrations_leave_only_survivors_and_generation_loss_clears_them() {
+         let mut state = state();
+         for incarnation in 1..=300 {
+-            state.tracked.insert(
+-                incarnation,
+-                Tracked {
+-                    index: incarnation as u32,
+-                    removed: false,
+-                },
+-            );
++            state
++                .tracked
++                .insert((incarnation as u32, incarnation), false);
+         }
+         let lifetime = Lifetime {
+             shared: Arc::new(Shared {
+@@ -504,31 +515,98 @@ mod tests {
+                 generation: 0,
+                 incarnation,
+             });
+-            let state = lifetime.shared.lock();
+-            assert!(state.tracked.capacity() <= state.tracked.len().saturating_mul(4).max(16));
++            assert_eq!(
++                lifetime.shared.lock().tracked.len(),
++                301 - incarnation as usize
++            );
+         }
+         let mut state = lifetime.shared.lock();
+         assert_eq!(state.tracked.len(), 1);
+-        assert!(
+-            state.tracked.capacity() <= 16,
+-            "retained {} slots for one registration",
+-            state.tracked.capacity()
+-        );
++        assert_eq!(state.tracked.get(&(1, 1)), Some(&false));
+         for incarnation in 2..=300 {
+-            state.tracked.insert(
+-                incarnation,
+-                Tracked {
+-                    index: incarnation as u32,
+-                    removed: false,
+-                },
+-            );
++            state
++                .tracked
++                .insert((incarnation as u32, incarnation), false);
+         }
+         state.end_generation();
++        assert!(state.tracked.is_empty());
++    }
++
++    // kernel: net/core/dev.c register_netdevice/unregister_netdevice (K16, K20, K29)
++    /// spec: S8, S9, M18, G12, M16
++    #[test]
++    fn deletion_and_release_are_scoped_by_index_and_incarnation() {
++        let from = SocketAddr::new(0, libc::RTNLGRP_LINK);
++        let mut state = state();
++        let names = ["old", "other", "fresh", "also-fresh"];
++        for (n, name) in names.iter().enumerate() {
++            let index = if n == 1 { 9 } else { 8 };
++            let key = L2tpIfName::new(name.as_bytes()).unwrap();
++            state.captures.insert(key, Capture::Armed);
++            state.receive(&link(libc::RTM_NEWLINK, 0, index, name.as_bytes()), &from);
++            state.captures.remove(&key);
++            if n == 0 {
++                state.receive(&link(libc::RTM_DELLINK, 0, 8, b"old"), &from);
++            }
++        }
++        assert!(state.tracked[&(8, 1)]);
++        assert!(!state.tracked[&(9, 2)] && !state.tracked[&(8, 3)] && !state.tracked[&(8, 4)]);
++        let before = state.tracked.clone();
++        state.receive(&link(libc::RTM_DELLINK, 0, 999, b"foreign"), &from);
++        assert_eq!(state.tracked, before);
++        state.receive(
++            &link(libc::RTM_DELLINK, 0, 8, b"fresh"),
++            &SocketAddr::new(99, 1),
++        );
++        assert_eq!(state.tracked, before);
++        state.receive(&link(libc::RTM_DELLINK, 0, 8, b"fresh"), &from);
++        assert!(state.tracked[&(8, 1)] && state.tracked[&(8, 3)] && state.tracked[&(8, 4)]);
++        assert!(!state.tracked[&(9, 2)]);
++        let lifetime = Lifetime {
++            shared: Arc::new(Shared {
++                state: Mutex::new(state),
++                changed: Condvar::new(),
++            }),
++            thread: None,
++        };
++        let old = Registration {
++            index: 8,
++            generation: 0,
++            incarnation: 1,
++        };
++        lifetime.release(&old);
++        assert_eq!(lifetime.prove(&old), Proof::Lost);
+         assert_eq!(
+-            state.tracked.capacity(),
+-            0,
+-            "ended generations must release all registrations"
++            lifetime.prove(&Registration {
++                index: 8,
++                generation: 0,
++                incarnation: 3
++            }),
++            Proof::Removed
+         );
++        assert_eq!(
++            lifetime.prove(&Registration {
++                index: 9,
++                generation: 0,
++                incarnation: 3
++            }),
++            Proof::Lost
++        );
++        assert_eq!(lifetime.shared.lock().tracked.len(), 3);
++        let name = L2tpIfName::new(b"refused").unwrap();
++        lifetime
++            .shared
++            .lock()
++            .captures
++            .insert(name, Capture::Seen(8, 3));
++        lifetime.disarm(&name);
++        assert_eq!(lifetime.shared.lock().tracked.len(), 2);
++        assert!(lifetime.shared.lock().tracked.contains_key(&(8, 4)));
++        assert!(!lifetime.shared.lock().tracked.contains_key(&(8, 3)));
++        lifetime.shared.lock().captures.insert(name, Capture::Armed);
++        lifetime.disarm(&name);
++        assert!(lifetime.shared.lock().captures.is_empty());
++        assert_eq!(lifetime.shared.lock().tracked.len(), 2);
+     }
+ 
+     // kernel: net/core/dev.c:10425, 11205-11224 (K16, K20)
+@@ -558,7 +636,7 @@ mod tests {
+         assert!(matches!(state.captures[&name], Capture::Seen(8, 1)));
+         state.receive(&link(libc::RTM_DELLINK, 0, 8, b"rsl2tp-t000001"), &kernel);
+         state.receive(&link(libc::RTM_NEWLINK, 0, 8, b"other"), &kernel);
+-        assert!(state.tracked[&1].removed);
++        assert!(state.tracked[&(8, 1)]);
+         state.lookups.insert(4, Answer::Pending);
+         let mut reply = link(libc::RTM_NEWLINK, 0, 8, b"other");
+         reply[8..12].copy_from_slice(&4u32.to_ne_bytes());
+@@ -584,13 +662,7 @@ mod tests {
+         let socket = state.socket.as_ref().unwrap().clone();
+         SockRef::from(&*socket).set_recv_buffer_size(4096).unwrap();
+         let generation = state.generation;
+-        state.tracked.insert(
+-            1,
+-            Tracked {
+-                index: 1,
+-                removed: false,
+-            },
+-        );
++        state.tracked.insert((1, 1), false);
+         let registration = Registration {
+             index: 1,
+             generation,
+@@ -636,13 +708,7 @@ mod tests {
+         let lifetime = Lifetime::new().unwrap();
+         let mut state = lifetime.shared.lock();
+         let socket = state.socket.as_ref().unwrap().clone();
+-        state.tracked.insert(
+-            1,
+-            Tracked {
+-                index: 1,
+-                removed: false,
+-            },
+-        );
++        state.tracked.insert((1, 1), false);
+         let registration = Registration {
+             index: 1,
+             generation: state.generation,

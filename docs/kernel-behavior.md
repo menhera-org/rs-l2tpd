@@ -257,14 +257,21 @@ with a loss-accounted observer covering route and generic netlink.
 
 Direct allocation tests found and fixed retained socket/registration map
 capacity after shrink. RSS bounds alone did not detect those allocations.
-The lifetime subscriber still scans registrations on deletion; the live
-zero-request assertion does not establish its complete CPU-cost bound.
+The lifetime subscriber now uses an ordered lookup by interface index
+and incarnation, preserving separate old/new proofs on index reuse. Its
+updated native and 32 live kernel cases plus all 23 host scenarios pass
+on Ubuntu 6.8.0-147-generic. Runtime deadline selection still scans tunnel
+timers after events; the live zero-request assertion alone does not
+establish that complete CPU-cost bound.
 The fresh mainline normal profile also passes 11 live library, 16 kernel,
 five review, 38 ordinary binary plus three privileged binary, 26 process
 and 23 scenario cases. Fresh readiness for both 300-entry daemons takes
-38.43 seconds under the recorded TCG profile. These results are scoped to
-the executed profiles; H17 has not yet run on every required target. Repository record
-`audit/phase6/H17-20261031/README.md` gives commands, measurements and limits.
+38.43 seconds under the recorded TCG profile. These results predate the indexed lifetime change except for its fresh
+Ubuntu 6.8 host checks. They are scoped to the executed profiles; H17 has
+not yet run on every required target. Repository record
+`audit/phase6/H17-20261031/README.md` gives the scale commands and limits;
+`audit/phase6/lifetime-index-20261031/README.md` records the indexed
+implementation, measurements and fresh host checks.
 
 Coverage, rule completeness, full resource/event-cost proof, the expanded
 normal matrix, final manager/profile refreshes and strict CI remain open. This page does not

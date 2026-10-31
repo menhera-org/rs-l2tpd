@@ -1,0 +1,17 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 6 tests
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::deletion_and_release_are_scoped_by_index_and_incarnation ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test kernel::linux::lifetime::tests::retired_registrations_leave_only_survivors_and_generation_loss_clears_them ... ok
+LIFETIME_COST registrations=1 events=20000 elapsed_ns=26468246
+LIFETIME_COST registrations=300 events=20000 elapsed_ns=33375232
+LIFETIME_COST registrations=20000 events=20000 elapsed_ns=50030528
+test kernel::linux::lifetime::tests::foreign_deletion_workload_preserves_current_registrations ... ok
+
+test result: ok. 4 passed; 0 failed; 2 ignored; 0 measured; 85 filtered out; finished in 0.22s
+

@@ -10,7 +10,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 |---|---|---|
 | P1 source link | Fresh strict run: four tests pass; 43 facts, 37 production-cited and six classified; no uncited functions | Enable in CI only with required determinism and remaining phase proof |
 | P1 rule map | Fresh strict run fails: 343 total / 333 active / 275 cited / 58 missing | Genuine assertions/citations for the remaining rules; strict flag stays off |
-| P2 scenarios | 23-case host subset passes, including the 300-tunnel H17 case; H16 passes on all five required kernels; scoped missing-Ethernet-driver guest also passes | Lifetime-subscriber indexed event cost, full resource/history proof, remaining clauses, manager/promise cases and final repetitions |
+| P2 scenarios | 23-case host subset passes, including the 300-tunnel H17 case; H16 passes on all five required kernels; scoped missing-Ethernet-driver guest also passes | Deadline-selection event cost, full resource/history proof, remaining clauses, manager/promise cases and final repetitions |
 | P3 matrix | Pre-H15 required driver returns MATRIX_RESULT=0: five 18-scenario profiles plus both H4 boots; H15 adds a scoped stock-kernel driver-availability boot; H16 adds a passing clock profile on every required target; fresh mainline normal profile passes all 23 scenarios and current conformance | Complete P2/delegated proof and rerun all latest targets with the expanded suite and current report fixes; partial profiles do not close the whole gate |
 | P4 coverage | First merged GNU report: 91.03% lines / 77.02% branches, source snapshot before the readiness fix | The previous source snapshot has 897 missing lines / 410 branches; recollect current-source profiles after readiness/H15 fixes; no exclusions introduced |
 | P5 Incus | October 30 full case passed, including manager race/ordered policy/store/re-exec; fresh GNU buffer case proves EPERM and exports coverage | Final-code full-case refresh as part of phase exit |
@@ -18,6 +18,8 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P7 docs/CI | Documentation updated to the actual partial runners and new records | Full verification, determinism/coverage jobs, strict CI and CI execution remain open |
 
 Current P1/ordinary/warning checks are in
+[lifetime-index-20261031](phase6/lifetime-index-20261031/README.md). Earlier
+H17 scale/storage evidence is in
 [H17-20261031](phase6/H17-20261031/README.md). Clock evidence is in
 [H16-20261031](phase6/H16-20261031/README.md). H15/report-fix evidence is in
 [H15-20261031](phase6/H15-20261031/README.md). Earlier readiness-fix logs are in
@@ -174,11 +176,31 @@ scale fixture's ten-second observation timeout during session creation,
 not a kernel refusal; the scoped observation waits now allow sixty seconds
 per readiness/reload/shutdown. Actual fresh 300-entry readiness is 38.43
 seconds for both daemons in TCG. The original failure remains recorded.
-M16/G12's CPU-cost proof
-remains open: the lifetime subscriber still scans tracked registrations on
-RTM_DELLINK. Discovery/store/history bounds and other remaining clauses
+At the H17 snapshot, M16/G12's CPU-cost proof remained open because the
+lifetime subscriber scanned registrations on RTM_DELLINK. The following
+package addresses that part. Discovery/store/history bounds and other remaining clauses
 also retain their separate obligations. Rule citations improve to 275,
 leaving 58 uncited active rules; strict CI remains off.
+
+## Indexed lifetime deletion handling
+
+[The indexed-lifetime package](phase6/lifetime-index-20261031/README.md)
+replaces the registration scan with an ordered map keyed by interface
+index and incarnation. Tests preserve old/new incarnations under index
+reuse, exact release/disarm, foreign-event rejection and generation loss.
+The same 20,000-event workload with 20,000 current registrations takes
+12.3 seconds before and 42.7 milliseconds after, in the recorded native
+debug profile; timing is diagnostic rather than a new SLA.
+
+Ordinary tests, Clippy, strict source links, 32 live library/kernel/review
+cases and all 23 host scenarios pass. The registration HashMap-specific
+capacity assertion is replaced by record retirement/generation assertions
+for the ordered map; the socket-storage allocation regression remains.
+The earlier mainline and five-target results predate this implementation
+change, so the final full matrix still needs refreshing. Runtime deadline
+selection still scans all tunnel timers after events; complete G12/M16
+event cost and the other phase gates remain open. The first empty-loop
+live harness invocation is retained as a harness error, not counted.
 
 ## Coverage and exit state
 

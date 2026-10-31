@@ -1,0 +1,6 @@
+cargo test --locked --all-features --lib foreign_deletion_workload_preserves_current_registrations -- --nocapture
+cargo test --locked --all-features --lib kernel::linux::lifetime::tests -- --nocapture
+cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --test kernel-linux --test review-kernel --no-run
+docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --entrypoint sh rs-l2tpd-audit-vm:local -ec 'uname -r; exec "$@"' run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-5d2fd790b3939896 --ignored --test-threads=1 --nocapture
+docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --entrypoint sh rs-l2tpd-audit-vm:local -ec 'uname -r; exec "$@"' run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/kernel_linux-24aa97de8de86bfb --ignored --test-threads=1 --nocapture
+docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --entrypoint sh rs-l2tpd-audit-vm:local -ec 'uname -r; exec "$@"' run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/review_kernel-a94d1056f1fc43ab --ignored --test-threads=1 --nocapture
