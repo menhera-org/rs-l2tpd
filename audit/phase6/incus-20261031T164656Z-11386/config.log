@@ -1,0 +1,20 @@
+architecture: x86_64
+config:
+  image.architecture: amd64
+  image.description: Ubuntu noble amd64 (20261018_07:42)
+  image.os: Ubuntu
+  image.release: noble
+  image.requirements.cgroup: v2
+  image.serial: "20261018_07:42"
+  image.type: squashfs
+  image.variant: default
+  security.privileged: "false"
+devices:
+  root:
+    path: /
+    pool: <host storage pool omitted>
+    type: disk
+ephemeral: false
+profiles: []
+stateful: false
+description: ""

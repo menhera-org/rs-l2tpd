@@ -1,6 +1,12 @@
 //! Unit tests of the reconciler's pure parts; the behavioural rules are
 //! tested against the fake kernel in `tests/rules/`.
 
+pub(crate) fn socket_workload() -> std::sync::MutexGuard<'static, ()> {
+    // Bound combined descriptor demand from the large fake namespaces.
+    static GATE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    GATE.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 #[cfg(feature = "fake-kernel")]
 mod completion {
     use super::super::*;
@@ -363,6 +369,7 @@ mod cache_cost {
     /// spec: G12, M16
     #[test]
     fn unchanged_bound_link_workload_preserves_other_dependencies() {
+        let _socket_workload = super::socket_workload();
         for count in [1, 100, 300] {
             let mut kernel = FakeKernel::new(42);
             let mut text = "[host]\nfix_bindv6only=false\n".to_owned();

@@ -29,6 +29,13 @@ struct State {
 }
 
 impl State {
+    fn shrink_order(&mut self) {
+        // Geometric shrinking bounds retained storage by current jobs (G23).
+        if self.order.capacity() > self.order.len().saturating_mul(4).max(16) {
+            self.order.shrink_to(self.order.len());
+        }
+    }
+
     fn admit(&mut self, owner: u64, now: Instant) -> Option<(u64, bool, Call)> {
         let mut earlier = [false; 2];
         for _ in 0..self.order.len() {
@@ -123,6 +130,7 @@ impl Drop for Owner {
         state.jobs.retain(|_, job| job.owner != self.id);
         let keys: BTreeSet<_> = state.jobs.keys().copied().collect();
         state.order.retain(|id| keys.contains(id));
+        state.shrink_order();
         self.shared.changed.notify_all();
         drop(state);
         // Only the dispatcher joins: it never runs a blocking lookup.
@@ -161,6 +169,7 @@ impl Workers {
         let mut state = self.state.lock().unwrap();
         state.jobs.remove(&id);
         state.order.retain(|key| *key != id);
+        state.shrink_order();
         self.changed.notify_all();
     }
 
@@ -235,6 +244,60 @@ impl Workers {
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
+
+    /// spec: G23, M16, V15
+    #[test]
+    fn cancelled_jobs_and_dropped_owners_release_snapshots_and_queue_storage() {
+        for drop_owner in [false, true] {
+            let shared = Arc::new(Workers::default());
+            shared.state.lock().unwrap().owners.extend([1, 2]);
+            let owner = Owner {
+                shared: shared.clone(),
+                id: 1,
+                thread: None,
+            };
+            let survivor = shared.watch(2, false, Arc::new(Vec::new));
+            let mut jobs = Vec::new();
+            let mut snapshots = Vec::new();
+            for _ in 0..300 {
+                let snapshot = Arc::new(vec![0u8; 128]);
+                snapshots.push(Arc::downgrade(&snapshot));
+                jobs.push(owner.watch(
+                    false,
+                    Arc::new(move || {
+                        drop(snapshot.clone());
+                        Vec::new()
+                    }),
+                ));
+            }
+            assert!(
+                snapshots
+                    .iter()
+                    .all(|snapshot| snapshot.strong_count() == 1)
+            );
+            if !drop_owner {
+                for job in jobs {
+                    owner.unwatch(job);
+                    let state = shared.state.lock().unwrap();
+                    assert!(state.order.capacity() <= state.order.len().saturating_mul(4).max(16));
+                }
+            }
+            drop(owner);
+            let state = shared.state.lock().unwrap();
+            assert_eq!(state.jobs.keys().copied().collect::<Vec<_>>(), [survivor]);
+            assert_eq!(state.order, [survivor]);
+            assert!(
+                snapshots
+                    .iter()
+                    .all(|snapshot| snapshot.strong_count() == 0)
+            );
+            assert!(
+                state.order.capacity() <= 16,
+                "retained capacity {} after drop_owner={drop_owner}",
+                state.order.capacity()
+            );
+        }
+    }
 
     /// spec: V3, V4, V15, G23, A9
     #[test]

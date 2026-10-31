@@ -1,0 +1,12 @@
+6.8.0-147-generic
+features: all; target: x86_64-unknown-linux-gnu; nightly branch coverage; fresh resource fix
+command: systemd-run --user --no-pager --wait --pipe --collect --unit=UNIT --property=Type=notify --property=NotifyAccess=all --property=FileDescriptorStoreMax=8 --property=NoNewPrivileges=yes --property=RuntimeMaxSec=30s --property="RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6" --setenv=PHASE5_NOTIFY_UNIT=UNIT.service --setenv=LLVM_PROFILE_FILE=PROFILE TEST --ignored --exact fdstore::manager_tests::actual_manager_processing_and_address_family_filter --nocapture
+Running as unit: rs-l2tpd-resource-manager-4183886.service; invocation ID: bfb71c29898b4c1885303b537fe416f8
+
+running 1 test
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 46 filtered out; finished in 0.05s
+
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS

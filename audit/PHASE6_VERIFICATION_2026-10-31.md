@@ -11,9 +11,9 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 |---|---|---|
 | P1 source link | Strict local and CI passes: 43 facts, 37 production-cited and six classified; no uncited functions. Ten CI repetitions passed | Maintain strict enforcement as sources change |
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
-| P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests; H16 has passing required-kernel records | Relevant-event CPU cost, full resource/history proof and remaining clauses; investigate the separate vanilla 7.0.14 capture failure |
+| P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
-| P4 coverage | Approved production scope: merged GNU report 92.72% lines / 80.03% branches, including closed handles, lifetime/startup/process failures, live adoption, real user manager and full Incus case; no production exclusions | 610 missing lines / 351 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: fresh merged GNU report 92.79% lines / 80.19% branches after the resource fixes, including real user manager and full Incus case; no production exclusions | 605 missing lines / 349 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Current unmodified musl full case passes, including manager race/ordered policy/store/re-exec; instrumented GNU full case exports seven daemon profiles | Repeat if relevant source changes; retain documented MAC limitations |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -634,3 +634,35 @@ raise coverage to 92.72% lines and 80.03% branches, leaving 610 lines and
 the same 17 cases pass in the focused live Ubuntu wrapper. Production code
 remains unchanged. The adoption package's CI run `41217588917` passes both
 jobs on its first attempt at `f7db02e`; job metadata is retained in this record.
+
+## Resource history and fresh profiles
+
+[The resource package](phase6/resource-history-20261031/README.md) reproduces
+two storage-retention defects: 512 DNS queue slots for one remaining job,
+and 129 outgoing queue slots after all but one tunnel's store retirements
+complete. Geometric shrinking fixes both. Tests also check all 29 ownership/
+event-index/cache counts across eight configuration epochs, resolver indexes
+across four 300-entry epochs, report cleanup and release of queued snapshots.
+
+The common gates and ten seeded repetitions pass after bounding concurrent
+large fake namespaces with a shared test gate. The failed resource-exhaustion
+run and both pre-fix regressions remain recorded. No workload assertion was
+relaxed. The fresh all-feature GNU collection executes all native suites,
+11 live library, 19 kernel, five review and three privileged binary probes,
+all 27 process cases, all 26 normal scenarios, the real user manager and the
+full Incus case. It excludes earlier profiles and reports 92.79% production
+lines / 80.19% branches: 605 missing lines and 349 missing branches, with no
+production exclusions. Test-only instrumentation now excludes 46 modules and
+one helper while executing their tests.
+
+The unmodified musl [Incus case](phase6/incus-20261031T164656Z-11386/README.md)
+passes in 22.38 seconds, and the unmodified
+[root-systemd case](phase6/resource-history-20261031/root-systemd/README.md)
+passes in 27.46 seconds on Ubuntu 6.8.0-147. The initial/final source patches
+and root-sandbox source match. Official generic meta resolution remains
+6.8.0-147.147 and 7.0.0-42.42; the final matrix resolves again.
+
+Both jobs also pass on their first attempts for CI runs `41218466550`
+(`df7d97b`) and `41219328717` (`0903d55`), with metadata retained in the
+resource record. The resource package still needs its own CI run. Remaining
+coverage, event cost, clauses and final matrix keep Phase 6 incomplete.

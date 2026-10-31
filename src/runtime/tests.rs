@@ -245,6 +245,62 @@ fn dropping_the_owner_releases_a_waiter_and_rejects_later_completions() {
     assert_eq!(control.config(), Config::new());
 }
 
+/// spec: L13, G23, M16
+#[test]
+fn completed_store_retirements_release_outgoing_queue_storage() {
+    let _socket_workload = crate::reconciler::tests::socket_workload();
+    engine().block_on(async {
+        let configuration = |count| {
+            let mut config = Config::new();
+            config.set_host(crate::config::HostConfig::new().with_fix_bindv6only(false));
+            for id in 1..=count {
+                config
+                    .insert_tunnel(
+                        format!("t{id}"),
+                        TunnelConfig::builder(id)
+                            .ip_version(Family::V6)
+                            .build()
+                            .unwrap(),
+                    )
+                    .unwrap();
+            }
+            config
+        };
+        let mut r = runtime();
+        r.set_store_capacity(256);
+        assert!(r.reconcile(configuration(129)));
+        for _ in 0..129 {
+            let event = r.next_event().await;
+            assert!(matches!(event, ControlEvent::StoreSocket { .. }));
+            r.handle_event(event).unwrap();
+        }
+        r.reconcile(configuration(1));
+        for _ in 0..128 {
+            let event = r.next_event().await;
+            let ControlEvent::ForgetSocket { id, .. } = event else {
+                panic!("expected descriptor-store withdrawal")
+            };
+            r.handle_event(ControlEvent::SocketForgotten {
+                id,
+                processed: true,
+            })
+            .unwrap();
+        }
+        r.reconciler.kernel_mut().advance(Duration::from_secs(1));
+        r.reconciler.kernel_mut().tick();
+        r.handle_event(ControlEvent::Tick).unwrap();
+        assert_eq!(r.reconciler.kernel().open_sockets(), 1);
+        assert!(r.outgoing.is_empty());
+        assert!(
+            r.outgoing.capacity() <= 16,
+            "retained outgoing capacity {}",
+            r.outgoing.capacity()
+        );
+        r.set_store_capacity(0);
+        finish(&mut r);
+    });
+}
+
 /// spec: L9, L10, A6
 #[test]
 fn subscription_loss_survives_a_full_queue_and_a_second_loss() {

@@ -115,6 +115,10 @@ mod tests {
     fn errors_carry_their_errno_names() {
         let text = describe(&io::Error::from_raw_os_error(nix::libc::EEXIST));
         assert!(text.starts_with("EEXIST: "), "{text}");
+        assert_eq!(
+            describe(&io::Error::other("resolver stopped")),
+            "resolver stopped"
+        );
     }
 
     /// spec: O3
@@ -126,5 +130,25 @@ mod tests {
         report.begin("tunnel a", "pending", String::new);
         report.end("tunnel a", "pending", String::new);
         assert!(!report.is_open("tunnel a", "pending"));
+    }
+
+    /// spec: O3, G23, M16
+    #[test]
+    fn removed_entries_release_every_condition_across_reloads() {
+        let mut report = Report::default();
+        report.begin("survivor", "pending", String::new);
+        for epoch in 0..8 {
+            for entry in 0..300 {
+                let name = format!("tunnel-{epoch}-{entry}");
+                report.begin(&name, "pending", String::new);
+                report.begin_error(&name, "create", String::new);
+            }
+            assert_eq!(report.open.len(), 601);
+            for entry in 0..300 {
+                report.forget(&format!("tunnel-{epoch}-{entry}"));
+            }
+            assert_eq!(report.open.len(), 1);
+            assert!(report.is_open("survivor", "pending"));
+        }
     }
 }

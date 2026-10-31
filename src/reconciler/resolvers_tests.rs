@@ -7,6 +7,67 @@ use std::sync::atomic::Ordering;
 mod discovery;
 use discovery::{Dns, advertise};
 
+/// spec: G23, M16, V7, V9
+#[cfg(all(feature = "fake-kernel", feature = "serde"))]
+#[test]
+fn resolver_dependency_indexes_release_removed_configurations() {
+    let _socket_workload = crate::reconciler::tests::socket_workload();
+    struct NoDns;
+    impl Resolve for NoDns {
+        fn watch(&mut self, _: Lookup) -> io::Result<()> {
+            Ok(())
+        }
+        fn unwatch(&mut self, _: u64) {}
+        fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
+            Vec::new()
+        }
+    }
+    let mut r = Reconciler::new(crate::kernel::fake::FakeKernel::new(42), Box::new(NoDns));
+    for epoch in 0..4 {
+        let interface = format!("dns{epoch}");
+        let mut text = format!(
+            "[host]\nfix_bindv6only=false\n[resolvers.dns]\naddresses=['192.0.2.53']\nbind_interface='{interface}'\n"
+        );
+        for n in 0..300 {
+            let id = 1 + epoch * 1000 + n;
+            text += &format!(
+                "[tunnels.t{id}]\ntunnel_id={id}\nip_version='V4'\nremote_addr='history.example'\nresolver_name='dns'\n"
+            );
+        }
+        assert!(r.reconcile(toml::from_str(&text).unwrap()));
+        assert_eq!(r.resolvers.watches.len(), 300);
+        assert_eq!(r.resolvers.retries.len(), 300);
+        assert_eq!(
+            r.resolvers.names.values().map(BTreeSet::len).sum::<usize>(),
+            300
+        );
+        assert!(r.resolvers.devices.is_empty());
+        let device = r.k.add_link(&interface, false);
+        let link = r.k.link(device).unwrap().clone();
+        r.handle(
+            super::super::Source::Monitor,
+            crate::kernel::Notice::LinkNew(link),
+        );
+        assert!(r.resolvers.retries.is_empty());
+        assert_eq!(r.resolvers.devices[&device].len(), 300);
+        assert!(
+            r.resolvers
+                .watches
+                .values()
+                .all(|watch| watch.started.is_some())
+        );
+        r.reconcile(Config::new());
+        r.k.tick();
+        r.tick();
+        assert!(r.resolvers.watches.is_empty() && r.resolvers.retries.is_empty());
+        assert!(r.resolvers.names.is_empty() && r.resolvers.devices.is_empty());
+        assert_eq!(r.resolvers.next_deadline(), None);
+        println!(
+            "RESOLVER_HISTORY epoch={epoch} removed=300 watches=0 retries=0 names=0 devices=0"
+        );
+    }
+}
+
 /// spec: V5, V6
 #[test]
 fn selection_checks_every_unusable_address_class_and_preserves_a_present_choice() {

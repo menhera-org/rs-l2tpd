@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+
+thread 'reconciler::workers::tests::cancelled_jobs_and_dropped_owners_release_snapshots_and_queue_storage' (4155268) panicked at src/reconciler/workers.rs:283:13:
+retained capacity 512 after drop_owner=false
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reconciler::workers::tests::cancelled_jobs_and_dropped_owners_release_snapshots_and_queue_storage ... FAILED
+
+failures:
+
+failures:
+    reconciler::workers::tests::cancelled_jobs_and_dropped_owners_release_snapshots_and_queue_storage
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 109 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--lib`

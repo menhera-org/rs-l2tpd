@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+
+thread 'runtime::tests::completed_store_retirements_release_outgoing_queue_storage' (3392) panicked at src/runtime/tests.rs:294:9:
+retained outgoing capacity 129
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test runtime::tests::completed_store_retirements_release_outgoing_queue_storage ... FAILED
+
+failures:
+
+failures:
+    runtime::tests::completed_store_retirements_release_outgoing_queue_storage
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 112 filtered out; finished in 0.13s
+
+error: test failed, to rerun pass `--lib`

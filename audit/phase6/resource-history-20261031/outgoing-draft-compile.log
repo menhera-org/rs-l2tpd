@@ -1,0 +1,31 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+error[E0603]: module `tests` is private
+   --> src/runtime/tests.rs:251:47
+    |
+251 |     let _socket_workload = crate::reconciler::tests::socket_workload();
+    |                                               ^^^^^  --------------- function `socket_workload` is not publicly re-exported
+    |                                               |
+    |                                               private module
+    |
+note: the module `tests` is defined here
+   --> src/reconciler/mod.rs:495:1
+    |
+495 | mod tests;
+    | ^^^^^^^^^^
+
+error[E0277]: `runtime::ControlEvent` doesn't implement `std::fmt::Debug`
+   --> src/runtime/tests.rs:281:25
+    |
+281 |                 panic!("{event:?}")
+    |                         ^^^^^^^^^ `runtime::ControlEvent` cannot be formatted using `{:?}` because it doesn't implement `std::fmt::Debug`
+    |
+help: the trait `std::fmt::Debug` is not implemented for `runtime::ControlEvent`
+   --> src/runtime.rs:104:1
+    |
+104 | pub enum ControlEvent {
+    | ^^^^^^^^^^^^^^^^^^^^^
+    = note: add `#[derive(Debug)]` to `runtime::ControlEvent` or manually `impl std::fmt::Debug for runtime::ControlEvent`
+
+Some errors have detailed explanations: E0277, E0603.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `rs-l2tpd` (lib test) due to 2 previous errors

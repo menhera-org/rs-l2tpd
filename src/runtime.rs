@@ -500,6 +500,9 @@ impl<K: Kernel + 'static> Runtime<K> {
                 return ControlEvent::Shutdown;
             }
             if let Some(event) = self.outgoing.pop_front() {
+                if self.outgoing.capacity() > self.outgoing.len().saturating_mul(4).max(16) {
+                    self.outgoing.shrink_to(self.outgoing.len());
+                }
                 return event;
             }
             for (i, source) in [Source::Monitor, Source::L2tp].into_iter().enumerate() {

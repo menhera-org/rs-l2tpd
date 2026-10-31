@@ -1,0 +1,144 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index 97a0536..d410ba5 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -18,6 +18,139 @@ pub(super) struct Index {
+     registrations: BTreeMap<u32, u32>,
+ }
+ 
++#[cfg(all(test, feature = "fake-kernel", feature = "serde"))]
++#[cfg_attr(coverage_nightly, coverage(off))]
++mod resource_tests {
++    use super::*;
++    use crate::kernel::fake::FakeKernel;
++    use crate::reconciler::{Lookup, Resolve};
++    use std::sync::{Arc, Mutex};
++
++    #[derive(Clone, Default)]
++    struct Watches(Arc<Mutex<BTreeSet<u64>>>);
++    impl Resolve for Watches {
++        fn watch(&mut self, lookup: Lookup) -> std::io::Result<()> {
++            assert!(self.0.lock().unwrap().insert(lookup.id()));
++            Ok(())
++        }
++        fn unwatch(&mut self, id: u64) {
++            assert!(self.0.lock().unwrap().remove(&id));
++        }
++        fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
++            Vec::new()
++        }
++    }
++
++    fn drain(r: &mut Reconciler<FakeKernel>) {
++        loop {
++            let monitor = r.k.take_monitor();
++            let l2tp = r.k.take_l2tp();
++            if monitor.is_empty() && l2tp.is_empty() {
++                break;
++            }
++            for notice in monitor {
++                r.handle(Source::Monitor, notice);
++            }
++            for notice in l2tp {
++                r.handle(Source::L2tp, notice);
++            }
++        }
++        assert!(r.take_requests().is_empty());
++    }
++
++    fn sizes(r: &Reconciler<FakeKernel>) -> Vec<usize> {
++        vec![
++            r.tunnels.len(),
++            r.sessions.len(),
++            r.reserved.len(),
++            r.departing.len(),
++            r.deleting_sessions.len(),
++            r.unmatched_sessions.len(),
++            r.verify_sessions.len(),
++            r.verify_tunnels.len(),
++            r.conflicts.len(),
++            r.conflict_times.len(),
++            r.retries.len(),
++            r.requests.len(),
++            r.vrfs.len(),
++            r.masters.len(),
++            r.members.len(),
++            r.members.values().map(BTreeSet::len).sum(),
++            r.changed_devices.len(),
++            r.changed_bindings.len(),
++            r.address_devices.len(),
++            r.addresses.len(),
++            r.addresses.values().map(BTreeSet::len).sum(),
++            r.index.names.len(),
++            r.index.names.values().map(BTreeSet::len).sum(),
++            r.index.devices.len(),
++            r.index.devices.values().map(BTreeSet::len).sum(),
++            r.index.sources.len(),
++            r.index.sources.values().map(BTreeSet::len).sum(),
++            r.index.sessions.len(),
++            r.index.registrations.len(),
++        ]
++    }
++
++    /// spec: G23, M16, V7, S25, T8
++    #[test]
++    fn completed_configuration_history_releases_records_indexes_and_watches() {
++        let watches = Watches::default();
++        let mut kernel = FakeKernel::new(42);
++        let base = kernel.add_link("base0", false);
++        kernel.add_addr(base, "192.0.2.1".parse().unwrap());
++        let base_text = "[host]\nfix_bindv6only=false\n[tunnels.base]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='base0'\n[sessions.base]\ntunnel_name='base'\nsession_id=100\ninterface_name='survivor'\n";
++        let baseline: crate::config::Config = toml::from_str(base_text).unwrap();
++        let mut r = Reconciler::new(kernel, Box::new(watches.clone()));
++        assert!(r.reconcile(baseline.clone()));
++        drain(&mut r);
++        let survivor = r.k.session_index(10, 100).unwrap();
++        let expected = sizes(&r);
++        for (epoch, count) in [1, 100, 300, 300, 100, 1, 300, 1].into_iter().enumerate() {
++            let mut text = base_text.to_owned();
++            let mut devices = Vec::new();
++            for n in 0..count {
++                let id = 1000 + epoch * 1000 + n;
++                let name = format!("wan{epoch}_{n}");
++                let device = r.k.add_link(&name, false);
++                r.k.add_addr(device, "192.0.2.1".parse().unwrap());
++                devices.push(device);
++                text += &format!(
++                    "[tunnels.t{id}]\ntunnel_id={id}\nip_version='V4'\nremote_addr='history.example'\nbind_interface='{name}'\n[sessions.s{id}]\ntunnel_name='t{id}'\nsession_id={}\ninterface_name='s{id}'\n",
++                    id + 100_000
++                );
++            }
++            assert!(r.reconcile(toml::from_str(&text).unwrap()));
++            drain(&mut r);
++            assert_eq!(r.tunnels.len(), count + 1);
++            assert_eq!(r.sessions.len(), count + 1);
++            assert_eq!(watches.0.lock().unwrap().len(), count);
++            r.reconcile(baseline.clone());
++            for _ in 0..3 {
++                r.k.advance(std::time::Duration::from_secs(1));
++                r.k.tick();
++                drain(&mut r);
++                r.tick();
++            }
++            for device in devices {
++                r.k.remove_link(device);
++            }
++            drain(&mut r);
++            assert_eq!(sizes(&r), expected, "retained state after epoch {epoch}");
++            assert_eq!(r.accepted(), &baseline);
++            assert!(watches.0.lock().unwrap().is_empty());
++            assert!(!r.resolvers.any());
++            assert_eq!(r.next_deadline(), None);
++            assert_eq!(r.k.session_index(10, 100), Some(survivor));
++            assert!(r.ready());
++            r.k.clear_ops();
++            println!(
++                "RESOURCE_HISTORY epoch={epoch} removed={count} survivors=1 sizes={expected:?}"
++            );
++        }
++    }
++}
++
+ pub(super) fn remove<T: Ord>(map: &mut BTreeMap<T, BTreeSet<u32>>, key: T, id: u32) {
+     if let std::collections::btree_map::Entry::Occupied(mut entry) = map.entry(key) {
+         entry.get_mut().remove(&id);

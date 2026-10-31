@@ -1,0 +1,374 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index 97a0536..d8d2275 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -630,3 +630,137 @@ impl<K: Kernel> Reconciler<K> {
+         }
+     }
+ }
++
++#[cfg(all(test, feature = "fake-kernel", feature = "serde"))]
++#[cfg_attr(coverage_nightly, coverage(off))]
++mod resource_tests {
++    use super::*;
++    use crate::kernel::fake::FakeKernel;
++    use crate::reconciler::{Lookup, Resolve};
++    use std::sync::{Arc, Mutex};
++
++    #[derive(Clone, Default)]
++    struct Watches(Arc<Mutex<BTreeSet<u64>>>);
++    impl Resolve for Watches {
++        fn watch(&mut self, lookup: Lookup) -> std::io::Result<()> {
++            assert!(self.0.lock().unwrap().insert(lookup.id()));
++            Ok(())
++        }
++        fn unwatch(&mut self, id: u64) {
++            self.0.lock().unwrap().remove(&id);
++        }
++        fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
++            Vec::new()
++        }
++    }
++
++    fn drain(r: &mut Reconciler<FakeKernel>) {
++        loop {
++            let monitor = r.k.take_monitor();
++            let l2tp = r.k.take_l2tp();
++            if monitor.is_empty() && l2tp.is_empty() {
++                break;
++            }
++            for notice in monitor {
++                r.handle(Source::Monitor, notice);
++            }
++            for notice in l2tp {
++                r.handle(Source::L2tp, notice);
++            }
++        }
++        assert!(r.take_requests().is_empty());
++    }
++
++    fn sizes(r: &Reconciler<FakeKernel>) -> [usize; 29] {
++        [
++            r.tunnels.len(),
++            r.sessions.len(),
++            r.reserved.len(),
++            r.departing.len(),
++            r.deleting_sessions.len(),
++            r.unmatched_sessions.len(),
++            r.verify_sessions.len(),
++            r.verify_tunnels.len(),
++            r.conflicts.len(),
++            r.conflict_times.len(),
++            r.retries.len(),
++            r.requests.len(),
++            r.vrfs.len(),
++            r.masters.len(),
++            r.members.len(),
++            r.members.values().map(BTreeSet::len).sum(),
++            r.changed_devices.len(),
++            r.changed_bindings.len(),
++            r.address_devices.len(),
++            r.addresses.len(),
++            r.addresses.values().map(BTreeSet::len).sum(),
++            r.index.names.len(),
++            r.index.names.values().map(BTreeSet::len).sum(),
++            r.index.devices.len(),
++            r.index.devices.values().map(BTreeSet::len).sum(),
++            r.index.sources.len(),
++            r.index.sources.values().map(BTreeSet::len).sum(),
++            r.index.sessions.len(),
++            r.index.registrations.len(),
++        ]
++    }
++
++    /// spec: G23, M16, V7, S25, T8
++    #[test]
++    fn completed_configuration_history_releases_records_indexes_and_watches() {
++        let _socket_workload = crate::reconciler::tests::socket_workload();
++        let watches = Watches::default();
++        let mut kernel = FakeKernel::new(42);
++        let base = kernel.add_link("base0", false);
++        kernel.add_addr(base, "192.0.2.1".parse().unwrap());
++        let base_text = "[host]\nfix_bindv6only=false\n[tunnels.base]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='base0'\n[sessions.base]\ntunnel_name='base'\nsession_id=100\ninterface_name='survivor'\n";
++        let baseline: crate::config::Config = toml::from_str(base_text).unwrap();
++        let mut r = Reconciler::new(kernel, Box::new(watches.clone()));
++        assert!(r.reconcile(baseline.clone()));
++        drain(&mut r);
++        let survivor = r.k.session_index(10, 100).unwrap();
++        let expected = sizes(&r);
++        for (epoch, count) in [1, 100, 300, 300, 100, 1, 300, 1].into_iter().enumerate() {
++            let mut text = base_text.to_owned();
++            let mut devices = Vec::new();
++            for n in 0..count {
++                let id = 1000 + epoch * 1000 + n;
++                let name = format!("wan{epoch}_{n}");
++                let device = r.k.add_link(&name, false);
++                r.k.add_addr(device, "192.0.2.1".parse().unwrap());
++                devices.push(device);
++                text += &format!(
++                    "[tunnels.t{id}]\ntunnel_id={id}\nip_version='V4'\nremote_addr='history.example'\nbind_interface='{name}'\n[sessions.s{id}]\ntunnel_name='t{id}'\nsession_id={}\ninterface_name='s{id}'\n",
++                    id + 100_000
++                );
++            }
++            assert!(r.reconcile(toml::from_str(&text).unwrap()));
++            drain(&mut r);
++            assert_eq!(r.tunnels.len(), count + 1);
++            assert_eq!(r.sessions.len(), count + 1);
++            assert_eq!(watches.0.lock().unwrap().len(), count);
++            r.reconcile(baseline.clone());
++            for _ in 0..3 {
++                r.k.advance(std::time::Duration::from_secs(1));
++                r.k.tick();
++                drain(&mut r);
++                r.tick();
++            }
++            for device in devices {
++                r.k.remove_link(device);
++            }
++            drain(&mut r);
++            assert_eq!(sizes(&r), expected, "retained state after epoch {epoch}");
++            assert_eq!(r.accepted(), &baseline);
++            assert!(watches.0.lock().unwrap().is_empty());
++            assert!(!r.resolvers.any());
++            assert_eq!(r.next_deadline(), None);
++            assert_eq!(r.k.session_index(10, 100), Some(survivor));
++            assert!(r.ready());
++            r.k.clear_ops();
++            println!(
++                "RESOURCE_HISTORY epoch={epoch} removed={count} survivors=1 sizes={expected:?}"
++            );
++        }
++    }
++}
+diff --git a/src/reconciler/report.rs b/src/reconciler/report.rs
+index 7208188..124ca63 100644
+--- a/src/reconciler/report.rs
++++ b/src/reconciler/report.rs
+@@ -115,6 +115,10 @@ mod tests {
+     fn errors_carry_their_errno_names() {
+         let text = describe(&io::Error::from_raw_os_error(nix::libc::EEXIST));
+         assert!(text.starts_with("EEXIST: "), "{text}");
++        assert_eq!(
++            describe(&io::Error::other("resolver stopped")),
++            "resolver stopped"
++        );
+     }
+ 
+     /// spec: O3
+@@ -127,4 +131,24 @@ mod tests {
+         report.end("tunnel a", "pending", String::new);
+         assert!(!report.is_open("tunnel a", "pending"));
+     }
++
++    /// spec: O3, G23, M16
++    #[test]
++    fn removed_entries_release_every_condition_across_reloads() {
++        let mut report = Report::default();
++        report.begin("survivor", "pending", String::new);
++        for epoch in 0..8 {
++            for entry in 0..300 {
++                let name = format!("tunnel-{epoch}-{entry}");
++                report.begin(&name, "pending", String::new);
++                report.begin_error(&name, "create", String::new);
++            }
++            assert_eq!(report.open.len(), 601);
++            for entry in 0..300 {
++                report.forget(&format!("tunnel-{epoch}-{entry}"));
++            }
++            assert_eq!(report.open.len(), 1);
++            assert!(report.is_open("survivor", "pending"));
++        }
++    }
+ }
+diff --git a/src/reconciler/resolvers_tests.rs b/src/reconciler/resolvers_tests.rs
+index b90aa86..e53bac4 100644
+--- a/src/reconciler/resolvers_tests.rs
++++ b/src/reconciler/resolvers_tests.rs
+@@ -7,6 +7,67 @@ use std::sync::atomic::Ordering;
+ mod discovery;
+ use discovery::{Dns, advertise};
+ 
++/// spec: G23, M16, V7, V9
++#[cfg(all(feature = "fake-kernel", feature = "serde"))]
++#[test]
++fn resolver_dependency_indexes_release_removed_configurations() {
++    let _socket_workload = crate::reconciler::tests::socket_workload();
++    struct NoDns;
++    impl Resolve for NoDns {
++        fn watch(&mut self, _: Lookup) -> io::Result<()> {
++            Ok(())
++        }
++        fn unwatch(&mut self, _: u64) {}
++        fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
++            Vec::new()
++        }
++    }
++    let mut r = Reconciler::new(crate::kernel::fake::FakeKernel::new(42), Box::new(NoDns));
++    for epoch in 0..4 {
++        let interface = format!("dns{epoch}");
++        let mut text = format!(
++            "[host]\nfix_bindv6only=false\n[resolvers.dns]\naddresses=['192.0.2.53']\nbind_interface='{interface}'\n"
++        );
++        for n in 0..300 {
++            let id = 1 + epoch * 1000 + n;
++            text += &format!(
++                "[tunnels.t{id}]\ntunnel_id={id}\nip_version='V4'\nremote_addr='history.example'\nresolver_name='dns'\n"
++            );
++        }
++        assert!(r.reconcile(toml::from_str(&text).unwrap()));
++        assert_eq!(r.resolvers.watches.len(), 300);
++        assert_eq!(r.resolvers.retries.len(), 300);
++        assert_eq!(
++            r.resolvers.names.values().map(BTreeSet::len).sum::<usize>(),
++            300
++        );
++        assert!(r.resolvers.devices.is_empty());
++        let device = r.k.add_link(&interface, false);
++        let link = r.k.link(device).unwrap().clone();
++        r.handle(
++            super::super::Source::Monitor,
++            crate::kernel::Notice::LinkNew(link),
++        );
++        assert!(r.resolvers.retries.is_empty());
++        assert_eq!(r.resolvers.devices[&device].len(), 300);
++        assert!(
++            r.resolvers
++                .watches
++                .values()
++                .all(|watch| watch.started.is_some())
++        );
++        r.reconcile(Config::new());
++        r.k.tick();
++        r.tick();
++        assert!(r.resolvers.watches.is_empty() && r.resolvers.retries.is_empty());
++        assert!(r.resolvers.names.is_empty() && r.resolvers.devices.is_empty());
++        assert_eq!(r.resolvers.next_deadline(), None);
++        println!(
++            "RESOLVER_HISTORY epoch={epoch} removed=300 watches=0 retries=0 names=0 devices=0"
++        );
++    }
++}
++
+ /// spec: V5, V6
+ #[test]
+ fn selection_checks_every_unusable_address_class_and_preserves_a_present_choice() {
+diff --git a/src/reconciler/tests.rs b/src/reconciler/tests.rs
+index 520054a..ddf984d 100644
+--- a/src/reconciler/tests.rs
++++ b/src/reconciler/tests.rs
+@@ -1,6 +1,12 @@
+ //! Unit tests of the reconciler's pure parts; the behavioural rules are
+ //! tested against the fake kernel in `tests/rules/`.
+ 
++pub(super) fn socket_workload() -> std::sync::MutexGuard<'static, ()> {
++    // Bound combined descriptor demand from the large fake namespaces.
++    static GATE: std::sync::Mutex<()> = std::sync::Mutex::new(());
++    GATE.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
++}
++
+ #[cfg(feature = "fake-kernel")]
+ mod completion {
+     use super::super::*;
+@@ -363,6 +369,7 @@ mod cache_cost {
+     /// spec: G12, M16
+     #[test]
+     fn unchanged_bound_link_workload_preserves_other_dependencies() {
++        let _socket_workload = super::socket_workload();
+         for count in [1, 100, 300] {
+             let mut kernel = FakeKernel::new(42);
+             let mut text = "[host]\nfix_bindv6only=false\n".to_owned();
+diff --git a/src/reconciler/workers.rs b/src/reconciler/workers.rs
+index 4f1d45e..3d771b8 100644
+--- a/src/reconciler/workers.rs
++++ b/src/reconciler/workers.rs
+@@ -29,6 +29,13 @@ struct State {
+ }
+ 
+ impl State {
++    fn shrink_order(&mut self) {
++        // Geometric shrinking bounds retained storage by current jobs (G23).
++        if self.order.capacity() > self.order.len().saturating_mul(4).max(16) {
++            self.order.shrink_to(self.order.len());
++        }
++    }
++
+     fn admit(&mut self, owner: u64, now: Instant) -> Option<(u64, bool, Call)> {
+         let mut earlier = [false; 2];
+         for _ in 0..self.order.len() {
+@@ -123,6 +130,7 @@ impl Drop for Owner {
+         state.jobs.retain(|_, job| job.owner != self.id);
+         let keys: BTreeSet<_> = state.jobs.keys().copied().collect();
+         state.order.retain(|id| keys.contains(id));
++        state.shrink_order();
+         self.shared.changed.notify_all();
+         drop(state);
+         // Only the dispatcher joins: it never runs a blocking lookup.
+@@ -161,6 +169,7 @@ impl Workers {
+         let mut state = self.state.lock().unwrap();
+         state.jobs.remove(&id);
+         state.order.retain(|key| *key != id);
++        state.shrink_order();
+         self.changed.notify_all();
+     }
+ 
+@@ -236,6 +245,60 @@ impl Workers {
+ mod tests {
+     use super::*;
+ 
++    /// spec: G23, M16, V15
++    #[test]
++    fn cancelled_jobs_and_dropped_owners_release_snapshots_and_queue_storage() {
++        for drop_owner in [false, true] {
++            let shared = Arc::new(Workers::default());
++            shared.state.lock().unwrap().owners.extend([1, 2]);
++            let owner = Owner {
++                shared: shared.clone(),
++                id: 1,
++                thread: None,
++            };
++            let survivor = shared.watch(2, false, Arc::new(Vec::new));
++            let mut jobs = Vec::new();
++            let mut snapshots = Vec::new();
++            for _ in 0..300 {
++                let snapshot = Arc::new(vec![0u8; 128]);
++                snapshots.push(Arc::downgrade(&snapshot));
++                jobs.push(owner.watch(
++                    false,
++                    Arc::new(move || {
++                        drop(snapshot.clone());
++                        Vec::new()
++                    }),
++                ));
++            }
++            assert!(
++                snapshots
++                    .iter()
++                    .all(|snapshot| snapshot.strong_count() == 1)
++            );
++            if !drop_owner {
++                for job in jobs {
++                    owner.unwatch(job);
++                    let state = shared.state.lock().unwrap();
++                    assert!(state.order.capacity() <= state.order.len().saturating_mul(4).max(16));
++                }
++            }
++            drop(owner);
++            let state = shared.state.lock().unwrap();
++            assert_eq!(state.jobs.keys().copied().collect::<Vec<_>>(), [survivor]);
++            assert_eq!(state.order, [survivor]);
++            assert!(
++                snapshots
++                    .iter()
++                    .all(|snapshot| snapshot.strong_count() == 0)
++            );
++            assert!(
++                state.order.capacity() <= 16,
++                "retained capacity {} after drop_owner={drop_owner}",
++                state.order.capacity()
++            );
++        }
++    }
++
+     /// spec: V3, V4, V15, G23, A9
+     #[test]
+     fn obsolete_calls_keep_separate_budgets_and_latest_results() {
