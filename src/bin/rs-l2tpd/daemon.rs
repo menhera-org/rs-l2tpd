@@ -129,6 +129,7 @@ pub fn ready(pipe: &mut Option<File>) {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
     /// spec: P12 P22

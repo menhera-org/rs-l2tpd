@@ -47,6 +47,7 @@ pub(super) fn filter() -> Vec<SockFilter> {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
 

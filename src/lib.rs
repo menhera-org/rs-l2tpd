@@ -22,6 +22,7 @@
 //! - [`runtime`], [`service`], [`blocking`]: what a program drives.
 
 #![cfg(target_os = "linux")]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 #![deny(unsafe_code)]
 #![warn(missing_docs)]
 

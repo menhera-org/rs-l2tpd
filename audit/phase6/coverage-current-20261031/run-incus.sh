@@ -2,8 +2,8 @@
 # Coverage profile transport; the full fixture remains tests/scenarios/incus.rs.
 set -eu
 repo=$(pwd)
-record=$repo/audit/phase6/coverage-current-20261031
-coverage=$repo/target/phase6-coverage-current-20261031
+record=${PHASE6_COVERAGE_RECORD:-$repo/audit/phase6/coverage-current-20261031}
+coverage=${CARGO_LLVM_COV_TARGET_DIR:-$repo/target/phase6-coverage-current-20261031}
 find_test() {
     awk -v label="Running $1 (" -v root="$repo/" '{
         at=index($0,label)

@@ -428,6 +428,7 @@ impl Drop for Lifetime {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
 

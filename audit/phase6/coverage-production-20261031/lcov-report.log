@@ -1,0 +1,4 @@
+command: cargo +nightly llvm-cov report --target x86_64-unknown-linux-gnu --branch --lcov --output-path /tmp/phase6-production-lcov.info
+warning: --branch option is unstable
+
+    Finished report saved to /tmp/phase6-production-lcov.info

@@ -158,7 +158,7 @@ as skipped, never as passed.
 | Gate | Tool | Threshold |
 |---|---|---|
 | Shell scripts | ShellCheck in POSIX sh mode over tracked and unignored new `.sh` files, including audit helpers | zero unsuppressed findings at any severity; each exception uses a local `# shellcheck disable=SCnnnn` directive with an adjacent reason |
-| Coverage | `cargo llvm-cov` over unit, rules, properties, the fake conformance run and the container runs (profiles merged) | 100 % lines and branches of `src/`; exclusions only in `kernel::linux` for branches no kernel of the range reaches, each marked `// coverage: unreachable on <range>, <reason>` |
+| Coverage | `cargo llvm-cov` over unit, rules, properties, the fake conformance run and the container runs (profiles merged) | 100 % production lines and branches of `src/`; test-only `#[cfg(test)]` bodies/helpers excluded from instrumentation, with all required tests still executing; production exclusions only in `kernel::linux` for branches no kernel of the range reaches, each marked `// coverage: unreachable on <range>, <reason>` |
 | Rule map | `tests/tools/rulemap.rs` reads every rule definition of `docs/spec/*.md`, which is a line starting with `X1.` or a table row starting with `\| X1 \|` (letters `A`, `C`, `D`, `E`, `G`, `H`, `K`, `L`, `M`, `O`, `P`, `R`, `S`, `T`, `V`), and `/// spec:` comments attached to `#[test]` or `#[tokio::test]` declarations in `tests/` and `src/` | every active rule has a test declaration citation with path, line and function; removed rules exempt. Lexical traceability only: it does not prove execution, feature selection or semantic coverage |
 | Source link | `tests/tools/srclink.rs` reads every `// kernel:` comment of `src/kernel/linux/` | every function cites a K fact; linux-scoped facts have production citations; delegated/source-only facts have explicit evidence-map classifications and test declaration citations |
 | Determinism | Ten seeded fake-suite and ten container-suite repetitions in CI, as the plan requires; the Phase 6 page's local container minimum is three | zero flakes before a gate is enabled |
@@ -189,6 +189,15 @@ remain failures and retain their logs; the workflow does not retry them.
 The ten-run qualification preceded strict map enforcement. A later failure
 still requires investigation; the retained qualification does not establish
 that every test or kernel target is deterministic.
+
+Coverage instrumentation excludes test-only `#[cfg(test)]` modules/helpers,
+as approved on 2026-10-31. Every required test still runs. The coverage step
+uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
+ordinary checks and shipped musl binaries stay on stable. The native CI
+badge report is distinct from the merged live-profile P4 gate. The latest
+[production baseline](../audit/phase6/coverage-production-20261031/README.md)
+is 90.68% lines / 78.16% branches, with no production exclusions; 100%
+remains required.
 
 ## Running
 

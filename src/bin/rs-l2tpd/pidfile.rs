@@ -274,6 +274,7 @@ impl PidFile {
     }
 }
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
     use crate::testdir::Dir;
@@ -325,6 +326,7 @@ mod tests {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod permission_tests {
     use super::*;
     use crate::testdir::Dir;
@@ -407,6 +409,7 @@ mod permission_tests {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod removal_tests {
     use super::*;
     use crate::testdir::Dir;
@@ -441,6 +444,7 @@ mod removal_tests {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod edge_tests {
     use super::*;
     use crate::testdir::Dir;

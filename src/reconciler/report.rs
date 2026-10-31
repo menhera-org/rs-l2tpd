@@ -72,6 +72,7 @@ impl Report {
     }
 
     #[cfg(test)]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     pub fn is_open(&self, entry: &str, condition: &'static str) -> bool {
         self.open.contains_key(&(entry.to_owned(), condition))
     }
@@ -105,6 +106,7 @@ pub(crate) fn session(name: &str, tunnel_id: u32, session_id: u32) -> String {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
 

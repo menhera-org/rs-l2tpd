@@ -471,9 +471,12 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
    and runs the conformance suite and the K5 sweep; a kernel built
    without IPv6 serves H4 and T4.
 3. Coverage: `cargo llvm-cov` over unit, fake-kernel and container tests
-   combined, gate at 100 % of lines and branches of `src/`, with the
-   only allowed exclusions being the `kernel::linux` branches that a
-   kernel of the verified range cannot reach, each marked and justified.
+   combined, gate at 100 % of production lines and branches of `src/`.
+   Test-only `#[cfg(test)]` bodies/helpers are excluded from instrumentation,
+   but all required tests still execute. The only allowed production
+   exclusions are `kernel::linux` branches that no kernel of the verified
+   range reaches, each marked and justified. Test execution and rule
+   traceability remain separate requirements.
 4. The source-link check: every function of `kernel::linux` carries a
    `// kernel:` citation that names a K fact. Every linux-scoped K fact
    is cited by a function; delegated/source-only facts require explicit
@@ -560,13 +563,17 @@ remain in [H11](spec/hosts.md#other-network-managers).
 [Required-kernel behavior](kernel-behavior.md) records all five targets'
 observations, proof scope and limitations.
 
-The latest coverage refresh on Rust source `0f5292e` includes the current
-26-scenario host suite, real user manager and full Incus manager scenario:
-92.26% lines / 78.16% branches, without exclusions. The unmodified musl
+The earlier coverage refresh on Rust source `0f5292e` included inline test
+code and measured 92.26% lines / 78.16% branches. Under the maintainer's
+approved production-code scope, the fresh merged report is 90.68% lines /
+78.16% branches: 781 missing lines and 384 missing branches, with no
+production exclusions. It includes all 26 normal scenarios, real user
+manager and full Incus manager profiles. The unmodified musl
 Incus runner also passes. The required-kernel refresh found a vanilla 7.0.14
-scenario failure: both captures see only the two fixture route queries,
-but total generic-netlink request counts differ by one. That failure remains
-under investigation. Full coverage remains open. The ten-run CI evidence is
+fixture failure: asynchronous shutdown checks made total netlink counts vary.
+Comparing drained startup/reload work fixes that measurement; three focused
+repetitions and the full normal/clock profiles now pass on that kernel.
+A final consistent-source matrix and full coverage remain open. The ten-run CI evidence is
 in [the qualification record](../audit/phase6/strict-gates-20261031/README.md).
 
 ### Phase 7 — release

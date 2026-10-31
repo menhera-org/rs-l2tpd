@@ -19,6 +19,7 @@ fn set(path: &std::path::Path) -> io::Result<()> {
     Ok(())
 }
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     /// spec: P25
     #[test]

@@ -1,0 +1,15 @@
+current report source: 0f5292e
+src/service.rs:595-605
+            runtime.set_store_capacity(1);
+            let mut service = Service::with_runtime(Config::new(), runtime)
+                .map_err(|(error, _)| error)
+                .unwrap();
+            let mut requests = service.take_requests().unwrap();
+            service.converge().await.unwrap();
+            let ControlEvent::ForgetSocket { id, .. } = requests.recv().await.unwrap() else {
+                panic!("expected withdrawal")
+            };
+            let control = service.control();
+            control.shutdown();
+test service::tests::panic_completion_during_shutdown_is_reported_after_cleanup ... ok
+{"filename":"/home/dev/rs-l2tpd/src/service.rs","segments":[[601,57,1,true,true,false],[601,72,0,false,false,false],[601,73,1,true,true,false],[601,78,0,false,false,false],[602,17,0,true,true,false],[602,23,0,false,false,false],[604,27,1,true,true,false],[604,44,0,false,false,false]]}

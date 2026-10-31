@@ -496,6 +496,7 @@ fn worker<K: Kernel + 'static>(
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
     use crate::config::{Family, TunnelConfig};

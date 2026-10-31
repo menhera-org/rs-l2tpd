@@ -236,6 +236,7 @@ fn exchange<I: NetlinkSerializable>(
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
 
@@ -363,6 +364,7 @@ impl<I: NetlinkSerializable> NetlinkSerializable for Redacted<I> {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod completion_tests {
     use super::*;
     struct Secret([u8; 4]); // Deliberately has no Debug implementation.
@@ -399,6 +401,7 @@ mod completion_tests {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod buffer_tests {
     use super::*;
     // kernel: (K36) net/core/sock.c SO_RCVBUFFORCE checks capable(CAP_NET_ADMIN),

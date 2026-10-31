@@ -1,4 +1,6 @@
 //! Process integration around the embeddable service (P1–P27).
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+
 mod args;
 mod caps;
 mod check;
@@ -219,6 +221,7 @@ fn run() -> u8 {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod testdir {
     use std::path::{Path, PathBuf};
     pub struct Dir(PathBuf);
@@ -271,6 +274,7 @@ fn streams() -> io::Result<()> {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod stream_tests {
     /// spec: P2 O1
     #[test]

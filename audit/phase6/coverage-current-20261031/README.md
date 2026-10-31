@@ -1,4 +1,10 @@
-# Current-source merged coverage
+# Earlier merged coverage, including inline test code
+
+The later approved production-code scope is measured in the separate
+[production baseline](../coverage-production-20261031/README.md). This record
+retains its original denominator and results. Its collection helpers accept
+`PHASE6_COVERAGE_RECORD` and `CARGO_LLVM_COV_TARGET_DIR` overrides for new
+records; their default paths and commands below remain unchanged.
 
 Rust source: `0f5292e`, all features, `x86_64-unknown-linux-gnu`,
 cargo-llvm-cov 0.9.1 and nightly-2026-10-28 branch instrumentation.

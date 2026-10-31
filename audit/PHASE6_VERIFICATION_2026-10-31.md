@@ -13,7 +13,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests; H16 has passing required-kernel records | Relevant-event CPU cost, full resource/history proof and remaining clauses; investigate the separate vanilla 7.0.14 capture failure |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
-| P4 coverage | Current merged GNU report: 92.26% lines / 78.16% branches, including real user manager and full Incus case; no exclusions | 804 missing lines / 408 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: merged GNU report 90.68% lines / 78.16% branches, including real user manager and full Incus case; no production exclusions | 781 missing lines / 384 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Current unmodified musl full case passes, including manager race/ordered policy/store/re-exec; instrumented GNU full case exports seven daemon profiles | Repeat if relevant source changes; retain documented MAC limitations |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -571,3 +571,28 @@ work before scheduler-dependent tunnel cleanup, while still prohibiting
 extra route queries through shutdown. The failed matrix remains failed;
 a final consistent-source five-target run is still required. CI run
 41212014031 at the H8-fix revision `fb41979` also passes both jobs.
+
+## Approved production-code coverage scope
+
+The maintainer approved production-code coverage, excluding test-only
+bodies/helpers from instrumentation while still executing every test.
+[The decision and original evidence](phase6/coverage-test-code-20261031/README.md)
+retain the example of a zero-count panic arm in a passing inline test.
+The plan and coverage definitions now state that scope explicitly.
+Nightly-only attributes identify 45 test modules and one test-only helper;
+no production code is excluded. Stable checks still execute the same tests.
+
+[The fresh merged production baseline](phase6/coverage-production-20261031/README.md)
+is 90.68% lines (7,596/8,377) and 78.16% branches (1,374/1,758), leaving
+781 lines and 384 branches. It includes all native suites, 11 live library,
+19 kernel and five review cases, privileged binary probes, all 27 process
+cases, all 26 normal scenarios, the real user manager and the full Incus
+manager scenario. Incus exports seven daemon profiles and is deleted.
+The source patches match and profiles from the earlier instrumentation
+scope are not merged. The previous 92.26% line figure included inline test
+code; its denominator is different. The production threshold remains 100%.
+
+The coverage CI step now pins nightly-2026-10-28 and cargo-llvm-cov 0.9.1,
+with branch-aware LCOV. Ordinary checks and shipped builds stay on stable.
+This configuration still needs its own CI run; the native badge report
+remains distinct from the merged live-profile gate.

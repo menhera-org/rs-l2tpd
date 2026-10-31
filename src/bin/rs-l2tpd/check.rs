@@ -21,6 +21,7 @@ pub fn run(main: &Path, directory: &Path) -> u8 {
     u8::from(!problems.is_empty() || !loaded.errors.is_empty())
 }
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use rs_l2tpd::config::PartialConfig;
     /// spec: O8 P3

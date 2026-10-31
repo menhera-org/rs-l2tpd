@@ -1,0 +1,5 @@
+true
+true
+service and signal test bodies have no counted coverage segments
+their passing test results remain in native.log
+generic production instantiations may contain test callback names; their production source regions remain counted

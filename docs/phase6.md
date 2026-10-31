@@ -74,7 +74,7 @@ the scenario suite below; read them before writing new scenarios.
 | Source link | `SRCLINK_STRICT=1 cargo test --test srclink` passes: every `kernel::linux` function cites a K fact; linux-scoped facts need production citations, delegated/source-only facts need classified evidence and test citations | P1 |
 | Scenario suite | `tests/docker/run.sh scenarios` passes on the host kernel: one scenario per H rule and per conditional promise G15–G23, plus G11 interoperability with 0.1.5 | P2 |
 | Kernel matrix | `tests/docker/run.sh matrix required` passes on every kernel of the [kernel targets](testing.md#kernel-targets) table as resolved on the run's date | P3 |
-| Coverage | `cargo llvm-cov` over unit, rules, properties, fake conformance and the container profiles reports 100 % of lines and branches of `src/`, with only the marked `kernel::linux` exclusions | P4 |
+| Coverage | `cargo llvm-cov` over unit, rules, properties, fake conformance and the container profiles reports 100 % of production lines and branches of `src/` (test-only `#[cfg(test)]` code excluded from instrumentation; tests still execute), with only the marked `kernel::linux` exclusions | P4 |
 | Incus/LXD | `tests/docker/run.sh incus` ran, not skipped, in an unprivileged system container | P5 |
 
 Exit of the phase: all six green on the running kernel and on every
@@ -265,7 +265,9 @@ needs no second container: two namespaces in the guest suffice.
   the shipped binary stays on stable. If the maintainer prefers a
   stable-only job, report line and region coverage and say so in the
   record; that is a decision to ask for, not to take.
-- Gate: 100 % of lines and branches of `src/`. The only allowed exclusion
+- Gate: 100 % of production lines and branches of `src/`. Test-only
+  `#[cfg(test)]` bodies/helpers are excluded from instrumentation; all required
+  tests still execute and must pass. The only allowed production exclusion
   is a `kernel::linux` branch no kernel of the verified range reaches,
   marked `// coverage: unreachable on <range>, <reason>` and listed in
   the record. A branch that is reachable but untested is a missing test,

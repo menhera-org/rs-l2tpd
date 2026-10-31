@@ -361,10 +361,12 @@ now passed on every required target in the current refresh. Repository record
 proofs; `audit/phase6/deadline-index-20261031/README.md` records indexed
 deadlines, conflict cancellation and fresh host/mainline-clock checks.
 
-Current merged coverage is 92.26% of lines and 78.16% of branches; the
-threshold remains 100%. Both strict map flags are enabled after ten CI
-qualification passes, with the updated workflow run pending. The matrix
-failure, complete clause/event-cost/resource/history proof and remaining
+Current merged production coverage is 90.68% of lines and 78.16% of branches;
+the threshold remains 100%. The earlier 92.26% line report included inline
+test code. Both strict map flags are enabled after ten CI qualification
+passes, and the strict workflow passes. The new coverage-toolchain workflow
+still needs its own run. The final matrix,
+complete clause/event-cost/resource/history proof and remaining
 coverage/profile work keep Phase 6 incomplete.
 
 ### Refused monitor filters and descriptor exhaustion

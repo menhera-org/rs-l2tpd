@@ -292,6 +292,7 @@ pub fn signal(path: &Path) -> io::Result<()> {
     Ok(())
 }
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
     /// spec: P26
@@ -309,6 +310,7 @@ mod tests {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod exec_tests {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
@@ -349,6 +351,7 @@ mod exec_tests {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod signal_tests {
     use super::*;
     use nix::sys::signal::{SigSet, Signal};
@@ -409,6 +412,7 @@ mod signal_tests {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod completion_tests {
     use super::*;
     use std::os::unix::fs::{PermissionsExt, symlink};

@@ -187,6 +187,7 @@ pub(super) fn monitor() -> io::Result<Feed> {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
 

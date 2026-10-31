@@ -80,6 +80,7 @@ impl Args {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
     fn parse(s: &str) -> Result<Args, String> {
@@ -145,6 +146,7 @@ mod tests {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod completion_tests {
     use super::*;
     /// spec: P27 G22

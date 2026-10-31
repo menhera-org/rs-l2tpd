@@ -40,6 +40,7 @@ impl<K> Deref for Deadlines<K> {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
     use std::time::Duration;

@@ -246,6 +246,7 @@ pub fn worker(
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
     use nix::sys::socket::{ControlMessageOwned, recvmsg};
@@ -317,6 +318,7 @@ mod tests {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod manager_tests {
     use super::*;
     /// spec: P14 P21 P23
@@ -365,6 +367,7 @@ mod manager_tests {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod completion_tests {
     use super::*;
 

@@ -727,5 +727,6 @@ impl Drop for IphostResolve {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 #[path = "resolvers_tests.rs"]
 mod tests;

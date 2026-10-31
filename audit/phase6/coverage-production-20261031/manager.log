@@ -1,0 +1,12 @@
+6.8.0-147-generic
+features: all; target: x86_64-unknown-linux-gnu; nightly branch coverage; production scope
+command: systemd-run --user --no-pager --wait --pipe --collect --unit=UNIT --property=Type=notify --property=NotifyAccess=all --property=FileDescriptorStoreMax=8 --property=NoNewPrivileges=yes --property=RuntimeMaxSec=30s --property="RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6" --setenv=PHASE5_NOTIFY_UNIT=UNIT.service --setenv=LLVM_PROFILE_FILE=PROFILE TEST --ignored --exact fdstore::manager_tests::actual_manager_processing_and_address_family_filter --nocapture
+Running as unit: rs-l2tpd-coverage-production-manager-4054884.service; invocation ID: 51c3784d041e49f48b9bab9b5b0e0dc8
+
+running 1 test
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.09s
+
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS

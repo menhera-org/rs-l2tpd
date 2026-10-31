@@ -10,6 +10,7 @@ mod partial;
 #[cfg(feature = "serde")]
 mod serde;
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests;
 mod text;
 

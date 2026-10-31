@@ -52,6 +52,7 @@ pub fn report() {
     }
 }
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     /// spec: R49 P23
     #[test]

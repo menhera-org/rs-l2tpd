@@ -37,6 +37,7 @@ use crate::reconciler::{IphostResolve, Reconciler, Request, Resolve};
 use crate::{Error, Result};
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests;
 
 /// The single input queue's capacity (A6).

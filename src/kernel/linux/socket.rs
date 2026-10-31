@@ -193,6 +193,7 @@ fn option_report(once: &Once, name: &str, result: io::Result<()>) {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
     use std::os::fd::AsFd;

@@ -401,6 +401,7 @@ impl Genl {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use netlink_packet_core::Emitable;
 

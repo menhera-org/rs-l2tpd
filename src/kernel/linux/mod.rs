@@ -270,6 +270,7 @@ impl Kernel for LinuxKernel {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod resources_tests {
     use super::*;
 

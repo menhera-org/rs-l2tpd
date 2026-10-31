@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 repo=$(pwd)
-record=$repo/audit/phase6/coverage-current-20261031
-coverage=$repo/target/phase6-coverage-current-20261031
+record=${PHASE6_COVERAGE_RECORD:-$repo/audit/phase6/coverage-current-20261031}
+coverage=${CARGO_LLVM_COV_TARGET_DIR:-$repo/target/phase6-coverage-current-20261031}
 profiles=$coverage/live-profiles
 mkdir -p "$profiles"
 chmod 777 "$profiles"

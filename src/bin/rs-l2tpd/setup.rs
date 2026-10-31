@@ -134,6 +134,7 @@ pub fn run(prefix: Option<&Path>, executable: &Path) -> u8 {
     u8::from(!success || !reload || !start)
 }
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
     use crate::testdir::Dir;
@@ -250,6 +251,7 @@ fn directories(path: &Path) -> io::Result<()> {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod completion_tests {
     use super::*;
     use std::os::unix::fs::MetadataExt;

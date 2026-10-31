@@ -208,6 +208,7 @@ impl Drop for Signals {
 }
 
 #[cfg(all(test, feature = "fake-kernel"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
     use rs_l2tpd::kernel::fake::FakeKernel;
@@ -267,6 +268,7 @@ mod tests {
 }
 
 #[cfg(all(test, feature = "fake-kernel"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod forwarder_tests {
     use super::*;
     use rs_l2tpd::kernel::fake::FakeKernel;

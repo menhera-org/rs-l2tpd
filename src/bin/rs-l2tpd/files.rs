@@ -146,6 +146,7 @@ pub fn reload(main: &Path, directory: &Path, previous: Config) -> Result<Config>
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::*;
     use crate::testdir::Dir;
@@ -221,6 +222,7 @@ mod tests {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod filesystem_tests {
     use super::*;
     use crate::testdir::Dir;
@@ -321,6 +323,7 @@ fn read_file(path: &Path) -> io::Result<String> {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod completion_tests {
     use super::*;
     use std::os::unix::ffi::OsStrExt;

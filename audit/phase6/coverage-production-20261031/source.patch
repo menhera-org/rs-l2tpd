@@ -1,0 +1,511 @@
+diff --git a/Cargo.toml b/Cargo.toml
+index 6c7b3b3..4d1a26a 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -130,3 +130,6 @@ opt-level = 3
+ lto = true
+ strip = true
+ codegen-units = 1
++
++[lints.rust]
++unexpected_cfgs = { level = "warn", check-cfg = ["cfg(coverage_nightly)"] }
+diff --git a/src/bin/rs-l2tpd/args.rs b/src/bin/rs-l2tpd/args.rs
+index b147d97..2de0b2e 100644
+--- a/src/bin/rs-l2tpd/args.rs
++++ b/src/bin/rs-l2tpd/args.rs
+@@ -80,6 +80,7 @@ impl Args {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+     fn parse(s: &str) -> Result<Args, String> {
+@@ -145,6 +146,7 @@ mod tests {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod completion_tests {
+     use super::*;
+     /// spec: P27 G22
+diff --git a/src/bin/rs-l2tpd/caps.rs b/src/bin/rs-l2tpd/caps.rs
+index 0993838..285efdb 100644
+--- a/src/bin/rs-l2tpd/caps.rs
++++ b/src/bin/rs-l2tpd/caps.rs
+@@ -52,6 +52,7 @@ pub fn report() {
+     }
+ }
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     /// spec: R49 P23
+     #[test]
+diff --git a/src/bin/rs-l2tpd/check.rs b/src/bin/rs-l2tpd/check.rs
+index ed274a8..c66f9e9 100644
+--- a/src/bin/rs-l2tpd/check.rs
++++ b/src/bin/rs-l2tpd/check.rs
+@@ -21,6 +21,7 @@ pub fn run(main: &Path, directory: &Path) -> u8 {
+     u8::from(!problems.is_empty() || !loaded.errors.is_empty())
+ }
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use rs_l2tpd::config::PartialConfig;
+     /// spec: O8 P3
+diff --git a/src/bin/rs-l2tpd/daemon.rs b/src/bin/rs-l2tpd/daemon.rs
+index d53c613..7acdb91 100644
+--- a/src/bin/rs-l2tpd/daemon.rs
++++ b/src/bin/rs-l2tpd/daemon.rs
+@@ -129,6 +129,7 @@ pub fn ready(pipe: &mut Option<File>) {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+     /// spec: P12 P22
+diff --git a/src/bin/rs-l2tpd/fdstore.rs b/src/bin/rs-l2tpd/fdstore.rs
+index dca5e78..c67733a 100644
+--- a/src/bin/rs-l2tpd/fdstore.rs
++++ b/src/bin/rs-l2tpd/fdstore.rs
+@@ -246,6 +246,7 @@ pub fn worker(
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+     use nix::sys::socket::{ControlMessageOwned, recvmsg};
+@@ -317,6 +318,7 @@ mod tests {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod manager_tests {
+     use super::*;
+     /// spec: P14 P21 P23
+@@ -365,6 +367,7 @@ mod manager_tests {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod completion_tests {
+     use super::*;
+ 
+diff --git a/src/bin/rs-l2tpd/files.rs b/src/bin/rs-l2tpd/files.rs
+index e4b4a80..036ce92 100644
+--- a/src/bin/rs-l2tpd/files.rs
++++ b/src/bin/rs-l2tpd/files.rs
+@@ -146,6 +146,7 @@ pub fn reload(main: &Path, directory: &Path, previous: Config) -> Result<Config>
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+     use crate::testdir::Dir;
+@@ -221,6 +222,7 @@ mod tests {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod filesystem_tests {
+     use super::*;
+     use crate::testdir::Dir;
+@@ -321,6 +323,7 @@ fn read_file(path: &Path) -> io::Result<String> {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod completion_tests {
+     use super::*;
+     use std::os::unix::ffi::OsStrExt;
+diff --git a/src/bin/rs-l2tpd/main.rs b/src/bin/rs-l2tpd/main.rs
+index b0a7aad..931a94d 100644
+--- a/src/bin/rs-l2tpd/main.rs
++++ b/src/bin/rs-l2tpd/main.rs
+@@ -1,4 +1,6 @@
+ //! Process integration around the embeddable service (P1–P27).
++#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
++
+ mod args;
+ mod caps;
+ mod check;
+@@ -219,6 +221,7 @@ fn run() -> u8 {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod testdir {
+     use std::path::{Path, PathBuf};
+     pub struct Dir(PathBuf);
+@@ -271,6 +274,7 @@ fn streams() -> io::Result<()> {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod stream_tests {
+     /// spec: P2 O1
+     #[test]
+diff --git a/src/bin/rs-l2tpd/pidfile.rs b/src/bin/rs-l2tpd/pidfile.rs
+index 2da8280..29cdd54 100644
+--- a/src/bin/rs-l2tpd/pidfile.rs
++++ b/src/bin/rs-l2tpd/pidfile.rs
+@@ -274,6 +274,7 @@ impl PidFile {
+     }
+ }
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+     use crate::testdir::Dir;
+@@ -325,6 +326,7 @@ mod tests {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod permission_tests {
+     use super::*;
+     use crate::testdir::Dir;
+@@ -407,6 +409,7 @@ mod permission_tests {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod removal_tests {
+     use super::*;
+     use crate::testdir::Dir;
+@@ -441,6 +444,7 @@ mod removal_tests {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod edge_tests {
+     use super::*;
+     use crate::testdir::Dir;
+diff --git a/src/bin/rs-l2tpd/restart.rs b/src/bin/rs-l2tpd/restart.rs
+index dcc62a2..cd8d9ae 100644
+--- a/src/bin/rs-l2tpd/restart.rs
++++ b/src/bin/rs-l2tpd/restart.rs
+@@ -292,6 +292,7 @@ pub fn signal(path: &Path) -> io::Result<()> {
+     Ok(())
+ }
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+     /// spec: P26
+@@ -309,6 +310,7 @@ mod tests {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod exec_tests {
+     use super::*;
+     use std::os::unix::fs::PermissionsExt;
+@@ -349,6 +351,7 @@ mod exec_tests {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod signal_tests {
+     use super::*;
+     use nix::sys::signal::{SigSet, Signal};
+@@ -409,6 +412,7 @@ mod signal_tests {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod completion_tests {
+     use super::*;
+     use std::os::unix::fs::{PermissionsExt, symlink};
+diff --git a/src/bin/rs-l2tpd/setup.rs b/src/bin/rs-l2tpd/setup.rs
+index 7ab356d..7dcc122 100644
+--- a/src/bin/rs-l2tpd/setup.rs
++++ b/src/bin/rs-l2tpd/setup.rs
+@@ -134,6 +134,7 @@ pub fn run(prefix: Option<&Path>, executable: &Path) -> u8 {
+     u8::from(!success || !reload || !start)
+ }
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+     use crate::testdir::Dir;
+@@ -250,6 +251,7 @@ fn directories(path: &Path) -> io::Result<()> {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod completion_tests {
+     use super::*;
+     use std::os::unix::fs::MetadataExt;
+diff --git a/src/bin/rs-l2tpd/signals.rs b/src/bin/rs-l2tpd/signals.rs
+index ddea189..cd20dbb 100644
+--- a/src/bin/rs-l2tpd/signals.rs
++++ b/src/bin/rs-l2tpd/signals.rs
+@@ -208,6 +208,7 @@ impl Drop for Signals {
+ }
+ 
+ #[cfg(all(test, feature = "fake-kernel"))]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+     use rs_l2tpd::kernel::fake::FakeKernel;
+@@ -267,6 +268,7 @@ mod tests {
+ }
+ 
+ #[cfg(all(test, feature = "fake-kernel"))]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod forwarder_tests {
+     use super::*;
+     use rs_l2tpd::kernel::fake::FakeKernel;
+diff --git a/src/bin/rs-l2tpd/tunable.rs b/src/bin/rs-l2tpd/tunable.rs
+index 7b7c0f5..5bbc13d 100644
+--- a/src/bin/rs-l2tpd/tunable.rs
++++ b/src/bin/rs-l2tpd/tunable.rs
+@@ -19,6 +19,7 @@ fn set(path: &std::path::Path) -> io::Result<()> {
+     Ok(())
+ }
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     /// spec: P25
+     #[test]
+diff --git a/src/config/mod.rs b/src/config/mod.rs
+index 29d9898..a789b1b 100644
+--- a/src/config/mod.rs
++++ b/src/config/mod.rs
+@@ -10,6 +10,7 @@ mod partial;
+ #[cfg(feature = "serde")]
+ mod serde;
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests;
+ mod text;
+ 
+diff --git a/src/error.rs b/src/error.rs
+index db7c6ac..322d1a7 100644
+--- a/src/error.rs
++++ b/src/error.rs
+@@ -51,6 +51,7 @@ impl From<std::io::Error> for Error {
+ pub type Result<T> = std::result::Result<T, Error>;
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     /// spec: O6, L3
+     #[test]
+diff --git a/src/kernel/linux/bpf.rs b/src/kernel/linux/bpf.rs
+index 6b92c19..ab4e791 100644
+--- a/src/kernel/linux/bpf.rs
++++ b/src/kernel/linux/bpf.rs
+@@ -47,6 +47,7 @@ pub(super) fn filter() -> Vec<SockFilter> {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+ 
+diff --git a/src/kernel/linux/l2tp.rs b/src/kernel/linux/l2tp.rs
+index 6a12c8e..c807c92 100644
+--- a/src/kernel/linux/l2tp.rs
++++ b/src/kernel/linux/l2tp.rs
+@@ -401,6 +401,7 @@ impl Genl {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use netlink_packet_core::Emitable;
+ 
+diff --git a/src/kernel/linux/lifetime.rs b/src/kernel/linux/lifetime.rs
+index 7bbefc6..dcae3d2 100644
+--- a/src/kernel/linux/lifetime.rs
++++ b/src/kernel/linux/lifetime.rs
+@@ -428,6 +428,7 @@ impl Drop for Lifetime {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+ 
+diff --git a/src/kernel/linux/mod.rs b/src/kernel/linux/mod.rs
+index 82c4ba9..3f441e2 100644
+--- a/src/kernel/linux/mod.rs
++++ b/src/kernel/linux/mod.rs
+@@ -270,6 +270,7 @@ impl Kernel for LinuxKernel {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod resources_tests {
+     use super::*;
+ 
+diff --git a/src/kernel/linux/monitor.rs b/src/kernel/linux/monitor.rs
+index 2750c77..2549ed0 100644
+--- a/src/kernel/linux/monitor.rs
++++ b/src/kernel/linux/monitor.rs
+@@ -187,6 +187,7 @@ pub(super) fn monitor() -> io::Result<Feed> {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+ 
+diff --git a/src/kernel/linux/request.rs b/src/kernel/linux/request.rs
+index 868370a..014c732 100644
+--- a/src/kernel/linux/request.rs
++++ b/src/kernel/linux/request.rs
+@@ -236,6 +236,7 @@ fn exchange<I: NetlinkSerializable>(
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+ 
+@@ -363,6 +364,7 @@ impl<I: NetlinkSerializable> NetlinkSerializable for Redacted<I> {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod completion_tests {
+     use super::*;
+     struct Secret([u8; 4]); // Deliberately has no Debug implementation.
+@@ -399,6 +401,7 @@ mod completion_tests {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod buffer_tests {
+     use super::*;
+     // kernel: (K36) net/core/sock.c SO_RCVBUFFORCE checks capable(CAP_NET_ADMIN),
+diff --git a/src/kernel/linux/rtnl.rs b/src/kernel/linux/rtnl.rs
+index cd3a297..8faa8cd 100644
+--- a/src/kernel/linux/rtnl.rs
++++ b/src/kernel/linux/rtnl.rs
+@@ -243,6 +243,7 @@ impl Rtnl {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+ 
+diff --git a/src/kernel/linux/socket.rs b/src/kernel/linux/socket.rs
+index 5923f44..9cf0391 100644
+--- a/src/kernel/linux/socket.rs
++++ b/src/kernel/linux/socket.rs
+@@ -193,6 +193,7 @@ fn option_report(once: &Once, name: &str, result: io::Result<()>) {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+     use std::os::fd::AsFd;
+diff --git a/src/lib.rs b/src/lib.rs
+index f2ff9f3..d9a6dba 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -22,6 +22,7 @@
+ //! - [`runtime`], [`service`], [`blocking`]: what a program drives.
+ 
+ #![cfg(target_os = "linux")]
++#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+ #![deny(unsafe_code)]
+ #![warn(missing_docs)]
+ 
+diff --git a/src/reconciler/deadlines.rs b/src/reconciler/deadlines.rs
+index 734647c..70ea5bf 100644
+--- a/src/reconciler/deadlines.rs
++++ b/src/reconciler/deadlines.rs
+@@ -40,6 +40,7 @@ impl<K> Deref for Deadlines<K> {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+     use std::time::Duration;
+diff --git a/src/reconciler/mod.rs b/src/reconciler/mod.rs
+index 1dc8546..fdb54c3 100644
+--- a/src/reconciler/mod.rs
++++ b/src/reconciler/mod.rs
+@@ -491,4 +491,5 @@ impl<K: Kernel> Reconciler<K> {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests;
+diff --git a/src/reconciler/report.rs b/src/reconciler/report.rs
+index 13519ce..7208188 100644
+--- a/src/reconciler/report.rs
++++ b/src/reconciler/report.rs
+@@ -72,6 +72,7 @@ impl Report {
+     }
+ 
+     #[cfg(test)]
++    #[cfg_attr(coverage_nightly, coverage(off))]
+     pub fn is_open(&self, entry: &str, condition: &'static str) -> bool {
+         self.open.contains_key(&(entry.to_owned(), condition))
+     }
+@@ -105,6 +106,7 @@ pub(crate) fn session(name: &str, tunnel_id: u32, session_id: u32) -> String {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+ 
+diff --git a/src/reconciler/resolvers.rs b/src/reconciler/resolvers.rs
+index be43d12..3b7767a 100644
+--- a/src/reconciler/resolvers.rs
++++ b/src/reconciler/resolvers.rs
+@@ -727,5 +727,6 @@ impl Drop for IphostResolve {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ #[path = "resolvers_tests.rs"]
+ mod tests;
+diff --git a/src/reconciler/workers.rs b/src/reconciler/workers.rs
+index 8a5305a..4f1d45e 100644
+--- a/src/reconciler/workers.rs
++++ b/src/reconciler/workers.rs
+@@ -232,6 +232,7 @@ impl Workers {
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+ 
+diff --git a/src/runtime.rs b/src/runtime.rs
+index b8b5037..dba1b07 100644
+--- a/src/runtime.rs
++++ b/src/runtime.rs
+@@ -37,6 +37,7 @@ use crate::reconciler::{IphostResolve, Reconciler, Request, Resolve};
+ use crate::{Error, Result};
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests;
+ 
+ /// The single input queue's capacity (A6).
+diff --git a/src/service.rs b/src/service.rs
+index d388589..b08a4f6 100644
+--- a/src/service.rs
++++ b/src/service.rs
+@@ -496,6 +496,7 @@ fn worker<K: Kernel + 'static>(
+ }
+ 
+ #[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
+     use super::*;
+     use crate::config::{Family, TunnelConfig};
