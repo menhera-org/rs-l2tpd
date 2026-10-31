@@ -1,0 +1,231 @@
+
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/noble/plain/net/l2tp/l2tp_core.c?h=Ubuntu-6.8.0-147.147
+command: curl --fail --location SOURCE --output SOURCE_FILE
+source SHA256:
+3d72dd752d23aceada53108191a5472039f55f1e904abcd39ce600250eabc840  -
+void l2tp_session_delete(struct l2tp_session *session)
+{
+	if (test_and_set_bit(0, &session->dead))
+		return;
+
+	trace_delete_session(session);
+	l2tp_session_unhash(session);
+	l2tp_session_queue_purge(session);
+	if (session->session_close)
+		(*session->session_close)(session);
+
+	l2tp_session_dec_refcount(session);
+}
+EXPORT_SYMBOL_GPL(l2tp_session_delete);
+
+/* We come here whenever a session's send_seq, cookie_len or
+ * l2specific_type parameters are set.
+291:struct l2tp_session *l2tp_session_get_nth(struct l2tp_tunnel *tunnel, int nth)
+312:EXPORT_SYMBOL_GPL(l2tp_session_get_nth);
+
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/noble/plain/net/l2tp/l2tp_netlink.c?h=Ubuntu-6.8.0-147.147
+command: curl --fail --location SOURCE --output SOURCE_FILE
+source SHA256:
+155c826ba98cf054af8f59ce9cbd601599cf51aa22ab1aefd54177454fa9fd97  -
+118:		ret = genlmsg_multicast_allns(family, msg, 0, 0);
+146:		ret = genlmsg_multicast_allns(family, msg, 0, 0);
+	struct l2tp_session *session;
+	struct l2tp_tunnel *tunnel = NULL;
+	int ti = cb->args[0];
+	int si = cb->args[1];
+
+	for (;;) {
+		if (!tunnel) {
+			tunnel = l2tp_tunnel_get_nth(net, ti);
+			if (!tunnel)
+				goto out;
+		}
+
+		session = l2tp_session_get_nth(tunnel, si);
+		if (!session) {
+			ti++;
+			l2tp_tunnel_dec_refcount(tunnel);
+			tunnel = NULL;
+			si = 0;
+			continue;
+		}
+
+		if (l2tp_nl_session_send(skb, NETLINK_CB(cb->skb).portid,
+					 cb->nlh->nlmsg_seq, NLM_F_MULTI,
+
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/resolute/plain/net/l2tp/l2tp_core.c?h=Ubuntu-7.0.0-42.42
+command: curl --fail --location SOURCE --output SOURCE_FILE
+source SHA256:
+887946a3808301500f5c5ea4c2f8f57eda23d448d66e491cbc9589e65586d838  -
+void l2tp_session_delete(struct l2tp_session *session)
+{
+	if (!test_and_set_bit(0, &session->dead)) {
+		trace_delete_session(session);
+		refcount_inc(&session->ref_count);
+		queue_work(l2tp_wq, &session->del_work);
+	}
+}
+EXPORT_SYMBOL_GPL(l2tp_session_delete);
+
+/* Workqueue session deletion function */
+static void l2tp_session_del_work(struct work_struct *work)
+{
+	struct l2tp_session *session = container_of(work, struct l2tp_session,
+						    del_work);
+
+	l2tp_session_unhash(session);
+	l2tp_session_queue_purge(session);
+	if (session->session_close)
+		(*session->session_close)(session);
+
+	/* drop initial ref */
+	l2tp_session_put(session);
+
+	/* drop workqueue ref */
+	l2tp_session_put(session);
+}
+
+/* We come here whenever a session's send_seq, cookie_len or
+419:struct l2tp_session *l2tp_session_get_next(const struct net *net, struct sock *sk, int pver,
+427:EXPORT_SYMBOL_GPL(l2tp_session_get_next);
+
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/resolute/plain/net/l2tp/l2tp_netlink.c?h=Ubuntu-7.0.0-42.42
+command: curl --fail --location SOURCE --output SOURCE_FILE
+source SHA256:
+176eb0ccd130206f4eaf9c8af8ee3f2b6c1fa9fbe4d7871c00f6eb7458285e43  -
+119:		ret = genlmsg_multicast_allns(family, msg, 0, 0);
+147:		ret = genlmsg_multicast_allns(family, msg, 0, 0);
+
+	for (;;) {
+		if (!tunnel) {
+			tunnel = l2tp_tunnel_get_next(net, &tkey);
+			if (!tunnel)
+				goto out;
+		}
+
+		session = l2tp_session_get_next(net, tunnel->sock, tunnel->version,
+						tunnel->tunnel_id, &skey);
+		if (!session) {
+			tkey++;
+			l2tp_tunnel_put(tunnel);
+			tunnel = NULL;
+			skey = 0;
+			continue;
+		}
+
+		if (l2tp_nl_session_send(skb, NETLINK_CB(cb->skb).portid,
+					 cb->nlh->nlmsg_seq, NLM_F_MULTI,
+
+source: https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.8.12.tar.xz net/l2tp/l2tp_core.c
+source SHA256:
+d5772f55b2d5d0ff7624c4e87f2113ae7c1b2b0576b1a1a6177aec7d7a2b9293  -
+286:struct l2tp_session *l2tp_session_get_nth(struct l2tp_tunnel *tunnel, int nth)
+307:EXPORT_SYMBOL_GPL(l2tp_session_get_nth);
+void l2tp_session_delete(struct l2tp_session *session)
+{
+	if (test_and_set_bit(0, &session->dead))
+		return;
+
+	trace_delete_session(session);
+	l2tp_session_unhash(session);
+	l2tp_session_queue_purge(session);
+	if (session->session_close)
+		(*session->session_close)(session);
+
+	l2tp_session_dec_refcount(session);
+}
+EXPORT_SYMBOL_GPL(l2tp_session_delete);
+
+/* We come here whenever a session's send_seq, cookie_len or
+ * l2specific_type parameters are set.
+
+source: https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.8.12.tar.xz net/l2tp/l2tp_netlink.c
+source SHA256:
+a1f5dd649a10422969e1f7736a337183867620ba245c7b60099d6dc8449ed69e  -
+118:		ret = genlmsg_multicast_allns(family, msg, 0, 0, GFP_ATOMIC);
+146:		ret = genlmsg_multicast_allns(family, msg, 0, 0, GFP_ATOMIC);
+844:		session = l2tp_session_get_nth(tunnel, si);
+
+source: https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.0.14.tar.xz net/l2tp/l2tp_core.c
+source SHA256:
+de4941100b85f50529b45adcd88b0f954f3fa13501c80c094478f71cb3b9709a  -
+419:struct l2tp_session *l2tp_session_get_next(const struct net *net, struct sock *sk, int pver,
+427:EXPORT_SYMBOL_GPL(l2tp_session_get_next);
+void l2tp_session_delete(struct l2tp_session *session)
+{
+	if (!test_and_set_bit(0, &session->dead)) {
+		trace_delete_session(session);
+		refcount_inc(&session->ref_count);
+		queue_work(l2tp_wq, &session->del_work);
+	}
+}
+EXPORT_SYMBOL_GPL(l2tp_session_delete);
+
+/* Workqueue session deletion function */
+static void l2tp_session_del_work(struct work_struct *work)
+{
+	struct l2tp_session *session = container_of(work, struct l2tp_session,
+						    del_work);
+
+	l2tp_session_unhash(session);
+	l2tp_session_queue_purge(session);
+	if (session->session_close)
+		(*session->session_close)(session);
+
+	/* drop initial ref */
+	l2tp_session_put(session);
+
+	/* drop workqueue ref */
+	l2tp_session_put(session);
+}
+
+/* We come here whenever a session's send_seq, cookie_len or
+
+source: https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.0.14.tar.xz net/l2tp/l2tp_netlink.c
+source SHA256:
+409e13fc6f88d4b7253266659f533f7c52931cf7033025b3754db1f63811e85c  -
+119:		ret = genlmsg_multicast_allns(family, msg, 0, 0);
+147:		ret = genlmsg_multicast_allns(family, msg, 0, 0);
+855:		session = l2tp_session_get_next(net, tunnel->sock, tunnel->version,
+
+source: https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.tar.xz net/l2tp/l2tp_core.c
+source SHA256:
+2efcfa41ee28d1f8bf9f41471c0f4b99baabcea11bfe87c908dfab8309e6e2f3  -
+419:struct l2tp_session *l2tp_session_get_next(const struct net *net, struct sock *sk, int pver,
+427:EXPORT_SYMBOL_GPL(l2tp_session_get_next);
+void l2tp_session_delete(struct l2tp_session *session)
+{
+	if (!test_and_set_bit(0, &session->dead)) {
+		trace_delete_session(session);
+		refcount_inc(&session->ref_count);
+		queue_work(l2tp_wq, &session->del_work);
+	}
+}
+EXPORT_SYMBOL_GPL(l2tp_session_delete);
+
+/* Workqueue session deletion function */
+static void l2tp_session_del_work(struct work_struct *work)
+{
+	struct l2tp_session *session = container_of(work, struct l2tp_session,
+						    del_work);
+
+	l2tp_session_unhash(session);
+	l2tp_session_queue_purge(session);
+	if (session->session_close)
+		(*session->session_close)(session);
+
+	/* drop initial ref */
+	l2tp_session_put(session);
+
+	/* drop workqueue ref */
+	l2tp_session_put(session);
+}
+
+/* We come here whenever a session's send_seq, cookie_len or
+
+source: https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.tar.xz net/l2tp/l2tp_netlink.c
+source SHA256:
+816af374c2b1ce2a24297805ba21784df5d0de8e2aac5d17df45cbfb8a4ef102  -
+119:		ret = genlmsg_multicast_netns(family, tunnel->l2tp_net, msg,
+148:		ret = genlmsg_multicast_netns(family,
+858:		session = l2tp_session_get_next(net, tunnel->sock, tunnel->version,

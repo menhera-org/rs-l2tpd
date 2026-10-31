@@ -1,5 +1,8 @@
 # Kernel evidence map
 
+[Per-required-kernel behavior and execution scope](kernel-behavior.md)
+records the version-dependent observations and remaining proof.
+
 [Documentation index](README.md) · Verification results (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`)
 
 `shared` means the same operation body runs on fake and real kernels in
@@ -15,7 +18,7 @@ their own relevant citations.
 | K1 | requirement + live: `LinuxKernel::new` resolves the family in every fixture; `conformance_on_the_linux_kernel` | linux |
 | K2 | live: `sockets_bind_connect_and_report_their_source`, both native V4 and V6 sockets | linux |
 | K3 | shared: all session creation cases explicitly request Ethernet with no sublayer | linux |
-| K4 | requirement + live positive: V6 socket creation; refusal policy is tested with both errnos in `socket_family_fallback_never_recreates_existing_tunnels`; boot-disabled/no-IPv6 builds are Phase 6 | linux |
+| K4 | requirement + live positive: V6 socket creation; refusal policy is tested with both errnos in `socket_family_fallback_never_recreates_existing_tunnels`; the scoped mainline H4/T4 boots exercise ipv6.disable=1 and CONFIG_IPV6=n (see kernel-behavior.md) | linux |
 | K5 | shared: `disconnected_sessions_count_frame_drops`; live: `disconnected_sessions_drop_outbound_but_receive_only_matching_cookies` transmits and observes counters | linux |
 | K6 | shared: `connect_selects_the_source_of_the_device`, disconnect/reconnect across families | linux |
 | K7 | shared: `the_monitor_reports_links_and_addresses`; live: ordered lifetime requests and loss tests | linux |
@@ -37,7 +40,7 @@ their own relevant citations.
 | K23 | live: tunable write, old socket stays v6-only, fresh socket reads dual-stack; fake policy covers both fallbacks and failed read-back | linux |
 | K24 | shared: stale source/bare connect refusal and disconnect/reselection | linux |
 | K25 | live: `the_kernel_keeps_the_previous_ipv6_peer_after_disconnect` | linux |
-| K26 | shared: no IPv6 source, link-local/binding refusal; fake policy explicitly covers every transient connect errno; route-type errno table remains source evidence | linux |
+| K26 | shared: empty IPv6 VRF refusal (EADDRNOTAVAIL, or ENETUNREACH on vanilla 6.8.12), link-local/binding refusal; fake policy explicitly covers every transient connect errno; route-type errno table remains source evidence | linux |
 | K27 | shared: zone must equal the bound link or belong to its VRF; policy tests replacement, rename and membership dependencies | linux |
 | K28 | shared: ordinary bound link without a route, VRF source selection | linux |
 | K29 | live production unit tests: actual lifetime overflow, missing mutation reply with applied mutation and socket reopening; unit framing/absolute deadline tests | linux |

@@ -242,18 +242,20 @@ pub fn connect_selects_the_source_of_the_device(f: &mut dyn Fixture) {
     f.k().close(socket);
 }
 
-/// Without an IPv6 address in the socket's L3 domain an IPv6 connect
-/// fails `EADDRNOTAVAIL` (K26, K34).
-pub fn no_ipv6_source_is_eaddrnotavail(f: &mut dyn Fixture) {
+/// An empty IPv6 VRF without a usable source or route refuses the
+/// connection with either verified kernel errno (K26, K34).
+pub fn empty_ipv6_vrf_without_a_source_or_route_cannot_connect(f: &mut dyn Fixture) {
     let vrf = f.add_link("conf-vrf", true);
     f.set_up(vrf, true);
     let socket = f.k().create_socket(Family::V6, 9191, 9191).unwrap();
     f.k().bind_index(socket, vrf).unwrap();
     let peer = Peer::new("2001:db8:92::2".parse().unwrap(), None);
-    assert_eq!(
-        errno(f.k().connect(socket, &peer)),
-        nix::libc::EADDRNOTAVAIL
-    );
+    let error = errno(f.k().connect(socket, &peer));
+    println!("empty IPv6 VRF connect errno: {error}");
+    assert!(matches!(
+        error,
+        nix::libc::EADDRNOTAVAIL | nix::libc::ENETUNREACH
+    ));
     f.k().close(socket);
 }
 
@@ -409,8 +411,8 @@ pub const CASES: &[(&str, Case)] = &[
         connect_selects_the_source_of_the_device,
     ),
     (
-        "no_ipv6_source_is_eaddrnotavail",
-        no_ipv6_source_is_eaddrnotavail,
+        "empty_ipv6_vrf_without_a_source_or_route_cannot_connect",
+        empty_ipv6_vrf_without_a_source_or_route_cannot_connect,
     ),
     (
         "a_link_local_zone_must_match_the_binding",

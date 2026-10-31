@@ -1,0 +1,6 @@
+check: local Markdown file targets (external URLs and fragments excluded)
+local Markdown link targets checked: 213
+check: git diff --check
+check: sh -n and shellcheck tests/kernel/run-guest.sh
+check: cargo fmt --check
+check: diagnostic patch applies

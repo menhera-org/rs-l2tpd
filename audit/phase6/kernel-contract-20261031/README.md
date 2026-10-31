@@ -1,10 +1,10 @@
-# Required vanilla 6.8.12 contradicts the universal source-error fact
+# K26/K34: approved empty-VRF errno distinction
 
-The full matrix's vanilla 6.8.12 conformance run fails the shared
+The original full matrix's vanilla 6.8.12 conformance run failed the shared
 `no_ipv6_source_is_eaddrnotavail` case: connect in an empty, up VRF with
 no IPv6 source or route returns errno 101 (ENETUNREACH), while the test
-requires 99 (EADDRNOTAVAIL). The corresponding Ubuntu 6.8.0-147 guest
-passes. See ../matrix-20261031T062607Z-3496031/vanilla-6.8.12/run.log
+then required 99 (EADDRNOTAVAIL). The corresponding Ubuntu 6.8.0-147 guest
+passed. See ../matrix-20261031T062607Z-3496031/vanilla-6.8.12/run.log
 and ../matrix-20261031T062607Z-3496031/noble/run.log.
 
 This is a specification issue in K26 and K34, not permission to relax a
@@ -24,14 +24,21 @@ Source comparison of the exact built tarballs:
   Ubuntu 6.8.0-147, vanilla 6.12.114/6.18.59 and 7.3 runs pass the
   stricter assertion; no first-fix version is claimed by this comparison.
 
-`proposed.patch` is a review proposal, not applied or tested. It makes
+The maintainer approved the documented kernel distinction on 2026-10-31.
+`proposed.patch` is retained as the reviewed proposal and has now been
+applied to the specification and shared conformance test. It makes
 K26/K34 describe the observed kernel-dependent empty-VRF refusal,
 corrects T16's explanation, and renames the shared case so it accepts
 only EADDRNOTAVAIL or ENETUNREACH while recording the actual errno.
 The fake continues to exercise EADDRNOTAVAIL; the required live matrix
 exercises each observed real-kernel branch. No daemon behavior changes.
 
-Phase 6's instruction “Never weaken a rule to make a gate pass” requires
-the maintainer's decision before applying this proposal. P3 cannot be
-called green while this mismatch remains. Other targets continue with
-the original assertion, and coverage/other packages remain open.
+Phase 6's instruction “Never weaken a rule to make a gate pass” required
+the maintainer's decision before application. That decision is resolved.
+The fresh required matrix in ../matrix-20261031T071523Z-3533819 tests the
+applied correction. Its final outcome and per-target errnos are recorded
+in [required-kernel behavior](../../../docs/kernel-behavior.md). Coverage
+and other packages remain open. Native all-feature tests, strict source
+links and warning-denied Clippy pass after application (approved-*.log);
+approved-kernel.log records their native kernel. The live matrix records
+the real 99/101 distinction separately from the fake's errno 99.

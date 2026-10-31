@@ -18,6 +18,7 @@ are in the [GitHub repository](https://github.com/menhera-org/rs-l2tpd).
 | [Dependencies](dependencies.md) | The supply chain after the rewrite, each crate with its reason, and what was removed |
 | [Phase 6 instructions](phase6.md) | The proof phase as ordered work packages for coding agents: traceability, scenario suite, kernel matrix, coverage, Incus/LXD, the root unit sandbox, the record |
 | [Testing](testing.md) | How 100 % coverage, one test per specification claim, determinism and live-kernel proof are reached: the fake kernel, the conformance suite, the container and QEMU matrices, the rule map |
+| [Required-kernel behavior](kernel-behavior.md) | Observations for every required Ubuntu/vanilla/mainline kernel, errno and notification differences, fragmentation, manager/container limits and test scope |
 | [Kernel evidence](kernel-evidence.md) | Every K fact classified as a shared operation, live host case, delegated requirement or source assertion |
 | [Packaging](packaging.md) | The implemented `--setup-systemd` installer (feature `setup-systemd`) and the planned Phase 7 `musl-deb` builder for `amd64` and `arm64` |
 | [Upstream iphost work](upstream-iphost.md) | Instructions for protocol bug fixes, optional failure fallback, compatibility and daemon integration gates |
@@ -29,13 +30,15 @@ runtime, services and binary; Phases 1–5 have scoped verification records.
 The latest Phase 5 evidence is repository file
 `audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md`, following the initial
 `audit/PHASE5_VERIFICATION_2026-10-29.md` record. The binary runs on musl
-and glibc; fresh process tests pass on Ubuntu 6.8.0-147 and QEMU kernels
-6.12.114, 6.18.59 and 7.3. Phase 6 is underway: source links, the
-unprivileged Incus case and the root unit sandbox have passing local
-records. The partial scenario suite and required matrix driver exist.
-Repository file `audit/PHASE6_VERIFICATION_2026-10-31.md` records a kernel
-errno distinction awaiting a maintainer decision, a fixed readiness race,
-an unresolved guest boot failure and the remaining global gates.
+and glibc; all five required kernels now have fresh passing implemented
+conformance/process/scenario profiles, including fragmentation. Phase 6
+is underway: source links, the unprivileged Incus case and the root unit
+sandbox have passing local records.
+[Required-kernel behavior](kernel-behavior.md) records each target's
+differences, source evidence, execution scope and limitations. Repository
+file `audit/PHASE6_VERIFICATION_2026-10-31.md` records the approved errno
+distinction, readiness fix, guest boot-memory diagnosis and remaining
+coverage/scenario/CI work. The global gates remain open.
 The specification's
 [known gaps](spec/README.md#known-gaps) describe historical commit
 `741117b`, removed in Phase 0. The interface page describes the target.

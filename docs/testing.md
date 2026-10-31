@@ -92,6 +92,10 @@ indexes. Proposed packages do not replace the published targets:
 | vanilla `7.0.14` | vanilla equivalent of the 26.04 kernel | QEMU, built the same way |
 | mainline `v7.3` | the newest release | QEMU, built the same way |
 
+[Per-target behavior and limitations](kernel-behavior.md) records the
+observed errnos, notification scope, fragmentation, container/manager
+constraints, boot settings and exact execution scope for every target.
+
 Desired, not gating: every vanilla release between the oldest required
 one and mainline (the matrix below), Debian's stock kernels, and
 RHEL-ish stock kernels. The matrix driver resolves the required set before and after each run

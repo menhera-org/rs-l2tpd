@@ -88,6 +88,10 @@ chmod 755 "$guest/root/init"
 printf '%s\n' "$mode" > "$guest/root/matrix-mode"
 (cd "$guest/root" && find . -print | cpio -o -H newc -R 0:0 > "$guest/initramfs.cpio") > "$record/initramfs.log" 2>&1
 append='console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs'
+# KHO scratch can starve the cold-boot initramfs; these tests never kexec.
+if [ "$config" != - ] && grep -q '^CONFIG_KEXEC_HANDOVER_ENABLE_DEFAULT=y$' "$config"; then
+    append="$append kho=off"
+fi
 if [ "$modules" = - ]; then append="$append l2tp_builtin=1"; fi
 if [ "$mode" = ipv6-disable ]; then append="$append ipv6.disable=1"; fi
 {

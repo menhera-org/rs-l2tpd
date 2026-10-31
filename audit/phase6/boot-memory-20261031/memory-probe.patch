@@ -1,0 +1,38 @@
+--- a/tests/kernel/run-guest.sh
++++ b/tests/kernel/run-guest.sh
+@@ -79,7 +79,7 @@
+     cp -Rp "$modules/." "$guest/root/lib/modules/$release/"
+ fi
+ if [ "$config" != - ]; then cp "$config" "$record/kernel.config"; fi
+-cp tests/kernel/matrix-init.sh "$guest/root/init"
++cp audit/phase6/boot-memory-20261031/memory-init.sh "$guest/root/init"
+ if [ "$mode" = systemd ]; then
+     cp tests/kernel/systemd-init.sh "$guest/root/init"
+     cp -Rp "$modules/../../../usr/." "$guest/root/usr/"
+@@ -88,10 +88,13 @@
+ printf '%s\n' "$mode" > "$guest/root/matrix-mode"
+ (cd "$guest/root" && find . -print | cpio -o -H newc -R 0:0 > "$guest/initramfs.cpio") > "$record/initramfs.log" 2>&1
+ append='console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs'
+-# KHO scratch can starve the cold-boot initramfs; these tests never kexec.
+-if [ "$config" != - ] && grep -q '^CONFIG_KEXEC_HANDOVER_ENABLE_DEFAULT=y$' "$config"; then
+-    append="$append kho=off"
+-fi
++case ${MEMORY_PROBE_MODE-default} in
++    default) ;;
++    off) append="$append kho=off" ;;
++    controlled-on) append="$append kho=on kho_scratch=16M,512M,1024M nokaslr" ;;
++    controlled-off) append="$append kho=off kho_scratch=16M,512M,1024M nokaslr" ;;
++    *) exit 2 ;;
++esac
+ if [ "$modules" = - ]; then append="$append l2tp_builtin=1"; fi
+ if [ "$mode" = ipv6-disable ]; then append="$append ipv6.disable=1"; fi
+ {
+@@ -110,7 +113,7 @@
+ mv "$record/run.tmp" "$record/run.log"
+ grep -E 'Linux version|GUEST_KERNEL_RELEASE|scope:|test result:|_RESULT=' "$record/run.log" || :
+ [ "$result" = 0 ] || exit "$result"
+-markers='CONFORMANCE_RESULT=0 SCENARIO_RESULT=0 MATRIX_GUEST_RESULT=0'
++markers='MEMORY_PROBE_RESULT=0'
+ if [ "$mode" = systemd ]; then markers='ROOT_SYSTEMD_RESULT=0'; fi
+ for marker in $markers; do
+     grep -q "^$marker" "$record/run.log" || exit 1

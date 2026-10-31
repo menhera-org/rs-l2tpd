@@ -32,14 +32,15 @@ review corrections and their acceptance work. Configuration, kernel,
 reconciler, runtime, service and process code exists; Phases 1–5 have scoped
 verification records, including the
 [Phase 5 conformance follow-up](audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md).
-The binary runs on musl and glibc, with fresh process tests on Ubuntu
-6.8.0-147 and QEMU kernels 6.12.114, 6.18.59 and 7.3. Phase 6 is underway:
-the source-link check, unprivileged Incus case and root system-unit sandbox
-have passing local records. The kernel matrix driver and partial host
-scenarios exist. The [latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-10-31.md)
-tracks a kernel errno distinction awaiting a maintainer decision, a fixed
-readiness race, an unresolved guest boot failure and the remaining coverage
-and scenario work. The global gates remain open.
+The binary runs on musl and glibc. All five required kernels have fresh
+passing records for the implemented conformance/process/scenario profile,
+including fragmentation. Phase 6 is underway: the source-link check,
+unprivileged Incus case and root system-unit sandbox also have passing
+local records. [Required-kernel behavior](docs/kernel-behavior.md) records
+each target's differences, source evidence and limitations. The
+[latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-10-31.md) tracks the
+approved errno distinction, readiness fix, boot-memory diagnosis and
+remaining coverage/scenario/CI work. The global gates remain open.
 The known-gap tables describe historical commit `741117b`.
 
 ## Quick start
@@ -70,6 +71,7 @@ Start with the [documentation index](docs/README.md):
 - [Interface](docs/interface.md): configuration, command line, signals, unit, library
 - [Dependencies](docs/dependencies.md): the supply chain and upstream needs
 - [Testing](docs/testing.md): the suites, the gates, kernel test pitfalls
+- [Required-kernel behavior](docs/kernel-behavior.md): per-target differences, executed evidence and limitations
 - [Packaging](docs/packaging.md): the implemented `--setup-systemd` installer and planned `musl-deb` packages
 - [Specification](docs/spec/README.md): requirements, promises, architecture, behaviour in every condition
 

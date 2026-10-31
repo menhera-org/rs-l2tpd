@@ -180,7 +180,7 @@ not wait for it. The outcomes of a connect and their classes
 | `EHOSTUNREACH` | an `unreachable` route | transient |
 | `EACCES` | a `prohibit` route | transient |
 | `EINVAL` | a `blackhole` route | transient |
-| `EADDRNOTAVAIL` | no source address of the family in the socket's L3 domain, whatever the routes | transient |
+| `EADDRNOTAVAIL` | source selection found no usable address of the family; when both source and route are absent, the kernel may instead return `ENETUNREACH` (K26, K34) | transient |
 | `ENODEV`, `ENETDOWN` | the bound device is gone or down | transient; the binding is re-evaluated ([T12](#bind-devices)) |
 | an IPv6 peer on an `AF_INET` socket | not attempted | transient, until the host changes ([T4](#address-families)) |
 | `EINVAL` for a link-local peer without a zone or binding | prevented at load time ([C7](configuration.md#tunnel-entries)) | configuration mistake |

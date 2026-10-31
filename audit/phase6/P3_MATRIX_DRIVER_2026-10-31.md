@@ -52,12 +52,14 @@ runs are separate evidence, not replacements for the first failed run:
   daemon's readiness/signal ordering race; its correction and separate
   verification belong to ready-signal-race-20261031.
 
-kernel-contract-20261031 contains the K26/K34 source comparison and a
-proposed patch, **not applied**, requiring the maintainer's decision under
-Phase 6's “Never weaken a rule to make a gate pass” instruction. Both
-refusals already have the same transient policy; the proposed change
-records the precise verified kernel distinction rather than inventing a
-new daemon behavior. P3 remains open while that decision is pending.
+kernel-contract-20261031 contains the K26/K34 source comparison and the
+reviewed patch. The maintainer approved the documented kernel distinction
+on 2026-10-31; the patch is now applied. Both refusals already have the
+same transient policy, so no daemon behavior changes. The fresh required
+run is matrix-20261031T071523Z-3533819; per-target results and remaining
+limits are recorded in [required-kernel behavior](../../docs/kernel-behavior.md).
+The Ubuntu 26.04 boot-memory cause and controlled KHO comparison are in
+[boot-memory-20261031](boot-memory-20261031/README.md).
 
 Driver checks: POSIX shell syntax, ShellCheck, publication-parser
 self-test, rejected patch-level range, rejected zero-test scenario
@@ -71,5 +73,9 @@ supported by the current builder/resolver; a future release-candidate or
 new-major target fails closed and needs its source-fetch path added.
 The range path is parser-checked but its broader optional matrix was not
 run. No complete Phase 6 matrix or scenario gate is claimed: P2 remains
-partial, the required driver failed, and all final-code targets still
-need a consistent rerun after the open contract and scenario work.
+partial. The first required driver failed; the fresh post-decision driver
+returns MATRIX_RESULT=0 for all five currently implemented profiles and
+both scoped H4 boots. Its [record](matrix-20261031T071523Z-3533819/README.md)
+retains unchanged version/source manifests and identical executable
+identities across the five normal guests. Complete scenario/delegated
+proof and a consistent phase-exit rerun are still required.

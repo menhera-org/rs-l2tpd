@@ -494,15 +494,21 @@ kernel target; the Incus/LXD scenario run, not skipped.
 **Status: in progress on 2026-10-31.** The strict source-link check
 passes locally. The partial host scenarios, unprivileged Incus case and
 root system-unit sandbox have passing records. The required matrix driver
-exists; vanilla 6.8.12 exposed a K26/K34 errno distinction awaiting the
-maintainer's decision, and an Ubuntu 26.04 boot failure remains unexplained
-despite a successful identical retry. A readiness/signal-order race found
+passes all five currently implemented profiles and both scoped H4
+boots, with unchanged published versions and tested sources. The
+maintainer approved documenting vanilla 6.8.12's K26/K34 errno distinction.
+Controlled boots traced the Ubuntu 26.04 initramfs OOM
+to default-enabled kexec-handover scratch reservation; the cold-boot helper
+disables that unused feature when the supplied config enables it.
+A readiness/signal-order race found
 by that guest is fixed and retested. Initial merged coverage is 91.03%
 lines / 77.02% branches, before that fix; 70 rule citations and remaining
 scenarios are still open. No global gate is declared complete; strict CI
 flags remain off. The latest record is repository file
 `audit/PHASE6_VERIFICATION_2026-10-31.md`; the approved H11 MAC limitations
 remain in [H11](spec/hosts.md#other-network-managers).
+[Required-kernel behavior](kernel-behavior.md) records all five targets'
+observations, proof scope and limitations.
 
 ### Phase 7 — release
 

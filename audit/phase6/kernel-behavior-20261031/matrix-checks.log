@@ -1,0 +1,54 @@
+check: all five exact guest releases/errnos, normal result markers, 18-case result, identical executable identities, unchanged source/publication manifests, both scoped H4 boots
+
+target: noble
+GUEST_KERNEL_RELEASE=6.8.0-147-generic
+empty IPv6 VRF connect errno: 99
+CONFORMANCE_RESULT=0
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 206.05s
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+
+target: vanilla-6.8.12
+GUEST_KERNEL_RELEASE=6.8.12
+empty IPv6 VRF connect errno: 101
+CONFORMANCE_RESULT=0
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 162.96s
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+
+target: resolute
+GUEST_KERNEL_RELEASE=7.0.0-42-generic
+empty IPv6 VRF connect errno: 99
+CONFORMANCE_RESULT=0
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 195.02s
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+
+target: vanilla-7.0.14
+GUEST_KERNEL_RELEASE=7.0.14
+empty IPv6 VRF connect errno: 99
+CONFORMANCE_RESULT=0
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 162.22s
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+
+target: vanilla-7.3
+GUEST_KERNEL_RELEASE=7.3.0
+empty IPv6 VRF connect errno: 99
+CONFORMANCE_RESULT=0
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 170.23s
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+
+target: ipv6-disable
+scope: IPv6-absent boot scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.76s
+MATRIX_GUEST_RESULT=0
+
+target: no-ipv6
+scope: IPv6-absent boot scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.93s
+MATRIX_GUEST_RESULT=0
+MATRIX_RESULT=0
+
+check: only stock Resolute uses kho=off

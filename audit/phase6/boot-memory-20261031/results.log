@@ -1,0 +1,8 @@
+attempt=1 mode=default helper_exit=0
+attempt=2 mode=default helper_exit=0
+attempt=3 mode=default helper_exit=0
+attempt=4 mode=controlled-on helper_exit=1
+attempt=5 mode=controlled-off helper_exit=0
+attempt=6 mode=off helper_exit=0
+attempt=7 mode=off helper_exit=0
+attempt=8 mode=off helper_exit=0

@@ -222,8 +222,13 @@ container, and requires the result marker, not QEMU's exit code.
   built in. One extra build has IPv6 disabled for H4 and T4.
 - The **desired set** is every release from v6.8 to the newest; run it
   when the required set is green and record which ones ran.
-- Memory `-m 2048` (the initramfs holds unstripped test binaries); strip
-  only the copies that go into the guest.
+- Memory `-m 2048`; strip only the test-binary copies that go into the
+  guest. When the supplied kernel config enables kexec handover by
+  default, the cold-boot helper adds `kho=off` to prevent its scratch
+  reservation from starving initramfs unpacking. This suite never uses
+  kernel kexec; daemon execve restart remains tested. See
+  [the controlled boot evidence](../audit/phase6/boot-memory-20261031/README.md)
+  and [per-target behavior](kernel-behavior.md).
 - Update the table in `testing.md` whenever Ubuntu or kernel.org moves,
   and re-run before calling the gate green.
 

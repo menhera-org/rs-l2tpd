@@ -1,0 +1,3 @@
+config: ../kernel.config (identical across all eight boots)
+config SHA256:
+5c1ce5c46247b47a133cf80e7f852fd9d877c832c89848ab42b4db3092fae7aa  -
