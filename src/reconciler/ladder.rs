@@ -73,7 +73,11 @@ impl<K: Kernel> Reconciler<K> {
             why: Some(why),
         };
         let Some(peer) = peer.clone() else {
-            return Ok(disconnect("it has no peer").without_reason());
+            return Ok(Target::Disconnect {
+                bind: bind.as_ref().map(|link| link.index),
+                pending: None,
+                why: None,
+            });
         };
         if family == Family::V4 && peer.addr.is_ipv6() {
             return Ok(disconnect(
@@ -103,19 +107,5 @@ impl<K: Kernel> Reconciler<K> {
             bind: bind.map(|l| l.index),
             zone,
         })
-    }
-}
-
-impl Target {
-    /// A peerless tunnel waits for nothing: no reason to report.
-    fn without_reason(self) -> Self {
-        match self {
-            Target::Disconnect { bind, pending, .. } => Target::Disconnect {
-                bind,
-                pending,
-                why: None,
-            },
-            other => other,
-        }
     }
 }

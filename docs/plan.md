@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 94.34% lines /
-83.48% branches: 483 missing lines and 299 missing branches, with no
+approved production-code scope, the latest merged report is 94.50% lines /
+83.87% branches: 469 missing lines and 292 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner has passing records and the later H11 failure described below.
@@ -638,6 +638,14 @@ observed behavior. Socket-backed proof failures, executable search/probe bounds
 and mismatched inherited metadata have additional assertions, passing common
 checks, ten seeds and fresh GNU profiles. Repository record
 `audit/phase6/ownership-proof-20261031/` gives exact scope and limitations.
+
+File and descriptor faults now have additional ownership, cleanup and reload
+assertions. Their coverage helper retains exit profiles when opens are denied;
+musl syscall spellings and probe-fixture fork isolation are verified. A one-use
+peerless target conversion is removed. Common checks, ten seeds and fresh
+GNU/Incus/root-systemd profiles pass; `audit/phase6/io-faults-20261031/` retains
+the failed fixtures and final collection. A required matrix is running in an
+isolated checkout of that source; it has no final result yet.
 
 ### Phase 7 — release
 

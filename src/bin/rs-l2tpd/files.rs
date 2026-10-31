@@ -327,6 +327,68 @@ fn read_file(path: &Path) -> io::Result<String> {
 mod completion_tests {
     use super::*;
     use std::os::unix::ffi::OsStrExt;
+
+    /// spec: C1 C3 C4 P13
+    #[test]
+    fn file_io_faults_refuse_reload_and_keep_successfully_read_documents() {
+        const CHILD: &str = "PHASE6_FILE_FAULT";
+        if let Ok(case) = std::env::var(CHILD) {
+            let root = std::path::PathBuf::from(std::env::var_os("PHASE6_FILE_ROOT").unwrap());
+            let main = root.join("main.toml");
+            let dropins = root.join("dropins");
+            let previous: Config =
+                toml::from_str("[tunnels.previous]\ntunnel_id=11\nremote_addr='192.0.2.1'")
+                    .unwrap();
+            crate::logger::init(true);
+            match case.as_str() {
+                "enumeration" => crate::syscall_fault::refuse(&[libc::SYS_getdents64], libc::EIO),
+                "read" => crate::syscall_fault::refuse(&[libc::SYS_read], libc::EIO),
+                "open" => crate::syscall_fault::refuse_open(libc::ENOENT),
+                "metadata" => {
+                    crate::syscall_fault::refuse(&[libc::SYS_fstat, libc::SYS_statx], libc::EIO);
+                    assert_eq!(
+                        read_file(&main).unwrap_err().raw_os_error(),
+                        Some(libc::EIO)
+                    );
+                    return;
+                }
+                _ => panic!("unknown file fault"),
+            }
+            let loaded = load(&main, &dropins);
+            let (config, problems) = loaded.partial.into_config_lenient();
+            assert!(problems.is_empty());
+            assert_eq!(loaded.errors.len(), if case == "open" { 2 } else { 1 });
+            if case == "enumeration" {
+                assert_eq!(config.tunnels()["retained"].tunnel_id(), 10);
+                assert!(loaded.errors[0].starts_with(dropins.to_str().unwrap()));
+            } else {
+                assert!(config.tunnels().is_empty());
+                assert!(loaded.errors[0].starts_with(main.to_str().unwrap()));
+            }
+            assert!(reload(&main, &dropins, previous.clone()).is_err());
+            assert_eq!(previous.tunnels()["previous"].tunnel_id(), 11);
+            return;
+        }
+        let dir = crate::testdir::Dir::new();
+        fs::write(
+            dir.path().join("main.toml"),
+            "[tunnels.retained]\ntunnel_id=10\nremote_addr='192.0.2.2'",
+        )
+        .unwrap();
+        fs::create_dir(dir.path().join("dropins")).unwrap();
+        for case in ["enumeration", "read", "open", "metadata"] {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "files::completion_tests::file_io_faults_refuse_reload_and_keep_successfully_read_documents", "--nocapture", "--test-threads=1"])
+                .env(CHILD, case)
+                .env("PHASE6_FILE_ROOT", dir.path())
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{case}: {output:?}");
+            assert!(!String::from_utf8_lossy(&output.stderr).contains("LLVM Profile Error"));
+            println!("FILE_FAULT_VERIFIED={case}");
+        }
+    }
+
     /// spec: C3 C4 P2 P13
     #[test]
     fn bounded_regular_files_and_special_files() {

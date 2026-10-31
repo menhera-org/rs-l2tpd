@@ -294,6 +294,64 @@ fn streams() -> io::Result<()> {
 mod stream_tests {
     /// spec: P2 O1
     #[test]
+    fn failed_standard_stream_setup_returns_the_original_error() {
+        const CHILD: &str = "PHASE6_STREAM_FAULT";
+        if let Ok(case) = std::env::var(CHILD) {
+            match case.as_str() {
+                "fcntl" => crate::syscall_fault::refuse(&[libc::SYS_fcntl], libc::EIO),
+                "open" => {
+                    crate::syscall_fault::refuse_open(libc::EACCES);
+                    assert_eq!(unsafe { libc::close(0) }, 0);
+                }
+                "dup-failure" | "dup-success" => {
+                    // Model a descriptor being reused between the probe and open.
+                    crate::syscall_fault::refuse(&[libc::SYS_fcntl], libc::EBADF);
+                    if case == "dup-failure" {
+                        crate::syscall_fault::refuse(&[libc::SYS_dup2], libc::EIO);
+                    }
+                }
+                _ => panic!("unknown stream fault"),
+            }
+            if case == "dup-success" {
+                super::streams().unwrap();
+                for fd in 0..=2 {
+                    let mut stat = std::mem::MaybeUninit::<libc::stat>::uninit();
+                    assert_eq!(unsafe { libc::fstat(fd, stat.as_mut_ptr()) }, 0);
+                    assert_eq!(
+                        unsafe { stat.assume_init() }.st_mode & libc::S_IFMT,
+                        libc::S_IFCHR
+                    );
+                }
+            } else {
+                assert_eq!(
+                    super::streams().unwrap_err().raw_os_error(),
+                    Some(if case == "open" {
+                        libc::EACCES
+                    } else {
+                        libc::EIO
+                    })
+                );
+            }
+            return;
+        }
+        for case in ["fcntl", "open", "dup-failure", "dup-success"] {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "stream_tests::failed_standard_stream_setup_returns_the_original_error",
+                    "--test-threads=1",
+                ])
+                .env(CHILD, case)
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{case}: {output:?}");
+            assert!(!String::from_utf8_lossy(&output.stderr).contains("LLVM Profile Error"));
+            println!("STREAM_FAULT_VERIFIED={case}");
+        }
+    }
+
+    /// spec: P2 O1
+    #[test]
     fn closed_streams_child() {
         if std::env::var_os("COMPLETION_CLOSED_STREAMS").is_none() {
             return;

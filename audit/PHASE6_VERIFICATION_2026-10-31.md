@@ -13,7 +13,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
-| P4 coverage | Approved production scope: fresh merged GNU report 94.34% lines / 83.48% branches after ownership/proof cases; no production exclusions or saturated inferred counts | 483 missing lines / 299 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: fresh merged GNU report 94.50% lines / 83.87% branches after I/O fault cases; no production exclusions or saturated inferred counts | 469 missing lines / 292 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -876,3 +876,18 @@ fresh GNU native/live, normal, manager and Incus profiles pass. Coverage is
 saturated inferred regions. Shipping Linux/binary behavior is unchanged.
 Both jobs pass for the preceding Store source in CI run `41242087168`.
 H11/P5 and the other global proof requirements remain open.
+
+## File and descriptor faults
+
+[The I/O fault record](phase6/io-faults-20261031/README.md) checks original
+errors, inherited ownership, partial cleanup and failed reloads. A preopened
+test-only profile FILE retains exit counts after open/metadata denial. The
+initial musl filter miss and GNU ETXTBSY fixture race are retained and fixed;
+their profiles are excluded from the final collection. The peerless target
+no longer needs a conversion helper. Common checks, ten seeds, fresh GNU
+native/live, normal, manager, Incus and unmodified musl P6 profiles pass.
+Coverage is 94.50% lines / 83.87% branches, leaving 469 lines and 292 branches,
+with no production exclusions or saturated regions. Both preceding fake-handle
+CI jobs pass in run `41242867879`. A required matrix is running in an isolated
+snapshot of this source; its driver result remains pending. H11/P5 and the
+other global proof obligations remain open.

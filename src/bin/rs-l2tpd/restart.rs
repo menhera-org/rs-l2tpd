@@ -631,6 +631,16 @@ mod completion_tests {
     /// spec: P26
     #[test]
     fn adoption_probes_bound_output_and_time_before_any_exec() {
+        if std::env::var_os("PHASE6_ISOLATED_PROBES").is_none() {
+            let output = Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "restart::completion_tests::adoption_probes_bound_output_and_time_before_any_exec", "--nocapture", "--test-threads=1"])
+                .env("PHASE6_ISOLATED_PROBES", "1")
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{output:?}");
+            return;
+        }
+        // Other tests' forks must never inherit these scripts' writable descriptors.
         let dir = crate::testdir::Dir::new();
         for (name, script, error) in [
             ("compatible", "printf 'rs-l2tpd-adopt 1\\n'", None),
