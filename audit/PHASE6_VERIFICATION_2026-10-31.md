@@ -13,7 +13,7 @@ fix proposed in upstream PR #2852; no daemon workaround is applied.
 |---|---|---|
 | P1 source link | Strict local and CI passes: 43 facts, 37 production-cited and six classified; no uncited functions. Ten CI repetitions passed | Maintain strict enforcement as sources change |
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
-| P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
+| P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and fresh profiles; H16 has passing required-kernel records; table/index/queue history checks pass | G23 witnesses retain 100–10,000 current address/member records with one configured tunnel; complete this bound, event-cost proof and remaining clauses |
 | P3 matrix | Latest required driver returns MATRIX_RESULT=0: five normal and five clock profiles, both IPv6-absent boots and missing-Ethernet-driver recovery pass; published versions match before/after | Later test additions need final consistent-source qualification; complete P2/delegated proof remains open |
 | P4 coverage | Approved production scope: fresh GNU report 95.01% lines / 84.92% branches after removing redundant configuration correction, with no production exclusions or saturated counts | 425 missing lines / 273 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
@@ -987,3 +987,18 @@ and Incus profiles pass. The unmodified musl root-systemd guest passes in
 425 lines and 273 branches, with zero saturated regions and no production
 exclusions. Final five-target qualification, H11/P5, the upstream nix release,
 G23 current-host-state bounds and the remaining proof work stay open.
+
+## Current host-state resource witnesses
+
+[The cache-bound record](phase6/resource-cache-bounds-20261031/README.md)
+keeps one configured tunnel and measures 100, 1,000 and 10,000 retained
+addresses or VRF master/member records as current host state grows. These
+fresh-start cases distinguish current host-state storage from completed
+history cleanup. They prove the collection counts, not a byte bound or a G23
+pass. The specification stays unchanged. A complete fix/proof must also
+account for transient dumps while preserving relevant-event matching and
+the restriction on unrelated kernel queries.
+
+The upstream signal regression is now scoped to native 64-bit Linux and
+skipped under QEMU user-mode emulation; final GNU/musl suites and formatting
+pass again. PR #2852 is ready for review, with integration pending release.

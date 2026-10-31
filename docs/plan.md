@@ -695,6 +695,13 @@ musl root-systemd profiles pass. Repository record
 `audit/phase6/config-correction-20261031/` gives the fresh coverage totals and
 remaining qualification and resource limits.
 
+Two isolated G23 witnesses keep one configured tunnel while increasing current
+addresses or VRF members from 100 to 10,000. Retained daemon collections grow
+with that host state. This differs from the completed-history checks and does
+not establish the written configuration-only bound. Repository record
+`audit/phase6/resource-cache-bounds-20261031/` gives exact counts and source;
+the specification remains unchanged and G23 remains open.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

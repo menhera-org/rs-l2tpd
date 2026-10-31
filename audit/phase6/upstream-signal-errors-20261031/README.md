@@ -62,6 +62,17 @@ remains 95.00% lines / 84.86% branches. CI runs 41249093334 and 41249482678
 pass both jobs in about fourteen and thirteen minutes. Later runs remain
 separate from this upstream proof.
 
+## Final upstream regression scope
+
+Follow-up commit `97552cd403bc846bfa0015719b212af3c6eaa9b2` confines the
+seccomp regression to native 64-bit Linux and skips it under QEMU user-mode
+emulation. A 32-bit libc may use a different time64 syscall, and user-mode
+emulation does not provide the guest syscall-filter ABI. The generic library
+fix remains portable; these limits concern only the fault fixture. Both
+26-case GNU/musl suites and formatting pass again after the adjustment.
+`upstream-final.patch` records the full final proposal. PR #2852 is ready
+for review; downstream integration still needs a compatible published release.
+
 ```sh
 # In the upstream checkout:
 cargo test --test test sys::test_signal:: -- --test-threads=1
