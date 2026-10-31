@@ -1,11 +1,16 @@
 //! Process-wide lookup admission (V3, V4, V15). Obsolete calls keep their
 //! slot until return; only current jobs and their latest result are held.
 
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet};
 use std::io;
 use std::net::IpAddr;
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::time::{Duration, Instant};
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[path = "workers_cost.rs"]
+mod cost_tests;
 
 const LIMIT: usize = 8;
 const REFRESH: Duration = Duration::from_secs(30);
@@ -13,6 +18,7 @@ type Call = Arc<dyn Fn() -> Vec<IpAddr> + Send + Sync>;
 
 struct Job {
     owner: u64,
+    order: u64,
     call: Call,
     configured: bool,
     due: Option<Instant>,
@@ -22,25 +28,34 @@ struct Job {
 #[derive(Default)]
 struct State {
     next: u64,
+    next_order: u64,
     jobs: BTreeMap<u64, Job>,
-    order: VecDeque<u64>,
+    order: BTreeSet<(u64, u64)>,
     active: [usize; 2],
-    owners: BTreeSet<u64>,
+    owners: BTreeMap<u64, BTreeSet<u64>>,
 }
 
 impl State {
-    fn shrink_order(&mut self) {
-        // Geometric shrinking bounds retained storage by current jobs (G23).
-        if self.order.capacity() > self.order.len().saturating_mul(4).max(16) {
-            self.order.shrink_to(self.order.len());
+    fn enqueue(&mut self, id: u64) {
+        self.next_order += 1;
+        self.jobs.get_mut(&id).unwrap().order = self.next_order;
+        self.order.insert((self.next_order, id));
+    }
+
+    fn remove(&mut self, id: u64) {
+        if let Some(job) = self.jobs.remove(&id) {
+            self.order.remove(&(job.order, id));
+            if let Some(jobs) = self.owners.get_mut(&job.owner) {
+                jobs.remove(&id);
+            }
         }
     }
 
     fn admit(&mut self, owner: u64, now: Instant) -> Option<(u64, bool, Call)> {
         let mut earlier = [false; 2];
         for _ in 0..self.order.len() {
-            let id = self.order.pop_front().unwrap();
-            self.order.push_back(id);
+            let (_, id) = self.order.pop_first().unwrap();
+            self.enqueue(id);
             let job = self.jobs.get_mut(&id).unwrap();
             let class = usize::from(job.configured);
             if !earlier[class]
@@ -87,7 +102,7 @@ impl Owner {
             let mut state = shared.state.lock().unwrap();
             state.next += 1;
             let id = state.next;
-            state.owners.insert(id);
+            state.owners.insert(id, BTreeSet::new());
             id
         };
         let dispatcher = shared.clone();
@@ -126,11 +141,9 @@ impl Owner {
 impl Drop for Owner {
     fn drop(&mut self) {
         let mut state = self.shared.state.lock().unwrap();
-        state.owners.remove(&self.id);
-        state.jobs.retain(|_, job| job.owner != self.id);
-        let keys: BTreeSet<_> = state.jobs.keys().copied().collect();
-        state.order.retain(|id| keys.contains(id));
-        state.shrink_order();
+        for id in state.owners.remove(&self.id).unwrap_or_default() {
+            state.remove(id);
+        }
         self.shared.changed.notify_all();
         drop(state);
         // Only the dispatcher joins: it never runs a blocking lookup.
@@ -154,22 +167,22 @@ impl Workers {
             id,
             Job {
                 owner,
+                order: 0,
                 call,
                 configured,
                 due: Some(Instant::now()),
                 result: None,
             },
         );
-        state.order.push_back(id);
+        state.owners.entry(owner).or_default().insert(id);
+        state.enqueue(id);
         self.changed.notify_all();
         id
     }
 
     pub fn unwatch(&self, id: u64) {
         let mut state = self.state.lock().unwrap();
-        state.jobs.remove(&id);
-        state.order.retain(|key| *key != id);
-        state.shrink_order();
+        state.remove(id);
         self.changed.notify_all();
     }
 
@@ -188,7 +201,7 @@ impl Workers {
     fn run(self: Arc<Self>, owner: u64) {
         let mut state = self.state.lock().unwrap();
         loop {
-            if !state.owners.contains(&owner) {
+            if !state.owners.contains_key(&owner) {
                 return;
             }
             if let Some((id, configured, call)) = state.admit(owner, Instant::now()) {
@@ -216,12 +229,10 @@ impl Workers {
                 }
                 continue;
             }
-            let next = state
-                .jobs
-                .values()
-                .filter(|job| {
-                    job.owner == owner && state.active[usize::from(job.configured)] < LIMIT
-                })
+            let next = state.owners[&owner]
+                .iter()
+                .map(|id| &state.jobs[id])
+                .filter(|job| state.active[usize::from(job.configured)] < LIMIT)
                 .filter_map(|job| job.due)
                 .min();
             // Another namespace's earlier eligible job owns admission;
@@ -245,12 +256,39 @@ impl Workers {
 mod tests {
     use super::*;
 
+    fn indexes_match(state: &State) {
+        assert_eq!(
+            state.order,
+            state
+                .jobs
+                .iter()
+                .map(|(id, job)| (job.order, *id))
+                .collect()
+        );
+        for (owner, jobs) in &state.owners {
+            assert_eq!(
+                *jobs,
+                state
+                    .jobs
+                    .iter()
+                    .filter(|(_, job)| job.owner == *owner)
+                    .map(|(id, _)| *id)
+                    .collect()
+            );
+        }
+    }
+
     /// spec: G23, M16, V15
     #[test]
     fn cancelled_jobs_and_dropped_owners_release_snapshots_and_queue_storage() {
         for drop_owner in [false, true] {
             let shared = Arc::new(Workers::default());
-            shared.state.lock().unwrap().owners.extend([1, 2]);
+            shared
+                .state
+                .lock()
+                .unwrap()
+                .owners
+                .extend([(1, BTreeSet::new()), (2, BTreeSet::new())]);
             let owner = Owner {
                 shared: shared.clone(),
                 id: 1,
@@ -279,24 +317,68 @@ mod tests {
                 for job in jobs {
                     owner.unwatch(job);
                     let state = shared.state.lock().unwrap();
-                    assert!(state.order.capacity() <= state.order.len().saturating_mul(4).max(16));
+                    indexes_match(&state);
                 }
             }
             drop(owner);
             let state = shared.state.lock().unwrap();
             assert_eq!(state.jobs.keys().copied().collect::<Vec<_>>(), [survivor]);
-            assert_eq!(state.order, [survivor]);
+            assert_eq!(
+                state.order.iter().map(|(_, id)| *id).collect::<Vec<_>>(),
+                [survivor]
+            );
             assert!(
                 snapshots
                     .iter()
                     .all(|snapshot| snapshot.strong_count() == 0)
             );
-            assert!(
-                state.order.capacity() <= 16,
-                "retained capacity {} after drop_owner={drop_owner}",
-                state.order.capacity()
-            );
+            indexes_match(&state);
         }
+    }
+
+    /// spec: V15, A9, G23, M16
+    #[test]
+    fn new_jobs_follow_the_existing_rotation_and_owners_keep_separate_turns() {
+        let workers = Workers::default();
+        let call: Call = Arc::new(Vec::new);
+        let now = Instant::now();
+        let a = workers.watch(1, false, call.clone());
+        let b = workers.watch(1, false, call.clone());
+        let c = workers.watch(1, false, call.clone());
+        assert_eq!(
+            workers
+                .state
+                .lock()
+                .unwrap()
+                .admit(1, now + REFRESH)
+                .unwrap()
+                .0,
+            a
+        );
+        workers
+            .state
+            .lock()
+            .unwrap()
+            .complete(a, false, Vec::new(), now - REFRESH);
+        let d = workers.watch(1, false, call.clone());
+        for expected in [b, c, a, d] {
+            let mut state = workers.state.lock().unwrap();
+            assert_eq!(state.admit(1, now + REFRESH).unwrap().0, expected);
+            state.complete(expected, false, Vec::new(), now + REFRESH);
+            indexes_match(&state);
+        }
+        for id in [a, b, c, d] {
+            workers.unwatch(id);
+        }
+        workers.unwatch(a);
+        let first = workers.watch(1, false, call.clone());
+        let second = workers.watch(2, false, call.clone());
+        let configured = workers.watch(2, true, call);
+        let mut state = workers.state.lock().unwrap();
+        assert_eq!(state.admit(2, now + REFRESH).unwrap().0, configured);
+        assert_eq!(state.admit(1, now + REFRESH).unwrap().0, first);
+        assert_eq!(state.admit(2, now + REFRESH).unwrap().0, second);
+        indexes_match(&state);
     }
 
     /// spec: V3, V4, V15, G23, A9

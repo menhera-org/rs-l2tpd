@@ -36,6 +36,7 @@ fn resolver_dependency_indexes_release_removed_configurations() {
         }
         assert!(r.reconcile(toml::from_str(&text).unwrap()));
         assert_eq!(r.resolvers.watches.len(), 300);
+        assert_eq!(r.resolvers.lookups.len(), 300);
         assert_eq!(r.resolvers.retries.len(), 300);
         assert_eq!(
             r.resolvers.names.values().map(BTreeSet::len).sum::<usize>(),
@@ -49,6 +50,14 @@ fn resolver_dependency_indexes_release_removed_configurations() {
             crate::kernel::Notice::LinkNew(link),
         );
         assert!(r.resolvers.retries.is_empty());
+        assert_eq!(
+            r.resolvers.lookups,
+            r.resolvers
+                .watches
+                .iter()
+                .map(|(id, watch)| (watch.id, *id))
+                .collect()
+        );
         assert_eq!(r.resolvers.devices[&device].len(), 300);
         assert!(
             r.resolvers
@@ -60,10 +69,11 @@ fn resolver_dependency_indexes_release_removed_configurations() {
         r.k.tick();
         r.tick();
         assert!(r.resolvers.watches.is_empty() && r.resolvers.retries.is_empty());
+        assert!(r.resolvers.lookups.is_empty());
         assert!(r.resolvers.names.is_empty() && r.resolvers.devices.is_empty());
         assert_eq!(r.resolvers.next_deadline(), None);
         println!(
-            "RESOLVER_HISTORY epoch={epoch} removed=300 watches=0 retries=0 names=0 devices=0"
+            "RESOLVER_HISTORY epoch={epoch} removed=300 watches=0 lookups=0 retries=0 names=0 devices=0"
         );
     }
 }
@@ -203,6 +213,72 @@ fn fixture() -> (Socket, SocketAddrV6, Dns, Dns, UdpSocket) {
     fixture
 }
 
+/// spec: V3, V4, V7, V15, G23, M16
+#[test]
+fn aliases_share_only_their_current_host_and_resolver_job() {
+    let mut resolve = IphostResolve::default();
+    let system = ResolverSpec::System;
+    let configured = ResolverSpec::Static {
+        servers: vec!["192.0.2.53:53".parse().unwrap()],
+        bind: None,
+    };
+    for (id, host, resolver) in [
+        (1, "192.0.2.1", system.clone()),
+        (2, "192.0.2.1", system.clone()),
+        (3, "192.0.2.2", system.clone()),
+        (4, "192.0.2.1", configured.clone()),
+    ] {
+        resolve
+            .watch(Lookup::new(id, host.into(), resolver))
+            .unwrap();
+    }
+    let first = resolve.job(&resolve.watches[&1]).id;
+    assert_eq!(resolve.job(&resolve.watches[&2]).id, first);
+    assert_eq!(resolve.job(&resolve.watches[&1]).users, 2);
+    assert_ne!(resolve.job(&resolve.watches[&3]).id, first);
+    assert_ne!(resolve.job(&resolve.watches[&4]).id, first);
+    assert_eq!(resolve.resolvers[&system].full_jobs, 2);
+    let mut answers = BTreeMap::new();
+    until(|| {
+        answers.extend(resolve.poll());
+        answers.len() == 4
+    });
+    for (id, address) in [
+        (1, "192.0.2.1"),
+        (2, "192.0.2.1"),
+        (3, "192.0.2.2"),
+        (4, "192.0.2.1"),
+    ] {
+        assert_eq!(answers[&id], [address.parse::<IpAddr>().unwrap()]);
+    }
+    resolve
+        .watch(Lookup::new(2, "192.0.2.2".into(), system.clone()))
+        .unwrap();
+    assert_eq!(resolve.job(&resolve.watches[&1]).users, 1);
+    assert_eq!(resolve.job(&resolve.watches[&2]).users, 2);
+    resolve.unwatch(1);
+    resolve.unwatch(1);
+    assert_eq!(resolve.resolvers[&system].jobs.len(), 1);
+    assert_eq!(resolve.resolvers[&system].full_jobs, 1);
+    assert_eq!(
+        resolve
+            .watch(Lookup::new(4, "bad host".into(), configured.clone()))
+            .unwrap_err()
+            .kind(),
+        io::ErrorKind::InvalidInput
+    );
+    assert!(!resolve.resolvers.contains_key(&configured));
+    assert!(!resolve.retry_discovery(4));
+    assert!(!resolve.waiting(4));
+    resolve.unwatch(2);
+    assert_eq!(resolve.job(&resolve.watches[&3]).users, 1);
+    resolve.unwatch(3);
+    resolve.unwatch(99);
+    assert!(resolve.resolvers.is_empty());
+    assert!(resolve.watches.is_empty());
+    assert!(resolve.workers.is_none());
+}
+
 fn until(mut predicate: impl FnMut() -> bool) {
     let deadline = Instant::now() + Duration::from_secs(5);
     while !predicate() {
@@ -315,6 +391,63 @@ fn released_unified_adapter_enables_per_family_failure_fallback() {
     assert!(lookup().is_empty(), "both sources failed");
 }
 
+/// spec: V14, V4, V7, V15, G23, M16
+#[test]
+#[ignore = "isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW"]
+fn shared_partial_discovery_retries_replace_the_actual_lookup_snapshot() {
+    let (sender, destination, primary, fallback, dhcp) = fixture();
+    let occupied = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP)).unwrap();
+    occupied.bind_device(Some(b"dns-host")).unwrap();
+    occupied
+        .bind(&SocketAddrV6::new(Ipv6Addr::UNSPECIFIED, 546, 0, 0).into())
+        .unwrap();
+    let spec = ResolverSpec::Ipv6 {
+        interface: "dns-host".into(),
+        client_id: ClientId::None,
+    };
+    let lookup = |id| Lookup::new(id, "controlled.example".into(), spec.clone());
+    let mut resolve = IphostResolve::default();
+    resolve.watch(lookup(1)).unwrap();
+    resolve.watch(lookup(2)).unwrap();
+    assert!(resolve.retry_discovery(1) && resolve.retry_discovery(2));
+    until(|| {
+        advertise(
+            &sender,
+            destination,
+            &[("2001:db8::54".parse().unwrap(), 300)],
+        );
+        resolve.poll().iter().any(|(_, answer)| answer.len() == 2)
+    });
+    assert!(fallback.calls.load(Ordering::SeqCst) > 0);
+    assert_eq!(primary.calls.load(Ordering::SeqCst), 0);
+    drop(occupied);
+    resolve.watch(lookup(1)).unwrap();
+    let mut request = [0; 1500];
+    let (len, peer) = dhcp.recv_from(&mut request).unwrap();
+    assert!(len >= 4 && request[0] == 11);
+    let mut reply = vec![7, request[1], request[2], request[3], 0, 23, 0, 16];
+    reply.extend("2001:db8::53".parse::<Ipv6Addr>().unwrap().octets());
+    dhcp.send_to(&reply, peer).unwrap();
+    resolve.watch(lookup(2)).unwrap();
+    assert!(!resolve.retry_discovery(1) && !resolve.retry_discovery(2));
+    let deadline = Instant::now() + Duration::from_secs(35);
+    while primary.calls.load(Ordering::SeqCst) == 0 && Instant::now() < deadline {
+        std::thread::yield_now();
+    }
+    assert!(
+        primary.calls.load(Ordering::SeqCst) > 0,
+        "completed discovery retries still use an RA-only lookup snapshot"
+    );
+    until(|| {
+        let answers = resolve.poll();
+        answers.len() == 2 && answers.iter().all(|(_, answer)| answer.len() == 2)
+    });
+    resolve.unwatch(1);
+    resolve.unwatch(2);
+    assert!(resolve.watches.is_empty() && resolve.workers.is_none());
+    assert!(resolve.resolvers.is_empty());
+}
+
 /// spec: V4, V10, V15, G23
 #[test]
 #[ignore = "isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW"]
@@ -333,7 +466,7 @@ fn removing_the_last_watch_releases_discovery_threads_and_descriptors() {
             },
         })
         .unwrap();
-    let iphost::Resolver::Ra(config) = &resolve.watches[&1].1 else {
+    let iphost::Resolver::Ra(config) = &resolve.job(&resolve.watches[&1]).resolver else {
         panic!()
     };
     until(|| {
@@ -352,6 +485,7 @@ fn removing_the_last_watch_releases_discovery_threads_and_descriptors() {
     });
     resolve.unwatch(1);
     assert!(resolve.watches.is_empty());
+    assert!(resolve.resolvers.is_empty());
     assert!(resolve.workers.is_none());
     until(|| threads() <= baseline.0 && descriptors() <= baseline.1);
 }

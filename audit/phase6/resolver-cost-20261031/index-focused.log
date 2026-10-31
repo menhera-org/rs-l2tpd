@@ -1,0 +1,13 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+RESOLVER_HISTORY epoch=0 removed=300 watches=0 lookups=0 retries=0 names=0 devices=0
+RESOLVER_HISTORY epoch=1 removed=300 watches=0 lookups=0 retries=0 names=0 devices=0
+RESOLVER_HISTORY epoch=2 removed=300 watches=0 lookups=0 retries=0 names=0 devices=0
+RESOLVER_HISTORY epoch=3 removed=300 watches=0 lookups=0 retries=0 names=0 devices=0
+test reconciler::resolvers::tests::resolver_dependency_indexes_release_removed_configurations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 114 filtered out; finished in 0.27s
+

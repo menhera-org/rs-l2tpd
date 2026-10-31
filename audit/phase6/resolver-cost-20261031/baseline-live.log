@@ -1,0 +1,17 @@
+6.8.0-147-generic
+
+running 1 test
+test reconciler::resolvers::tests::shared_partial_discovery_retries_replace_the_actual_lookup_snapshot ... 
+thread 'reconciler::resolvers::tests::shared_partial_discovery_retries_replace_the_actual_lookup_snapshot' (8) panicked at src/reconciler/resolvers_tests.rs:361:5:
+completed discovery retries still use an RA-only lookup snapshot
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    reconciler::resolvers::tests::shared_partial_discovery_retries_replace_the_actual_lookup_snapshot
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 113 filtered out; finished in 35.20s
+
+BASELINE_RESULT=101

@@ -1,0 +1,15 @@
+    Blocking waiting for file lock on build directory
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+CANCEL_COST jobs=1 cancellations=500 drop_owner=false elapsed_ns=1709760
+CANCEL_COST jobs=1 cancellations=500 drop_owner=true elapsed_ns=1851096
+CANCEL_COST jobs=300 cancellations=500 drop_owner=false elapsed_ns=2380452
+CANCEL_COST jobs=300 cancellations=500 drop_owner=true elapsed_ns=2494472
+CANCEL_COST jobs=20000 cancellations=500 drop_owner=false elapsed_ns=3248704
+CANCEL_COST jobs=20000 cancellations=500 drop_owner=true elapsed_ns=3591961
+test reconciler::workers::cost_tests::cancellation_cost_with_unrelated_jobs ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 116 filtered out; finished in 0.21s
+

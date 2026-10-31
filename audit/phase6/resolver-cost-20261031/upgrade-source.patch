@@ -1,0 +1,520 @@
+diff --git a/src/reconciler/resolvers.rs b/src/reconciler/resolvers.rs
+index 3b7767a..ab6b2ae 100644
+--- a/src/reconciler/resolvers.rs
++++ b/src/reconciler/resolvers.rs
+@@ -24,7 +24,7 @@ const DEVICE_RETRY: Duration = Duration::from_secs(30);
+ 
+ /// The DHCPv6 client identifier, with the device's address already read
+ /// (V12).
+-#[derive(Clone, Debug, PartialEq, Eq)]
++#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+ #[non_exhaustive]
+ pub enum ClientId {
+     /// A DUID-LL of this Ethernet address.
+@@ -38,7 +38,7 @@ pub enum ClientId {
+ }
+ 
+ /// A resolver whose devices the reconciler validated (V2, V9, V12).
+-#[derive(Clone, Debug, PartialEq, Eq)]
++#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+ #[non_exhaustive]
+ pub enum ResolverSpec {
+     /// The libc resolver (V3).
+@@ -586,21 +586,39 @@ impl<K: Kernel> Reconciler<K> {
+ #[derive(Default)]
+ pub struct IphostResolve {
+     workers: Option<super::workers::Owner>,
+-    watches: BTreeMap<u64, (Lookup, iphost::Resolver, u64)>,
++    watches: BTreeMap<u64, Lookup>,
++    resolvers: BTreeMap<ResolverSpec, SharedResolver>,
++}
++
++#[derive(Default)]
++struct SharedResolver {
++    full: Option<iphost::Resolver>,
++    full_jobs: usize,
++    jobs: BTreeMap<String, SharedJob>,
++}
++
++struct SharedJob {
++    resolver: iphost::Resolver,
++    id: u64,
++    users: usize,
+ }
+ 
+ impl IphostResolve {
++    fn job(&self, lookup: &Lookup) -> &SharedJob {
++        &self.resolvers[&lookup.resolver].jobs[&lookup.host]
++    }
++
+     fn partial(resolver: &iphost::Resolver) -> bool {
+         matches!(resolver, iphost::Resolver::Ipv6(config) if config.dhcpv6().is_none() || config.ra().is_none())
+     }
+ 
+     fn resolver(&mut self, spec: &ResolverSpec) -> io::Result<iphost::Resolver> {
+-        if let Some((_, r, _)) = self
+-            .watches
+-            .values()
+-            .find(|(l, r, _)| &l.resolver == spec && !Self::partial(r))
++        if let Some(resolver) = self
++            .resolvers
++            .get(spec)
++            .and_then(|shared| shared.full.as_ref())
+         {
+-            return Ok(r.clone());
++            return Ok(resolver.clone());
+         }
+         let client = |id: &ClientId| match id {
+             ClientId::DuidLl(mac) => iphost::ClientId::DuidLl(*mac),
+@@ -653,31 +671,62 @@ impl Resolve for IphostResolve {
+             self.workers = Some(super::workers::Owner::new()?);
+         }
+         let workers = self.workers.as_ref().unwrap();
+-        let job = self
+-            .watches
+-            .values()
+-            .find(|(l, _, _)| l.host == lookup.host && l.resolver == lookup.resolver)
+-            .map(|(_, _, job)| *job)
+-            .unwrap_or_else(|| {
+-                let resolver = resolver.clone();
+-                workers.watch(
+-                    lookup.resolver != ResolverSpec::System,
+-                    Arc::new(move || {
+-                        iphost::IpHostResolver::new_with_config(host.clone(), false, false)
+-                            .with_resolver(resolver.clone())
+-                            .resolve()
+-                    }),
+-                )
++        let shared = self.resolvers.entry(lookup.resolver.clone()).or_default();
++        let spawn = || {
++            let host = host.clone();
++            let resolver = resolver.clone();
++            workers.watch(
++                lookup.resolver != ResolverSpec::System,
++                Arc::new(move || {
++                    iphost::IpHostResolver::new_with_config(host.clone(), false, false)
++                        .with_resolver(resolver.clone())
++                        .resolve()
++                }),
++            )
++        };
++        let job = shared
++            .jobs
++            .entry(lookup.host.clone())
++            .or_insert_with(|| SharedJob {
++                resolver: resolver.clone(),
++                id: spawn(),
++                users: 0,
+             });
+-        self.watches.insert(lookup.id, (lookup, resolver, job));
++        let new = job.users == 0;
++        let full = !Self::partial(&resolver);
++        let upgrade = Self::partial(&job.resolver) && full;
++        if upgrade {
++            workers.unwatch(job.id);
++            job.id = spawn();
++            job.resolver = resolver.clone();
++        }
++        job.users += 1;
++        if full && (new || upgrade) {
++            shared.full_jobs += 1;
++            shared.full = Some(resolver.clone());
++        }
++        self.watches.insert(lookup.id, lookup);
+         Ok(())
+     }
+ 
+     fn unwatch(&mut self, id: u64) {
+-        if let Some((_, _, job)) = self.watches.remove(&id)
+-            && !self.watches.values().any(|(_, _, other)| *other == job)
+-        {
+-            self.workers.as_ref().unwrap().unwatch(job);
++        if let Some(lookup) = self.watches.remove(&id) {
++            let shared = self.resolvers.get_mut(&lookup.resolver).unwrap();
++            let job = shared.jobs.get_mut(&lookup.host).unwrap();
++            job.users -= 1;
++            if job.users == 0 {
++                let job = shared.jobs.remove(&lookup.host).unwrap();
++                self.workers.as_ref().unwrap().unwatch(job.id);
++                if !Self::partial(&job.resolver) {
++                    shared.full_jobs -= 1;
++                    if shared.full_jobs == 0 {
++                        shared.full = None;
++                    }
++                }
++            }
++            if shared.jobs.is_empty() {
++                self.resolvers.remove(&lookup.resolver);
++            }
+         }
+         if self.watches.is_empty() {
+             self.workers = None;
+@@ -687,15 +736,17 @@ impl Resolve for IphostResolve {
+     fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
+         let mut results = BTreeMap::new();
+         if let Some(workers) = &self.workers {
+-            for (_, _, job) in self.watches.values() {
+-                results.entry(*job).or_insert_with(|| workers.poll(*job));
++            for shared in self.resolvers.values() {
++                for job in shared.jobs.values() {
++                    results.insert(job.id, workers.poll(job.id));
++                }
+             }
+         }
+         self.watches
+             .iter()
+-            .filter_map(|(id, (_, _, job))| {
++            .filter_map(|(id, lookup)| {
+                 results
+-                    .get(job)?
++                    .get(&self.job(lookup).id)?
+                     .as_ref()
+                     .map(|answer| (*id, answer.clone()))
+             })
+@@ -705,13 +756,13 @@ impl Resolve for IphostResolve {
+     fn retry_discovery(&self, id: u64) -> bool {
+         self.watches
+             .get(&id)
+-            .is_some_and(|(_, resolver, _)| Self::partial(resolver))
++            .is_some_and(|lookup| Self::partial(&self.job(lookup).resolver))
+     }
+     fn waiting(&self, id: u64) -> bool {
+-        self.watches.get(&id).is_some_and(|(_, _, job)| {
++        self.watches.get(&id).is_some_and(|lookup| {
+             self.workers
+                 .as_ref()
+-                .is_some_and(|workers| workers.waiting(*job))
++                .is_some_and(|workers| workers.waiting(self.job(lookup).id))
+         })
+     }
+ }
+@@ -719,8 +770,10 @@ impl Resolve for IphostResolve {
+ impl Drop for IphostResolve {
+     fn drop(&mut self) {
+         if let Some(workers) = &self.workers {
+-            for (_, _, job) in self.watches.values() {
+-                workers.unwatch(*job);
++            for shared in self.resolvers.values() {
++                for job in shared.jobs.values() {
++                    workers.unwatch(job.id);
++                }
+             }
+         }
+     }
+diff --git a/src/reconciler/resolvers_tests.rs b/src/reconciler/resolvers_tests.rs
+index e53bac4..dc2bb75 100644
+--- a/src/reconciler/resolvers_tests.rs
++++ b/src/reconciler/resolvers_tests.rs
+@@ -315,6 +315,62 @@ fn released_unified_adapter_enables_per_family_failure_fallback() {
+     assert!(lookup().is_empty(), "both sources failed");
+ }
+ 
++/// spec: V14, V4, V7, V15, G23, M16
++#[test]
++#[ignore = "isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW"]
++fn shared_partial_discovery_retries_replace_the_actual_lookup_snapshot() {
++    let (sender, destination, primary, fallback, dhcp) = fixture();
++    let occupied = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP)).unwrap();
++    occupied.bind_device(Some(b"dns-host")).unwrap();
++    occupied
++        .bind(&SocketAddrV6::new(Ipv6Addr::UNSPECIFIED, 546, 0, 0).into())
++        .unwrap();
++    let spec = ResolverSpec::Ipv6 {
++        interface: "dns-host".into(),
++        client_id: ClientId::None,
++    };
++    let lookup = |id| Lookup::new(id, "controlled.example".into(), spec.clone());
++    let mut resolve = IphostResolve::default();
++    resolve.watch(lookup(1)).unwrap();
++    resolve.watch(lookup(2)).unwrap();
++    assert!(resolve.retry_discovery(1) && resolve.retry_discovery(2));
++    until(|| {
++        advertise(
++            &sender,
++            destination,
++            &[("2001:db8::54".parse().unwrap(), 300)],
++        );
++        resolve.poll().iter().any(|(_, answer)| answer.len() == 2)
++    });
++    assert!(fallback.calls.load(Ordering::SeqCst) > 0);
++    assert_eq!(primary.calls.load(Ordering::SeqCst), 0);
++    drop(occupied);
++    resolve.watch(lookup(1)).unwrap();
++    let mut request = [0; 1500];
++    let (len, peer) = dhcp.recv_from(&mut request).unwrap();
++    assert!(len >= 4 && request[0] == 11);
++    let mut reply = vec![7, request[1], request[2], request[3], 0, 23, 0, 16];
++    reply.extend("2001:db8::53".parse::<Ipv6Addr>().unwrap().octets());
++    dhcp.send_to(&reply, peer).unwrap();
++    resolve.watch(lookup(2)).unwrap();
++    assert!(!resolve.retry_discovery(1) && !resolve.retry_discovery(2));
++    let deadline = Instant::now() + Duration::from_secs(35);
++    while primary.calls.load(Ordering::SeqCst) == 0 && Instant::now() < deadline {
++        std::thread::yield_now();
++    }
++    assert!(
++        primary.calls.load(Ordering::SeqCst) > 0,
++        "completed discovery retries still use an RA-only lookup snapshot"
++    );
++    until(|| {
++        let answers = resolve.poll();
++        answers.len() == 2 && answers.iter().all(|(_, answer)| answer.len() == 2)
++    });
++    resolve.unwatch(1);
++    resolve.unwatch(2);
++    assert!(resolve.watches.is_empty() && resolve.workers.is_none());
++}
++
+ /// spec: V4, V10, V15, G23
+ #[test]
+ #[ignore = "isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW"]
+@@ -333,7 +389,7 @@ fn removing_the_last_watch_releases_discovery_threads_and_descriptors() {
+             },
+         })
+         .unwrap();
+-    let iphost::Resolver::Ra(config) = &resolve.watches[&1].1 else {
++    let iphost::Resolver::Ra(config) = &resolve.job(&resolve.watches[&1]).resolver else {
+         panic!()
+     };
+     until(|| {
+diff --git a/src/reconciler/workers.rs b/src/reconciler/workers.rs
+index 3d771b8..a64726f 100644
+--- a/src/reconciler/workers.rs
++++ b/src/reconciler/workers.rs
+@@ -1,7 +1,7 @@
+ //! Process-wide lookup admission (V3, V4, V15). Obsolete calls keep their
+ //! slot until return; only current jobs and their latest result are held.
+ 
+-use std::collections::{BTreeMap, BTreeSet, VecDeque};
++use std::collections::{BTreeMap, BTreeSet};
+ use std::io;
+ use std::net::IpAddr;
+ use std::sync::{Arc, Condvar, Mutex, OnceLock};
+@@ -13,6 +13,7 @@ type Call = Arc<dyn Fn() -> Vec<IpAddr> + Send + Sync>;
+ 
+ struct Job {
+     owner: u64,
++    order: u64,
+     call: Call,
+     configured: bool,
+     due: Option<Instant>,
+@@ -22,25 +23,34 @@ struct Job {
+ #[derive(Default)]
+ struct State {
+     next: u64,
++    next_order: u64,
+     jobs: BTreeMap<u64, Job>,
+-    order: VecDeque<u64>,
++    order: BTreeSet<(u64, u64)>,
+     active: [usize; 2],
+-    owners: BTreeSet<u64>,
++    owners: BTreeMap<u64, BTreeSet<u64>>,
+ }
+ 
+ impl State {
+-    fn shrink_order(&mut self) {
+-        // Geometric shrinking bounds retained storage by current jobs (G23).
+-        if self.order.capacity() > self.order.len().saturating_mul(4).max(16) {
+-            self.order.shrink_to(self.order.len());
++    fn enqueue(&mut self, id: u64) {
++        self.next_order += 1;
++        self.jobs.get_mut(&id).unwrap().order = self.next_order;
++        self.order.insert((self.next_order, id));
++    }
++
++    fn remove(&mut self, id: u64) {
++        if let Some(job) = self.jobs.remove(&id) {
++            self.order.remove(&(job.order, id));
++            if let Some(jobs) = self.owners.get_mut(&job.owner) {
++                jobs.remove(&id);
++            }
+         }
+     }
+ 
+     fn admit(&mut self, owner: u64, now: Instant) -> Option<(u64, bool, Call)> {
+         let mut earlier = [false; 2];
+         for _ in 0..self.order.len() {
+-            let id = self.order.pop_front().unwrap();
+-            self.order.push_back(id);
++            let (_, id) = self.order.pop_first().unwrap();
++            self.enqueue(id);
+             let job = self.jobs.get_mut(&id).unwrap();
+             let class = usize::from(job.configured);
+             if !earlier[class]
+@@ -87,7 +97,7 @@ impl Owner {
+             let mut state = shared.state.lock().unwrap();
+             state.next += 1;
+             let id = state.next;
+-            state.owners.insert(id);
++            state.owners.insert(id, BTreeSet::new());
+             id
+         };
+         let dispatcher = shared.clone();
+@@ -126,11 +136,9 @@ impl Owner {
+ impl Drop for Owner {
+     fn drop(&mut self) {
+         let mut state = self.shared.state.lock().unwrap();
+-        state.owners.remove(&self.id);
+-        state.jobs.retain(|_, job| job.owner != self.id);
+-        let keys: BTreeSet<_> = state.jobs.keys().copied().collect();
+-        state.order.retain(|id| keys.contains(id));
+-        state.shrink_order();
++        for id in state.owners.remove(&self.id).unwrap_or_default() {
++            state.remove(id);
++        }
+         self.shared.changed.notify_all();
+         drop(state);
+         // Only the dispatcher joins: it never runs a blocking lookup.
+@@ -154,22 +162,22 @@ impl Workers {
+             id,
+             Job {
+                 owner,
++                order: 0,
+                 call,
+                 configured,
+                 due: Some(Instant::now()),
+                 result: None,
+             },
+         );
+-        state.order.push_back(id);
++        state.owners.entry(owner).or_default().insert(id);
++        state.enqueue(id);
+         self.changed.notify_all();
+         id
+     }
+ 
+     pub fn unwatch(&self, id: u64) {
+         let mut state = self.state.lock().unwrap();
+-        state.jobs.remove(&id);
+-        state.order.retain(|key| *key != id);
+-        state.shrink_order();
++        state.remove(id);
+         self.changed.notify_all();
+     }
+ 
+@@ -188,7 +196,7 @@ impl Workers {
+     fn run(self: Arc<Self>, owner: u64) {
+         let mut state = self.state.lock().unwrap();
+         loop {
+-            if !state.owners.contains(&owner) {
++            if !state.owners.contains_key(&owner) {
+                 return;
+             }
+             if let Some((id, configured, call)) = state.admit(owner, Instant::now()) {
+@@ -245,12 +253,39 @@ impl Workers {
+ mod tests {
+     use super::*;
+ 
++    fn indexes_match(state: &State) {
++        assert_eq!(
++            state.order,
++            state
++                .jobs
++                .iter()
++                .map(|(id, job)| (job.order, *id))
++                .collect()
++        );
++        for (owner, jobs) in &state.owners {
++            assert_eq!(
++                *jobs,
++                state
++                    .jobs
++                    .iter()
++                    .filter(|(_, job)| job.owner == *owner)
++                    .map(|(id, _)| *id)
++                    .collect()
++            );
++        }
++    }
++
+     /// spec: G23, M16, V15
+     #[test]
+     fn cancelled_jobs_and_dropped_owners_release_snapshots_and_queue_storage() {
+         for drop_owner in [false, true] {
+             let shared = Arc::new(Workers::default());
+-            shared.state.lock().unwrap().owners.extend([1, 2]);
++            shared
++                .state
++                .lock()
++                .unwrap()
++                .owners
++                .extend([(1, BTreeSet::new()), (2, BTreeSet::new())]);
+             let owner = Owner {
+                 shared: shared.clone(),
+                 id: 1,
+@@ -279,24 +314,68 @@ mod tests {
+                 for job in jobs {
+                     owner.unwatch(job);
+                     let state = shared.state.lock().unwrap();
+-                    assert!(state.order.capacity() <= state.order.len().saturating_mul(4).max(16));
++                    indexes_match(&state);
+                 }
+             }
+             drop(owner);
+             let state = shared.state.lock().unwrap();
+             assert_eq!(state.jobs.keys().copied().collect::<Vec<_>>(), [survivor]);
+-            assert_eq!(state.order, [survivor]);
++            assert_eq!(
++                state.order.iter().map(|(_, id)| *id).collect::<Vec<_>>(),
++                [survivor]
++            );
+             assert!(
+                 snapshots
+                     .iter()
+                     .all(|snapshot| snapshot.strong_count() == 0)
+             );
+-            assert!(
+-                state.order.capacity() <= 16,
+-                "retained capacity {} after drop_owner={drop_owner}",
+-                state.order.capacity()
+-            );
++            indexes_match(&state);
++        }
++    }
++
++    /// spec: V15, A9, G23, M16
++    #[test]
++    fn new_jobs_follow_the_existing_rotation_and_owners_keep_separate_turns() {
++        let workers = Workers::default();
++        let call: Call = Arc::new(Vec::new);
++        let now = Instant::now();
++        let a = workers.watch(1, false, call.clone());
++        let b = workers.watch(1, false, call.clone());
++        let c = workers.watch(1, false, call.clone());
++        assert_eq!(
++            workers
++                .state
++                .lock()
++                .unwrap()
++                .admit(1, now + REFRESH)
++                .unwrap()
++                .0,
++            a
++        );
++        workers
++            .state
++            .lock()
++            .unwrap()
++            .complete(a, false, Vec::new(), now - REFRESH);
++        let d = workers.watch(1, false, call.clone());
++        for expected in [b, c, a, d] {
++            let mut state = workers.state.lock().unwrap();
++            assert_eq!(state.admit(1, now + REFRESH).unwrap().0, expected);
++            state.complete(expected, false, Vec::new(), now + REFRESH);
++            indexes_match(&state);
+         }
++        for id in [a, b, c, d] {
++            workers.unwatch(id);
++        }
++        workers.unwatch(a);
++        let first = workers.watch(1, false, call.clone());
++        let second = workers.watch(2, false, call.clone());
++        let configured = workers.watch(2, true, call);
++        let mut state = workers.state.lock().unwrap();
++        assert_eq!(state.admit(2, now + REFRESH).unwrap().0, configured);
++        assert_eq!(state.admit(1, now + REFRESH).unwrap().0, first);
++        assert_eq!(state.admit(2, now + REFRESH).unwrap().0, second);
++        indexes_match(&state);
+     }
+ 
+     /// spec: V3, V4, V15, G23, A9

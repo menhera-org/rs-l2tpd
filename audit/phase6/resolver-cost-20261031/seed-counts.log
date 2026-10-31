@@ -1,0 +1,11 @@
+seed=1 lib=105 fake=68 rules=78 service=27 ownership_epochs=8 resolver_epochs=4 cost_cases=6 result=pass
+seed=2 lib=105 fake=68 rules=78 service=27 ownership_epochs=8 resolver_epochs=4 cost_cases=6 result=pass
+seed=3 lib=105 fake=68 rules=78 service=27 ownership_epochs=8 resolver_epochs=4 cost_cases=6 result=pass
+seed=4 lib=105 fake=68 rules=78 service=27 ownership_epochs=8 resolver_epochs=4 cost_cases=6 result=pass
+seed=5 lib=105 fake=68 rules=78 service=27 ownership_epochs=8 resolver_epochs=4 cost_cases=6 result=pass
+seed=6 lib=105 fake=68 rules=78 service=27 ownership_epochs=8 resolver_epochs=4 cost_cases=6 result=pass
+seed=7 lib=105 fake=68 rules=78 service=27 ownership_epochs=8 resolver_epochs=4 cost_cases=6 result=pass
+seed=8 lib=105 fake=68 rules=78 service=27 ownership_epochs=8 resolver_epochs=4 cost_cases=6 result=pass
+seed=9 lib=105 fake=68 rules=78 service=27 ownership_epochs=8 resolver_epochs=4 cost_cases=6 result=pass
+seed=10 lib=105 fake=68 rules=78 service=27 ownership_epochs=8 resolver_epochs=4 cost_cases=6 result=pass
+STARTUP_FAILURES_PER_SEED=6

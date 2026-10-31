@@ -13,7 +13,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
-| P4 coverage | Approved production scope: fresh merged GNU report 92.79% lines / 80.19% branches after the resource fixes, including real user manager and full Incus case; no production exclusions | 605 missing lines / 349 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: fresh merged GNU report 92.94% lines / 80.83% branches after the resolver fix, including real user manager and full Incus case; no production exclusions | 595 missing lines / 340 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Current unmodified musl full case passes, including manager race/ordered policy/store/re-exec; instrumented GNU full case exports seven daemon profiles | Repeat if relevant source changes; retain documented MAC limitations |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -666,3 +666,36 @@ Both jobs also pass on their first attempts for CI runs `41218466550`
 (`df7d97b`) and `41219328717` (`0903d55`), with metadata retained in the
 resource record. The resource package still needs its own CI run. Remaining
 coverage, event cost, clauses and final matrix keep Phase 6 incomplete.
+
+## Shared discovery recovery and indexed cancellation
+
+[The resolver package](phase6/resolver-cost-20261031/README.md) reproduces
+a shared RA-only lookup that never uses DHCPv6 after discovery recovers.
+The baseline fails after 35.20 seconds; replacing the actual worker snapshot
+makes three focused live runs pass in 0.30–0.32 seconds. The full final
+live suite also passes that regression. Alias tests verify shared answers,
+replacement and release of unused jobs and discovery adapters.
+
+Resolver jobs, answer incarnations, queue positions and owner jobs now
+have direct indexes. The same 500-cancellation workload with 20,000
+unrelated jobs takes 8,375.66 ms for baseline owner drops and 3.59 ms with
+the index. Timings have no pass threshold; the test asserts preservation
+of unrelated work. Admission still follows the process-wide rotation.
+These checks do not establish complete event-cost proof.
+
+Common checks and ten seeded repetitions pass: 105 ordinary library,
+68 fake, 78 rules, 27 service and six startup faults per seed. Fresh GNU
+coverage adds 12 live library, 19 kernel, five review and three privileged
+binary probes, 27 process cases, all 26 normal scenarios in 159.63 seconds,
+the real user manager and the full Incus case in 14.37 seconds. It reports
+92.94% production lines (7,836/8,431) and 80.83% branches (1,434/1,774),
+leaving 595 lines and 340 branches. There are no production exclusions;
+47 test-only modules and one helper are excluded while all tests execute.
+
+The unmodified musl [Incus case](phase6/incus-20261031T174712Z-70259/README.md)
+passes in 18.04 seconds; the unmodified
+[root-systemd case](phase6/resolver-cost-20261031/root-systemd/README.md)
+passes in 26.80 seconds with no drop-ins. Source remains identical across
+the fresh collection. CI run `41222708337` also passes both jobs on their
+first attempt at `ba9faeb`. This resolver package needs its own CI run.
+Coverage, remaining clauses/event cost and the final matrix remain open.

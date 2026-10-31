@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 92.79% lines /
-80.19% branches: 605 missing lines and 349 missing branches, with no
+approved production-code scope, the latest merged report is 92.94% lines /
+80.83% branches: 595 missing lines and 340 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner also passes. The required-kernel refresh found a vanilla 7.0.14
@@ -579,6 +579,11 @@ Resource-history tests now verify record/index/watch cleanup across repeated
 300-entry configurations and fix retained DNS/outgoing queue capacity. Fresh
 normal GNU, musl Incus and unmodified root-systemd profiles pass; repository
 file `audit/phase6/resource-history-20261031/README.md` records their scope.
+The subsequent shared-resolver fix makes recovered DHCPv6 discovery reach
+the actual lookup job and indexes job cancellation and answer delivery.
+Its fresh live, Incus and root-systemd checks pass; repository file
+`audit/phase6/resolver-cost-20261031/README.md` records the regression,
+cost comparison and remaining limits.
 
 ### Phase 7 — release
 

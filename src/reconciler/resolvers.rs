@@ -24,7 +24,7 @@ const DEVICE_RETRY: Duration = Duration::from_secs(30);
 
 /// The DHCPv6 client identifier, with the device's address already read
 /// (V12).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum ClientId {
     /// A DUID-LL of this Ethernet address.
@@ -38,7 +38,7 @@ pub enum ClientId {
 }
 
 /// A resolver whose devices the reconciler validated (V2, V9, V12).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum ResolverSpec {
     /// The libc resolver (V3).
@@ -140,6 +140,7 @@ pub(crate) struct Resolvers {
     resolve: Box<dyn Resolve>,
     next_id: u64,
     watches: BTreeMap<u32, Watch>,
+    lookups: BTreeMap<u64, u32>,
     retries: super::deadlines::Deadlines<u32>,
     names: BTreeMap<L2tpIfName, BTreeSet<u32>>,
     devices: BTreeMap<u32, BTreeSet<u32>>,
@@ -163,6 +164,7 @@ impl Resolvers {
             resolve,
             next_id: 1,
             watches: BTreeMap::new(),
+            lookups: BTreeMap::new(),
             retries: super::deadlines::Deadlines::default(),
             names: BTreeMap::new(),
             devices: BTreeMap::new(),
@@ -192,8 +194,18 @@ impl Resolvers {
         self.retries.remove(&tunnel_id);
         self.unindex(tunnel_id);
         if let Some(watch) = self.watches.remove(&tunnel_id) {
+            self.lookups.remove(&watch.id);
             self.resolve.unwatch(watch.id);
         }
+    }
+
+    fn renew_id(&mut self, tunnel_id: u32) -> u64 {
+        let watch = self.watches.get_mut(&tunnel_id).unwrap();
+        self.lookups.remove(&watch.id);
+        self.next_id += 1;
+        watch.id = self.next_id;
+        self.lookups.insert(watch.id, tunnel_id);
+        watch.id
     }
 
     fn index(&mut self, id: u32) {
@@ -285,8 +297,10 @@ impl<K: Kernel> Reconciler<K> {
         let now = self.k.now();
         let r = &mut self.resolvers;
         let next_id = &mut r.next_id;
+        let lookups = &mut r.lookups;
         let watch = r.watches.entry(tunnel_id).or_insert_with(|| {
             *next_id += 1;
+            lookups.insert(*next_id, tunnel_id);
             Watch {
                 id: *next_id,
                 key: key.clone(),
@@ -319,9 +333,7 @@ impl<K: Kernel> Reconciler<K> {
             }
             self.resolvers.resolve.unwatch(id);
             if self.resolvers.watches[&tunnel_id].started.is_some() {
-                self.resolvers.next_id += 1;
-                id = self.resolvers.next_id;
-                self.resolvers.watches.get_mut(&tunnel_id).unwrap().id = id;
+                id = self.resolvers.renew_id(tunnel_id);
             }
             self.resolvers
                 .resolve
@@ -363,12 +375,13 @@ impl<K: Kernel> Reconciler<K> {
                     .end(&label, "resolver", || "its resolver started".into());
             }
             Err(why) => {
-                if watch.started.take().is_some() {
-                    self.resolvers.resolve.unwatch(watch.id);
-                    self.resolvers.next_id += 1;
-                    watch.id = self.resolvers.next_id;
-                }
+                let restart = watch.started.take().is_some();
+                let id = watch.id;
                 watch.dependencies.clear();
+                if restart {
+                    self.resolvers.resolve.unwatch(id);
+                    self.resolvers.renew_id(tunnel_id);
+                }
                 self.resolvers.retries.insert(tunnel_id, now + DEVICE_RETRY);
                 let message = || format!("its resolver waits: {why} (V9, V12)");
                 if host_defect {
@@ -495,11 +508,10 @@ impl<K: Kernel> Reconciler<K> {
         }
         for (id, answer) in self.resolvers.resolve.poll() {
             // A result of an earlier incarnation is ignored (V7, E10).
-            let Some((&tunnel_id, watch)) =
-                self.resolvers.watches.iter_mut().find(|(_, w)| w.id == id)
-            else {
+            let Some(&tunnel_id) = self.resolvers.lookups.get(&id) else {
                 continue;
             };
+            let watch = self.resolvers.watches.get_mut(&tunnel_id).unwrap();
             let bound = self
                 .tunnels
                 .get(&tunnel_id)
@@ -563,8 +575,7 @@ impl<K: Kernel> Reconciler<K> {
             // Answers in force are kept; only the lookups restart.
             if watch.started.take().is_some() {
                 self.resolvers.resolve.unwatch(watch.id);
-                self.resolvers.next_id += 1;
-                watch.id = self.resolvers.next_id;
+                self.resolvers.renew_id(tunnel_id);
             }
             self.resolvers.retries.remove(&tunnel_id);
             self.ensure_lookup(tunnel_id);
@@ -586,21 +597,39 @@ impl<K: Kernel> Reconciler<K> {
 #[derive(Default)]
 pub struct IphostResolve {
     workers: Option<super::workers::Owner>,
-    watches: BTreeMap<u64, (Lookup, iphost::Resolver, u64)>,
+    watches: BTreeMap<u64, Lookup>,
+    resolvers: BTreeMap<ResolverSpec, SharedResolver>,
+}
+
+#[derive(Default)]
+struct SharedResolver {
+    full: Option<iphost::Resolver>,
+    full_jobs: usize,
+    jobs: BTreeMap<String, SharedJob>,
+}
+
+struct SharedJob {
+    resolver: iphost::Resolver,
+    id: u64,
+    users: usize,
 }
 
 impl IphostResolve {
+    fn job(&self, lookup: &Lookup) -> &SharedJob {
+        &self.resolvers[&lookup.resolver].jobs[&lookup.host]
+    }
+
     fn partial(resolver: &iphost::Resolver) -> bool {
         matches!(resolver, iphost::Resolver::Ipv6(config) if config.dhcpv6().is_none() || config.ra().is_none())
     }
 
     fn resolver(&mut self, spec: &ResolverSpec) -> io::Result<iphost::Resolver> {
-        if let Some((_, r, _)) = self
-            .watches
-            .values()
-            .find(|(l, r, _)| &l.resolver == spec && !Self::partial(r))
+        if let Some(resolver) = self
+            .resolvers
+            .get(spec)
+            .and_then(|shared| shared.full.as_ref())
         {
-            return Ok(r.clone());
+            return Ok(resolver.clone());
         }
         let client = |id: &ClientId| match id {
             ClientId::DuidLl(mac) => iphost::ClientId::DuidLl(*mac),
@@ -653,31 +682,62 @@ impl Resolve for IphostResolve {
             self.workers = Some(super::workers::Owner::new()?);
         }
         let workers = self.workers.as_ref().unwrap();
-        let job = self
-            .watches
-            .values()
-            .find(|(l, _, _)| l.host == lookup.host && l.resolver == lookup.resolver)
-            .map(|(_, _, job)| *job)
-            .unwrap_or_else(|| {
-                let resolver = resolver.clone();
-                workers.watch(
-                    lookup.resolver != ResolverSpec::System,
-                    Arc::new(move || {
-                        iphost::IpHostResolver::new_with_config(host.clone(), false, false)
-                            .with_resolver(resolver.clone())
-                            .resolve()
-                    }),
-                )
+        let shared = self.resolvers.entry(lookup.resolver.clone()).or_default();
+        let spawn = || {
+            let host = host.clone();
+            let resolver = resolver.clone();
+            workers.watch(
+                lookup.resolver != ResolverSpec::System,
+                Arc::new(move || {
+                    iphost::IpHostResolver::new_with_config(host.clone(), false, false)
+                        .with_resolver(resolver.clone())
+                        .resolve()
+                }),
+            )
+        };
+        let job = shared
+            .jobs
+            .entry(lookup.host.clone())
+            .or_insert_with(|| SharedJob {
+                resolver: resolver.clone(),
+                id: spawn(),
+                users: 0,
             });
-        self.watches.insert(lookup.id, (lookup, resolver, job));
+        let new = job.users == 0;
+        let full = !Self::partial(&resolver);
+        let upgrade = Self::partial(&job.resolver) && full;
+        if upgrade {
+            workers.unwatch(job.id);
+            job.id = spawn();
+            job.resolver = resolver.clone();
+        }
+        job.users += 1;
+        if full && (new || upgrade) {
+            shared.full_jobs += 1;
+            shared.full = Some(resolver.clone());
+        }
+        self.watches.insert(lookup.id, lookup);
         Ok(())
     }
 
     fn unwatch(&mut self, id: u64) {
-        if let Some((_, _, job)) = self.watches.remove(&id)
-            && !self.watches.values().any(|(_, _, other)| *other == job)
-        {
-            self.workers.as_ref().unwrap().unwatch(job);
+        if let Some(lookup) = self.watches.remove(&id) {
+            let shared = self.resolvers.get_mut(&lookup.resolver).unwrap();
+            let job = shared.jobs.get_mut(&lookup.host).unwrap();
+            job.users -= 1;
+            if job.users == 0 {
+                let job = shared.jobs.remove(&lookup.host).unwrap();
+                self.workers.as_ref().unwrap().unwatch(job.id);
+                if !Self::partial(&job.resolver) {
+                    shared.full_jobs -= 1;
+                    if shared.full_jobs == 0 {
+                        shared.full = None;
+                    }
+                }
+            }
+            if shared.jobs.is_empty() {
+                self.resolvers.remove(&lookup.resolver);
+            }
         }
         if self.watches.is_empty() {
             self.workers = None;
@@ -687,15 +747,17 @@ impl Resolve for IphostResolve {
     fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
         let mut results = BTreeMap::new();
         if let Some(workers) = &self.workers {
-            for (_, _, job) in self.watches.values() {
-                results.entry(*job).or_insert_with(|| workers.poll(*job));
+            for shared in self.resolvers.values() {
+                for job in shared.jobs.values() {
+                    results.insert(job.id, workers.poll(job.id));
+                }
             }
         }
         self.watches
             .iter()
-            .filter_map(|(id, (_, _, job))| {
+            .filter_map(|(id, lookup)| {
                 results
-                    .get(job)?
+                    .get(&self.job(lookup).id)?
                     .as_ref()
                     .map(|answer| (*id, answer.clone()))
             })
@@ -705,13 +767,13 @@ impl Resolve for IphostResolve {
     fn retry_discovery(&self, id: u64) -> bool {
         self.watches
             .get(&id)
-            .is_some_and(|(_, resolver, _)| Self::partial(resolver))
+            .is_some_and(|lookup| Self::partial(&self.job(lookup).resolver))
     }
     fn waiting(&self, id: u64) -> bool {
-        self.watches.get(&id).is_some_and(|(_, _, job)| {
+        self.watches.get(&id).is_some_and(|lookup| {
             self.workers
                 .as_ref()
-                .is_some_and(|workers| workers.waiting(*job))
+                .is_some_and(|workers| workers.waiting(self.job(lookup).id))
         })
     }
 }
@@ -719,8 +781,10 @@ impl Resolve for IphostResolve {
 impl Drop for IphostResolve {
     fn drop(&mut self) {
         if let Some(workers) = &self.workers {
-            for (_, _, job) in self.watches.values() {
-                workers.unwatch(*job);
+            for shared in self.resolvers.values() {
+                for job in shared.jobs.values() {
+                    workers.unwatch(job.id);
+                }
             }
         }
     }

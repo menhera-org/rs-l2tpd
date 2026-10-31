@@ -1,0 +1,71 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling libc v0.2.191
+   Compiling futures-core v0.3.34
+   Compiling futures-sink v0.3.34
+   Compiling pin-project-lite v0.2.17
+   Compiling futures-io v0.3.34
+   Compiling slab v0.4.12
+   Compiling memchr v2.8.3
+   Compiling serde_core v1.0.229
+   Compiling futures-task v0.3.34
+   Compiling zerocopy v0.8.63
+   Compiling netlink-packet-core v0.9.0
+   Compiling thiserror v2.0.21
+   Compiling log v0.4.34
+   Compiling autocfg v1.5.1
+   Compiling thiserror v1.0.69
+   Compiling bytes v1.12.1
+   Compiling cfg_aliases v0.2.2
+   Compiling serde v1.0.229
+   Compiling bitflags v2.13.2
+   Compiling winnow v1.0.4
+   Compiling punycode v0.4.1
+   Compiling getrandom v0.3.4
+   Compiling cfg-if v1.0.5
+   Compiling toml_writer v1.1.3+spec-1.1.0
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd/target/phase6-resolver-baseline-ba9faeb/source)
+   Compiling futures-channel v0.3.34
+   Compiling nix v0.30.1
+   Compiling fqdn v0.5.2
+   Compiling memoffset v0.9.1
+   Compiling toml_parser v1.1.5+spec-1.1.0
+   Compiling syn v3.0.9
+   Compiling syn v2.0.119
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.4
+   Compiling tokio v1.54.1
+   Compiling serde_spanned v1.1.2
+   Compiling toml_datetime v1.1.2+spec-1.1.0
+   Compiling toml v1.1.8+spec-1.1.0
+   Compiling zerocopy-derive v0.8.63
+   Compiling thiserror-impl v1.0.69
+   Compiling futures-macro v0.3.34
+   Compiling thiserror-impl v2.0.21
+   Compiling serde_derive v1.0.229
+   Compiling futures-util v0.3.34
+   Compiling iphost v0.4.1
+   Compiling netlink-sys v0.9.0
+   Compiling futures-executor v0.3.34
+   Compiling futures v0.3.34
+   Compiling netlink-proto v0.13.0
+   Compiling netlink-packet-generic v0.5.0
+   Compiling netlink-packet-route v0.33.0
+   Compiling genetlink v0.3.0
+   Compiling netlink-packet-l2tp v0.4.0
+   Compiling l2tp v0.5.0
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/phase6-resolver-baseline-build/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+CANCEL_COST jobs=1 cancellations=500 drop_owner=false elapsed_ns=1261869
+CANCEL_COST jobs=1 cancellations=500 drop_owner=true elapsed_ns=1930618
+CANCEL_COST jobs=300 cancellations=500 drop_owner=false elapsed_ns=2664468
+CANCEL_COST jobs=300 cancellations=500 drop_owner=true elapsed_ns=97370007
+CANCEL_COST jobs=20000 cancellations=500 drop_owner=false elapsed_ns=80930400
+CANCEL_COST jobs=20000 cancellations=500 drop_owner=true elapsed_ns=8375662635
+test reconciler::workers::cost_tests::cancellation_cost_with_unrelated_jobs ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 114 filtered out; finished in 8.65s
+

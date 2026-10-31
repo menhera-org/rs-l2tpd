@@ -1,0 +1,67 @@
+diff --git a/src/reconciler/resolvers_tests.rs b/src/reconciler/resolvers_tests.rs
+index e53bac4..e715df9 100644
+--- a/src/reconciler/resolvers_tests.rs
++++ b/src/reconciler/resolvers_tests.rs
+@@ -315,6 +315,62 @@ fn released_unified_adapter_enables_per_family_failure_fallback() {
+     assert!(lookup().is_empty(), "both sources failed");
+ }
+ 
++/// spec: V14, V4, V7, V15, G23, M16
++#[test]
++#[ignore = "isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW"]
++fn shared_partial_discovery_retries_replace_the_actual_lookup_snapshot() {
++    let (sender, destination, primary, fallback, dhcp) = fixture();
++    let occupied = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP)).unwrap();
++    occupied.bind_device(Some(b"dns-host")).unwrap();
++    occupied
++        .bind(&SocketAddrV6::new(Ipv6Addr::UNSPECIFIED, 546, 0, 0).into())
++        .unwrap();
++    let spec = ResolverSpec::Ipv6 {
++        interface: "dns-host".into(),
++        client_id: ClientId::None,
++    };
++    let lookup = |id| Lookup::new(id, "controlled.example".into(), spec.clone());
++    let mut resolve = IphostResolve::default();
++    resolve.watch(lookup(1)).unwrap();
++    resolve.watch(lookup(2)).unwrap();
++    assert!(resolve.retry_discovery(1) && resolve.retry_discovery(2));
++    until(|| {
++        advertise(
++            &sender,
++            destination,
++            &[("2001:db8::54".parse().unwrap(), 300)],
++        );
++        resolve.poll().iter().any(|(_, answer)| answer.len() == 2)
++    });
++    assert!(fallback.calls.load(Ordering::SeqCst) > 0);
++    assert_eq!(primary.calls.load(Ordering::SeqCst), 0);
++    drop(occupied);
++    resolve.watch(lookup(1)).unwrap();
++    let mut request = [0; 1500];
++    let (len, peer) = dhcp.recv_from(&mut request).unwrap();
++    assert!(len >= 4 && request[0] == 11);
++    let mut reply = vec![7, request[1], request[2], request[3], 0, 23, 0, 16];
++    reply.extend("2001:db8::53".parse::<Ipv6Addr>().unwrap().octets());
++    dhcp.send_to(&reply, peer).unwrap();
++    resolve.watch(lookup(2)).unwrap();
++    assert!(!resolve.retry_discovery(1) && !resolve.retry_discovery(2));
++    let deadline = Instant::now() + Duration::from_secs(35);
++    while primary.calls.load(Ordering::SeqCst) == 0 && Instant::now() < deadline {
++        std::thread::yield_now();
++    }
++    assert!(
++        primary.calls.load(Ordering::SeqCst) > 0,
++        "completed discovery retries still use an RA-only lookup snapshot"
++    );
++    until(|| {
++        let answers = resolve.poll();
++        answers.len() == 2 && answers.iter().all(|(_, answer)| answer.len() == 2)
++    });
++    resolve.unwatch(1);
++    resolve.unwatch(2);
++    assert!(resolve.watches.is_empty() && resolve.workers.is_none());
++}
++
+ /// spec: V4, V10, V15, G23
+ #[test]
+ #[ignore = "isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW"]

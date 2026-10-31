@@ -361,7 +361,7 @@ now passed on every required target in the current refresh. Repository record
 proofs; `audit/phase6/deadline-index-20261031/README.md` records indexed
 deadlines, conflict cancellation and fresh host/mainline-clock checks.
 
-Current merged production coverage is 92.79% of lines and 80.19% of branches;
+Current merged production coverage is 92.94% of lines and 80.83% of branches;
 the threshold remains 100%. The earlier 92.26% line report included inline
 test code. Both strict map flags are enabled after ten CI qualification
 passes, and the strict workflow and pinned-nightly coverage workflow pass.
@@ -374,6 +374,13 @@ normal GNU, unmodified musl Incus and root-systemd profiles pass. Repository
 file `audit/phase6/resource-history-20261031/README.md` records exact source,
 workloads and limitations. These checks do not replace the final five-target
 matrix.
+
+The shared-discovery follow-up replaces an RA-only worker snapshot after
+DHCPv6 recovers and indexes resolver jobs, cancellation and answer delivery.
+Its full GNU profile, unmodified musl Incus and root-systemd checks pass
+on Ubuntu 6.8.0-147. Repository file
+`audit/phase6/resolver-cost-20261031/README.md` records the regression,
+cancellation measurements and remaining proof limits.
 
 ### Refused monitor filters and descriptor exhaustion
 

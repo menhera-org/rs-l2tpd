@@ -1,0 +1,10 @@
+command: systemd-run user notify unit; test /home/dev/rs-l2tpd/target/phase6-coverage-resolver-cost-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/7dc53dd3944ffb67/out/rs_l2tpd-7dc53dd3944ffb67 --ignored --exact fdstore::manager_tests::actual_manager_processing_and_address_family_filter --nocapture
+Running as unit: phase6-resolver-cost-manager-20261031.service; invocation ID: 7ebfa65ab1e14591aeba18890cabfd50
+
+running 1 test
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 46 filtered out; finished in 0.05s
+
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
