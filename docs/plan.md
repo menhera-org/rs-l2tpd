@@ -491,14 +491,18 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
 Exit: all five gates green on the running kernel and on every required
 kernel target; the Incus/LXD scenario run, not skipped.
 
-**Status: in progress on 2026-10-30.** The classified source-link check
-passes locally; the host/manager scenario runner is partial. Incus
-execution exposed a direct-creation udev/networkd persistent-MAC race
-under H11/P5. The maintainer approved preserving the concurrent outcome
-and separately proving persistent MAC assignment with explicit ordering;
-[H11](spec/hosts.md#other-network-managers) states the limitations. No global gate is declared
-complete and strict CI flags remain off. The evolving record is repository
-file `audit/PHASE6_VERIFICATION_2026-10-30.md`.
+**Status: in progress on 2026-10-31.** The strict source-link check
+passes locally. The partial host scenarios, unprivileged Incus case and
+root system-unit sandbox have passing records. The required matrix driver
+exists; vanilla 6.8.12 exposed a K26/K34 errno distinction awaiting the
+maintainer's decision, and an Ubuntu 26.04 boot failure remains unexplained
+despite a successful identical retry. A readiness/signal-order race found
+by that guest is fixed and retested. Initial merged coverage is 91.03%
+lines / 77.02% branches, before that fix; 70 rule citations and remaining
+scenarios are still open. No global gate is declared complete; strict CI
+flags remain off. The latest record is repository file
+`audit/PHASE6_VERIFICATION_2026-10-31.md`; the approved H11 MAC limitations
+remain in [H11](spec/hosts.md#other-network-managers).
 
 ### Phase 7 — release
 

@@ -30,13 +30,13 @@ The latest Phase 5 evidence is repository file
 `audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md`, following the initial
 `audit/PHASE5_VERIFICATION_2026-10-29.md` record. The binary runs on musl
 and glibc; fresh process tests pass on Ubuntu 6.8.0-147 and QEMU kernels
-6.12.114, 6.18.59 and 7.3. Phase 6 has started: the classified source-link
-check passes locally and a partial Rust scenario runner exists. P5 exposed
-a direct-creation udev/networkd MAC race; the maintainer approved concurrent
-interface preservation plus a separately ordered persistent-MAC test;
-repository file `audit/PHASE6_VERIFICATION_2026-10-30.md` records it.
-Global Phase 6 gates remain open, including
-the full system-unit mount-sandbox check. The specification's
+6.12.114, 6.18.59 and 7.3. Phase 6 is underway: source links, the
+unprivileged Incus case and the root unit sandbox have passing local
+records. The partial scenario suite and required matrix driver exist.
+Repository file `audit/PHASE6_VERIFICATION_2026-10-31.md` records a kernel
+errno distinction awaiting a maintainer decision, a fixed readiness race,
+an unresolved guest boot failure and the remaining global gates.
+The specification's
 [known gaps](spec/README.md#known-gaps) describe historical commit
 `741117b`, removed in Phase 0. The interface page describes the target.
 

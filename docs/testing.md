@@ -21,7 +21,7 @@ tests/
   process.rs      actual-binary CLI and live process cases; binary unit tests live in src/bin/
   process/        instructions for privileged and real-manager process checks
   scenarios/      partial Phase 6 host/manager scenarios plus the Incus system-unit case
-  docker/         run.sh scenarios|incus; full scenario and matrix gates remain open
+  docker/         run.sh scenarios|matrix|incus; full scenario and matrix gates remain open
   tools/
     rulemap.rs    the rule-map check
     srclink.rs    the source-link check
@@ -39,10 +39,11 @@ on 6.12.114, 6.18.59 and 7.3. The initial verification record remains
 
 Repository file `tests/process/README.md` gives the container and native
 systemd transport commands. The manager test covers the address-family
-filter and descriptor protocol, not the complete root system-unit mount
-sandbox. In particular the bindv6only write under ProtectKernelTunables
-with ReadWritePaths remains unverified. The full required kernel matrix,
-Incus/LXD and combined coverage remain Phase 6 work.
+filter and descriptor protocol. The complete root system-unit mount
+sandbox, including the bindv6only write, subsequently passed in QEMU; see
+repository file `audit/phase6/P6_ROOT_SANDBOX_2026-10-30.md`. The full
+required matrix, remaining scenarios and merged 100% coverage remain open
+in `audit/PHASE6_VERIFICATION_2026-10-31.md`.
 
 ## The four suites
 
@@ -160,8 +161,8 @@ as skipped, never as passed.
 
 Required suites separately record the selected features, ignored/live test
 execution and results. Keep explicit per-clause/table-case coverage;
-a green rule map alone cannot close a phase. The runner layout below is
-the Phase 6 target, not an assertion that those runners already exist.
+a green rule map alone cannot close a phase. The implemented runners
+exercise a partial case set; their existence does not close a gate.
 Current CI runs formatting, warning-denied Clippy and documentation,
 no-default/serde library builds, and native/musl tests. Rule-map and
 source-link checks run leniently until Phase 6 enables their strict flags;
@@ -173,7 +174,7 @@ gates. Current review probes and exact commands are in repository file
 
 ```sh
 cargo test --locked --all-features --target x86_64-unknown-linux-musl # unit, rules, seeded properties, fake conformance
-tests/docker/run.sh conformance              # real-kernel conformance in a privileged container
+# Planned: tests/docker/run.sh conformance; existing live commands are in tests/kernel/README.md
 tests/docker/run.sh scenarios                # the scenario suite
 tests/docker/run.sh matrix required          # the required kernels of "Kernel targets" (QEMU, TCG, unprivileged)
 tests/docker/run.sh matrix v6.8..v7.3        # every vanilla release of the range
@@ -181,9 +182,11 @@ tests/docker/run.sh incus                    # the unprivileged system-container
 cargo llvm-cov --all-features -- --include-ignored   # with the container profiles mounted back
 ```
 
-The first command is usable now; plain `cargo test` skips the
-`fake-kernel`-gated rules and conformance targets. The `run.sh` commands
-are Phase 6 targets, not existing runners. Coverage must name and execute
+The musl command and the scenarios, matrix and Incus entry points exist;
+their complete case set remains Phase 6 work. The separate conformance
+entry point is still planned; repository file `tests/kernel/README.md`
+gives the existing live commands. Plain `cargo test` skips the
+`fake-kernel`-gated rules and conformance targets. Coverage must name and execute
 the required features and live suites; do not treat a lenient rule map as
 proof that new clauses pass.
 
