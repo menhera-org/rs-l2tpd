@@ -1,0 +1,787 @@
+[912633.039280] rs-l2tpd-mac-witness-380047 systemd[1]: Starting systemd-udevd.service - Rule-based Manager for Device Events and Files...
+[912633.088548] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Using default interface naming scheme 'v255'.
+[912633.096884] rs-l2tpd-mac-witness-380047 systemd[1]: Started systemd-udevd.service - Rule-based Manager for Device Events and Files.
+[912633.098519] rs-l2tpd-mac-witness-380047 systemd[1]: Starting systemd-networkd.service - Network Configuration...
+[912633.136898] rs-l2tpd-mac-witness-380047 systemd-networkd[186]: Failed to increase receive buffer size for general netlink socket, ignoring: Operation not permitted
+[912633.141450] rs-l2tpd-mac-witness-380047 systemd-networkd[186]: lo: Link UP
+[912633.141523] rs-l2tpd-mac-witness-380047 systemd-networkd[186]: lo: Gained carrier
+[912633.142445] rs-l2tpd-mac-witness-380047 systemd-networkd[186]: Enumeration completed
+[912633.142538] rs-l2tpd-mac-witness-380047 systemd[1]: Started systemd-networkd.service - Network Configuration.
+[912633.576830] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912633.584778] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912633.589617] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912633.619843] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912633.650050] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912633.663982] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912638.599037] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912638.613182] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912644.984257] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912645.005356] rs-l2tpd-mac-witness-380047 systemd[1]: Stopping systemd-networkd.service - Network Configuration...
+[912645.005887] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Deactivated successfully.
+[912645.006205] rs-l2tpd-mac-witness-380047 systemd[1]: Stopped systemd-networkd.service - Network Configuration.
+[912645.029240] rs-l2tpd-mac-witness-380047 systemd[1]: Starting systemd-networkd.service - Network Configuration...
+[912645.029810] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912645.055772] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: Failed to increase receive buffer size for general netlink socket, ignoring: Operation not permitted
+[912645.059246] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: lo: Link UP
+[912645.059302] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: lo: Gained carrier
+[912645.059789] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: Enumeration completed
+[912645.059962] rs-l2tpd-mac-witness-380047 systemd[1]: Started systemd-networkd.service - Network Configuration.
+[912645.062841] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912645.583995] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912645.842620] rs-l2tpd-mac-witness-380047 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+[912645.843100] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912645.886491] rs-l2tpd-mac-witness-380047 rs-l2tpd[469]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+[912645.887173] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-tb86092: Device is queued (SEQNUM=4081497, ACTION=add)
+[912645.887512] rs-l2tpd-mac-witness-380047 rs-l2tpd[469]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as rsl2tp-tb86092
+[912645.887985] rs-l2tpd-mac-witness-380047 rs-l2tpd[469]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[912645.888070] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Udev rules need reloading
+[912645.888159] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Unload kernel module index.
+[912645.888212] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Unloaded link configuration context.
+[912645.888277] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Trying to open "/etc/systemd/hwdb/hwdb.bin"...
+[912645.888325] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Trying to open "/etc/udev/hwdb.bin"...
+[912645.888359] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Trying to open "/usr/lib/systemd/hwdb/hwdb.bin"...
+[912645.888393] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Trying to open "/usr/lib/udev/hwdb.bin"...
+[912645.888427] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: === trie on-disk ===
+[912645.888465] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tool version:          255
+[912645.888503] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: file size:        12292617 bytes
+[912645.888552] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: header size             80 bytes
+[912645.888589] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: strings            2580249 bytes
+[912645.888626] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: nodes              9712288 bytes
+[912645.888822] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Loading kernel module index.
+[912645.889419] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Parsed configuration file "/usr/lib/systemd/network/99-default.link"
+[912645.889673] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Parsed configuration file "/usr/lib/systemd/network/73-usb-net-by-mac.link"
+[912645.889713] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Created link configuration context.
+[912645.890128] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/40-vm-hotadd.rules
+[912645.890214] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/50-firmware.rules
+[912645.890341] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/50-udev-default.rules
+[912645.890684] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912645.891294] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/55-dm.rules
+[912645.891679] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-autosuspend.rules
+[912645.891762] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-block.rules
+[912645.891841] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-cdrom_id.rules
+[912645.891943] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-dmi-id.rules
+[912645.892102] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-drm.rules
+[912645.892147] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-evdev.rules
+[912645.892215] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-fido-id.rules
+[912645.892282] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-infiniband.rules
+[912645.892353] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-input-id.rules
+[912645.892409] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-persistent-alsa.rules
+[912645.892491] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-persistent-input.rules
+[912645.892698] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-persistent-storage-dm.rules
+[912645.892848] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-persistent-storage-mtd.rules
+[912645.892910] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-persistent-storage-tape.rules
+[912645.893106] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-persistent-storage.rules
+[912645.893662] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-persistent-v4l.rules
+[912645.893760] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-sensor.rules
+[912645.893897] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/60-serial.rules
+[912645.894031] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/61-persistent-storage-android.rules
+[912645.894179] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/64-btrfs.rules
+[912645.894254] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/70-camera.rules
+[912645.894315] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/70-joystick.rules
+[912645.894373] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/70-memory.rules
+[912645.894436] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/70-mouse.rules
+[912645.894494] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/70-power-switch.rules
+[912645.894556] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/70-touchpad.rules
+[912645.894617] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/70-uaccess.rules
+[912645.894805] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/71-power-switch-proliant.rules
+[912645.894868] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/71-seat.rules
+[912645.895123] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/73-seat-late.rules
+[912645.895195] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/73-special-net-names.rules
+[912645.895291] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/75-net-description.rules
+[912645.895364] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/75-probe_mtd.rules
+[912645.895426] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/78-graphics-card.rules
+[912645.895508] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/78-sound-card.rules
+[912645.895777] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/80-debian-compat.rules
+[912645.895855] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/80-drivers.rules
+[912645.895918] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/80-net-setup-link.rules
+[912645.895975] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/81-net-dhcp.rules
+[912645.896047] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/90-console-setup.rules
+[912645.896128] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/90-iocost.rules
+[912645.896361] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /run/udev/rules.d/90-lxc-net.rules
+[912645.896430] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /run/udev/rules.d/90-netplan.rules
+[912645.896506] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/95-dm-notify.rules
+[912645.896584] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/96-e2scrub.rules
+[912645.896642] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Reading rules file: /usr/lib/udev/rules.d/99-systemd.rules
+[912645.897284] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-tb86092: Device ready for processing (SEQNUM=4081497, ACTION=add)
+[912645.897360] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: sd-device-monitor(n/a): Failed to increase receive buffer size, ignoring: Operation not permitted
+[912645.897603] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Successfully forked off '(udev-worker)' as PID 477.
+[912645.897778] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: PR_SET_MM_ARG_START failed: Operation not permitted
+[912645.898143] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-tb86092: Worker [477] is forked for processing SEQNUM=4081497.
+[912645.898192] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Processing device (SEQNUM=4081497, ACTION=add)
+[912645.898232] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device is queued (SEQNUM=4081498, ACTION=add)
+[912645.898285] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: SEQNUM=4081498 blocked by SEQNUM=4081497
+[912645.898328] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device is queued (SEQNUM=4081499, ACTION=add)
+[912645.898387] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: SEQNUM=4081499 blocked by SEQNUM=4081497
+[912645.898423] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device is queued (SEQNUM=4081500, ACTION=move)
+[912645.898475] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4081500 blocked by SEQNUM=4081497
+[912645.898511] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.898553] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.898598] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: /usr/lib/udev/rules.d/50-udev-default.rules:31 Importing properties from results of builtin command 'net_driver'
+[912645.899669] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912645.902177] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: rsl2tp-tb86092: Interface name change detected, renamed to incusl2tp.
+[912645.902344] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Device already vanished, ignoring.
+[912645.902406] rs-l2tpd-mac-witness-380047 rs-l2tpd[469]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): published as incusl2tp
+[912645.902470] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Reconfiguring with /etc/systemd/network/10-phase6.network.
+[912645.902522] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: /usr/lib/udev/rules.d/75-net-description.rules:13 Importing properties from results of builtin command 'net_id'
+[912645.902557] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Failed to check if the device is stacked: No such file or directory
+[912645.902618] rs-l2tpd-mac-witness-380047 rs-l2tpd[469]: INFO rs_l2tpd: ready pid=469
+[912645.902653] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: /usr/lib/udev/rules.d/75-net-description.rules:13 Failed to run builtin 'net_id': No such file or directory
+[912645.902692] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912645.902727] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912645.902773] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 Importing properties from results of builtin command 'net_setup_link'
+[912645.902811] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Failed to query name_assign_type: No such file or directory
+[912645.902849] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Failed to get "name_assign_type" attribute, ignoring: No such file or directory
+[912645.902889] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Failed to query addr_assign_type: No such file or directory
+[912645.902920] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Failed to get "addr_assign_type" attribute, ignoring: No such file or directory
+[912645.902954] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Failed to get permanent hardware address, ignoring: No such device
+[912645.903013] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Config file /usr/lib/systemd/network/99-default.link is applied
+[912645.903066] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: MAC address on the device already matches policy "persistent".
+[912645.903102] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Policies didn't yield a name and Name= is not given, not renaming.
+[912645.903141] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME 'rsl2tp-tb86092'
+[912645.903180] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: /usr/lib/udev/rules.d/99-systemd.rules:70 RUN '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/$name --prefix=/net/ipv4/neigh/$name --prefix=/net/ipv6/conf/$name --prefix=/net/ipv6/neigh/$name'
+[912645.903219] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: sd-device: Created db file '/run/udev/data/n4' for '/devices/virtual/net/rsl2tp-tb86092'
+[912645.903292] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Running command "/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-tb86092 --prefix=/net/ipv4/neigh/rsl2tp-tb86092 --prefix=/net/ipv6/conf/rsl2tp-tb86092 --prefix=/net/ipv6/neigh/rsl2tp-tb86092"
+[912645.903335] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Starting '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-tb86092 --prefix=/net/ipv4/neigh/rsl2tp-tb86092 --prefix=/net/ipv6/conf/rsl2tp-tb86092 --prefix=/net/ipv6/neigh/rsl2tp-tb86092'
+[912645.903375] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Link UP
+[912645.903410] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Gained carrier
+[912645.903447] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: Successfully forked off '(spawn)' as PID 478.
+[912645.903482] rs-l2tpd-mac-witness-380047 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+[912645.906232] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912645.907487] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Received udev control message (PING)
+[912645.909392] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Process '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-tb86092 --prefix=/net/ipv4/neigh/rsl2tp-tb86092 --prefix=/net/ipv6/conf/rsl2tp-tb86092 --prefix=/net/ipv6/neigh/rsl2tp-tb86092' succeeded.
+[912645.909487] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: Device processed (SEQNUM=4081497, ACTION=add)
+[912645.909532] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb86092: sd-device-monitor(worker): Passed 408 byte to netlink monitor.
+[912645.909571] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device ready for processing (SEQNUM=4081498, ACTION=add)
+[912645.909648] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: sd-device-monitor(manager): Passed 193 byte to netlink monitor.
+[912645.909688] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device ready for processing (SEQNUM=4081499, ACTION=add)
+[912645.909720] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Processing device (SEQNUM=4081498, ACTION=add)
+[912645.909761] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: sd-device-monitor(n/a): Failed to increase receive buffer size, ignoring: Operation not permitted
+[912645.909831] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.909878] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Successfully forked off '(udev-worker)' as PID 480.
+[912645.909946] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Worker [480] is forked for processing SEQNUM=4081499.
+[912645.909985] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4081500 blocked by SEQNUM=4081498
+[912645.910070] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.910134] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: PR_SET_MM_ARG_START failed: Operation not permitted
+[912645.910400] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-tb86092/queues".
+[912645.910449] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-tb86092".
+[912645.910490] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Processing device (SEQNUM=4081499, ACTION=add)
+[912645.910522] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Device processed (SEQNUM=4081498, ACTION=add)
+[912645.910594] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: sd-device-monitor(worker): Passed 193 byte to netlink monitor.
+[912645.910635] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4081500 blocked by SEQNUM=4081499
+[912645.910669] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.910703] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.910739] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-tb86092/queues".
+[912645.910771] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-tb86092".
+[912645.910917] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Device processed (SEQNUM=4081499, ACTION=add)
+[912645.910979] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: sd-device-monitor(worker): Passed 193 byte to netlink monitor.
+[912645.911062] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device ready for processing (SEQNUM=4081500, ACTION=move)
+[912645.911116] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: sd-device-monitor(manager): Passed 268 byte to netlink monitor.
+[912645.911153] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Processing device (SEQNUM=4081500, ACTION=move)
+[912645.911291] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.911429] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.911469] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/50-udev-default.rules:31 Importing properties from results of builtin command 'net_driver'
+[912645.911537] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Querying driver name via ethtool API is not supported by device 'incusl2tp', ignoring: Operation not supported
+[912645.911623] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/75-net-description.rules:13 Importing properties from results of builtin command 'net_id'
+[912645.911746] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: addr_assign_type=3, MAC address is not permanent.
+[912645.911796] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Failed to get parent device: No such file or directory
+[912645.911834] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Could not find usb parent device: No such file or directory
+[912645.911898] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Could not get bcma parent device: No such file or directory
+[912645.911942] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912645.911980] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912645.912037] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 Importing properties from results of builtin command 'net_setup_link'
+[912645.912075] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device has name_assign_type=4
+[912645.912118] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device has addr_assign_type=3
+[912645.912182] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Config file /usr/lib/systemd/network/99-default.link is applied
+[912645.912224] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: MAC address on the device already set by userspace.
+[912645.912264] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Skipping to apply Name= and NamePolicy= on 'move' uevent.
+[912645.912302] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Skipping to apply AlternativeNames= and AlternativeNamesPolicy= on 'move' uevent.
+[912645.912343] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME 'incusl2tp'
+[912645.912380] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device: Created db file '/run/udev/data/n4' for '/devices/virtual/net/incusl2tp'
+[912645.912439] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device processed (SEQNUM=4081500, ACTION=move)
+[912645.912479] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device-monitor(worker): Passed 463 byte to netlink monitor.
+[912645.912514] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: No events are queued, removing /run/udev/queue.
+[912645.921471] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device is queued (SEQNUM=4081501, ACTION=remove)
+[912645.921567] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device ready for processing (SEQNUM=4081501, ACTION=remove)
+[912645.921628] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: sd-device-monitor(manager): Passed 191 byte to netlink monitor.
+[912645.921696] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device is queued (SEQNUM=4081502, ACTION=remove)
+[912645.921816] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device ready for processing (SEQNUM=4081502, ACTION=remove)
+[912645.921894] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Processing device (SEQNUM=4081501, ACTION=remove)
+[912645.921959] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: sd-device-monitor(manager): Passed 191 byte to netlink monitor.
+[912645.922020] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device is queued (SEQNUM=4081503, ACTION=remove)
+[912645.922098] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4081503 blocked by SEQNUM=4081501
+[912645.922153] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Processing device (SEQNUM=4081502, ACTION=remove)
+[912645.922224] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.922295] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.922390] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.922456] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Device processed (SEQNUM=4081501, ACTION=remove)
+[912645.922524] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: sd-device-monitor(worker): Passed 191 byte to netlink monitor.
+[912645.922592] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4081503 blocked by SEQNUM=4081502
+[912645.922656] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.922723] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Device processed (SEQNUM=4081502, ACTION=remove)
+[912645.922790] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: sd-device-monitor(worker): Passed 191 byte to netlink monitor.
+[912645.922858] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device ready for processing (SEQNUM=4081503, ACTION=remove)
+[912645.922913] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: sd-device-monitor(manager): Passed 222 byte to netlink monitor.
+[912645.923016] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Processing device (SEQNUM=4081503, ACTION=remove)
+[912645.923100] rs-l2tpd-mac-witness-380047 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+[912645.923171] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.923247] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.923300] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912645.923358] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912645.923421] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device processed (SEQNUM=4081503, ACTION=remove)
+[912645.923486] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device-monitor(worker): Passed 417 byte to netlink monitor.
+[912645.923706] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: No events are queued, removing /run/udev/queue.
+[912645.923756] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912645.923869] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Link DOWN
+[912645.923932] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Lost carrier
+[912645.940331] rs-l2tpd-mac-witness-380047 rs-l2tpd[469]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+[912645.940440] rs-l2tpd-mac-witness-380047 rs-l2tpd[469]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+[912645.942693] rs-l2tpd-mac-witness-380047 rs-l2tpd[469]: INFO rs_l2tpd: shutdown complete
+[912645.944032] rs-l2tpd-mac-witness-380047 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+[912645.944301] rs-l2tpd-mac-witness-380047 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
+[912645.948833] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912645.972773] rs-l2tpd-mac-witness-380047 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+[912645.973532] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912645.991706] rs-l2tpd-mac-witness-380047 rs-l2tpd[491]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+[912645.992088] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-te308bf: Device is queued (SEQNUM=4081504, ACTION=add)
+[912645.992188] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-te308bf: Device ready for processing (SEQNUM=4081504, ACTION=add)
+[912645.992226] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-te308bf: sd-device-monitor(manager): Passed 229 byte to netlink monitor.
+[912645.992329] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device is queued (SEQNUM=4081505, ACTION=add)
+[912645.992399] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: SEQNUM=4081505 blocked by SEQNUM=4081504
+[912645.992446] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Processing device (SEQNUM=4081504, ACTION=add)
+[912645.992530] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device is queued (SEQNUM=4081506, ACTION=add)
+[912645.992597] rs-l2tpd-mac-witness-380047 rs-l2tpd[491]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as rsl2tp-te308bf
+[912645.992650] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: SEQNUM=4081506 blocked by SEQNUM=4081504
+[912645.992732] rs-l2tpd-mac-witness-380047 rs-l2tpd[491]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[912645.992819] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.992891] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912645.992950] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: /usr/lib/udev/rules.d/50-udev-default.rules:31 Importing properties from results of builtin command 'net_driver'
+[912645.993049] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Querying driver name via ethtool API is not supported by device 'rsl2tp-te308bf', ignoring: Operation not supported
+[912645.993141] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: /usr/lib/udev/rules.d/75-net-description.rules:13 Importing properties from results of builtin command 'net_id'
+[912645.993211] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: addr_assign_type=3, MAC address is not permanent.
+[912645.993286] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Failed to get parent device: No such file or directory
+[912645.993388] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Could not find usb parent device: No such file or directory
+[912645.993460] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Could not get bcma parent device: No such file or directory
+[912645.993524] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912645.993593] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912645.993658] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 Importing properties from results of builtin command 'net_setup_link'
+[912645.993724] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Device has name_assign_type=3
+[912645.993815] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Device has addr_assign_type=3
+[912645.993882] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device is queued (SEQNUM=4081507, ACTION=move)
+[912645.993950] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4081507 blocked by SEQNUM=4081504
+[912646.006120] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: rsl2tp-te308bf: Interface name change detected, renamed to incusl2tp.
+[912646.006213] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Reconfiguring with /etc/systemd/network/10-phase6.network.
+[912646.006258] rs-l2tpd-mac-witness-380047 rs-l2tpd[491]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): published as incusl2tp
+[912646.006297] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Failed to get permanent hardware address, ignoring: No such device
+[912646.006338] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Config file /usr/lib/systemd/network/99-default.link is applied
+[912646.006378] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: MAC address on the device already set by userspace.
+[912646.006460] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Policy *keep*: keeping existing userspace name
+[912646.006500] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME 'rsl2tp-te308bf'
+[912646.006539] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: /usr/lib/udev/rules.d/99-systemd.rules:70 RUN '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/$name --prefix=/net/ipv4/neigh/$name --prefix=/net/ipv6/conf/$name --prefix=/net/ipv6/neigh/$name'
+[912646.006580] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: sd-device: Created db file '/run/udev/data/n5' for '/devices/virtual/net/rsl2tp-te308bf'
+[912646.006619] rs-l2tpd-mac-witness-380047 rs-l2tpd[491]: INFO rs_l2tpd: ready pid=491
+[912646.006653] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Running command "/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-te308bf --prefix=/net/ipv4/neigh/rsl2tp-te308bf --prefix=/net/ipv6/conf/rsl2tp-te308bf --prefix=/net/ipv6/neigh/rsl2tp-te308bf"
+[912646.006693] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Starting '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-te308bf --prefix=/net/ipv4/neigh/rsl2tp-te308bf --prefix=/net/ipv6/conf/rsl2tp-te308bf --prefix=/net/ipv6/neigh/rsl2tp-te308bf'
+[912646.006755] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Link UP
+[912646.006794] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Gained carrier
+[912646.006832] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: Successfully forked off '(spawn)' as PID 499.
+[912646.007215] rs-l2tpd-mac-witness-380047 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+[912646.010034] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.010287] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Received udev control message (PING)
+[912646.012500] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Process '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-te308bf --prefix=/net/ipv4/neigh/rsl2tp-te308bf --prefix=/net/ipv6/conf/rsl2tp-te308bf --prefix=/net/ipv6/neigh/rsl2tp-te308bf' succeeded.
+[912646.012642] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: Device processed (SEQNUM=4081504, ACTION=add)
+[912646.012701] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-te308bf: sd-device-monitor(worker): Passed 434 byte to netlink monitor.
+[912646.012777] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device ready for processing (SEQNUM=4081505, ACTION=add)
+[912646.012833] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: sd-device-monitor(manager): Passed 193 byte to netlink monitor.
+[912646.012888] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device ready for processing (SEQNUM=4081506, ACTION=add)
+[912646.012950] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: sd-device-monitor(manager): Passed 193 byte to netlink monitor.
+[912646.013011] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4081507 blocked by SEQNUM=4081505
+[912646.013101] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Processing device (SEQNUM=4081505, ACTION=add)
+[912646.013215] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Processing device (SEQNUM=4081506, ACTION=add)
+[912646.013283] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.013348] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.013411] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.013477] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.013566] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-te308bf/queues".
+[912646.013635] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-te308bf/queues".
+[912646.013705] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-te308bf".
+[912646.013775] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-te308bf".
+[912646.013865] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Device processed (SEQNUM=4081505, ACTION=add)
+[912646.013934] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: sd-device-monitor(worker): Passed 193 byte to netlink monitor.
+[912646.014006] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Device processed (SEQNUM=4081506, ACTION=add)
+[912646.014082] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4081507 blocked by SEQNUM=4081506
+[912646.014145] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: sd-device-monitor(worker): Passed 193 byte to netlink monitor.
+[912646.014208] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device ready for processing (SEQNUM=4081507, ACTION=move)
+[912646.014271] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: sd-device-monitor(manager): Passed 268 byte to netlink monitor.
+[912646.014351] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Processing device (SEQNUM=4081507, ACTION=move)
+[912646.014422] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.014491] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.014550] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/50-udev-default.rules:31 Importing properties from results of builtin command 'net_driver'
+[912646.014610] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Querying driver name via ethtool API is not supported by device 'incusl2tp', ignoring: Operation not supported
+[912646.014675] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/75-net-description.rules:13 Importing properties from results of builtin command 'net_id'
+[912646.014747] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: addr_assign_type=3, MAC address is not permanent.
+[912646.014836] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Failed to get parent device: No such file or directory
+[912646.014903] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Could not find usb parent device: No such file or directory
+[912646.014967] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Could not get bcma parent device: No such file or directory
+[912646.015056] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912646.015121] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912646.015214] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 Importing properties from results of builtin command 'net_setup_link'
+[912646.015280] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device has name_assign_type=4
+[912646.015347] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device has addr_assign_type=3
+[912646.015416] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Config file /usr/lib/systemd/network/99-default.link is applied
+[912646.015483] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: MAC address on the device already set by userspace.
+[912646.015547] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Skipping to apply Name= and NamePolicy= on 'move' uevent.
+[912646.015613] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Skipping to apply AlternativeNames= and AlternativeNamesPolicy= on 'move' uevent.
+[912646.015680] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME 'incusl2tp'
+[912646.015743] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device: Created db file '/run/udev/data/n5' for '/devices/virtual/net/incusl2tp'
+[912646.015835] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device processed (SEQNUM=4081507, ACTION=move)
+[912646.015904] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device-monitor(worker): Passed 463 byte to netlink monitor.
+[912646.015971] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: No events are queued, removing /run/udev/queue.
+[912646.024094] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Link DOWN
+[912646.024179] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Lost carrier
+[912646.024243] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device is queued (SEQNUM=4081508, ACTION=remove)
+[912646.024291] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device ready for processing (SEQNUM=4081508, ACTION=remove)
+[912646.024324] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: sd-device-monitor(manager): Passed 191 byte to netlink monitor.
+[912646.024356] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device is queued (SEQNUM=4081509, ACTION=remove)
+[912646.024405] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Processing device (SEQNUM=4081508, ACTION=remove)
+[912646.024485] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device ready for processing (SEQNUM=4081509, ACTION=remove)
+[912646.024516] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: sd-device-monitor(manager): Passed 191 byte to netlink monitor.
+[912646.024545] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device is queued (SEQNUM=4081510, ACTION=remove)
+[912646.024578] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4081510 blocked by SEQNUM=4081508
+[912646.024611] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Processing device (SEQNUM=4081509, ACTION=remove)
+[912646.024644] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.024681] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.024716] rs-l2tpd-mac-witness-380047 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+[912646.024753] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.024808] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Device processed (SEQNUM=4081508, ACTION=remove)
+[912646.024844] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: sd-device-monitor(worker): Passed 191 byte to netlink monitor.
+[912646.024879] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4081510 blocked by SEQNUM=4081509
+[912646.024907] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.024939] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Device processed (SEQNUM=4081509, ACTION=remove)
+[912646.024971] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: sd-device-monitor(worker): Passed 191 byte to netlink monitor.
+[912646.025008] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device ready for processing (SEQNUM=4081510, ACTION=remove)
+[912646.025072] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: sd-device-monitor(manager): Passed 222 byte to netlink monitor.
+[912646.025105] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Processing device (SEQNUM=4081510, ACTION=remove)
+[912646.025235] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.025298] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.025380] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.025421] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912646.025543] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912646.025579] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device processed (SEQNUM=4081510, ACTION=remove)
+[912646.025616] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device-monitor(worker): Passed 417 byte to netlink monitor.
+[912646.025654] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: No events are queued, removing /run/udev/queue.
+[912646.036161] rs-l2tpd-mac-witness-380047 rs-l2tpd[491]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+[912646.036225] rs-l2tpd-mac-witness-380047 rs-l2tpd[491]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+[912646.037753] rs-l2tpd-mac-witness-380047 rs-l2tpd[491]: INFO rs_l2tpd: shutdown complete
+[912646.039157] rs-l2tpd-mac-witness-380047 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+[912646.039445] rs-l2tpd-mac-witness-380047 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
+[912646.044052] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.068818] rs-l2tpd-mac-witness-380047 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+[912646.069634] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.088833] rs-l2tpd-mac-witness-380047 rs-l2tpd[511]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+[912646.103531] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-td66f4b: Device is queued (SEQNUM=4082170, ACTION=add)
+[912646.103644] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-td66f4b: Device ready for processing (SEQNUM=4082170, ACTION=add)
+[912646.103683] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-td66f4b: sd-device-monitor(manager): Passed 229 byte to netlink monitor.
+[912646.103721] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device is queued (SEQNUM=4082171, ACTION=add)
+[912646.103811] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: SEQNUM=4082171 blocked by SEQNUM=4082170
+[912646.103863] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Processing device (SEQNUM=4082170, ACTION=add)
+[912646.103909] rs-l2tpd-mac-witness-380047 rs-l2tpd[511]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as rsl2tp-td66f4b
+[912646.103954] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device is queued (SEQNUM=4082172, ACTION=add)
+[912646.103996] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: SEQNUM=4082172 blocked by SEQNUM=4082170
+[912646.104056] rs-l2tpd-mac-witness-380047 rs-l2tpd[511]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[912646.104094] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.104179] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.104224] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: /usr/lib/udev/rules.d/50-udev-default.rules:31 Importing properties from results of builtin command 'net_driver'
+[912646.104650] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Querying driver name via ethtool API is not supported by device 'rsl2tp-td66f4b', ignoring: Operation not supported
+[912646.104925] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: /usr/lib/udev/rules.d/75-net-description.rules:13 Importing properties from results of builtin command 'net_id'
+[912646.105096] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Failed to check if the device is stacked: No such file or directory
+[912646.105137] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: /usr/lib/udev/rules.d/75-net-description.rules:13 Failed to run builtin 'net_id': No such file or directory
+[912646.105170] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912646.105218] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device is queued (SEQNUM=4082173, ACTION=move)
+[912646.105256] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912646.105323] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082173 blocked by SEQNUM=4082170
+[912646.105358] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 Importing properties from results of builtin command 'net_setup_link'
+[912646.105393] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Failed to query name_assign_type: No such file or directory
+[912646.105428] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Failed to get "name_assign_type" attribute, ignoring: No such file or directory
+[912646.105468] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Failed to query addr_assign_type: No such file or directory
+[912646.105502] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Failed to get "addr_assign_type" attribute, ignoring: No such file or directory
+[912646.119323] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: rsl2tp-td66f4b: Interface name change detected, renamed to incusl2tp.
+[912646.119679] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Reconfiguring with /etc/systemd/network/10-phase6.network.
+[912646.119750] rs-l2tpd-mac-witness-380047 rs-l2tpd[511]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): published as incusl2tp
+[912646.119750] rs-l2tpd-mac-witness-380047 rs-l2tpd[511]: INFO rs_l2tpd: ready pid=511
+[912646.119841] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Failed to get permanent hardware address, ignoring: No such device
+[912646.119900] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Config file /usr/lib/systemd/network/99-default.link is applied
+[912646.119971] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: MAC address on the device already matches policy "persistent".
+[912646.120022] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Policies didn't yield a name and Name= is not given, not renaming.
+[912646.120086] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME 'rsl2tp-td66f4b'
+[912646.120127] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: /usr/lib/udev/rules.d/99-systemd.rules:70 RUN '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/$name --prefix=/net/ipv4/neigh/$name --prefix=/net/ipv6/conf/$name --prefix=/net/ipv6/neigh/$name'
+[912646.120200] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: sd-device: Created db file '/run/udev/data/n6' for '/devices/virtual/net/rsl2tp-td66f4b'
+[912646.120241] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Running command "/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-td66f4b --prefix=/net/ipv4/neigh/rsl2tp-td66f4b --prefix=/net/ipv6/conf/rsl2tp-td66f4b --prefix=/net/ipv6/neigh/rsl2tp-td66f4b"
+[912646.120281] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Starting '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-td66f4b --prefix=/net/ipv4/neigh/rsl2tp-td66f4b --prefix=/net/ipv6/conf/rsl2tp-td66f4b --prefix=/net/ipv6/neigh/rsl2tp-td66f4b'
+[912646.120316] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Link UP
+[912646.120371] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Gained carrier
+[912646.120406] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: Successfully forked off '(spawn)' as PID 519.
+[912646.120587] rs-l2tpd-mac-witness-380047 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+[912646.123558] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Received udev control message (PING)
+[912646.123957] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.125969] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Process '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-td66f4b --prefix=/net/ipv4/neigh/rsl2tp-td66f4b --prefix=/net/ipv6/conf/rsl2tp-td66f4b --prefix=/net/ipv6/neigh/rsl2tp-td66f4b' succeeded.
+[912646.126195] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: Device processed (SEQNUM=4082170, ACTION=add)
+[912646.126236] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-td66f4b: sd-device-monitor(worker): Passed 408 byte to netlink monitor.
+[912646.126308] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device ready for processing (SEQNUM=4082171, ACTION=add)
+[912646.126349] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: sd-device-monitor(manager): Passed 193 byte to netlink monitor.
+[912646.126384] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device ready for processing (SEQNUM=4082172, ACTION=add)
+[912646.126419] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: sd-device-monitor(manager): Passed 193 byte to netlink monitor.
+[912646.126453] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082173 blocked by SEQNUM=4082171
+[912646.126486] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Processing device (SEQNUM=4082171, ACTION=add)
+[912646.126522] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Processing device (SEQNUM=4082172, ACTION=add)
+[912646.126558] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.126596] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.126656] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.126692] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-td66f4b/queues".
+[912646.126730] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-td66f4b".
+[912646.126768] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.126846] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-td66f4b/queues".
+[912646.126940] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Device processed (SEQNUM=4082171, ACTION=add)
+[912646.126982] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: sd-device-monitor(worker): Passed 193 byte to netlink monitor.
+[912646.127070] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-td66f4b".
+[912646.127127] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082173 blocked by SEQNUM=4082172
+[912646.127178] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Device processed (SEQNUM=4082172, ACTION=add)
+[912646.127233] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: sd-device-monitor(worker): Passed 193 byte to netlink monitor.
+[912646.127285] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device ready for processing (SEQNUM=4082173, ACTION=move)
+[912646.127333] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: sd-device-monitor(manager): Passed 268 byte to netlink monitor.
+[912646.127493] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Processing device (SEQNUM=4082173, ACTION=move)
+[912646.127553] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.127654] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.127711] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/50-udev-default.rules:31 Importing properties from results of builtin command 'net_driver'
+[912646.127773] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Querying driver name via ethtool API is not supported by device 'incusl2tp', ignoring: Operation not supported
+[912646.127993] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/75-net-description.rules:13 Importing properties from results of builtin command 'net_id'
+[912646.128043] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: addr_assign_type=3, MAC address is not permanent.
+[912646.128080] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Failed to get parent device: No such file or directory
+[912646.128114] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Could not find usb parent device: No such file or directory
+[912646.128149] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Could not get bcma parent device: No such file or directory
+[912646.128198] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912646.128233] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912646.128303] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 Importing properties from results of builtin command 'net_setup_link'
+[912646.128342] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device has name_assign_type=4
+[912646.128377] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device has addr_assign_type=3
+[912646.128413] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Config file /usr/lib/systemd/network/99-default.link is applied
+[912646.128449] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: MAC address on the device already set by userspace.
+[912646.128484] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Skipping to apply Name= and NamePolicy= on 'move' uevent.
+[912646.128521] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Skipping to apply AlternativeNames= and AlternativeNamesPolicy= on 'move' uevent.
+[912646.128556] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME 'incusl2tp'
+[912646.128593] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device: Created db file '/run/udev/data/n6' for '/devices/virtual/net/incusl2tp'
+[912646.128630] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device processed (SEQNUM=4082173, ACTION=move)
+[912646.128689] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device-monitor(worker): Passed 463 byte to netlink monitor.
+[912646.128728] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: No events are queued, removing /run/udev/queue.
+[912646.141110] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Link DOWN
+[912646.141231] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Lost carrier
+[912646.141495] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device is queued (SEQNUM=4082186, ACTION=remove)
+[912646.141567] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device ready for processing (SEQNUM=4082186, ACTION=remove)
+[912646.141623] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: sd-device-monitor(manager): Passed 191 byte to netlink monitor.
+[912646.141672] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device is queued (SEQNUM=4082187, ACTION=remove)
+[912646.141731] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Processing device (SEQNUM=4082186, ACTION=remove)
+[912646.141785] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device ready for processing (SEQNUM=4082187, ACTION=remove)
+[912646.141880] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: sd-device-monitor(manager): Passed 191 byte to netlink monitor.
+[912646.141928] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device is queued (SEQNUM=4082188, ACTION=remove)
+[912646.141985] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082188 blocked by SEQNUM=4082186
+[912646.142040] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Processing device (SEQNUM=4082187, ACTION=remove)
+[912646.142108] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.142166] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.142218] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.142270] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Device processed (SEQNUM=4082186, ACTION=remove)
+[912646.142323] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: sd-device-monitor(worker): Passed 191 byte to netlink monitor.
+[912646.142400] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082188 blocked by SEQNUM=4082187
+[912646.142448] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.142508] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Device processed (SEQNUM=4082187, ACTION=remove)
+[912646.142563] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: sd-device-monitor(worker): Passed 191 byte to netlink monitor.
+[912646.142620] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device ready for processing (SEQNUM=4082188, ACTION=remove)
+[912646.142667] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: sd-device-monitor(manager): Passed 222 byte to netlink monitor.
+[912646.143043] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Processing device (SEQNUM=4082188, ACTION=remove)
+[912646.143166] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.143238] rs-l2tpd-mac-witness-380047 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+[912646.143297] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.143350] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912646.143405] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912646.143458] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device processed (SEQNUM=4082188, ACTION=remove)
+[912646.143514] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device-monitor(worker): Passed 417 byte to netlink monitor.
+[912646.143568] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: No events are queued, removing /run/udev/queue.
+[912646.143741] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.164187] rs-l2tpd-mac-witness-380047 rs-l2tpd[511]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+[912646.164187] rs-l2tpd-mac-witness-380047 rs-l2tpd[511]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+[912646.165989] rs-l2tpd-mac-witness-380047 rs-l2tpd[511]: INFO rs_l2tpd: shutdown complete
+[912646.167424] rs-l2tpd-mac-witness-380047 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+[912646.167634] rs-l2tpd-mac-witness-380047 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
+[912646.172484] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.196768] rs-l2tpd-mac-witness-380047 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+[912646.197598] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.216125] rs-l2tpd-mac-witness-380047 rs-l2tpd[531]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+[912646.216645] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-tb0ce0c: Device is queued (SEQNUM=4082189, ACTION=add)
+[912646.216746] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-tb0ce0c: Device ready for processing (SEQNUM=4082189, ACTION=add)
+[912646.216798] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-tb0ce0c: sd-device-monitor(manager): Passed 229 byte to netlink monitor.
+[912646.216890] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device is queued (SEQNUM=4082190, ACTION=add)
+[912646.216952] rs-l2tpd-mac-witness-380047 rs-l2tpd[531]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as rsl2tp-tb0ce0c
+[912646.216952] rs-l2tpd-mac-witness-380047 rs-l2tpd[531]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[912646.217137] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: SEQNUM=4082190 blocked by SEQNUM=4082189
+[912646.217188] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Processing device (SEQNUM=4082189, ACTION=add)
+[912646.217230] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device is queued (SEQNUM=4082191, ACTION=add)
+[912646.217267] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: SEQNUM=4082191 blocked by SEQNUM=4082189
+[912646.217330] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.217366] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.217397] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: /usr/lib/udev/rules.d/50-udev-default.rules:31 Importing properties from results of builtin command 'net_driver'
+[912646.217432] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Querying driver name via ethtool API is not supported by device 'rsl2tp-tb0ce0c', ignoring: Operation not supported
+[912646.217469] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device is queued (SEQNUM=4082192, ACTION=move)
+[912646.217505] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082192 blocked by SEQNUM=4082189
+[912646.217534] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: /usr/lib/udev/rules.d/75-net-description.rules:13 Importing properties from results of builtin command 'net_id'
+[912646.217565] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Failed to check if the device is stacked: No such file or directory
+[912646.217618] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: /usr/lib/udev/rules.d/75-net-description.rules:13 Failed to run builtin 'net_id': No such file or directory
+[912646.217653] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912646.217684] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912646.217717] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 Importing properties from results of builtin command 'net_setup_link'
+[912646.217749] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Failed to query name_assign_type: No such file or directory
+[912646.217784] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Failed to get "name_assign_type" attribute, ignoring: No such file or directory
+[912646.217823] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Failed to query addr_assign_type: No such file or directory
+[912646.217879] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Failed to get "addr_assign_type" attribute, ignoring: No such file or directory
+[912646.229108] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: rsl2tp-tb0ce0c: Interface name change detected, renamed to incusl2tp.
+[912646.229191] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Reconfiguring with /etc/systemd/network/10-phase6.network.
+[912646.229231] rs-l2tpd-mac-witness-380047 rs-l2tpd[531]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): published as incusl2tp
+[912646.229267] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Failed to get permanent hardware address, ignoring: No such device
+[912646.229309] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Config file /usr/lib/systemd/network/99-default.link is applied
+[912646.229344] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: MAC address on the device already matches policy "persistent".
+[912646.229413] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Policies didn't yield a name and Name= is not given, not renaming.
+[912646.229448] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME 'rsl2tp-tb0ce0c'
+[912646.229492] rs-l2tpd-mac-witness-380047 rs-l2tpd[531]: INFO rs_l2tpd: ready pid=531
+[912646.229524] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: /usr/lib/udev/rules.d/99-systemd.rules:70 RUN '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/$name --prefix=/net/ipv4/neigh/$name --prefix=/net/ipv6/conf/$name --prefix=/net/ipv6/neigh/$name'
+[912646.229559] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: sd-device: Created db file '/run/udev/data/n7' for '/devices/virtual/net/rsl2tp-tb0ce0c'
+[912646.229592] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Running command "/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-tb0ce0c --prefix=/net/ipv4/neigh/rsl2tp-tb0ce0c --prefix=/net/ipv6/conf/rsl2tp-tb0ce0c --prefix=/net/ipv6/neigh/rsl2tp-tb0ce0c"
+[912646.229625] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Starting '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-tb0ce0c --prefix=/net/ipv4/neigh/rsl2tp-tb0ce0c --prefix=/net/ipv6/conf/rsl2tp-tb0ce0c --prefix=/net/ipv6/neigh/rsl2tp-tb0ce0c'
+[912646.229661] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: Successfully forked off '(spawn)' as PID 539.
+[912646.229716] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Link UP
+[912646.229750] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Gained carrier
+[912646.230193] rs-l2tpd-mac-witness-380047 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+[912646.233054] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.233327] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Received udev control message (PING)
+[912646.235315] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Process '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-tb0ce0c --prefix=/net/ipv4/neigh/rsl2tp-tb0ce0c --prefix=/net/ipv6/conf/rsl2tp-tb0ce0c --prefix=/net/ipv6/neigh/rsl2tp-tb0ce0c' succeeded.
+[912646.235438] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: Device processed (SEQNUM=4082189, ACTION=add)
+[912646.235484] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-tb0ce0c: sd-device-monitor(worker): Passed 408 byte to netlink monitor.
+[912646.235519] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device ready for processing (SEQNUM=4082190, ACTION=add)
+[912646.235555] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: sd-device-monitor(manager): Passed 193 byte to netlink monitor.
+[912646.235588] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device ready for processing (SEQNUM=4082191, ACTION=add)
+[912646.235622] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: sd-device-monitor(manager): Passed 193 byte to netlink monitor.
+[912646.235654] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082192 blocked by SEQNUM=4082190
+[912646.235687] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Processing device (SEQNUM=4082190, ACTION=add)
+[912646.235722] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Processing device (SEQNUM=4082191, ACTION=add)
+[912646.235781] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.235816] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.235869] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.235905] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.236078] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-tb0ce0c/queues".
+[912646.236116] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-tb0ce0c/queues".
+[912646.236185] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-tb0ce0c".
+[912646.236222] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-tb0ce0c".
+[912646.236260] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Device processed (SEQNUM=4082190, ACTION=add)
+[912646.236299] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: sd-device-monitor(worker): Passed 193 byte to netlink monitor.
+[912646.236336] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Device processed (SEQNUM=4082191, ACTION=add)
+[912646.236375] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082192 blocked by SEQNUM=4082191
+[912646.236410] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: sd-device-monitor(worker): Passed 193 byte to netlink monitor.
+[912646.236444] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device ready for processing (SEQNUM=4082192, ACTION=move)
+[912646.236475] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: sd-device-monitor(manager): Passed 268 byte to netlink monitor.
+[912646.236506] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Processing device (SEQNUM=4082192, ACTION=move)
+[912646.236564] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.236600] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.236635] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/50-udev-default.rules:31 Importing properties from results of builtin command 'net_driver'
+[912646.236681] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Querying driver name via ethtool API is not supported by device 'incusl2tp', ignoring: Operation not supported
+[912646.236805] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/75-net-description.rules:13 Importing properties from results of builtin command 'net_id'
+[912646.236893] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: addr_assign_type=3, MAC address is not permanent.
+[912646.236931] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Failed to get parent device: No such file or directory
+[912646.236964] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Could not find usb parent device: No such file or directory
+[912646.236996] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Could not get bcma parent device: No such file or directory
+[912646.237033] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912646.237067] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912646.237130] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 Importing properties from results of builtin command 'net_setup_link'
+[912646.237164] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device has name_assign_type=4
+[912646.237196] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device has addr_assign_type=3
+[912646.237229] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Config file /usr/lib/systemd/network/99-default.link is applied
+[912646.237262] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: MAC address on the device already set by userspace.
+[912646.237294] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Skipping to apply Name= and NamePolicy= on 'move' uevent.
+[912646.237325] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Skipping to apply AlternativeNames= and AlternativeNamesPolicy= on 'move' uevent.
+[912646.237359] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME 'incusl2tp'
+[912646.237394] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device: Created db file '/run/udev/data/n7' for '/devices/virtual/net/incusl2tp'
+[912646.237449] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device processed (SEQNUM=4082192, ACTION=move)
+[912646.237485] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device-monitor(worker): Passed 463 byte to netlink monitor.
+[912646.237517] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: No events are queued, removing /run/udev/queue.
+[912646.246215] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device is queued (SEQNUM=4082193, ACTION=remove)
+[912646.246301] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device ready for processing (SEQNUM=4082193, ACTION=remove)
+[912646.246352] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: sd-device-monitor(manager): Passed 191 byte to netlink monitor.
+[912646.246398] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device is queued (SEQNUM=4082194, ACTION=remove)
+[912646.246468] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device ready for processing (SEQNUM=4082194, ACTION=remove)
+[912646.246609] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: sd-device-monitor(manager): Passed 191 byte to netlink monitor.
+[912646.246684] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device is queued (SEQNUM=4082195, ACTION=remove)
+[912646.246745] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082195 blocked by SEQNUM=4082193
+[912646.246953] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Processing device (SEQNUM=4082194, ACTION=remove)
+[912646.247036] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Processing device (SEQNUM=4082193, ACTION=remove)
+[912646.247076] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.247109] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.247141] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.247172] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.247226] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Device processed (SEQNUM=4082193, ACTION=remove)
+[912646.247260] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Device processed (SEQNUM=4082194, ACTION=remove)
+[912646.247292] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: sd-device-monitor(worker): Passed 191 byte to netlink monitor.
+[912646.247500] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: sd-device-monitor(worker): Passed 191 byte to netlink monitor.
+[912646.247564] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082195 blocked by SEQNUM=4082194
+[912646.247612] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device ready for processing (SEQNUM=4082195, ACTION=remove)
+[912646.247655] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: sd-device-monitor(manager): Passed 222 byte to netlink monitor.
+[912646.247698] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Processing device (SEQNUM=4082195, ACTION=remove)
+[912646.247753] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.247805] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.247854] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Link DOWN
+[912646.247902] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912646.247951] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Lost carrier
+[912646.247994] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912646.248054] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device processed (SEQNUM=4082195, ACTION=remove)
+[912646.248136] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device-monitor(worker): Passed 417 byte to netlink monitor.
+[912646.248187] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: No events are queued, removing /run/udev/queue.
+[912646.248230] rs-l2tpd-mac-witness-380047 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+[912646.248777] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.261132] rs-l2tpd-mac-witness-380047 rs-l2tpd[531]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+[912646.261194] rs-l2tpd-mac-witness-380047 rs-l2tpd[531]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+[912646.262748] rs-l2tpd-mac-witness-380047 rs-l2tpd[531]: INFO rs_l2tpd: shutdown complete
+[912646.264423] rs-l2tpd-mac-witness-380047 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+[912646.264671] rs-l2tpd-mac-witness-380047 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
+[912646.269227] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.294938] rs-l2tpd-mac-witness-380047 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+[912646.295630] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.311620] rs-l2tpd-mac-witness-380047 rs-l2tpd[551]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+[912646.312054] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-t8bb3d7: Device is queued (SEQNUM=4082196, ACTION=add)
+[912646.312212] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-t8bb3d7: Device ready for processing (SEQNUM=4082196, ACTION=add)
+[912646.312260] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rsl2tp-t8bb3d7: sd-device-monitor(manager): Passed 229 byte to netlink monitor.
+[912646.312295] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Processing device (SEQNUM=4082196, ACTION=add)
+[912646.312337] rs-l2tpd-mac-witness-380047 rs-l2tpd[551]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as rsl2tp-t8bb3d7
+[912646.312378] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device is queued (SEQNUM=4082197, ACTION=add)
+[912646.312420] rs-l2tpd-mac-witness-380047 rs-l2tpd[551]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[912646.312454] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: SEQNUM=4082197 blocked by SEQNUM=4082196
+[912646.312489] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device is queued (SEQNUM=4082198, ACTION=add)
+[912646.312557] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: SEQNUM=4082198 blocked by SEQNUM=4082196
+[912646.312590] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.312626] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.312681] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: /usr/lib/udev/rules.d/50-udev-default.rules:31 Importing properties from results of builtin command 'net_driver'
+[912646.312721] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Querying driver name via ethtool API is not supported by device 'rsl2tp-t8bb3d7', ignoring: Operation not supported
+[912646.312843] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device is queued (SEQNUM=4082199, ACTION=move)
+[912646.312906] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082199 blocked by SEQNUM=4082196
+[912646.312940] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: /usr/lib/udev/rules.d/75-net-description.rules:13 Importing properties from results of builtin command 'net_id'
+[912646.312997] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Failed to check if the device is stacked: No such file or directory
+[912646.313363] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: /usr/lib/udev/rules.d/75-net-description.rules:13 Failed to run builtin 'net_id': No such file or directory
+[912646.313432] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912646.313487] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912646.313641] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 Importing properties from results of builtin command 'net_setup_link'
+[912646.313679] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Failed to query name_assign_type: No such file or directory
+[912646.313743] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Failed to get "name_assign_type" attribute, ignoring: No such file or directory
+[912646.313782] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Failed to query addr_assign_type: No such file or directory
+[912646.313828] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Failed to get "addr_assign_type" attribute, ignoring: No such file or directory
+[912646.331165] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: rsl2tp-t8bb3d7: Interface name change detected, renamed to incusl2tp.
+[912646.331239] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Reconfiguring with /etc/systemd/network/10-phase6.network.
+[912646.331277] rs-l2tpd-mac-witness-380047 rs-l2tpd[551]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): published as incusl2tp
+[912646.331420] rs-l2tpd-mac-witness-380047 rs-l2tpd[551]: INFO rs_l2tpd: ready pid=551
+[912646.331534] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Failed to get permanent hardware address, ignoring: No such device
+[912646.331606] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Config file /usr/lib/systemd/network/99-default.link is applied
+[912646.331645] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: MAC address on the device already matches policy "persistent".
+[912646.331679] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Policies didn't yield a name and Name= is not given, not renaming.
+[912646.331733] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME 'rsl2tp-t8bb3d7'
+[912646.331768] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: /usr/lib/udev/rules.d/99-systemd.rules:70 RUN '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/$name --prefix=/net/ipv4/neigh/$name --prefix=/net/ipv6/conf/$name --prefix=/net/ipv6/neigh/$name'
+[912646.331804] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Link UP
+[912646.331838] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Gained carrier
+[912646.331870] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: sd-device: Created db file '/run/udev/data/n8' for '/devices/virtual/net/rsl2tp-t8bb3d7'
+[912646.331950] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Running command "/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-t8bb3d7 --prefix=/net/ipv4/neigh/rsl2tp-t8bb3d7 --prefix=/net/ipv6/conf/rsl2tp-t8bb3d7 --prefix=/net/ipv6/neigh/rsl2tp-t8bb3d7"
+[912646.332026] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Starting '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-t8bb3d7 --prefix=/net/ipv4/neigh/rsl2tp-t8bb3d7 --prefix=/net/ipv6/conf/rsl2tp-t8bb3d7 --prefix=/net/ipv6/neigh/rsl2tp-t8bb3d7'
+[912646.332064] rs-l2tpd-mac-witness-380047 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+[912646.332145] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: Successfully forked off '(spawn)' as PID 559.
+[912646.335049] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.335220] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: Received udev control message (PING)
+[912646.338512] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Process '/usr/lib/systemd/systemd-sysctl --prefix=/net/ipv4/conf/rsl2tp-t8bb3d7 --prefix=/net/ipv4/neigh/rsl2tp-t8bb3d7 --prefix=/net/ipv6/conf/rsl2tp-t8bb3d7 --prefix=/net/ipv6/neigh/rsl2tp-t8bb3d7' succeeded.
+[912646.338580] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: Device processed (SEQNUM=4082196, ACTION=add)
+[912646.338634] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rsl2tp-t8bb3d7: sd-device-monitor(worker): Passed 408 byte to netlink monitor.
+[912646.338671] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device ready for processing (SEQNUM=4082197, ACTION=add)
+[912646.338702] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: sd-device-monitor(manager): Passed 193 byte to netlink monitor.
+[912646.338732] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device ready for processing (SEQNUM=4082198, ACTION=add)
+[912646.338765] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: sd-device-monitor(manager): Passed 193 byte to netlink monitor.
+[912646.338794] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082199 blocked by SEQNUM=4082197
+[912646.338888] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Processing device (SEQNUM=4082197, ACTION=add)
+[912646.338931] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Processing device (SEQNUM=4082198, ACTION=add)
+[912646.338994] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.339037] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.339080] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.339113] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.339145] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-t8bb3d7/queues".
+[912646.339178] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-t8bb3d7/queues".
+[912646.339212] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-t8bb3d7".
+[912646.339247] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: sd-device: Failed to chase symlinks in "/sys/devices/virtual/net/rsl2tp-t8bb3d7".
+[912646.339279] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Device processed (SEQNUM=4082198, ACTION=add)
+[912646.339333] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: sd-device-monitor(worker): Passed 193 byte to netlink monitor.
+[912646.339367] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Device processed (SEQNUM=4082197, ACTION=add)
+[912646.339402] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: sd-device-monitor(worker): Passed 193 byte to netlink monitor.
+[912646.339434] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device ready for processing (SEQNUM=4082199, ACTION=move)
+[912646.339463] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: sd-device-monitor(manager): Passed 268 byte to netlink monitor.
+[912646.339503] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Processing device (SEQNUM=4082199, ACTION=move)
+[912646.339714] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.339865] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.339903] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/50-udev-default.rules:31 Importing properties from results of builtin command 'net_driver'
+[912646.339937] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Querying driver name via ethtool API is not supported by device 'incusl2tp', ignoring: Operation not supported
+[912646.340095] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/75-net-description.rules:13 Importing properties from results of builtin command 'net_id'
+[912646.340191] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: addr_assign_type=3, MAC address is not permanent.
+[912646.340228] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Failed to get parent device: No such file or directory
+[912646.340264] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Could not find usb parent device: No such file or directory
+[912646.340298] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Could not get bcma parent device: No such file or directory
+[912646.340330] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912646.340382] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912646.340422] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:9 Importing properties from results of builtin command 'net_setup_link'
+[912646.340454] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device has name_assign_type=4
+[912646.340624] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device has addr_assign_type=3
+[912646.340678] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Config file /usr/lib/systemd/network/99-default.link is applied
+[912646.340731] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: MAC address on the device already set by userspace.
+[912646.340780] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Skipping to apply Name= and NamePolicy= on 'move' uevent.
+[912646.340829] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Skipping to apply AlternativeNames= and AlternativeNamesPolicy= on 'move' uevent.
+[912646.340878] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:11 NAME 'incusl2tp'
+[912646.340927] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device: Created db file '/run/udev/data/n8' for '/devices/virtual/net/incusl2tp'
+[912646.341012] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device processed (SEQNUM=4082199, ACTION=move)
+[912646.341048] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device-monitor(worker): Passed 463 byte to netlink monitor.
+[912646.341080] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: No events are queued, removing /run/udev/queue.
+[912646.349270] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Link DOWN
+[912646.349347] rs-l2tpd-mac-witness-380047 systemd-networkd[232]: incusl2tp: Lost carrier
+[912646.349768] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device is queued (SEQNUM=4082200, ACTION=remove)
+[912646.349825] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: Device ready for processing (SEQNUM=4082200, ACTION=remove)
+[912646.349862] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: rx-0: sd-device-monitor(manager): Passed 191 byte to netlink monitor.
+[912646.349893] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device is queued (SEQNUM=4082201, ACTION=remove)
+[912646.349977] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Processing device (SEQNUM=4082200, ACTION=remove)
+[912646.350033] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: Device ready for processing (SEQNUM=4082201, ACTION=remove)
+[912646.350067] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: tx-0: sd-device-monitor(manager): Passed 191 byte to netlink monitor.
+[912646.350096] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device is queued (SEQNUM=4082202, ACTION=remove)
+[912646.350131] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Processing device (SEQNUM=4082201, ACTION=remove)
+[912646.350166] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: SEQNUM=4082202 blocked by SEQNUM=4082200
+[912646.350198] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.350232] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.350266] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.350298] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: Device processed (SEQNUM=4082201, ACTION=remove)
+[912646.350354] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.350387] rs-l2tpd-mac-witness-380047 (udev-worker)[480]: tx-0: sd-device-monitor(worker): Passed 191 byte to netlink monitor.
+[912646.350418] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: Device processed (SEQNUM=4082200, ACTION=remove)
+[912646.350455] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: rx-0: sd-device-monitor(worker): Passed 191 byte to netlink monitor.
+[912646.350489] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: Device ready for processing (SEQNUM=4082202, ACTION=remove)
+[912646.350518] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: incusl2tp: sd-device-monitor(manager): Passed 222 byte to netlink monitor.
+[912646.350550] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Processing device (SEQNUM=4082202, ACTION=remove)
+[912646.350582] rs-l2tpd-mac-witness-380047 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+[912646.350681] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.350831] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: value '[dmi/id]sys_vendor' is 'HPE'
+[912646.350886] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Importing properties from results of builtin command 'path_id'
+[912646.351092] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: /usr/lib/udev/rules.d/80-net-setup-link.rules:5 Failed to run builtin 'path_id': No such file or directory
+[912646.351126] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: Device processed (SEQNUM=4082202, ACTION=remove)
+[912646.351173] rs-l2tpd-mac-witness-380047 (udev-worker)[477]: incusl2tp: sd-device-monitor(worker): Passed 417 byte to netlink monitor.
+[912646.351214] rs-l2tpd-mac-witness-380047 systemd-udevd[169]: No events are queued, removing /run/udev/queue.
+[912646.351246] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.382177] rs-l2tpd-mac-witness-380047 rs-l2tpd[551]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+[912646.382177] rs-l2tpd-mac-witness-380047 rs-l2tpd[551]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+[912646.383972] rs-l2tpd-mac-witness-380047 rs-l2tpd[551]: INFO rs_l2tpd: shutdown complete
+[912646.385267] rs-l2tpd-mac-witness-380047 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+[912646.385531] rs-l2tpd-mac-witness-380047 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
+[912646.390293] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated
+[912646.394549] rs-l2tpd-mac-witness-380047 systemd[1]: rs-l2tpd.service: Start request repeated too quickly.
+[912646.394587] rs-l2tpd-mac-witness-380047 systemd[1]: rs-l2tpd.service: Failed with result 'start-limit-hit'.
+[912646.394688] rs-l2tpd-mac-witness-380047 systemd[1]: Failed to start rs-l2tpd.service - Resilient L2TPv3 daemon.
+[912646.396882] rs-l2tpd-mac-witness-380047 systemd[1]: systemd-networkd.service: Unexpected error response from GetNameOwner(): Connection terminated

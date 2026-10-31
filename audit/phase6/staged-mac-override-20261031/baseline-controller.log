@@ -1,0 +1,24 @@
+source: de8ac73; all features; x86_64-unknown-linux-musl
+command: incus launch images:ubuntu/24.04 NAME --no-profiles --storage ROOT_POOL -c security.privileged=false
+
+The instance you are starting doesn't have any network attached to it.
+  To create a new network, use: incus network create
+  To attach a network to an instance, use: incus network attach
+
+running
+6.8.0-147-generic
+systemd 255 (255.4-1ubuntu8.18)
++PAM +AUDIT +SELINUX +APPARMOR +IMA +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBFDISK +PCRE2 -PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD -BPF_FRAMEWORK -XKBCOMMON +UTMP +SYSVINIT default-hierarchy=unified
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+Created symlink /etc/systemd/system/network-online.target.requires/rs-l2tpd.service → /usr/local/lib/systemd/system/rs-l2tpd.service.
+systemd: existing services are never restarted
+To use the installed binary, run rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid; upgrading a running 0.1.5 daemon at /usr/local/bin/rs-l2tpd requires systemctl restart rs-l2tpd once.
+BASELINE_STAGED attempt=1 index=4 mac=02:00:5e:00:53:01
+BASELINE_STAGED attempt=2 index=5 mac=02:00:5e:00:53:01
+BASELINE_STAGED attempt=3 index=6 mac=1e:9f:56:5c:05:8b
+MAC_OVERRIDE_OBSERVED=1
+BASELINE_WITNESS_RESULT=0

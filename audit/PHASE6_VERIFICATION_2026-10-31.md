@@ -14,7 +14,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
 | P4 coverage | Approved production scope: fresh merged GNU report 93.29% lines / 80.91% branches after indexed rename/session recreation; no production exclusions | 569 missing lines / 341 branches; add meaningful cases and remaining profiles to reach 100% |
-| P5 Incus | Current unmodified musl full case passes, including manager race/ordered policy/store/re-exec; instrumented GNU full case exports seven daemon profiles | Repeat if relevant source changes; retain documented MAC limitations |
+| P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
 
@@ -801,3 +801,16 @@ identifier-index CI run `41236261835` passes both jobs on its first attempt.
 Fresh combined coverage is 93.29% lines / 80.91% branches, leaving 569 lines
 and 341 branches. Complete event/resource bounds, clauses, 100% coverage and
 the final consistent-source matrix remain open.
+
+## Unresolved staged-MAC override
+
+[The H11 investigation](phase6/staged-mac-override-20261031/README.md) retains
+an unmodified Incus failure and a baseline reproduction at `de8ac73`.
+Udev reads the kernel assignment type and applies a persistent MAC derived
+from the temporary name; the active interface has that MAC instead of the
+daemon's configured address. S12/G4 preserve later manager overrides, while
+H11's precedence sentence assumes a stronger ordering.
+An unapplied proposal documents the limit and gives the configured-MAC test
+explicit `.link` authority. Its separate baseline control passes three
+creations. Maintainer review is deferred until the requested quiet window
+ends. P5 remains unresolved; individual later passes do not prove determinism.
