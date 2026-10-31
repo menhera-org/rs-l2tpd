@@ -209,6 +209,18 @@ pub fn adoption_preserves_tunnel_and_session_records(f: &mut dyn Fixture) {
         );
         let inherited = f.k().clone_fd(socket).unwrap();
         f.k().close(socket);
+        assert_eq!(errno(f.k().only_v6(socket)), nix::libc::EBADF);
+        assert_eq!(
+            errno(
+                f.k()
+                    .connect(socket, &Peer::new("2001:db8::2".parse().unwrap(), None))
+            ),
+            nix::libc::EBADF
+        );
+        assert_eq!(errno(f.k().bind_index(socket, 0)), nix::libc::EBADF);
+        assert_eq!(errno(f.k().disconnect(socket)), nix::libc::EBADF);
+        assert_eq!(errno(f.k().clone_fd(socket)), nix::libc::EBADF);
+        assert!(f.k().tunnel(id).unwrap().is_some());
         f.settle();
         let adopted = f.k().adopt(inherited).unwrap();
         let expected = Adopted::new(SocketId::new(adopted.socket().get()), family, id, id + 10);

@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 93.48% lines /
-81.54% branches: 556 missing lines and 333 missing branches, with no
+approved production-code scope, the latest merged report is 93.81% lines /
+82.37% branches: 528 missing lines and 318 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner has passing records and the later H11 failure described below.
@@ -625,6 +625,12 @@ due work. Named host requests coalesce by name while preserving delivery order.
 Five regression/resource cases, ten seeds and fresh GNU live, manager, Incus
 and unmodified root-systemd profiles pass. The complete resource proof remains
 open; `audit/phase6/store-cost-20261031/` records this batch's scope.
+
+The fake backend now rejects closed local socket handles while external
+descriptors retain their tunnels, matching the Linux backend. Strengthened
+shared adoption assertions and four fake observation cases pass ten seeds
+and fresh GNU profiles. `audit/phase6/fake-handles-20261031/` records the two
+baseline failures and current proof scope.
 
 ### Phase 7 — release
 

@@ -661,6 +661,7 @@ impl Kernel for FakeKernel {
         let s = self
             .sockets
             .get(&socket)
+            .filter(|s| s.fd.is_some())
             .ok_or(io::Error::from_raw_os_error(Errno::EBADF as i32))?;
         if s.family == Family::V4 {
             return fail(Errno::ENOPROTOOPT);
@@ -704,6 +705,7 @@ impl Kernel for FakeKernel {
         let s = self
             .sockets
             .get(&socket)
+            .filter(|s| s.fd.is_some())
             .ok_or(io::Error::from_raw_os_error(Errno::EBADF as i32))?;
         let (family, only_v6, connected, mut bound, previous) =
             (s.family, s.only_v6, s.peer, s.bound, s.source);
