@@ -87,7 +87,7 @@ fn direct_creation_and_recreation_preserve_publication_rules() {
     }
 }
 
-/// spec: T21, T27, E3, G17
+/// spec: T21, T27, E3, G17, A12
 #[test]
 fn a_failed_scoped_connect_can_change_its_kernel_binding() {
     let (mut r, _) = reconciler();

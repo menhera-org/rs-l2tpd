@@ -3,7 +3,7 @@ use crate::{config, deliver, ops, reconciler, run_for};
 use rs_l2tpd::config::Config;
 use rs_l2tpd::kernel::{Kernel, L2tpIfName, SessionInfo};
 
-/// spec: M1, M2, M3, M4, M7, M8, M11, M12, M17, G2, G3, G4, G5, G6, G7, G18
+/// spec: M1, M2, M3, M4, M7, M8, M11, M12, M17, G2, G3, G4, G5, G6, G7, G18, A3, A4, A11, A20
 #[test]
 fn reload_sequences_converge_without_unjustified_identity_changes() {
     let seeds = std::env::var("TEST_SEED")
@@ -125,10 +125,44 @@ fn reload_sequences_converge_without_unjustified_identity_changes() {
                 "G2/G4: foreign device and administrative state, seed {initial}"
             );
             let current_index = r.kernel().session_index(tid, sid).unwrap();
+            let observed = r.kernel_mut().session(tid, sid).unwrap().unwrap();
+            let desired = &accepted.sessions()[session];
+            assert_eq!(observed.tunnel_id(), tid, "seed {initial}");
+            assert_eq!(observed.session_id(), sid, "seed {initial}");
+            assert_eq!(observed.peer_session_id(), peer_sid, "seed {initial}");
+            assert_eq!(
+                observed.cookies().unwrap(),
+                (desired.cookie(), desired.peer_cookie()),
+                "seed {initial}"
+            );
+            assert_eq!(
+                &r.kernel().link(current_index).unwrap().name(),
+                desired.interface_name(),
+                "seed {initial}"
+            );
+            assert_eq!(
+                r.kernel_mut()
+                    .tunnel(tid)
+                    .unwrap()
+                    .unwrap()
+                    .peer_tunnel_id(),
+                peer_tid,
+                "seed {initial}"
+            );
             r.kernel_mut().set_up(current_index, true);
             deliver(&mut r);
             let socket = r.kernel().tunnel_socket(tid).unwrap();
-            let (peer, _) = r.kernel().connection(socket).unwrap();
+            assert_eq!(
+                r.kernel().binding(socket),
+                bind.then_some(device),
+                "seed {initial}"
+            );
+            let (peer, source) = r.kernel().connection(socket).unwrap();
+            assert_eq!(
+                source.to_string(),
+                if v6 { "2001:db8::1" } else { "192.0.2.1" },
+                "seed {initial}"
+            );
             assert_eq!(
                 peer.to_string(),
                 if v6 { "2001:db8::2" } else { "192.0.2.2" }

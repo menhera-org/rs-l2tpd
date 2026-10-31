@@ -235,7 +235,7 @@ impl Workers {
 mod tests {
     use super::*;
 
-    /// spec: V3, V4, V15, G23
+    /// spec: V3, V4, V15, G23, A9
     #[test]
     fn obsolete_calls_keep_separate_budgets_and_latest_results() {
         let workers = Workers::default();
@@ -306,7 +306,7 @@ mod tests {
         assert!(workers.poll(waiting).is_none());
     }
 
-    /// spec: V3, V15, G23
+    /// spec: V3, V15, G23, A9
     #[test]
     fn eight_blocked_calls_survive_cancellation_without_a_ninth_worker() {
         let workers = Owner::new().unwrap();

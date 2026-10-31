@@ -119,7 +119,7 @@ fn a_refused_peer_is_retried_every_second() {
 }
 
 /// A changed remote_addr is a reconnect on the same socket (T22, T28).
-/// spec: T22, T28, M12
+/// spec: T22, T28, M12, A15
 #[test]
 fn a_changed_peer_keeps_the_socket() {
     let (mut r, _) = reconciler();

@@ -1,12 +1,14 @@
 use super::support::{Pair, config};
 use std::time::{Duration, Instant};
 
-/// spec: H6, G8, G21, P1, R26
+/// spec: H6, G8, G21, P1, R26, A19
 #[test]
 #[ignore = "disposable privileged container"]
 fn readiness_without_routes_then_frames_after_the_first_route() {
     let pair = Pair::new();
-    for side in 0..2 {
+    let mut original_links = [0; 2];
+    for (side, count) in original_links.iter_mut().enumerate() {
+        *count = pair.ip(side, &["-o", "link", "show"]).lines().count();
         assert!(
             pair.ip(side, &["route", "show", "table", "all"])
                 .trim()
@@ -22,12 +24,17 @@ fn readiness_without_routes_then_frames_after_the_first_route() {
     let mut b = pair.start(1, &config(1, &["192.0.2.1"]));
     a.event("ready");
     b.event("ready");
-    for side in 0..2 {
+    for (side, count) in original_links.into_iter().enumerate() {
         assert!(
             pair.ip(side, &["l2tp", "show", "tunnel"])
                 .contains(&format!("Tunnel {}", side + 1))
         );
         assert!(pair.ip(side, &["link", "show", "l2tp0"]).contains("l2tp0"));
+        assert_eq!(
+            pair.ip(side, &["-o", "link", "show"]).lines().count(),
+            count + 1,
+            "the session must be the only additional device"
+        );
     }
     pair.inner("l2tp0", 0);
     let before = pair.drops(0, "l2tp0");

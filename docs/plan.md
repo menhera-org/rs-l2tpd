@@ -511,7 +511,7 @@ cycles and observes zero requests for unrelated links; a fresh mainline
 normal profile passes the expanded 23-scenario suite. Two retained map
 allocations are fixed. The lifetime subscriber now indexes deletion work
 by interface and incarnation, with passing native/live/host cases. There
-are 18 uncited rules. Deadline selection now uses ordered indexes, with
+are three uncited rules (G15, G16, G20). Deadline selection now uses ordered indexes, with
 ten seeded rule runs, all host/process cases and a fresh mainline clock
 case passing. Obsolete conflict history is released on removal/shutdown.
 Relevant link/address cache maintenance now updates changed dependencies
@@ -539,6 +539,11 @@ subject to the complete proof and coverage gates.
 O4 now has exact entry-label and configuration-diagnostic assertions. A
 reproduced diagnostic defect is fixed: valid IDs survive left-out entries,
 sessions include both IDs, and unknown-key diagnostics retain their context.
+The planner now compares session fields, bindings and selected sources with
+accepted configuration after each transition. Staging retries check no second
+creation, and restart checks exact PID formatting and fixture disk contents.
+Architecture/event/observability assertions link another 15 rules, with
+module-map checks kept distinct from behavioral execution evidence.
 Complete event-cost/resource/history proof, remaining clauses and
 final matrix/coverage refreshes are still open. No global gate is declared
 complete; strict CI flags remain off. The latest record is repository file

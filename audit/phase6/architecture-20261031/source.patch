@@ -1,0 +1,388 @@
+diff --git a/src/reconciler/workers.rs b/src/reconciler/workers.rs
+index 8d0dcae..8a5305a 100644
+--- a/src/reconciler/workers.rs
++++ b/src/reconciler/workers.rs
+@@ -235,7 +235,7 @@ impl Workers {
+ mod tests {
+     use super::*;
+ 
+-    /// spec: V3, V4, V15, G23
++    /// spec: V3, V4, V15, G23, A9
+     #[test]
+     fn obsolete_calls_keep_separate_budgets_and_latest_results() {
+         let workers = Workers::default();
+@@ -306,7 +306,7 @@ mod tests {
+         assert!(workers.poll(waiting).is_none());
+     }
+ 
+-    /// spec: V3, V15, G23
++    /// spec: V3, V15, G23, A9
+     #[test]
+     fn eight_blocked_calls_survive_cancellation_without_a_ninth_worker() {
+         let workers = Owner::new().unwrap();
+diff --git a/src/runtime/tests.rs b/src/runtime/tests.rs
+index 6dba860..37792d7 100644
+--- a/src/runtime/tests.rs
++++ b/src/runtime/tests.rs
+@@ -461,11 +461,26 @@ fn store_submission_and_withdrawal_acknowledgements_keep_the_incarnation() {
+     });
+ }
+ 
+-/// spec: L1, L2, L3, L11
++/// spec: L1, L2, L3, L11, A1, A3, A4
+ #[test]
+ fn library_boundary_and_extensible_api() {
+     // These source assertions supplement execution, not kernel conformance.
+     assert!(include_str!("../lib.rs").contains("#![deny(unsafe_code)]"));
++    for module in [
++        "config",
++        "kernel",
++        "reconciler",
++        "runtime",
++        "service",
++        "blocking",
++    ] {
++        assert!(include_str!("../lib.rs").contains(&format!("pub mod {module};")));
++    }
++    let binary = include_str!("../bin/rs-l2tpd/main.rs");
++    assert!(binary.contains("rs_l2tpd::blocking::Service"));
++    for forbidden in ["kernel::", "Reconciler", "SessionRecord", "TunnelRecord"] {
++        assert!(!binary.contains(forbidden), "{forbidden}");
++    }
+     for source in [
+         include_str!("../runtime.rs"),
+         include_str!("../service.rs"),
+diff --git a/tests/kernel/linux.rs b/tests/kernel/linux.rs
+index 79d21b1..d267353 100644
+--- a/tests/kernel/linux.rs
++++ b/tests/kernel/linux.rs
+@@ -562,7 +562,7 @@ fn a_closed_socket_is_not_announced() {
+     assert_eq!(seen, None);
+ }
+ 
+-/// spec: K42, M18, S9, S19, S23, S24, R11, R31
++/// spec: K42, M18, S9, S19, S23, S24, R11, R31, A16
+ #[test]
+ #[ignore = "isolated network namespaces with CAP_NET_ADMIN and L2TP modules"]
+ fn a_reused_index_and_creation_name_never_revive_an_old_registration() {
+@@ -722,7 +722,7 @@ fn disconnected_sessions_drop_outbound_but_receive_only_matching_cookies() {
+     f.k().close(socket);
+ }
+ 
+-/// spec: K25, T29
++/// spec: K25, T29, O9
+ #[test]
+ #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
+ fn the_kernel_keeps_the_previous_ipv6_peer_after_disconnect() {
+diff --git a/tests/process.rs b/tests/process.rs
+index 6e393e2..ae61ad6 100644
+--- a/tests/process.rs
++++ b/tests/process.rs
+@@ -315,7 +315,7 @@ fn foreground_reload_and_clean_shutdown_without_network() {
+     assert!(kernel.tunnel(10).unwrap().is_none());
+ }
+ 
+-/// spec: P4 P6 P10 P11 P12 P15 P22 P26 O7
++/// spec: P4 P6 P10 P11 P12 P15 P22 P26 O7 A10 E26 O9
+ #[test]
+ #[ignore = "isolated privileged container"]
+ fn daemon_readiness_pid_inode_and_reexec() {
+@@ -325,6 +325,19 @@ fn daemon_readiness_pid_inode_and_reexec() {
+     let pid = dir.path().join("pid");
+     let executable = dir.path().join("daemon");
+     fs::copy(BINARY, &executable).unwrap();
++    let assert_files = |with_pid| {
++        let mut found: Vec<_> = fs::read_dir(dir.path())
++            .unwrap()
++            .map(|e| e.unwrap().file_name())
++            .collect();
++        let mut expected = vec![std::ffi::OsString::from("daemon"), "main.toml".into()];
++        if with_pid {
++            expected.push("pid".into());
++        }
++        found.sort();
++        expected.sort();
++        assert_eq!(found, expected);
++    };
+     let mut command = start(&main, false, &pid);
+     let arguments: Vec<_> = command.get_args().map(|a| a.to_owned()).collect();
+     command = Command::new(&executable);
+@@ -339,6 +352,11 @@ fn daemon_readiness_pid_inode_and_reexec() {
+     process.event("ready");
+     assert!(process.child.wait().unwrap().success());
+     process.pid = fs::read_to_string(&pid).unwrap().trim().parse().unwrap();
++    assert_eq!(
++        fs::read_to_string(&pid).unwrap(),
++        format!("{}\n", process.pid)
++    );
++    assert_files(true);
+     use std::os::unix::fs::MetadataExt;
+     let before = fs::metadata(&pid).unwrap();
+     let mut kernel = LinuxKernel::new().unwrap();
+@@ -351,14 +369,16 @@ fn daemon_readiness_pid_inode_and_reexec() {
+     assert_eq!(index(&mut kernel), original);
+     assert_eq!(fs::metadata(&pid).unwrap().ino(), before.ino());
+     assert_eq!(
+-        fs::read_to_string(&pid).unwrap().trim(),
+-        process.pid.to_string()
++        fs::read_to_string(&pid).unwrap(),
++        format!("{}\n", process.pid)
+     );
++    assert_files(true);
+     process.signal(Signal::SIGTERM);
+     process.event("shutdown complete");
+     assert!(!pid.exists());
+     assert!(kernel.tunnel(10).unwrap().is_none());
+     process.done = true;
++    assert_files(false);
+ }
+ 
+ /// spec: P4 P26
+diff --git a/tests/properties/planner.rs b/tests/properties/planner.rs
+index 5762795..8874300 100644
+--- a/tests/properties/planner.rs
++++ b/tests/properties/planner.rs
+@@ -3,7 +3,7 @@ use crate::{config, deliver, ops, reconciler, run_for};
+ use rs_l2tpd::config::Config;
+ use rs_l2tpd::kernel::{Kernel, L2tpIfName, SessionInfo};
+ 
+-/// spec: M1, M2, M3, M4, M7, M8, M11, M12, M17, G2, G3, G4, G5, G6, G7, G18
++/// spec: M1, M2, M3, M4, M7, M8, M11, M12, M17, G2, G3, G4, G5, G6, G7, G18, A3, A4, A11, A20
+ #[test]
+ fn reload_sequences_converge_without_unjustified_identity_changes() {
+     let seeds = std::env::var("TEST_SEED")
+@@ -125,10 +125,44 @@ fn reload_sequences_converge_without_unjustified_identity_changes() {
+                 "G2/G4: foreign device and administrative state, seed {initial}"
+             );
+             let current_index = r.kernel().session_index(tid, sid).unwrap();
++            let observed = r.kernel_mut().session(tid, sid).unwrap().unwrap();
++            let desired = &accepted.sessions()[session];
++            assert_eq!(observed.tunnel_id(), tid, "seed {initial}");
++            assert_eq!(observed.session_id(), sid, "seed {initial}");
++            assert_eq!(observed.peer_session_id(), peer_sid, "seed {initial}");
++            assert_eq!(
++                observed.cookies().unwrap(),
++                (desired.cookie(), desired.peer_cookie()),
++                "seed {initial}"
++            );
++            assert_eq!(
++                &r.kernel().link(current_index).unwrap().name(),
++                desired.interface_name(),
++                "seed {initial}"
++            );
++            assert_eq!(
++                r.kernel_mut()
++                    .tunnel(tid)
++                    .unwrap()
++                    .unwrap()
++                    .peer_tunnel_id(),
++                peer_tid,
++                "seed {initial}"
++            );
+             r.kernel_mut().set_up(current_index, true);
+             deliver(&mut r);
+             let socket = r.kernel().tunnel_socket(tid).unwrap();
+-            let (peer, _) = r.kernel().connection(socket).unwrap();
++            assert_eq!(
++                r.kernel().binding(socket),
++                bind.then_some(device),
++                "seed {initial}"
++            );
++            let (peer, source) = r.kernel().connection(socket).unwrap();
++            assert_eq!(
++                source.to_string(),
++                if v6 { "2001:db8::1" } else { "192.0.2.1" },
++                "seed {initial}"
++            );
+             assert_eq!(
+                 peer.to_string(),
+                 if v6 { "2001:db8::2" } else { "192.0.2.2" }
+diff --git a/tests/rules/completion.rs b/tests/rules/completion.rs
+index 4353a37..5d5002d 100644
+--- a/tests/rules/completion.rs
++++ b/tests/rules/completion.rs
+@@ -87,7 +87,7 @@ fn direct_creation_and_recreation_preserve_publication_rules() {
+     }
+ }
+ 
+-/// spec: T21, T27, E3, G17
++/// spec: T21, T27, E3, G17, A12
+ #[test]
+ fn a_failed_scoped_connect_can_change_its_kernel_binding() {
+     let (mut r, _) = reconciler();
+diff --git a/tests/rules/resolvers.rs b/tests/rules/resolvers.rs
+index 51fe1c4..ba19558 100644
+--- a/tests/rules/resolvers.rs
++++ b/tests/rules/resolvers.rs
+@@ -37,7 +37,7 @@ fn an_answer_connects_the_tunnel() {
+ 
+ /// The selected address stays while the answer holds it, whatever the
+ /// order; a failed or negative lookup keeps it in force (V5, V6).
+-/// spec: V5, V6, R16
++/// spec: V5, V6, R16, A15
+ #[test]
+ fn the_selected_address_is_retained() {
+     let (mut r, answers) = reconciler();
+diff --git a/tests/rules/sessions.rs b/tests/rules/sessions.rs
+index ee3ae58..521b85f 100644
+--- a/tests/rules/sessions.rs
++++ b/tests/rules/sessions.rs
+@@ -23,7 +23,7 @@ fn with_session(extra: &str) -> String {
+ 
+ /// A session is staged under an rsl2tp-t name, given its address while
+ /// down, then published under its configured name (S4, S8).
+-/// spec: S1, S4, S8, S3, S12, R19
++/// spec: S1, S4, S8, S3, S12, R19, A8, O9
+ #[test]
+ fn a_session_is_staged_then_published() {
+     let text = with_session("interface_hwaddr = \"02:00:5e:00:53:01\"\n");
+@@ -44,6 +44,10 @@ fn a_session_is_staged_then_published() {
+     assert!(r.reconcile(config(&text)));
+     let ops = ops(&mut r);
+     let create = ops.iter().find(|o| o.starts_with("create ")).unwrap();
++    assert!(
++        ops.iter().position(|o| o == "register 10").unwrap()
++            < ops.iter().position(|o| o.starts_with("create ")).unwrap()
++    );
+     assert!(create.starts_with("create 10 100 rsl2tp-t"), "{create}");
+     assert!(!create.ends_with(&candidate.to_string_lossy().to_string()));
+     assert_eq!(r.kernel().link(foreign), Some(&foreign_before));
+@@ -102,7 +106,7 @@ fn a_hardware_address_waits_for_the_device_to_go_down() {
+ }
+ 
+ /// A rename by another manager is kept (S10, M19).
+-/// spec: S10, M19, E2, R28
++/// spec: S10, M19, E2, R28, A16
+ #[test]
+ fn another_managers_rename_is_kept() {
+     let (mut r, _) = reconciler();
+@@ -120,7 +124,7 @@ fn another_managers_rename_is_kept() {
+ }
+ 
+ /// Two sessions exchange names through a temporary rsl2tp-r name (S11).
+-/// spec: S11, M6, R19
++/// spec: S11, M6, R19, O9
+ #[test]
+ fn sessions_swap_names() {
+     let two = |x: &str, y: &str| {
+@@ -211,7 +215,7 @@ fn a_lost_identity_skips_changes() {
+     );
+ }
+ 
+-/// spec: S23, S24, S22, M18
++/// spec: S23, S24, S22, M18, A16, A17
+ #[test]
+ fn staged_loss_never_modifies_a_reused_index_and_name() {
+     for ambiguous in [false, true] {
+@@ -279,7 +283,7 @@ fn failed_staged_verification_and_deletion_preserve_the_record() {
+     }
+ }
+ 
+-/// spec: S4, S6, S12, M10
++/// spec: S4, S6, S12, M10, A12
+ #[test]
+ fn failed_staging_address_is_retried_before_publication() {
+     let (mut r, _) = reconciler();
+@@ -296,12 +300,23 @@ fn failed_staging_address_is_retried_before_publication() {
+             .to_string_lossy()
+             .starts_with("rsl2tp-t")
+     );
++    let first = ops(&mut r);
++    assert_eq!(
++        first.iter().filter(|op| op.starts_with("create ")).count(),
++        1
++    );
++    assert!(!first.iter().any(|op| op.starts_with("rename ")));
+     run_for(&mut r, 1);
+     assert_eq!(r.kernel().session_index(10, 100), Some(index));
+     assert_eq!(
+         r.kernel().link(index).unwrap().name().to_string_lossy(),
+         "l2tp0"
+     );
++    assert_eq!(
++        r.kernel().hwaddr(index).unwrap().to_string(),
++        "02:00:5e:00:53:01"
++    );
++    assert!(!ops(&mut r).iter().any(|op| op.starts_with("create ")));
+ }
+ 
+ /// spec: S12, S13, M19
+diff --git a/tests/rules/store.rs b/tests/rules/store.rs
+index 1511f77..06f4f53 100644
+--- a/tests/rules/store.rs
++++ b/tests/rules/store.rs
+@@ -34,7 +34,7 @@ fn withdrawal(requests: Vec<Request>, want: &str) -> u64 {
+         .expect("withdrawal request")
+ }
+ 
+-/// spec: L13, P14, K37, T8, T24, M14
++/// spec: L13, P14, K37, T8, T24, M14, A8
+ #[test]
+ fn withdrawal_precedes_close_and_replacement_storage() {
+     let (mut r, _) = reconciler();
+diff --git a/tests/rules/tunnels.rs b/tests/rules/tunnels.rs
+index 35bd9ab..e2784b1 100644
+--- a/tests/rules/tunnels.rs
++++ b/tests/rules/tunnels.rs
+@@ -119,7 +119,7 @@ fn a_refused_peer_is_retried_every_second() {
+ }
+ 
+ /// A changed remote_addr is a reconnect on the same socket (T22, T28).
+-/// spec: T22, T28, M12
++/// spec: T22, T28, M12, A15
+ #[test]
+ fn a_changed_peer_keeps_the_socket() {
+     let (mut r, _) = reconciler();
+diff --git a/tests/scenarios/hosts.rs b/tests/scenarios/hosts.rs
+index bdc45da..cf50fc7 100644
+--- a/tests/scenarios/hosts.rs
++++ b/tests/scenarios/hosts.rs
+@@ -1,12 +1,14 @@
+ use super::support::{Pair, config};
+ use std::time::{Duration, Instant};
+ 
+-/// spec: H6, G8, G21, P1, R26
++/// spec: H6, G8, G21, P1, R26, A19
+ #[test]
+ #[ignore = "disposable privileged container"]
+ fn readiness_without_routes_then_frames_after_the_first_route() {
+     let pair = Pair::new();
+-    for side in 0..2 {
++    let mut original_links = [0; 2];
++    for (side, count) in original_links.iter_mut().enumerate() {
++        *count = pair.ip(side, &["-o", "link", "show"]).lines().count();
+         assert!(
+             pair.ip(side, &["route", "show", "table", "all"])
+                 .trim()
+@@ -22,12 +24,17 @@ fn readiness_without_routes_then_frames_after_the_first_route() {
+     let mut b = pair.start(1, &config(1, &["192.0.2.1"]));
+     a.event("ready");
+     b.event("ready");
+-    for side in 0..2 {
++    for (side, count) in original_links.into_iter().enumerate() {
+         assert!(
+             pair.ip(side, &["l2tp", "show", "tunnel"])
+                 .contains(&format!("Tunnel {}", side + 1))
+         );
+         assert!(pair.ip(side, &["link", "show", "l2tp0"]).contains("l2tp0"));
++        assert_eq!(
++            pair.ip(side, &["-o", "link", "show"]).lines().count(),
++            count + 1,
++            "the session must be the only additional device"
++        );
+     }
+     pair.inner("l2tp0", 0);
+     let before = pair.drops(0, "l2tp0");
+diff --git a/tests/service.rs b/tests/service.rs
+index f447ffa..b7598b0 100644
+--- a/tests/service.rs
++++ b/tests/service.rs
+@@ -257,7 +257,7 @@ fn drop_before_run_retires_inherited_entries_and_works_inside_tokio() {
+     });
+ }
+ 
+-/// spec: L5, L6, L7, A2, G14
++/// spec: L5, L6, L7, A2, G14, E26
+ #[test]
+ fn reload_error_keeps_config_then_success_applies_and_restart_resumes() {
+     let host = Host::new();

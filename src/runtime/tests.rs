@@ -461,11 +461,26 @@ fn store_submission_and_withdrawal_acknowledgements_keep_the_incarnation() {
     });
 }
 
-/// spec: L1, L2, L3, L11
+/// spec: L1, L2, L3, L11, A1, A3, A4
 #[test]
 fn library_boundary_and_extensible_api() {
     // These source assertions supplement execution, not kernel conformance.
     assert!(include_str!("../lib.rs").contains("#![deny(unsafe_code)]"));
+    for module in [
+        "config",
+        "kernel",
+        "reconciler",
+        "runtime",
+        "service",
+        "blocking",
+    ] {
+        assert!(include_str!("../lib.rs").contains(&format!("pub mod {module};")));
+    }
+    let binary = include_str!("../bin/rs-l2tpd/main.rs");
+    assert!(binary.contains("rs_l2tpd::blocking::Service"));
+    for forbidden in ["kernel::", "Reconciler", "SessionRecord", "TunnelRecord"] {
+        assert!(!binary.contains(forbidden), "{forbidden}");
+    }
     for source in [
         include_str!("../runtime.rs"),
         include_str!("../service.rs"),

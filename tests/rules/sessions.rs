@@ -23,7 +23,7 @@ fn with_session(extra: &str) -> String {
 
 /// A session is staged under an rsl2tp-t name, given its address while
 /// down, then published under its configured name (S4, S8).
-/// spec: S1, S4, S8, S3, S12, R19
+/// spec: S1, S4, S8, S3, S12, R19, A8, O9
 #[test]
 fn a_session_is_staged_then_published() {
     let text = with_session("interface_hwaddr = \"02:00:5e:00:53:01\"\n");
@@ -44,6 +44,10 @@ fn a_session_is_staged_then_published() {
     assert!(r.reconcile(config(&text)));
     let ops = ops(&mut r);
     let create = ops.iter().find(|o| o.starts_with("create ")).unwrap();
+    assert!(
+        ops.iter().position(|o| o == "register 10").unwrap()
+            < ops.iter().position(|o| o.starts_with("create ")).unwrap()
+    );
     assert!(create.starts_with("create 10 100 rsl2tp-t"), "{create}");
     assert!(!create.ends_with(&candidate.to_string_lossy().to_string()));
     assert_eq!(r.kernel().link(foreign), Some(&foreign_before));
@@ -102,7 +106,7 @@ fn a_hardware_address_waits_for_the_device_to_go_down() {
 }
 
 /// A rename by another manager is kept (S10, M19).
-/// spec: S10, M19, E2, R28
+/// spec: S10, M19, E2, R28, A16
 #[test]
 fn another_managers_rename_is_kept() {
     let (mut r, _) = reconciler();
@@ -120,7 +124,7 @@ fn another_managers_rename_is_kept() {
 }
 
 /// Two sessions exchange names through a temporary rsl2tp-r name (S11).
-/// spec: S11, M6, R19
+/// spec: S11, M6, R19, O9
 #[test]
 fn sessions_swap_names() {
     let two = |x: &str, y: &str| {
@@ -211,7 +215,7 @@ fn a_lost_identity_skips_changes() {
     );
 }
 
-/// spec: S23, S24, S22, M18
+/// spec: S23, S24, S22, M18, A16, A17
 #[test]
 fn staged_loss_never_modifies_a_reused_index_and_name() {
     for ambiguous in [false, true] {
@@ -279,7 +283,7 @@ fn failed_staged_verification_and_deletion_preserve_the_record() {
     }
 }
 
-/// spec: S4, S6, S12, M10
+/// spec: S4, S6, S12, M10, A12
 #[test]
 fn failed_staging_address_is_retried_before_publication() {
     let (mut r, _) = reconciler();
@@ -296,12 +300,23 @@ fn failed_staging_address_is_retried_before_publication() {
             .to_string_lossy()
             .starts_with("rsl2tp-t")
     );
+    let first = ops(&mut r);
+    assert_eq!(
+        first.iter().filter(|op| op.starts_with("create ")).count(),
+        1
+    );
+    assert!(!first.iter().any(|op| op.starts_with("rename ")));
     run_for(&mut r, 1);
     assert_eq!(r.kernel().session_index(10, 100), Some(index));
     assert_eq!(
         r.kernel().link(index).unwrap().name().to_string_lossy(),
         "l2tp0"
     );
+    assert_eq!(
+        r.kernel().hwaddr(index).unwrap().to_string(),
+        "02:00:5e:00:53:01"
+    );
+    assert!(!ops(&mut r).iter().any(|op| op.starts_with("create ")));
 }
 
 /// spec: S12, S13, M19

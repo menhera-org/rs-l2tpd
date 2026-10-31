@@ -1,0 +1,31 @@
+    Checking rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+error: the loop variable `side` is used to index `original_links`
+  --> tests/scenarios/hosts.rs:10:17
+   |
+10 |     for side in 0..2 {
+   |                 ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+   = note: `-D clippy::needless-range-loop` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+   |
+10 -     for side in 0..2 {
+10 +     for (side, <item>) in original_links.iter_mut().enumerate() {
+   |
+
+error: the loop variable `side` is used to index `original_links`
+  --> tests/scenarios/hosts.rs:27:17
+   |
+27 |     for side in 0..2 {
+   |                 ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+27 -     for side in 0..2 {
+27 +     for (side, <item>) in original_links.iter().enumerate() {
+   |
+
+error: could not compile `rs-l2tpd` (test "scenarios") due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...

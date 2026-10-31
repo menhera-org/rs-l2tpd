@@ -562,7 +562,7 @@ fn a_closed_socket_is_not_announced() {
     assert_eq!(seen, None);
 }
 
-/// spec: K42, M18, S9, S19, S23, S24, R11, R31
+/// spec: K42, M18, S9, S19, S23, S24, R11, R31, A16
 #[test]
 #[ignore = "isolated network namespaces with CAP_NET_ADMIN and L2TP modules"]
 fn a_reused_index_and_creation_name_never_revive_an_old_registration() {
@@ -722,7 +722,7 @@ fn disconnected_sessions_drop_outbound_but_receive_only_matching_cookies() {
     f.k().close(socket);
 }
 
-/// spec: K25, T29
+/// spec: K25, T29, O9
 #[test]
 #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
 fn the_kernel_keeps_the_previous_ipv6_peer_after_disconnect() {

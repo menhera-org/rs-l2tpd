@@ -315,7 +315,7 @@ fn foreground_reload_and_clean_shutdown_without_network() {
     assert!(kernel.tunnel(10).unwrap().is_none());
 }
 
-/// spec: P4 P6 P10 P11 P12 P15 P22 P26 O7
+/// spec: P4 P6 P10 P11 P12 P15 P22 P26 O7 A10 E26 O9
 #[test]
 #[ignore = "isolated privileged container"]
 fn daemon_readiness_pid_inode_and_reexec() {
@@ -325,6 +325,19 @@ fn daemon_readiness_pid_inode_and_reexec() {
     let pid = dir.path().join("pid");
     let executable = dir.path().join("daemon");
     fs::copy(BINARY, &executable).unwrap();
+    let assert_files = |with_pid| {
+        let mut found: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        let mut expected = vec![std::ffi::OsString::from("daemon"), "main.toml".into()];
+        if with_pid {
+            expected.push("pid".into());
+        }
+        found.sort();
+        expected.sort();
+        assert_eq!(found, expected);
+    };
     let mut command = start(&main, false, &pid);
     let arguments: Vec<_> = command.get_args().map(|a| a.to_owned()).collect();
     command = Command::new(&executable);
@@ -339,6 +352,11 @@ fn daemon_readiness_pid_inode_and_reexec() {
     process.event("ready");
     assert!(process.child.wait().unwrap().success());
     process.pid = fs::read_to_string(&pid).unwrap().trim().parse().unwrap();
+    assert_eq!(
+        fs::read_to_string(&pid).unwrap(),
+        format!("{}\n", process.pid)
+    );
+    assert_files(true);
     use std::os::unix::fs::MetadataExt;
     let before = fs::metadata(&pid).unwrap();
     let mut kernel = LinuxKernel::new().unwrap();
@@ -351,14 +369,16 @@ fn daemon_readiness_pid_inode_and_reexec() {
     assert_eq!(index(&mut kernel), original);
     assert_eq!(fs::metadata(&pid).unwrap().ino(), before.ino());
     assert_eq!(
-        fs::read_to_string(&pid).unwrap().trim(),
-        process.pid.to_string()
+        fs::read_to_string(&pid).unwrap(),
+        format!("{}\n", process.pid)
     );
+    assert_files(true);
     process.signal(Signal::SIGTERM);
     process.event("shutdown complete");
     assert!(!pid.exists());
     assert!(kernel.tunnel(10).unwrap().is_none());
     process.done = true;
+    assert_files(false);
 }
 
 /// spec: P4 P26

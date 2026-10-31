@@ -34,7 +34,7 @@ fn withdrawal(requests: Vec<Request>, want: &str) -> u64 {
         .expect("withdrawal request")
 }
 
-/// spec: L13, P14, K37, T8, T24, M14
+/// spec: L13, P14, K37, T8, T24, M14, A8
 #[test]
 fn withdrawal_precedes_close_and_replacement_storage() {
     let (mut r, _) = reconciler();

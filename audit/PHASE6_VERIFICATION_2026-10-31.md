@@ -379,6 +379,30 @@ query after analysis. Default setup is disabled so it cannot override the
 custom workflow. The unavailable organization-property alternative changed
 no organization setting. This does not weaken cookie-redaction assertions.
 
+## Architecture, restart and host-visible identity assertions
+
+[The architecture package](phase6/architecture-20261031/README.md)
+strengthens the planner's configuration/object comparisons after every seeded
+transition, verifies no second creation after a staging-address failure, checks
+register/create/address/publication order, and checks exact PID formatting and
+fixture directory contents across exec/shutdown. H6 requires the session to be
+the only additional device at readiness; its baseline permits devices already
+present in the namespace. Existing resolver, identity-loss, reconnect and
+restart assertions now carry relevant architecture/event/observability tags.
+Module-map/source-boundary checks remain explicitly supplementary to behavior.
+No production behavior or dependency changes.
+
+Ten seeds each pass 92 ordinary library cases (11 live ignored), 75 rule cases
+and 25 service cases; the planner ranges overlap. The live musl run on
+`6.8.0-147-generic` passes all 19 kernel and 27 process cases. The full host
+suite passes 25 scenarios in 163.50 seconds. These executions precede only a
+test-only H6 iterator cleanup required by warning-denied Clippy; the original
+lint failure is retained separately. The corrected common CI passes, and the
+final focused H6 run passes in 4.45 seconds. The strict map is 330 cited / 333 active,
+three missing: G15, G16, G20. Current coverage, final normal matrix and manager
+profiles, complete clause/event-cost/resource/history proof and strict CI
+remain open.
+
 ## Coverage and exit state
 
 [The merged coverage record](phase6/coverage-20261031/README.md) combines

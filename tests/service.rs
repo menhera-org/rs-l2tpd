@@ -257,7 +257,7 @@ fn drop_before_run_retires_inherited_entries_and_works_inside_tokio() {
     });
 }
 
-/// spec: L5, L6, L7, A2, G14
+/// spec: L5, L6, L7, A2, G14, E26
 #[test]
 fn reload_error_keeps_config_then_success_applies_and_restart_resumes() {
     let host = Host::new();
