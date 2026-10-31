@@ -157,6 +157,7 @@ as skipped, never as passed.
 
 | Gate | Tool | Threshold |
 |---|---|---|
+| Shell scripts | ShellCheck in POSIX sh mode over tracked and unignored new `.sh` files, including audit helpers | zero unsuppressed findings at any severity; each exception uses a local `# shellcheck disable=SCnnnn` directive with an adjacent reason |
 | Coverage | `cargo llvm-cov` over unit, rules, properties, the fake conformance run and the container runs (profiles merged) | 100 % lines and branches of `src/`; exclusions only in `kernel::linux` for branches no kernel of the range reaches, each marked `// coverage: unreachable on <range>, <reason>` |
 | Rule map | `tests/tools/rulemap.rs` reads every rule definition of `docs/spec/*.md`, which is a line starting with `X1.` or a table row starting with `\| X1 \|` (letters `A`, `C`, `D`, `E`, `G`, `H`, `K`, `L`, `M`, `O`, `P`, `R`, `S`, `T`, `V`), and `/// spec:` comments attached to `#[test]` or `#[tokio::test]` declarations in `tests/` and `src/` | every active rule has a test declaration citation with path, line and function; removed rules exempt. Lexical traceability only: it does not prove execution, feature selection or semantic coverage |
 | Source link | `tests/tools/srclink.rs` reads every `// kernel:` comment of `src/kernel/linux/` | every function cites a K fact; linux-scoped facts have production citations; delegated/source-only facts have explicit evidence-map classifications and test declaration citations |
@@ -167,7 +168,8 @@ Required suites separately record the selected features, ignored/live test
 execution and results. Keep explicit per-clause/table-case coverage;
 a green rule map alone cannot close a phase. The implemented runners
 exercise a partial case set; their existence does not close a gate.
-Current CI runs formatting, warning-denied Clippy and documentation,
+CI and local `./test-ci-gates.sh` runs share the same blocking checks:
+ShellCheck, formatting, warning-denied Clippy and documentation,
 no-default/serde library builds, and native/musl tests. Rule-map and
 source-link checks run leniently until Phase 6 enables their strict flags;
 a green CI run does not establish the coverage or complete kernel matrix
@@ -177,6 +179,7 @@ gates. Current review probes and exact commands are in repository file
 ## Running
 
 ```sh
+./test-ci-gates.sh                          # the same blocking checks as CI (requires ShellCheck)
 cargo test --locked --all-features --target x86_64-unknown-linux-musl # unit, rules, seeded properties, fake conformance
 # Planned: tests/docker/run.sh conformance; existing live commands are in tests/kernel/README.md
 tests/docker/run.sh scenarios                # the scenario suite

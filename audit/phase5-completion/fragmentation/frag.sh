@@ -92,6 +92,8 @@ say "session devices before the cases: $(a ip -o link show l2tp0 | sed 's/ qdisc
 
 run_case() { # run_case DEV FAMILY(4|6) MTU SUBNET
   dev=$1; fam=$2; mtu=$3; net=$4
+  # Either MTU command failing must report the failure and end this case.
+  # shellcheck disable=SC2015
   a ip link set "$dev" mtu "$mtu" && b ip link set "$dev" mtu "$mtu" || { say "  $dev: cannot set mtu $mtu"; return; }
   a ip link set "$dev" up; b ip link set "$dev" up
   a ip addr replace "192.168.$net.1/24" dev "$dev"; b ip addr replace "192.168.$net.2/24" dev "$dev"

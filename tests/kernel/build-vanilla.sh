@@ -1,7 +1,9 @@
 #!/bin/sh
 # Build tools run only in a disposable networkless container.
 set -eu
-repo=$(CDPATH= cd -P "$(dirname "$0")/../.." && pwd)
+repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
+# Both argument-count limits must hold; either failure prints usage and exits.
+# shellcheck disable=SC2015
 [ "$#" -ge 1 ] && [ "$#" -le 2 ] || { echo "usage: $0 VERSION [no-ipv6]" >&2; exit 2; }
 version=$1
 case $version in ''|*[!0-9.]*|.*|*.|*..*) echo "invalid release: $version" >&2; exit 2 ;; esac

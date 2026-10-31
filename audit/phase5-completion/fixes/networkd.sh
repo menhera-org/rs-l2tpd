@@ -60,7 +60,7 @@ for run in 1 2 3; do
     fi
     mac=$(cat /sys/class/net/l2tp0/address)
     grep -q 'created as l2tp0' /tmp/daemon.log
-    ! grep -q 'renamed to.*by another manager' /tmp/daemon.log
+    grep -q 'renamed to.*by another manager' /tmp/daemon.log && exit 1
     printf 'run=%s mode=%s mac=%s address=192.0.2.1/24 creation=l2tp0\n' "$run" "$mode" "$mac"
     if [ "$mode" = native ]; then
         if [ -z "$first" ]; then first=$mac; else [ "$first" = "$mac" ]; fi

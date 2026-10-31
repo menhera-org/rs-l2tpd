@@ -1,7 +1,7 @@
 #!/bin/sh
 # Invoked by run.sh. No profile is inherited, so no host NIC is attached.
 set -eu
-repo=$(CDPATH= cd -P "$(dirname "$0")/../.." && pwd)
+repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
 cd "$repo"
 if ! command -v incus >/dev/null 2>&1 || ! incus list > /dev/null 2>&1; then
     echo "skipped: no Incus access"
@@ -23,6 +23,8 @@ absolute() {
 }
 unit=$(absolute "$unit")
 scenario=$(absolute "$scenario")
+# Refuse the run if either test executable is missing or is not executable.
+# shellcheck disable=SC2015
 [ -x "$unit" ] && [ -x "$scenario" ] || { cat "$record/build.log"; exit 1; }
 binary=$repo/target/x86_64-unknown-linux-musl/debug/rs-l2tpd
 name=rs-l2tpd-phase6-$$
@@ -48,6 +50,8 @@ trap 'exit 143' TERM
 # Reuse the default root disk's pool, with no network or other profile devices.
 pool=$(incus profile device get default root pool)
 [ -n "$pool" ]
+# Log the command literally; the pool lookup must not execute while formatting it.
+# shellcheck disable=SC2016
 printf 'command: incus --quiet launch images:ubuntu/24.04 %s --no-profiles --storage "$(incus profile device get default root pool)" -c security.privileged=false\n' "$name"
 incus --quiet launch images:ubuntu/24.04 "$name" --no-profiles --storage "$pool" -c security.privileged=false
 config=$(incus config show "$name" --expanded)

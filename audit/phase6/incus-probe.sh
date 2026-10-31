@@ -1,7 +1,7 @@
 #!/bin/sh
 # Initial P5 system-unit probe; container has no host network attachment.
 set -eu
-repo=$(CDPATH= cd -P "$(dirname "$0")/../.." && pwd)
+repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
 name=rs-l2tpd-phase6-$$
 record=$repo/audit/phase6/incus-$name
 mkdir -p "$record"

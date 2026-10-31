@@ -2,6 +2,8 @@
 # Fetch official published packages; unpack in a networkless Ubuntu container.
 set -eu
 repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
+# Both argument-count limits must hold; either failure prints usage and exits.
+# shellcheck disable=SC2015
 [ "$#" -ge 1 ] && [ "$#" -le 2 ] || { echo "usage: $0 noble|resolute [resolve]" >&2; exit 2; }
 suite=$1
 case $suite in noble) release=24.04 ;; resolute) release=26.04 ;; *) exit 2 ;; esac

@@ -8,6 +8,21 @@
 
 - **Don't commit a machine-specific fact into the repository.**
 
+## Before committing
+
+Run `./test-ci-gates.sh` from a Linux checkout. CI runs this same script
+and fails on any unsuccessful check. It requires Git, ShellCheck, Rust
+with rustfmt and Clippy, and the `x86_64-unknown-linux-musl` target
+(`rustup target add x86_64-unknown-linux-musl`).
+
+The script checks tracked and unignored new `.sh` files in POSIX sh mode,
+including audit helpers, then runs formatting, warning-denied Clippy, library and
+daemon builds, native/musl tests, the rule/source maps, and warning-denied
+documentation. Fix ShellCheck findings where possible; every necessary
+exception must have a local `# shellcheck disable=SCnnnn` directive and
+an adjacent comment explaining why it is safe. See [testing](docs/testing.md)
+for the separate live-kernel gates and the current limits of CI.
+
 ## Committing and pushing
 
 Every commit MUST carry a `Signed-off-by` trailer and a GPG signature, and

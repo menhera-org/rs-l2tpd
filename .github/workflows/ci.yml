@@ -31,35 +31,5 @@ jobs:
         with:
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
-      - name: Format
-        run: cargo fmt --all --check
-
-      - name: Clippy
-        run: cargo clippy --locked --all-targets --all-features -- -D warnings
-
-      - name: Build library without default features
-        run: cargo build --locked --lib --no-default-features
-
-      - name: Build library with serde
-        run: cargo build --locked --lib --no-default-features --features serde
-
-      - name: Build daemon
-        run: cargo build --locked
-
-      # The real-kernel suites (docs/testing.md) run in privileged
-      # containers and under QEMU, not here.
-      - name: Unit, rules, properties and fake-kernel tests
-        run: cargo test --locked --all-features
-
-      - name: Musl binary and process tests
-        run: cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process
-
-      # docs/testing.md gates. Lenient until phase 6, which sets
-      # RULEMAP_STRICT=1 and SRCLINK_STRICT=1 here.
-      - name: Rule map and source links
-        run: cargo test --locked --all-features --test rulemap --test srclink -- --nocapture
-
-      - name: Docs
-        run: cargo doc --locked --no-deps --all-features
-        env:
-          RUSTDOCFLAGS: -D warnings
+      - name: CI gates
+        run: ./test-ci-gates.sh
