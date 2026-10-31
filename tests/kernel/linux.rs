@@ -395,6 +395,42 @@ fn a_handed_over_socket_keeps_its_tunnel() {
     }
 }
 
+/// spec: P14, K37, G14
+#[test]
+#[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
+fn unrelated_inherited_descriptors_are_refused_and_consumed() {
+    use socket2::{Domain, Protocol, Socket, Type};
+    use std::io::Read;
+    let mut f = LinuxFixture::new();
+    let (fd, mut peer) = std::os::unix::net::UnixStream::pair().unwrap();
+    peer.set_nonblocking(true).unwrap();
+    assert_eq!(errno(f.k().adopt(fd.into())), libc::EAFNOSUPPORT);
+    assert_eq!(
+        peer.read(&mut [0]).unwrap(),
+        0,
+        "refusal closes the handed FD"
+    );
+    assert_eq!(
+        errno(
+            f.k()
+                .adopt(std::fs::File::open("/dev/null").unwrap().into())
+        ),
+        libc::ENOTSOCK
+    );
+    for domain in [Domain::IPV4, Domain::IPV6] {
+        for (kind, protocol, expected) in [
+            (Type::DGRAM, Protocol::UDP, libc::EPROTONOSUPPORT),
+            (Type::STREAM, Protocol::TCP, libc::ESOCKTNOSUPPORT),
+        ] {
+            let socket = Socket::new(domain, kind, Some(protocol)).unwrap();
+            let observer = socket.try_clone().unwrap();
+            assert_eq!(errno(f.k().adopt(socket.into())), expected);
+            assert_eq!(observer.domain().unwrap(), domain);
+            assert_eq!(observer.r#type().unwrap(), kind);
+        }
+    }
+}
+
 /// spec: S3, S4, S8, S22, K16, K19, K20, K35
 #[test]
 #[ignore = "isolated network namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules"]

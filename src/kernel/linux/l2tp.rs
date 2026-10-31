@@ -518,6 +518,9 @@ mod tests {
         assert_eq!(notice(30, &msg(30, &created)), None);
         let bare = payload(L2tpCmd::SessionDelete, vec![]);
         assert_eq!(notice(30, &msg(30, &bare)), Some(Notice::Loss));
+        for malformed in [&[][..], &[0], &[0, 0, 0]] {
+            assert_eq!(notice(30, &msg(30, malformed)), Some(Notice::Loss));
+        }
     }
 
     // kernel: net/l2tp/l2tp_netlink.c l2tp_nl_session_send (K16, K35)
@@ -559,5 +562,47 @@ mod tests {
         assert_eq!(foreign.cookie.0.as_bytes(), [1, 2]);
         assert!(foreign.cookies().is_err());
         assert!(!format!("{foreign:?}").contains("[1, 2]"));
+    }
+
+    // kernel: (K16, K35) net/l2tp/l2tp_netlink.c l2tp_nl_session_send requires
+    // connection/session identifiers and caps each cookie at eight bytes.
+    /// spec: K16, K35, S22, E21
+    #[test]
+    fn incomplete_or_oversized_session_records_cannot_prove_an_identity() {
+        let ids = [
+            L2tpAttribute::ConnId(1),
+            L2tpAttribute::SessionId(2),
+            L2tpAttribute::PeerSessionId(3),
+        ];
+        for missing in 0..ids.len() {
+            let attributes = ids
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| *index != missing)
+                .map(|(_, attr)| attr.clone())
+                .collect();
+            let wire = payload(L2tpCmd::SessionGet, attributes);
+            assert_eq!(
+                session_info(&decode(&wire).unwrap())
+                    .unwrap_err()
+                    .raw_os_error(),
+                Some(libc::EPROTO)
+            );
+        }
+        for cookie in [
+            L2tpAttribute::Cookie(vec![0x5a; 9]),
+            L2tpAttribute::PeerCookie(vec![0xa5; 9]),
+        ] {
+            let mut attributes = ids.to_vec();
+            attributes.push(cookie);
+            let reply = L2tpMessage {
+                cmd: L2tpCmd::SessionGet,
+                attributes,
+            };
+            assert_eq!(
+                session_info(&reply).unwrap_err().raw_os_error(),
+                Some(libc::EPROTO)
+            );
+        }
     }
 }

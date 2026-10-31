@@ -13,7 +13,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
-| P4 coverage | Approved production scope: fresh GNU report 94.81% lines / 84.36% branches after process/service fault cases, with no production exclusions or saturated counts | 443 missing lines / 283 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: merged GNU report 94.90% lines / 84.48% branches after inheritance/parser cases; production mappings match, with no exclusions or saturated counts | 435 missing lines / 281 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -917,3 +917,16 @@ pass. Coverage is 94.81% lines / 84.36% branches, leaving 443 lines and 283
 branches, with zero saturated regions. Shipping code is unchanged. Both
 preceding monitor CI jobs pass in run `41247879444`, about ten minutes overall.
 H11/P5 and the other global proof requirements remain open.
+
+## Inheritance refusals and incomplete records
+
+[The inheritance record](phase6/inheritance-validation-20261031/README.md)
+checks precise refusals for unrelated descriptors, consumption of refused
+ownership and continued observer use. Missing session identifiers, oversized
+cookie inputs and truncated deletion messages have parser assertions.
+Three GNU, three musl and three instrumented live repetitions pass on Ubuntu
+6.8.0-147. Ten seeds, common checks and three cross-target test builds pass.
+Only excluded test bodies change; production coverage mappings match the
+preceding collection. Coverage is 94.90% lines / 84.48% branches, leaving
+435 lines and 281 branches, with zero saturated regions. The new Linux case
+has not yet run on every required kernel; global proof requirements remain open.

@@ -1,0 +1,15 @@
+error: no test target named `kernel` in default-run packages
+help: available test targets:
+    boot-scenarios
+    kernel-fake
+    kernel-linux
+    process
+    review-kernel
+    rulemap
+    rules
+    scenarios
+    service
+    srclink
+    startup
+    store-kernel
+    systemd-scenarios

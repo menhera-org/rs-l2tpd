@@ -1,0 +1,77 @@
+warning: --branch option is unstable
+Filename                      Regions    Missed Regions     Cover   Functions  Missed Functions  Executed       Lines      Missed Lines     Cover    Branches   Missed Branches     Cover
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+bin/rs-l2tpd/args.rs               40                 0   100.00%           3                 0   100.00%          41                 0   100.00%           8                 0   100.00%
+bin/rs-l2tpd/caps.rs               28                 2    92.86%           2                 0   100.00%          35                 1    97.14%           4                 0   100.00%
+bin/rs-l2tpd/check.rs              20                 3    85.00%           1                 0   100.00%          14                 2    85.71%           4                 0   100.00%
+bin/rs-l2tpd/daemon.rs            112                12    89.29%           4                 0   100.00%          96                 8    91.67%          34                 9    73.53%
+bin/rs-l2tpd/fdstore.rs           209                40    80.86%          17                 1    94.12%         178                24    86.52%          52                15    71.15%
+bin/rs-l2tpd/files.rs             145                12    91.72%          16                 1    93.75%         128                10    92.19%          32                 5    84.38%
+bin/rs-l2tpd/logger.rs             23                 0   100.00%           4                 0   100.00%          23                 0   100.00%           4                 0   100.00%
+bin/rs-l2tpd/main.rs              226                34    84.96%           9                 1    88.89%         179                19    89.39%          48                10    79.17%
+bin/rs-l2tpd/pidfile.rs           234                37    84.19%          11                 1    90.91%         215                25    88.37%          74                17    77.03%
+bin/rs-l2tpd/restart.rs           255                33    87.06%          27                 1    96.30%         231                24    89.61%          68                17    75.00%
+bin/rs-l2tpd/setup.rs             169                41    75.74%          13                 3    76.92%         117                20    82.91%          38                11    71.05%
+bin/rs-l2tpd/signals.rs           150                24    84.00%          12                 0   100.00%         145                17    88.28%          46                 9    80.43%
+bin/rs-l2tpd/tunable.rs            21                 3    85.71%           2                 0   100.00%          15                 2    86.67%           8                 3    62.50%
+blocking.rs                       112                11    90.18%          19                 2    89.47%         112                10    91.07%           6                 2    66.67%
+config/mod.rs                     552                 0   100.00%         101                 0   100.00%         575                 0   100.00%          60                 0   100.00%
+config/partial.rs                 504                 5    99.01%          69                 0   100.00%         437                 4    99.08%          40                 4    90.00%
+config/serde.rs                    17                 2    88.24%           4                 0   100.00%          13                 0   100.00%           0                 0         -
+config/text.rs                    168                 2    98.81%          39                 1    97.44%         151                 1    99.34%          40                 0   100.00%
+error.rs                           23                 0   100.00%           3                 0   100.00%          18                 0   100.00%           0                 0         -
+kernel/fake.rs                    894                18    97.99%         152                 0   100.00%         832                 1    99.88%         138                10    92.75%
+kernel/linux/bpf.rs                 8                 0   100.00%           2                 0   100.00%           5                 0   100.00%           0                 0         -
+kernel/linux/l2tp.rs              310                35    88.71%          46                 9    80.43%         285                14    95.09%          20                 4    80.00%
+kernel/linux/lifetime.rs          259                15    94.21%          16                 0   100.00%         244                10    95.90%          62                 8    87.10%
+kernel/linux/mod.rs               167                 7    95.81%          36                 0   100.00%         147                 0   100.00%           4                 1    75.00%
+kernel/linux/monitor.rs           105                 8    92.38%           8                 0   100.00%          94                 2    97.87%          18                 0   100.00%
+kernel/linux/request.rs           169                28    83.43%          16                 1    93.75%         133                12    90.98%          30                14    53.33%
+kernel/linux/rtnl.rs              214                30    85.98%          28                 4    85.71%         152                10    93.42%          18                 3    83.33%
+kernel/linux/socket.rs            114                10    91.23%          13                 0   100.00%         103                 5    95.15%          12                 1    91.67%
+kernel/mod.rs                     185                 0   100.00%          53                 0   100.00%         212                 0   100.00%           2                 0   100.00%
+reconciler/deadlines.rs            30                 0   100.00%           7                 0   100.00%          25                 0   100.00%           2                 0   100.00%
+reconciler/events.rs              517                49    90.52%          48                 6    87.50%         487                35    92.81%         196                32    83.67%
+reconciler/ladder.rs               57                 4    92.98%           8                 0   100.00%          61                 3    95.08%          18                 3    83.33%
+reconciler/mod.rs                 349                15    95.70%          39                 0   100.00%         330                10    96.97%          68                13    80.88%
+reconciler/records.rs               9                 0   100.00%           2                 0   100.00%           8                 0   100.00%           0                 0         -
+reconciler/report.rs               67                 0   100.00%          11                 0   100.00%          55                 0   100.00%           6                 0   100.00%
+reconciler/resolvers.rs           565                49    91.33%          73                 3    95.89%         517                38    92.65%         124                18    85.48%
+reconciler/sessions.rs            592                43    92.74%          44                 0   100.00%         491                34    93.08%         152                25    83.55%
+reconciler/store.rs               286                17    94.06%          30                 0   100.00%         257                 7    97.28%          80                 9    88.75%
+reconciler/timers.rs               79                 2    97.47%           9                 0   100.00%          74                 2    97.30%          28                 1    96.43%
+reconciler/tunnels.rs             529                57    89.22%          47                 5    89.36%         436                38    91.28%          90                14    84.44%
+reconciler/workers.rs             175                 2    98.86%          27                 0   100.00%         164                 0   100.00%          24                 1    95.83%
+runtime.rs                        366                17    95.36%          60                 1    98.33%         374                13    96.52%          58                 7    87.93%
+service.rs                        304                34    88.82%          26                 1    96.15%         319                34    89.34%          94                15    84.04%
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+TOTAL                            9358               701    92.51%        1157                41    96.46%        8528               435    94.90%        1810               281    84.48%
+Uncovered Lines:
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/check.rs: 17-18
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/daemon.rs: 21, 43, 54, 76-78, 102-103
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/fdstore.rs: 52, 79-83, 92-94, 125, 131, 177-181, 183-184, 226, 234-235, 238, 242
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/files.rs: 23, 26, 88, 98, 140-143, 320
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/main.rs: 27-28, 59-60, 69-70, 118-119, 121-122, 125, 142, 151, 189, 197-198, 208
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/pidfile.rs: 66-69, 79, 97-100, 140, 186, 200-203, 214, 243-244, 253-255, 257, 266, 271
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/restart.rs: 86-87, 91, 162, 173-176, 178-179, 226, 238, 244, 250, 258
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/setup.rs: 41-42, 59, 80, 97-98, 104-105, 116-118, 120, 124-126, 240, 249
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/signals.rs: 122-124, 140, 144, 146-147, 158, 176, 203, 206
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/tunable.rs: 5
+/home/dev/rs-l2tpd/src/blocking.rs: 105, 142-143, 181, 192
+/home/dev/rs-l2tpd/src/config/partial.rs: 324, 473, 776
+/home/dev/rs-l2tpd/src/kernel/fake.rs: 255
+/home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs: 163, 181, 213, 225, 334, 354, 379
+/home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs: 112, 132, 201, 206-207, 358, 369
+/home/dev/rs-l2tpd/src/kernel/linux/request.rs: 93, 184, 205, 208, 212, 215, 220, 231-232
+/home/dev/rs-l2tpd/src/kernel/linux/rtnl.rs: 96, 152, 159, 200, 224, 227, 240
+/home/dev/rs-l2tpd/src/kernel/linux/socket.rs: 27-31
+/home/dev/rs-l2tpd/src/reconciler/events.rs: 106, 166, 257, 268, 272, 289, 344-346, 365-369, 414-415, 440, 447-448, 454, 458, 478, 491-492, 518, 526, 531, 534
+/home/dev/rs-l2tpd/src/reconciler/ladder.rs: 83-85
+/home/dev/rs-l2tpd/src/reconciler/mod.rs: 235, 254, 258, 303, 472, 482-484, 517
+/home/dev/rs-l2tpd/src/reconciler/resolvers.rs: 289, 327-328, 330, 371, 380-381, 411, 421, 426-427, 444-445, 448-449, 469-471, 480, 500, 503-504, 543, 635-636, 643, 782-784
+/home/dev/rs-l2tpd/src/reconciler/sessions.rs: 129, 143, 265-266, 276, 311-313, 385, 421, 488-490, 494, 496-498, 500, 619-620, 625, 672
+/home/dev/rs-l2tpd/src/reconciler/store.rs: 95, 125
+/home/dev/rs-l2tpd/src/reconciler/timers.rs: 75, 85
+/home/dev/rs-l2tpd/src/reconciler/tunnels.rs: 59, 131, 150, 153, 161, 164-165, 279-281, 304, 316-317, 323-324, 365-367, 381, 414-418, 435-439, 508-510, 552-553
+/home/dev/rs-l2tpd/src/runtime.rs: 233, 306, 335, 370, 416, 423, 449, 558, 589
+/home/dev/rs-l2tpd/src/service.rs: 108, 228-229, 238-241, 246, 317-318, 349-351, 384, 439, 446
