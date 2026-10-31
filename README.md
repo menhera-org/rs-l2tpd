@@ -2,6 +2,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/rs-l2tpd.svg)](https://crates.io/crates/rs-l2tpd)
 [![Maintainability](https://qlty.sh/gh/menhera-org/projects/rs-l2tpd/maintainability.svg)](https://qlty.sh/gh/menhera-org/projects/rs-l2tpd)
+[![Code Coverage](https://qlty.sh/gh/menhera-org/projects/rs-l2tpd/coverage.svg)](https://qlty.sh/gh/menhera-org/projects/rs-l2tpd)
 
 A Linux L2TPv3 daemon written in Rust, and the `rs_l2tpd` library it is built on.
 The kernel carries Ethernet pseudowires over IPv4 or IPv6.
@@ -75,7 +76,7 @@ Start with the [documentation index](docs/README.md):
 - [Interface](docs/interface.md): configuration, command line, signals, unit, library
 - [Dependencies](docs/dependencies.md): the supply chain and upstream needs
 - [Testing](docs/testing.md): the suites, the gates, kernel test pitfalls
-- [Required-kernel behavior](docs/kernel-behavior.md): per-target differences, executed evidence and limitations
+- [Required-kernel behavior](docs/kernel-behavior.md): all five target profiles, behavior differences, test coverage and limitations
 - [Packaging](docs/packaging.md): the implemented `--setup-systemd` installer and planned `musl-deb` packages
 - [Specification](docs/spec/README.md): requirements, promises, architecture, behaviour in every condition
 

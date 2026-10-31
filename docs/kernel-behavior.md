@@ -42,6 +42,72 @@ Ubuntu kernels supply L2TP/VRF as modules; the three vanilla builds
 include them in the image. [Exact config flags and digests](../audit/phase6/kernel-behavior-20261031/config-features.log)
 also show that only the Ubuntu 26.04 profile enables KHO by default.
 
+## What is established for each required kernel
+
+The following profiles summarize each target's behavior. Shared behavior
+is specified fact by fact in the table below; an omitted difference does
+not mean that every possible failure mode was exercised on that target.
+
+- **Ubuntu 24.04, `6.8.0-147.147`:** empty IPv6 VRF connection refuses with
+  `EADDRNOTAVAIL`; commanded L2TP deletion events can cross namespaces.
+  The exact distribution source unhashes/closes sessions inline and uses
+  positional session-dump traversal. The guest boots the stock image with
+  matching modules. This target also has the separately executed
+  denied-capability/netlink, low-port DHCPv6, 300-tunnel and unprivileged
+  system-container evidence. Its udev/networkd result includes the
+  concurrent MAC-assignment limitation described below.
+- **Vanilla `6.8.12`:** the same empty IPv6 VRF refuses with
+  `ENETUNREACH`, which receives the same transient retry policy.
+  Cross-namespace deletion events, inline session deletion and positional
+  dumps have the same documented limitations as the Ubuntu 6.8 target.
+  L2TP/VRF are built into the test image. There is no per-target
+  udev/networkd, unprivileged-container or 300-tunnel result.
+- **Ubuntu 26.04, `7.0.0-42.42`:** the empty VRF refuses with
+  `EADDRNOTAVAIL`; deletion events can still cross namespaces. Its exact
+  distribution source queues session deletion and traverses sessions by
+  identifier. The stock image and matching modules pass the normal
+  profile with the documented `kho=off` cold-boot setting. A separate
+  missing-Ethernet-driver case proves degradation and recovery. This does
+  not establish udev/networkd or unprivileged-container behavior on this
+  target.
+- **Vanilla `7.0.14`:** the empty VRF refuses with `EADDRNOTAVAIL`;
+  deletion events can cross namespaces. Session deletion is queued and
+  dump traversal is identifier-based. L2TP/VRF are built in. Its normal
+  and clock profiles pass; the additional capability, scale and
+  system-container profiles have not run on this target.
+- **Mainline `7.3.0`:** the empty VRF refuses with `EADDRNOTAVAIL`;
+  commanded deletion events stay within the object's namespace. Session
+  deletion is queued and dump traversal is identifier-based. L2TP/VRF are
+  built in. In addition to the normal and clock profiles, the expanded
+  23-scenario/300-tunnel profile, four capability/netlink degradation
+  cases and both scoped IPv6-absent boots pass.
+  These bare-kernel guests provide no udev/networkd or unprivileged
+  system-container result.
+
+### Per-target execution coverage
+
+“Not run” is a missing test result, not a known kernel incompatibility.
+The normal profile proves the shared assertions it actually executes,
+including all eight H20 fragmentation combinations. The additional
+profiles below use the dated source snapshots linked later on this page;
+they are not a single final run of the current daemon on all targets.
+
+| Required kernel | Normal profile and H20 | H15 additional degradation | H16 clock/pause | H17 300 tunnels | H11/unprivileged system container |
+|---|---|---|---|---|---|
+| Ubuntu `6.8.0-147-generic` | Pass | Four capability/netlink cases; low-port DHCPv6 positive case | Pass | Pass | Pass, with documented MAC race and buffer fallback |
+| Vanilla `6.8.12` | Pass | Not run | Pass | Not run | Not run |
+| Ubuntu `7.0.0-42-generic` | Pass, with cold-boot KHO override | Missing-driver/recovery case | Pass | Not run | Not run |
+| Vanilla `7.0.14` | Pass | Not run | Pass | Not run | Not run |
+| Mainline `7.3.0` | Pass; expanded profile also passes | Four capability/netlink cases; low-port DHCPv6 positive case | Pass | Pass | Not run |
+
+Reproduction and transcripts: [normal/H20 matrix](../audit/phase6/matrix-20261031T071523Z-3533819/README.md),
+[H15](../audit/phase6/H15-20261031/README.md),
+[H16](../audit/phase6/H16-20261031/README.md),
+[H17](../audit/phase6/H17-20261031/README.md), and
+[Incus/H11](../audit/phase6/P5_VERIFICATION_2026-10-30.md).
+The separately executed root system-unit sandbox is recorded in
+[P6](../audit/phase6/P6_ROOT_SANDBOX_2026-10-30.md).
+
 ## Session deletion and dump traversal by target
 
 The exact Ubuntu tags were checked alongside the built upstream tarballs;
