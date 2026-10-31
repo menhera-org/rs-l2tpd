@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 95.00% lines /
-84.86% branches: 426 missing lines and 274 missing branches, with no
+approved production-code scope, the latest merged report is 95.01% lines /
+84.92% branches: 425 missing lines and 273 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner has passing records and the later H11 failure described below.
@@ -687,6 +687,13 @@ and the proposed daemon signal cases wait for a compatible upstream release;
 there is no daemon workaround. Repository record
 `audit/phase6/upstream-signal-errors-20261031/` gives the pinned reproduction,
 upstream patch and remaining scope.
+
+A redundant tolerant resolver correction is removed: literal processing
+already handles it. The regression checks both corrected fields and their
+order. Ten seeds, common checks and fresh GNU/live/manager/Incus and unmodified
+musl root-systemd profiles pass. Repository record
+`audit/phase6/config-correction-20261031/` gives the fresh coverage totals and
+remaining qualification and resource limits.
 
 ### Phase 7 — release
 

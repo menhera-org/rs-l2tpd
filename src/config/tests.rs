@@ -1510,7 +1510,13 @@ fn completion_corrected_host_retains_resolver() {
     let (entry, problems) =
         tunnel("tunnel_id=1\nremote_addr='192.0.2.1'\nip_version='V6'\nresolver_name='r'");
     assert!(entry.unwrap().resolver_name().is_none());
-    assert_eq!(problems.len(), 2);
+    assert_eq!(
+        problems,
+        [
+            (Some("resolver_name"), Effect::Corrected),
+            (Some("ip_version"), Effect::Corrected),
+        ]
+    );
 }
 
 /// spec: C7 C10 T27 R47

@@ -465,15 +465,9 @@ fn tunnel(p: PartialTunnel) -> Parsed<TunnelConfig> {
             format!("{resolver:?} is used only with a host name"),
         ));
     }
-    tolerate(
-        tunnel,
-        tolerated,
-        TunnelConfig::check,
-        |tunnel, mistake| match mistake.field {
-            Some("resolver_name") => tunnel.resolver_name = None,
-            _ => tunnel.make_peerless(None),
-        },
-    )
+    tolerate(tunnel, tolerated, TunnelConfig::check, |tunnel, _| {
+        tunnel.make_peerless(None)
+    })
 }
 
 fn session(p: PartialSession) -> Parsed<SessionConfig> {

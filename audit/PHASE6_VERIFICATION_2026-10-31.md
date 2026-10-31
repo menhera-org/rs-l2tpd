@@ -15,7 +15,7 @@ fix proposed in upstream PR #2852; no daemon workaround is applied.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Latest required driver returns MATRIX_RESULT=0: five normal and five clock profiles, both IPv6-absent boots and missing-Ethernet-driver recovery pass; published versions match before/after | Later test additions need final consistent-source qualification; complete P2/delegated proof remains open |
-| P4 coverage | Approved production scope: merged GNU report 95.00% lines / 84.86% branches after descriptor-store barrier faults; production mappings match, with no exclusions or saturated counts | 426 missing lines / 274 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: fresh GNU report 95.01% lines / 84.92% branches after removing redundant configuration correction, with no production exclusions or saturated counts | 425 missing lines / 273 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -975,3 +975,15 @@ tests pass on GNU and musl, with three cross-target builds and formatting.
 The proposed daemon process cases remain unapplied pending a compatible
 published fix. No local dependency override or daemon workaround is added.
 Other proof packages may continue; Phase 6 remains incomplete.
+
+## Redundant configuration correction
+
+[The correction record](phase6/config-correction-20261031/README.md)
+removes a resolver-field arm already handled by literal-address processing.
+Its regression checks both corrections and their order. Common checks,
+Clippy, ten seeds and fresh GNU native/live, process, normal, real-manager
+and Incus profiles pass. The unmodified musl root-systemd guest passes in
+29.15 seconds. Fresh coverage is 95.01% lines / 84.92% branches, leaving
+425 lines and 273 branches, with zero saturated regions and no production
+exclusions. Final five-target qualification, H11/P5, the upstream nix release,
+G23 current-host-state bounds and the remaining proof work stay open.

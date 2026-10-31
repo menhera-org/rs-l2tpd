@@ -1,0 +1,42 @@
+diff --git a/src/config/partial.rs b/src/config/partial.rs
+index 6491dd0..5395f6e 100644
+--- a/src/config/partial.rs
++++ b/src/config/partial.rs
+@@ -465,15 +465,9 @@ fn tunnel(p: PartialTunnel) -> Parsed<TunnelConfig> {
+             format!("{resolver:?} is used only with a host name"),
+         ));
+     }
+-    tolerate(
+-        tunnel,
+-        tolerated,
+-        TunnelConfig::check,
+-        |tunnel, mistake| match mistake.field {
+-            Some("resolver_name") => tunnel.resolver_name = None,
+-            _ => tunnel.make_peerless(None),
+-        },
+-    )
++    tolerate(tunnel, tolerated, TunnelConfig::check, |tunnel, _| {
++        tunnel.make_peerless(None)
++    })
+ }
+ 
+ fn session(p: PartialSession) -> Parsed<SessionConfig> {
+diff --git a/src/config/tests.rs b/src/config/tests.rs
+index 4758a63..cf199c4 100644
+--- a/src/config/tests.rs
++++ b/src/config/tests.rs
+@@ -1510,7 +1510,13 @@ fn completion_corrected_host_retains_resolver() {
+     let (entry, problems) =
+         tunnel("tunnel_id=1\nremote_addr='192.0.2.1'\nip_version='V6'\nresolver_name='r'");
+     assert!(entry.unwrap().resolver_name().is_none());
+-    assert_eq!(problems.len(), 2);
++    assert_eq!(
++        problems,
++        [
++            (Some("resolver_name"), Effect::Corrected),
++            (Some("ip_version"), Effect::Corrected),
++        ]
++    );
+ }
+ 
+ /// spec: C7 C10 T27 R47
