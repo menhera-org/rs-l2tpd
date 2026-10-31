@@ -1,0 +1,21 @@
+diff --git a/tests/rules/completion.rs b/tests/rules/completion.rs
+index 6813ff7..a2b8e56 100644
+--- a/tests/rules/completion.rs
++++ b/tests/rules/completion.rs
+@@ -297,7 +297,15 @@ fn an_ipv4_label_notice_does_not_reconnect_a_second_time() {
+ #[test]
+ fn completion_report_counts() {
+     if std::env::var_os("COMPLETION_LOG_CHILD").is_none() {
+-        let status = std::process::Command::new(std::env::current_exe().unwrap())
++        use std::os::unix::process::CommandExt;
++        let mut command = std::process::Command::new(std::env::current_exe().unwrap());
++        unsafe {
++            command.pre_exec(|| {
++                nix::libc::usleep(100_000);
++                Ok(())
++            });
++        }
++        let status = command
+             .args([
+                 "--exact",
+                 "completion::completion_report_counts",

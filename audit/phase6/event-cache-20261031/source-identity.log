@@ -1,0 +1,4 @@
+Baseline production comparison: git --no-pager diff --quiet 9aa996d 0b182ee -- src
+BASELINE_PRODUCTION_MATCH=1
+FINAL_SOURCE_MATCH=1
+Native verification kernel: 6.8.0-147-generic

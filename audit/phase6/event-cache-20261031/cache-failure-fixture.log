@@ -1,0 +1,25 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 4 tests
+
+thread 'reconciler::tests::cache_cost::failed_address_seed_is_retried_by_monitor_resync' (3722142) panicked at src/reconciler/tests.rs:312:9:
+assertion failed: r.monitor_pending && !r.address_devices.contains(&device)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reconciler::tests::cache_cost::monitor_resync_discards_addresses_missing_from_the_complete_snapshot ... ok
+test reconciler::tests::cache_cost::failed_address_seed_is_retried_by_monitor_resync ... FAILED
+test reconciler::tests::cache_cost::vrf_cache_references_follow_binding_removal_and_member_moves ... ok
+CACHE_COST bindings=1 events=500 elapsed_ns=1274438
+CACHE_COST bindings=100 events=500 elapsed_ns=1378720
+CACHE_COST bindings=300 events=500 elapsed_ns=1372696
+test reconciler::tests::cache_cost::unchanged_bound_link_workload_preserves_other_dependencies ... ok
+
+failures:
+
+failures:
+    reconciler::tests::cache_cost::failed_address_seed_is_retried_by_monitor_resync
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 95 filtered out; finished in 0.11s
+
+error: test failed, to rerun pass `--lib`

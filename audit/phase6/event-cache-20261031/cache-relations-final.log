@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 5 tests
+test reconciler::tests::cache_cost::monitor_resync_discards_addresses_missing_from_the_complete_snapshot ... ok
+test reconciler::tests::cache_cost::failed_address_seed_is_retried_by_monitor_resync ... ok
+test reconciler::tests::cache_cost::vrf_cache_references_follow_binding_removal_and_member_moves ... ok
+CACHE_COST bindings=1 events=500 elapsed_ns=1355883
+MEMBER_COST bindings=1 events=500 elapsed_ns=11070831
+test reconciler::tests::cache_cost::unbound_siblings_of_a_bound_vrf_member_never_enter_the_cache ... ok
+CACHE_COST bindings=100 events=500 elapsed_ns=1428037
+MEMBER_COST bindings=100 events=500 elapsed_ns=30138330
+CACHE_COST bindings=300 events=500 elapsed_ns=1460018
+MEMBER_COST bindings=300 events=500 elapsed_ns=60678162
+test reconciler::tests::cache_cost::unchanged_bound_link_workload_preserves_other_dependencies ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 95 filtered out; finished in 0.27s
+

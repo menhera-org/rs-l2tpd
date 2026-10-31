@@ -1,0 +1,24 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+test reconciler::tests::cache_cost::unbound_siblings_of_a_bound_vrf_member_never_enter_the_cache ... FAILED
+
+failures:
+
+---- reconciler::tests::cache_cost::unbound_siblings_of_a_bound_vrf_member_never_enter_the_cache stdout ----
+
+thread 'reconciler::tests::cache_cost::unbound_siblings_of_a_bound_vrf_member_never_enter_the_cache' (3724926) panicked at src/reconciler/tests.rs:267:9:
+assertion `left == right` failed: unbound siblings accumulated in the cache
+  left: 10001
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    reconciler::tests::cache_cost::unbound_siblings_of_a_bound_vrf_member_never_enter_the_cache
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 99 filtered out; finished in 0.07s
+
+error: test failed, to rerun pass `--lib`

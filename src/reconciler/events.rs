@@ -40,6 +40,10 @@ pub enum Source {
 
 impl<K: Kernel> Reconciler<K> {
     pub(super) fn reindex(&mut self) {
+        self.changed_devices
+            .extend(self.index.devices.keys().copied());
+        self.changed_bindings
+            .extend(self.index.devices.keys().copied());
         self.index = Index::default();
         for id in self.tunnels.keys().copied().collect::<Vec<_>>() {
             self.index_tunnel(id);
@@ -66,6 +70,8 @@ impl<K: Kernel> Reconciler<K> {
             .flatten()
         {
             self.index.devices.entry(device).or_default().insert(id);
+            self.changed_devices.insert(device);
+            self.changed_bindings.insert(device);
         }
         if let Some(source) = self.source_of(id) {
             self.index.sources.entry(source).or_default().insert(id);
@@ -85,6 +91,8 @@ impl<K: Kernel> Reconciler<K> {
             .flatten()
         {
             remove(&mut self.index.devices, device, id);
+            self.changed_devices.insert(device);
+            self.changed_bindings.insert(device);
         }
         if let Some(source) = self.source_of(id) {
             remove(&mut self.index.sources, source, id);
@@ -162,20 +170,13 @@ impl<K: Kernel> Reconciler<K> {
             }
         }
         if relevant
-            || link
-                .master
-                .is_some_and(|master| self.vrfs.contains(&master))
+            || link.master.is_some_and(|master| {
+                self.vrfs.contains(&master) && self.index.devices.contains_key(&master)
+            })
         {
-            match link.master {
-                Some(master) => {
-                    self.masters.insert(link.index, master);
-                }
-                None => {
-                    self.masters.remove(&link.index);
-                }
-            }
+            self.set_master(link.index, link.master);
         } else {
-            self.masters.remove(&link.index);
+            self.set_master(link.index, None);
         }
         let controller_changed = previous != link.master;
         if let Some(sid) = self.owned_session(link.index) {
@@ -234,7 +235,8 @@ impl<K: Kernel> Reconciler<K> {
     /// A device left the namespace (E3, S19, S27).
     fn link_del(&mut self, link: LinkInfo) {
         self.vrfs.remove(&link.index);
-        let master = self.masters.remove(&link.index);
+        let master = self.masters.get(&link.index).copied();
+        self.set_master(link.index, None);
         if let Some(sid) = self.owned_session(link.index) {
             self.observed_removal(sid);
             if !self.sessions.contains_key(&sid) {
@@ -274,11 +276,21 @@ impl<K: Kernel> Reconciler<K> {
     /// device or to that device's VRF reselect their source; an unbound
     /// tunnel does when the address it selected is removed.
     fn addr_changed(&mut self, addr: AddrInfo, removed: bool) {
-        let key = (addr.index, addr.addr.to_canonical());
+        let address = addr.addr.to_canonical();
         if self.address_devices.contains(&addr.index) {
             if removed {
-                self.addresses.remove(&key);
-            } else if !self.addresses.insert(key) {
+                if let Some(addresses) = self.addresses.get_mut(&addr.index) {
+                    addresses.remove(&address);
+                    if addresses.is_empty() {
+                        self.addresses.remove(&addr.index);
+                    }
+                }
+            } else if !self
+                .addresses
+                .entry(addr.index)
+                .or_default()
+                .insert(address)
+            {
                 return;
             }
         } else if !removed {
@@ -412,6 +424,8 @@ impl<K: Kernel> Reconciler<K> {
         let Ok(links) = self.k.dump_links() else {
             return;
         };
+        self.changed_devices
+            .extend(self.address_devices.iter().copied());
         self.vrfs = links
             .iter()
             .filter(|link| link.vrf && self.index.devices.contains_key(&link.index))
@@ -421,18 +435,30 @@ impl<K: Kernel> Reconciler<K> {
             .iter()
             .filter(|link| {
                 self.index.devices.contains_key(&link.index)
-                    || link
-                        .master
-                        .is_some_and(|master| self.vrfs.contains(&master))
+                    || link.master.is_some_and(|master| {
+                        self.vrfs.contains(&master) && self.index.devices.contains_key(&master)
+                    })
             })
             .filter_map(|link| Some((link.index, link.master?)))
             .collect();
+        self.members.clear();
+        for (member, master) in &self.masters {
+            self.members.entry(*master).or_default().insert(*member);
+        }
         for link in &links {
-            if self.masters.values().any(|master| *master == link.index) && link.vrf {
+            if self.members.contains_key(&link.index) && link.vrf {
                 self.vrfs.insert(link.index);
             }
         }
+        self.addresses.clear();
         self.address_devices.clear();
+        self.changed_devices.extend(
+            self.index
+                .devices
+                .keys()
+                .chain(self.masters.keys())
+                .copied(),
+        );
         self.monitor_pending = false;
         for link in &links {
             if let Some(sid) = self.owned_session(link.index) {
@@ -511,9 +537,10 @@ impl<K: Kernel> Reconciler<K> {
         if link.vrf && !self.vrfs.contains(&link.index) {
             let members = self.k.dump_links()?;
             self.vrfs.insert(link.index);
+            self.changed_devices.insert(link.index);
             for member in members {
-                if member.master == Some(link.index) {
-                    self.masters.entry(member.index).or_insert(link.index);
+                if member.master == Some(link.index) && !self.masters.contains_key(&member.index) {
+                    self.set_master(member.index, Some(link.index));
                 }
             }
         }
@@ -521,7 +548,7 @@ impl<K: Kernel> Reconciler<K> {
             && self.masters.get(&link.index) != Some(&master)
         {
             let parent = self.k.link_by_index(master)?;
-            self.masters.insert(link.index, master);
+            self.set_master(link.index, Some(master));
             if parent.is_some_and(|parent| parent.vrf) {
                 self.vrfs.insert(master);
             }
@@ -529,40 +556,77 @@ impl<K: Kernel> Reconciler<K> {
         Ok(())
     }
 
+    fn set_master(&mut self, index: u32, master: Option<u32>) {
+        if self.masters.get(&index).copied() == master {
+            return;
+        }
+        if let Some(previous) = self.masters.remove(&index) {
+            remove(&mut self.members, previous, index);
+            self.changed_devices.insert(previous);
+        }
+        if let Some(master) = master {
+            self.masters.insert(index, master);
+            self.members.entry(master).or_default().insert(index);
+            self.changed_devices.insert(master);
+        }
+        self.changed_devices.insert(index);
+    }
+
     pub(super) fn retain_devices(&mut self) {
-        self.masters.retain(|index, master| {
-            self.index.devices.contains_key(index) || self.index.devices.contains_key(master)
-        });
-        self.vrfs.retain(|index| {
-            self.index.devices.contains_key(index)
-                || self.masters.values().any(|master| master == index)
-        });
-        let watched: BTreeSet<_> = self
-            .index
-            .devices
-            .keys()
-            .chain(self.masters.keys())
-            .copied()
-            .collect();
-        self.addresses.retain(|(index, _)| watched.contains(index));
-        if !watched.is_subset(&self.address_devices) {
-            match self.k.dump_addrs() {
-                Ok(addresses) => {
-                    for address in addresses {
-                        if watched.contains(&address.index)
-                            && !self.address_devices.contains(&address.index)
-                        {
-                            self.addresses
-                                .insert((address.index, address.addr.to_canonical()));
-                        }
+        let mut seed = BTreeSet::new();
+        while let Some(index) = self.changed_devices.pop_first() {
+            let binding_changed = self.changed_bindings.remove(&index);
+            if binding_changed && !self.index.devices.contains_key(&index) {
+                let children: Vec<_> = self
+                    .members
+                    .get(&index)
+                    .into_iter()
+                    .flatten()
+                    .copied()
+                    .collect();
+                for child in children {
+                    if !self.index.devices.contains_key(&child) {
+                        self.set_master(child, None);
                     }
                 }
-                Err(_) => {
-                    self.monitor_pending = true;
-                    return;
-                }
+            }
+            if let Some(master) = self.masters.get(&index).copied()
+                && !self.index.devices.contains_key(&index)
+                && !self.index.devices.contains_key(&master)
+            {
+                self.set_master(index, None);
+            }
+            if !self.index.devices.contains_key(&index) && !self.members.contains_key(&index) {
+                self.vrfs.remove(&index);
+            }
+            let watched =
+                self.index.devices.contains_key(&index) || self.masters.contains_key(&index);
+            if !watched {
+                self.addresses.remove(&index);
+                self.address_devices.remove(&index);
+                seed.remove(&index);
+            } else if !self.address_devices.contains(&index) {
+                seed.insert(index);
             }
         }
-        self.address_devices = watched;
+        if seed.is_empty() {
+            return;
+        }
+        match self.k.dump_addrs() {
+            Ok(addresses) => {
+                for address in addresses {
+                    if seed.contains(&address.index) {
+                        self.addresses
+                            .entry(address.index)
+                            .or_default()
+                            .insert(address.addr.to_canonical());
+                    }
+                }
+                self.address_devices.extend(seed);
+            }
+            Err(_) => {
+                self.monitor_pending = true;
+            }
+        }
     }
 }

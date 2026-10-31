@@ -332,6 +332,12 @@ subsequently replaces those scans with ordered indexes, passing all
 23 host scenarios, 26 process cases and a fresh mainline H16 clock/pause
 case. Relevant-event cache maintenance still needs its complete CPU-cost
 proof; a zero-request assertion alone cannot establish it.
+The subsequent [event-cache package](../audit/phase6/event-cache-20261031/README.md)
+replaces global cache scans with updates for changed dependencies and
+fixes stale addresses after monitor resync and accumulated unbound VRF
+sibling records. Its five focused regressions and all 23 host scenarios
+pass on Ubuntu 6.8.0-147-generic. This policy change has not yet had a new
+five-target matrix run; the earlier guest snapshots remain dated evidence.
 The fresh mainline normal profile also passes 11 live library, 16 kernel,
 five review, 38 ordinary binary plus three privileged binary, 26 process
 and 23 scenario cases. Fresh readiness for both 300-entry daemons takes

@@ -1,0 +1,623 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index d70f9c5..97a0536 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -40,6 +40,10 @@ pub enum Source {
+ 
+ impl<K: Kernel> Reconciler<K> {
+     pub(super) fn reindex(&mut self) {
++        self.changed_devices
++            .extend(self.index.devices.keys().copied());
++        self.changed_bindings
++            .extend(self.index.devices.keys().copied());
+         self.index = Index::default();
+         for id in self.tunnels.keys().copied().collect::<Vec<_>>() {
+             self.index_tunnel(id);
+@@ -66,6 +70,8 @@ impl<K: Kernel> Reconciler<K> {
+             .flatten()
+         {
+             self.index.devices.entry(device).or_default().insert(id);
++            self.changed_devices.insert(device);
++            self.changed_bindings.insert(device);
+         }
+         if let Some(source) = self.source_of(id) {
+             self.index.sources.entry(source).or_default().insert(id);
+@@ -85,6 +91,8 @@ impl<K: Kernel> Reconciler<K> {
+             .flatten()
+         {
+             remove(&mut self.index.devices, device, id);
++            self.changed_devices.insert(device);
++            self.changed_bindings.insert(device);
+         }
+         if let Some(source) = self.source_of(id) {
+             remove(&mut self.index.sources, source, id);
+@@ -162,20 +170,13 @@ impl<K: Kernel> Reconciler<K> {
+             }
+         }
+         if relevant
+-            || link
+-                .master
+-                .is_some_and(|master| self.vrfs.contains(&master))
++            || link.master.is_some_and(|master| {
++                self.vrfs.contains(&master) && self.index.devices.contains_key(&master)
++            })
+         {
+-            match link.master {
+-                Some(master) => {
+-                    self.masters.insert(link.index, master);
+-                }
+-                None => {
+-                    self.masters.remove(&link.index);
+-                }
+-            }
++            self.set_master(link.index, link.master);
+         } else {
+-            self.masters.remove(&link.index);
++            self.set_master(link.index, None);
+         }
+         let controller_changed = previous != link.master;
+         if let Some(sid) = self.owned_session(link.index) {
+@@ -234,7 +235,8 @@ impl<K: Kernel> Reconciler<K> {
+     /// A device left the namespace (E3, S19, S27).
+     fn link_del(&mut self, link: LinkInfo) {
+         self.vrfs.remove(&link.index);
+-        let master = self.masters.remove(&link.index);
++        let master = self.masters.get(&link.index).copied();
++        self.set_master(link.index, None);
+         if let Some(sid) = self.owned_session(link.index) {
+             self.observed_removal(sid);
+             if !self.sessions.contains_key(&sid) {
+@@ -274,11 +276,21 @@ impl<K: Kernel> Reconciler<K> {
+     /// device or to that device's VRF reselect their source; an unbound
+     /// tunnel does when the address it selected is removed.
+     fn addr_changed(&mut self, addr: AddrInfo, removed: bool) {
+-        let key = (addr.index, addr.addr.to_canonical());
++        let address = addr.addr.to_canonical();
+         if self.address_devices.contains(&addr.index) {
+             if removed {
+-                self.addresses.remove(&key);
+-            } else if !self.addresses.insert(key) {
++                if let Some(addresses) = self.addresses.get_mut(&addr.index) {
++                    addresses.remove(&address);
++                    if addresses.is_empty() {
++                        self.addresses.remove(&addr.index);
++                    }
++                }
++            } else if !self
++                .addresses
++                .entry(addr.index)
++                .or_default()
++                .insert(address)
++            {
+                 return;
+             }
+         } else if !removed {
+@@ -412,6 +424,8 @@ impl<K: Kernel> Reconciler<K> {
+         let Ok(links) = self.k.dump_links() else {
+             return;
+         };
++        self.changed_devices
++            .extend(self.address_devices.iter().copied());
+         self.vrfs = links
+             .iter()
+             .filter(|link| link.vrf && self.index.devices.contains_key(&link.index))
+@@ -421,18 +435,30 @@ impl<K: Kernel> Reconciler<K> {
+             .iter()
+             .filter(|link| {
+                 self.index.devices.contains_key(&link.index)
+-                    || link
+-                        .master
+-                        .is_some_and(|master| self.vrfs.contains(&master))
++                    || link.master.is_some_and(|master| {
++                        self.vrfs.contains(&master) && self.index.devices.contains_key(&master)
++                    })
+             })
+             .filter_map(|link| Some((link.index, link.master?)))
+             .collect();
++        self.members.clear();
++        for (member, master) in &self.masters {
++            self.members.entry(*master).or_default().insert(*member);
++        }
+         for link in &links {
+-            if self.masters.values().any(|master| *master == link.index) && link.vrf {
++            if self.members.contains_key(&link.index) && link.vrf {
+                 self.vrfs.insert(link.index);
+             }
+         }
++        self.addresses.clear();
+         self.address_devices.clear();
++        self.changed_devices.extend(
++            self.index
++                .devices
++                .keys()
++                .chain(self.masters.keys())
++                .copied(),
++        );
+         self.monitor_pending = false;
+         for link in &links {
+             if let Some(sid) = self.owned_session(link.index) {
+@@ -511,9 +537,10 @@ impl<K: Kernel> Reconciler<K> {
+         if link.vrf && !self.vrfs.contains(&link.index) {
+             let members = self.k.dump_links()?;
+             self.vrfs.insert(link.index);
++            self.changed_devices.insert(link.index);
+             for member in members {
+-                if member.master == Some(link.index) {
+-                    self.masters.entry(member.index).or_insert(link.index);
++                if member.master == Some(link.index) && !self.masters.contains_key(&member.index) {
++                    self.set_master(member.index, Some(link.index));
+                 }
+             }
+         }
+@@ -521,7 +548,7 @@ impl<K: Kernel> Reconciler<K> {
+             && self.masters.get(&link.index) != Some(&master)
+         {
+             let parent = self.k.link_by_index(master)?;
+-            self.masters.insert(link.index, master);
++            self.set_master(link.index, Some(master));
+             if parent.is_some_and(|parent| parent.vrf) {
+                 self.vrfs.insert(master);
+             }
+@@ -529,40 +556,77 @@ impl<K: Kernel> Reconciler<K> {
+         Ok(())
+     }
+ 
++    fn set_master(&mut self, index: u32, master: Option<u32>) {
++        if self.masters.get(&index).copied() == master {
++            return;
++        }
++        if let Some(previous) = self.masters.remove(&index) {
++            remove(&mut self.members, previous, index);
++            self.changed_devices.insert(previous);
++        }
++        if let Some(master) = master {
++            self.masters.insert(index, master);
++            self.members.entry(master).or_default().insert(index);
++            self.changed_devices.insert(master);
++        }
++        self.changed_devices.insert(index);
++    }
++
+     pub(super) fn retain_devices(&mut self) {
+-        self.masters.retain(|index, master| {
+-            self.index.devices.contains_key(index) || self.index.devices.contains_key(master)
+-        });
+-        self.vrfs.retain(|index| {
+-            self.index.devices.contains_key(index)
+-                || self.masters.values().any(|master| master == index)
+-        });
+-        let watched: BTreeSet<_> = self
+-            .index
+-            .devices
+-            .keys()
+-            .chain(self.masters.keys())
+-            .copied()
+-            .collect();
+-        self.addresses.retain(|(index, _)| watched.contains(index));
+-        if !watched.is_subset(&self.address_devices) {
+-            match self.k.dump_addrs() {
+-                Ok(addresses) => {
+-                    for address in addresses {
+-                        if watched.contains(&address.index)
+-                            && !self.address_devices.contains(&address.index)
+-                        {
+-                            self.addresses
+-                                .insert((address.index, address.addr.to_canonical()));
+-                        }
++        let mut seed = BTreeSet::new();
++        while let Some(index) = self.changed_devices.pop_first() {
++            let binding_changed = self.changed_bindings.remove(&index);
++            if binding_changed && !self.index.devices.contains_key(&index) {
++                let children: Vec<_> = self
++                    .members
++                    .get(&index)
++                    .into_iter()
++                    .flatten()
++                    .copied()
++                    .collect();
++                for child in children {
++                    if !self.index.devices.contains_key(&child) {
++                        self.set_master(child, None);
+                     }
+                 }
+-                Err(_) => {
+-                    self.monitor_pending = true;
+-                    return;
++            }
++            if let Some(master) = self.masters.get(&index).copied()
++                && !self.index.devices.contains_key(&index)
++                && !self.index.devices.contains_key(&master)
++            {
++                self.set_master(index, None);
++            }
++            if !self.index.devices.contains_key(&index) && !self.members.contains_key(&index) {
++                self.vrfs.remove(&index);
++            }
++            let watched =
++                self.index.devices.contains_key(&index) || self.masters.contains_key(&index);
++            if !watched {
++                self.addresses.remove(&index);
++                self.address_devices.remove(&index);
++                seed.remove(&index);
++            } else if !self.address_devices.contains(&index) {
++                seed.insert(index);
++            }
++        }
++        if seed.is_empty() {
++            return;
++        }
++        match self.k.dump_addrs() {
++            Ok(addresses) => {
++                for address in addresses {
++                    if seed.contains(&address.index) {
++                        self.addresses
++                            .entry(address.index)
++                            .or_default()
++                            .insert(address.addr.to_canonical());
++                    }
+                 }
++                self.address_devices.extend(seed);
++            }
++            Err(_) => {
++                self.monitor_pending = true;
+             }
+         }
+-        self.address_devices = watched;
+     }
+ }
+diff --git a/src/reconciler/mod.rs b/src/reconciler/mod.rs
+index 1360f8c..1dc8546 100644
+--- a/src/reconciler/mod.rs
++++ b/src/reconciler/mod.rs
+@@ -112,8 +112,11 @@ pub struct Reconciler<K: Kernel> {
+     /// from link notices (E4, E6).
+     vrfs: BTreeSet<u32>,
+     masters: BTreeMap<u32, u32>,
++    members: BTreeMap<u32, BTreeSet<u32>>,
++    changed_devices: BTreeSet<u32>,
++    changed_bindings: BTreeSet<u32>,
+     address_devices: BTreeSet<u32>,
+-    addresses: BTreeSet<(u32, std::net::IpAddr)>,
++    addresses: BTreeMap<u32, BTreeSet<std::net::IpAddr>>,
+     index: events::Index,
+ }
+ 
+@@ -149,8 +152,11 @@ impl<K: Kernel> Reconciler<K> {
+             monitor_pending: false,
+             vrfs: BTreeSet::new(),
+             masters: BTreeMap::new(),
++            members: BTreeMap::new(),
++            changed_devices: BTreeSet::new(),
++            changed_bindings: BTreeSet::new(),
+             address_devices: BTreeSet::new(),
+-            addresses: BTreeSet::new(),
++            addresses: BTreeMap::new(),
+             index: events::Index::default(),
+         }
+     }
+diff --git a/src/reconciler/tests.rs b/src/reconciler/tests.rs
+index 3582d2d..520054a 100644
+--- a/src/reconciler/tests.rs
++++ b/src/reconciler/tests.rs
+@@ -222,3 +222,215 @@ mod deadline_cost {
+         }
+     }
+ }
++
++#[cfg(feature = "fake-kernel")]
++mod cache_cost {
++    use super::super::*;
++    use crate::kernel::Notice;
++    use crate::kernel::fake::FakeKernel;
++
++    /// spec: E20, E6, M16, G23
++    #[test]
++    fn monitor_resync_discards_addresses_missing_from_the_complete_snapshot() {
++        let mut kernel = FakeKernel::new(42);
++        let index = kernel.add_link("wan", false);
++        let address = "192.0.2.1".parse().unwrap();
++        kernel.add_addr(index, address);
++        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
++        r.reconcile(toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wan'").unwrap());
++        assert_eq!(r.addresses.len(), 1);
++        r.k.del_addr(index, address);
++        r.handle(Source::Monitor, Notice::Loss);
++        assert!(
++            r.addresses.is_empty(),
++            "resync retained an address absent from the complete dump"
++        );
++        assert!(r.address_devices.contains(&index));
++    }
++
++    /// spec: G12, M16, G23
++    #[test]
++    fn unbound_siblings_of_a_bound_vrf_member_never_enter_the_cache() {
++        let mut kernel = FakeKernel::new(42);
++        let vrf = kernel.add_link("vrf", true);
++        let member = kernel.add_link("wan", false);
++        kernel.set_master(member, Some(vrf));
++        kernel.add_addr(member, "192.0.2.1".parse().unwrap());
++        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
++        assert!(r.reconcile(toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wan'").unwrap()));
++        r.k.clear_ops();
++        for index in 1000..11_000 {
++            r.handle(
++                Source::Monitor,
++                Notice::LinkNew(crate::kernel::LinkInfo::new(
++                    index,
++                    L2tpIfName::new(b"foreign").unwrap(),
++                    true,
++                    false,
++                    Some(vrf),
++                )),
++            );
++        }
++        assert!(r.k.ops().is_empty());
++        assert_eq!(
++            r.masters.len(),
++            1,
++            "unbound siblings accumulated in the cache"
++        );
++        assert_eq!(r.members[&vrf], [member].into_iter().collect());
++        assert!(r.changed_devices.is_empty());
++        assert_eq!(r.address_devices, [member].into_iter().collect());
++    }
++
++    /// spec: E4, E6, E20, M16, G23
++    #[test]
++    fn vrf_cache_references_follow_binding_removal_and_member_moves() {
++        let mut kernel = FakeKernel::new(42);
++        let old = kernel.add_link("oldvrf", true);
++        let new = kernel.add_link("newvrf", true);
++        let a = kernel.add_link("a", false);
++        let b = kernel.add_link("b", false);
++        let c = kernel.add_link("c", false);
++        for (device, master, address) in [
++            (a, old, "192.0.2.1"),
++            (b, old, "192.0.2.2"),
++            (c, new, "192.0.2.3"),
++        ] {
++            kernel.set_master(device, Some(master));
++            kernel.add_addr(device, address.parse().unwrap());
++        }
++        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
++        let one = "[host]\nfix_bindv6only=false\n[tunnels.member]\ntunnel_id=11\nremote_addr='192.0.2.254'\nbind_interface='a'";
++        let both = format!(
++            "{one}\n[tunnels.vrf]\ntunnel_id=10\nremote_addr='192.0.2.253'\nbind_interface='oldvrf'"
++        );
++        assert!(r.reconcile(toml::from_str(&both).unwrap()));
++        assert_eq!(r.members[&old], [a, b].into_iter().collect());
++        assert!(!r.masters.contains_key(&c));
++        assert!(r.address_devices.contains(&old) && r.address_devices.contains(&b));
++        assert!(r.reconcile(toml::from_str(one).unwrap()));
++        assert_eq!(r.members[&old], [a].into_iter().collect());
++        assert!(r.vrfs.contains(&old));
++        assert_eq!(r.address_devices, [a].into_iter().collect());
++        assert!(!r.addresses.contains_key(&b));
++        r.k.set_master(a, Some(new));
++        r.handle(
++            Source::Monitor,
++            Notice::LinkNew(r.k.link(a).unwrap().clone()),
++        );
++        assert_eq!(r.masters.get(&a), Some(&new));
++        assert_eq!(r.members[&new], [a].into_iter().collect());
++        assert!(!r.members.contains_key(&old) && !r.vrfs.contains(&old));
++        assert!(r.vrfs.contains(&new));
++        r.reconcile(Config::new());
++        assert!(r.masters.is_empty() && r.members.is_empty() && r.vrfs.is_empty());
++        assert!(
++            r.address_devices.is_empty() && r.addresses.is_empty() && r.changed_devices.is_empty()
++        );
++        assert_eq!(r.k.link(a).unwrap().master, Some(new));
++        assert_eq!(r.k.link(b).unwrap().master, Some(old));
++        assert_eq!(r.k.link(c).unwrap().master, Some(new));
++    }
++
++    /// spec: E20, E21, M16
++    #[test]
++    fn failed_address_seed_is_retried_by_monitor_resync() {
++        let mut kernel = FakeKernel::new(42);
++        let device = kernel.add_link("wan", false);
++        let address = "192.0.2.1".parse().unwrap();
++        kernel.add_addr(device, address);
++        // Initial indexing and the first convergence can each seed addresses.
++        for _ in 0..2 {
++            kernel.fail_next("dump", nix::errno::Errno::EIO);
++        }
++        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
++        r.reconcile(toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wan'").unwrap());
++        assert!(r.ready());
++        assert!(r.monitor_pending && !r.address_devices.contains(&device));
++        assert_eq!(r.next_deadline(), Some(r.k.now() + RETRY));
++        r.k.advance(RETRY);
++        r.tick();
++        assert!(!r.monitor_pending);
++        assert!(r.address_devices.contains(&device));
++        assert_eq!(
++            r.addresses.get(&device),
++            Some(&[address].into_iter().collect())
++        );
++        assert!(r.changed_devices.is_empty());
++        assert_eq!(r.next_deadline(), None);
++    }
++
++    /// spec: G12, M16
++    #[test]
++    fn unchanged_bound_link_workload_preserves_other_dependencies() {
++        for count in [1, 100, 300] {
++            let mut kernel = FakeKernel::new(42);
++            let mut text = "[host]\nfix_bindv6only=false\n".to_owned();
++            let mut first = None;
++            for n in 0..count {
++                let device = kernel.add_link(&format!("wan{n}"), false);
++                first.get_or_insert(device);
++                kernel.add_addr(device, "192.0.2.1".parse().unwrap());
++                kernel.set_up(device, true);
++                text += &format!(
++                    "[tunnels.t{n}]\ntunnel_id={}\nremote_addr='192.0.2.254'\nbind_interface='wan{n}'\n",
++                    n + 1
++                );
++            }
++            let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
++            assert!(r.reconcile(toml::from_str(&text).unwrap()));
++            let link = r.k.link(first.unwrap()).unwrap().clone();
++            r.k.clear_ops();
++            let started = Instant::now();
++            for _ in 0..500 {
++                r.handle(Source::Monitor, Notice::LinkNew(link.clone()));
++            }
++            println!(
++                "CACHE_COST bindings={count} events=500 elapsed_ns={}",
++                started.elapsed().as_nanos()
++            );
++            assert!(
++                r.k.ops().is_empty(),
++                "unchanged link issued kernel operations"
++            );
++            assert_eq!(r.tunnels.len(), count);
++            assert_eq!(r.address_devices.len(), count);
++            assert!(r.changed_devices.is_empty() && r.changed_bindings.is_empty());
++
++            let old = r.k.add_link("oldvrf", true);
++            let new = r.k.add_link("newvrf", true);
++            let devices: Vec<_> = r.address_devices.iter().copied().collect();
++            for device in devices {
++                r.k.set_master(device, Some(old));
++                r.handle(
++                    Source::Monitor,
++                    Notice::LinkNew(r.k.link(device).unwrap().clone()),
++                );
++            }
++            r.k.clear_ops();
++            let started = Instant::now();
++            for n in 0..500 {
++                let master = if n % 2 == 0 { new } else { old };
++                r.k.set_master(link.index, Some(master));
++                r.handle(
++                    Source::Monitor,
++                    Notice::LinkNew(r.k.link(link.index).unwrap().clone()),
++                );
++            }
++            println!(
++                "MEMBER_COST bindings={count} events=500 elapsed_ns={}",
++                started.elapsed().as_nanos()
++            );
++            assert_eq!(
++                r.k.ops()
++                    .iter()
++                    .filter(|op| op.starts_with("connect "))
++                    .count(),
++                500
++            );
++            assert_eq!(r.masters.len(), count);
++            assert_eq!(r.members[&old].len(), count);
++            assert!(r.changed_devices.is_empty() && r.changed_bindings.is_empty());
++        }
++    }
++}
+diff --git a/tests/rules/completion.rs b/tests/rules/completion.rs
+index 6813ff7..35fe9e9 100644
+--- a/tests/rules/completion.rs
++++ b/tests/rules/completion.rs
+@@ -296,45 +296,44 @@ fn an_ipv4_label_notice_does_not_reconnect_a_second_time() {
+ /// spec: G13, O2, O3, E20, T21, T25
+ #[test]
+ fn completion_report_counts() {
+-    if std::env::var_os("COMPLETION_LOG_CHILD").is_none() {
+-        let status = std::process::Command::new(std::env::current_exe().unwrap())
+-            .args([
+-                "--exact",
+-                "completion::completion_report_counts",
+-                "--nocapture",
+-            ])
+-            .env("COMPLETION_LOG_CHILD", "1")
+-            .status()
+-            .unwrap();
+-        assert!(status.success());
+-        return;
++    // Forking here can temporarily inherit other tests' fake socket references.
++    struct Capture {
++        owner: std::thread::ThreadId,
++        messages: std::sync::Mutex<Vec<(log::Level, String)>>,
+     }
+-    #[derive(Default)]
+-    struct Capture(std::sync::Mutex<Vec<(log::Level, String)>>);
+     impl log::Log for Capture {
+         fn enabled(&self, _: &log::Metadata<'_>) -> bool {
+-            true
++            std::thread::current().id() == self.owner
+         }
+         fn log(&self, r: &log::Record<'_>) {
+-            self.0
+-                .lock()
+-                .unwrap()
+-                .push((r.level(), r.args().to_string()));
++            if self.enabled(r.metadata()) {
++                self.messages
++                    .lock()
++                    .unwrap()
++                    .push((r.level(), r.args().to_string()));
++            }
+         }
+         fn flush(&self) {}
+     }
+-    let capture = Box::leak(Box::new(Capture::default()));
++    let capture = Box::leak(Box::new(Capture {
++        owner: std::thread::current().id(),
++        messages: Default::default(),
++    }));
+     log::set_logger(capture).unwrap();
+     log::set_max_level(log::LevelFilter::Debug);
+     let count = |level, text: &str| {
+         capture
+-            .0
++            .messages
+             .lock()
+             .unwrap()
+             .iter()
+             .filter(|(l, message)| *l == level && message.contains(text))
+             .count()
+     };
++    std::thread::spawn(|| log::error!("cannot be created: another test"))
++        .join()
++        .unwrap();
++    assert_eq!(count(log::Level::Error, "cannot be created:"), 0);
+     for (error, level) in [
+         (Errno::EPERM, log::Level::Error),
+         (Errno::EACCES, log::Level::Error),
+@@ -344,7 +343,7 @@ fn completion_report_counts() {
+         (Errno::ENOMEM, log::Level::Warn),
+         (Errno::ENOBUFS, log::Level::Warn),
+     ] {
+-        capture.0.lock().unwrap().clear();
++        capture.messages.lock().unwrap().clear();
+         let (mut r, _) = reconciler();
+         r.reconcile(config(TUNNEL));
+         for _ in 0..3 {
+@@ -364,7 +363,7 @@ fn completion_report_counts() {
+         assert!(r.ready(), "retry must recover: {error:?}");
+         assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
+     }
+-    capture.0.lock().unwrap().clear();
++    capture.messages.lock().unwrap().clear();
+     let (mut mixed, _) = reconciler();
+     mixed.reconcile(config(TUNNEL));
+     for error in [
+@@ -386,7 +385,7 @@ fn completion_report_counts() {
+     );
+     run_for(&mut mixed, 1);
+     assert!(mixed.ready());
+-    capture.0.lock().unwrap().clear();
++    capture.messages.lock().unwrap().clear();
+     let (mut resolver_case, answers) = reconciler();
+     answers.refuse(true);
+     let named = TUNNEL.replace("\"192.0.2.2\"", "\"controlled.example\"\nip_version='V6'");
+@@ -401,7 +400,7 @@ fn completion_report_counts() {
+     answers.refuse(false);
+     run_for(&mut resolver_case, 30);
+     assert_eq!(count(log::Level::Info, "its resolver started"), 1);
+-    capture.0.lock().unwrap().clear();
++    capture.messages.lock().unwrap().clear();
+     let (mut r, _) = reconciler();
+     r.reconcile(config(TUNNEL));
+     for _ in 0..6 {

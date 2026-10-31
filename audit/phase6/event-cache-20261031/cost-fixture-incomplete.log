@@ -1,0 +1,21 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+CACHE_COST bindings=1 events=500 elapsed_ns=2147886
+CACHE_COST bindings=300 events=500 elapsed_ns=100973082
+
+thread 'reconciler::tests::cache_cost::unchanged_bound_link_workload_preserves_other_dependencies' (3715838) panicked at src/reconciler/tests.rs:247:13:
+assertion failed: r.reconcile(toml::from_str(&text).unwrap())
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reconciler::tests::cache_cost::unchanged_bound_link_workload_preserves_other_dependencies ... FAILED
+
+failures:
+
+failures:
+    reconciler::tests::cache_cost::unchanged_bound_link_workload_preserves_other_dependencies
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 95 filtered out; finished in 0.85s
+
+error: test failed, to rerun pass `--lib`

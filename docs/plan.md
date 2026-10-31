@@ -514,8 +514,12 @@ by interface and incarnation, with passing native/live/host cases. There
 are 58 uncited rules. Deadline selection now uses ordered indexes, with
 ten seeded rule runs, all host/process cases and a fresh mainline clock
 case passing. Obsolete conflict history is released on removal/shutdown.
-Relevant-event cache cost, complete resource/history proof, remaining
-clauses and
+Relevant link/address cache maintenance now updates changed dependencies
+instead of scanning all bindings. Regressions fix stale addresses after
+resync and unbound VRF sibling records retained from notifications; five
+focused cases, all host scenarios and ten seeded rule runs pass. The
+rule-suite logger no longer forks across other fake socket owners.
+Complete event-cost/resource/history proof, remaining clauses and
 final matrix/coverage refreshes are still open. No global gate is declared
 complete; strict CI flags remain off. The latest record is repository file
 `audit/PHASE6_VERIFICATION_2026-10-31.md`; the approved H11 MAC limitations

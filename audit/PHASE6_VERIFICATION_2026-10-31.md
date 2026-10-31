@@ -228,6 +228,37 @@ and all result markers zero. The full current-source/latest-target matrix
 still needs its final run. Relevant-event cache maintenance and the rest
 of the G12/M16/resource proof remain open; no global gate is closed.
 
+## Incremental event cache and fake-suite isolation
+
+[The event-cache package](phase6/event-cache-20261031/README.md) replaces
+global device/address-cache maintenance with changed-dependency updates,
+an indexed reverse member map and addresses grouped by device. It removes
+stale addresses when a complete monitor-resync snapshot no longer contains
+them and excludes unbound siblings of a bound VRF member. Previously,
+10,000 unrelated sibling notices accumulated 10,001 cached master records.
+The regressions also check VRF binding removal/member moves, seed failure
+and recovery, and empty-configuration cleanup without changing foreign links.
+
+For 500 unchanged bound-link events, diagnostic native debug times change
+from 2.02/40.69/126.24 milliseconds at 1/100/300 independent bindings to
+1.36/1.43/1.46 milliseconds. No kernel operation is issued. A separate
+member-move workload reconnects exactly one affected tunnel per event;
+its whole fake-backend elapsed time is not a constant-cost assertion.
+Full reconciliation/resync and newly discovered address dumps retain
+their documented global work. Complete G12/M16/G23 proof remains open.
+
+All 23 host scenarios pass on Ubuntu 6.8.0-147-generic. Shared CI checks,
+the five focused cache cases and four strict source-link cases pass.
+Repeated rules initially expose an intermittent re-creation failure.
+A controlled fork probe demonstrates cross-test fake-socket reference
+retention. The logging fixture now captures its own thread without a
+subprocess; an extra assertion excludes another thread's report. Ten
+seeded 74-case rule runs subsequently pass. The exact scheduling of the
+original failure was not captured; failed and inconclusive diagnostic
+runs remain archived. Strict rule-map coverage remains 275/333, with 58
+uncited active rules. Final matrix, coverage and manager refreshes are
+still open; no global strict flag is enabled.
+
 ## Coverage and exit state
 
 [The merged coverage record](phase6/coverage-20261031/README.md) combines
@@ -237,7 +268,8 @@ unprivileged Incus buffer profiles. It reports 9,101/9,998 lines and
 fix. Test helpers in src/ have not been silently suppressed. No coverage
 exclusion is claimed; this report does not pass the gate.
 
-Commits use commit.sh, signatures and sign-offs. No push or strict-CI
-success is claimed. All test guests, transient user services and probe
+Commits use commit.sh, signatures and sign-offs; completed packages are
+synced through sync.sh. No global strict-CI success is claimed.
+All test guests, transient user services and probe
 containers have exited or been deleted. The worktree's latest status
 pages point here; earlier records retain their original scoped outcomes.

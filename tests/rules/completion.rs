@@ -296,45 +296,44 @@ fn an_ipv4_label_notice_does_not_reconnect_a_second_time() {
 /// spec: G13, O2, O3, E20, T21, T25
 #[test]
 fn completion_report_counts() {
-    if std::env::var_os("COMPLETION_LOG_CHILD").is_none() {
-        let status = std::process::Command::new(std::env::current_exe().unwrap())
-            .args([
-                "--exact",
-                "completion::completion_report_counts",
-                "--nocapture",
-            ])
-            .env("COMPLETION_LOG_CHILD", "1")
-            .status()
-            .unwrap();
-        assert!(status.success());
-        return;
+    // Forking here can temporarily inherit other tests' fake socket references.
+    struct Capture {
+        owner: std::thread::ThreadId,
+        messages: std::sync::Mutex<Vec<(log::Level, String)>>,
     }
-    #[derive(Default)]
-    struct Capture(std::sync::Mutex<Vec<(log::Level, String)>>);
     impl log::Log for Capture {
         fn enabled(&self, _: &log::Metadata<'_>) -> bool {
-            true
+            std::thread::current().id() == self.owner
         }
         fn log(&self, r: &log::Record<'_>) {
-            self.0
-                .lock()
-                .unwrap()
-                .push((r.level(), r.args().to_string()));
+            if self.enabled(r.metadata()) {
+                self.messages
+                    .lock()
+                    .unwrap()
+                    .push((r.level(), r.args().to_string()));
+            }
         }
         fn flush(&self) {}
     }
-    let capture = Box::leak(Box::new(Capture::default()));
+    let capture = Box::leak(Box::new(Capture {
+        owner: std::thread::current().id(),
+        messages: Default::default(),
+    }));
     log::set_logger(capture).unwrap();
     log::set_max_level(log::LevelFilter::Debug);
     let count = |level, text: &str| {
         capture
-            .0
+            .messages
             .lock()
             .unwrap()
             .iter()
             .filter(|(l, message)| *l == level && message.contains(text))
             .count()
     };
+    std::thread::spawn(|| log::error!("cannot be created: another test"))
+        .join()
+        .unwrap();
+    assert_eq!(count(log::Level::Error, "cannot be created:"), 0);
     for (error, level) in [
         (Errno::EPERM, log::Level::Error),
         (Errno::EACCES, log::Level::Error),
@@ -344,7 +343,7 @@ fn completion_report_counts() {
         (Errno::ENOMEM, log::Level::Warn),
         (Errno::ENOBUFS, log::Level::Warn),
     ] {
-        capture.0.lock().unwrap().clear();
+        capture.messages.lock().unwrap().clear();
         let (mut r, _) = reconciler();
         r.reconcile(config(TUNNEL));
         for _ in 0..3 {
@@ -364,7 +363,7 @@ fn completion_report_counts() {
         assert!(r.ready(), "retry must recover: {error:?}");
         assert_eq!(count(level, "cannot be created:"), 1, "{error:?}");
     }
-    capture.0.lock().unwrap().clear();
+    capture.messages.lock().unwrap().clear();
     let (mut mixed, _) = reconciler();
     mixed.reconcile(config(TUNNEL));
     for error in [
@@ -386,7 +385,7 @@ fn completion_report_counts() {
     );
     run_for(&mut mixed, 1);
     assert!(mixed.ready());
-    capture.0.lock().unwrap().clear();
+    capture.messages.lock().unwrap().clear();
     let (mut resolver_case, answers) = reconciler();
     answers.refuse(true);
     let named = TUNNEL.replace("\"192.0.2.2\"", "\"controlled.example\"\nip_version='V6'");
@@ -401,7 +400,7 @@ fn completion_report_counts() {
     answers.refuse(false);
     run_for(&mut resolver_case, 30);
     assert_eq!(count(log::Level::Info, "its resolver started"), 1);
-    capture.0.lock().unwrap().clear();
+    capture.messages.lock().unwrap().clear();
     let (mut r, _) = reconciler();
     r.reconcile(config(TUNNEL));
     for _ in 0..6 {

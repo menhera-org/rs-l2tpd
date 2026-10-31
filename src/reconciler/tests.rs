@@ -222,3 +222,215 @@ mod deadline_cost {
         }
     }
 }
+
+#[cfg(feature = "fake-kernel")]
+mod cache_cost {
+    use super::super::*;
+    use crate::kernel::Notice;
+    use crate::kernel::fake::FakeKernel;
+
+    /// spec: E20, E6, M16, G23
+    #[test]
+    fn monitor_resync_discards_addresses_missing_from_the_complete_snapshot() {
+        let mut kernel = FakeKernel::new(42);
+        let index = kernel.add_link("wan", false);
+        let address = "192.0.2.1".parse().unwrap();
+        kernel.add_addr(index, address);
+        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
+        r.reconcile(toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wan'").unwrap());
+        assert_eq!(r.addresses.len(), 1);
+        r.k.del_addr(index, address);
+        r.handle(Source::Monitor, Notice::Loss);
+        assert!(
+            r.addresses.is_empty(),
+            "resync retained an address absent from the complete dump"
+        );
+        assert!(r.address_devices.contains(&index));
+    }
+
+    /// spec: G12, M16, G23
+    #[test]
+    fn unbound_siblings_of_a_bound_vrf_member_never_enter_the_cache() {
+        let mut kernel = FakeKernel::new(42);
+        let vrf = kernel.add_link("vrf", true);
+        let member = kernel.add_link("wan", false);
+        kernel.set_master(member, Some(vrf));
+        kernel.add_addr(member, "192.0.2.1".parse().unwrap());
+        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
+        assert!(r.reconcile(toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wan'").unwrap()));
+        r.k.clear_ops();
+        for index in 1000..11_000 {
+            r.handle(
+                Source::Monitor,
+                Notice::LinkNew(crate::kernel::LinkInfo::new(
+                    index,
+                    L2tpIfName::new(b"foreign").unwrap(),
+                    true,
+                    false,
+                    Some(vrf),
+                )),
+            );
+        }
+        assert!(r.k.ops().is_empty());
+        assert_eq!(
+            r.masters.len(),
+            1,
+            "unbound siblings accumulated in the cache"
+        );
+        assert_eq!(r.members[&vrf], [member].into_iter().collect());
+        assert!(r.changed_devices.is_empty());
+        assert_eq!(r.address_devices, [member].into_iter().collect());
+    }
+
+    /// spec: E4, E6, E20, M16, G23
+    #[test]
+    fn vrf_cache_references_follow_binding_removal_and_member_moves() {
+        let mut kernel = FakeKernel::new(42);
+        let old = kernel.add_link("oldvrf", true);
+        let new = kernel.add_link("newvrf", true);
+        let a = kernel.add_link("a", false);
+        let b = kernel.add_link("b", false);
+        let c = kernel.add_link("c", false);
+        for (device, master, address) in [
+            (a, old, "192.0.2.1"),
+            (b, old, "192.0.2.2"),
+            (c, new, "192.0.2.3"),
+        ] {
+            kernel.set_master(device, Some(master));
+            kernel.add_addr(device, address.parse().unwrap());
+        }
+        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
+        let one = "[host]\nfix_bindv6only=false\n[tunnels.member]\ntunnel_id=11\nremote_addr='192.0.2.254'\nbind_interface='a'";
+        let both = format!(
+            "{one}\n[tunnels.vrf]\ntunnel_id=10\nremote_addr='192.0.2.253'\nbind_interface='oldvrf'"
+        );
+        assert!(r.reconcile(toml::from_str(&both).unwrap()));
+        assert_eq!(r.members[&old], [a, b].into_iter().collect());
+        assert!(!r.masters.contains_key(&c));
+        assert!(r.address_devices.contains(&old) && r.address_devices.contains(&b));
+        assert!(r.reconcile(toml::from_str(one).unwrap()));
+        assert_eq!(r.members[&old], [a].into_iter().collect());
+        assert!(r.vrfs.contains(&old));
+        assert_eq!(r.address_devices, [a].into_iter().collect());
+        assert!(!r.addresses.contains_key(&b));
+        r.k.set_master(a, Some(new));
+        r.handle(
+            Source::Monitor,
+            Notice::LinkNew(r.k.link(a).unwrap().clone()),
+        );
+        assert_eq!(r.masters.get(&a), Some(&new));
+        assert_eq!(r.members[&new], [a].into_iter().collect());
+        assert!(!r.members.contains_key(&old) && !r.vrfs.contains(&old));
+        assert!(r.vrfs.contains(&new));
+        r.reconcile(Config::new());
+        assert!(r.masters.is_empty() && r.members.is_empty() && r.vrfs.is_empty());
+        assert!(
+            r.address_devices.is_empty() && r.addresses.is_empty() && r.changed_devices.is_empty()
+        );
+        assert_eq!(r.k.link(a).unwrap().master, Some(new));
+        assert_eq!(r.k.link(b).unwrap().master, Some(old));
+        assert_eq!(r.k.link(c).unwrap().master, Some(new));
+    }
+
+    /// spec: E20, E21, M16
+    #[test]
+    fn failed_address_seed_is_retried_by_monitor_resync() {
+        let mut kernel = FakeKernel::new(42);
+        let device = kernel.add_link("wan", false);
+        let address = "192.0.2.1".parse().unwrap();
+        kernel.add_addr(device, address);
+        // Initial indexing and the first convergence can each seed addresses.
+        for _ in 0..2 {
+            kernel.fail_next("dump", nix::errno::Errno::EIO);
+        }
+        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
+        r.reconcile(toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wan'").unwrap());
+        assert!(r.ready());
+        assert!(r.monitor_pending && !r.address_devices.contains(&device));
+        assert_eq!(r.next_deadline(), Some(r.k.now() + RETRY));
+        r.k.advance(RETRY);
+        r.tick();
+        assert!(!r.monitor_pending);
+        assert!(r.address_devices.contains(&device));
+        assert_eq!(
+            r.addresses.get(&device),
+            Some(&[address].into_iter().collect())
+        );
+        assert!(r.changed_devices.is_empty());
+        assert_eq!(r.next_deadline(), None);
+    }
+
+    /// spec: G12, M16
+    #[test]
+    fn unchanged_bound_link_workload_preserves_other_dependencies() {
+        for count in [1, 100, 300] {
+            let mut kernel = FakeKernel::new(42);
+            let mut text = "[host]\nfix_bindv6only=false\n".to_owned();
+            let mut first = None;
+            for n in 0..count {
+                let device = kernel.add_link(&format!("wan{n}"), false);
+                first.get_or_insert(device);
+                kernel.add_addr(device, "192.0.2.1".parse().unwrap());
+                kernel.set_up(device, true);
+                text += &format!(
+                    "[tunnels.t{n}]\ntunnel_id={}\nremote_addr='192.0.2.254'\nbind_interface='wan{n}'\n",
+                    n + 1
+                );
+            }
+            let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
+            assert!(r.reconcile(toml::from_str(&text).unwrap()));
+            let link = r.k.link(first.unwrap()).unwrap().clone();
+            r.k.clear_ops();
+            let started = Instant::now();
+            for _ in 0..500 {
+                r.handle(Source::Monitor, Notice::LinkNew(link.clone()));
+            }
+            println!(
+                "CACHE_COST bindings={count} events=500 elapsed_ns={}",
+                started.elapsed().as_nanos()
+            );
+            assert!(
+                r.k.ops().is_empty(),
+                "unchanged link issued kernel operations"
+            );
+            assert_eq!(r.tunnels.len(), count);
+            assert_eq!(r.address_devices.len(), count);
+            assert!(r.changed_devices.is_empty() && r.changed_bindings.is_empty());
+
+            let old = r.k.add_link("oldvrf", true);
+            let new = r.k.add_link("newvrf", true);
+            let devices: Vec<_> = r.address_devices.iter().copied().collect();
+            for device in devices {
+                r.k.set_master(device, Some(old));
+                r.handle(
+                    Source::Monitor,
+                    Notice::LinkNew(r.k.link(device).unwrap().clone()),
+                );
+            }
+            r.k.clear_ops();
+            let started = Instant::now();
+            for n in 0..500 {
+                let master = if n % 2 == 0 { new } else { old };
+                r.k.set_master(link.index, Some(master));
+                r.handle(
+                    Source::Monitor,
+                    Notice::LinkNew(r.k.link(link.index).unwrap().clone()),
+                );
+            }
+            println!(
+                "MEMBER_COST bindings={count} events=500 elapsed_ns={}",
+                started.elapsed().as_nanos()
+            );
+            assert_eq!(
+                r.k.ops()
+                    .iter()
+                    .filter(|op| op.starts_with("connect "))
+                    .count(),
+                500
+            );
+            assert_eq!(r.masters.len(), count);
+            assert_eq!(r.members[&old].len(), count);
+            assert!(r.changed_devices.is_empty() && r.changed_bindings.is_empty());
+        }
+    }
+}

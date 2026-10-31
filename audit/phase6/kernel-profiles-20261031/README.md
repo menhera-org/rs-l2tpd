@@ -21,7 +21,7 @@ not a determinism, coverage-completeness or final-matrix result.
 The working tree also contained ongoing event-cache work; this commit
 contains only the requested badge, documentation and this check record.
 
-[docs-checks.log](docs-checks.log) records 51 checked local Markdown file
+[docs-checks.log](docs-checks.log) records 54 checked local Markdown file
 targets and a passing diff-whitespace check. External links and fragment
 anchors were not checked. No claim is made about the badge's remote
 rendering or coverage value. Required versions remain dated observations

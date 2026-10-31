@@ -1,0 +1,2 @@
+FORK_REFERENCE=retained_after_two_virtual_seconds
+FORK_REFERENCE=released_after_child_exit

@@ -112,8 +112,11 @@ pub struct Reconciler<K: Kernel> {
     /// from link notices (E4, E6).
     vrfs: BTreeSet<u32>,
     masters: BTreeMap<u32, u32>,
+    members: BTreeMap<u32, BTreeSet<u32>>,
+    changed_devices: BTreeSet<u32>,
+    changed_bindings: BTreeSet<u32>,
     address_devices: BTreeSet<u32>,
-    addresses: BTreeSet<(u32, std::net::IpAddr)>,
+    addresses: BTreeMap<u32, BTreeSet<std::net::IpAddr>>,
     index: events::Index,
 }
 
@@ -149,8 +152,11 @@ impl<K: Kernel> Reconciler<K> {
             monitor_pending: false,
             vrfs: BTreeSet::new(),
             masters: BTreeMap::new(),
+            members: BTreeMap::new(),
+            changed_devices: BTreeSet::new(),
+            changed_bindings: BTreeSet::new(),
             address_devices: BTreeSet::new(),
-            addresses: BTreeSet::new(),
+            addresses: BTreeMap::new(),
             index: events::Index::default(),
         }
     }
