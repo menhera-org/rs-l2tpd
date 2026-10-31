@@ -176,6 +176,16 @@ a green CI run does not establish the coverage or complete kernel matrix
 gates. Current review probes and exact commands are in repository file
 `tests/kernel/README.md`.
 
+CI qualifies determinism with ten matrix jobs, one seed and one fresh QEMU
+guest per job, with at most two jobs running at once. Each guest executes
+the same Rust scenario binary as the Docker runner, plus live kernel and
+process suites. QEMU keeps module loading and networking inside the guest;
+it does not test the Incus or root-systemd profiles. Each job has a
+40-minute limit, the live-suite step has 20 minutes, and QEMU itself has
+900 seconds. The ordinary build job has 30 minutes. Failed repetitions
+remain failures and retain their logs; the workflow does not retry them.
+These CI repetitions must pass before strict map flags are enabled.
+
 ## Running
 
 ```sh

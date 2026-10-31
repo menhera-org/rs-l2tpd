@@ -438,6 +438,24 @@ stronger requirement complete. Strict CI enforcement remains off; final
 kernel/manager profiles, coverage and complete resource/event/history proof
 remain open.
 
+## Bounded CI qualification
+
+[The CI qualification package](phase6/ci-qualification-20261031/README.md)
+adds ten seeded fake/live matrix jobs. The live jobs boot fresh stock Ubuntu
+guests and run the same scenario binary as the container suite, plus kernel
+and process cases. Every job and long step has an explicit timeout; QEMU
+retains its separate 900-second limit. At most two repetitions run at once,
+fail-fast is disabled, and failed jobs retain their logs. The ordinary build
+job now has a 30-minute limit. Strict flags remain off until all required
+CI repetitions pass. No CI qualification pass is claimed by this package's
+local image/common-gate checks.
+
+The review-image helper downloads package indexes and archives with host
+curl. Package resolution and installation stay in networkless Docker;
+Alpine's signature checks remain enabled. The local image build and package
+presence check pass. Common CI gates pass. The package records commands,
+source identity and the pending external-run requirement.
+
 ## Coverage and exit state
 
 [The merged coverage record](phase6/coverage-20261031/README.md) combines

@@ -1,0 +1,30 @@
+command: tests/kernel/build-review-image.sh
+Build durations and download progress omitted.
+#0 building with "default" instance using docker driver
+#1 [internal] load build definition from Dockerfile.review
+#1 transferring dockerfile: 289B done
+#1 DONE <duration omitted>
+#2 [internal] load metadata for docker.io/library/alpine:3.22
+#2 DONE <duration omitted>
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE <duration omitted>
+#4 [1/3] FROM docker.io/library/alpine:3.22@sha256:d406446bc05b82480756ce8f1287964d28768c23955fa9480d2a74a2eae7a654
+#4 resolve docker.io/library/alpine:3.22@sha256:d406446bc05b82480756ce8f1287964d28768c23955fa9480d2a74a2eae7a654 <duration omitted> done
+#4 DONE <duration omitted>
+#5 [internal] load build context
+#5 transferring context: 50.88MB <duration omitted> done
+#5 DONE <duration omitted>
+#6 [2/3] COPY . /packages
+#6 CACHED
+#7 [3/3] RUN apk --no-network --repositories-file /dev/null         --repository /packages/main --repository /packages/community         add --no-cache linux-virt iproute2 util-linux kmod     && rm -rf /packages
+#7 CACHED
+#8 exporting to image
+#8 exporting layers done
+#8 exporting manifest sha256:d26f51ec9fa2b10c2fa64d4347782cd8bdf3b199166bd9811274328278407145 done
+#8 exporting config sha256:99d50a0ceb005e3e6c84eea9f7f1129fec8472441fd7a038c0f35385e676d155 done
+#8 exporting attestation manifest sha256:f22855fdc19b11fc731fe2275a90eb2abc53de73b49b3fa1179fb5cf891c4d7c <duration omitted> done
+#8 exporting manifest list sha256:2aba210c5e1f6f4468aa9f374df29ca6ec7a337f69b8c6b2347e2fb8fb722bdb done
+#8 naming to docker.io/library/rs-l2tpd-audit-vm:local done
+#8 unpacking to docker.io/library/rs-l2tpd-audit-vm:local done
+#8 DONE <duration omitted>

@@ -98,7 +98,7 @@ seccomp setting permit the test's child network namespace; neither grants
 additional privileges to the invoking host user.
 
 ```sh
-docker build --progress=plain -t rs-l2tpd-audit-vm:local -f tests/kernel/Dockerfile.review .
+tests/kernel/build-review-image.sh
 timeout 60 docker run --rm --network none \
   --cap-add NET_ADMIN --cap-add NET_RAW --cap-add SYS_ADMIN \
   --security-opt seccomp=unconfined \

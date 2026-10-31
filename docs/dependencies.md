@@ -49,6 +49,7 @@ the logger is thirty lines over `log::Log` (O1), the PID file, signals,
 | Tool | For |
 |---|---|
 | `github/codeql-action` v4, pinned by commit in [the workflow](../.github/workflows/codeql.yml) | Rust and Actions security analysis; [the configuration](../.github/codeql-config.yml) retains the extended suite and excludes `rust/cleartext-logging`, which mistakes public tunnel/session identifiers for credentials |
+| `actions/upload-artifact` v4, pinned by commit in [CI](../.github/workflows/ci.yml) | Retains each determinism repetition's fake-suite, kernel-package and guest logs for 14 days, including failed runs |
 
 ## Removed
 
@@ -113,5 +114,6 @@ default to `bin`, without the optional installer. Publishing uses
 | QEMU TCG, cpio, binutils | Disposable kernel guests, initramfs creation and stripping only; not linked into the daemon |
 | curl, xz, tar | Published kernel/package metadata and source archives for the matrix |
 | Docker; Debian kernel build toolchain (build-essential, flex, bison, bc, libelf/libssl headers); kmod/libkmod2 | Kernel builds and package extraction in networkless containers, module loading inside guests; recipes and package digests recorded with runs |
+| Alpine apk-tools and signed v3.22 indexes | Resolve and verify the amd64 review image's existing package set; downloads use host curl, Docker resolution and installation use `--network none` |
 | Incus/LXD, systemd, iproute2, BusyBox, util-linux | Disposable system-container and host-condition fixtures; no daemon dependency |
 | GNU libc and libgcc from Ubuntu 24.04 | GNU coverage executables in the review image; shipped binaries remain musl |

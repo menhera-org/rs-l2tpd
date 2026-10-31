@@ -12,8 +12,10 @@ path, and uses a disposable privileged Docker container with
 `--network none`. It records the command, features, kernel, image ID,
 build output and test results under `audit/phase6/scenarios-<run>/`.
 
-Provide `rs-l2tpd-audit-vm:local`, prepared from
-`tests/kernel/Dockerfile.review` with iproute2, busybox and util-linux.
+Prepare `rs-l2tpd-audit-vm:local` with
+`tests/kernel/build-review-image.sh`. It fetches signed Alpine indexes and
+packages on the caller, then builds `tests/kernel/Dockerfile.review` with
+networking disabled. The image includes iproute2, BusyBox and util-linux.
 The runner uses the prepared image; it does not give test containers
 external networking. The runner also builds the archived v0.1.5 tag with
 its own lockfile in an isolated cache, and records its commit and binary

@@ -1,0 +1,161 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 832f188..6742e2e 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -16,6 +16,7 @@ jobs:
+   build:
+     name: Build and check
+     runs-on: ubuntu-latest
++    timeout-minutes: 30
+     steps:
+       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+         with:
+@@ -28,9 +29,11 @@ jobs:
+           targets: x86_64-unknown-linux-musl
+ 
+       - name: CI gates
++        timeout-minutes: 15
+         run: ./test-ci-gates.sh
+ 
+       - name: Generate coverage
++        timeout-minutes: 10
+         run: |
+           cargo install cargo-llvm-cov --locked
+           cargo llvm-cov --locked --all-features --lcov --output-path target/lcov.info
+@@ -39,3 +42,88 @@ jobs:
+         with:
+           token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
+           files: target/lcov.info
++
++  qualification:
++    name: Determinism (${{ matrix.seed }})
++    runs-on: ubuntu-24.04
++    timeout-minutes: 40
++    strategy:
++      fail-fast: false
++      max-parallel: 2
++      matrix:
++        seed: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
++    defaults:
++      run:
++        shell: sh
++    env:
++      RECORD: audit/phase6/ci-qualification-${{ matrix.seed }}
++      TEST_SEED: ${{ matrix.seed }}
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
++        with:
++          fetch-depth: 0
++          persist-credentials: false
++
++      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
++        with:
++          toolchain: stable
++          targets: x86_64-unknown-linux-musl
++
++      - name: Install guest tooling
++        timeout-minutes: 6
++        run: |
++          sudo apt-get update
++          sudo apt-get install -y --no-install-recommends qemu-system-x86 cpio musl-tools
++          mkdir -p "$RECORD"
++          git --no-pager rev-parse HEAD > "$RECORD/revision"
++
++      - name: Run seeded fake suites
++        timeout-minutes: 10
++        run: |
++          cargo test --locked --all-features --lib --test kernel-fake --test rules --test service -- --nocapture > "$RECORD/fake.log" 2>&1 || {
++            cat "$RECORD/fake.log"
++            exit 1
++          }
++          cat "$RECORD/fake.log"
++
++      - name: Prepare networkless guest image
++        timeout-minutes: 6
++        run: |
++          tests/kernel/build-review-image.sh > "$RECORD/image-build.log" 2>&1 || {
++            cat "$RECORD/image-build.log"
++            exit 1
++          }
++          tail -n 20 "$RECORD/image-build.log"
++
++      - name: Fetch stock guest kernel
++        timeout-minutes: 6
++        run: |
++          tests/kernel/fetch-ubuntu.sh noble > "$RECORD/kernel-packages.log" 2>&1 || {
++            cat "$RECORD/kernel-packages.log"
++            exit 1
++          }
++
++      - name: Build guest executables and interoperability peer
++        timeout-minutes: 10
++        run: |
++          cargo test --locked --all-features --target x86_64-unknown-linux-musl --no-run
++          tests/docker/baseline.sh "$RECORD"
++
++      - name: Run live suites in a fresh guest
++        timeout-minutes: 20
++        run: |
++          image=$(sed -n 's/^KERNEL_IMAGE=//p' "$RECORD/kernel-packages.log")
++          modules=$(sed -n 's/^KERNEL_MODULES=//p' "$RECORD/kernel-packages.log")
++          root=$(sed -n 's/^KERNEL_ROOT=//p' "$RECORD/kernel-packages.log")
++          release=$(sed -n 's/^KERNEL_RELEASE=//p' "$RECORD/kernel-packages.log")
++          tests/kernel/run-guest.sh "$image" "$modules" "$root/boot/config-$release" normal "$RECORD/guest"
++          printf 'QUALIFICATION_SEED=%s\nQUALIFICATION_RESULT=0\n' "$TEST_SEED" > "$RECORD/result.log"
++
++      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
++        if: always()
++        timeout-minutes: 5
++        with:
++          name: phase6-qualification-${{ matrix.seed }}
++          path: audit/phase6/ci-qualification-${{ matrix.seed }}/
++          if-no-files-found: error
++          retention-days: 14
+diff --git a/tests/kernel/Dockerfile.review b/tests/kernel/Dockerfile.review
+index bb6953b..f238bca 100644
+--- a/tests/kernel/Dockerfile.review
++++ b/tests/kernel/Dockerfile.review
+@@ -1,2 +1,6 @@
+ FROM alpine:3.22
+-RUN apk add --no-cache linux-virt iproute2 util-linux kmod
++COPY . /packages
++RUN apk --no-network --repositories-file /dev/null \
++        --repository /packages/main --repository /packages/community \
++        add --no-cache linux-virt iproute2 util-linux kmod \
++    && rm -rf /packages
+diff --git a/tests/kernel/build-review-image.sh b/tests/kernel/build-review-image.sh
+new file mode 100755
+index 0000000..38eb97d
+--- /dev/null
++++ b/tests/kernel/build-review-image.sh
+@@ -0,0 +1,30 @@
++#!/bin/sh
++# Fetch on the caller; resolve and install packages in networkless containers.
++set -eu
++repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
++cache=$repo/target/phase6-image
++origin=https://dl-cdn.alpinelinux.org/alpine/v3.22
++for repository in main community; do
++    mkdir -p "$cache/$repository/x86_64"
++    curl --fail --location --max-time 90 --output "$cache/$repository/x86_64/APKINDEX.tar.gz.part" \
++        "$origin/$repository/x86_64/APKINDEX.tar.gz"
++    mv "$cache/$repository/x86_64/APKINDEX.tar.gz.part" "$cache/$repository/x86_64/APKINDEX.tar.gz"
++done
++docker run --rm --platform linux/amd64 --network none \
++    --mount "type=bind,source=$cache,target=/packages,readonly" alpine:3.22 \
++    apk --no-network --repositories-file /dev/null \
++    --repository /packages/main --repository /packages/community \
++    fetch --recursive --url --simulate linux-virt iproute2 util-linux kmod > "$cache/packages"
++[ -s "$cache/packages" ]
++while IFS= read -r package; do
++    case $package in
++        /packages/main/x86_64/*.apk|/packages/community/x86_64/*.apk) ;;
++        *) echo "unexpected package path: $package" >&2; exit 1 ;;
++    esac
++    case $package in *..*) exit 1 ;; esac
++    path=${package#/packages/}
++    curl --fail --location --max-time 180 --output "$cache/$path.part" "$origin/$path"
++    mv "$cache/$path.part" "$cache/$path"
++done < "$cache/packages"
++docker build --platform linux/amd64 --network none --progress=plain -t rs-l2tpd-audit-vm:local \
++    -f "$repo/tests/kernel/Dockerfile.review" "$cache"
