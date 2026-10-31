@@ -1,0 +1,6 @@
+Full output: ../scenarios-20261031T091506Z-3608656/run.log
+command: docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --env RS_L2TPD_SCENARIO_CONTAINER=1 --env RS_L2TPD_BASELINE=/home/dev/rs-l2tpd/target/phase6-baseline/15529bab567862b6617c9c5b948a74271bc9c44c/target/x86_64-unknown-linux-musl/release/rs-l2tpd --entrypoint sh rs-l2tpd-audit-vm:local -ec uname -r; exec "$@" run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e --ignored --test-threads=1 --nocapture --skip incus::system_container_store_tunable_networkd_and_udev netlink::
+large=false: ready=5.869647ms, reload=1.173068ms, Counts { requests: 36, route_queries: 2, generic_requests: 15, packets: 95 }
+large=true: ready=5.825176ms, reload=1.258438ms, Counts { requests: 36, route_queries: 2, generic_requests: 15, packets: 95 }
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 22 filtered out; finished in 7.51s
+SCENARIO_RESULT=0

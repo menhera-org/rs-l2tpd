@@ -353,8 +353,11 @@ impl Daemon {
             .count()
     }
     pub fn reload(&self) {
+        self.reload_with_timeout(Duration::from_secs(10));
+    }
+    pub fn reload_with_timeout(&self, timeout: Duration) {
         kill(Pid::from_raw(self.child.id() as i32), Signal::SIGHUP).unwrap();
-        self.event("reload complete");
+        self.event_with_timeout("reload complete", timeout);
     }
     pub fn assert_unready_for(&mut self, duration: Duration) {
         let deadline = Instant::now() + duration;
@@ -387,8 +390,11 @@ impl Daemon {
         }
     }
     pub fn stop(&mut self) {
+        self.stop_with_timeout(Duration::from_secs(10));
+    }
+    pub fn stop_with_timeout(&mut self, timeout: Duration) {
         kill(Pid::from_raw(self.child.id() as i32), Signal::SIGTERM).unwrap();
-        self.event("shutdown complete");
+        self.event_with_timeout("shutdown complete", timeout);
         self.wait_exit(0);
     }
 }

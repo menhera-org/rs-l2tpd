@@ -1046,6 +1046,8 @@ fn check_and_startup_report_file_errors_in_the_same_words() {
     }
     let mut process = Process::spawn(command);
     assert_eq!(process.event("file left out"), check.trim_end());
+    // File reporting precedes signal installation; wait for the startup retry loop.
+    process.event("opening kernel interfaces");
     process.signal(Signal::SIGTERM);
     assert_eq!(process.child.wait().unwrap().code(), Some(1));
     process.done = true;

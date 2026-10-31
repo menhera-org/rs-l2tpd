@@ -1,0 +1,16 @@
+6.8.0-147-generic
+
+running 1 test
+
+thread 'kernel::linux::resources_tests::socket_storage_follows_survivors_after_a_large_configuration' (8) panicked at src/kernel/linux/mod.rs:286:9:
+retained 420 slots for one tunnel
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test kernel::linux::resources_tests::socket_storage_follows_survivors_after_a_large_configuration ... FAILED
+
+failures:
+
+failures:
+    kernel::linux::resources_tests::socket_storage_follows_survivors_after_a_large_configuration
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 88 filtered out; finished in 0.06s
+

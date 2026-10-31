@@ -246,6 +246,26 @@ one-case boot, not a rerun of the normal conformance/scenario profile.
 Physical S3 and subscription overflow during a stopped guest are not
 injected; live overflow/resync evidence remains separate.
 
-Coverage, rule completeness, full H17, the expanded normal matrix, final
-manager/profile refreshes and strict CI remain open. This page does not
+### Scale and resource observations
+
+The H17 profiles on Ubuntu 6.8.0-147-generic and mainline 7.3.0 pass fresh 300-entry
+readiness, bidirectional traffic through every session, and three cycles
+from 300 owned tunnels down to one. Descriptors return from 314 to 15.
+An identical 300-entry reload issues 600 netlink requests; unrelated link
+creation/removal from the peer namespace produces zero requests, checked
+with a loss-accounted observer covering route and generic netlink.
+
+Direct allocation tests found and fixed retained socket/registration map
+capacity after shrink. RSS bounds alone did not detect those allocations.
+The lifetime subscriber still scans registrations on deletion; the live
+zero-request assertion does not establish its complete CPU-cost bound.
+The fresh mainline normal profile also passes 11 live library, 16 kernel,
+five review, 38 ordinary binary plus three privileged binary, 26 process
+and 23 scenario cases. Fresh readiness for both 300-entry daemons takes
+38.43 seconds under the recorded TCG profile. These results are scoped to
+the executed profiles; H17 has not yet run on every required target. Repository record
+`audit/phase6/H17-20261031/README.md` gives commands, measurements and limits.
+
+Coverage, rule completeness, full resource/event-cost proof, the expanded
+normal matrix, final manager/profile refreshes and strict CI remain open. This page does not
 declare Phase 6 complete or claim behavior for unexecuted cases.

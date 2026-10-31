@@ -9,15 +9,16 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | Gate/package | Current evidence | Remaining work |
 |---|---|---|
 | P1 source link | Fresh strict run: four tests pass; 43 facts, 37 production-cited and six classified; no uncited functions | Enable in CI only with required determinism and remaining phase proof |
-| P1 rule map | Fresh strict run fails: 343 total / 333 active / 273 cited / 60 missing | Genuine assertions/citations for the remaining rules; strict flag stays off |
-| P2 scenarios | 22-case host subset passes after H15/report fixes and the DHCPv6 low-range positive case; H16 passes on all five required kernels; scoped missing-Ethernet-driver guest also passes | Full H17 resource/event-cost checks, remaining clauses, manager/promise cases and final repetitions |
-| P3 matrix | Pre-H15 required driver returns MATRIX_RESULT=0: five 18-scenario profiles plus both H4 boots; H15 adds a scoped stock-kernel driver-availability boot; H16 adds a passing clock profile on every required target | Complete P2/delegated proof and rerun all latest targets with the expanded suite and current report fixes; partial profiles do not close the whole gate |
+| P1 rule map | Fresh strict run fails: 343 total / 333 active / 275 cited / 58 missing | Genuine assertions/citations for the remaining rules; strict flag stays off |
+| P2 scenarios | 23-case host subset passes, including the 300-tunnel H17 case; H16 passes on all five required kernels; scoped missing-Ethernet-driver guest also passes | Lifetime-subscriber indexed event cost, full resource/history proof, remaining clauses, manager/promise cases and final repetitions |
+| P3 matrix | Pre-H15 required driver returns MATRIX_RESULT=0: five 18-scenario profiles plus both H4 boots; H15 adds a scoped stock-kernel driver-availability boot; H16 adds a passing clock profile on every required target; fresh mainline normal profile passes all 23 scenarios and current conformance | Complete P2/delegated proof and rerun all latest targets with the expanded suite and current report fixes; partial profiles do not close the whole gate |
 | P4 coverage | First merged GNU report: 91.03% lines / 77.02% branches, source snapshot before the readiness fix | The previous source snapshot has 897 missing lines / 410 branches; recollect current-source profiles after readiness/H15 fixes; no exclusions introduced |
 | P5 Incus | October 30 full case passed, including manager race/ordered policy/store/re-exec; fresh GNU buffer case proves EPERM and exports coverage | Final-code full-case refresh as part of phase exit |
 | P6 root sandbox | October 30 full real-root-systemd sandbox case passed, without drop-ins | Final phase validation; no new sandbox claim from the coverage-only user-manager case |
 | P7 docs/CI | Documentation updated to the actual partial runners and new records | Full verification, determinism/coverage jobs, strict CI and CI execution remain open |
 
 Current P1/ordinary/warning checks are in
+[H17-20261031](phase6/H17-20261031/README.md). Clock evidence is in
 [H16-20261031](phase6/H16-20261031/README.md). H15/report-fix evidence is in
 [H15-20261031](phase6/H15-20261031/README.md). Earlier readiness-fix logs are in
 [ready-signal-race-20261031](phase6/ready-signal-race-20261031/README.md).
@@ -146,6 +147,38 @@ unprivileged range starts at zero. The final 22-case host regression,
 ordinary tests, Clippy and strict source links pass; strict rule-map coverage
 is now 273 cited / 60 missing. Full H17 and the other remaining gates
 remain open.
+
+## H17 live scale and retained storage
+
+[The H17 package](phase6/H17-20261031/README.md) adds fresh 300-entry
+readiness, exact live object counts, frames both ways through all 300
+sessions, three 300-to-one reload cycles and descriptor checks. An unchanged
+300-entry reload issues 600 requests; 200 unrelated link events issue zero.
+The extended nlmon observer counts both rtnetlink and generic netlink and
+passes live positive controls with no loss. RSS envelopes are finite
+regression guards, not complete allocation proofs.
+
+Direct regressions found and fixed socket and registration maps retaining
+hundreds of slots for one survivor. Geometric shrinking now bounds retained
+capacity by current records plus a constant; generation loss discards the
+registration allocation. Failed before logs remain beside passing results.
+A process-test startup race is fixed by awaiting kernel-open failure after
+signal installation before sending SIGTERM. No production signal behavior
+changed. The original failure and subsequent repetitions are retained.
+
+The full host profile now passes 23 scenarios. The corrected mainline
+normal guest also passes all 23 scenarios, 11 live library cases,
+16 kernel cases, five review cases, 38 ordinary binary cases plus three
+privileged cases, and 26 process cases. Its original failure was the
+scale fixture's ten-second observation timeout during session creation,
+not a kernel refusal; the scoped observation waits now allow sixty seconds
+per readiness/reload/shutdown. Actual fresh 300-entry readiness is 38.43
+seconds for both daemons in TCG. The original failure remains recorded.
+M16/G12's CPU-cost proof
+remains open: the lifetime subscriber still scans tracked registrations on
+RTM_DELLINK. Discovery/store/history bounds and other remaining clauses
+also retain their separate obligations. Rule citations improve to 275,
+leaving 58 uncited active rules; strict CI remains off.
 
 ## Coverage and exit state
 

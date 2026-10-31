@@ -504,9 +504,13 @@ A readiness/signal-order race found
 by that guest is fixed and retested. Initial merged coverage is 91.03%
 lines / 77.02% branches, before the readiness/H15 fixes. H15 now has four
 capability/netlink scenarios and a scoped missing-driver guest pass; the
-host subset passes 22 scenarios. H16 clock steps and monitored pause/resume
+host subset now passes 23 scenarios, including the 300-tunnel scale case. H16 clock steps and monitored pause/resume
 pass on all five required kernels, and the low-port-range DHCPv6 positive
-case passes. There are 60 uncited rules; full H17, remaining clauses and
+case passes. H17 exercises every session, bounds descriptors across shrink
+cycles and observes zero requests for unrelated links; a fresh mainline
+normal profile passes the expanded 23-scenario suite. Two retained map
+allocations are fixed. There are 58 uncited rules; lifetime-subscriber
+indexed event cost, complete resource/history proof, remaining clauses and
 final matrix/coverage refreshes are still open. No global gate is declared
 complete; strict CI flags remain off. The latest record is repository file
 `audit/PHASE6_VERIFICATION_2026-10-31.md`; the approved H11 MAC limitations

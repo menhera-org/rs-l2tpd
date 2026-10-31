@@ -1,0 +1,250 @@
+diff --git a/src/kernel/linux/lifetime.rs b/src/kernel/linux/lifetime.rs
+index 362e45e..97a4d20 100644
+--- a/src/kernel/linux/lifetime.rs
++++ b/src/kernel/linux/lifetime.rs
+@@ -78,7 +78,7 @@ impl State {
+     fn end_generation(&mut self) {
+         self.generation += 1;
+         self.captures.clear();
+-        self.tracked.clear();
++        self.tracked = HashMap::new();
+         self.lookups.clear();
+         self.socket = open().map(Arc::new).ok();
+     }
+@@ -413,7 +413,13 @@ impl Lifetime {
+     // kernel: net/core/dev.c:11205-11224 (K29)
+     /// Stops tracking a registration.
+     pub(super) fn release(&self, registration: &Registration) {
+-        self.shared.lock().tracked.remove(&registration.incarnation);
++        let mut state = self.shared.lock();
++        state.tracked.remove(&registration.incarnation);
++        // Retired registrations must not retain a former configuration's allocation (G23).
++        if state.tracked.capacity() > state.tracked.len().saturating_mul(4).max(16) {
++            let remaining = state.tracked.len();
++            state.tracked.shrink_to(remaining);
++        }
+     }
+ }
+ 
+@@ -471,6 +477,60 @@ mod tests {
+         }
+     }
+ 
++    // kernel: net/core/dev.c unregister_netdevice and RTM_DELLINK (K29)
++    /// spec: G23, M16
++    #[test]
++    fn retired_registrations_release_their_storage() {
++        let mut state = state();
++        for incarnation in 1..=300 {
++            state.tracked.insert(
++                incarnation,
++                Tracked {
++                    index: incarnation as u32,
++                    removed: false,
++                },
++            );
++        }
++        let lifetime = Lifetime {
++            shared: Arc::new(Shared {
++                state: Mutex::new(state),
++                changed: Condvar::new(),
++            }),
++            thread: None,
++        };
++        for incarnation in 2..=300 {
++            lifetime.release(&Registration {
++                index: incarnation as u32,
++                generation: 0,
++                incarnation,
++            });
++            let state = lifetime.shared.lock();
++            assert!(state.tracked.capacity() <= state.tracked.len().saturating_mul(4).max(16));
++        }
++        let mut state = lifetime.shared.lock();
++        assert_eq!(state.tracked.len(), 1);
++        assert!(
++            state.tracked.capacity() <= 16,
++            "retained {} slots for one registration",
++            state.tracked.capacity()
++        );
++        for incarnation in 2..=300 {
++            state.tracked.insert(
++                incarnation,
++                Tracked {
++                    index: incarnation as u32,
++                    removed: false,
++                },
++            );
++        }
++        state.end_generation();
++        assert_eq!(
++            state.tracked.capacity(),
++            0,
++            "ended generations must release all registrations"
++        );
++    }
++
+     // kernel: net/core/dev.c:10425, 11205-11224 (K16, K20)
+     /// spec: S8, S9, M18, E5, E22
+     #[test]
+diff --git a/src/kernel/linux/mod.rs b/src/kernel/linux/mod.rs
+index d47326f..82c4ba9 100644
+--- a/src/kernel/linux/mod.rs
++++ b/src/kernel/linux/mod.rs
+@@ -125,6 +125,10 @@ impl Kernel for LinuxKernel {
+     // queued at the last close)
+     fn close(&mut self, socket: SocketId) {
+         self.sockets.remove(&socket);
++        // Geometric shrinking bounds storage by survivors without copying on every close (G23).
++        if self.sockets.capacity() > self.sockets.len().saturating_mul(4).max(16) {
++            self.sockets.shrink_to(self.sockets.len());
++        }
+     }
+ 
+     // kernel: fs/fcntl.c F_DUPFD_CLOEXEC; a duplicate keeps the tunnel (K37)
+@@ -264,3 +268,41 @@ impl Kernel for LinuxKernel {
+         Ok(Box::new(self.genl.events()?))
+     }
+ }
++
++#[cfg(test)]
++mod resources_tests {
++    use super::*;
++
++    // kernel: net/l2tp/l2tp_ip6.c l2tp_ip6_bind and l2tp_ip6_close (K4, K17)
++    /// spec: G23, M16
++    #[test]
++    #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
++    fn socket_storage_follows_survivors_after_a_large_configuration() {
++        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
++        let mut kernel = LinuxKernel::new().unwrap();
++        let sockets: Vec<_> = (1..=300)
++            .map(|id| kernel.create_socket(Family::V6, id, id + 1000).unwrap())
++            .collect();
++        let survivor = kernel.socket(sockets[0]).unwrap().socket.as_raw_fd();
++        for socket in sockets.iter().skip(1) {
++            kernel.close(*socket);
++            assert!(kernel.sockets.capacity() <= kernel.sockets.len().saturating_mul(4).max(16));
++        }
++        assert_eq!(
++            kernel.socket(sockets[0]).unwrap().socket.as_raw_fd(),
++            survivor
++        );
++        assert_eq!(
++            kernel.socket(sockets[1]).err().unwrap().raw_os_error(),
++            Some(libc::EBADF)
++        );
++        assert_eq!(kernel.sockets.len(), 1);
++        assert!(
++            kernel.sockets.capacity() <= 16,
++            "retained {} slots for one tunnel",
++            kernel.sockets.capacity()
++        );
++        kernel.close(sockets[0]);
++        assert!(kernel.sockets.capacity() <= 16);
++    }
++}
+diff --git a/tests/scenarios/main.rs b/tests/scenarios/main.rs
+index 0398df7..c85a249 100644
+--- a/tests/scenarios/main.rs
++++ b/tests/scenarios/main.rs
+@@ -6,5 +6,6 @@ mod incus;
+ mod managers;
+ mod netlink;
+ mod promises;
++mod scale;
+ mod support;
+ mod system_manager;
+diff --git a/tests/scenarios/netlink.rs b/tests/scenarios/netlink.rs
+index 864d37e..9a183d0 100644
+--- a/tests/scenarios/netlink.rs
++++ b/tests/scenarios/netlink.rs
+@@ -17,6 +17,7 @@ use std::time::Duration;
+ pub struct Counts {
+     pub requests: usize,
+     pub route_queries: usize,
++    pub generic_requests: usize,
+     pub packets: u32,
+ }
+ pub struct RouteTrace {
+@@ -24,7 +25,7 @@ pub struct RouteTrace {
+     counts: Arc<Mutex<Counts>>,
+     reader: Option<std::thread::JoinHandle<io::Result<[u32; 2]>>>,
+ }
+-fn requests(bytes: &[u8]) -> io::Result<(usize, usize)> {
++fn requests(protocol: u16, bytes: &[u8]) -> io::Result<(usize, usize)> {
+     let mut rest = bytes;
+     let (mut requests, mut routes) = (0, 0);
+     while !rest.is_empty() {
+@@ -32,7 +33,7 @@ fn requests(bytes: &[u8]) -> io::Result<(usize, usize)> {
+             .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "nlmon header"))?;
+         if header.flags() & netlink_packet_core::NLM_F_REQUEST != 0 {
+             requests += 1;
+-            routes += usize::from(header.message_type() == 26); // RTM_GETROUTE
++            routes += usize::from(protocol == 0 && header.message_type() == 26); // RTM_GETROUTE
+         }
+         let length = header.length() as usize;
+         rest = rest.get(length.next_multiple_of(4)..).unwrap_or_default();
+@@ -134,15 +135,13 @@ impl RouteTrace {
+                         "truncated nlmon packet",
+                     ));
+                 }
+-                let (requests, routes) = if u16::from_be(address.sll_protocol) == 0 {
+-                    requests(&bytes[..received])?
+-                } else {
+-                    (0, 0)
+-                };
++                let protocol = u16::from_be(address.sll_protocol);
++                let (requests, routes) = requests(protocol, &bytes[..received])?;
+                 let mut state = captured.lock().unwrap();
+                 state.packets += 1;
+                 state.requests += requests;
+                 state.route_queries += routes;
++                state.generic_requests += if protocol == 16 { requests } else { 0 };
+             }
+             let mut statistics = [0u32; 2];
+             let mut length = std::mem::size_of_val(&statistics) as libc::socklen_t;
+@@ -198,21 +197,22 @@ fn netlink_requests_are_counted_without_counting_notifications_or_replies() {
+     query[..4].copy_from_slice(&16u32.to_ne_bytes());
+     query[4..6].copy_from_slice(&26u16.to_ne_bytes());
+     query[6..8].copy_from_slice(&1u16.to_ne_bytes());
+-    assert_eq!(requests(&query).unwrap(), (1, 1));
++    assert_eq!(requests(0, &query).unwrap(), (1, 1));
++    assert_eq!(requests(16, &query).unwrap(), (1, 0));
+     let mut reply = query;
+     reply[4..6].copy_from_slice(&24u16.to_ne_bytes());
+     reply[6..8].copy_from_slice(&0u16.to_ne_bytes());
+-    assert_eq!(requests(&reply).unwrap(), (0, 0));
++    assert_eq!(requests(0, &reply).unwrap(), (0, 0));
+     let datagram = [query, reply].concat();
+-    assert_eq!(requests(&datagram).unwrap(), (1, 1));
+-    assert!(requests(&query[..8]).is_err());
++    assert_eq!(requests(0, &datagram).unwrap(), (1, 1));
++    assert!(requests(0, &query[..8]).is_err());
+     query[..4].copy_from_slice(&200u32.to_ne_bytes());
+-    assert!(requests(&query).is_err());
++    assert!(requests(0, &query).is_err());
+ }
+ 
+ #[test]
+ #[ignore = "disposable privileged container with nlmon already available"]
+-fn nlmon_sees_fixture_route_requests_without_packet_loss() {
++fn nlmon_sees_fixture_route_and_generic_requests_without_packet_loss() {
+     let pair = Pair::new();
+     pair.underlay(true, true);
+     let trace = RouteTrace::start(&pair, 0);
+@@ -221,9 +221,13 @@ fn nlmon_sees_fixture_route_requests_without_packet_loss() {
+     super::support::wait("both deliberate route queries captured", || {
+         trace.snapshot().route_queries == 2
+     });
++    pair.ip(0, &["l2tp", "show", "tunnel"]);
++    super::support::wait("deliberate L2TP query captured", || {
++        trace.snapshot().generic_requests > 0
++    });
+     let counts = trace.finish();
+     assert_eq!(counts.route_queries, 2);
+-    assert!(counts.requests >= 2);
++    assert!(counts.requests >= 3 && counts.generic_requests > 0);
+     println!("nlmon counts: {counts:?}");
+ }
+ 

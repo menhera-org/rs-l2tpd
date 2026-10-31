@@ -78,7 +78,7 @@ impl State {
     fn end_generation(&mut self) {
         self.generation += 1;
         self.captures.clear();
-        self.tracked.clear();
+        self.tracked = HashMap::new();
         self.lookups.clear();
         self.socket = open().map(Arc::new).ok();
     }
@@ -413,7 +413,13 @@ impl Lifetime {
     // kernel: net/core/dev.c:11205-11224 (K29)
     /// Stops tracking a registration.
     pub(super) fn release(&self, registration: &Registration) {
-        self.shared.lock().tracked.remove(&registration.incarnation);
+        let mut state = self.shared.lock();
+        state.tracked.remove(&registration.incarnation);
+        // Retired registrations must not retain a former configuration's allocation (G23).
+        if state.tracked.capacity() > state.tracked.len().saturating_mul(4).max(16) {
+            let remaining = state.tracked.len();
+            state.tracked.shrink_to(remaining);
+        }
     }
 }
 
@@ -469,6 +475,60 @@ mod tests {
             tracked: HashMap::new(),
             lookups: HashMap::new(),
         }
+    }
+
+    // kernel: net/core/dev.c unregister_netdevice and RTM_DELLINK (K29)
+    /// spec: G23, M16
+    #[test]
+    fn retired_registrations_release_their_storage() {
+        let mut state = state();
+        for incarnation in 1..=300 {
+            state.tracked.insert(
+                incarnation,
+                Tracked {
+                    index: incarnation as u32,
+                    removed: false,
+                },
+            );
+        }
+        let lifetime = Lifetime {
+            shared: Arc::new(Shared {
+                state: Mutex::new(state),
+                changed: Condvar::new(),
+            }),
+            thread: None,
+        };
+        for incarnation in 2..=300 {
+            lifetime.release(&Registration {
+                index: incarnation as u32,
+                generation: 0,
+                incarnation,
+            });
+            let state = lifetime.shared.lock();
+            assert!(state.tracked.capacity() <= state.tracked.len().saturating_mul(4).max(16));
+        }
+        let mut state = lifetime.shared.lock();
+        assert_eq!(state.tracked.len(), 1);
+        assert!(
+            state.tracked.capacity() <= 16,
+            "retained {} slots for one registration",
+            state.tracked.capacity()
+        );
+        for incarnation in 2..=300 {
+            state.tracked.insert(
+                incarnation,
+                Tracked {
+                    index: incarnation as u32,
+                    removed: false,
+                },
+            );
+        }
+        state.end_generation();
+        assert_eq!(
+            state.tracked.capacity(),
+            0,
+            "ended generations must release all registrations"
+        );
     }
 
     // kernel: net/core/dev.c:10425, 11205-11224 (K16, K20)

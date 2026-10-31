@@ -1,0 +1,32 @@
+Full output: ../scenarios-20261031T092644Z-3628620/run.log
+command: docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --env RS_L2TPD_SCENARIO_CONTAINER=1 --env RS_L2TPD_BASELINE=/home/dev/rs-l2tpd/target/phase6-baseline/15529bab567862b6617c9c5b948a74271bc9c44c/target/x86_64-unknown-linux-musl/release/rs-l2tpd --entrypoint sh rs-l2tpd-audit-vm:local -ec uname -r; exec "$@" run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e --ignored --test-threads=1 --nocapture --skip incus::system_container_store_tunable_networkd_and_udev scale::
+H17_READY tunnels=300 elapsed_ns=3246404715
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7896
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7904
+H17_READY tunnels=1 elapsed_ns=5653726
+H17_RESOURCES tunnels=1 fds=15 rss_kib=6876
+H17_RESOURCES tunnels=1 fds=15 rss_kib=6896
+H17_EXPAND cycle=0 elapsed_ns=5985863415
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7588
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7620
+H17_FRAMES sessions=300 directions=both
+H17_IDENTICAL_RELOAD tunnels=300 Counts { requests: 600, route_queries: 0, generic_requests: 0, packets: 1500 }
+H17_UNRELATED events=200 Counts { requests: 0, route_queries: 0, generic_requests: 0, packets: 400 }
+H17_RELEVANT reconnects=300
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7132
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7200
+H17_SHRINK cycle=0
+H17_EXPAND cycle=1 elapsed_ns=6110851299
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7740
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7756
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7184
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7224
+H17_SHRINK cycle=1
+H17_EXPAND cycle=2 elapsed_ns=6070565851
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7740
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7768
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7188
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7212
+H17_SHRINK cycle=2
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 24 filtered out; finished in 64.73s
+SCENARIO_RESULT=0

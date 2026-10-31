@@ -17,6 +17,7 @@ use std::time::Duration;
 pub struct Counts {
     pub requests: usize,
     pub route_queries: usize,
+    pub generic_requests: usize,
     pub packets: u32,
 }
 pub struct RouteTrace {
@@ -24,7 +25,7 @@ pub struct RouteTrace {
     counts: Arc<Mutex<Counts>>,
     reader: Option<std::thread::JoinHandle<io::Result<[u32; 2]>>>,
 }
-fn requests(bytes: &[u8]) -> io::Result<(usize, usize)> {
+fn requests(protocol: u16, bytes: &[u8]) -> io::Result<(usize, usize)> {
     let mut rest = bytes;
     let (mut requests, mut routes) = (0, 0);
     while !rest.is_empty() {
@@ -32,7 +33,7 @@ fn requests(bytes: &[u8]) -> io::Result<(usize, usize)> {
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "nlmon header"))?;
         if header.flags() & netlink_packet_core::NLM_F_REQUEST != 0 {
             requests += 1;
-            routes += usize::from(header.message_type() == 26); // RTM_GETROUTE
+            routes += usize::from(protocol == 0 && header.message_type() == 26); // RTM_GETROUTE
         }
         let length = header.length() as usize;
         rest = rest.get(length.next_multiple_of(4)..).unwrap_or_default();
@@ -134,15 +135,13 @@ impl RouteTrace {
                         "truncated nlmon packet",
                     ));
                 }
-                let (requests, routes) = if u16::from_be(address.sll_protocol) == 0 {
-                    requests(&bytes[..received])?
-                } else {
-                    (0, 0)
-                };
+                let protocol = u16::from_be(address.sll_protocol);
+                let (requests, routes) = requests(protocol, &bytes[..received])?;
                 let mut state = captured.lock().unwrap();
                 state.packets += 1;
                 state.requests += requests;
                 state.route_queries += routes;
+                state.generic_requests += if protocol == 16 { requests } else { 0 };
             }
             let mut statistics = [0u32; 2];
             let mut length = std::mem::size_of_val(&statistics) as libc::socklen_t;
@@ -198,21 +197,22 @@ fn netlink_requests_are_counted_without_counting_notifications_or_replies() {
     query[..4].copy_from_slice(&16u32.to_ne_bytes());
     query[4..6].copy_from_slice(&26u16.to_ne_bytes());
     query[6..8].copy_from_slice(&1u16.to_ne_bytes());
-    assert_eq!(requests(&query).unwrap(), (1, 1));
+    assert_eq!(requests(0, &query).unwrap(), (1, 1));
+    assert_eq!(requests(16, &query).unwrap(), (1, 0));
     let mut reply = query;
     reply[4..6].copy_from_slice(&24u16.to_ne_bytes());
     reply[6..8].copy_from_slice(&0u16.to_ne_bytes());
-    assert_eq!(requests(&reply).unwrap(), (0, 0));
+    assert_eq!(requests(0, &reply).unwrap(), (0, 0));
     let datagram = [query, reply].concat();
-    assert_eq!(requests(&datagram).unwrap(), (1, 1));
-    assert!(requests(&query[..8]).is_err());
+    assert_eq!(requests(0, &datagram).unwrap(), (1, 1));
+    assert!(requests(0, &query[..8]).is_err());
     query[..4].copy_from_slice(&200u32.to_ne_bytes());
-    assert!(requests(&query).is_err());
+    assert!(requests(0, &query).is_err());
 }
 
 #[test]
 #[ignore = "disposable privileged container with nlmon already available"]
-fn nlmon_sees_fixture_route_requests_without_packet_loss() {
+fn nlmon_sees_fixture_route_and_generic_requests_without_packet_loss() {
     let pair = Pair::new();
     pair.underlay(true, true);
     let trace = RouteTrace::start(&pair, 0);
@@ -221,9 +221,13 @@ fn nlmon_sees_fixture_route_requests_without_packet_loss() {
     super::support::wait("both deliberate route queries captured", || {
         trace.snapshot().route_queries == 2
     });
+    pair.ip(0, &["l2tp", "show", "tunnel"]);
+    super::support::wait("deliberate L2TP query captured", || {
+        trace.snapshot().generic_requests > 0
+    });
     let counts = trace.finish();
     assert_eq!(counts.route_queries, 2);
-    assert!(counts.requests >= 2);
+    assert!(counts.requests >= 3 && counts.generic_requests > 0);
     println!("nlmon counts: {counts:?}");
 }
 

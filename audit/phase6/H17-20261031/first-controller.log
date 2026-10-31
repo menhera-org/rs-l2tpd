@@ -1,0 +1,29 @@
+Full output: ../scenarios-20261031T091729Z-3610359/run.log
+command: docker run --rm --privileged --network none --mount type=bind,source=/home/dev/rs-l2tpd,target=/home/dev/rs-l2tpd,readonly --env RS_L2TPD_SCENARIO_CONTAINER=1 --env RS_L2TPD_BASELINE=/home/dev/rs-l2tpd/target/phase6-baseline/15529bab567862b6617c9c5b948a74271bc9c44c/target/x86_64-unknown-linux-musl/release/rs-l2tpd --entrypoint sh rs-l2tpd-audit-vm:local -ec uname -r; exec "$@" run /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/scenarios-bb525e64707d694e --ignored --test-threads=1 --nocapture --skip incus::system_container_store_tunable_networkd_and_udev scale::
+H17_READY tunnels=1 elapsed_ns=5797501
+H17_RESOURCES tunnels=1 fds=15 rss_kib=6920
+H17_RESOURCES tunnels=1 fds=15 rss_kib=6820
+H17_EXPAND cycle=0 elapsed_ns=5556013187
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7632
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7612
+H17_FRAMES sessions=300 directions=both
+H17_IDENTICAL_RELOAD tunnels=300 Counts { requests: 600, route_queries: 0, generic_requests: 0, packets: 1500 }
+H17_UNRELATED events=200 Counts { requests: 0, route_queries: 0, generic_requests: 0, packets: 400 }
+H17_RELEVANT reconnects=300
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7240
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7192
+H17_SHRINK cycle=0
+H17_EXPAND cycle=1 elapsed_ns=5539523582
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7792
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7756
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7292
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7240
+H17_SHRINK cycle=1
+H17_EXPAND cycle=2 elapsed_ns=5529560670
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7792
+H17_RESOURCES tunnels=300 fds=314 rss_kib=7764
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7296
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7256
+H17_SHRINK cycle=2
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 24 filtered out; finished in 55.54s
+SCENARIO_RESULT=0

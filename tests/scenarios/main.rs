@@ -6,5 +6,6 @@ mod incus;
 mod managers;
 mod netlink;
 mod promises;
+mod scale;
 mod support;
 mod system_manager;

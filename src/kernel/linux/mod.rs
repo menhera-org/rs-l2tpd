@@ -125,6 +125,10 @@ impl Kernel for LinuxKernel {
     // queued at the last close)
     fn close(&mut self, socket: SocketId) {
         self.sockets.remove(&socket);
+        // Geometric shrinking bounds storage by survivors without copying on every close (G23).
+        if self.sockets.capacity() > self.sockets.len().saturating_mul(4).max(16) {
+            self.sockets.shrink_to(self.sockets.len());
+        }
     }
 
     // kernel: fs/fcntl.c F_DUPFD_CLOEXEC; a duplicate keeps the tunnel (K37)
@@ -262,5 +266,43 @@ impl Kernel for LinuxKernel {
     // kernel: net/l2tp/l2tp_netlink.c:102-160, 664-665 (K41)
     fn l2tp_events(&mut self) -> io::Result<Box<dyn Subscription>> {
         Ok(Box::new(self.genl.events()?))
+    }
+}
+
+#[cfg(test)]
+mod resources_tests {
+    use super::*;
+
+    // kernel: net/l2tp/l2tp_ip6.c l2tp_ip6_bind and l2tp_ip6_close (K4, K17)
+    /// spec: G23, M16
+    #[test]
+    #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
+    fn socket_storage_follows_survivors_after_a_large_configuration() {
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let mut kernel = LinuxKernel::new().unwrap();
+        let sockets: Vec<_> = (1..=300)
+            .map(|id| kernel.create_socket(Family::V6, id, id + 1000).unwrap())
+            .collect();
+        let survivor = kernel.socket(sockets[0]).unwrap().socket.as_raw_fd();
+        for socket in sockets.iter().skip(1) {
+            kernel.close(*socket);
+            assert!(kernel.sockets.capacity() <= kernel.sockets.len().saturating_mul(4).max(16));
+        }
+        assert_eq!(
+            kernel.socket(sockets[0]).unwrap().socket.as_raw_fd(),
+            survivor
+        );
+        assert_eq!(
+            kernel.socket(sockets[1]).err().unwrap().raw_os_error(),
+            Some(libc::EBADF)
+        );
+        assert_eq!(kernel.sockets.len(), 1);
+        assert!(
+            kernel.sockets.capacity() <= 16,
+            "retained {} slots for one tunnel",
+            kernel.sockets.capacity()
+        );
+        kernel.close(sockets[0]);
+        assert!(kernel.sockets.capacity() <= 16);
     }
 }
