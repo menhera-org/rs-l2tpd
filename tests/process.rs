@@ -315,7 +315,7 @@ fn foreground_reload_and_clean_shutdown_without_network() {
     assert!(kernel.tunnel(10).unwrap().is_none());
 }
 
-/// spec: P4 P6 P10 P11 P12 P15 P22 P26 O7 A10 E26 O9
+/// spec: P4 P6 P10 P11 P12 P15 P22 P26 O7 A10 E26 O9 G15 G20
 #[test]
 #[ignore = "isolated privileged container"]
 fn daemon_readiness_pid_inode_and_reexec() {
@@ -1055,7 +1055,7 @@ fn failed_store_cleanup_is_reported_and_shutdown_is_bounded() {
     }
 }
 
-/// spec: P7 P8 P20 R21 R14
+/// spec: P7 P8 P20 R21 R14 G15
 #[test]
 #[ignore = "isolated privileged container; exercises the ten-second conflict budget"]
 fn overlapping_instance_becomes_ready_without_deleting_foreign_objects() {
@@ -1067,6 +1067,7 @@ fn overlapping_instance_becomes_ready_without_deleting_foreign_objects() {
     let mut kernel = LinuxKernel::new().unwrap();
     let original = index(&mut kernel);
     let second_pid = dir.path().join("second.pid");
+    let started = Instant::now();
     let mut second = Process::spawn(start(&main, false, &second_pid));
     let deadline = Instant::now() + Duration::from_secs(1);
     while Instant::now() < deadline {
@@ -1078,6 +1079,9 @@ fn overlapping_instance_becomes_ready_without_deleting_foreign_objects() {
         std::thread::sleep(Duration::from_millis(10));
     }
     second.event("ready");
+    let elapsed = started.elapsed();
+    println!("G15_CONFLICT_READY elapsed_ns={}", elapsed.as_nanos());
+    assert!(elapsed <= Duration::from_secs(10));
     assert!(second.child.wait().unwrap().success());
     second.pid = fs::read_to_string(&second_pid)
         .unwrap()

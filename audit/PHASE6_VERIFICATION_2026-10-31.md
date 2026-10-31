@@ -346,8 +346,8 @@ devices. Bind-name loss/restoration reconnects without session replacement.
 Each scoped run requires all three guest result markers; neither is a full
 normal-matrix result or a CONFIG_NET_VRF=n build. The host is untouched.
 
-All 75 rule cases pass under each of ten seeds; common CI and four strict
-source-link cases pass. Strict rule-map status is 314 cited / 333 active,
+All 75 rule cases pass under each of ten seeds; common CI and four
+source-link cases pass in the lenient shared-script run. Strict rule-map status is 314 cited / 333 active,
 19 uncited. Every active R rule now has declaration traceability, with full
 clause proof still open. Coverage, final normal matrix/manager profiles,
 event/resource/history proof and strict CI remain incomplete.
@@ -364,7 +364,8 @@ IDs are omitted; cookies remain redacted. A nine-input process case and exact
 creation-report labels assert O4. Existing exact-message expectations are
 updated to include IDs, with the intermediate failures retained separately.
 
-Common CI and four strict source-link cases pass. Each of ten seeds passes
+Common CI and four source-link cases pass. Shared-script map runs were lenient.
+Each of ten seeds passes
 92 ordinary library cases (11 live ignored), 75 rules, 25 service cases and
 nine ordinary process cases (18 live ignored). The privileged musl process
 suite passes all 27 cases on `6.8.0-147-generic`; the full host suite passes
@@ -401,6 +402,40 @@ lint failure is retained separately. The corrected common CI passes, and the
 final focused H6 run passes in 4.45 seconds. The strict map is 330 cited / 333 active,
 three missing: G15, G16, G20. Current coverage, final normal matrix and manager
 profiles, complete clause/event-cost/resource/history proof and strict CI
+remain open.
+
+## Final promise declarations and complete local traceability
+
+[The conditional-promise package](phase6/conditional-promises-20261031/README.md)
+supplies G15/G16/G20 declarations and a live G15–G20 scenario. It measures
+readiness after creation while DNS, binding and routes are unavailable;
+requires all three eligible objects; measures literal-peer connection; keeps
+all session indexes through identical reload, rename and peer change; carries
+real frames; checks the kernel's source/peer dump; and requires ordered
+session-before-tunnel cleanup, exit status 0 and actual object absence.
+The process conflict case now enforces the ten-second readiness bound.
+Existing parent/PID and runtime cleanup-window tests add complementary tags.
+
+The explicit two-flag strict command passes three rule-map and four source-link
+cases: 343 total / 333 active / 333 cited / zero missing; 43 active K facts,
+37 production citations, six classified facts and no uncited Linux functions.
+Ten seeded runs each pass 92 ordinary library cases (11 live ignored), one
+fake-conformance case, 75 rules and 25 service cases; the ranges overlap.
+Common CI passes, and three consecutive full local host runs pass all 26 cases
+in 164.21, 163.32 and 161.90 seconds, with no intervening source change or flake.
+Each retains its required controller result marker.
+The live musl process suite passes all 27 cases on `6.8.0-147-generic`;
+the measured conflict-readiness delay is 9.017 seconds, within ten seconds.
+
+Audit wording is corrected where the host-requirement, observability and
+architecture packages called their shared-script source-link runs strict.
+The shared script does not set strict flags: those invocations reported
+counts leniently. Separate explicit strict logs are distinct evidence. The
+current explicit strict run above closes local declaration traceability,
+not every clause or the phase. The plan requires ten repetitions of each
+suite in CI, so three local container runs do not authorize claiming that
+stronger requirement complete. Strict CI enforcement remains off; final
+kernel/manager profiles, coverage and complete resource/event/history proof
 remain open.
 
 ## Coverage and exit state

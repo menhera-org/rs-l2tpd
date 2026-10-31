@@ -504,14 +504,14 @@ A readiness/signal-order race found
 by that guest is fixed and retested. Initial merged coverage is 91.03%
 lines / 77.02% branches, before the readiness/H15 fixes. H15 now has four
 capability/netlink scenarios and a scoped missing-driver guest pass; the
-host subset now passes 25 scenarios, including the 300-tunnel scale case. H16 clock steps and monitored pause/resume
+host subset now passes 26 scenarios, including the 300-tunnel scale case. H16 clock steps and monitored pause/resume
 pass on all five required kernels, and the low-port-range DHCPv6 positive
 case passes. H17 exercises every session, bounds descriptors across shrink
 cycles and observes zero requests for unrelated links; a fresh mainline
 normal profile passes the expanded 23-scenario suite. Two retained map
 allocations are fixed. The lifetime subscriber now indexes deletion work
 by interface and incarnation, with passing native/live/host cases. There
-are three uncited rules (G15, G16, G20). Deadline selection now uses ordered indexes, with
+are no uncited active rules: the map links all 333. Deadline selection now uses ordered indexes, with
 ten seeded rule runs, all host/process cases and a fresh mainline clock
 case passing. Obsolete conflict history is released on removal/shutdown.
 Relevant link/address cache maintenance now updates changed dependencies
@@ -544,6 +544,11 @@ accepted configuration after each transition. Staging retries check no second
 creation, and restart checks exact PID formatting and fixture disk contents.
 Architecture/event/observability assertions link another 15 rules, with
 module-map checks kept distinct from behavioral execution evidence.
+A live G15–G20 scenario now checks early readiness with three disconnected
+entries, measured connection, in-place stability/fidelity and ordered cleanup
+with a successful process exit. The conflict process case enforces ten-second
+readiness. Local traceability is complete; strict CI enforcement still awaits
+the plan's required CI repetitions and does not imply complete clause proof.
 Complete event-cost/resource/history proof, remaining clauses and
 final matrix/coverage refreshes are still open. No global gate is declared
 complete; strict CI flags remain off. The latest record is repository file

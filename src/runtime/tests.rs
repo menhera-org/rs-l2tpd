@@ -497,7 +497,7 @@ fn library_boundary_and_extensible_api() {
     assert_eq!(error.raw_os_error(), Some(13));
 }
 
-/// spec: L13, T8
+/// spec: L13, T8, G20
 #[test]
 fn shutdown_keeps_withdrawal_and_kernel_deletion_windows_separate() {
     engine().block_on(async {

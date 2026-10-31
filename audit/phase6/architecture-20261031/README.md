@@ -90,7 +90,8 @@ iterator refinement, which does not change those suites or daemon behavior.
 index-based loops in the new H6 assertion; they now enumerate their arrays.
 [ci-gates.log](ci-gates.log) then passes the common formatting, ShellCheck,
 warning-denied Clippy/docs, feature builds, native/musl ordinary suites and four
-strict source-link cases. The [final focused H6 run](../scenarios-20261031T124648Z-3893780/run.log)
+source-link cases. Those shared-script map runs were lenient; explicit strict
+execution is recorded in the later conditional-promises package. The [final focused H6 run](../scenarios-20261031T124648Z-3893780/run.log)
 passes in 4.45 seconds; both controller summaries retain `SCENARIO_RESULT=0`.
 No product fix or lint suppression was needed.
 [rulemap.log](rulemap.log) remains red, exit 101: 343 total / 333 active /

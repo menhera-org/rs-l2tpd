@@ -43,7 +43,7 @@ before the final expanded input table.
 
 | Final record | Result |
 |---|---|
-| [ci-gates.log](ci-gates.log) | Shared formatting, ShellCheck, warning-denied Clippy/docs, feature builds, native/musl ordinary suites and four strict source-link cases pass |
+| [ci-gates.log](ci-gates.log) | Shared formatting, ShellCheck, warning-denied Clippy/docs, feature builds, native/musl ordinary suites and four source-link cases pass; shared-script map runs were lenient |
 | [fake-ten.log](fake-ten.log) | Each of ten seeds passes 92 ordinary library cases (11 live ignored), 75 rule cases, 25 service cases and nine ordinary process cases (18 live ignored) |
 | [live.log](live.log) | All 27 process cases pass in the privileged musl container |
 | [Full host run](../scenarios-20261031T123212Z-3860569/run.log) | All 25 scenarios pass in 163.38 seconds; controller.log retains `SCENARIO_RESULT=0` |

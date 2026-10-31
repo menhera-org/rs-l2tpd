@@ -73,7 +73,9 @@ passes it on `7.0.0-42-generic` in 2.54 seconds. Both require
 `CONFORMANCE_RESULT=0`, `SCENARIO_RESULT=0` and `MATRIX_GUEST_RESULT=0`.
 [ci-gates.log](ci-gates.log) passes the shared formatting, ShellCheck,
 warning-denied Clippy/docs, feature builds, native/musl ordinary suites and
-four strict source-link cases. Guest controller summaries are retained too.
+four source-link cases. Those shared-script map runs were lenient; explicit
+strict execution is recorded in the later conditional-promises package.
+Guest controller summaries are retained too.
 `revision` and `source.patch` identify the tested source; source-identity.log
 checks it. docs-checks.log checks local Markdown file targets and whitespace,
 excluding web URLs and anchors. Cargo build durations are omitted.

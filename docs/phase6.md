@@ -63,6 +63,8 @@ the scenario suite below; read them before writing new scenarios.
 - **Determinism before a gate is enabled.** A fake-kernel suite runs ten
   times with different seeds, the container suite three times, with zero
   flakes, before its strict flag goes into CI.
+  The plan additionally requires ten repetitions of each suite in CI;
+  these local counts do not substitute for that stronger requirement.
 
 ## The six gates
 
