@@ -1,0 +1,8 @@
+c[?7l[2J[    0.000000] Linux version 7.3.0 (phase6@builder) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Thu Jan 1 00:00:00 UTC 1970
+GUEST_KERNEL_RELEASE=7.3.0
+scope: H16 wall-clock and QMP pause scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 64.34s
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+H16_CONTROLLER_RESULT=0

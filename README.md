@@ -35,7 +35,9 @@ verification records, including the
 The binary runs on musl and glibc. All five required kernels passed the
 recorded 18-scenario profile, including fragmentation. H15's newer
 capability/netlink and missing-driver cases have passing host/guest records;
-the current host subset passes 22 scenarios and needs a final matrix refresh. Phase 6 is underway: the source-link check,
+the current host subset passes 22 scenarios. H16 clock steps and monitored
+pause/resume also pass on all five required kernels. The expanded normal
+suite still needs a final matrix refresh. Phase 6 is underway: the source-link check,
 unprivileged Incus case and root system-unit sandbox also have passing
 local records. [Required-kernel behavior](docs/kernel-behavior.md) records
 each target's differences, source evidence and limitations. The

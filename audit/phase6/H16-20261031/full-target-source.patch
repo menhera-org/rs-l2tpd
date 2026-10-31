@@ -1,0 +1,291 @@
+diff --git a/tests/kernel/matrix-init.sh b/tests/kernel/matrix-init.sh
+index a26afbc..ba9a1f8 100755
+--- a/tests/kernel/matrix-init.sh
++++ b/tests/kernel/matrix-init.sh
+@@ -26,7 +26,7 @@ if ! grep -q 'l2tp_builtin=1' /proc/cmdline; then
+     depmod -a
+     for module in l2tp_core l2tp_netlink l2tp_ip dummy veth; do modprobe "$module"; done
+     if [ "$mode" != no-ethernet ]; then modprobe l2tp_eth; fi
+-    if [ "$mode" = normal ]; then
++    if [ "$mode" = normal ] || [ "$mode" = clock ]; then
+         for module in l2tp_ip6 vrf bridge 8021q nlmon; do modprobe "$module"; done
+     fi
+ fi
+@@ -41,6 +41,14 @@ if [ "$mode" = no-ethernet ]; then
+     echo SCENARIO_RESULT=0
+     exit 0
+ fi
++if [ "$mode" = clock ]; then
++    export RS_L2TPD_CLOCK_GUEST=1
++    echo 'scope: H16 wall-clock and QMP pause scenario only'
++    run_suite /boot-scenarios --ignored --exact clocks::clock_steps_and_vm_pause_preserve_retries_refreshes_and_network_events --nocapture
++    echo CONFORMANCE_RESULT=0
++    echo SCENARIO_RESULT=0
++    exit 0
++fi
+ if [ "$mode" != normal ]; then
+     export RS_L2TPD_IPV6_ABSENT=1
+     echo 'scope: IPv6-absent boot scenario only'
+diff --git a/tests/kernel/matrix.sh b/tests/kernel/matrix.sh
+index 6c426c3..8a650e4 100755
+--- a/tests/kernel/matrix.sh
++++ b/tests/kernel/matrix.sh
+@@ -91,7 +91,9 @@ run_vanilla() {
+     config=$(field KERNEL_CONFIG "$record/build-$version.log")
+     expected=$(printf '%s\n' "$version" | awk -F. '{if(NF==2)print $0 ".0";else print}')
+     tests/kernel/run-guest.sh "$image" - "$config" normal "$record/vanilla-$version" || return 1
+-    grep -qx "GUEST_KERNEL_RELEASE=$expected" "$record/vanilla-$version/run.log"
++    grep -qx "GUEST_KERNEL_RELEASE=$expected" "$record/vanilla-$version/run.log" || return 1
++    tests/kernel/run-guest.sh "$image" - "$config" clock "$record/vanilla-$version-clock" || return 1
++    grep -qx "GUEST_KERNEL_RELEASE=$expected" "$record/vanilla-$version-clock/run.log"
+ }
+ if [ "$selection" = required ]; then
+     for suite in noble resolute; do
+@@ -108,6 +110,9 @@ if [ "$selection" = required ]; then
+         if tests/kernel/run-guest.sh "$image" "$modules" "$config" normal "$record/$suite"; then
+             grep -qx "GUEST_KERNEL_RELEASE=$release" "$record/$suite/run.log" || result=1
+         else result=1; fi
++        if tests/kernel/run-guest.sh "$image" "$modules" "$config" clock "$record/$suite-clock"; then
++            grep -qx "GUEST_KERNEL_RELEASE=$release" "$record/$suite-clock/run.log" || result=1
++        else result=1; fi
+         series=$(printf '%s\n' "$release" | awk -F. '{print $1 "." $2}')
+         major=${series%%.*}
+         version=$(latest_series "$series" "$record/initial/v$major.html")
+diff --git a/tests/kernel/run-guest.sh b/tests/kernel/run-guest.sh
+index b5913f1..22a1309 100755
+--- a/tests/kernel/run-guest.sh
++++ b/tests/kernel/run-guest.sh
+@@ -1,12 +1,12 @@
+ #!/bin/sh
+ set -eu
+-[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|no-ethernet|systemd RECORD" >&2; exit 2; }
++[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|no-ethernet|clock|systemd RECORD" >&2; exit 2; }
+ repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
+ cd "$repo"
+ kernel=$1; modules=$2; config=$3; mode=$4; record=$5
+ case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
+ case $record in /*) ;; *) record=$repo/$record ;; esac
+-case $mode in normal|ipv6-disable|no-ipv6|no-ethernet|systemd) ;; *) exit 2 ;; esac
++case $mode in normal|ipv6-disable|no-ipv6|no-ethernet|clock|systemd) ;; *) exit 2 ;; esac
+ [ -f "$kernel" ] && [ -s "$kernel" ] || exit 1
+ [ "$modules" = - ] || [ -d "$modules" ] || { echo 'module directory missing' >&2; exit 1; }
+ [ "$config" = - ] || [ -f "$config" ] || { echo 'kernel config missing' >&2; exit 1; }
+@@ -97,6 +97,7 @@ if [ "$config" != - ] && grep -q '^CONFIG_KEXEC_HANDOVER_ENABLE_DEFAULT=y$' "$co
+ fi
+ if [ "$modules" = - ]; then append="$append l2tp_builtin=1"; fi
+ if [ "$mode" = ipv6-disable ]; then append="$append ipv6.disable=1"; fi
++if [ "$mode" = clock ]; then append="$append rs_l2tpd_clock_guest=1"; fi
+ {
+     printf 'mode: %s\nkernel image git-blob: ' "$mode"
+     git --no-pager hash-object "$kernel"
+@@ -105,16 +106,37 @@ if [ "$mode" = ipv6-disable ]; then append="$append ipv6.disable=1"; fi
+     git --no-pager hash-object "$baseline"
+     printf '%s\n' "command: qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 -nodefaults -nographic -serial stdio -no-reboot -kernel IMAGE -initrd INITRAMFS -append '$append'"
+ } > "$record/command.log"
+-result=0
+-timeout 900 qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 \
++set -- qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 \
+     -nodefaults -nographic -serial stdio -no-reboot -kernel "$kernel" \
+-    -initrd "$guest/initramfs.cpio" -append "$append" > "$record/run.log" 2>&1 || result=$?
++    -initrd "$guest/initramfs.cpio" -append "$append"
++if [ "$mode" = clock ]; then
++    {
++        printf '%s\n' 'command: rustc --edition=2024 -D warnings tests/kernel/clock-control.rs; rustc --test; execute controller unit tests'
++        rustc --edition=2024 -D warnings tests/kernel/clock-control.rs -o "$guest/clock-control"
++        rustc --edition=2024 -D warnings --test tests/kernel/clock-control.rs -o "$guest/clock-control-tests"
++        "$guest/clock-control-tests"
++    } > "$record/clock-control-build.log" 2>&1
++    set -- "$@" -qmp "unix:$guest/qmp,server=on,wait=off"
++    set -- "$guest/clock-control" "$guest/qmp" "$@"
++    {
++        printf '%s\n' 'controller: tests/kernel/clock-control.rs; QMP stop/query-status/cont; three-second measured pause' \
++            'qmp argument: -qmp unix:QMP_SOCKET,server=on,wait=off' \
++            'host command: timeout 900 CLOCK_CONTROL QMP_SOCKET QEMU_COMMAND'
++        printf 'controller source git-blob: '
++        git --no-pager hash-object tests/kernel/clock-control.rs
++        printf 'controller executable git-blob: '
++        git --no-pager hash-object "$guest/clock-control"
++    } >> "$record/command.log"
++fi
++result=0
++timeout 900 "$@" > "$record/run.log" 2>&1 || result=$?
+ tr -d '\r' < "$record/run.log" > "$record/run.tmp"
+ mv "$record/run.tmp" "$record/run.log"
+ grep -E 'Linux version|GUEST_KERNEL_RELEASE|scope:|test result:|_RESULT=' "$record/run.log" || :
+ [ "$result" = 0 ] || exit "$result"
+ markers='CONFORMANCE_RESULT=0 SCENARIO_RESULT=0 MATRIX_GUEST_RESULT=0'
+ if [ "$mode" = systemd ]; then markers='ROOT_SYSTEMD_RESULT=0'; fi
++if [ "$mode" = clock ]; then markers="$markers H16_CONTROLLER_RESULT=0"; fi
+ for marker in $markers; do
+     grep -q "^$marker" "$record/run.log" || exit 1
+ done
+diff --git a/tests/scenarios/boot.rs b/tests/scenarios/boot.rs
+index 842f392..3175a34 100644
+--- a/tests/scenarios/boot.rs
++++ b/tests/scenarios/boot.rs
+@@ -3,6 +3,8 @@
+ #[path = "support.rs"]
+ mod support;
+ 
++mod clocks;
++
+ use support::{Pair, config};
+ 
+ /// spec: H4, T4, R27
+diff --git a/tests/scenarios/capabilities.rs b/tests/scenarios/capabilities.rs
+index e5092a0..404d46c 100644
+--- a/tests/scenarios/capabilities.rs
++++ b/tests/scenarios/capabilities.rs
+@@ -6,7 +6,7 @@ mod discovery;
+ use super::support::{Pair, checked, config, wait};
+ use discovery::{Dns, advertise};
+ use socket2::{Domain, Protocol, Socket, Type};
+-use std::net::SocketAddrV6;
++use std::net::{Ipv6Addr, SocketAddrV6, UdpSocket};
+ use std::sync::atomic::Ordering;
+ use std::time::Duration;
+ 
+@@ -41,7 +41,7 @@ fn missing_net_admin_reports_once_and_withholds_nonempty_readiness() {
+     assert_eq!(daemon.count("ready pid="), 0);
+ }
+ 
+-fn discovery_peer(pair: &Pair) -> (Dns, Socket, SocketAddrV6) {
++fn discovery_peer(pair: &Pair) -> (Dns, Socket, SocketAddrV6, UdpSocket) {
+     pair.underlay(true, true);
+     for (side, addresses) in [
+         (0, ["fe80::1/64", "2001:db8::1/64"]),
+@@ -71,6 +71,14 @@ fn discovery_peer(pair: &Pair) -> (Dns, Socket, SocketAddrV6) {
+     let target = std::fs::File::open(format!("/run/netns/{}", pair.names[1])).unwrap();
+     nix::sched::setns(target, nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+     let dns = Dns::new("2001:db8::53", "underlay");
++    let dhcp = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP)).unwrap();
++    dhcp.set_reuse_address(true).unwrap();
++    dhcp.bind_device(Some(b"underlay")).unwrap();
++    dhcp.bind(&SocketAddrV6::new(Ipv6Addr::UNSPECIFIED, 547, 0, 0).into())
++        .unwrap();
++    dhcp.join_multicast_v6(&"ff02::1:2".parse().unwrap(), index)
++        .unwrap();
++    dhcp.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+     let sender = Socket::new(Domain::IPV6, Type::RAW, Some(Protocol::ICMPV6)).unwrap();
+     sender.bind_device(Some(b"underlay")).unwrap();
+     sender.set_unicast_hops_v6(255).unwrap();
+@@ -82,6 +90,7 @@ fn discovery_peer(pair: &Pair) -> (Dns, Socket, SocketAddrV6) {
+         dns,
+         sender,
+         SocketAddrV6::new("fe80::1".parse().unwrap(), 0, 0, index),
++        dhcp.into(),
+     )
+ }
+ 
+@@ -95,7 +104,7 @@ fn discovered_config(method: &str) -> String {
+ #[ignore = "disposable privileged container; real RA netlink fallback without CAP_NET_RAW"]
+ fn without_net_raw_router_discovery_requires_accept_ra_and_binding_still_reconnects() {
+     let pair = Pair::new();
+-    let (dns, sender, destination) = discovery_peer(&pair);
++    let (dns, sender, destination, _dhcp) = discovery_peer(&pair);
+     checked(pair.command(
+         0,
+         "sh",
+@@ -184,15 +193,15 @@ fn without_net_raw_router_discovery_requires_accept_ra_and_binding_still_reconne
+ #[test]
+ #[ignore = "disposable privileged container; port 546 requires the removed capability"]
+ fn without_bind_service_dhcpv6_degrades_and_unified_discovery_uses_ra() {
+-    for method in ["dhcpv6", "ipv6"] {
++    for (method, port_start) in [("dhcpv6", "1024"), ("ipv6", "1024"), ("dhcpv6", "0")] {
+         let pair = Pair::new();
+-        let (dns, sender, destination) = discovery_peer(&pair);
++        let (dns, sender, destination, dhcp) = discovery_peer(&pair);
+         checked(pair.command(
+             0,
+             "sh",
+             &[
+                 "-ec",
+-                "echo 1024 > /proc/sys/net/ipv4/ip_unprivileged_port_start",
++                &format!("echo {port_start} > /proc/sys/net/ipv4/ip_unprivileged_port_start"),
+             ],
+         ));
+         let mut peer = pair.start(1, &config(1, &["2001:db8::1"]));
+@@ -221,6 +230,29 @@ fn without_bind_service_dhcpv6_degrades_and_unified_discovery_uses_ra() {
+             assert!(dns.calls.load(Ordering::SeqCst) > 0);
+             pair.inner("l2tp0", 0);
+             pair.frames(0);
++        } else if port_start == "0" {
++            let mut request = [0; 1500];
++            let (length, source) = dhcp.recv_from(&mut request).unwrap();
++            assert!(length >= 4 && request[0] == 11);
++            assert_eq!(
++                source.port(),
++                546,
++                "the daemon really bound the DHCPv6 client port"
++            );
++            let mut reply = vec![7, request[1], request[2], request[3], 0, 23, 0, 16];
++            reply.extend("2001:db8::53".parse::<Ipv6Addr>().unwrap().octets());
++            dhcp.send_to(&reply, source).unwrap();
++            wait(
++                "DHCPv6 works without the capability in the low unprivileged range",
++                || {
++                    pair.ip(0, &["l2tp", "show", "tunnel"])
++                        .contains("to 2001:db8::9")
++                },
++            );
++            assert!(dns.calls.load(Ordering::SeqCst) > 0);
++            assert_eq!(daemon.count("EACCES"), 0);
++            pair.inner("l2tp0", 0);
++            pair.frames(0);
+         } else {
+             wait("DHCPv6 bind denied as one host defect", || {
+                 daemon.count("ERROR rs_l2tpd::reconciler::report:") == 1
+diff --git a/tests/support/discovery.rs b/tests/support/discovery.rs
+index 13de08e..9bb26f1 100644
+--- a/tests/support/discovery.rs
++++ b/tests/support/discovery.rs
+@@ -2,7 +2,7 @@
+ use socket2::{Domain, Protocol, Socket, Type};
+ use std::net::{Ipv6Addr, SocketAddrV6, UdpSocket};
+ use std::sync::{
+-    Arc,
++    Arc, Mutex,
+     atomic::{AtomicBool, AtomicUsize, Ordering},
+ };
+ 
+@@ -19,6 +19,8 @@ pub fn advertise(sender: &Socket, destination: SocketAddrV6, servers: &[(Ipv6Add
+ pub struct Dns {
+     pub mode: Arc<AtomicUsize>,
+     pub calls: Arc<AtomicUsize>,
++    #[allow(dead_code)] // Some profiles need only the total count.
++    pub requests: Arc<Mutex<Vec<(u16, std::time::Instant)>>>,
+     stop: Arc<AtomicBool>,
+     thread: Option<std::thread::JoinHandle<()>>,
+ }
+@@ -40,6 +42,8 @@ impl Dns {
+         let mode = Arc::new(AtomicUsize::new(0));
+         let calls = Arc::new(AtomicUsize::new(0));
+         let (policy, count) = (mode.clone(), calls.clone());
++        let requests = Arc::new(Mutex::new(Vec::new()));
++        let recorded = requests.clone();
+         let thread = std::thread::spawn(move || {
+             let mut packet = [0; 512];
+             while !done.load(Ordering::SeqCst) {
+@@ -55,9 +59,13 @@ impl Dns {
+                     }
+                     Err(error) => panic!("DNS fixture receive: {error}"),
+                 };
+-                count.fetch_add(1, Ordering::SeqCst);
+                 let query = &packet[..len];
+                 let qtype = u16::from_be_bytes(query[len - 4..len - 2].try_into().unwrap());
++                recorded
++                    .lock()
++                    .unwrap()
++                    .push((qtype, std::time::Instant::now()));
++                count.fetch_add(1, Ordering::SeqCst);
+                 let mode = policy.load(Ordering::SeqCst);
+                 let failure = mode == 1 || (mode == 3 && qtype == 28);
+                 let negative = mode == 2;
+@@ -90,6 +98,7 @@ impl Dns {
+         Self {
+             mode,
+             calls,
++            requests,
+             stop,
+             thread: Some(thread),
+         }

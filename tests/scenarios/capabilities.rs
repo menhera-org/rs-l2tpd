@@ -6,7 +6,7 @@ mod discovery;
 use super::support::{Pair, checked, config, wait};
 use discovery::{Dns, advertise};
 use socket2::{Domain, Protocol, Socket, Type};
-use std::net::SocketAddrV6;
+use std::net::{Ipv6Addr, SocketAddrV6, UdpSocket};
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 
@@ -41,7 +41,7 @@ fn missing_net_admin_reports_once_and_withholds_nonempty_readiness() {
     assert_eq!(daemon.count("ready pid="), 0);
 }
 
-fn discovery_peer(pair: &Pair) -> (Dns, Socket, SocketAddrV6) {
+fn discovery_peer(pair: &Pair) -> (Dns, Socket, SocketAddrV6, UdpSocket) {
     pair.underlay(true, true);
     for (side, addresses) in [
         (0, ["fe80::1/64", "2001:db8::1/64"]),
@@ -71,6 +71,14 @@ fn discovery_peer(pair: &Pair) -> (Dns, Socket, SocketAddrV6) {
     let target = std::fs::File::open(format!("/run/netns/{}", pair.names[1])).unwrap();
     nix::sched::setns(target, nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
     let dns = Dns::new("2001:db8::53", "underlay");
+    let dhcp = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP)).unwrap();
+    dhcp.set_reuse_address(true).unwrap();
+    dhcp.bind_device(Some(b"underlay")).unwrap();
+    dhcp.bind(&SocketAddrV6::new(Ipv6Addr::UNSPECIFIED, 547, 0, 0).into())
+        .unwrap();
+    dhcp.join_multicast_v6(&"ff02::1:2".parse().unwrap(), index)
+        .unwrap();
+    dhcp.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
     let sender = Socket::new(Domain::IPV6, Type::RAW, Some(Protocol::ICMPV6)).unwrap();
     sender.bind_device(Some(b"underlay")).unwrap();
     sender.set_unicast_hops_v6(255).unwrap();
@@ -82,6 +90,7 @@ fn discovery_peer(pair: &Pair) -> (Dns, Socket, SocketAddrV6) {
         dns,
         sender,
         SocketAddrV6::new("fe80::1".parse().unwrap(), 0, 0, index),
+        dhcp.into(),
     )
 }
 
@@ -95,7 +104,7 @@ fn discovered_config(method: &str) -> String {
 #[ignore = "disposable privileged container; real RA netlink fallback without CAP_NET_RAW"]
 fn without_net_raw_router_discovery_requires_accept_ra_and_binding_still_reconnects() {
     let pair = Pair::new();
-    let (dns, sender, destination) = discovery_peer(&pair);
+    let (dns, sender, destination, _dhcp) = discovery_peer(&pair);
     checked(pair.command(
         0,
         "sh",
@@ -184,15 +193,15 @@ fn without_net_raw_router_discovery_requires_accept_ra_and_binding_still_reconne
 #[test]
 #[ignore = "disposable privileged container; port 546 requires the removed capability"]
 fn without_bind_service_dhcpv6_degrades_and_unified_discovery_uses_ra() {
-    for method in ["dhcpv6", "ipv6"] {
+    for (method, port_start) in [("dhcpv6", "1024"), ("ipv6", "1024"), ("dhcpv6", "0")] {
         let pair = Pair::new();
-        let (dns, sender, destination) = discovery_peer(&pair);
+        let (dns, sender, destination, dhcp) = discovery_peer(&pair);
         checked(pair.command(
             0,
             "sh",
             &[
                 "-ec",
-                "echo 1024 > /proc/sys/net/ipv4/ip_unprivileged_port_start",
+                &format!("echo {port_start} > /proc/sys/net/ipv4/ip_unprivileged_port_start"),
             ],
         ));
         let mut peer = pair.start(1, &config(1, &["2001:db8::1"]));
@@ -219,6 +228,29 @@ fn without_bind_service_dhcpv6_degrades_and_unified_discovery_uses_ra() {
                 },
             );
             assert!(dns.calls.load(Ordering::SeqCst) > 0);
+            pair.inner("l2tp0", 0);
+            pair.frames(0);
+        } else if port_start == "0" {
+            let mut request = [0; 1500];
+            let (length, source) = dhcp.recv_from(&mut request).unwrap();
+            assert!(length >= 4 && request[0] == 11);
+            assert_eq!(
+                source.port(),
+                546,
+                "the daemon really bound the DHCPv6 client port"
+            );
+            let mut reply = vec![7, request[1], request[2], request[3], 0, 23, 0, 16];
+            reply.extend("2001:db8::53".parse::<Ipv6Addr>().unwrap().octets());
+            dhcp.send_to(&reply, source).unwrap();
+            wait(
+                "DHCPv6 works without the capability in the low unprivileged range",
+                || {
+                    pair.ip(0, &["l2tp", "show", "tunnel"])
+                        .contains("to 2001:db8::9")
+                },
+            );
+            assert!(dns.calls.load(Ordering::SeqCst) > 0);
+            assert_eq!(daemon.count("EACCES"), 0);
             pair.inner("l2tp0", 0);
             pair.frames(0);
         } else {

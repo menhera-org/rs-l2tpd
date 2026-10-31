@@ -2,7 +2,7 @@
 use socket2::{Domain, Protocol, Socket, Type};
 use std::net::{Ipv6Addr, SocketAddrV6, UdpSocket};
 use std::sync::{
-    Arc,
+    Arc, Mutex,
     atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
@@ -19,6 +19,8 @@ pub fn advertise(sender: &Socket, destination: SocketAddrV6, servers: &[(Ipv6Add
 pub struct Dns {
     pub mode: Arc<AtomicUsize>,
     pub calls: Arc<AtomicUsize>,
+    #[allow(dead_code)] // Some profiles need only the total count.
+    pub requests: Arc<Mutex<Vec<(u16, std::time::Instant)>>>,
     stop: Arc<AtomicBool>,
     thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -40,6 +42,8 @@ impl Dns {
         let mode = Arc::new(AtomicUsize::new(0));
         let calls = Arc::new(AtomicUsize::new(0));
         let (policy, count) = (mode.clone(), calls.clone());
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let recorded = requests.clone();
         let thread = std::thread::spawn(move || {
             let mut packet = [0; 512];
             while !done.load(Ordering::SeqCst) {
@@ -55,9 +59,13 @@ impl Dns {
                     }
                     Err(error) => panic!("DNS fixture receive: {error}"),
                 };
-                count.fetch_add(1, Ordering::SeqCst);
                 let query = &packet[..len];
                 let qtype = u16::from_be_bytes(query[len - 4..len - 2].try_into().unwrap());
+                recorded
+                    .lock()
+                    .unwrap()
+                    .push((qtype, std::time::Instant::now()));
+                count.fetch_add(1, Ordering::SeqCst);
                 let mode = policy.load(Ordering::SeqCst);
                 let failure = mode == 1 || (mode == 3 && qtype == 28);
                 let negative = mode == 2;
@@ -90,6 +98,7 @@ impl Dns {
         Self {
             mode,
             calls,
+            requests,
             stop,
             thread: Some(thread),
         }

@@ -229,6 +229,9 @@ container, and requires the result marker, not QEMU's exit code.
   kernel kexec; daemon execve restart remains tested. See
   [the controlled boot evidence](../audit/phase6/boot-memory-20261031/README.md)
   and [per-target behavior](kernel-behavior.md).
+- Each required target also boots the separate H16 clock profile: guest
+  wall-clock steps and a controller-confirmed QMP pause/resume. Its one-case
+  result markers do not stand for the normal suite.
 - Update the table in `testing.md` whenever Ubuntu or kernel.org moves,
   and re-run before calling the gate green.
 

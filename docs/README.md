@@ -33,8 +33,9 @@ The latest Phase 5 evidence is repository file
 and glibc; all five required kernels passed the recorded 18-scenario
 profile, including fragmentation. Newer H15 capability/netlink and
 missing-driver cases pass in their host/guest profiles; the current host
-subset passes 22 scenarios and still needs a final matrix refresh. Phase 6
-is underway: source links, the unprivileged Incus case and the root unit
+subset passes 22 scenarios. H16 clock steps and monitored pause/resume pass
+on all five required kernels; the expanded normal suite still needs a final
+matrix refresh. Phase 6 is underway: source links, the unprivileged Incus case and the root unit
 sandbox have passing local records.
 [Required-kernel behavior](kernel-behavior.md) records each target's
 differences, source evidence, execution scope and limitations. Repository

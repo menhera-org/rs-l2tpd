@@ -504,9 +504,11 @@ A readiness/signal-order race found
 by that guest is fixed and retested. Initial merged coverage is 91.03%
 lines / 77.02% branches, before the readiness/H15 fixes. H15 now has four
 capability/netlink scenarios and a scoped missing-driver guest pass; the
-host subset passes 22 scenarios. There are 62 uncited rules, and H16, full
-H17, remaining clauses and final matrix/coverage refreshes are still open. No global gate is declared complete; strict CI
-flags remain off. The latest record is repository file
+host subset passes 22 scenarios. H16 clock steps and monitored pause/resume
+pass on all five required kernels, and the low-port-range DHCPv6 positive
+case passes. There are 60 uncited rules; full H17, remaining clauses and
+final matrix/coverage refreshes are still open. No global gate is declared
+complete; strict CI flags remain off. The latest record is repository file
 `audit/PHASE6_VERIFICATION_2026-10-31.md`; the approved H11 MAC limitations
 remain in [H11](spec/hosts.md#other-network-managers).
 [Required-kernel behavior](kernel-behavior.md) records all five targets'

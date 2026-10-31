@@ -3,6 +3,8 @@
 #[path = "support.rs"]
 mod support;
 
+mod clocks;
+
 use support::{Pair, config};
 
 /// spec: H4, T4, R27

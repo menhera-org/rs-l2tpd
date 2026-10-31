@@ -78,7 +78,7 @@ K12 was removed and carries no obligation.
 | K6, K24, K25 | Disconnect/reconnect reselects the source; bare reconnect can retain it; an IPv6 tunnel dump can retain its previous peer after disconnect | Shared and live socket/dump assertions; the daemon disconnects before reconnecting. |
 | K7, K10 | Link/address monitoring works without route subscriptions; the production classic BPF filter admits required events | Live monitor/filter tests. H8 also observes daemon requests with nlmon, including a positive capture control. |
 | K11, K23 | `bindv6only` affects fresh sockets; an existing L2TP/IPv6 socket cannot have V6ONLY changed; its value can be read | Live write/create/read-back and H18 opt-in/opt-out tests. An old socket is never assumed to change with the sysctl. |
-| K13, K14, K38–K40 | DHCPv6 needs port 546; RA raw reception needs `CAP_NET_RAW`; the netlink RA fallback depends on `accept_ra`; competing DHCPv6 listeners can lose unicast replies | Resolver implementation/source evidence is delegated to iphost. Live adapter cases provide positive port-546/raw-RA exchange evidence. Full denied-capability/netlink fallback behavior is not proved separately on every required kernel. |
+| K13, K14, K38–K40 | DHCPv6 needs port 546; RA raw reception needs `CAP_NET_RAW`; the netlink RA fallback depends on `accept_ra`; competing DHCPv6 listeners can lose unicast replies | Resolver implementation/source evidence is delegated to iphost. Live adapter cases provide positive port-546/raw-RA exchange evidence. The capability scenario also proves DHCPv6 refusal at unprivileged-port start 1024 and actual port-546 traffic without CAP_NET_BIND_SERVICE at start 0, on Ubuntu 6.8.0-147. Full denied-capability/netlink fallback behavior is not proved separately on every required kernel. |
 | K15 | IP-encapsulated data admission uses the namespace's session ID and cookie, independently of the receiving socket binding/source | Live matching, wrong/absent-cookie and foreign-source frame checks. Cookies are not peer authentication. |
 | K16 | Stored creation names survive rename and may become ambiguous; querying by name is not an atomic name-plus-ID identity proof | Shared name/rename and live duplicate-stored-name probes. Upstream pre-6.12 positional dumps can skip an entry on concurrent deletion; newer identifier-based traversal is source evidence, not a forced concurrent-dump result on every target. |
 | K17, K37 | Closing the last socket descriptor eventually deletes the tunnel and all its sessions; duplicate, transferred or exec-inherited descriptors keep them alive | Shared close, live duplicate/adoption and process tests. Real systemd descriptor-store ownership has separate manager/Incus evidence; the ordinary QEMU profile has no systemd manager. |
@@ -220,7 +220,32 @@ release/updates/security indexes; proposed packages and a planned
 passing host scenarios and a passing scoped missing-driver guest, and fix
 host-defect severity/errno reporting. They postdate the five-target
 18-scenario matrix above; the expanded suite/current reports still need
-a complete latest-target rerun. The low-port-range DHCPv6 exception also
-needs its positive case. Coverage, rule completeness, H16/full H17, final
-manager/profile refreshes and strict CI remain open. This page does not declare Phase 6
-complete or claim behavior for kernels that have not executed a case.
+a complete latest-target rerun. The low-port-range DHCPv6 exception now
+has a passing positive case in the same Ubuntu 6.8 host profile.
+
+### Clock steps and pause/resume on each target
+
+The separate H16 clock profile passes on all five required targets:
+
+| Required target | Forward/backward wall-clock steps and monitored VM pause |
+|---|---|
+| Ubuntu 6.8.0-147-generic | [Pass](../audit/phase6/qemu-clock-noble-20261031/run.log) |
+| Vanilla 6.8.12 | [Pass](../audit/phase6/qemu-clock-vanilla6812-20261031/run.log) |
+| Ubuntu 7.0.0-42-generic | [Pass](../audit/phase6/qemu-clock-resolute-20261031/run.log) |
+| Vanilla 7.0.14 | [Pass](../audit/phase6/qemu-clock-vanilla7014-20261031/run.log) |
+| Mainline 7.3.0 | [Pass, three repetitions](../audit/phase6/H16-20261031/README.md) |
+
+On every target, one-second pending-peer retries and thirty-second wire
+DNS refreshes follow monotonic time across the steps and a QMP-confirmed
+three-second pause. An unchanged DNS answer preserves the connected
+tunnel. After resume, route-only recovery, address changes and temporary
+bind-name loss recover with real bidirectional frames and stable session
+indexes. [Measurements and exact scope](../audit/phase6/H16-20261031/README.md)
+include the independent host/guest pause observations. This is a separate
+one-case boot, not a rerun of the normal conformance/scenario profile.
+Physical S3 and subscription overflow during a stopped guest are not
+injected; live overflow/resync evidence remains separate.
+
+Coverage, rule completeness, full H17, the expanded normal matrix, final
+manager/profile refreshes and strict CI remain open. This page does not
+declare Phase 6 complete or claim behavior for unexecuted cases.

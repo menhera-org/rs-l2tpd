@@ -1,0 +1,9 @@
+command: rustc --edition=2024 -D warnings tests/kernel/clock-control.rs; rustc --test; execute controller unit tests
+
+running 3 tests
+test tests::lines_are_bounded_and_complete_and_utf8 ... ok
+test tests::qmp_accepts_events_and_field_reordering_and_checks_run_state ... ok
+test tests::qmp_rejects_error_and_wrong_transaction_and_eof ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

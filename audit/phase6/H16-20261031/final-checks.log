@@ -1,0 +1,8 @@
+command: cargo fmt --all -- --check
+command: rustfmt --edition 2024 --check tests/kernel/clock-control.rs
+command: shellcheck -s sh tests/kernel/run-guest.sh tests/kernel/matrix.sh tests/kernel/matrix-init.sh
+command: sh -n (each changed shell helper)
+command: tests/kernel/matrix.sh self-test
+matrix publication parser: passed
+command: git --no-pager diff --check
+FINAL_CHECKS_RESULT=0

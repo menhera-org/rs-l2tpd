@@ -91,7 +91,9 @@ run_vanilla() {
     config=$(field KERNEL_CONFIG "$record/build-$version.log")
     expected=$(printf '%s\n' "$version" | awk -F. '{if(NF==2)print $0 ".0";else print}')
     tests/kernel/run-guest.sh "$image" - "$config" normal "$record/vanilla-$version" || return 1
-    grep -qx "GUEST_KERNEL_RELEASE=$expected" "$record/vanilla-$version/run.log"
+    grep -qx "GUEST_KERNEL_RELEASE=$expected" "$record/vanilla-$version/run.log" || return 1
+    tests/kernel/run-guest.sh "$image" - "$config" clock "$record/vanilla-$version-clock" || return 1
+    grep -qx "GUEST_KERNEL_RELEASE=$expected" "$record/vanilla-$version-clock/run.log"
 }
 if [ "$selection" = required ]; then
     for suite in noble resolute; do
@@ -107,6 +109,9 @@ if [ "$selection" = required ]; then
         if [ -f "$root/boot/config-$release" ]; then config=$root/boot/config-$release; fi
         if tests/kernel/run-guest.sh "$image" "$modules" "$config" normal "$record/$suite"; then
             grep -qx "GUEST_KERNEL_RELEASE=$release" "$record/$suite/run.log" || result=1
+        else result=1; fi
+        if tests/kernel/run-guest.sh "$image" "$modules" "$config" clock "$record/$suite-clock"; then
+            grep -qx "GUEST_KERNEL_RELEASE=$release" "$record/$suite-clock/run.log" || result=1
         else result=1; fi
         series=$(printf '%s\n' "$release" | awk -F. '{print $1 "." $2}')
         major=${series%%.*}

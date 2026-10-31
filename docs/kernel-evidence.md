@@ -27,7 +27,7 @@ their own relevant citations.
 | K10 | unit: BPF instruction cases; live: production filtered monitor observes link and address changes | linux |
 | K11 | live: `a_tunable_write_changes_only_fresh_sockets` | linux |
 | K12 | removed; no evidence obligation | removed |
-| K13 | delegated requirement: released iphost DHCPv6 socket implementation; live positive port-546 bind in `released_unified_adapter_enables_per_family_failure_fallback` | delegated |
+| K13 | delegated requirement: released iphost DHCPv6 socket implementation; live positive port-546 bind in `released_unified_adapter_enables_per_family_failure_fallback`; capability scenario proves EACCES at unprivileged-port start 1024 and an actual port-546 exchange without CAP_NET_BIND_SERVICE at start 0 | delegated |
 | K14 | delegated implementation plus live daemon fallback: H15's `without_net_raw_router_discovery_requires_accept_ra_and_binding_still_reconnects` removes CAP_NET_RAW, proves accept_ra gating and actual DNS/frames; upstream `parses_netlink_useropt` and raw/netlink equivalence regressions remain separate source evidence | delegated |
 | K15 | live: `disconnected_sessions_drop_outbound_but_receive_only_matching_cookies`, foreign source and correct/wrong/absent cookies | linux |
 | K16 | shared: stored-name and rename cases; live review: duplicate stored creation names; policy: ambiguity refuses deletion | linux |

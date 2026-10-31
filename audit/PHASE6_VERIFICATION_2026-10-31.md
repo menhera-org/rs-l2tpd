@@ -9,15 +9,16 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | Gate/package | Current evidence | Remaining work |
 |---|---|---|
 | P1 source link | Fresh strict run: four tests pass; 43 facts, 37 production-cited and six classified; no uncited functions | Enable in CI only with required determinism and remaining phase proof |
-| P1 rule map | Fresh strict run fails: 343 total / 333 active / 271 cited / 62 missing | Genuine assertions/citations for the remaining rules; strict flag stays off |
-| P2 scenarios | 22-case host subset passes after H15/report fixes; scoped missing-Ethernet-driver guest also passes | H16 guest clocks/pause, full H17 resource/event-cost checks, remaining clauses (including low unprivileged-port-range DHCPv6), manager/promise cases and final repetitions |
-| P3 matrix | Pre-H15 required driver returns MATRIX_RESULT=0: five 18-scenario profiles plus both H4 boots; H15 adds a scoped stock-kernel driver-availability boot | Complete P2/delegated proof and rerun all latest targets with the expanded suite and current report fixes; partial profiles do not close the whole gate |
+| P1 rule map | Fresh strict run fails: 343 total / 333 active / 273 cited / 60 missing | Genuine assertions/citations for the remaining rules; strict flag stays off |
+| P2 scenarios | 22-case host subset passes after H15/report fixes and the DHCPv6 low-range positive case; H16 passes on all five required kernels; scoped missing-Ethernet-driver guest also passes | Full H17 resource/event-cost checks, remaining clauses, manager/promise cases and final repetitions |
+| P3 matrix | Pre-H15 required driver returns MATRIX_RESULT=0: five 18-scenario profiles plus both H4 boots; H15 adds a scoped stock-kernel driver-availability boot; H16 adds a passing clock profile on every required target | Complete P2/delegated proof and rerun all latest targets with the expanded suite and current report fixes; partial profiles do not close the whole gate |
 | P4 coverage | First merged GNU report: 91.03% lines / 77.02% branches, source snapshot before the readiness fix | The previous source snapshot has 897 missing lines / 410 branches; recollect current-source profiles after readiness/H15 fixes; no exclusions introduced |
 | P5 Incus | October 30 full case passed, including manager race/ordered policy/store/re-exec; fresh GNU buffer case proves EPERM and exports coverage | Final-code full-case refresh as part of phase exit |
 | P6 root sandbox | October 30 full real-root-systemd sandbox case passed, without drop-ins | Final phase validation; no new sandbox claim from the coverage-only user-manager case |
 | P7 docs/CI | Documentation updated to the actual partial runners and new records | Full verification, determinism/coverage jobs, strict CI and CI execution remain open |
 
 Current P1/ordinary/warning checks are in
+[H16-20261031](phase6/H16-20261031/README.md). H15/report-fix evidence is in
 [H15-20261031](phase6/H15-20261031/README.md). Earlier readiness-fix logs are in
 [ready-signal-race-20261031](phase6/ready-signal-race-20261031/README.md).
 The record names exact commands, features, kernel releases, counts and
@@ -126,9 +127,25 @@ exercise mixed-error recovery; live cases prove real kernel refusals.
 
 These report corrections postdate the five-target matrix above, which
 retains its original 18-case scope. The expanded suite/current binary still
-needs a complete latest-target run. H16 and full H17 remain unimplemented;
-the low-port-range DHCPv6 exception still needs its positive case. No full
-Phase 6 gate is closed merely by adding a test citation.
+needs a complete latest-target run. No full Phase 6 gate is closed merely
+by adding a test citation.
+
+## H16 clocks/pause and DHCPv6 low-port range
+
+[H16's record](phase6/H16-20261031/README.md) proves one-second retries
+and thirty-second wire DNS refreshes across forward/backward wall-clock
+steps and a QMP-confirmed three-second pause. It passes on all five required
+kernels, with three mainline repetitions. Post-resume address/name events,
+route-only retry recovery, stable sessions, bidirectional frames and cleanup
+are asserted. QMP pause is a suspend stand-in; physical S3 is not claimed.
+The matrix driver now includes this scoped profile on every target.
+
+The strengthened H15 capability case also proves real DHCPv6 traffic from
+UDP port 546 without CAP_NET_BIND_SERVICE when the namespace's
+unprivileged range starts at zero. The final 22-case host regression,
+ordinary tests, Clippy and strict source links pass; strict rule-map coverage
+is now 273 cited / 60 missing. Full H17 and the other remaining gates
+remain open.
 
 ## Coverage and exit state
 

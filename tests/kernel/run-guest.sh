@@ -1,12 +1,12 @@
 #!/bin/sh
 set -eu
-[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|no-ethernet|systemd RECORD" >&2; exit 2; }
+[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|no-ethernet|clock|systemd RECORD" >&2; exit 2; }
 repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
 cd "$repo"
 kernel=$1; modules=$2; config=$3; mode=$4; record=$5
 case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
 case $record in /*) ;; *) record=$repo/$record ;; esac
-case $mode in normal|ipv6-disable|no-ipv6|no-ethernet|systemd) ;; *) exit 2 ;; esac
+case $mode in normal|ipv6-disable|no-ipv6|no-ethernet|clock|systemd) ;; *) exit 2 ;; esac
 [ -f "$kernel" ] && [ -s "$kernel" ] || exit 1
 [ "$modules" = - ] || [ -d "$modules" ] || { echo 'module directory missing' >&2; exit 1; }
 [ "$config" = - ] || [ -f "$config" ] || { echo 'kernel config missing' >&2; exit 1; }
@@ -97,6 +97,7 @@ if [ "$config" != - ] && grep -q '^CONFIG_KEXEC_HANDOVER_ENABLE_DEFAULT=y$' "$co
 fi
 if [ "$modules" = - ]; then append="$append l2tp_builtin=1"; fi
 if [ "$mode" = ipv6-disable ]; then append="$append ipv6.disable=1"; fi
+if [ "$mode" = clock ]; then append="$append rs_l2tpd_clock_guest=1"; fi
 {
     printf 'mode: %s\nkernel image git-blob: ' "$mode"
     git --no-pager hash-object "$kernel"
@@ -105,16 +106,37 @@ if [ "$mode" = ipv6-disable ]; then append="$append ipv6.disable=1"; fi
     git --no-pager hash-object "$baseline"
     printf '%s\n' "command: qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 -nodefaults -nographic -serial stdio -no-reboot -kernel IMAGE -initrd INITRAMFS -append '$append'"
 } > "$record/command.log"
-result=0
-timeout 900 qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 \
+set -- qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 \
     -nodefaults -nographic -serial stdio -no-reboot -kernel "$kernel" \
-    -initrd "$guest/initramfs.cpio" -append "$append" > "$record/run.log" 2>&1 || result=$?
+    -initrd "$guest/initramfs.cpio" -append "$append"
+if [ "$mode" = clock ]; then
+    {
+        printf '%s\n' 'command: rustc --edition=2024 -D warnings tests/kernel/clock-control.rs; rustc --test; execute controller unit tests'
+        rustc --edition=2024 -D warnings tests/kernel/clock-control.rs -o "$guest/clock-control"
+        rustc --edition=2024 -D warnings --test tests/kernel/clock-control.rs -o "$guest/clock-control-tests"
+        "$guest/clock-control-tests"
+    } > "$record/clock-control-build.log" 2>&1
+    set -- "$@" -qmp "unix:$guest/qmp,server=on,wait=off"
+    set -- "$guest/clock-control" "$guest/qmp" "$@"
+    {
+        printf '%s\n' 'controller: tests/kernel/clock-control.rs; QMP stop/query-status/cont; three-second measured pause' \
+            'qmp argument: -qmp unix:QMP_SOCKET,server=on,wait=off' \
+            'host command: timeout 900 CLOCK_CONTROL QMP_SOCKET QEMU_COMMAND'
+        printf 'controller source git-blob: '
+        git --no-pager hash-object tests/kernel/clock-control.rs
+        printf 'controller executable git-blob: '
+        git --no-pager hash-object "$guest/clock-control"
+    } >> "$record/command.log"
+fi
+result=0
+timeout 900 "$@" > "$record/run.log" 2>&1 || result=$?
 tr -d '\r' < "$record/run.log" > "$record/run.tmp"
 mv "$record/run.tmp" "$record/run.log"
 grep -E 'Linux version|GUEST_KERNEL_RELEASE|scope:|test result:|_RESULT=' "$record/run.log" || :
 [ "$result" = 0 ] || exit "$result"
 markers='CONFORMANCE_RESULT=0 SCENARIO_RESULT=0 MATRIX_GUEST_RESULT=0'
 if [ "$mode" = systemd ]; then markers='ROOT_SYSTEMD_RESULT=0'; fi
+if [ "$mode" = clock ]; then markers="$markers H16_CONTROLLER_RESULT=0"; fi
 for marker in $markers; do
     grep -q "^$marker" "$record/run.log" || exit 1
 done
