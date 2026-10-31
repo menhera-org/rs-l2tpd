@@ -1,6 +1,6 @@
 use super::support::{Pair, config, wait, wait_with_timeout};
 
-/// spec: H10
+/// spec: H10, R30
 #[test]
 #[ignore = "disposable privileged container"]
 fn a_child_in_another_namespace_survives_reload_and_dies_with_its_parent() {
@@ -53,7 +53,7 @@ fn a_child_in_another_namespace_survives_reload_and_dies_with_its_parent() {
     pair.absent(1);
 }
 
-/// spec: H12
+/// spec: H12, R14
 #[test]
 #[ignore = "disposable privileged container"]
 fn foreign_identifiers_and_names_are_left_alone_until_they_are_freed() {

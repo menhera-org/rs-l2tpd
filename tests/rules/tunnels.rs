@@ -395,7 +395,7 @@ fn an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer() {
     assert!(r.left_out().is_empty());
 }
 
-/// spec: T9, M9
+/// spec: T9, M9, R17
 #[test]
 fn cleanup_cannot_delete_a_foreign_replacement_tunnel() {
     let (mut r, _) = reconciler();

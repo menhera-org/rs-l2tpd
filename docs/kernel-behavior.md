@@ -390,3 +390,11 @@ that both the tunnel and its session disappear without an external socket
 store. These additions and the ownership fix still need the other four targets
 and current-code Incus/manager refreshes; prior target records keep their
 original scope.
+
+The [operator requirement follow-up](../audit/phase6/operator-requirements-20261031/README.md)
+strengthens wrong-session-ID and cookie rejection with separate negative
+windows before the positive frame, and hides both `/proc` and `/sys` from the
+daemon in the H9 container case. All 19 kernel, 26 process and 25 host cases
+pass on `6.8.0-147-generic`; the new assertions have not yet run on the other
+four targets. Its real user-manager store case passes separately from the
+41-case container binary suite and does not replace the root P6 sandbox test.

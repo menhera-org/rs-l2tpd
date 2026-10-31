@@ -208,7 +208,7 @@ fn check_cli_and_no_process_side_effects() {
     );
 }
 
-/// spec: P1 P4 P6 P7 P9 P12 P13 P16 P17 P20 P22 P23 O7
+/// spec: P1 P4 P6 P7 P9 P12 P13 P16 P17 P20 P22 P23 O7 R12 R13
 #[test]
 #[ignore = "isolated privileged container"]
 fn foreground_reload_and_clean_shutdown_without_network() {
@@ -956,7 +956,7 @@ fn failed_store_cleanup_is_reported_and_shutdown_is_bounded() {
     }
 }
 
-/// spec: P7 P8 P20
+/// spec: P7 P8 P20 R21 R14
 #[test]
 #[ignore = "isolated privileged container; exercises the ten-second conflict budget"]
 fn overlapping_instance_becomes_ready_without_deleting_foreign_objects() {

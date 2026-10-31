@@ -562,7 +562,7 @@ fn a_closed_socket_is_not_announced() {
     assert_eq!(seen, None);
 }
 
-/// spec: K42, M18, S9, S19, S23, S24
+/// spec: K42, M18, S9, S19, S23, S24, R11, R31
 #[test]
 #[ignore = "isolated network namespaces with CAP_NET_ADMIN and L2TP modules"]
 fn a_reused_index_and_creation_name_never_revive_an_old_registration() {
@@ -648,7 +648,7 @@ fn packets(device: &str, direction: &str, field: usize) -> u64 {
         .unwrap()
 }
 
-/// spec: K5, K15, S14, T1
+/// spec: K5, K15, S14, T1, R15, R24, R25
 #[test]
 #[ignore = "isolated namespace with CAP_NET_ADMIN, CAP_NET_RAW and L2TP modules"]
 fn disconnected_sessions_drop_outbound_but_receive_only_matching_cookies() {
@@ -688,8 +688,13 @@ fn disconnected_sessions_drop_outbound_but_receive_only_matching_cookies() {
     let mut ethernet = vec![0xff; 6];
     ethernet.extend([2, 0, 0x5e, 0, 0x53, 1, 0x88, 0xb5]);
     ethernet.resize(60, 0);
-    for cookie in [&[][..], &[9, 9, 9, 9][..], &[1, 2, 3, 4][..]] {
-        let mut payload = 93711u32.to_be_bytes().to_vec();
+    for (id, cookie) in [
+        (93711u32, &[][..]),
+        (93711, &[9, 9, 9, 9][..]),
+        (93712, &[1, 2, 3, 4][..]),
+        (93711, &[1, 2, 3, 4][..]),
+    ] {
+        let mut payload = id.to_be_bytes().to_vec();
         payload.extend(cookie);
         payload.extend(&ethernet);
         raw.send_to(
@@ -700,6 +705,13 @@ fn disconnected_sessions_drop_outbound_but_receive_only_matching_cookies() {
                 .into(),
         )
         .unwrap();
+        if id != 93711 || cookie != [1, 2, 3, 4] {
+            let negative_window = std::time::Instant::now() + Duration::from_millis(100);
+            while std::time::Instant::now() < negative_window {
+                assert_eq!(packets("frames", "RX:", 1), receiver_before);
+                std::thread::yield_now();
+            }
+        }
     }
     let deadline = std::time::Instant::now() + Duration::from_secs(2);
     while packets("frames", "RX:", 1) == receiver_before {

@@ -664,7 +664,7 @@ fn host_settings() {
     );
 }
 
-/// spec: C9
+/// spec: C9, R14
 #[test]
 fn uniqueness_in_byte_order_of_names() {
     let tunnels = |a: &str, b: &str| {

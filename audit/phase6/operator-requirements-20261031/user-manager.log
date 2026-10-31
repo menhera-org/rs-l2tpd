@@ -1,0 +1,11 @@
+6.8.0-147-generic
+features: all; target: x86_64-unknown-linux-musl; command: systemd-run --user --wait --pipe --collect with Type=exec, NotifyAccess=all, FileDescriptorStoreMax=65536 and the template RestrictAddressFamilies; exact actual_manager_processing_and_address_family_filter --ignored --nocapture
+Running as unit: rs-l2tpd-phase6-notify-proof.service; invocation ID: 3d5a61a9a098435ab84a27151454626e
+
+running 1 test
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.07s
+
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS

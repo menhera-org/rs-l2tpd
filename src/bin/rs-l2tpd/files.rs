@@ -214,15 +214,25 @@ mod tests {
             1
         );
     }
-    /// spec: C3 C4 O5
+    /// spec: C3 C4 O5 R13
     #[test]
     fn failed_documents_are_omitted_and_diagnostics_redact_input() {
         let dir = Dir::new();
         let main = dir.path().join("main");
+        let dropins = dir.path().join("absent");
+        fs::write(&main, "[tunnels.a]\ntunnel_id=1\nremote_addr='192.0.2.1'").unwrap();
+        let (previous, problems) = load(&main, &dropins).partial.into_config_lenient();
+        assert!(problems.is_empty());
+        fs::write(&main, [0xff, 0xfe]).unwrap();
+        let loaded = load(&main, &dropins);
+        assert_eq!(loaded.errors.len(), 1);
+        assert!(loaded.partial.into_config_lenient().0.tunnels().is_empty());
+        assert!(reload(&main, &dropins, previous.clone()).is_err());
         fs::write(&main, "[sessions.a]\ncookie = secret-cookie").unwrap();
         let loaded = load(&main, dir.path());
         assert_eq!(loaded.errors.len(), 1);
         assert!(!loaded.errors[0].contains("secret-cookie"));
+        assert!(reload(&main, &dropins, previous).is_err());
         fs::write(&main, "[tunnels.a]\ntunnel_id='wrong'").unwrap();
         assert!(!load(&main, dir.path()).errors.is_empty());
         fs::remove_file(&main).unwrap();
@@ -261,7 +271,7 @@ mod filesystem_tests {
                 .is_empty()
         );
     }
-    /// spec: C3
+    /// spec: C3 R13
     #[test]
     fn permission_child() {
         let Some(base) = std::env::var_os("CONFIG_PERMISSION_BASE") else {
@@ -273,7 +283,7 @@ mod filesystem_tests {
         let loaded = load(&base.join("uninspectable/main"), &base.join("absent"));
         assert_eq!(loaded.errors.len(), 1);
     }
-    /// spec: C3
+    /// spec: C3 R13
     #[test]
     #[ignore = "root in an isolated container, drops child uid"]
     fn permission_errors_name_unreadable_unlistable_and_uninspectable_paths() {

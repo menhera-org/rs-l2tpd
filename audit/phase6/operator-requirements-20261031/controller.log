@@ -1,0 +1,18 @@
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t298 (tunnel_id=2982): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t299 (tunnel_id=2992): removed
+daemon: INFO rs_l2tpd::service: reload completed
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7576
+H17_RESOURCES tunnels=1 fds=15 rss_kib=7576
+H17_SHRINK cycle=2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 164.59s
+
+SCENARIO_RESULT=0
+record: /home/dev/rs-l2tpd/audit/phase6/scenarios-20261031T120932Z-3826812

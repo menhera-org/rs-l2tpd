@@ -1,0 +1,26 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-e0354431b5ce7b0f)
+
+running 18 tests
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test sessions::sessions_swap_names ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out; finished in 0.00s
+

@@ -37,7 +37,7 @@ fn an_answer_connects_the_tunnel() {
 
 /// The selected address stays while the answer holds it, whatever the
 /// order; a failed or negative lookup keeps it in force (V5, V6).
-/// spec: V5, V6
+/// spec: V5, V6, R16
 #[test]
 fn the_selected_address_is_retained() {
     let (mut r, answers) = reconciler();

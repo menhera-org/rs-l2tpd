@@ -307,6 +307,29 @@ and the two initial live-fixture mistakes. The strict rule map remains red:
 A2, A21, G9, G14, R22 and R37–R42; they do not close every clause of those
 rules or the final matrix, manager and coverage refreshes.
 
+## Operator, peer and manager requirement assertions
+
+[The operator package](phase6/operator-requirements-20261031/README.md)
+adds 23 requirement citations to observed behavior, strengthening invalid UTF-8
+handling, temporary-name collisions, wrong-ID/cookie frame rejection and the
+empty-filesystem container case. It changes no production behavior. Foreign
+temporary-name occupants remain unchanged, and the daemon operates with both
+`/proc` and `/sys` hidden. Other citations point to existing configuration,
+recovery, identity, manager and process assertions; they do not by themselves
+prove every clause.
+
+Shared CI passes, as do ten seeded runs of 92 ordinary library cases
+(11 live ignored), 74 rules and 25 service cases. The corrected privileged
+musl profile passes 19 kernel, 26 process and 41 binary unit cases. Its one
+real-manager case is explicitly filtered and passes separately in a collected
+user systemd service with the template's address-family filter and descriptor
+store. The initial incorrectly combined profile remains a recorded fixture
+failure, not a passing run or a product defect. The strict rule map remains red
+at 312 cited of 333 active rules, 21 uncited. Final kernel/manager refreshes,
+coverage, resource/event-cost proof and strict CI are still open.
+The full host suite also passes all 25 scenarios in 164.59 seconds, including
+the strengthened empty-`/proc`/`/sys` case.
+
 ## Coverage and exit state
 
 [The merged coverage record](phase6/coverage-20261031/README.md) combines

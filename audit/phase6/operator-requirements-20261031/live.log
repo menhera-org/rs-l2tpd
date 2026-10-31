@@ -1,0 +1,347 @@
+features: all; target: x86_64-unknown-linux-musl; disposable privileged Docker, network none
+command: kernel-linux --ignored; process --include-ignored; binary unit tests --include-ignored --skip fdstore::manager_tests; all --test-threads=1 --nocapture
+6.8.0-147-generic
+
+running 19 tests
+test a_closed_socket_is_not_announced ... ok
+test a_handed_over_socket_keeps_its_tunnel ... ok
+test a_reused_index_and_creation_name_never_revive_an_old_registration ... ok
+test a_tunable_write_changes_only_fresh_sockets ... ok
+test completion_scoped_failure_lookup_and_random_refusal ... ok
+test conformance_on_the_linux_kernel ... case disconnected_sessions_count_frame_drops
+case tunnel_identifiers_are_unique
+case session_identifiers_are_unique_in_the_namespace
+case a_taken_name_creates_no_session
+case the_stored_name_is_the_creation_name
+case closing_the_socket_deletes_the_tunnel
+case a_deleted_session_identifier_is_released
+case a_registration_is_proved_until_removal
+case a_binding_is_set_on_an_unbound_socket
+case connect_selects_the_source_of_the_device
+case empty_ipv6_vrf_without_a_source_or_route_cannot_connect
+empty IPv6 VRF connect errno: 99
+case a_link_local_zone_must_match_the_binding
+case a_hardware_address_needs_the_device_down
+case the_monitor_reports_links_and_addresses
+case deletions_are_announced
+ok
+test disconnected_sessions_drop_outbound_but_receive_only_matching_cookies ... ok
+test event_recreation_uses_the_configured_creation_name_on_linux ... ok
+test library_constructors_reject_missing_tokio_and_preserve_adopted_descriptors ... ok
+test library_missing_net_admin_withholds_readiness_and_shutdown_still_succeeds ... ok
+test library_runtime_drop_closes_active_and_retiring_tunnels_without_touching_foreign_ones ... ok
+test links_are_found_by_name_and_dumped ... ok
+test lowering_a_device_discards_ipv6_addresses_unless_preserved ... ok
+test services_converge_and_orderly_shutdown_on_linux ... ok
+test sessions_are_captured_scanned_and_deleted ... ok
+test sockets_bind_connect_and_report_their_source ... ok
+test the_kernel_keeps_the_previous_ipv6_peer_after_disconnect ... ok
+test the_monitor_reports_removals ... ok
+test tunnel_sockets_enable_fragmentation_before_connect ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.38s
+
+
+running 26 tests
+test an_absolute_executable_starts_from_a_deleted_working_directory ... daemon: ERROR rs_l2tpd: opening kernel interfaces: EPERM: Operation not permitted (os error 1); retrying
+ok
+test an_unusable_notify_store_does_not_abort_startup ... daemon: ERROR rs_l2tpd: descriptor store unavailable: Filename too long (os error 36); continuing without a store
+daemon: INFO rs_l2tpd: ready pid=526
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: ERROR rs_l2tpd: descriptor store unavailable: No such file or directory (os error 2); continuing without a store
+daemon: INFO rs_l2tpd: ready pid=535
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: ERROR rs_l2tpd: descriptor store unavailable: Operation not permitted (os error 1); continuing without a store
+daemon: INFO rs_l2tpd: ready pid=544
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test binary_tunable_handshake_and_opt_out ... daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): IPv6 sockets are IPv6-only (bindv6only); in-place family moves are unavailable (T26)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=554
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+daemon: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=563
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test check_and_startup_report_file_errors_in_the_same_words ... daemon: ERROR rs_l2tpd::files: /tmp/rs-l2tpd-process-510c7d28fa53ac39/bad.toml: invalid TOML document at byte 8; file left out
+daemon: ERROR rs_l2tpd: opening kernel interfaces: EPERM: Operation not permitted (os error 1); retrying
+ok
+test check_cli_and_no_process_side_effects ... ok
+test crash_store_adoption_and_ordered_withdrawal ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=591
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: WARN rs_l2tpd::reconciler::report: session a (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+daemon: INFO rs_l2tpd: ready pid=601
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test crash_without_store_closes_tunnel ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=612
+ok
+test daemon_readiness_pid_inode_and_reexec ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=626
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: WARN rs_l2tpd::reconciler::report: session a (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... daemon: ERROR rs_l2tpd: opening kernel interfaces: EPERM: Operation not permitted (os error 1); retrying
+daemon: ERROR rs_l2tpd: opening kernel interfaces: EPERM: Operation not permitted (os error 1); retrying
+ok
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=659
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: ERROR rs_l2tpd::reconciler::store: descriptor store cleanup incomplete for t10
+daemon: ERROR rs_l2tpd: service: kernel or descriptor-store cleanup incomplete
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test foreground_reload_and_clean_shutdown_without_network ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=670
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: ERROR rs_l2tpd::files: /tmp/rs-l2tpd-process-fa78033193485ec9/main.toml: invalid TOML document at byte 8; reload refused
+daemon: ERROR rs_l2tpd::service: reload failed; retaining accepted configuration: invalid configuration: file problems; previous configuration retained
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test handover_launcher ... ok
+test incompatible_replacement_keeps_running_interfaces ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=684
+daemon: WARN rs_l2tpd::service: restart failed; resuming: incompatible adoption protocol
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test installer_enables_once_and_never_restarts ... binary: done
+unit: done
+configuration directory: done
+configuration: done
+systemd: existing services are never restarted
+To use the installed binary, run rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid; upgrading a running 0.1.5 daemon at /usr/local/bin/rs-l2tpd requires systemctl restart rs-l2tpd once.
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+systemd: existing services are never restarted
+To use the installed binary, run rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid; upgrading a running 0.1.5 daemon at /usr/local/bin/rs-l2tpd requires systemctl restart rs-l2tpd once.
+ok
+test invalid_reexec_state_fails_without_forking ... ok
+test malformed_and_closed_announcements_are_errors_without_panics ... ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... daemon: WARN rs_l2tpd::caps: missing CAP_NET_ADMIN: tunnel, session and device operations may fail
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_RAW: device binding and raw router discovery may fail
+daemon: WARN rs_l2tpd::caps: missing CAP_NET_BIND_SERVICE: DHCPv6 port 546 may be unavailable
+daemon: INFO rs_l2tpd: ready pid=715
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=725
+daemon: WARN rs_l2tpd::reconciler: tunnel a (tunnel_id=10): left out after 10 refusals: EADDRINUSE: Address already in use
+daemon: INFO rs_l2tpd: ready pid=738
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test pid_publication_failure_does_not_revoke_kernel_readiness ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: ERROR rs_l2tpd: PID file /tmp/rs-l2tpd-process-4c26083c27265256/pid: PID file is a symbolic link; readiness still valid
+daemon: INFO rs_l2tpd: ready pid=750
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test rejected_store_name_is_withdrawn_before_replacement ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=761
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=771
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test setup_prefix_preserves_configuration ... binary: done
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+ok
+test sigusr1_retains_its_default_action ... daemon: INFO rs_l2tpd: ready pid=785
+ok
+test startup_changes_directory_before_loading_and_logs_problems ... ok
+test stored_descriptors_survive_double_fork ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=798
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: WARN rs_l2tpd::reconciler::report: session a (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+daemon: INFO rs_l2tpd: ready pid=812
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test unannounced_descriptors_close_before_service_start ... daemon: INFO rs_l2tpd: ready pid=821
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... daemon: INFO rs_l2tpd: ready pid=831
+daemon: INFO rs_l2tpd: re-exec resumed
+daemon: INFO rs_l2tpd::service: reload completed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.18s
+
+
+running 41 tests
+test args::completion_tests::legacy_aliases_share_validation ... ok
+test args::tests::byte_paths_and_option_like_values ... ok
+test args::tests::modes_and_errors ... ok
+test caps::tests::effective_set_without_proc ... ok
+test check::tests::fixed_order_corrected_values_and_omitted_defaults ... ok
+test daemon::tests::broken_pipe_and_collector_shutdown_child ... ok
+test daemon::tests::vanished_parent_is_logged_and_signal_threads_join ... ok
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... 
+running 1 test
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.02s
+
+ok
+test fdstore::tests::barrier_timeout_is_a_failure ... ok
+test fdstore::tests::rights_and_ordered_processing_barrier ... ok
+test files::completion_tests::bounded_regular_files_and_special_files ... ok
+test files::filesystem_tests::followed_links_and_absence_on_reload ... ok
+test files::filesystem_tests::permission_child ... ok
+test files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths ... 
+running 1 test
+test files::filesystem_tests::permission_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+
+ok
+test files::tests::discovery_merging_and_reload_refusal ... ok
+test files::tests::failed_documents_are_omitted_and_diagnostics_redact_input ... ok
+test pidfile::edge_tests::pid_edge_child ... ok
+test pidfile::edge_tests::sticky_warning_and_unwritable_directory_fallbacks ... ok
+test pidfile::permission_tests::precreated_child ... ok
+test pidfile::permission_tests::precreated_permissions_links_and_owner ... 
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s
+
+ok
+test pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes ... ok
+test pidfile::removal_tests::uninspectable_removal_is_not_a_shutdown_failure ... ok
+test pidfile::tests::fresh_inode_and_conditional_removal ... ok
+test pidfile::tests::symlink_refusal_and_directory_permissions_preserved ... ok
+test restart::completion_tests::absolute_executable_does_not_need_a_working_directory ... ok
+test restart::completion_tests::pid_inspection_error_child ... ok
+test restart::completion_tests::pid_inspection_error_discards_only_removal_authority ... ok
+test restart::completion_tests::restart_file_checks_precede_any_signal ... ok
+test restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table ... ok
+test restart::signal_tests::exec_mask_child ... ok
+test restart::signal_tests::exec_preserves_requests_and_rust_entry_ignores_sigpipe ... ok
+test restart::tests::incompatible_probe_never_executes_or_changes_descriptors ... ok
+test setup::completion_tests::directory_modes_child ... ok
+test setup::completion_tests::umask_does_not_weaken_installation_or_shadow_admin_units ... ok
+test setup::tests::atomic_idempotent_and_preserves_edits_and_configuration ... binary: done
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+ok
+test setup::tests::parses_required_unit_keys_and_install_paths ... ok
+test signals::forwarder_tests::forwarder_retries_a_full_queue_and_delivers_after_capacity_returns ... ok
+test signals::tests::pending_requests_coalesce_and_shutdown_bypasses_a_full_fake_queue ... ok
+test stream_tests::closed_streams_child ... ok
+test stream_tests::sockets_cannot_take_the_place_of_closed_standard_streams ... ok
+test tunable::tests::writes_only_when_needed ... ok
+
+test result: ok. 41 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.47s
+

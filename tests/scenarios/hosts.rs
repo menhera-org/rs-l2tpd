@@ -1,7 +1,7 @@
 use super::support::{Pair, config};
 use std::time::{Duration, Instant};
 
-/// spec: H6, G8, G21, P1
+/// spec: H6, G8, G21, P1, R26
 #[test]
 #[ignore = "disposable privileged container"]
 fn readiness_without_routes_then_frames_after_the_first_route() {
@@ -61,7 +61,7 @@ fn readiness_without_routes_then_frames_after_the_first_route() {
     pair.absent(1);
 }
 
-/// spec: H1
+/// spec: H1, R24, R25
 #[test]
 #[ignore = "disposable privileged container"]
 fn dual_stack_peers_exchange_frames_on_ipv6_tunnels() {
@@ -177,7 +177,7 @@ fn ipv6_only_keeps_ipv4_disconnected_without_a_source() {
     pair.absent(1);
 }
 
-/// spec: H13
+/// spec: H13, R34
 #[test]
 #[ignore = "disposable privileged container"]
 fn bind_devices_can_appear_lose_their_names_and_be_replaced() {
@@ -285,7 +285,7 @@ fn address_churn_reconnects_only_the_bound_tunnel_of_that_family() {
     pair.absent(1);
 }
 
-/// spec: H18
+/// spec: H18, R44, R48
 #[test]
 #[ignore = "disposable privileged container"]
 fn bindv6only_correction_and_native_ipv4_fallback_both_deliver_frames() {
@@ -458,7 +458,7 @@ fn vrf_membership_selects_the_domain_and_scoped_member() {
     pair.absent(1);
 }
 
-/// spec: H9, G10
+/// spec: H9, G10, R43
 #[test]
 #[ignore = "disposable privileged container"]
 fn noninitial_namespace_without_proc_runs_with_only_the_three_capabilities() {
@@ -471,7 +471,7 @@ fn noninitial_namespace_without_proc_runs_with_only_the_three_capabilities() {
         "private",
         "sh",
         "-ec",
-        "mount -t tmpfs tmpfs /proc; exec setpriv --bounding-set=-all,+net_admin,+net_raw,+net_bind_service \"$@\"",
+        "mount -t tmpfs tmpfs /proc; mount -t tmpfs tmpfs /sys; exec setpriv --bounding-set=-all,+net_admin,+net_raw,+net_bind_service \"$@\"",
         "run",
     ];
     let mut a = pair.start_with(0, &config(0, &["192.0.2.2"]), &prefix);
@@ -489,11 +489,13 @@ fn noninitial_namespace_without_proc_runs_with_only_the_three_capabilities() {
             (1 << 10) | (1 << 12) | (1 << 13)
         );
         let mounts = std::fs::read_to_string(format!("/proc/{}/mounts", daemon.pid())).unwrap();
-        assert!(
-            mounts
-                .lines()
-                .any(|line| line.starts_with("tmpfs /proc tmpfs "))
-        );
+        for path in ["/proc", "/sys"] {
+            assert!(
+                mounts
+                    .lines()
+                    .any(|line| line.starts_with(&format!("tmpfs {path} tmpfs ")))
+            );
+        }
     }
     pair.inner("l2tp0", 0);
     pair.frames(0);
@@ -503,7 +505,7 @@ fn noninitial_namespace_without_proc_runs_with_only_the_three_capabilities() {
     pair.absent(1);
 }
 
-/// spec: H19, P22
+/// spec: H19, P22, R12
 #[test]
 #[ignore = "disposable privileged container"]
 fn non_systemd_init_observes_parent_exit_pidfile_reload_restart_and_shutdown() {

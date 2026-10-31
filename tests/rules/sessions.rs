@@ -23,16 +23,30 @@ fn with_session(extra: &str) -> String {
 
 /// A session is staged under an rsl2tp-t name, given its address while
 /// down, then published under its configured name (S4, S8).
-/// spec: S1, S4, S8, S3, S12
+/// spec: S1, S4, S8, S3, S12, R19
 #[test]
 fn a_session_is_staged_then_published() {
+    let text = with_session("interface_hwaddr = \"02:00:5e:00:53:01\"\n");
+    let candidate = {
+        let (mut probe, _) = reconciler();
+        assert!(probe.reconcile(config(&text)));
+        probe
+            .kernel_mut()
+            .session(10, 100)
+            .unwrap()
+            .unwrap()
+            .ifname()
+            .unwrap()
+    };
     let (mut r, _) = reconciler();
-    assert!(r.reconcile(config(&with_session(
-        "interface_hwaddr = \"02:00:5e:00:53:01\"\n"
-    ))));
+    let foreign = r.kernel_mut().add_link(&candidate.to_string_lossy(), false);
+    let foreign_before = r.kernel().link(foreign).unwrap().clone();
+    assert!(r.reconcile(config(&text)));
     let ops = ops(&mut r);
     let create = ops.iter().find(|o| o.starts_with("create ")).unwrap();
     assert!(create.starts_with("create 10 100 rsl2tp-t"), "{create}");
+    assert!(!create.ends_with(&candidate.to_string_lossy().to_string()));
+    assert_eq!(r.kernel().link(foreign), Some(&foreign_before));
     let index = r.kernel().session_index(10, 100).unwrap();
     let hw = ops.iter().position(|o| o.starts_with("hwaddr")).unwrap();
     let rename = ops
@@ -68,7 +82,7 @@ fn a_taken_name_is_retried_and_the_session_kept() {
 
 /// A new address for an up device is deferred, never by lowering it, and
 /// applied once it is seen down (S12, E4, K31).
-/// spec: S12, E4, S2
+/// spec: S12, E4, S2, R23, R29
 #[test]
 fn a_hardware_address_waits_for_the_device_to_go_down() {
     let (mut r, _) = reconciler();
@@ -88,7 +102,7 @@ fn a_hardware_address_waits_for_the_device_to_go_down() {
 }
 
 /// A rename by another manager is kept (S10, M19).
-/// spec: S10, M19, E2
+/// spec: S10, M19, E2, R28
 #[test]
 fn another_managers_rename_is_kept() {
     let (mut r, _) = reconciler();
@@ -106,15 +120,30 @@ fn another_managers_rename_is_kept() {
 }
 
 /// Two sessions exchange names through a temporary rsl2tp-r name (S11).
-/// spec: S11, M6
+/// spec: S11, M6, R19
 #[test]
 fn sessions_swap_names() {
-    let (mut r, _) = reconciler();
     let two = |x: &str, y: &str| {
         format!(
             "{TUNNEL}\n[sessions.s]\ntunnel_name = \"a\"\nsession_id = 100\ninterface_name = \"{x}\"\n[sessions.t]\ntunnel_name = \"a\"\nsession_id = 101\ninterface_name = \"{y}\"\n"
         )
     };
+    let candidate = {
+        let (mut probe, _) = reconciler();
+        assert!(probe.reconcile(config(&two("x0", "y0"))));
+        ops(&mut probe);
+        assert!(probe.reconcile(config(&two("y0", "x0"))));
+        ops(&mut probe)
+            .into_iter()
+            .find_map(|op| {
+                let name = op.split_whitespace().last()?;
+                name.starts_with("rsl2tp-r").then(|| name.to_string())
+            })
+            .unwrap()
+    };
+    let (mut r, _) = reconciler();
+    let foreign = r.kernel_mut().add_link(&candidate, false);
+    let foreign_before = r.kernel().link(foreign).unwrap().clone();
     r.reconcile(config(&two("x0", "y0")));
     let (s, t) = (
         r.kernel().session_index(10, 100).unwrap(),
@@ -122,7 +151,14 @@ fn sessions_swap_names() {
     );
     ops(&mut r);
     assert!(r.reconcile(config(&two("y0", "x0"))));
-    assert!(ops(&mut r).iter().any(|o| o.contains(" rsl2tp-r")));
+    let operations = ops(&mut r);
+    assert!(operations.iter().any(|o| o.contains(" rsl2tp-r")));
+    assert!(
+        !operations
+            .iter()
+            .any(|o| o.ends_with(&format!(" {candidate}")))
+    );
+    assert_eq!(r.kernel().link(foreign), Some(&foreign_before));
     assert_eq!(r.kernel().link(s).unwrap().name().to_string_lossy(), "y0");
     assert_eq!(r.kernel().link(t).unwrap().name().to_string_lossy(), "x0");
 }
@@ -143,7 +179,7 @@ fn a_cookie_change_recreates_the_session() {
 
 /// An operator's deletion is announced, verified and the session created
 /// again (S27, S29, E27).
-/// spec: S27, S29, E27
+/// spec: S27, S29, E27, R18
 #[test]
 fn an_externally_deleted_session_is_created_again() {
     let (mut r, _) = reconciler();
@@ -305,7 +341,7 @@ fn acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt() {
     assert!(ops(&mut r).iter().any(|o| o.contains("rsl2tp-r")));
 }
 
-/// spec: S21, S24, M9
+/// spec: S21, S24, M9, R11, R31
 #[test]
 fn a_moved_session_is_forgotten_without_deleting_a_replacement() {
     let (mut r, _) = reconciler();
@@ -324,7 +360,7 @@ fn a_moved_session_is_forgotten_without_deleting_a_replacement() {
     );
 }
 
-/// spec: S5, S12, S18, M19
+/// spec: S5, S12, S18, M19, R23, R29, R30, R36
 #[test]
 fn a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides() {
     let (mut r, _) = reconciler();
