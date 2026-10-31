@@ -43,21 +43,16 @@ jobs:
           token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
           files: target/lcov.info
 
-  qualification:
-    name: Determinism (${{ matrix.seed }})
+  live:
+    name: Live conformance
     runs-on: ubuntu-24.04
     timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      max-parallel: 2
-      matrix:
-        seed: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     defaults:
       run:
         shell: sh
     env:
-      RECORD: audit/phase6/ci-qualification-${{ matrix.seed }}
-      TEST_SEED: ${{ matrix.seed }}
+      RECORD: audit/phase6/ci-live
+      TEST_SEED: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
@@ -117,13 +112,13 @@ jobs:
           root=$(sed -n 's/^KERNEL_ROOT=//p' "$RECORD/kernel-packages.log")
           release=$(sed -n 's/^KERNEL_RELEASE=//p' "$RECORD/kernel-packages.log")
           tests/kernel/run-guest.sh "$image" "$modules" "$root/boot/config-$release" normal "$RECORD/guest"
-          printf 'QUALIFICATION_SEED=%s\nQUALIFICATION_RESULT=0\n' "$TEST_SEED" > "$RECORD/result.log"
+          printf 'LIVE_SEED=%s\nLIVE_RESULT=0\n' "$TEST_SEED" > "$RECORD/result.log"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         timeout-minutes: 5
         with:
-          name: phase6-qualification-${{ matrix.seed }}
-          path: audit/phase6/ci-qualification-${{ matrix.seed }}/
+          name: phase6-live
+          path: audit/phase6/ci-live/
           if-no-files-found: error
           retention-days: 14

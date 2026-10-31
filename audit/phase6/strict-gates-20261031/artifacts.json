@@ -1,0 +1,194 @@
+{
+  "artifacts": [
+    {
+      "id": 13045807859,
+      "name": "phase6-qualification-10",
+      "size_in_bytes": 184354,
+      "url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045807859",
+      "archive_download_url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045807859/zip",
+      "expired": false,
+      "created_at": "2026-10-31T14:27:09Z",
+      "expires_at": "2026-11-14T14:27:09Z",
+      "updated_at": "2026-10-31T14:27:09Z",
+      "digest": "sha256:a51d49ecad1be4e308f140a6bc1309bd007455201aa96b3af47f32c6446b7155",
+      "workflow_run": {
+        "id": 41205847108,
+        "repository_id": 1194515516,
+        "head_repository_id": 1194515516,
+        "head_branch": "main",
+        "head_sha": "0f5292ea348d49d2fcd5ec8e397d5f99eece8e0a"
+      }
+    },
+    {
+      "id": 13045752724,
+      "name": "phase6-qualification-9",
+      "size_in_bytes": 184324,
+      "url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045752724",
+      "archive_download_url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045752724/zip",
+      "expired": false,
+      "created_at": "2026-10-31T14:23:32Z",
+      "expires_at": "2026-11-14T14:23:31Z",
+      "updated_at": "2026-10-31T14:23:32Z",
+      "digest": "sha256:4a2b3446e5433f7842304274f3e49fc11da831095eb9e33a5b8c6d1190a1dac3",
+      "workflow_run": {
+        "id": 41205847108,
+        "repository_id": 1194515516,
+        "head_repository_id": 1194515516,
+        "head_branch": "main",
+        "head_sha": "0f5292ea348d49d2fcd5ec8e397d5f99eece8e0a"
+      }
+    },
+    {
+      "id": 13045672707,
+      "name": "phase6-qualification-7",
+      "size_in_bytes": 184275,
+      "url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045672707",
+      "archive_download_url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045672707/zip",
+      "expired": false,
+      "created_at": "2026-10-31T14:10:17Z",
+      "expires_at": "2026-11-14T14:10:16Z",
+      "updated_at": "2026-10-31T14:10:17Z",
+      "digest": "sha256:5f15debccd3b6a326f8572acb91fcf1fb2710c67a2029b7182fb6e882b596e1c",
+      "workflow_run": {
+        "id": 41205847108,
+        "repository_id": 1194515516,
+        "head_repository_id": 1194515516,
+        "head_branch": "main",
+        "head_sha": "0f5292ea348d49d2fcd5ec8e397d5f99eece8e0a"
+      }
+    },
+    {
+      "id": 13045425503,
+      "name": "phase6-qualification-3",
+      "size_in_bytes": 184469,
+      "url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045425503",
+      "archive_download_url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045425503/zip",
+      "expired": false,
+      "created_at": "2026-10-31T13:49:06Z",
+      "expires_at": "2026-11-14T13:49:06Z",
+      "updated_at": "2026-10-31T13:49:06Z",
+      "digest": "sha256:5132fc13b358923fa2d028e1de9cba528ce403daf8c569a76d8ce441b0314965",
+      "workflow_run": {
+        "id": 41205847108,
+        "repository_id": 1194515516,
+        "head_repository_id": 1194515516,
+        "head_branch": "main",
+        "head_sha": "0f5292ea348d49d2fcd5ec8e397d5f99eece8e0a"
+      }
+    },
+    {
+      "id": 13045265581,
+      "name": "phase6-qualification-4",
+      "size_in_bytes": 184459,
+      "url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045265581",
+      "archive_download_url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045265581/zip",
+      "expired": false,
+      "created_at": "2026-10-31T13:51:25Z",
+      "expires_at": "2026-11-14T13:51:24Z",
+      "updated_at": "2026-10-31T13:51:25Z",
+      "digest": "sha256:c72b58be8e686fccc7bbe7777bec87ee58ef172012a4c973077b3553fb58466f",
+      "workflow_run": {
+        "id": 41205847108,
+        "repository_id": 1194515516,
+        "head_repository_id": 1194515516,
+        "head_branch": "main",
+        "head_sha": "0f5292ea348d49d2fcd5ec8e397d5f99eece8e0a"
+      }
+    },
+    {
+      "id": 13045218023,
+      "name": "phase6-qualification-8",
+      "size_in_bytes": 183912,
+      "url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045218023",
+      "archive_download_url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045218023/zip",
+      "expired": false,
+      "created_at": "2026-10-31T14:16:56Z",
+      "expires_at": "2026-11-14T14:16:56Z",
+      "updated_at": "2026-10-31T14:16:56Z",
+      "digest": "sha256:cc8e5c9106d777b657065deafe2502833d7414c798194f061c15fa3fe80bceb3",
+      "workflow_run": {
+        "id": 41205847108,
+        "repository_id": 1194515516,
+        "head_repository_id": 1194515516,
+        "head_branch": "main",
+        "head_sha": "0f5292ea348d49d2fcd5ec8e397d5f99eece8e0a"
+      }
+    },
+    {
+      "id": 13045116958,
+      "name": "phase6-qualification-6",
+      "size_in_bytes": 184356,
+      "url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045116958",
+      "archive_download_url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13045116958/zip",
+      "expired": false,
+      "created_at": "2026-10-31T14:04:06Z",
+      "expires_at": "2026-11-14T14:04:05Z",
+      "updated_at": "2026-10-31T14:04:06Z",
+      "digest": "sha256:6fcdb7ccbc5e14dbb50debb333440a0aba8e8ff1303a50859ffecd43da733afb",
+      "workflow_run": {
+        "id": 41205847108,
+        "repository_id": 1194515516,
+        "head_repository_id": 1194515516,
+        "head_branch": "main",
+        "head_sha": "0f5292ea348d49d2fcd5ec8e397d5f99eece8e0a"
+      }
+    },
+    {
+      "id": 13044698309,
+      "name": "phase6-qualification-5",
+      "size_in_bytes": 184081,
+      "url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13044698309",
+      "archive_download_url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13044698309/zip",
+      "expired": false,
+      "created_at": "2026-10-31T13:57:15Z",
+      "expires_at": "2026-11-14T13:57:14Z",
+      "updated_at": "2026-10-31T13:57:15Z",
+      "digest": "sha256:12bbe464368d50008cf34952945ccda4e333431e85e22e553b9e239717489e34",
+      "workflow_run": {
+        "id": 41205847108,
+        "repository_id": 1194515516,
+        "head_repository_id": 1194515516,
+        "head_branch": "main",
+        "head_sha": "0f5292ea348d49d2fcd5ec8e397d5f99eece8e0a"
+      }
+    },
+    {
+      "id": 13044686339,
+      "name": "phase6-qualification-1",
+      "size_in_bytes": 184247,
+      "url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13044686339",
+      "archive_download_url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13044686339/zip",
+      "expired": false,
+      "created_at": "2026-10-31T13:42:46Z",
+      "expires_at": "2026-11-14T13:42:45Z",
+      "updated_at": "2026-10-31T13:42:46Z",
+      "digest": "sha256:2ede45f46c632113ba4cf999a649dce7c04135ad8f171c7ee5b90f978326ef32",
+      "workflow_run": {
+        "id": 41205847108,
+        "repository_id": 1194515516,
+        "head_repository_id": 1194515516,
+        "head_branch": "main",
+        "head_sha": "0f5292ea348d49d2fcd5ec8e397d5f99eece8e0a"
+      }
+    },
+    {
+      "id": 13044650904,
+      "name": "phase6-qualification-2",
+      "size_in_bytes": 184132,
+      "url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13044650904",
+      "archive_download_url": "https://api.github.com/repos/menhera-org/rs-l2tpd/actions/artifacts/13044650904/zip",
+      "expired": false,
+      "created_at": "2026-10-31T13:38:42Z",
+      "expires_at": "2026-11-14T13:38:41Z",
+      "updated_at": "2026-10-31T13:38:42Z",
+      "digest": "sha256:57f6f34df80ad7416f330573b1b7b6293349d7c223983c271e27f4c1b00f82fe",
+      "workflow_run": {
+        "id": 41205847108,
+        "repository_id": 1194515516,
+        "head_repository_id": 1194515516,
+        "head_branch": "main",
+        "head_sha": "0f5292ea348d49d2fcd5ec8e397d5f99eece8e0a"
+      }
+    }
+  ]
+}

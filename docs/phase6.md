@@ -140,6 +140,14 @@ cited by a `kernel::linux` function (K13, K14, K33, K38, K40).
 Acceptance: both strict commands pass locally and in CI; the record
 lists the rules that gained tests with their test locations.
 
+On 2026-10-31, [CI run 41205847108](https://github.com/menhera-org/rs-l2tpd/actions/runs/41205847108)
+passed all ten seeded fake/live repetitions on its first attempt. The
+[retained qualification](../audit/phase6/strict-gates-20261031/README.md)
+identifies the source and each result. Both strict flags are now set in
+the common CI script; regular CI retains one full guest per run. This
+establishes declaration traceability, subject to the new strict CI run,
+and does not close the remaining clause, matrix or coverage gates.
+
 ## P2. The scenario suite
 
 Deliverable: `tests/scenarios/` as Rust integration tests (one file per

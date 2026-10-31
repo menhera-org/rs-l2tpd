@@ -17,6 +17,6 @@ cargo build --locked
 cargo test --locked --all-features
 cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process
 
-# These maps remain lenient until Phase 6 enables their strict flags.
-cargo test --locked --all-features --test rulemap --test srclink -- --nocapture
+RULEMAP_STRICT=1 SRCLINK_STRICT=1 \
+    cargo test --locked --all-features --test rulemap --test srclink -- --nocapture
 RUSTDOCFLAGS="-D warnings" cargo doc --locked --no-deps --all-features

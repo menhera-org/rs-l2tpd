@@ -1,0 +1,17 @@
+qualified revision: 0f5292ea348d49d2fcd5ec8e397d5f99eece8e0a
+command: git --no-pager diff --exit-code 0f5292e -- src tests Cargo.lock
+RUST_SOURCE_MATCH=1
+diff --git a/Cargo.toml b/Cargo.toml
+index 701dcbc..6c7b3b3 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -21,8 +21,7 @@ name = "rs-l2tpd"
+ path = "src/bin/rs-l2tpd/main.rs"
+ required-features = ["bin"]
+ 
+-# The gates of docs/testing.md. Both run leniently (they report) until
+-# phase 6 sets RULEMAP_STRICT=1 and SRCLINK_STRICT=1 in CI.
++# The gates of docs/testing.md; test-ci-gates.sh enables both strict flags.
+ [[test]]
+ name = "rulemap"
+ path = "tests/tools/rulemap.rs"

@@ -1,0 +1,5 @@
+mode: normal
+kernel image git-blob: 6b3b40ffa0d305661b58893c9650cdc312a6e88e
+baseline commit: 15529bab567862b6617c9c5b948a74271bc9c44c
+baseline binary git-blob: 1ecf2f9e5adf7d059671f0aff9694a918b647798
+command: qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 -nodefaults -nographic -serial stdio -no-reboot -kernel IMAGE -initrd INITRAMFS -append 'console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs'

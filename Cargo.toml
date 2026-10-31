@@ -21,8 +21,7 @@ name = "rs-l2tpd"
 path = "src/bin/rs-l2tpd/main.rs"
 required-features = ["bin"]
 
-# The gates of docs/testing.md. Both run leniently (they report) until
-# phase 6 sets RULEMAP_STRICT=1 and SRCLINK_STRICT=1 in CI.
+# The gates of docs/testing.md; test-ci-gates.sh enables both strict flags.
 [[test]]
 name = "rulemap"
 path = "tests/tools/rulemap.rs"

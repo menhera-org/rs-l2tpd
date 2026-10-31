@@ -2,20 +2,21 @@
 
 Phase 6 is not complete. This record extends
 [the October 30 record](PHASE6_VERIFICATION_2026-10-30.md).
-No strict CI flag has been enabled. The maintainer approved the K26/K34
+Strict CI map flags were enabled after the ten-run qualification recorded
+below; their new workflow run is pending. The maintainer approved the K26/K34
 kernel distinction on 2026-10-31, and the correction is applied. The
 previously approved evidence-map and H11 MAC decisions remain in force.
 
 | Gate/package | Current evidence | Remaining work |
 |---|---|---|
-| P1 source link | Fresh strict run: four tests pass; 43 facts, 37 production-cited and six classified; no uncited functions | Enable in CI only with required determinism and remaining phase proof |
-| P1 rule map | Fresh strict run fails: 343 total / 333 active / 275 cited / 58 missing | Genuine assertions/citations for the remaining rules; strict flag stays off |
-| P2 scenarios | 23-case host subset passes, including the 300-tunnel H17 case; H16 passes on all five required kernels; scoped missing-Ethernet-driver guest also passes | Relevant-event cache cost, full resource/history proof, remaining clauses, manager/promise cases and final repetitions |
-| P3 matrix | Pre-H15 required driver returns MATRIX_RESULT=0: five 18-scenario profiles plus both H4 boots; H15 adds a scoped stock-kernel driver-availability boot; H16 adds a passing clock profile on every required target; fresh mainline normal profile passes all 23 scenarios and current conformance | Complete P2/delegated proof and rerun all latest targets with the expanded suite and current report fixes; partial profiles do not close the whole gate |
-| P4 coverage | First merged GNU report: 91.03% lines / 77.02% branches, source snapshot before the readiness fix | The previous source snapshot has 897 missing lines / 410 branches; recollect current-source profiles after readiness/H15 fixes; no exclusions introduced |
-| P5 Incus | October 30 full case passed, including manager race/ordered policy/store/re-exec; fresh GNU buffer case proves EPERM and exports coverage | Final-code full-case refresh as part of phase exit |
+| P1 source link | Strict local pass: 43 facts, 37 production-cited and six classified; no uncited functions. Ten CI repetitions passed; strict flags now set | Verify the updated strict workflow in CI |
+| P1 rule map | Strict local pass: 343 total / 333 active / 333 cited / zero missing | Verify the updated strict workflow in CI; declaration traceability does not establish clause coverage |
+| P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests; H16 has passing required-kernel records | Relevant-event CPU cost, full resource/history proof and remaining clauses; investigate the separate vanilla 7.0.14 capture failure |
+| P3 matrix | Current refresh passes full normal profiles on both Ubuntu kernels, vanilla 6.8.12 and mainline 7.3.0; vanilla 7.0.14 fails one netlink-count assertion | Resolve that failure and finish current matrix/clock validation; complete P2/delegated proof |
+| P4 coverage | Current merged GNU report: 92.26% lines / 78.16% branches, including real user manager and full Incus case; no exclusions | 804 missing lines / 408 branches; add meaningful cases and remaining profiles to reach 100% |
+| P5 Incus | Current unmodified musl full case passes, including manager race/ordered policy/store/re-exec; instrumented GNU full case exports seven daemon profiles | Repeat if relevant source changes; retain documented MAC limitations |
 | P6 root sandbox | October 30 full real-root-systemd sandbox case passed, without drop-ins | Final phase validation; no new sandbox claim from the coverage-only user-manager case |
-| P7 docs/CI | Documentation updated to the actual partial runners and new records | Full verification, determinism/coverage jobs, strict CI and CI execution remain open |
+| P7 docs/CI | Ten seeded CI repetitions pass on their first attempt; both strict map flags set; regular CI retains one full live guest | Updated strict workflow run, complete verification and coverage enforcement remain open |
 
 Current P1/ordinary/warning checks are in
 [deadline-index-20261031](phase6/deadline-index-20261031/README.md). Lifetime
@@ -512,3 +513,21 @@ Completed profiles clean up their transient user services and containers.
 The separate current required-kernel matrix refresh is still running;
 its final result is not claimed here. Earlier records retain their scoped
 outcomes.
+
+## Completed CI qualification and strict map enforcement
+
+[The retained CI qualification](phase6/strict-gates-20261031/README.md)
+records all ten seeded fake/live passes from run 41205847108, attempt 1,
+source `0f5292e`. Every guest ran all 26 normal scenarios and the full live
+kernel/process suites on Ubuntu `6.8.0-147-generic`. Seeds, revisions,
+result markers and suite counts were checked against the extracted artifacts.
+The common script now enables both strict map flags and passes locally.
+Regular CI retains one full fake/live guest with the same bounded timeouts;
+the new strict workflow still needs its own successful run. This closes the
+initial ten-run prerequisite, not complete clause coverage or Phase 6.
+
+The separate current kernel matrix found an H8 scenario assertion failure
+on vanilla 7.0.14: total requests differ by one generic-netlink request,
+while both captures contain exactly the two deliberate fixture route queries.
+That failure is retained and under investigation. The successful Ubuntu CI
+qualification does not establish a passing five-kernel matrix.

@@ -547,11 +547,13 @@ module-map checks kept distinct from behavioral execution evidence.
 A live G15–G20 scenario now checks early readiness with three disconnected
 entries, measured connection, in-place stability/fidelity and ordered cleanup
 with a successful process exit. The conflict process case enforces ten-second
-readiness. Local traceability is complete; strict CI enforcement still awaits
-the plan's required CI repetitions and does not imply complete clause proof.
+readiness. Local traceability is complete. The required ten seeded fake/live
+CI repetitions passed on their first attempt, and the common CI script now
+enforces both strict map flags. The updated strict workflow still needs its
+own passing run; declaration traceability does not imply complete clause proof.
 Complete event-cost/resource/history proof, remaining clauses and
 final matrix/coverage refreshes are still open. No global gate is declared
-complete; strict CI flags remain off. The latest record is repository file
+complete. The latest record is repository file
 `audit/PHASE6_VERIFICATION_2026-10-31.md`; the approved H11 MAC limitations
 remain in [H11](spec/hosts.md#other-network-managers).
 [Required-kernel behavior](kernel-behavior.md) records all five targets'
@@ -560,8 +562,11 @@ observations, proof scope and limitations.
 The latest coverage refresh on Rust source `0f5292e` includes the current
 26-scenario host suite, real user manager and full Incus manager scenario:
 92.26% lines / 78.16% branches, without exclusions. The unmodified musl
-Incus runner also passes. The required-kernel refresh and ten-run CI
-qualification are in progress; full coverage remains open.
+Incus runner also passes. The required-kernel refresh found a vanilla 7.0.14
+scenario failure: both captures see only the two fixture route queries,
+but total generic-netlink request counts differ by one. That failure remains
+under investigation. Full coverage remains open. The ten-run CI evidence is
+in [the qualification record](../audit/phase6/strict-gates-20261031/README.md).
 
 ### Phase 7 — release
 

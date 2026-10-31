@@ -170,21 +170,25 @@ a green rule map alone cannot close a phase. The implemented runners
 exercise a partial case set; their existence does not close a gate.
 CI and local `./test-ci-gates.sh` runs share the same blocking checks:
 ShellCheck, formatting, warning-denied Clippy and documentation,
-no-default/serde library builds, and native/musl tests. Rule-map and
-source-link checks run leniently until Phase 6 enables their strict flags;
-a green CI run does not establish the coverage or complete kernel matrix
+no-default/serde library builds, native/musl tests, and strict rule-map and
+source-link checks. A green CI run does not establish the coverage or complete kernel matrix
 gates. Current review probes and exact commands are in repository file
 `tests/kernel/README.md`.
 
-CI qualifies determinism with ten matrix jobs, one seed and one fresh QEMU
-guest per job, with at most two jobs running at once. Each guest executes
+The [initial CI qualification](../audit/phase6/strict-gates-20261031/README.md)
+passed all ten seeded fake/live repetitions on its first attempt. The
+qualification used one fresh QEMU guest per seed, with at most two jobs
+running at once. Regular CI now runs one full live guest per push or pull
+request. Each guest executes
 the same Rust scenario binary as the Docker runner, plus live kernel and
 process suites. QEMU keeps module loading and networking inside the guest;
 it does not test the Incus or root-systemd profiles. Each job has a
 40-minute limit, the live-suite step has 20 minutes, and QEMU itself has
 900 seconds. The ordinary build job has 30 minutes. Failed repetitions
 remain failures and retain their logs; the workflow does not retry them.
-These CI repetitions must pass before strict map flags are enabled.
+The ten-run qualification preceded strict map enforcement. A later failure
+still requires investigation; the retained qualification does not establish
+that every test or kernel target is deterministic.
 
 ## Running
 
