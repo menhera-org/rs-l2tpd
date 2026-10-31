@@ -54,6 +54,10 @@ The prepared review image and archived interoperability peer are reused.
 Only the profile directory is writable in ordinary coverage containers;
 the checkout stays read-only. Export makes restrictive-umask profiles
 readable before merging them.
+The successful run precedes only a missing-artifact guard correction in
+`run-live.sh`: an explicit `if` now stops before Docker when Cargo output
+has no executable. [empty-artifact.log](empty-artifact.log) verifies that
+failure path with an empty build log and a Docker sentinel.
 
 ## Incus profile transport
 

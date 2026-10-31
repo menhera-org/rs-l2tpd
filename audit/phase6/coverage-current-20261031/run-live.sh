@@ -15,7 +15,10 @@ find_test() {
 run() {
     label=$1; shift
     test_binary=$(find_test "$label")
-    [ -f "$test_binary" ] && [ -x "$test_binary" ]
+    if [ ! -f "$test_binary" ] || [ ! -x "$test_binary" ]; then
+        echo "missing coverage executable: $test_binary" >&2
+        exit 1
+    fi
     printf 'command: %s' "$test_binary"
     printf ' %s' "$@"
     printf '\n'
