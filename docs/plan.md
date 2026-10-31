@@ -680,6 +680,14 @@ builds and common checks pass. Repository record
 `audit/phase6/barrier-faults-20261031/` gives compatible coverage mappings and
 the remaining proof limits; shipping code is unchanged.
 
+A new signal-fault probe finds an upstream nix error-handling defect: a
+positive pthread error is treated as success. Upstream PR #2852 has a
+GNU/musl-tested fix that also preserves musl's -1/errno convention. Integration
+and the proposed daemon signal cases wait for a compatible upstream release;
+there is no daemon workaround. Repository record
+`audit/phase6/upstream-signal-errors-20261031/` gives the pinned reproduction,
+upstream patch and remaining scope.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

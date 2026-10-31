@@ -6,6 +6,8 @@ Strict CI map flags were enabled after the ten-run qualification recorded
 below; the updated strict workflow also passed. The maintainer approved the K26/K34
 kernel distinction on 2026-10-31, and the correction is applied. The
 previously approved evidence-map and H11 MAC decisions remain in force.
+The new signal-fault package waits for a compatible nix release with the
+fix proposed in upstream PR #2852; no daemon workaround is applied.
 
 | Gate/package | Current evidence | Remaining work |
 |---|---|---|
@@ -961,3 +963,15 @@ production coverage mappings match the preceding collection. Coverage is
 95.00% lines / 84.86% branches, leaving 426 lines and 274 branches, with
 zero saturated regions. Unix fixtures do not replace the separately recorded
 real-manager cases; global proof requirements remain open.
+
+## Upstream signal errors
+
+[The signal-error record](phase6/upstream-signal-errors-20261031/README.md)
+shows pinned nix 0.30.1 reporting success after a refused signal-mask syscall.
+Upstream master is also affected. [PR #2852](https://github.com/nix-rust/nix/pull/2852)
+checks positive error codes before output reads while preserving musl's
+-1/errno convention. Its regression fails safely on old code; all 26 signal
+tests pass on GNU and musl, with three cross-target builds and formatting.
+The proposed daemon process cases remain unapplied pending a compatible
+published fix. No local dependency override or daemon workaround is added.
+Other proof packages may continue; Phase 6 remains incomplete.

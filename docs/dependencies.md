@@ -62,7 +62,7 @@ the logger is thirty lines over `log::Log` (O1), the PID file, signals,
 
 ## Upstream needs
 
-What the specification needs of the maintainer's crates. These are
+What the specification needs of upstream crates. These are
 general-purpose libraries: a downstream requirement is not automatically
 an upstream bug. Fix discrepancies against their own documented contracts,
 and request compatible additions for new policy. A missing required API
@@ -73,6 +73,7 @@ regressions, compatibility requirements and integration gate.
 
 | Need | Crate | Status |
 |---|---|---|
+| Original errors from signal-mask changes and signal waits (P4, P12, P16) | `nix` 0.30.1; upstream master 0.31.3 also affected | **Blocked on upstream release:** positive pthread error codes are treated as success; failed wait/get-mask outputs can be read before initialization. A pinned-crate reproduction and an upstream regression fail on the old implementation. [PR #2852](https://github.com/nix-rust/nix/pull/2852), ready for review, checks errors before outputs and preserves musl's -1/errno convention. GNU/musl signal suites and three cross-target builds pass. No daemon workaround or dependency override is applied; repository record `audit/phase6/upstream-signal-errors-20261031/` retains the evidence and unapplied process-test proposal |
 | `TunnelSocket::disconnect`, `from_fd`, `into_fd`, `local_addr_ip` | `l2tp` | in 0.4.0 |
 | `delete_session_by_ifname`, `get_session_by_ifname` (S22, name-only primitive; not an atomic identity check) | `l2tp` | in 0.4.0 |
 | `SessionInfo` reports cookies and peer identifiers (S28) | `l2tp` | in 0.4.0 |
