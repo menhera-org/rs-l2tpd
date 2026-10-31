@@ -13,7 +13,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Latest required driver returns MATRIX_RESULT=0: five normal and five clock profiles, both IPv6-absent boots and missing-Ethernet-driver recovery pass; published versions match before/after | Later test additions need final consistent-source qualification; complete P2/delegated proof remains open |
-| P4 coverage | Approved production scope: merged GNU report 94.90% lines / 84.48% branches after inheritance/parser cases; production mappings match, with no exclusions or saturated counts | 435 missing lines / 281 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: merged GNU report 95.00% lines / 84.86% branches after descriptor-store barrier faults; production mappings match, with no exclusions or saturated counts | 426 missing lines / 274 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -949,3 +949,15 @@ set. Subsequent monitor, process/service and inheritance tests have separate
 Ubuntu 6.8 evidence and are absent from that matrix. H11/P5, final
 consistent-source qualification, full clause/resource/event-cost proof and
 100% production coverage remain open.
+
+## Descriptor-store barrier faults
+
+[The barrier record](phase6/barrier-faults-20261031/README.md) exercises
+pipe/send/poll/read failures and persistent EINTR. Original errors, absolute
+deadline bounds and local pipe release are checked. Ten seeded ordinary
+binary runs and three musl repetitions pass, along with common checks,
+Clippy and three cross-target builds. Only excluded test code changes;
+production coverage mappings match the preceding collection. Coverage is
+95.00% lines / 84.86% branches, leaving 426 lines and 274 branches, with
+zero saturated regions. Unix fixtures do not replace the separately recorded
+real-manager cases; global proof requirements remain open.

@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 94.90% lines /
-84.48% branches: 435 missing lines and 281 missing branches, with no
+approved production-code scope, the latest merged report is 95.00% lines /
+84.86% branches: 426 missing lines and 274 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner has passing records and the later H11 failure described below.
@@ -672,6 +672,13 @@ truncated deletion notices have parser assertions. Three GNU, three musl
 and three instrumented repetitions, ten seeds and common checks pass;
 `audit/phase6/inheritance-validation-20261031/` records compatible production
 coverage mappings and the remaining cross-kernel qualification.
+
+Descriptor-store barrier tests now cover refused pipe/send/poll/read operations
+and persistent interrupts, checking original errors, deadline bounds and local
+descriptor release. Ten seeded binary runs, three musl repetitions, cross-target
+builds and common checks pass. Repository record
+`audit/phase6/barrier-faults-20261031/` gives compatible coverage mappings and
+the remaining proof limits; shipping code is unchanged.
 
 ### Phase 7 — release
 

@@ -402,8 +402,9 @@ now passed on every required target in the current refresh. Repository record
 proofs; `audit/phase6/deadline-index-20261031/README.md` records indexed
 deadlines, conflict cancellation and fresh host/mainline-clock checks.
 
-Current merged production coverage is 94.90% of lines and 84.48% of branches;
-the threshold remains 100%. The earlier 92.26% line report included inline
+Current merged production coverage remains below the required 100%; exact
+totals are in repository file `audit/PHASE6_VERIFICATION_2026-10-31.md`.
+The earlier 92.26% line report included inline
 test code. Both strict map flags are enabled after ten CI qualification
 passes, and the strict workflow and pinned-nightly coverage workflow pass.
 The final matrix,
