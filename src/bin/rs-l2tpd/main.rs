@@ -150,6 +150,8 @@ fn run() -> u8 {
         let host = fdstore::worker(requests, service.control(), store)?;
         let convergence = service.converge();
         if convergence.is_ok() && !signals.stopping() {
+            // The parent may send SIGHUP as soon as readiness is announced.
+            signals.ready();
             if !entry.reexec {
                 if args.mode == Mode::Daemon {
                     match pidfile::PidFile::publish(&args.pid_file) {
@@ -163,7 +165,6 @@ fn run() -> u8 {
                 daemon::ready(&mut pipe);
                 log::info!("ready pid={}", std::process::id());
             }
-            signals.ready();
             if entry.reexec {
                 log::info!("re-exec resumed");
             }

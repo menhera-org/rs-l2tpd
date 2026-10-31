@@ -1,0 +1,6 @@
+6.8.0-147-generic
+features: all; target: x86_64-unknown-linux-musl
+command: cargo test --locked --all-features --target x86_64-unknown-linux-musl --test process --no-run
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+  Executable tests/process.rs (target/x86_64-unknown-linux-musl/debug/deps/process-fc1f00b72031adc1)

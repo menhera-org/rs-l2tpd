@@ -1,0 +1,10 @@
+6.8.0-147-generic
+features: all; target: x86_64-unknown-linux-musl
+scope: exploratory 300-object/reload/shrink probe, not the full H17 gate
+objects=300 descriptors=314 VmRSS:	    7828 kB
+objects=1 descriptors=15 VmRSS:	    7528 kB
+objects=300 descriptors=314 VmRSS:	    7892 kB
+objects=1 descriptors=15 VmRSS:	    7544 kB
+objects=300 descriptors=314 VmRSS:	    8040 kB
+objects=1 descriptors=15 VmRSS:	    7564 kB
+SCALE_PROBE_RESULT=0
