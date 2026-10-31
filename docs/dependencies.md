@@ -44,6 +44,12 @@ Nothing else: the command line (P27) is parsed by hand,
 the logger is thirty lines over `log::Log` (O1), the PID file, signals,
 `setsid` and the store protocol are `std` and `nix` calls.
 
+## CI analysis
+
+| Tool | For |
+|---|---|
+| `github/codeql-action` v4, pinned by commit in [the workflow](../.github/workflows/codeql.yml) | Rust and Actions security analysis; [the configuration](../.github/codeql-config.yml) retains the extended suite and excludes `rust/cleartext-logging`, which mistakes public tunnel/session identifiers for credentials |
+
 ## Removed
 
 | Crate | Why it goes |
