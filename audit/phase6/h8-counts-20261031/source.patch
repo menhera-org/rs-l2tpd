@@ -1,0 +1,60 @@
+diff --git a/tests/kernel/matrix.sh b/tests/kernel/matrix.sh
+index 8a650e4..b606618 100755
+--- a/tests/kernel/matrix.sh
++++ b/tests/kernel/matrix.sh
+@@ -57,8 +57,9 @@ if [ "$selection" != required ] && ! printf '%s\n' "$selection" | grep -Eq '^v[0
+ fi
+ record=$repo/audit/phase6/matrix-$(date -u +%Y%m%dT%H%M%SZ)-$$
+ mkdir -p "$record"
+-git --no-pager rev-parse HEAD > "$record/revision"
+-git --no-pager diff HEAD -- src tests Cargo.toml Cargo.lock > "$record/source.patch"
++revision=$(git --no-pager rev-parse HEAD)
++printf '%s\n' "$revision" > "$record/revision"
++git --no-pager diff "$revision" -- src tests Cargo.toml Cargo.lock > "$record/source.patch"
+ printf 'selection: %s\ncommand: tests/docker/run.sh matrix %s\n' "$selection" "$selection" > "$record/command.log"
+ resolve() {
+     destination=$1
+@@ -162,7 +163,7 @@ if ! cmp -s "$record/initial/versions" "$record/final/versions"; then
+     echo 'published targets changed; refresh documentation and rerun before claiming a pass' >&2
+     result=1
+ fi
+-git --no-pager diff HEAD -- src tests Cargo.toml Cargo.lock > "$record/final-source.patch"
++git --no-pager diff "$revision" -- src tests Cargo.toml Cargo.lock > "$record/final-source.patch"
+ if ! cmp -s "$record/source.patch" "$record/final-source.patch"; then
+     echo 'test sources changed during the matrix; rerun a consistent source state' >&2
+     result=1
+diff --git a/tests/scenarios/netlink.rs b/tests/scenarios/netlink.rs
+index 9a183d0..8b239b6 100644
+--- a/tests/scenarios/netlink.rs
++++ b/tests/scenarios/netlink.rs
+@@ -298,21 +298,26 @@ fn large_default_free_tables_do_not_add_daemon_route_queries() {
+         let reloaded = Instant::now();
+         daemon.reload();
+         let reload = reloaded.elapsed();
+-        daemon.stop();
+         // Positive controls in each capture prevent an empty trace passing.
+         pair.ip(0, &["-4", "route", "get", "192.0.2.2"]);
+         pair.ip(0, &["-6", "route", "get", "2001:db8:1::2"]);
+         super::support::wait("route-query controls captured", || {
+             trace.snapshot().route_queries >= 2
+         });
++        // Cleanup query counts depend on kernel worker scheduling. Compare
++        // startup/reload after the capture has drained, before shutdown.
++        let startup = trace.snapshot();
++        daemon.stop();
+         let observed = trace.finish();
+         assert_eq!(observed.route_queries, 2, "only the fixture queries routes");
+-        println!("large={large}: ready={ready:?}, reload={reload:?}, {observed:?}");
+-        counts.push(observed.requests);
++        println!(
++            "large={large}: ready={ready:?}, reload={reload:?}, startup={startup:?}, total={observed:?}"
++        );
++        counts.push(startup.requests);
+         pair.absent(0);
+     }
+     assert_eq!(
+         counts[0], counts[1],
+-        "route-table size must not add daemon requests"
++        "route-table size must not add daemon startup/reload requests"
+     );
+ }

@@ -1,0 +1,41 @@
+Linux 7.0.14 include/uapi/linux/l2tp.h:73-84
+enum {
+	L2TP_CMD_NOOP,
+	L2TP_CMD_TUNNEL_CREATE,
+	L2TP_CMD_TUNNEL_DELETE,
+	L2TP_CMD_TUNNEL_MODIFY,
+	L2TP_CMD_TUNNEL_GET,
+	L2TP_CMD_SESSION_CREATE,
+	L2TP_CMD_SESSION_DELETE,
+	L2TP_CMD_SESSION_MODIFY,
+	L2TP_CMD_SESSION_GET,
+	__L2TP_CMD_MAX,
+};
+src/reconciler/mod.rs shutdown_deletions
+    pub(crate) fn shutdown_deletions(&mut self) -> crate::Result<bool> {
+        let now = self.k.now();
+        let mut failure = None;
+        for (id, deadline) in self
+            .departing
+            .iter()
+            .map(|(id, at)| (*id, *at))
+            .collect::<Vec<_>>()
+        {
+            match self.k.tunnel(id) {
+                Ok(None) => {
+                    self.departing.remove(&id);
+                }
+                result if now >= deadline => {
+                    log::error!("tunnel_id={id}: deletion not confirmed before deadline");
+                    failure = Some(match result {
+                        Err(error) => error.into(),
+                        _ => crate::Error::Other(format!("tunnel_id={id}: deletion not confirmed")),
+                    });
+                }
+                _ => {}
+            }
+        }
+        failure.map_or(Ok(self.departing.is_empty()), Err)
+    }
+kernel source hash
+source: linux-7.0.14.tar.xz; git-blob: 8eb6b32766bfaa80a61327b79a037833ec8d1af6

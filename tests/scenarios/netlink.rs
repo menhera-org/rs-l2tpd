@@ -298,21 +298,26 @@ fn large_default_free_tables_do_not_add_daemon_route_queries() {
         let reloaded = Instant::now();
         daemon.reload();
         let reload = reloaded.elapsed();
-        daemon.stop();
         // Positive controls in each capture prevent an empty trace passing.
         pair.ip(0, &["-4", "route", "get", "192.0.2.2"]);
         pair.ip(0, &["-6", "route", "get", "2001:db8:1::2"]);
         super::support::wait("route-query controls captured", || {
             trace.snapshot().route_queries >= 2
         });
+        // Cleanup query counts depend on kernel worker scheduling. Compare
+        // startup/reload after the capture has drained, before shutdown.
+        let startup = trace.snapshot();
+        daemon.stop();
         let observed = trace.finish();
         assert_eq!(observed.route_queries, 2, "only the fixture queries routes");
-        println!("large={large}: ready={ready:?}, reload={reload:?}, {observed:?}");
-        counts.push(observed.requests);
+        println!(
+            "large={large}: ready={ready:?}, reload={reload:?}, startup={startup:?}, total={observed:?}"
+        );
+        counts.push(startup.requests);
         pair.absent(0);
     }
     assert_eq!(
         counts[0], counts[1],
-        "route-table size must not add daemon requests"
+        "route-table size must not add daemon startup/reload requests"
     );
 }

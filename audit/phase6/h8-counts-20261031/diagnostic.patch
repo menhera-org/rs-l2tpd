@@ -1,0 +1,28 @@
+diff --git a/tests/scenarios/netlink.rs b/tests/scenarios/netlink.rs
+index 9a183d0..b839d81 100644
+--- a/tests/scenarios/netlink.rs
++++ b/tests/scenarios/netlink.rs
+@@ -34,6 +34,13 @@ fn requests(protocol: u16, bytes: &[u8]) -> io::Result<(usize, usize)> {
+         if header.flags() & netlink_packet_core::NLM_F_REQUEST != 0 {
+             requests += 1;
+             routes += usize::from(protocol == 0 && header.message_type() == 26); // RTM_GETROUTE
++            if protocol == 16 {
++                println!(
++                    "H8_GENERIC_REQUEST type={} command={:?}",
++                    header.message_type(),
++                    rest.get(16)
++                );
++            }
+         }
+         let length = header.length() as usize;
+         rest = rest.get(length.next_multiple_of(4)..).unwrap_or_default();
+@@ -298,7 +305,9 @@ fn large_default_free_tables_do_not_add_daemon_route_queries() {
+         let reloaded = Instant::now();
+         daemon.reload();
+         let reload = reloaded.elapsed();
++        println!("H8_BEFORE_STOP large={large}: {:?}", trace.snapshot());
+         daemon.stop();
++        println!("H8_AFTER_STOP large={large}: {:?}", trace.snapshot());
+         // Positive controls in each capture prevent an empty trace passing.
+         pair.ip(0, &["-4", "route", "get", "192.0.2.2"]);
+         pair.ip(0, &["-6", "route", "get", "2001:db8:1::2"]);

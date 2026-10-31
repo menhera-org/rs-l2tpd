@@ -1,0 +1,6 @@
+scope: three focused H8 repetitions only; no conformance suites
+six small/large captures: each 27 startup/reload requests, 2 fixture route queries, 9 generic requests
+three passing one-case test results
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+H8_REPETITIONS_VERIFIED=3

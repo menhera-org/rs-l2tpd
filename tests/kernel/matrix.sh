@@ -57,8 +57,9 @@ if [ "$selection" != required ] && ! printf '%s\n' "$selection" | grep -Eq '^v[0
 fi
 record=$repo/audit/phase6/matrix-$(date -u +%Y%m%dT%H%M%SZ)-$$
 mkdir -p "$record"
-git --no-pager rev-parse HEAD > "$record/revision"
-git --no-pager diff HEAD -- src tests Cargo.toml Cargo.lock > "$record/source.patch"
+revision=$(git --no-pager rev-parse HEAD)
+printf '%s\n' "$revision" > "$record/revision"
+git --no-pager diff "$revision" -- src tests Cargo.toml Cargo.lock > "$record/source.patch"
 printf 'selection: %s\ncommand: tests/docker/run.sh matrix %s\n' "$selection" "$selection" > "$record/command.log"
 resolve() {
     destination=$1
@@ -162,7 +163,7 @@ if ! cmp -s "$record/initial/versions" "$record/final/versions"; then
     echo 'published targets changed; refresh documentation and rerun before claiming a pass' >&2
     result=1
 fi
-git --no-pager diff HEAD -- src tests Cargo.toml Cargo.lock > "$record/final-source.patch"
+git --no-pager diff "$revision" -- src tests Cargo.toml Cargo.lock > "$record/final-source.patch"
 if ! cmp -s "$record/source.patch" "$record/final-source.patch"; then
     echo 'test sources changed during the matrix; rerun a consistent source state' >&2
     result=1
