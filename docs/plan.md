@@ -701,6 +701,9 @@ with that host state. This differs from the completed-history checks and does
 not establish the written configuration-only bound. Repository record
 `audit/phase6/resource-cache-bounds-20261031/` gives exact counts and source;
 the specification remains unchanged and G23 remains open.
+An unapplied proposal would count current dependency state while requiring
+streamed temporary inventories and prompt cleanup. That contract choice awaits
+the maintainer; it does not make the existing full-namespace dumps compliant.
 
 The fake backend now shares binding/peer/source state across adopted socket
 aliases, matching the strengthened live conformance case. Final shared suites

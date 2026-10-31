@@ -46,3 +46,13 @@ A correction must preserve E4/E6/E7 matching, M16's restriction on unrelated
 kernel queries, event-cost bounds and history cleanup. Transient full
 link/address dump vectors also need inclusion in the resource proof.
 The H11 decision and upstream nix release are separate pending requirements.
+
+## Prepared contract choice
+
+`proposed.patch` is unapplied. It counts current link/address state needed by
+configured dependencies in G23's bound, while requiring streamed temporary
+inventories and release when the final configured dependency disappears.
+It preserves M16's restriction on querying unrelated events. This changes
+the written resource contract and needs a maintainer decision under Phase 6's
+rule against weakening a gate. Existing full-namespace dump vectors still
+need work even if the proposal is accepted; the patch declares no gate green.
