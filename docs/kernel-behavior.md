@@ -110,7 +110,7 @@ they are not a single final run of the current daemon on all targets.
 
 Reproduction and transcripts are in the
 [current matrix](../audit/phase6/matrix-20261031T133318Z-3943822/README.md).
-Current [Incus/H11](../audit/phase6/incus-20261031T134611Z-3957335/run.log)
+Current [Incus/H11](../audit/phase6/incus-20261031T134611Z-3957335/scenario.log)
 and [root-systemd](../audit/phase6/root-systemd-current-20261031/README.md)
 results apply to Ubuntu 6.8.0-147 only. The dated packages below retain
 their original scope; the current table supersedes their per-target
