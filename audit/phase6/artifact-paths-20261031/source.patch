@@ -1,0 +1,88 @@
+diff --git a/tests/docker/incus.sh b/tests/docker/incus.sh
+index b4e2994..312e188 100644
+--- a/tests/docker/incus.sh
++++ b/tests/docker/incus.sh
+@@ -11,8 +11,9 @@ record=$repo/audit/phase6/incus-$(date -u +%Y%m%dT%H%M%SZ)-$$
+ mkdir -p "$record"
+ {
+     uname -r
+-    printf '%s\n' 'command: cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --test scenarios --no-run'
+-    cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --test scenarios --no-run
++    printf '%s\n' 'command: cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --lib --test scenarios --no-run'
++    # The executable-path parsers need plain output even when CI forces color.
++    cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --lib --test scenarios --no-run
+ } > "$record/build.log" 2>&1 || { cat "$record/build.log"; exit 1; }
+ sed 's/\(Finished .*\) in .*/\1/' "$record/build.log" > "$record/build.tmp"
+ mv "$record/build.tmp" "$record/build.log"
+@@ -23,9 +24,11 @@ absolute() {
+ }
+ unit=$(absolute "$unit")
+ scenario=$(absolute "$scenario")
+-# Refuse the run if either test executable is missing or is not executable.
+-# shellcheck disable=SC2015
+-[ -x "$unit" ] && [ -x "$scenario" ] || { cat "$record/build.log"; exit 1; }
++if [ ! -f "$unit" ] || [ ! -x "$unit" ] || [ ! -f "$scenario" ] || [ ! -x "$scenario" ]; then
++    cat "$record/build.log"
++    echo 'cannot identify unit and scenario executables' >&2
++    exit 1
++fi
+ binary=$repo/target/x86_64-unknown-linux-musl/debug/rs-l2tpd
+ name=rs-l2tpd-phase6-$$
+ cleanup() {
+diff --git a/tests/docker/run.sh b/tests/docker/run.sh
+index ca1c6ed..d523be9 100755
+--- a/tests/docker/run.sh
++++ b/tests/docker/run.sh
+@@ -17,8 +17,9 @@ mkdir -p "$record"
+ {
+     uname -r
+     printf '%s\n' "features: all; target: $target" \
+-        "command: cargo test --locked --all-features --target $target --test scenarios --no-run"
+-    cargo test --locked --all-features --target "$target" --test scenarios --no-run
++        "command: cargo test --color never --locked --all-features --target $target --test scenarios --no-run"
++    # The executable-path parser needs plain output even when CI forces color.
++    cargo test --color never --locked --all-features --target "$target" --test scenarios --no-run
+ } > "$record/build.log" 2>&1 || {
+     cat "$record/build.log"
+     exit 1
+@@ -31,7 +32,11 @@ case $test_binary in
+     /*) ;;
+     *) test_binary=$repo/$test_binary ;;
+ esac
+-[ -x "$test_binary" ] || { cat "$record/build.log"; echo "cannot identify scenario executable" >&2; exit 1; }
++if [ ! -f "$test_binary" ] || [ ! -x "$test_binary" ]; then
++    cat "$record/build.log"
++    echo "cannot identify scenario executable" >&2
++    exit 1
++fi
+ # Prepare the image from tests/kernel/Dockerfile.review separately; the runner
+ # never gives a test container external networking.
+ docker image inspect --format '{{.Id}}' "$image" > "$record/image.log"
+diff --git a/tests/kernel/run-guest.sh b/tests/kernel/run-guest.sh
+index f557770..669e22e 100755
+--- a/tests/kernel/run-guest.sh
++++ b/tests/kernel/run-guest.sh
+@@ -39,8 +39,9 @@ if [ ! -f "$base/complete" ]; then
+ fi
+ {
+     printf '%s\n' 'features: all; target: x86_64-unknown-linux-musl' \
+-        'command: cargo test --locked --all-features --target x86_64-unknown-linux-musl --no-run'
+-    cargo test --locked --all-features --target x86_64-unknown-linux-musl --no-run
++        'command: cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run'
++    # The executable-path parser needs plain output even when CI forces color.
++    cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run
+ } > "$record/build.log" 2>&1 || { cat "$record/build.log"; exit 1; }
+ # Build-time duration is a machine fact, not verification evidence.
+ sed 's/\(Finished .*\) in .*/\1/' "$record/build.log" > "$record/build.tmp"
+@@ -53,7 +54,10 @@ copy_test() {
+         if(at) { line=substr($0,at+length(label)); sub(/\)$/,"",line); print line }
+     }' "$record/build.log")
+     case $path in /*) ;; *) path=$repo/$path ;; esac
+-    [ -x "$path" ] || { echo "missing executable for $1" >&2; exit 1; }
++    if [ ! -f "$path" ] || [ ! -x "$path" ]; then
++        echo "missing executable for $1: $path" >&2
++        exit 1
++    fi
+     cp "$path" "$guest/root/$2"
+     strip --strip-debug "$guest/root/$2"
+     printf '%s git-blob: ' "$2" >> "$record/artifacts.log"

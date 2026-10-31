@@ -11,8 +11,9 @@ record=$repo/audit/phase6/incus-$(date -u +%Y%m%dT%H%M%SZ)-$$
 mkdir -p "$record"
 {
     uname -r
-    printf '%s\n' 'command: cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --test scenarios --no-run'
-    cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --test scenarios --no-run
+    printf '%s\n' 'command: cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --lib --test scenarios --no-run'
+    # The executable-path parsers need plain output even when CI forces color.
+    cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --lib --test scenarios --no-run
 } > "$record/build.log" 2>&1 || { cat "$record/build.log"; exit 1; }
 sed 's/\(Finished .*\) in .*/\1/' "$record/build.log" > "$record/build.tmp"
 mv "$record/build.tmp" "$record/build.log"
@@ -23,9 +24,11 @@ absolute() {
 }
 unit=$(absolute "$unit")
 scenario=$(absolute "$scenario")
-# Refuse the run if either test executable is missing or is not executable.
-# shellcheck disable=SC2015
-[ -x "$unit" ] && [ -x "$scenario" ] || { cat "$record/build.log"; exit 1; }
+if [ ! -f "$unit" ] || [ ! -x "$unit" ] || [ ! -f "$scenario" ] || [ ! -x "$scenario" ]; then
+    cat "$record/build.log"
+    echo 'cannot identify unit and scenario executables' >&2
+    exit 1
+fi
 binary=$repo/target/x86_64-unknown-linux-musl/debug/rs-l2tpd
 name=rs-l2tpd-phase6-$$
 cleanup() {

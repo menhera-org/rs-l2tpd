@@ -39,8 +39,9 @@ if [ ! -f "$base/complete" ]; then
 fi
 {
     printf '%s\n' 'features: all; target: x86_64-unknown-linux-musl' \
-        'command: cargo test --locked --all-features --target x86_64-unknown-linux-musl --no-run'
-    cargo test --locked --all-features --target x86_64-unknown-linux-musl --no-run
+        'command: cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run'
+    # The executable-path parser needs plain output even when CI forces color.
+    cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run
 } > "$record/build.log" 2>&1 || { cat "$record/build.log"; exit 1; }
 # Build-time duration is a machine fact, not verification evidence.
 sed 's/\(Finished .*\) in .*/\1/' "$record/build.log" > "$record/build.tmp"
@@ -53,7 +54,10 @@ copy_test() {
         if(at) { line=substr($0,at+length(label)); sub(/\)$/,"",line); print line }
     }' "$record/build.log")
     case $path in /*) ;; *) path=$repo/$path ;; esac
-    [ -x "$path" ] || { echo "missing executable for $1" >&2; exit 1; }
+    if [ ! -f "$path" ] || [ ! -x "$path" ]; then
+        echo "missing executable for $1: $path" >&2
+        exit 1
+    fi
     cp "$path" "$guest/root/$2"
     strip --strip-debug "$guest/root/$2"
     printf '%s git-blob: ' "$2" >> "$record/artifacts.log"

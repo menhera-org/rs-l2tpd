@@ -456,6 +456,26 @@ Alpine's signature checks remain enabled. The local image build and package
 presence check pass. Common CI gates pass. The package records commands,
 source identity and the pending external-run requirement.
 
+## CI artifact-parser correction
+
+[The artifact-path package](phase6/artifact-paths-20261031/README.md) records
+the first qualification failure: forced Cargo color prevented executable-path
+parsing, and a searchable directory passed the old executable-only guard.
+QEMU, Docker and Incus runners now request plain output for parsed Cargo
+commands and require regular executable files. The remaining broken-revision
+jobs were cancelled; this attempt is not ten-run qualification evidence.
+The forced-color Docker and QEMU clock-profile regressions and common gates
+pass. Injected empty Cargo output is rejected by all three runners before
+test execution; the Incus negative check stubs availability and does not
+claim a live Incus pass.
+
+A full Ubuntu 24.04 normal guest, on the current Rust source before only
+the runner correction, passes 11 live library, 19 kernel, five review,
+38 ordinary binary, three explicit permission, 27 process and 26 scenario
+cases. Nested child results are not added to the counts. All required
+guest markers are zero. This refreshes one required normal profile;
+it does not establish the full latest matrix.
+
 ## Coverage and exit state
 
 [The merged coverage record](phase6/coverage-20261031/README.md) combines

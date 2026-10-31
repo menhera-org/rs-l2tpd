@@ -1,0 +1,4 @@
+6.8.0-147-generic
+features: all; target: x86_64-unknown-linux-musl
+command: cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --test scenarios --no-run
+cannot identify scenario executable

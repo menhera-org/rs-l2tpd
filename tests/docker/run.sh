@@ -17,8 +17,9 @@ mkdir -p "$record"
 {
     uname -r
     printf '%s\n' "features: all; target: $target" \
-        "command: cargo test --locked --all-features --target $target --test scenarios --no-run"
-    cargo test --locked --all-features --target "$target" --test scenarios --no-run
+        "command: cargo test --color never --locked --all-features --target $target --test scenarios --no-run"
+    # The executable-path parser needs plain output even when CI forces color.
+    cargo test --color never --locked --all-features --target "$target" --test scenarios --no-run
 } > "$record/build.log" 2>&1 || {
     cat "$record/build.log"
     exit 1
@@ -31,7 +32,11 @@ case $test_binary in
     /*) ;;
     *) test_binary=$repo/$test_binary ;;
 esac
-[ -x "$test_binary" ] || { cat "$record/build.log"; echo "cannot identify scenario executable" >&2; exit 1; }
+if [ ! -f "$test_binary" ] || [ ! -x "$test_binary" ]; then
+    cat "$record/build.log"
+    echo "cannot identify scenario executable" >&2
+    exit 1
+fi
 # Prepare the image from tests/kernel/Dockerfile.review separately; the runner
 # never gives a test container external networking.
 docker image inspect --format '{{.Id}}' "$image" > "$record/image.log"
