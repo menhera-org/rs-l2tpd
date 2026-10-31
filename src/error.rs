@@ -53,6 +53,26 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
+    /// spec: L7, L11
+    #[test]
+    fn non_io_failures_preserve_their_diagnostic_without_an_io_source() {
+        for (error, message) in [
+            (
+                super::Error::InvalidConfig("invalid peer".into()),
+                "invalid configuration: invalid peer",
+            ),
+            (super::Error::ReloadPanicked, "reload callback panicked"),
+            (super::Error::RestartPanicked, "restart callback panicked"),
+            (
+                super::Error::Other("resolver stopped".into()),
+                "resolver stopped",
+            ),
+        ] {
+            assert_eq!(error.to_string(), message);
+            assert!(std::error::Error::source(&error).is_none());
+        }
+    }
+
     /// spec: O6, L3
     #[test]
     fn propagated_io_errors_keep_their_errno_name_and_original_source() {

@@ -15,7 +15,7 @@ cargo build --locked --lib --no-default-features
 cargo build --locked --lib --no-default-features --features serde
 cargo build --locked
 cargo test --locked --all-features
-cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process
+cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process --test startup
 
 RULEMAP_STRICT=1 SRCLINK_STRICT=1 \
     cargo test --locked --all-features --test rulemap --test srclink -- --nocapture

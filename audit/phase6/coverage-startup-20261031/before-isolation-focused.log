@@ -1,0 +1,34 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/service.rs (target/debug/deps/service-09f802d44b2efd34)
+
+running 1 test
+STARTUP_FAILURE_VERIFIED=runtime-thread
+STARTUP_FAILURE_VERIFIED=service-thread
+STARTUP_FAILURE_VERIFIED=service-engine
+test startup_resource_failures_return_errors_and_preserve_adopted_fds ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.01s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/service.rs (target/debug/deps/service-09f802d44b2efd34)
+
+running 1 test
+
+thread 'panicking_kernel_initializer_returns_descriptors_to_the_caller' (4072004) panicked at tests/service.rs:1273:13:
+poison the test kernel before subscription initialization
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'l2tp-subscriptions' (4072005) panicked at tests/service.rs:111:33:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+test panicking_kernel_initializer_returns_descriptors_to_the_caller ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 1 test
+test error::tests::non_io_failures_preserve_their_diagnostic_without_an_io_source ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 103 filtered out; finished in 0.00s
+

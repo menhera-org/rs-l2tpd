@@ -1,0 +1,182 @@
+warning: --branch option is unstable
+info: cargo-llvm-cov currently setting cfg(coverage) and cfg(coverage_nightly); you can opt-out it by passing --no-cfg-coverage and --no-cfg-coverage-nightly
+warning: `package.homepage` is redundant with `package.repository`
+  --> Cargo.toml:11:12
+   |
+10 | repository = "https://github.com/menhera-org/rs-l2tpd"
+   |              -----------------------------------------
+11 | homepage = "https://github.com/menhera-org/rs-l2tpd"
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `rs-l2tpd` (manifest) generated 1 warning
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+warning: feature `coverage_attribute` is declared but not used
+  --> src/lib.rs:25:39
+   |
+25 | #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+   |                                       ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_features)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (lib) generated 1 warning
+warning: feature `coverage_attribute` is declared but not used
+ --> src/bin/rs-l2tpd/main.rs:2:39
+  |
+2 | #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+  |                                       ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_features)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (bin "rs-l2tpd") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/phase6-coverage-production-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/19355e4b4fa32df5/out/rs_l2tpd-19355e4b4fa32df5)
+
+running 104 tests
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::completion_empty_tables_do_not_remove_merged_values ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::completion_corrected_host_retains_resolver ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::configuration_names ... ok
+test config::tests::completion_new_collision_keeps_an_accepted_name ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::host_settings ... ok
+test config::tests::completion_host_names_and_mapped_family ... ok
+test config::tests::completion_hard_endpoint_mistake_precedes_tolerated_family ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::merging ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::resolver_methods ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::interface_names ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test config::tests::strict_conversion ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test error::tests::non_io_failures_preserve_their_diagnostic_without_an_io_source ... ok
+test config::tests::resolver_addresses ... ok
+test error::tests::propagated_io_errors_keep_their_errno_name_and_original_source ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test config::tests::tunnel_resolver_name ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test config::tests::tunnel_identifiers ... ok
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::session_cookies ... ok
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... ignored, live kernel; Incus runner additionally requires the EPERM branch
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test kernel::linux::lifetime::tests::deletion_and_release_are_scoped_by_index_and_incarnation ... ok
+test config::tests::session_fields ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::request::completion_tests::payload_debug_is_redacted_without_changing_serialization ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::tunnel_ip_version ... ok
+test kernel::linux::resources_tests::socket_storage_follows_survivors_after_a_large_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::rtnl::tests::address_dump_skips_foreign_families_and_rejects_malformed_inet_records ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test kernel::linux::rtnl::tests::malformed_dump_records_are_not_usable_entries ... ok
+test config::tests::tunnel_host_names ... ok
+test kernel::linux::socket::tests::ipv4_fragmentation_refusal_preserves_io_error_and_socket ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test config::tests::tunnel_literals ... ok
+test kernel::linux::lifetime::tests::retired_registrations_leave_only_survivors_and_generation_loss_clears_them ... ok
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test reconciler::tests::cache_cost::failed_address_seed_is_retried_by_monitor_resync ... ok
+test reconciler::tests::cache_cost::monitor_resync_discards_addresses_missing_from_the_complete_snapshot ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::tests::completion::obsolete_creation_names_are_not_recorded_as_overrides_and_create_episode_ends ... ok
+test reconciler::tests::completion::removal_query_retries_and_old_deletion_does_not_poll_a_new_incarnation ... ok
+test reconciler::tests::cache_cost::vrf_cache_references_follow_binding_removal_and_member_moves ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test reconciler::tests::deadline_cost::reconnect_deadlines_keep_their_time_and_cancel_on_success_and_removal ... ok
+test reconciler::tests::deadline_cost::removing_a_left_out_entry_cancels_its_conflict_and_retry ... ok
+test runtime::tests::a_dropped_source_removal_stays_stale_until_resync_is_forwarded ... ok
+test runtime::tests::dropping_runtime_stops_both_subscription_tasks_and_closes_the_queue ... ok
+test runtime::tests::absent_log_sink_does_not_change_kernel_refusal_or_recovery ... ok
+test runtime::tests::event_wait_without_tokio_reports_an_error_and_channels_remain_usable ... ok
+test runtime::tests::cleanup_verifies_kernel_absence_and_reports_a_remaining_reference ... ok
+test runtime::tests::library_boundary_and_extensible_api ... ok
+test runtime::tests::store_submission_and_withdrawal_acknowledgements_keep_the_incarnation ... ok
+test runtime::tests::adopted_names_are_verified_or_retired_and_store_wait_is_bounded ... ok
+test runtime::tests::shutdown_keeps_withdrawal_and_kernel_deletion_windows_separate ... ok
+test runtime::tests::blocking_completions_work_inside_spawn_blocking ... ok
+test runtime::tests::tunable_handshake_is_observed_forwarded_and_answered_without_host_io ... ok
+test runtime::tests::l2tp_queue_loss_uses_its_own_resync_flag ... ok
+test service::tests::panic_completion_during_shutdown_is_reported_after_cleanup ... ok
+test service::tests::refused_host_delivery_releases_capacity_and_needs_no_withdrawal ... ok
+test runtime::tests::subscription_loss_survives_a_full_queue_and_a_second_loss ... ok
+test runtime::tests::lifetime_proofs_do_not_use_the_full_event_queue ... ok
+test runtime::tests::queue_full_waiter_and_shutdown_precedence ... ok
+test runtime::tests::tunable_timeout_ignores_late_success_and_shutdown_cancels_pending ... ok
+test runtime::tests::cancelling_unaccepted_reload_wait_does_not_inflate_admission_capacity ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+test reconciler::tests::cache_cost::unbound_siblings_of_a_bound_vrf_member_never_enter_the_cache ... ok
+test reconciler::tests::completion::unrelated_interfaces_do_not_accumulate_in_the_device_caches ... ok
+test reconciler::tests::deadline_cost::deadline_selection_preserves_the_earliest_deletion_under_large_workloads ... ok
+test reconciler::deadlines::tests::replacement_cancellation_and_ties_keep_one_deadline_per_owner ... ok
+test kernel::linux::lifetime::tests::foreign_deletion_workload_preserves_current_registrations ... ok
+test reconciler::tests::cache_cost::unchanged_bound_link_workload_preserves_other_dependencies ... ok
+
+test result: ok. 93 passed; 0 failed; 11 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests/service.rs (target/phase6-coverage-production-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/be36c07fa5c0b6a6/out/service-be36c07fa5c0b6a6)
+
+running 26 tests
+test public_dependency_types_are_reexported ... ok
+test startup_failure_returns_exact_names_and_live_descriptors ... ok
+test panicking_kernel_initializer_returns_descriptors_to_the_caller ... ok
+test drop_before_run_retires_inherited_entries_and_works_inside_tokio ... ok
+test overlapping_runtimes_conflict_and_the_nonowner_cannot_remove_the_owner ... ok
+test runtime_drop_closes_owned_sockets_without_ordered_session_deletion ... ok
+test blocking_converges_and_drop_removes_children_before_parents ... ok
+test tokio_drop_returns_without_blocking_host_request_processing ... ok
+test blocking_service_verifies_and_reuses_a_named_adopted_tunnel ... ok
+test callback_panic_returns_only_after_cleanup ... ok
+test run_after_shutdown_reports_the_completed_cleanup ... ok
+test tokio_service_run_converges_without_explicit_converge ... ok
+test converge_ignores_reloads_and_reports_conflicts_after_ten_attempts ... ok
+test retry_timer_keeps_running_during_a_blocked_reload ... ok
+test shutdown_does_not_wait_for_blocked_callback_or_apply_its_result ... ok
+test blocking_service_exposes_host_requests_and_waits_for_processing_acknowledgement ... ok
+test withdrawal_completion_is_processed_during_a_blocked_reload ... ok
+test reload_error_keeps_config_then_success_applies_and_restart_resumes ... ok
+test tunable_completion_is_processed_during_a_blocked_reload ... ok
+test superseded_reload_is_discarded_and_the_latest_runs_next ... ok
+test reload_accepted_during_convergence_is_ignored_even_when_dequeued_after_readiness ... ok
+test subscriptions_drain_during_a_kernel_call_and_loss_during_resync_survives ... ok
+test spawn_blocking_callers_and_injected_callbacks_can_own_their_runtimes ... ok
+test restart_callback_panic_returns_only_after_cleanup ... ok
+test deferred_restarts_are_bounded_and_each_accepted_request_runs ... ok
+test requests_between_converge_and_run_keep_their_order ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/startup.rs (target/phase6-coverage-production-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/fb3790aec19c2837/out/startup-fb3790aec19c2837)
+
+running 1 test
+test startup_resource_failures_return_errors_and_preserve_adopted_fds ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

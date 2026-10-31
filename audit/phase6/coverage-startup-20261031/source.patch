@@ -1,0 +1,122 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 89e75b3..964936e 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -82,7 +82,7 @@ jobs:
+       - name: Run seeded fake suites
+         timeout-minutes: 10
+         run: |
+-          cargo test --locked --all-features --lib --test kernel-fake --test rules --test service -- --nocapture > "$RECORD/fake.log" 2>&1 || {
++          cargo test --locked --all-features --lib --test kernel-fake --test rules --test service --test startup -- --nocapture > "$RECORD/fake.log" 2>&1 || {
+             cat "$RECORD/fake.log"
+             exit 1
+           }
+diff --git a/Cargo.toml b/Cargo.toml
+index 4d1a26a..d03a2d3 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -61,6 +61,11 @@ name = "service"
+ path = "tests/service.rs"
+ required-features = ["fake-kernel"]
+ 
++[[test]]
++name = "startup"
++path = "tests/startup.rs"
++required-features = ["fake-kernel"]
++
+ [[test]]
+ name = "process"
+ path = "tests/process.rs"
+diff --git a/src/error.rs b/src/error.rs
+index 322d1a7..687efe9 100644
+--- a/src/error.rs
++++ b/src/error.rs
+@@ -53,6 +53,26 @@ pub type Result<T> = std::result::Result<T, Error>;
+ #[cfg(test)]
+ #[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
++    /// spec: L7, L11
++    #[test]
++    fn non_io_failures_preserve_their_diagnostic_without_an_io_source() {
++        for (error, message) in [
++            (
++                super::Error::InvalidConfig("invalid peer".into()),
++                "invalid configuration: invalid peer",
++            ),
++            (super::Error::ReloadPanicked, "reload callback panicked"),
++            (super::Error::RestartPanicked, "restart callback panicked"),
++            (
++                super::Error::Other("resolver stopped".into()),
++                "resolver stopped",
++            ),
++        ] {
++            assert_eq!(error.to_string(), message);
++            assert!(std::error::Error::source(&error).is_none());
++        }
++    }
++
+     /// spec: O6, L3
+     #[test]
+     fn propagated_io_errors_keep_their_errno_name_and_original_source() {
+diff --git a/test-ci-gates.sh b/test-ci-gates.sh
+index 9883eb8..05bc7f3 100755
+--- a/test-ci-gates.sh
++++ b/test-ci-gates.sh
+@@ -15,7 +15,7 @@ cargo build --locked --lib --no-default-features
+ cargo build --locked --lib --no-default-features --features serde
+ cargo build --locked
+ cargo test --locked --all-features
+-cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process
++cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process --test startup
+ 
+ RULEMAP_STRICT=1 SRCLINK_STRICT=1 \
+     cargo test --locked --all-features --test rulemap --test srclink -- --nocapture
+diff --git a/tests/service.rs b/tests/service.rs
+index b7598b0..89d15a2 100644
+--- a/tests/service.rs
++++ b/tests/service.rs
+@@ -1,7 +1,7 @@
+ //! Service contract exercised on the same fake as the kernel conformance suite.
+ use std::io;
+ use std::net::IpAddr;
+-use std::os::fd::OwnedFd;
++use std::os::fd::{AsRawFd, OwnedFd};
+ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+ use std::sync::{Arc, Mutex, mpsc};
+ use std::task::{Context, Poll};
+@@ -1120,3 +1120,35 @@ fn reload_accepted_during_convergence_is_ignored_even_when_dequeued_after_readin
+             .unwrap();
+     }
+ }
++
++/// spec: L5, L9, G14
++#[test]
++fn panicking_kernel_initializer_returns_descriptors_to_the_caller() {
++    let host = Host::new();
++    assert!(
++        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++            let _guard = host.0.lock().unwrap();
++            panic!("poison the test kernel before subscription initialization");
++        }))
++        .is_err()
++    );
++    let engine = engine();
++    let _entered = engine.enter();
++    let (fd, _peer) = std::os::unix::net::UnixStream::pair().unwrap();
++    let original = fd.as_raw_fd();
++    let (error, returned) = Runtime::with_kernel(
++        host,
++        Box::new(NoDns),
++        vec![AdoptedSocket::new("unchanged input", fd.into())],
++    )
++    .err()
++    .unwrap();
++    assert_eq!(
++        error.to_string(),
++        "kernel subscription initializer panicked"
++    );
++    assert_eq!(returned.len(), 1);
++    assert_eq!(returned[0].name(), "unchanged input");
++    assert_eq!(returned[0].fd().as_raw_fd(), original);
++    assert!(returned[0].fd().try_clone().is_ok());
++}

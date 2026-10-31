@@ -82,7 +82,7 @@ jobs:
       - name: Run seeded fake suites
         timeout-minutes: 10
         run: |
-          cargo test --locked --all-features --lib --test kernel-fake --test rules --test service -- --nocapture > "$RECORD/fake.log" 2>&1 || {
+          cargo test --locked --all-features --lib --test kernel-fake --test rules --test service --test startup -- --nocapture > "$RECORD/fake.log" 2>&1 || {
             cat "$RECORD/fake.log"
             exit 1
           }

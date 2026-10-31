@@ -60,5 +60,11 @@ replace the unmodified musl P5 or root-systemd P6 gate.
 
 CI now installs the pinned nightly for its coverage step, pins cargo-llvm-cov
 0.9.1 and generates branch-aware LCOV with this production scope. Stable
-checks run first. The new CI configuration still needs its own passing run;
-its native-only badge report does not substitute for merged live coverage.
+checks run first. [CI run 41214508623](https://github.com/menhera-org/rs-l2tpd/actions/runs/41214508623)
+passed both jobs on its first attempt at revision `2afe727`. The retained
+[run metadata](ci/run.json), [job metadata](ci/jobs.json) and
+[coverage commands](ci/coverage-command.log) identify the execution. Its
+native-only badge report does not substitute for merged live coverage.
+
+The subsequent [startup checks](../coverage-startup-20261031/README.md)
+raise merged production line coverage to 90.96% with the same denominator.

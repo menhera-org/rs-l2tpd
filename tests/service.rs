@@ -1,7 +1,7 @@
 //! Service contract exercised on the same fake as the kernel conformance suite.
 use std::io;
 use std::net::IpAddr;
-use std::os::fd::OwnedFd;
+use std::os::fd::{AsRawFd, OwnedFd};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::task::{Context, Poll};
@@ -1119,4 +1119,36 @@ fn reload_accepted_during_convergence_is_ignored_even_when_dequeued_after_readin
             )
             .unwrap();
     }
+}
+
+/// spec: L5, L9, G14
+#[test]
+fn panicking_kernel_initializer_returns_descriptors_to_the_caller() {
+    let host = Host::new();
+    assert!(
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = host.0.lock().unwrap();
+            panic!("poison the test kernel before subscription initialization");
+        }))
+        .is_err()
+    );
+    let engine = engine();
+    let _entered = engine.enter();
+    let (fd, _peer) = std::os::unix::net::UnixStream::pair().unwrap();
+    let original = fd.as_raw_fd();
+    let (error, returned) = Runtime::with_kernel(
+        host,
+        Box::new(NoDns),
+        vec![AdoptedSocket::new("unchanged input", fd.into())],
+    )
+    .err()
+    .unwrap();
+    assert_eq!(
+        error.to_string(),
+        "kernel subscription initializer panicked"
+    );
+    assert_eq!(returned.len(), 1);
+    assert_eq!(returned[0].name(), "unchanged input");
+    assert_eq!(returned[0].fd().as_raw_fd(), original);
+    assert!(returned[0].fd().try_clone().is_ok());
 }

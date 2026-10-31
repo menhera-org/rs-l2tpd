@@ -1,0 +1,222 @@
+diff --git a/src/error.rs b/src/error.rs
+index 322d1a7..687efe9 100644
+--- a/src/error.rs
++++ b/src/error.rs
+@@ -53,6 +53,26 @@ pub type Result<T> = std::result::Result<T, Error>;
+ #[cfg(test)]
+ #[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
++    /// spec: L7, L11
++    #[test]
++    fn non_io_failures_preserve_their_diagnostic_without_an_io_source() {
++        for (error, message) in [
++            (
++                super::Error::InvalidConfig("invalid peer".into()),
++                "invalid configuration: invalid peer",
++            ),
++            (super::Error::ReloadPanicked, "reload callback panicked"),
++            (super::Error::RestartPanicked, "restart callback panicked"),
++            (
++                super::Error::Other("resolver stopped".into()),
++                "resolver stopped",
++            ),
++        ] {
++            assert_eq!(error.to_string(), message);
++            assert!(std::error::Error::source(&error).is_none());
++        }
++    }
++
+     /// spec: O6, L3
+     #[test]
+     fn propagated_io_errors_keep_their_errno_name_and_original_source() {
+diff --git a/tests/service.rs b/tests/service.rs
+index b7598b0..41bf862 100644
+--- a/tests/service.rs
++++ b/tests/service.rs
+@@ -1,7 +1,7 @@
+ //! Service contract exercised on the same fake as the kernel conformance suite.
+ use std::io;
+ use std::net::IpAddr;
+-use std::os::fd::OwnedFd;
++use std::os::fd::{AsRawFd, OwnedFd};
+ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+ use std::sync::{Arc, Mutex, mpsc};
+ use std::task::{Context, Poll};
+@@ -1120,3 +1120,177 @@ fn reload_accepted_during_convergence_is_ignored_even_when_dequeued_after_readin
+             .unwrap();
+     }
+ }
++
++// Test-only fault injection: include/uapi/linux/seccomp.h and filter.h.
++// The child and its future worker do not exec; syscall numbers use its target ABI.
++fn refuse_startup_syscalls(syscalls: &[libc::c_long], errno: i32) {
++    let mut filter = vec![libc::sock_filter {
++        code: 0x20,
++        jt: 0,
++        jf: 0,
++        k: 0,
++    }];
++    for syscall in syscalls {
++        filter.push(libc::sock_filter {
++            code: 0x15,
++            jt: 0,
++            jf: 1,
++            k: (*syscall).try_into().unwrap(),
++        });
++        filter.push(libc::sock_filter {
++            code: 0x06,
++            jt: 0,
++            jf: 0,
++            k: 0x00050000 | u32::try_from(errno).unwrap(),
++        });
++    }
++    filter.push(libc::sock_filter {
++        code: 0x06,
++        jt: 0,
++        jf: 0,
++        k: 0x7fff0000,
++    });
++    let program = libc::sock_fprog {
++        len: filter.len().try_into().unwrap(),
++        filter: filter.as_mut_ptr(),
++    };
++    // Both prctl calls affect only this subprocess. The kernel copies the
++    // initialized filter while its backing allocation is still alive.
++    unsafe {
++        assert_eq!(
++            libc::prctl(
++                libc::PR_SET_NO_NEW_PRIVS,
++                1 as libc::c_ulong,
++                0 as libc::c_ulong,
++                0 as libc::c_ulong,
++                0 as libc::c_ulong
++            ),
++            0
++        );
++        assert_eq!(
++            libc::prctl(
++                libc::PR_SET_SECCOMP,
++                2 as libc::c_ulong,
++                &program as *const _,
++                0 as libc::c_ulong,
++                0 as libc::c_ulong
++            ),
++            0
++        );
++    }
++}
++
++/// spec: L5, L9, G14
++#[test]
++fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
++    const CHILD: &str = "RS_L2TPD_TEST_STARTUP_FAILURE";
++    if let Ok(fault) = std::env::var(CHILD) {
++        use std::io::{Read, Write};
++        let engine = engine();
++        let _entered = engine.enter();
++        let mut peers = std::collections::BTreeMap::new();
++        let mut adopted = Vec::new();
++        for name in ["malformed inherited name", "t7"] {
++            let (fd, peer) = std::os::unix::net::UnixStream::pair().unwrap();
++            peers.insert(name.to_owned(), (fd.as_raw_fd(), peer));
++            adopted.push(AdoptedSocket::new(name, fd.into()));
++        }
++        let result = match fault.as_str() {
++            "runtime-thread" => {
++                refuse_startup_syscalls(&[libc::SYS_clone, libc::SYS_clone3], libc::EAGAIN);
++                Runtime::with_kernel(FakeKernel::new(42), Box::new(NoDns), adopted).map(|_| ())
++            }
++            "service-thread" | "service-engine" => {
++                let runtime =
++                    Runtime::with_kernel(FakeKernel::new(42), Box::new(NoDns), adopted).unwrap();
++                if fault == "service-thread" {
++                    refuse_startup_syscalls(&[libc::SYS_clone, libc::SYS_clone3], libc::EAGAIN);
++                } else {
++                    refuse_startup_syscalls(&[libc::SYS_epoll_create1], libc::EMFILE);
++                }
++                service::Service::with_runtime(Config::new(), runtime).map(|_| ())
++            }
++            _ => panic!("unknown startup fault: {fault}"),
++        };
++        let (error, returned) = result.unwrap_err();
++        let Error::Io(error) = error else {
++            panic!("expected I/O error: {error}")
++        };
++        assert_eq!(
++            error.raw_os_error(),
++            Some(if fault == "service-engine" {
++                libc::EMFILE
++            } else {
++                libc::EAGAIN
++            })
++        );
++        assert_eq!(returned.len(), peers.len());
++        for socket in returned {
++            let (name, fd) = socket.into_parts();
++            let (original, mut peer) = peers.remove(&name).unwrap();
++            assert_eq!(fd.as_raw_fd(), original);
++            peer.write_all(b"alive").unwrap();
++            let mut stream = std::os::unix::net::UnixStream::from(fd);
++            stream
++                .set_read_timeout(Some(Duration::from_secs(1)))
++                .unwrap();
++            let mut bytes = [0; 5];
++            stream.read_exact(&mut bytes).unwrap();
++            assert_eq!(&bytes, b"alive");
++        }
++        assert!(peers.is_empty());
++        println!("STARTUP_FAILURE_CHECKED={fault}");
++        return;
++    }
++    for fault in ["runtime-thread", "service-thread", "service-engine"] {
++        let output = std::process::Command::new(std::env::current_exe().unwrap())
++            .args([
++                "--exact",
++                "startup_resource_failures_return_errors_and_preserve_adopted_fds",
++                "--nocapture",
++                "--test-threads=1",
++            ])
++            .env(CHILD, fault)
++            .output()
++            .unwrap();
++        let stdout = String::from_utf8(output.stdout.clone()).unwrap();
++        assert!(output.status.success(), "{fault}: {output:?}");
++        assert!(
++            stdout.contains(&format!("STARTUP_FAILURE_CHECKED={fault}")),
++            "{output:?}"
++        );
++        println!("STARTUP_FAILURE_VERIFIED={fault}");
++    }
++}
++
++/// spec: L5, L9, G14
++#[test]
++fn panicking_kernel_initializer_returns_descriptors_to_the_caller() {
++    let host = Host::new();
++    assert!(
++        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++            let _guard = host.0.lock().unwrap();
++            panic!("poison the test kernel before subscription initialization");
++        }))
++        .is_err()
++    );
++    let engine = engine();
++    let _entered = engine.enter();
++    let (fd, _peer) = std::os::unix::net::UnixStream::pair().unwrap();
++    let original = fd.as_raw_fd();
++    let (error, returned) = Runtime::with_kernel(
++        host,
++        Box::new(NoDns),
++        vec![AdoptedSocket::new("unchanged input", fd.into())],
++    )
++    .err()
++    .unwrap();
++    assert_eq!(
++        error.to_string(),
++        "kernel subscription initializer panicked"
++    );
++    assert_eq!(returned.len(), 1);
++    assert_eq!(returned[0].name(), "unchanged input");
++    assert_eq!(returned[0].fd().as_raw_fd(), original);
++    assert!(returned[0].fd().try_clone().is_ok());
++}

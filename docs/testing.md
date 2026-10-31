@@ -168,6 +168,9 @@ Required suites separately record the selected features, ignored/live test
 execution and results. Keep explicit per-clause/table-case coverage;
 a green rule map alone cannot close a phase. The implemented runners
 exercise a partial case set; their existence does not close a gate.
+Startup fault-injection subprocesses have a separate test executable:
+forking alongside fake socket owners can temporarily retain their descriptors
+until exec and invalidate immediate-cleanup assertions.
 CI and local `./test-ci-gates.sh` runs share the same blocking checks:
 ShellCheck, formatting, warning-denied Clippy and documentation,
 no-default/serde library builds, native/musl tests, and strict rule-map and
@@ -195,8 +198,8 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-[production baseline](../audit/phase6/coverage-production-20261031/README.md)
-is 90.68% lines / 78.16% branches, with no production exclusions; 100%
+[startup coverage record](../audit/phase6/coverage-startup-20261031/README.md)
+is 90.96% lines / 78.16% branches, with no production exclusions; 100%
 remains required.
 
 ## Running

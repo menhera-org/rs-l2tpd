@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the fresh merged report is 90.68% lines /
-78.16% branches: 781 missing lines and 384 missing branches, with no
+approved production-code scope, the latest merged report is 90.96% lines /
+78.16% branches: 757 missing lines and 384 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner also passes. The required-kernel refresh found a vanilla 7.0.14

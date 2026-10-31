@@ -1,0 +1,4 @@
+src/error.rs: bytes before #[cfg(test)] match base revision 2afe727
+other src/ files unchanged
+changes outside the excluded error-test module are test targets, fixtures and test commands
+base live/Incus/manager profiles retained with the same compiler, target, features and production source
