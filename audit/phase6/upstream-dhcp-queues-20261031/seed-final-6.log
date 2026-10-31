@@ -1,0 +1,392 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-2992259725ba1531)
+
+running 122 tests
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::completion_empty_tables_do_not_remove_merged_values ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::completion_corrected_host_retains_resolver ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::completion_new_collision_keeps_an_accepted_name ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::completion_hard_endpoint_mistake_precedes_tolerated_family ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+RESOURCE_HISTORY epoch=0 removed=1 survivors=1 sizes=[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+test config::tests::configuration_names ... ok
+test config::tests::host_settings ... ok
+test config::tests::every_explicit_document_field_replaces_its_previous_value ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::completion_host_names_and_mapped_family ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::merging ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test config::tests::resolver_methods ... ok
+test config::tests::retained_resolver_and_document_diagnostics_keep_their_context ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::interface_names ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test config::tests::strict_conversion ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test error::tests::non_io_failures_preserve_their_diagnostic_without_an_io_source ... ok
+test error::tests::propagated_io_errors_keep_their_errno_name_and_original_source ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test config::tests::tunnel_identifiers ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test config::tests::session_hardware_addresses ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... CANCEL_COST jobs=ok1
+ cancellations=500 drop_owner=false elapsed_ns=test config::tests::unknown_keys_at_every_depth ... 2306445ok
+
+test config::tests::session_cookies ... ok
+test config::tests::session_fields ... ok
+test config::tests::tunnel_resolver_name ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test kernel::linux::lifetime::tests::deletion_and_release_are_scoped_by_index_and_incarnation ... ok
+test config::tests::tunnel_ip_version ... ok
+test kernel::linux::lifetime::tests::only_the_requested_kernel_reply_can_resolve_a_lookup ... ok
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... ignored, live kernel; Incus runner additionally requires the EPERM branch
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::request::completion_tests::payload_debug_is_redacted_without_changing_serialization ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test kernel::linux::lifetime::tests::unavailable_duplicate_and_expired_captures_never_create_proofs ... ok
+test kernel::linux::resources_tests::socket_storage_follows_survivors_after_a_large_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::rtnl::tests::address_dump_skips_foreign_families_and_rejects_malformed_inet_records ... ok
+test config::tests::tunnel_host_names ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test kernel::linux::rtnl::tests::malformed_dump_records_are_not_usable_entries ... ok
+test config::tests::tunnel_literals ... ok
+test kernel::linux::socket::tests::ipv4_fragmentation_refusal_preserves_io_error_and_socket ... ok
+test kernel::linux::lifetime::tests::retired_registrations_leave_only_survivors_and_generation_loss_clears_them ... ok
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test config::tests::identities_and_all_discovery_choices_survive_document_round_trips ... ok
+test reconciler::resolvers::tests::shared_partial_discovery_retries_replace_the_actual_lookup_snapshot ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test reconciler::resolvers::tests::aliases_share_only_their_current_host_and_resolver_job ... ok
+test reconciler::tests::cache_cost::failed_address_seed_is_retried_by_monitor_resync ... ok
+test reconciler::tests::cache_cost::monitor_resync_discards_addresses_missing_from_the_complete_snapshot ... ok
+test reconciler::tests::completion::obsolete_creation_names_are_not_recorded_as_overrides_and_create_episode_ends ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::tests::completion::removal_query_retries_and_old_deletion_does_not_poll_a_new_incarnation ... ok
+test reconciler::tests::cache_cost::vrf_cache_references_follow_binding_removal_and_member_moves ... ok
+test reconciler::tests::deadline_cost::reconnect_deadlines_keep_their_time_and_cancel_on_success_and_removal ... ok
+test reconciler::tests::deadline_cost::removing_a_left_out_entry_cancels_its_conflict_and_retry ... ok
+test reconciler::workers::tests::new_jobs_follow_the_existing_rotation_and_owners_keep_separate_turns ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test runtime::tests::dropping_runtime_stops_both_subscription_tasks_and_closes_the_queue ... ok
+test runtime::tests::event_wait_without_tokio_reports_an_error_and_channels_remain_usable ... ok
+test runtime::tests::cleanup_verifies_kernel_absence_and_reports_a_remaining_reference ... ok
+test runtime::tests::a_dropped_source_removal_stays_stale_until_resync_is_forwarded ... ok
+test runtime::tests::absent_log_sink_does_not_change_kernel_refusal_or_recovery ... ok
+test runtime::tests::blocking_completions_work_inside_spawn_blocking ... ok
+test runtime::tests::library_boundary_and_extensible_api ... ok
+test service::tests::run_without_a_convergence_waiter_reaches_readiness_before_restart ... ok
+test runtime::tests::store_submission_and_withdrawal_acknowledgements_keep_the_incarnation ... ok
+test runtime::tests::adopted_names_are_verified_or_retired_and_store_wait_is_bounded ... ok
+test runtime::tests::shutdown_keeps_withdrawal_and_kernel_deletion_windows_separate ... ok
+test runtime::tests::l2tp_queue_loss_uses_its_own_resync_flag ... ok
+test service::tests::abandoned_replies_report_stopped_service_and_shutdown_releases_waiters ... ok
+test service::tests::refused_host_delivery_releases_capacity_and_needs_no_withdrawal ... ok
+test runtime::tests::dropping_the_owner_releases_a_waiter_and_rejects_later_completions ... ok
+test runtime::tests::lifetime_proofs_do_not_use_the_full_event_queue ... ok
+CANCEL_COST jobs=1test runtime::tests::queue_full_waiter_and_shutdown_precedence ...  cancellations=500 drop_owner=oktrue
+ elapsed_ns=3321040
+test runtime::tests::subscription_loss_survives_a_full_queue_and_a_second_loss ... ok
+test runtime::tests::tunable_timeout_ignores_late_success_and_shutdown_cancels_pending ... ok
+DEADLINE_COST records=1 queries=20000 elapsed_ns=11357561
+CANCEL_COST jobs=300 cancellations=500 drop_owner=false elapsed_ns=4426152
+test runtime::tests::cancelling_unaccepted_reload_wait_does_not_inflate_admission_capacity ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test reconciler::tests::completion::unrelated_interfaces_do_not_accumulate_in_the_device_caches ... ok
+CANCEL_COST jobs=300test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ...  cancellations=500 drop_owner=oktrue
+ elapsed_ns=3751319
+test reconciler::tests::cache_cost::unbound_siblings_of_a_bound_vrf_member_never_enter_the_cache ... ok
+test runtime::tests::tunable_handshake_is_observed_forwarded_and_answered_without_host_io ... ok
+test service::tests::panic_completion_during_shutdown_is_reported_after_cleanup ... ok
+DEADLINE_COST records=300 queries=20000 elapsed_ns=11066721
+LIFETIME_COST registrations=1 events=20000 elapsed_ns=26752850
+test reconciler::workers::tests::cancelled_jobs_and_dropped_owners_release_snapshots_and_queue_storage ... ok
+LIFETIME_COST registrations=300 events=20000 elapsed_ns=39230744
+RESOURCE_HISTORY epoch=1 removed=100 survivors=1 sizes=[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+DEADLINE_COST records=20000 queries=20000 elapsed_ns=11850371
+test reconciler::report::tests::removed_entries_release_every_condition_across_reloads ... ok
+test reconciler::tests::deadline_cost::deadline_selection_preserves_the_earliest_deletion_under_large_workloads ... ok
+CANCEL_COST jobs=20000 cancellations=500 drop_owner=false elapsed_ns=4059445
+test reconciler::deadlines::tests::replacement_cancellation_and_ties_keep_one_deadline_per_owner ... ok
+LIFETIME_COST registrations=20000 events=20000 elapsed_ns=41554221
+test kernel::linux::lifetime::tests::foreign_deletion_workload_preserves_current_registrations ... ok
+CANCEL_COST jobs=20000 cancellations=500 drop_owner=true elapsed_ns=4223565
+test reconciler::workers::cost_tests::cancellation_cost_with_unrelated_jobs ... ok
+RESOURCE_HISTORY epoch=2 removed=300 survivors=1 sizes=[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+RESOURCE_HISTORY epoch=3 removed=300 survivors=1 sizes=[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+RESOURCE_HISTORY epoch=4 removed=100 survivors=1 sizes=[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+RESOURCE_HISTORY epoch=5 removed=1 survivors=1 sizes=[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+RESOURCE_HISTORY epoch=6 removed=300 survivors=1 sizes=[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+RESOURCE_HISTORY epoch=7 removed=1 survivors=1 sizes=[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+test reconciler::events::resource_tests::completed_configuration_history_releases_records_indexes_and_watches ... ok
+RESOLVER_HISTORY epoch=0 removed=300 watches=0 lookups=0 retries=0 names=0 devices=0
+RESOLVER_HISTORY epoch=1 removed=300 watches=0 lookups=0 retries=0 names=0 devices=0
+RESOLVER_HISTORY epoch=2 removed=300 watches=0 lookups=0 retries=0 names=0 devices=0
+RESOLVER_HISTORY epoch=3 removed=300 watches=0 lookups=0 retries=0 names=0 devices=0
+test reconciler::resolvers::tests::resolver_dependency_indexes_release_removed_configurations ... ok
+CACHE_COST bindings=1 events=500 elapsed_ns=4028827
+MEMBER_COST bindings=1 events=500 elapsed_ns=13499958
+CACHE_COST bindings=100 events=500 elapsed_ns=1437294
+MEMBER_COST bindings=100 events=500 elapsed_ns=30866159
+CACHE_COST bindings=300 events=500 elapsed_ns=1443369
+test kernel::linux::monitor::tests::broken_datagrams_and_reopen_failure_keep_loss_observable ... ok
+MEMBER_COST bindings=300 events=500 elapsed_ns=62185924
+test reconciler::tests::cache_cost::unchanged_bound_link_workload_preserves_other_dependencies ... ok
+test runtime::tests::completed_store_retirements_release_outgoing_queue_storage ... ok
+
+test result: ok. 110 passed; 0 failed; 12 ignored; 0 measured; 0 filtered out; finished in 1.17s
+
+     Running tests/kernel/fake.rs (target/debug/deps/kernel_fake-78e31b604ec1c09b)
+
+running 1 test
+case disconnected_sessions_count_frame_drops: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case tunnel_identifiers_are_unique: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case session_identifiers_are_unique_in_the_namespace: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case a_taken_name_creates_no_session: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case the_stored_name_is_the_creation_name: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case closing_the_socket_deletes_the_tunnel: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case a_deleted_session_identifier_is_released: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case a_registration_is_proved_until_removal: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case adoption_preserves_tunnel_and_session_records: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case reported_cookies_preserve_foreign_lengths: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case a_binding_is_set_on_an_unbound_socket: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case connect_selects_the_source_of_the_device: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+connect peer=192.0.2.2 zone=None
+case empty_ipv6_vrf_without_a_source_or_route_cannot_connect: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+empty IPv6 VRF connect errno: 99
+case a_link_local_zone_must_match_the_binding: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+connect peer=fe80::91:2 zone=Some(L2tpIfName("conf-llm"))
+case a_hardware_address_needs_the_device_down: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case the_monitor_reports_links_and_addresses: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case deletions_are_announced: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=false tunnel_delete_delay=0ns
+case disconnected_sessions_count_frame_drops: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case tunnel_identifiers_are_unique: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case session_identifiers_are_unique_in_the_namespace: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case a_taken_name_creates_no_session: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case the_stored_name_is_the_creation_name: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case closing_the_socket_deletes_the_tunnel: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case a_deleted_session_identifier_is_released: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case a_registration_is_proved_until_removal: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case adoption_preserves_tunnel_and_session_records: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case reported_cookies_preserve_foreign_lengths: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case a_binding_is_set_on_an_unbound_socket: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case connect_selects_the_source_of_the_device: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+connect peer=192.0.2.2 zone=None
+case empty_ipv6_vrf_without_a_source_or_route_cannot_connect: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+empty IPv6 VRF connect errno: 99
+case a_link_local_zone_must_match_the_binding: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+connect peer=fe80::91:2 zone=Some(L2tpIfName("conf-llm"))
+case a_hardware_address_needs_the_device_down: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case the_monitor_reports_links_and_addresses: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case deletions_are_announced: inet6=true bindv6only=false only_v6_error=None net_raw=false async_delete=true tunnel_delete_delay=0ns
+case disconnected_sessions_count_frame_drops: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case tunnel_identifiers_are_unique: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case session_identifiers_are_unique_in_the_namespace: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case a_taken_name_creates_no_session: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case the_stored_name_is_the_creation_name: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case closing_the_socket_deletes_the_tunnel: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case a_deleted_session_identifier_is_released: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case a_registration_is_proved_until_removal: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case adoption_preserves_tunnel_and_session_records: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case reported_cookies_preserve_foreign_lengths: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case a_binding_is_set_on_an_unbound_socket: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case connect_selects_the_source_of_the_device: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+connect peer=192.0.2.2 zone=None
+case empty_ipv6_vrf_without_a_source_or_route_cannot_connect: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+empty IPv6 VRF connect errno: 99
+case a_link_local_zone_must_match_the_binding: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+connect peer=fe80::91:2 zone=Some(L2tpIfName("conf-llm"))
+case a_hardware_address_needs_the_device_down: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case the_monitor_reports_links_and_addresses: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case deletions_are_announced: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=false tunnel_delete_delay=0ns
+case disconnected_sessions_count_frame_drops: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case tunnel_identifiers_are_unique: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case session_identifiers_are_unique_in_the_namespace: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case a_taken_name_creates_no_session: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case the_stored_name_is_the_creation_name: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case closing_the_socket_deletes_the_tunnel: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case a_deleted_session_identifier_is_released: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case a_registration_is_proved_until_removal: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case adoption_preserves_tunnel_and_session_records: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case reported_cookies_preserve_foreign_lengths: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case a_binding_is_set_on_an_unbound_socket: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case connect_selects_the_source_of_the_device: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+connect peer=192.0.2.2 zone=None
+case empty_ipv6_vrf_without_a_source_or_route_cannot_connect: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+empty IPv6 VRF connect errno: 99
+case a_link_local_zone_must_match_the_binding: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+connect peer=fe80::91:2 zone=Some(L2tpIfName("conf-llm"))
+case a_hardware_address_needs_the_device_down: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case the_monitor_reports_links_and_addresses: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+case deletions_are_announced: inet6=true bindv6only=false only_v6_error=None net_raw=true async_delete=true tunnel_delete_delay=0ns
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/rules/main.rs (target/debug/deps/rules-9173433df0983df3)
+
+running 78 tests
+test completion::a_definitively_wrong_inherited_socket_is_retired_once ... ok
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test completion::an_ipv4_label_notice_does_not_reconnect_a_second_time ... ok
+test completion::an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling ... ok
+test events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test events::an_unbound_tunnel_follows_its_removed_source ... ok
+test events::a_cached_master_is_not_queried_again_on_each_converge ... ok
+test events::event_traffic_does_not_move_the_absolute_poll_deadline ... ok
+test events::a_vanished_bind_device_disconnects ... ok
+test events::an_address_on_the_bind_device_reconnects ... ok
+test completion::recreation_keeps_the_watch_and_answer_without_another_dns_response ... ok
+test events::unrelated_address_events_never_connect_or_postpone_a_pending_peer ... ok
+test events::foreign_same_identifier_announcements_only_queue_verification ... ok
+test events::one_failed_creation_does_not_block_an_independent_entry ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test completion::a_moved_session_recreation_reaches_the_conflict_budget_then_recovers ... ok
+test resolvers::a_changed_host_name_discards_answers ... ok
+test completion::random_and_creation_failures_are_local_and_retryable ... ok
+test resolvers::a_missing_default_duid_uses_ra_then_retries_and_keeps_its_identity ... ok
+test resolvers::an_answer_connects_the_tunnel ... ok
+test resolvers::a_vrf_bind_device_holds_the_resolver_back ... ok
+test resolvers::an_unreachable_new_answer_never_restores_the_previous_peer ... ok
+test resolvers::the_selected_address_is_retained ... ok
+test resolvers::resolver_configuration_generations_discard_already_queued_answers ... ok
+test resolvers::unchanged_discovery_survives_monitor_loss_and_invalid_replacements_stop_it ... ok
+test completion::direct_creation_and_recreation_preserve_publication_rules ... ok
+test sessions::a_cookie_change_recreates_the_session ... ok
+test resolvers::resolver_zones_require_a_non_vrf_matching_bind_link ... ok
+test sessions::a_hardware_address_waits_for_the_device_to_go_down ... ok
+test completion::a_survivor_takes_a_removed_sessions_name_without_becoming_an_override ... ok
+test sessions::a_lost_identity_skips_changes ... ok
+test events::a_link_address_burst_coalesces_loss_and_recovers_the_final_source ... ok
+test sessions::a_session_is_staged_then_published ... ok
+test sessions::a_manager_can_raise_a_staged_device_and_keep_children_and_address_overrides ... ok
+test sessions::an_externally_deleted_session_is_created_again ... ok
+test sessions::a_moved_session_is_forgotten_without_deleting_a_replacement ... ok
+test sessions::a_taken_name_is_retried_and_the_session_kept ... ok
+test sessions::another_managers_rename_is_kept ... ok
+test sessions::acyclic_and_cross_tunnel_rename_dependencies_converge_in_one_attempt ... ok
+test sessions::tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address ... ok
+test sessions::failed_staging_address_is_retried_before_publication ... ok
+test sessions::mismatched_stored_records_cannot_authorize_staged_recovery ... ok
+test store::adopted_matching_sessions_keep_manager_names_and_are_never_reproved ... ok
+test store::full_store_keeps_new_sockets_locally_owned ... ok
+test store::an_incomplete_adopted_session_dump_keeps_ownership_for_retry ... ok
+test sessions::session_identifier_reuse_waits_for_confirmed_deletion ... ok
+test sessions::a_failed_temporary_rename_retries_the_swap_without_recreation ... ok
+test sessions::failed_staged_verification_and_deletion_preserve_the_record ... ok
+test sessions::removing_a_hardware_address_restores_the_creation_address_without_lowering ... ok
+test store::adoption_retries_uncertainty_and_retires_a_changed_peer_by_exact_name ... ok
+test store::unmatched_adopted_sessions_are_deleted_before_identifier_reuse ... ok
+test store::withdrawal_precedes_close_and_replacement_storage ... ok
+test store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test tunnels::a_changed_peer_keeps_the_socket ... ok
+test tunnels::a_tunnel_is_created_then_connected ... ok
+test tunnels::a_changed_kernel_identity_recreates_after_the_deletion ... ok
+test tunnels::a_refused_peer_is_retried_every_second ... ok
+test tunnels::an_absent_bind_device_is_waited_for ... ok
+test store::missing_and_failed_barriers_keep_retirement_bounded_and_block_reuse ... ok
+test tunnels::a_conflict_leaves_the_tunnel_out_after_ten_attempts ... ok
+test tunnels::an_identical_reload_issues_no_operation ... ok
+test tunnels::cleanup_cannot_delete_a_foreign_replacement_tunnel ... ok
+test sessions::failed_removal_preserves_the_session_and_its_parent_until_retry ... ok
+test tunnels::an_explicit_reload_retries_a_left_out_entry_before_its_slow_timer ... ok
+test sessions::sessions_swap_names ... ok
+test tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test tunnels::failed_readback_never_registers_a_socket_as_dual_stack ... ok
+test tunnels::shutdown_closes_the_sockets ... ok
+test tunnels::delayed_tunnel_cleanup_withholds_replacement_until_release ... ok
+test tunnels::tunable_success_waits_and_opens_fresh_sockets_for_all_waiters ... ok
+test tunnels::zone_and_vrf_dependencies_are_followed_independently ... ok
+test sessions::staged_loss_never_modifies_a_reused_index_and_name ... ok
+test tunnels::socket_family_fallback_never_recreates_existing_tunnels ... ok
+test tunnels::failed_expired_and_still_v6only_writes_use_the_fallback_once ... ok
+test tunnels::every_transient_connect_errno_retries_the_new_peer_in_place ... ok
+test events::unrelated_events_query_no_kernel_objects_even_with_many_entries ... ok
+test completion::completion_report_counts ... ok
+test planner::reload_sequences_converge_without_unjustified_identity_changes ... ok
+
+test result: ok. 78 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.71s
+
+     Running tests/service.rs (target/debug/deps/service-2be296bb95ae8e05)
+
+running 27 tests
+
+thread 'panicking_kernel_initializer_returns_descriptors_to_the_caller' (231051) panicked at tests/service.rs:1157:13:
+poison the test kernel before subscription initialization
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'l2tp-subscriptions' (231077) panicked at tests/service.rs:111:33:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+test public_dependency_types_are_reexported ... ok
+test converge_ignores_reloads_and_reports_conflicts_after_ten_attempts ... ok
+test startup_failure_returns_exact_names_and_live_descriptors ... ok
+test panicking_kernel_initializer_returns_descriptors_to_the_caller ... ok
+test completed_tokio_service_rejects_reuse_and_host_capacity_changes ... ok
+test drop_before_run_retires_inherited_entries_and_works_inside_tokio ... ok
+
+thread 'l2tp-reload' (231136) panicked at tests/service.rs:322:17:
+callback panic
+test blocking_converges_and_drop_removes_children_before_parents ... ok
+test overlapping_runtimes_conflict_and_the_nonowner_cannot_remove_the_owner ... ok
+test runtime_drop_closes_owned_sockets_without_ordered_session_deletion ... ok
+test tokio_service_run_converges_without_explicit_converge ... ok
+test callback_panic_returns_only_after_cleanup ... ok
+test blocking_service_exposes_host_requests_and_waits_for_processing_acknowledgement ... ok
+
+thread 'l2tp-reconciler' (231142) panicked at tests/service.rs:346:65:
+restart panic
+test run_after_shutdown_reports_the_completed_cleanup ... ok
+test tokio_drop_returns_without_blocking_host_request_processing ... ok
+test shutdown_does_not_wait_for_blocked_callback_or_apply_its_result ... ok
+test blocking_service_verifies_and_reuses_a_named_adopted_tunnel ... ok
+test tunable_completion_is_processed_during_a_blocked_reload ... ok
+test retry_timer_keeps_running_during_a_blocked_reload ... ok
+test restart_callback_panic_returns_only_after_cleanup ... ok
+test reload_error_keeps_config_then_success_applies_and_restart_resumes ... ok
+test superseded_reload_is_discarded_and_the_latest_runs_next ... ok
+test withdrawal_completion_is_processed_during_a_blocked_reload ... ok
+test reload_accepted_during_convergence_is_ignored_even_when_dequeued_after_readiness ... ok
+test requests_between_converge_and_run_keep_their_order ... ok
+test subscriptions_drain_during_a_kernel_call_and_loss_during_resync_survives ... ok
+test spawn_blocking_callers_and_injected_callbacks_can_own_their_runtimes ... ok
+test deferred_restarts_are_bounded_and_each_accepted_request_runs ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/startup.rs (target/debug/deps/startup-a0d585d8ddede74c)
+
+running 2 tests
+RESOLVER_SPAWN_VERIFIED=owner
+STARTUP_FAILURE_VERIFIED=runtime-thread
+STARTUP_FAILURE_VERIFIED=service-thread
+RESOLVER_SPAWN_VERIFIED=worker
+test resolver_spawn_failures_return_errors_and_release_worker_permits ... ok
+STARTUP_FAILURE_VERIFIED=service-engine
+STARTUP_FAILURE_VERIFIED=blocking-thread
+STARTUP_FAILURE_VERIFIED=blocking-engine
+STARTUP_FAILURE_VERIFIED=blocking-open
+test startup_resource_failures_return_errors_and_preserve_adopted_fds ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

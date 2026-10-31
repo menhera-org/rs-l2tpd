@@ -640,6 +640,41 @@ mod tests {
         });
     }
 
+    /// spec: L5, L7, G14
+    #[test]
+    fn run_without_a_convergence_waiter_reaches_readiness_before_restart() {
+        engine().block_on(async {
+            let mut wanted = Config::new();
+            wanted.set_host(crate::config::HostConfig::new().with_fix_bindv6only(false));
+            let mut service = Service::with_runtime(wanted, runtime(vec![]))
+                .map_err(|(error, _)| error)
+                .unwrap();
+            let control = service.control();
+            let stopped = control.clone();
+            let called = Arc::new(AtomicBool::new(false));
+            let observed = called.clone();
+            let mut running = pin!(service.run(Ok, move |sockets| {
+                assert!(sockets.is_empty());
+                assert!(!stopped.config().host().fix_bindv6only());
+                observed.store(true, Ordering::Release);
+                stopped.shutdown();
+                Ok(())
+            }));
+            assert!(
+                running
+                    .as_mut()
+                    .poll(&mut Context::from_waker(Waker::noop()))
+                    .is_pending()
+            );
+            control.send(ControlEvent::Restart).await.unwrap();
+            tokio::time::timeout(std::time::Duration::from_secs(5), running)
+                .await
+                .unwrap()
+                .unwrap();
+            assert!(called.load(Ordering::Acquire));
+        });
+    }
+
     /// spec: L7
     #[test]
     fn panic_completion_during_shutdown_is_reported_after_cleanup() {

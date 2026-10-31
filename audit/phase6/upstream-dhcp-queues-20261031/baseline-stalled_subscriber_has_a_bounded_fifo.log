@@ -1,0 +1,18 @@
+6.8.0-147-generic
+
+running 1 test
+
+thread 'dhcpv6::tests::stalled_subscriber_has_a_bounded_fifo' (8) panicked at src/dhcpv6.rs:617:9:
+assertion `left == right` failed: a stalled subscriber retained the entire packet history
+  left: 1024
+ right: 64
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test dhcpv6::tests::stalled_subscriber_has_a_bounded_fifo ... FAILED
+
+failures:
+
+failures:
+    dhcpv6::tests::stalled_subscriber_has_a_bounded_fifo
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 64 filtered out; finished in 0.00s
+

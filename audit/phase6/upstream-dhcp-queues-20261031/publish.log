@@ -1,0 +1,11 @@
+    Updating crates.io index
+   Packaging iphost v0.4.3 (/tmp/phase6-iphost-netns)
+    Packaged 22 files, 230.5KiB (62.4KiB compressed)
+   Verifying iphost v0.4.3 (/tmp/phase6-iphost-netns)
+   Compiling iphost v0.4.3 (/home/dev/rs-l2tpd/target/phase6-iphost-queues/package/iphost-0.4.3)
+    Finished `dev` profile [unoptimized + debuginfo] target(s)
+   Uploading iphost v0.4.3 (/tmp/phase6-iphost-netns)
+    Uploaded iphost v0.4.3 to registry `crates-io`
+note: waiting for iphost v0.4.3 to be available at registry `crates-io`
+help: you may press ctrl-c to skip waiting; the crate should be available shortly
+   Published iphost v0.4.3 at registry `crates-io`

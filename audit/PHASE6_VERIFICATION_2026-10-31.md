@@ -749,3 +749,36 @@ A separate upstream resource probe still reproduces retained closed
 subscribers and unbounded pending datagrams. Its work is recorded under
 `phase6/upstream-dhcp-queues-20261031/`. Remaining G23, coverage, clauses/
 event cost, final matrix and this package's CI result remain open.
+
+## Released DHCPv6 subscriber and queue bounds
+
+[The follow-up record](phase6/upstream-dhcp-queues-20261031/README.md)
+reproduces 1,001 cached senders after 1,000 removals with one survivor,
+and 1,024 pending datagrams for a stalled receiver. Signed upstream commit
+`91fd9f8` ships as `iphost` 0.4.3, published and pinned. Receivers now remove
+their subscriptions on drop; each client has a 64-datagram nonblocking FIFO.
+Overflow drops incoming datagrams for that client; another active client
+continues receiving. Packet validation and retransmission are unchanged.
+
+Nine live probes pass three times, including four epochs of 32 real client
+removals, queue ordering/recovery and failed client-thread cleanup. All-feature,
+feature-matrix, Rust 1.89, lint, docs, API-consumer and nine cross-target checks
+pass. The existing binding fixture passes 18 privileged and two unprivileged
+cases. Downloaded source matches the signed release, without a path override.
+
+Downstream common checks and all ten final seeds pass: 110 ordinary library,
+68 fake, 78 rules, 27 service cases and eight startup/resolver faults. Fresh
+GNU profiles run 12 live library, 19 kernel, five review and three privileged
+binary probes, all 27 process cases and all 26 normal scenarios in 159.62 seconds,
+the real user manager and full Incus case in 8.59 seconds. The unmodified
+musl Incus case passes in 11.91 seconds and root-systemd in 27.27 seconds.
+No new local full normal QEMU run is claimed for 0.4.3; its CI guest and the
+final required matrix remain pending.
+
+An added test makes no-waiter readiness coverage deterministic. Production
+source/positions are unchanged across that test-only addition. The final
+native profiles merge into the fresh 0.4.3 collection and report 93.32%
+production lines / 80.95% branches, with 563 lines and 338 branches missing,
+no production exclusions and no mismatch warnings. CI run `41230781172`
+passes both jobs on the first attempt at the preceding `da65fc5` source.
+Full G23 inventory, clause/event-cost proof, coverage and final matrix remain open.

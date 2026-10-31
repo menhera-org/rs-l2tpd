@@ -1,0 +1,19 @@
+6.8.0-147-generic
+
+running 9 tests
+test dhcpv6::tests::client_spawn_failure_removes_its_subscription ... ok
+test dhcpv6::tests::completed_discovery_clients_release_subscriptions_while_another_stays ... DHCP_CLIENT_HISTORY epoch=0 removed=32 subscribers=1
+DHCP_CLIENT_HISTORY epoch=1 removed=32 subscribers=1
+DHCP_CLIENT_HISTORY epoch=2 removed=32 subscribers=1
+DHCP_CLIENT_HISTORY epoch=3 removed=32 subscribers=1
+ok
+test dhcpv6::tests::dropped_listeners_release_cache_records ... ok
+test dhcpv6::tests::namespace_cookie_needs_no_procfs ... ok
+test dhcpv6::tests::receiver_spawn_failure_releases_cache_lock_and_socket ... ok
+test dhcpv6::tests::removed_subscriptions_do_not_wait_for_another_packet ... ok
+test dhcpv6::tests::same_named_interfaces_share_only_within_their_network_namespace ... ok
+test dhcpv6::tests::stalled_subscriber_has_a_bounded_fifo ... ok
+test dhcpv6::tests::unsupported_namespace_cookie_uses_namespace_inode ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 58 filtered out; finished in 5.14s
+

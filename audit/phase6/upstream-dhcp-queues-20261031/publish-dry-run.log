@@ -1,0 +1,9 @@
+    Updating crates.io index
+   Packaging iphost v0.4.3 (/tmp/phase6-iphost-netns)
+    Packaged 22 files, 230.5KiB (62.4KiB compressed)
+   Verifying iphost v0.4.3 (/tmp/phase6-iphost-netns)
+   Compiling tokio v1.54.1
+   Compiling iphost v0.4.3 (/home/dev/rs-l2tpd/target/phase6-iphost-queues/package/iphost-0.4.3)
+    Finished `dev` profile [unoptimized + debuginfo] target(s)
+   Uploading iphost v0.4.3 (/tmp/phase6-iphost-netns)
+warning: aborting upload due to dry run

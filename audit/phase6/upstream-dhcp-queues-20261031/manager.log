@@ -1,0 +1,10 @@
+command: real user notify manager, fdstore::manager_tests::actual_manager_processing_and_address_family_filter; executable=/home/dev/rs-l2tpd/target/phase6-coverage-iphost043-final-20261031/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/c49a22933702aae7/out/rs_l2tpd-c49a22933702aae7
+Running as unit: phase6-iphost043-manager-20261031.service; invocation ID: 63a066b8d8b7490d9a2e12fd88e53d73
+
+running 1 test
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 46 filtered out; finished in 0.06s
+
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS

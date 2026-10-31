@@ -1,0 +1,82 @@
+diff --git a/src/dhcpv6.rs b/src/dhcpv6.rs
+index bf54bbd..cd55908 100644
+--- a/src/dhcpv6.rs
++++ b/src/dhcpv6.rs
+@@ -375,6 +375,10 @@ impl Listener {
+         rx
+     }
+ 
++    fn publish(&self, bytes: &[u8]) {
++        self.clients().retain(|tx| tx.send(bytes.to_vec()).is_ok());
++    }
++
+     /// Hands every datagram from the interface to every client, until no client holds the listener.
+     fn receive(listener: &Weak<Self>) {
+         let mut buf = [0u8; 65536];
+@@ -382,10 +386,7 @@ impl Listener {
+             listener.follow_interface();
+             let (socket, index) = listener.current();
+             match socket.recv_from(&mut buf) {
+-                Ok((len, src)) if arrived_on(src, index) => listener
+-                    .clients()
+-                    // Dropped clients are forgotten here.
+-                    .retain(|tx| tx.send(buf[..len].to_vec()).is_ok()),
++                Ok((len, src)) if arrived_on(src, index) => listener.publish(&buf[..len]),
+                 Ok(_) => {}
+                 Err(e)
+                     if matches!(
+@@ -580,6 +581,54 @@ fn parse_reply(msg: &[u8], xid: [u8; 3], duid: Option<&[u8]>) -> Option<Reply> {
+ mod tests {
+     use super::*;
+ 
++    #[cfg(target_os = "linux")]
++    #[test]
++    #[ignore = "isolated container with CAP_SYS_ADMIN and CAP_NET_RAW"]
++    fn removed_subscriptions_do_not_wait_for_another_packet() {
++        assert_eq!(unsafe { libc::unshare(libc::CLONE_NEWNET) }, 0);
++        let listener = Listener::get("lo").unwrap();
++        let survivor = listener.subscribe();
++        for _ in 0..1000 {
++            drop(listener.subscribe());
++        }
++        assert_eq!(
++            listener.clients().len(),
++            1,
++            "closed subscribers are cached by history"
++        );
++        listener.publish(b"survivor");
++        assert_eq!(
++            survivor.recv_timeout(Duration::from_secs(1)).unwrap(),
++            b"survivor"
++        );
++    }
++
++    #[cfg(target_os = "linux")]
++    #[test]
++    #[ignore = "isolated container with CAP_SYS_ADMIN and CAP_NET_RAW"]
++    fn stalled_subscriber_has_a_bounded_fifo() {
++        assert_eq!(unsafe { libc::unshare(libc::CLONE_NEWNET) }, 0);
++        let listener = Listener::get("lo").unwrap();
++        let receiver = listener.subscribe();
++        for id in 0..1024u32 {
++            listener.publish(&id.to_be_bytes());
++        }
++        let received = receiver.try_iter().collect::<Vec<_>>();
++        assert_eq!(
++            received.len(),
++            64,
++            "a stalled subscriber retained the entire packet history"
++        );
++        for (id, packet) in received.iter().enumerate() {
++            assert_eq!(*packet, (id as u32).to_be_bytes());
++        }
++        listener.publish(b"after draining");
++        assert_eq!(
++            receiver.recv_timeout(Duration::from_secs(1)).unwrap(),
++            b"after draining"
++        );
++    }
++
+     #[cfg(target_os = "linux")]
+     fn refuse_syscalls(syscalls: &[libc::c_long], errno: i32) {
+         let mut filter = vec![libc::sock_filter {

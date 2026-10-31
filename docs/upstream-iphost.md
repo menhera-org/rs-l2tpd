@@ -18,6 +18,14 @@ from `/proc/thread-self/ns/net`. Repository record
 `audit/phase6/upstream-netns-20261031/` retains the failing counterexamples,
 upstream checks and downstream integration results.
 
+The subsequent resource check found cached closed subscribers and unbounded
+pending datagrams. `iphost` 0.4.3, published 2026-10-31 and pinned, removes
+subscriptions when their receivers drop and caps each client's FIFO at
+64 datagrams. Overflow drops incoming datagrams for that client without
+blocking other clients; retransmission and validation are unchanged.
+Repository record `audit/phase6/upstream-dhcp-queues-20261031/` retains the
+counterexamples, nine live probes repeated three times and integration scope.
+
 This is an implementation instruction for the general-purpose `iphost`
 crate, based on its published 0.4.0 behavior and the source inspected on
 2026-10-29. Recheck the current upstream tree before editing: a correction

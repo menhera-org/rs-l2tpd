@@ -1,0 +1,90 @@
+   Compiling iphost v0.4.3 (/tmp/phase6-iphost-netns)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-iphost-queues/debug/deps/iphost-15c80973523f47e3)
+
+running 51 tests
+test custom::tests::builds_query ... ok
+test custom::tests::definitive_answers_never_consult_second_source ... ok
+test custom::tests::rcodes ... ok
+test custom::tests::rejects_malformed ... ok
+test custom::tests::parses_answers ... ok
+test custom::tests::no_nameservers ... ok
+test custom::tests::failure_beside_nodata_is_not_an_error ... ok
+test custom::tests::fallback_result_for_obsolete_configuration_is_discarded ... ok
+test custom::tests::scope_only_for_link_local ... ok
+test custom::tests::source_failures_exhaust_retries_before_fallback ... ok
+test custom::tests::failing_server_is_skipped ... ok
+test custom::tests::rejects_mismatches ... ok
+test custom::tests::time_bound ... ok
+test custom::tests::fallback_uses_real_udp_and_tcp_transport ... ok
+test custom::tests::failed_family_keeps_cache ... ok
+test custom::tests::missing_interface_is_a_failure_not_a_dns_negative ... ok
+test custom::tests::failed_family_cache_not_returned_without_use_cached_on_error ... ok
+test custom::tests::failed_family_is_marked ... ok
+test custom::tests::source_fallback_is_per_family_and_retries_primary_next_time ... ok
+test dhcpv6::tests::arrival_interface ... ok
+test dhcpv6::tests::client_spawn_failure_removes_its_subscription ... ignored, isolated container with CAP_SYS_ADMIN and CAP_NET_RAW
+test dhcpv6::tests::completed_discovery_clients_release_subscriptions_while_another_stays ... ignored, isolated container with CAP_SYS_ADMIN and CAP_NET_RAW
+test dhcpv6::tests::dropped_listeners_release_cache_records ... ignored, isolated container with CAP_SYS_ADMIN and CAP_NET_RAW
+test dhcpv6::tests::builds_information_request ... ok
+test dhcpv6::tests::checks_reply_client_id ... ok
+test custom::tests::truncation_falls_back_to_tcp ... ok
+test dhcpv6::tests::namespace_cookie_needs_no_procfs ... ignored, isolated container with CAP_SYS_CHROOT and CAP_SYS_ADMIN
+test dhcpv6::tests::receiver_spawn_failure_releases_cache_lock_and_socket ... ignored, isolated container with CAP_SYS_ADMIN and CAP_NET_RAW
+test custom::tests::lookup_via_udp ... ok
+test dhcpv6::tests::jitter_bounds ... ok
+test dhcpv6::tests::parses_reply ... ok
+test dhcpv6::tests::removed_subscriptions_do_not_wait_for_another_packet ... ignored, isolated container with CAP_SYS_ADMIN and CAP_NET_RAW
+test dhcpv6::tests::same_named_interfaces_share_only_within_their_network_namespace ... ignored, isolated container with CAP_SYS_ADMIN and CAP_NET_RAW
+test dhcpv6::tests::stalled_subscriber_has_a_bounded_fifo ... ignored, isolated container with CAP_SYS_ADMIN and CAP_NET_RAW
+test dhcpv6::tests::unsupported_namespace_cookie_uses_namespace_inode ... ignored, isolated container with CAP_SYS_ADMIN and CAP_NET_RAW
+test dhcpv6::tests::rejects_failures_and_garbage ... ok
+test dhcpv6::tests::rejects_bad_raw_duid_lengths ... ok
+test custom::tests::virtual_time_bounds_for_two_sources_and_partial_families ... ok
+test duid::tests::client_ids ... ok
+test duid::tests::validates_raw_lengths ... ok
+test ipv6::tests::discovery_waits_once_and_snapshots_both_sources ... ok
+test ipv6::tests::policy_clones_and_bounds ... ok
+test ipv6::tests::selection_and_interface_are_preserved_for_both_sources ... ok
+test resolver::tests::lookup_time_bound ... ok
+test resolver::tests::replace_resets_cache ... ok
+test resolver::tests::stable_pick_keeps_previous ... ok
+test resolver::tests::set_resolver_resets_cache ... ok
+test resolver::tests::resolve_localhost ... ok
+test custom::tests::fallback_outcomes_preserve_cache_options_and_stable_selection ... ok
+test custom::tests::unrelated_udp_traffic_does_not_restart_deadline ... ok
+test custom::tests::udp_and_trickling_tcp_share_one_deadline ... ok
+
+test result: ok. 42 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/linux_bind.rs (/home/dev/rs-l2tpd/target/phase6-iphost-queues/debug/deps/linux_bind-4de73951a79faae4)
+
+running 15 tests
+test dhcpv6_anonymous ... ignored, needs tests/linux-bind.sh
+test dhcpv6_duid_ll ... ignored, needs tests/linux-bind.sh
+test dhcpv6_many_instances ... ignored, needs tests/linux-bind.sh
+test dhcpv6_random_duid_ll ... ignored, needs tests/linux-bind.sh
+test dhcpv6_vrf ... ignored, needs tests/linux-bind.sh
+test interface_global_nameserver ... ignored, needs tests/linux-bind.sh
+test link_local_explicit_scope ... ignored, needs tests/linux-bind.sh
+test link_local_scope_from_interface ... ignored, needs tests/linux-bind.sh
+test link_local_tcp_fallback ... ignored, needs tests/linux-bind.sh
+test link_local_without_scope_fails ... ignored, needs tests/linux-bind.sh
+test swap_resolver ... ignored, needs tests/linux-bind.sh
+test vrf ... ignored, needs tests/linux-bind.sh
+test vrf_tcp_fallback ... ignored, needs tests/linux-bind.sh
+test vrf_unbound_fails ... ignored, needs tests/linux-bind.sh
+test wrong_interface_fails ... ignored, needs tests/linux-bind.sh
+
+test result: ok. 0 passed; 0 failed; 15 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests iphost
+
+running 3 tests
+test src/duid.rs - duid::ClientId::DuidLl (line 37) ... ok
+test src/lib.rs - (line 14) ... ok
+test src/duid.rs - duid::ClientId::Raw (line 57) ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.22s

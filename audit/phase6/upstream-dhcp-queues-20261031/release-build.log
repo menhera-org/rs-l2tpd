@@ -1,0 +1,4 @@
+   Compiling iphost v0.4.3 (/tmp/phase6-iphost-netns)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+  Executable unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-iphost-queues/x86_64-unknown-linux-musl/debug/deps/iphost-e6d870a09f7188ba)
+  Executable tests/linux_bind.rs (/home/dev/rs-l2tpd/target/phase6-iphost-queues/x86_64-unknown-linux-musl/debug/deps/linux_bind-8b8b3845a4d6483f)

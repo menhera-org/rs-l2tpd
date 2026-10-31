@@ -1,0 +1,5 @@
+     Locking 1 package to highest Rust 1.99.1 compatible version
+    Updating iphost v0.4.1 (/tmp/phase6-iphost-netns) -> v0.4.3
+    Checking iphost v0.4.3 (/tmp/phase6-iphost-netns)
+    Checking iphost-api-consumer v0.0.0 (/tmp/phase6-iphost-api-consumer)
+    Finished `dev` profile [unoptimized + debuginfo] target(s)

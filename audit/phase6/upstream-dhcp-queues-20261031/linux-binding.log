@@ -1,0 +1,31 @@
+6.8.0-147-generic
+
+running 18 tests
+test dhcpv6_anonymous ... ok
+test dhcpv6_duid_ll ... ok
+test dhcpv6_many_instances ... ok
+test dhcpv6_random_duid_ll ... ok
+test dhcpv6_vrf ... ok
+test interface_global_nameserver ... ok
+test ipv6_prefers_dhcpv6 ... ok
+test link_local_explicit_scope ... ok
+test link_local_scope_from_interface ... ok
+test link_local_tcp_fallback ... ok
+test link_local_without_scope_fails ... ok
+test ra_resolver ... ok
+test ra_vrf ... ok
+test swap_resolver ... ok
+test vrf ... ok
+test vrf_tcp_fallback ... ok
+test vrf_unbound_fails ... ok
+test wrong_interface_fails ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 10.92s
+
+
+running 2 tests
+test ipv6_ra_fallback ... ok
+test ra_resolver ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 8.01s
+

@@ -389,8 +389,11 @@ shares equally named interfaces across namespaces. Released `iphost` 0.4.2
 fixes that cache; the full Ubuntu 6.8 normal guest now passes, including all
 26 scenarios in 575.52 seconds. Fresh GNU, Incus and root-systemd profiles
 also pass. Repository record `audit/phase6/upstream-netns-20261031/README.md`
-gives source and scope. Its separate DHCPv6 subscriber/queue follow-up
-remains required for G23 before the final matrix.
+gives source and scope. Released `iphost` 0.4.3 now removes closed subscribers
+and bounds pending datagrams. Fresh GNU, unprivileged Incus and root-systemd
+profiles pass; repository record
+`audit/phase6/upstream-dhcp-queues-20261031/README.md` records their source,
+limits and remaining G23/matrix work.
 
 ### Refused monitor filters and descriptor exhaustion
 

@@ -180,9 +180,9 @@ dependencies = [
 
 [[package]]
 name = "iphost"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aae80899d65a02de184e6c3cecbcb0d8d34b23b2ff4dce5e82475603b41fe166"
+checksum = "3b4d37b4577c3de2316f4a09b1baaf370b5332d2e5a64cf9a1241fcc88e7db4a"
 dependencies = [
  "fqdn",
  "libc",

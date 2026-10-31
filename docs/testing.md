@@ -200,10 +200,11 @@ ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
 merged report is 93.32% lines / 80.95% branches, with no production
 exclusions; 100% remains required. Repository file
-`audit/phase6/upstream-netns-20261031/README.md` records fresh native,
-live, manager, normal guest, Incus and root-systemd profiles with released
-`iphost` 0.4.2. It fixes the namespace-cache defect found in CI. Subscriber
-cleanup and queue bounds still require an upstream follow-up for G23.
+`audit/phase6/upstream-dhcp-queues-20261031/README.md` records fresh native,
+live, manager, Incus and root-systemd profiles with released `iphost` 0.4.3,
+including a deterministic readiness case. It fixes subscriber history and
+queue bounds after 0.4.2 fixed namespace isolation. Complete resource/event-cost
+proof and the final matrix remain open.
 
 ## Running
 

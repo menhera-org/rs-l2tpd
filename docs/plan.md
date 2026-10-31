@@ -593,9 +593,12 @@ sharing across equally named interfaces in different namespaces. Released
 `iphost` 0.4.2 fixes that cache and dead listener records; fresh full normal
 guest, GNU coverage, Incus and root-systemd profiles pass. Repository record
 `audit/phase6/upstream-netns-20261031/README.md` identifies the release and
-source. Subscriber cleanup and finite pending datagrams still need the
-upstream follow-up recorded under
-`audit/phase6/upstream-dhcp-queues-20261031/`.
+source. Released `iphost` 0.4.3 now also fixes subscriber cleanup and bounds
+pending datagrams; nine live upstream probes pass three times. Fresh daemon
+profiles and a deterministic no-waiter readiness test retain 93.32% line /
+80.95% branch coverage. Repository record
+`audit/phase6/upstream-dhcp-queues-20261031/` gives exact scope. Complete
+resource/event-cost proof, remaining clauses and the final matrix stay open.
 
 ### Phase 7 — release
 
