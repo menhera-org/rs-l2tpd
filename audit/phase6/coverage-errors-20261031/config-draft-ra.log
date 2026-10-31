@@ -1,0 +1,61 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-fadb2bfd8f730164)
+
+running 43 tests
+
+thread 'config::tests::identities_and_all_discovery_choices_survive_document_round_trips' (87309) panicked at src/config/tests.rs:133:87:
+called `Result::unwrap()` on an `Err` value: InvalidConfig("dhcpv6_identity: used only with method dhcpv6 or ipv6")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::completion_empty_tables_do_not_remove_merged_values ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::completion_hard_endpoint_mistake_precedes_tolerated_family ... ok
+test config::tests::completion_corrected_host_retains_resolver ... ok
+test config::tests::completion_new_collision_keeps_an_accepted_name ... ok
+test config::tests::configuration_names ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::completion_host_names_and_mapped_family ... ok
+test config::tests::host_settings ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::every_explicit_document_field_replaces_its_previous_value ... ok
+test config::tests::identities_and_all_discovery_choices_survive_document_round_trips ... FAILED
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::merging ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test config::tests::resolver_methods ... ok
+test config::tests::retained_resolver_and_document_diagnostics_keep_their_context ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test config::tests::strict_conversion ... ok
+test config::tests::interface_names ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test config::tests::tunnel_identifiers ... ok
+test config::tests::tunnel_resolver_name ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test config::tests::session_cookies ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::tunnel_host_names ... ok
+test config::tests::session_fields ... ok
+test config::tests::tunnel_literals ... ok
+
+failures:
+
+failures:
+    config::tests::identities_and_all_discovery_choices_survive_document_round_trips
+
+test result: FAILED. 42 passed; 1 failed; 0 ignored; 0 measured; 77 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

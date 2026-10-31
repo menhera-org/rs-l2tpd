@@ -2,6 +2,8 @@
 use std::os::fd::AsRawFd;
 use std::time::Duration;
 
+use nix::libc;
+
 use rs_l2tpd::config::Config;
 use rs_l2tpd::kernel::fake::FakeKernel;
 use rs_l2tpd::reconciler::IphostResolve;
@@ -41,8 +43,8 @@ fn refuse_startup_syscalls(syscalls: &[libc::c_long], errno: i32) {
         len: filter.len().try_into().unwrap(),
         filter: filter.as_mut_ptr(),
     };
-    // Both prctl calls affect only this subprocess. The kernel copies the
-    // initialized filter while its backing allocation is still alive.
+    // TSYNC also covers an already-started dispatcher in this subprocess.
+    // The kernel copies the filter while its allocation is still alive.
     unsafe {
         assert_eq!(
             libc::prctl(
@@ -55,15 +57,91 @@ fn refuse_startup_syscalls(syscalls: &[libc::c_long], errno: i32) {
             0
         );
         assert_eq!(
-            libc::prctl(
-                libc::PR_SET_SECCOMP,
-                2 as libc::c_ulong,
+            libc::syscall(
+                libc::SYS_seccomp,
+                libc::SECCOMP_SET_MODE_FILTER,
+                libc::SECCOMP_FILTER_FLAG_TSYNC,
                 &program as *const _,
-                0 as libc::c_ulong,
-                0 as libc::c_ulong
             ),
             0
         );
+    }
+}
+
+/// spec: V3, V4, V15, A9, G23
+#[test]
+fn resolver_spawn_failures_return_errors_and_release_worker_permits() {
+    use rs_l2tpd::reconciler::{Lookup, Resolve, ResolverSpec};
+    const CHILD: &str = "RS_L2TPD_TEST_RESOLVER_SPAWN_FAILURE";
+    if let Ok(fault) = std::env::var(CHILD) {
+        let mut resolver = IphostResolve::default();
+        let lookup = |id, octet| Lookup::new(id, format!("192.0.2.{octet}"), ResolverSpec::System);
+        if fault == "owner" {
+            refuse_startup_syscalls(&[libc::SYS_clone, libc::SYS_clone3], libc::EAGAIN);
+            let error = resolver.watch(lookup(1, 1)).unwrap_err();
+            assert_eq!(error.raw_os_error(), Some(libc::EAGAIN));
+            assert!(resolver.poll().is_empty());
+            assert!(!resolver.retry_discovery(1));
+            resolver.unwatch(1);
+        } else {
+            assert_eq!(fault, "worker");
+            resolver.watch(lookup(1, 1)).unwrap();
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            loop {
+                let answers = resolver.poll();
+                if !answers.is_empty() {
+                    assert_eq!(answers, [(1, vec!["192.0.2.1".parse().unwrap()])]);
+                    break;
+                }
+                assert!(std::time::Instant::now() < deadline);
+                std::thread::yield_now();
+            }
+            refuse_startup_syscalls(&[libc::SYS_clone, libc::SYS_clone3], libc::EAGAIN);
+            // More than the eight-slot budget: every failed spawn must return
+            // its permit so all sixteen jobs can complete with empty results.
+            for id in 2..18 {
+                resolver.watch(lookup(id, id)).unwrap();
+            }
+            let mut answers = std::collections::BTreeMap::new();
+            while answers.len() < 16 {
+                answers.extend(resolver.poll());
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "stranded worker permit"
+                );
+                std::thread::yield_now();
+            }
+            assert_eq!(
+                answers.keys().copied().collect::<Vec<_>>(),
+                (2..18).collect::<Vec<_>>()
+            );
+            assert!(answers.values().all(Vec::is_empty));
+            for id in 1..18 {
+                resolver.unwatch(id);
+            }
+            assert!(resolver.poll().is_empty());
+        }
+        println!("RESOLVER_SPAWN_CHECKED={fault}");
+        return;
+    }
+    for fault in ["owner", "worker"] {
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "resolver_spawn_failures_return_errors_and_release_worker_permits",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env(CHILD, fault)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{fault}: {output:?}");
+        assert!(
+            String::from_utf8(output.stdout)
+                .unwrap()
+                .contains(&format!("RESOLVER_SPAWN_CHECKED={fault}"))
+        );
+        println!("RESOLVER_SPAWN_VERIFIED={fault}");
     }
 }
 

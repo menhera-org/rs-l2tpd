@@ -82,6 +82,113 @@ fn corrected(field: &'static str) -> Vec<(Option<&'static str>, Effect)> {
 
 const VALID: &str = "tunnel_id = 1\nremote_addr = \"192.0.2.1\"\n";
 
+/// spec: C2, C5
+#[test]
+fn every_explicit_document_field_replaces_its_previous_value() {
+    let document = |n| {
+        format!(
+            "[host]\nfix_bindv6only={}\n[resolvers.r]\naddresses=['192.0.2.{n}']\nmethod='dhcpv6'\nbind_interface='wan{n}'\ndhcpv6_identity='random'\ndhcpv6_duid='0003000102000000000{n}'\n[tunnels.t]\ntunnel_id={n}\npeer_tunnel_id={}\nremote_addr='host{n}.test'\nip_version='V6'\nbind_interface='wan{n}'\nresolver_name='r'\n[sessions.s]\ntunnel_name='t'\nsession_id={n}\npeer_session_id={}\ninterface_name='l2tp{n}'\ninterface_hwaddr='02:00:00:00:00:0{n}'\ncookie='0102030{n}'\npeer_cookie='0405060{n}'\n",
+            n == 1,
+            n + 10,
+            n + 20
+        )
+    };
+    let mut merged = partial(&document(1));
+    let replacement = partial(&document(2));
+    let expected = toml::to_string(&replacement).unwrap();
+    merged.merge(replacement);
+    assert_eq!(toml::to_string(&merged).unwrap(), expected);
+}
+
+/// spec: C14, C16, L4, O8
+#[test]
+fn identities_and_all_discovery_choices_survive_document_round_trips() {
+    let (base, problems) = lenient(
+        "[tunnels.t]\ntunnel_id=7\npeer_tunnel_id=8\nremote_addr='192.0.2.1'\n[sessions.s]\ntunnel_name='t'\nsession_id=9\npeer_session_id=10\ninterface_name='l2tp0'\n",
+    );
+    assert!(problems.is_empty());
+    let identity = base.session_identity("s").unwrap();
+    assert_eq!(identity.tunnel(), base.tunnels()["t"].identity());
+    assert_eq!(identity.tunnel().tunnel_id(), 7);
+    assert_eq!(identity.session_id(), 9);
+    for (method, text) in [
+        (Method::Ra, "ra"),
+        (Method::Dhcpv6, "dhcpv6"),
+        (Method::Ipv6, "ipv6"),
+    ] {
+        assert_eq!(method.to_string(), text);
+        for identity in [
+            Dhcpv6Identity::LinkLayer,
+            Dhcpv6Identity::Anonymous,
+            Dhcpv6Identity::Random,
+            Dhcpv6Identity::Duid(vec![0, 3, 0, 1, 2, 0]),
+        ] {
+            if method == Method::Ra && identity != Dhcpv6Identity::LinkLayer {
+                continue;
+            }
+            let mut config = base.clone();
+            config
+                .insert_resolver(
+                    "r",
+                    ResolverConfig::with_method(
+                        method,
+                        name("wan0"),
+                        (method != Method::Ra).then_some(identity),
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+            let rendered = toml::to_string(&config).unwrap();
+            let (round_trip, problems) = partial(&rendered).into_config_lenient();
+            assert!(problems.is_empty(), "{problems:?}");
+            assert_eq!(round_trip, config);
+            assert!(rendered.contains(&format!("method = \"{text}\"")));
+        }
+    }
+}
+
+/// spec: C6, C12, C15, O4, O6
+#[test]
+fn retained_resolver_and_document_diagnostics_keep_their_context() {
+    let (previous, problems) = lenient(RESOLVER);
+    assert!(problems.is_empty());
+    let (kept, problems) = reload(&previous, "[resolvers.r]\nmethod='unknown'\n").unwrap();
+    assert_eq!(kept, previous);
+    assert_eq!(problems.len(), 1);
+    assert_eq!(problems[0].effect(), Effect::KeptPrevious);
+    let description = problems[0].to_string();
+    assert!(
+        description.contains("resolver \"r\", method:"),
+        "{description}"
+    );
+    assert!(description.ends_with("the values in force are kept"));
+    let (_, problems) = lenient("[tunnels.'']\ntunnel_id=7\n");
+    assert_eq!(problems.len(), 1);
+    assert!(problems[0].to_string().starts_with("tunnel \"\": "));
+    for source in [None, Some("settings.toml")] {
+        let mut document = partial("'odd key'=1\n");
+        if let Some(source) = source {
+            document.set_source(source);
+        }
+        let (_, problems) = document.into_config_lenient();
+        let text = problems[0].to_string();
+        assert!(text.contains("odd key"));
+        assert!(text.ends_with("; ignored"));
+        assert_eq!(text.starts_with("settings.toml:"), source.is_some());
+    }
+    let (previous, _) = lenient("[tunnels.a]\ntunnel_id=1\n[tunnels.b]\ntunnel_id=2\n");
+    let problems = reload(
+        &previous,
+        "[tunnels.a]\ntunnel_id=0\n[tunnels.b]\ntunnel_id=1\n",
+    )
+    .unwrap_err();
+    assert!(
+        problems
+            .iter()
+            .any(|problem| problem.to_string().ends_with("the reload is refused"))
+    );
+}
+
 /// spec: C5
 #[test]
 fn configuration_names() {

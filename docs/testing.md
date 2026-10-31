@@ -198,11 +198,12 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-merged report is 92.94% lines / 80.83% branches, with no production
+merged report is 93.32% lines / 80.95% branches, with no production
 exclusions; 100% remains required. Repository file
-`audit/phase6/resolver-cost-20261031/README.md` records fresh native,
-live, manager and Incus profiles after fixing shared discovery recovery
-and indexing resolver jobs and cancellation.
+`audit/phase6/coverage-errors-20261031/README.md` records the latest native
+error-path cases over unchanged production code and the preceding fresh
+live, manager and Incus profiles. The shared-discovery CI failure exposes
+an upstream namespace-cache defect; its correction and integration remain open.
 
 ## Running
 

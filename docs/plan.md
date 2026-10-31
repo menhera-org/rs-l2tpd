@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 92.94% lines /
-80.83% branches: 595 missing lines and 340 missing branches, with no
+approved production-code scope, the latest merged report is 93.32% lines /
+80.95% branches: 563 missing lines and 338 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner also passes. The required-kernel refresh found a vanilla 7.0.14
@@ -584,6 +584,13 @@ the actual lookup job and indexes job cancellation and answer delivery.
 Its fresh live, Incus and root-systemd checks pass; repository file
 `audit/phase6/resolver-cost-20261031/README.md` records the regression,
 cost comparison and remaining limits.
+The next test-only batch covers abandoned service replies, resolver thread
+creation failures and configuration conversions. Its common checks and ten
+seeds pass. Repository file `audit/phase6/coverage-errors-20261031/README.md`
+records the unchanged production source and incremental profiles. The
+preceding resolver commit's CI live guest exposes upstream DHCPv6 listener
+sharing across equally named interfaces in different namespaces; upstream
+correction and released-crate integration remain open.
 
 ### Phase 7 — release
 

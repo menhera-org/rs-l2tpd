@@ -535,6 +535,59 @@ mod tests {
         .unwrap()
     }
 
+    /// spec: L5, L7, L9, G14
+    #[test]
+    fn abandoned_replies_report_stopped_service_and_shutdown_releases_waiters() {
+        engine().block_on(async {
+            for shutdown in [false, true] {
+                let mut runtime = runtime(vec![]);
+                let mut service = Service {
+                    control: runtime.control(),
+                    requests: None,
+                    forward: Arc::new(AtomicBool::new(false)),
+                    completion: None,
+                };
+                let mut converge = pin!(service.converge());
+                assert!(converge.as_mut().poll(&mut Context::from_waker(Waker::noop())).is_pending());
+                let event = runtime.next_event().await;
+                assert!(matches!(event, ControlEvent::Service(Operation(Action::Converge(_)))));
+                if shutdown { runtime.control().shutdown(); }
+                drop(event);
+                let result = converge.await;
+                if shutdown {
+                    assert!(result.unwrap().is_empty());
+                } else {
+                    assert!(matches!(result, Err(Error::Other(message)) if message == "service stopped"));
+                }
+            }
+            let mut runtime = runtime(vec![]);
+            let mut service = Service {
+                control: runtime.control(),
+                requests: None,
+                forward: Arc::new(AtomicBool::new(false)),
+                completion: None,
+            };
+            {
+                let mut capacity = pin!(service.set_store_capacity(3));
+                assert!(capacity.as_mut().poll(&mut Context::from_waker(Waker::noop())).is_pending());
+                let event = runtime.next_event().await;
+                assert!(matches!(event, ControlEvent::Service(Operation(Action::StoreCapacity(3, _)))));
+                drop(event);
+                assert!(matches!(capacity.await, Err(Error::Other(message)) if message == "service stopped"));
+            }
+            let (tx, rx) = tokio::sync::oneshot::channel();
+            drop(tx);
+            service.completion = Some(rx);
+            assert!(matches!(service.run(Ok, |_| Ok(())).await, Err(Error::Other(message)) if message == "service stopped"));
+            assert!(matches!(service.run(Ok, |_| Ok(())).await, Err(Error::Other(message)) if message == "run already completed"));
+            let (tx, rx) = tokio::sync::oneshot::channel();
+            drop(tx);
+            service.completion = Some(rx);
+            assert!(matches!(service.shutdown_and_wait().await, Err(Error::Other(message)) if message == "service stopped"));
+            assert!(service.shutdown_and_wait().await.is_ok());
+        });
+    }
+
     /// spec: L13
     #[test]
     fn refused_host_delivery_releases_capacity_and_needs_no_withdrawal() {

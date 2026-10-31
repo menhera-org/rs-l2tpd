@@ -1,0 +1,306 @@
+diff --git a/src/config/tests.rs b/src/config/tests.rs
+index 9ed1dc7..921b2af 100644
+--- a/src/config/tests.rs
++++ b/src/config/tests.rs
+@@ -82,6 +82,113 @@ fn corrected(field: &'static str) -> Vec<(Option<&'static str>, Effect)> {
+ 
+ const VALID: &str = "tunnel_id = 1\nremote_addr = \"192.0.2.1\"\n";
+ 
++/// spec: C2, C5
++#[test]
++fn every_explicit_document_field_replaces_its_previous_value() {
++    let document = |n| {
++        format!(
++            "[host]\nfix_bindv6only={}\n[resolvers.r]\naddresses=['192.0.2.{n}']\nmethod='dhcpv6'\nbind_interface='wan{n}'\ndhcpv6_identity='random'\ndhcpv6_duid='0003000102000000000{n}'\n[tunnels.t]\ntunnel_id={n}\npeer_tunnel_id={}\nremote_addr='host{n}.test'\nip_version='V6'\nbind_interface='wan{n}'\nresolver_name='r'\n[sessions.s]\ntunnel_name='t'\nsession_id={n}\npeer_session_id={}\ninterface_name='l2tp{n}'\ninterface_hwaddr='02:00:00:00:00:0{n}'\ncookie='0102030{n}'\npeer_cookie='0405060{n}'\n",
++            n == 1,
++            n + 10,
++            n + 20
++        )
++    };
++    let mut merged = partial(&document(1));
++    let replacement = partial(&document(2));
++    let expected = toml::to_string(&replacement).unwrap();
++    merged.merge(replacement);
++    assert_eq!(toml::to_string(&merged).unwrap(), expected);
++}
++
++/// spec: C14, C16, L4, O8
++#[test]
++fn identities_and_all_discovery_choices_survive_document_round_trips() {
++    let (base, problems) = lenient(
++        "[tunnels.t]\ntunnel_id=7\npeer_tunnel_id=8\nremote_addr='192.0.2.1'\n[sessions.s]\ntunnel_name='t'\nsession_id=9\npeer_session_id=10\ninterface_name='l2tp0'\n",
++    );
++    assert!(problems.is_empty());
++    let identity = base.session_identity("s").unwrap();
++    assert_eq!(identity.tunnel(), base.tunnels()["t"].identity());
++    assert_eq!(identity.tunnel().tunnel_id(), 7);
++    assert_eq!(identity.session_id(), 9);
++    for (method, text) in [
++        (Method::Ra, "ra"),
++        (Method::Dhcpv6, "dhcpv6"),
++        (Method::Ipv6, "ipv6"),
++    ] {
++        assert_eq!(method.to_string(), text);
++        for identity in [
++            Dhcpv6Identity::LinkLayer,
++            Dhcpv6Identity::Anonymous,
++            Dhcpv6Identity::Random,
++            Dhcpv6Identity::Duid(vec![0, 3, 0, 1, 2, 0]),
++        ] {
++            if method == Method::Ra && identity != Dhcpv6Identity::LinkLayer {
++                continue;
++            }
++            let mut config = base.clone();
++            config
++                .insert_resolver(
++                    "r",
++                    ResolverConfig::with_method(
++                        method,
++                        name("wan0"),
++                        (method != Method::Ra).then_some(identity),
++                    )
++                    .unwrap(),
++                )
++                .unwrap();
++            let rendered = toml::to_string(&config).unwrap();
++            let (round_trip, problems) = partial(&rendered).into_config_lenient();
++            assert!(problems.is_empty(), "{problems:?}");
++            assert_eq!(round_trip, config);
++            assert!(rendered.contains(&format!("method = \"{text}\"")));
++        }
++    }
++}
++
++/// spec: C6, C12, C15, O4, O6
++#[test]
++fn retained_resolver_and_document_diagnostics_keep_their_context() {
++    let (previous, problems) = lenient(RESOLVER);
++    assert!(problems.is_empty());
++    let (kept, problems) = reload(&previous, "[resolvers.r]\nmethod='unknown'\n").unwrap();
++    assert_eq!(kept, previous);
++    assert_eq!(problems.len(), 1);
++    assert_eq!(problems[0].effect(), Effect::KeptPrevious);
++    let description = problems[0].to_string();
++    assert!(
++        description.contains("resolver \"r\", method:"),
++        "{description}"
++    );
++    assert!(description.ends_with("the values in force are kept"));
++    let (_, problems) = lenient("[tunnels.'']\ntunnel_id=7\n");
++    assert_eq!(problems.len(), 1);
++    assert!(problems[0].to_string().starts_with("tunnel \"\": "));
++    for source in [None, Some("settings.toml")] {
++        let mut document = partial("'odd key'=1\n");
++        if let Some(source) = source {
++            document.set_source(source);
++        }
++        let (_, problems) = document.into_config_lenient();
++        let text = problems[0].to_string();
++        assert!(text.contains("odd key"));
++        assert!(text.ends_with("; ignored"));
++        assert_eq!(text.starts_with("settings.toml:"), source.is_some());
++    }
++    let (previous, _) = lenient("[tunnels.a]\ntunnel_id=1\n[tunnels.b]\ntunnel_id=2\n");
++    let problems = reload(
++        &previous,
++        "[tunnels.a]\ntunnel_id=0\n[tunnels.b]\ntunnel_id=1\n",
++    )
++    .unwrap_err();
++    assert!(
++        problems
++            .iter()
++            .any(|problem| problem.to_string().ends_with("the reload is refused"))
++    );
++}
++
+ /// spec: C5
+ #[test]
+ fn configuration_names() {
+diff --git a/src/service.rs b/src/service.rs
+index b08a4f6..6069e7b 100644
+--- a/src/service.rs
++++ b/src/service.rs
+@@ -535,6 +535,59 @@ mod tests {
+         .unwrap()
+     }
+ 
++    /// spec: L5, L7, L9, G14
++    #[test]
++    fn abandoned_replies_report_stopped_service_and_shutdown_releases_waiters() {
++        engine().block_on(async {
++            for shutdown in [false, true] {
++                let mut runtime = runtime(vec![]);
++                let mut service = Service {
++                    control: runtime.control(),
++                    requests: None,
++                    forward: Arc::new(AtomicBool::new(false)),
++                    completion: None,
++                };
++                let mut converge = pin!(service.converge());
++                assert!(converge.as_mut().poll(&mut Context::from_waker(Waker::noop())).is_pending());
++                let event = runtime.next_event().await;
++                assert!(matches!(event, ControlEvent::Service(Operation(Action::Converge(_)))));
++                if shutdown { runtime.control().shutdown(); }
++                drop(event);
++                let result = converge.await;
++                if shutdown {
++                    assert!(result.unwrap().is_empty());
++                } else {
++                    assert!(matches!(result, Err(Error::Other(message)) if message == "service stopped"));
++                }
++            }
++            let mut runtime = runtime(vec![]);
++            let mut service = Service {
++                control: runtime.control(),
++                requests: None,
++                forward: Arc::new(AtomicBool::new(false)),
++                completion: None,
++            };
++            {
++                let mut capacity = pin!(service.set_store_capacity(3));
++                assert!(capacity.as_mut().poll(&mut Context::from_waker(Waker::noop())).is_pending());
++                let event = runtime.next_event().await;
++                assert!(matches!(event, ControlEvent::Service(Operation(Action::StoreCapacity(3, _)))));
++                drop(event);
++                assert!(matches!(capacity.await, Err(Error::Other(message)) if message == "service stopped"));
++            }
++            let (tx, rx) = tokio::sync::oneshot::channel();
++            drop(tx);
++            service.completion = Some(rx);
++            assert!(matches!(service.run(Ok, |_| Ok(())).await, Err(Error::Other(message)) if message == "service stopped"));
++            assert!(matches!(service.run(Ok, |_| Ok(())).await, Err(Error::Other(message)) if message == "run already completed"));
++            let (tx, rx) = tokio::sync::oneshot::channel();
++            drop(tx);
++            service.completion = Some(rx);
++            assert!(matches!(service.shutdown_and_wait().await, Err(Error::Other(message)) if message == "service stopped"));
++            assert!(service.shutdown_and_wait().await.is_ok());
++        });
++    }
++
+     /// spec: L13
+     #[test]
+     fn refused_host_delivery_releases_capacity_and_needs_no_withdrawal() {
+diff --git a/tests/startup.rs b/tests/startup.rs
+index 14b6844..c565ec8 100644
+--- a/tests/startup.rs
++++ b/tests/startup.rs
+@@ -2,6 +2,8 @@
+ use std::os::fd::AsRawFd;
+ use std::time::Duration;
+ 
++use nix::libc;
++
+ use rs_l2tpd::config::Config;
+ use rs_l2tpd::kernel::fake::FakeKernel;
+ use rs_l2tpd::reconciler::IphostResolve;
+@@ -41,8 +43,8 @@ fn refuse_startup_syscalls(syscalls: &[libc::c_long], errno: i32) {
+         len: filter.len().try_into().unwrap(),
+         filter: filter.as_mut_ptr(),
+     };
+-    // Both prctl calls affect only this subprocess. The kernel copies the
+-    // initialized filter while its backing allocation is still alive.
++    // TSYNC also covers an already-started dispatcher in this subprocess.
++    // The kernel copies the filter while its allocation is still alive.
+     unsafe {
+         assert_eq!(
+             libc::prctl(
+@@ -55,18 +57,94 @@ fn refuse_startup_syscalls(syscalls: &[libc::c_long], errno: i32) {
+             0
+         );
+         assert_eq!(
+-            libc::prctl(
+-                libc::PR_SET_SECCOMP,
+-                2 as libc::c_ulong,
++            libc::syscall(
++                libc::SYS_seccomp,
++                libc::SECCOMP_SET_MODE_FILTER,
++                libc::SECCOMP_FILTER_FLAG_TSYNC,
+                 &program as *const _,
+-                0 as libc::c_ulong,
+-                0 as libc::c_ulong
+             ),
+             0
+         );
+     }
+ }
+ 
++/// spec: V3, V4, V15, A9, G23
++#[test]
++fn resolver_spawn_failures_return_errors_and_release_worker_permits() {
++    use rs_l2tpd::reconciler::{Lookup, Resolve, ResolverSpec};
++    const CHILD: &str = "RS_L2TPD_TEST_RESOLVER_SPAWN_FAILURE";
++    if let Ok(fault) = std::env::var(CHILD) {
++        let mut resolver = IphostResolve::default();
++        let lookup = |id, octet| Lookup::new(id, format!("192.0.2.{octet}"), ResolverSpec::System);
++        if fault == "owner" {
++            refuse_startup_syscalls(&[libc::SYS_clone, libc::SYS_clone3], libc::EAGAIN);
++            let error = resolver.watch(lookup(1, 1)).unwrap_err();
++            assert_eq!(error.raw_os_error(), Some(libc::EAGAIN));
++            assert!(resolver.poll().is_empty());
++            assert!(!resolver.retry_discovery(1));
++            resolver.unwatch(1);
++        } else {
++            assert_eq!(fault, "worker");
++            resolver.watch(lookup(1, 1)).unwrap();
++            let deadline = std::time::Instant::now() + Duration::from_secs(5);
++            loop {
++                let answers = resolver.poll();
++                if !answers.is_empty() {
++                    assert_eq!(answers, [(1, vec!["192.0.2.1".parse().unwrap()])]);
++                    break;
++                }
++                assert!(std::time::Instant::now() < deadline);
++                std::thread::yield_now();
++            }
++            refuse_startup_syscalls(&[libc::SYS_clone, libc::SYS_clone3], libc::EAGAIN);
++            // More than the eight-slot budget: every failed spawn must return
++            // its permit so all sixteen jobs can complete with empty results.
++            for id in 2..18 {
++                resolver.watch(lookup(id, id)).unwrap();
++            }
++            let mut answers = std::collections::BTreeMap::new();
++            while answers.len() < 16 {
++                answers.extend(resolver.poll());
++                assert!(
++                    std::time::Instant::now() < deadline,
++                    "stranded worker permit"
++                );
++                std::thread::yield_now();
++            }
++            assert_eq!(
++                answers.keys().copied().collect::<Vec<_>>(),
++                (2..18).collect::<Vec<_>>()
++            );
++            assert!(answers.values().all(Vec::is_empty));
++            for id in 1..18 {
++                resolver.unwatch(id);
++            }
++            assert!(resolver.poll().is_empty());
++        }
++        println!("RESOLVER_SPAWN_CHECKED={fault}");
++        return;
++    }
++    for fault in ["owner", "worker"] {
++        let output = std::process::Command::new(std::env::current_exe().unwrap())
++            .args([
++                "--exact",
++                "resolver_spawn_failures_return_errors_and_release_worker_permits",
++                "--nocapture",
++                "--test-threads=1",
++            ])
++            .env(CHILD, fault)
++            .output()
++            .unwrap();
++        assert!(output.status.success(), "{fault}: {output:?}");
++        assert!(
++            String::from_utf8(output.stdout)
++                .unwrap()
++                .contains(&format!("RESOLVER_SPAWN_CHECKED={fault}"))
++        );
++        println!("RESOLVER_SPAWN_VERIFIED={fault}");
++    }
++}
++
+ /// spec: L5, L9, G14
+ #[test]
+ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {

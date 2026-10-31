@@ -13,7 +13,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
-| P4 coverage | Approved production scope: fresh merged GNU report 92.94% lines / 80.83% branches after the resolver fix, including real user manager and full Incus case; no production exclusions | 595 missing lines / 340 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: merged GNU report 93.32% lines / 80.95% branches, adding test-only error cases to the fresh resolver collection; no production exclusions | 563 missing lines / 338 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Current unmodified musl full case passes, including manager race/ordered policy/store/re-exec; instrumented GNU full case exports seven daemon profiles | Repeat if relevant source changes; retain documented MAC limitations |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -699,3 +699,26 @@ passes in 26.80 seconds with no drop-ins. Source remains identical across
 the fresh collection. CI run `41222708337` also passes both jobs on their
 first attempt at `ba9faeb`. This resolver package needs its own CI run.
 Coverage, remaining clauses/event cost and the final matrix remain open.
+
+## Error-path coverage without production changes
+
+[The error-path batch](phase6/coverage-errors-20261031/README.md) tests
+dispatcher and lookup-thread creation failures, release of every failed
+spawn's admission permit, abandoned service reply channels, full document
+field replacement, discovery serialization and retained-resolver diagnostics.
+Startup passes without default features too. Common gates and all ten
+seeds pass: 109 ordinary library cases, 68 fake cases, 78 rules, 27 service
+cases and eight startup/resolver faults per seed.
+
+Production bodies and positions remain unchanged. Adding these native
+profiles to the fresh resolver collection raises production coverage to
+93.32% lines (7,868/8,431) and 80.95% branches (1,436/1,774), leaving
+563 lines and 338 branches. The exclusion scope is unchanged; there are
+no production exclusions or profile-mismatch warnings.
+
+The resolver commit's CI run `41226718700` passes build/coverage but fails
+the shared-discovery case in the live guest. The failure exposes upstream
+`iphost` listener reuse across equally named interfaces in different network
+namespaces. Its focused upstream regression fails independently. The
+upstream-boundary work is recorded under `phase6/upstream-netns-20261031/`;
+it is required before final live/matrix acceptance. No gate is weakened.

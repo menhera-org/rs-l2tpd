@@ -1,0 +1,18 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/startup.rs (target/debug/deps/startup-8020abb30dc748ea)
+
+running 2 tests
+RESOLVER_SPAWN_VERIFIED=owner
+STARTUP_FAILURE_VERIFIED=runtime-thread
+STARTUP_FAILURE_VERIFIED=service-thread
+RESOLVER_SPAWN_VERIFIED=worker
+test resolver_spawn_failures_return_errors_and_release_worker_permits ... ok
+STARTUP_FAILURE_VERIFIED=service-engine
+STARTUP_FAILURE_VERIFIED=blocking-thread
+STARTUP_FAILURE_VERIFIED=blocking-engine
+STARTUP_FAILURE_VERIFIED=blocking-open
+test startup_resource_failures_return_errors_and_preserve_adopted_fds ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

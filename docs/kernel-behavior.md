@@ -361,7 +361,7 @@ now passed on every required target in the current refresh. Repository record
 proofs; `audit/phase6/deadline-index-20261031/README.md` records indexed
 deadlines, conflict cancellation and fresh host/mainline-clock checks.
 
-Current merged production coverage is 92.94% of lines and 80.83% of branches;
+Current merged production coverage is 93.32% of lines and 80.95% of branches;
 the threshold remains 100%. The earlier 92.26% line report included inline
 test code. Both strict map flags are enabled after ten CI qualification
 passes, and the strict workflow and pinned-nightly coverage workflow pass.
@@ -381,6 +381,12 @@ Its full GNU profile, unmodified musl Incus and root-systemd checks pass
 on Ubuntu 6.8.0-147. Repository file
 `audit/phase6/resolver-cost-20261031/README.md` records the regression,
 cancellation measurements and remaining proof limits.
+Additional error-channel, worker-spawn and configuration cases improve
+coverage without changing production code; repository file
+`audit/phase6/coverage-errors-20261031/README.md` records that collection.
+The resolver commit's CI live guest exposes an upstream DHCPv6 cache that
+shares equally named interfaces across namespaces. Upstream correction and
+released-crate integration remain required before the final matrix.
 
 ### Refused monitor filters and descriptor exhaustion
 
