@@ -6,9 +6,12 @@ This page records the behavior relevant to rs-l2tpd for **each required
 kernel**, resolved on 2026-10-31. The specification defines the contract;
 this page distinguishes observations, source evidence and remaining tests.
 The latest full refresh passes four normal profiles and fails one H8
-request-count assertion on vanilla 7.0.14. All five targets pass their H20
-and 300-tunnel scenarios; the failed suite keeps the matrix gate red.
+request-count assertion on vanilla 7.0.14. A subsequent targeted run passes
+that kernel's full normal and clock profiles after correcting the fixture's
+shutdown measurement boundary. All five targets pass their H20 and
+300-tunnel scenarios; a final consistent-source matrix is still required.
 [Current results and source identity](../audit/phase6/matrix-20261031T133318Z-3943822/README.md).
+[Vanilla 7.0.14 correction and rerun](../audit/phase6/vanilla7014-refresh-20261031/README.md).
 
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.
@@ -79,9 +82,8 @@ not mean that every possible failure mode was exercised on that target.
 - **Vanilla `7.0.14`:** the empty VRF refuses with `EADDRNOTAVAIL`;
   deletion events can cross namespaces. Session deletion is queued and
   dump traversal is identifier-based. L2TP/VRF are built in. Its normal
-  profile currently fails the H8 total-request equality; its other 25
-  scenarios, including capability and scale cases, pass. An earlier clock
-  profile passed; this refresh skipped it after the normal-profile failure.
+  profile passes all 26 scenarios after the H8 fixture correction, including
+  capability and scale cases. The separate current clock profile also passes.
   No system-container profile has run on this target.
 - **Mainline `7.3.0`:** the empty VRF refuses with `EADDRNOTAVAIL`;
   commanded deletion events stay within the object's namespace. Session
@@ -105,7 +107,7 @@ they are not a single final run of the current daemon on all targets.
 | Ubuntu `6.8.0-147-generic` | 26 pass / pass | Pass | Pass | Pass | Pass, with documented MAC race and buffer fallback |
 | Vanilla `6.8.12` | 26 pass / pass | Pass | Pass | Pass | Not run |
 | Ubuntu `7.0.0-42-generic` | 26 pass / pass; cold-boot KHO override | Pass; missing-driver recovery also passes | Pass | Pass | Not run |
-| Vanilla `7.0.14` | 25 pass, H8 count fails / pass | Pass | Earlier pass; current boot skipped after failure | Pass | Not run |
+| Vanilla `7.0.14` | 26 pass after H8 fixture correction / pass | Pass | Current targeted rerun passes | Pass | Not run |
 | Mainline `7.3.0` | 26 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the

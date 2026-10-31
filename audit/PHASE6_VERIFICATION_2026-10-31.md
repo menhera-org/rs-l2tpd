@@ -12,7 +12,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 source link | Strict local and CI passes: 43 facts, 37 production-cited and six classified; no uncited functions. Ten CI repetitions passed | Maintain strict enforcement as sources change |
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests; H16 has passing required-kernel records | Relevant-event CPU cost, full resource/history proof and remaining clauses; investigate the separate vanilla 7.0.14 capture failure |
-| P3 matrix | Current refresh passes full normal profiles on both Ubuntu kernels, vanilla 6.8.12 and mainline 7.3.0; vanilla 7.0.14 fails one netlink-count assertion | Resolve that failure and finish current matrix/clock validation; complete P2/delegated proof |
+| P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
 | P4 coverage | Current merged GNU report: 92.26% lines / 78.16% branches, including real user manager and full Incus case; no exclusions | 804 missing lines / 408 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Current unmodified musl full case passes, including manager race/ordered policy/store/re-exec; instrumented GNU full case exports seven daemon profiles | Repeat if relevant source changes; retain documented MAC limitations |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
@@ -560,3 +560,14 @@ passes all 26 scenarios and the live kernel/process suites. Retained
 metadata and normalized logs are in the qualification record's `enforced-ci`
 directory. This establishes both P1 traceability gates in CI; other Phase 6
 requirements remain open. The later H8 fixture change has a separate CI run.
+
+## Vanilla 7.0.14 after the H8 correction
+
+[The targeted rerun](phase6/vanilla7014-refresh-20261031/README.md) passes
+all 26 normal scenarios in 449.00 seconds, all kernel/process cases and
+the separate 64.05-second clock/pause profile. Three earlier focused H8
+repetitions already passed. The fixture now compares drained startup/reload
+work before scheduler-dependent tunnel cleanup, while still prohibiting
+extra route queries through shutdown. The failed matrix remains failed;
+a final consistent-source five-target run is still required. CI run
+41212014031 at the H8-fix revision `fb41979` also passes both jobs.
