@@ -565,11 +565,12 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 93.45% lines /
-81.23% branches: 555 missing lines and 336 missing branches, with no
+approved production-code scope, the latest merged report is 93.48% lines /
+81.54% branches: 556 missing lines and 333 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
-Incus runner also passes. The required-kernel refresh found a vanilla 7.0.14
+Incus runner has passing records and the later H11 failure described below.
+The required-kernel refresh found a vanilla 7.0.14
 fixture failure: asynchronous shutdown checks made total netlink counts vary.
 Comparing drained startup/reload work fixes that measurement; three focused
 repetitions and the full normal/clock profiles now pass on that kernel.
@@ -618,6 +619,12 @@ reproduces it. H11 precedence wording and its proposed explicit-authority
 test await a maintainer decision. The evidence and unapplied correction are
 in `audit/phase6/staged-mac-override-20261031/`; later individual passing
 manager runs do not establish P5 determinism.
+
+Descriptor retirement now indexes withdrawal tokens, blocked identifiers and
+due work. Named host requests coalesce by name while preserving delivery order.
+Five regression/resource cases, ten seeds and fresh GNU live, manager, Incus
+and unmodified root-systemd profiles pass. The complete resource proof remains
+open; `audit/phase6/store-cost-20261031/` records this batch's scope.
 
 ### Phase 7 — release
 

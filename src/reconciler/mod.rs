@@ -93,7 +93,9 @@ pub struct Reconciler<K: Kernel> {
     retries: Deadlines<u32>,
     resolvers: resolvers::Resolvers,
     report: Report,
-    requests: Vec<Request>,
+    requests: BTreeMap<u64, Request>,
+    request_names: BTreeMap<String, u64>,
+    next_queued: u64,
     /// Whether the program wrote the tunable (P25): `None` until asked.
     tunable: Option<bool>,
     tunable_pending: Option<(u64, Instant)>,
@@ -143,7 +145,9 @@ impl<K: Kernel> Reconciler<K> {
             retries: Deadlines::default(),
             resolvers: resolvers::Resolvers::new(resolve),
             report: Report::default(),
-            requests: Vec::new(),
+            requests: BTreeMap::new(),
+            request_names: BTreeMap::new(),
+            next_queued: 0,
             tunable: None,
             tunable_pending: None,
             next_request: 0,
@@ -195,7 +199,31 @@ impl<K: Kernel> Reconciler<K> {
 
     /// Takes what the program must do (L12, L13).
     pub fn take_requests(&mut self) -> Vec<Request> {
-        std::mem::take(&mut self.requests)
+        self.request_names.clear();
+        std::mem::take(&mut self.requests).into_values().collect()
+    }
+
+    fn queue_request(&mut self, request: Request) {
+        self.next_queued += 1;
+        let name = match &request {
+            Request::StoreSocket { name, .. } | Request::ForgetSocket { name, .. } => Some(name),
+            Request::WriteBindv6only { .. } => None,
+        };
+        if let Some(name) = name
+            && let Some(old) = self.request_names.insert(name.clone(), self.next_queued)
+        {
+            self.requests.remove(&old);
+        }
+        self.requests.insert(self.next_queued, request);
+    }
+
+    fn cancel_stored_request(&mut self, name: &str) {
+        if let Some(order) = self.request_names.get(name).copied()
+            && matches!(&self.requests[&order], Request::StoreSocket { .. })
+        {
+            self.request_names.remove(name);
+            self.requests.remove(&order);
+        }
     }
 
     /// The program's answer to [`Request::WriteBindv6only`] (L12).
@@ -277,6 +305,7 @@ impl<K: Kernel> Reconciler<K> {
         }
         self.accepted = config;
         self.incomplete = false;
+        self.store.retry_now(self.k.now());
         self.check_tunable();
         self.verify_inherited();
         self.retry_unmatched_sessions();
@@ -319,7 +348,7 @@ impl<K: Kernel> Reconciler<K> {
     pub fn shutdown(&mut self) -> bool {
         self.tunable_pending = None;
         self.requests
-            .retain(|r| !matches!(r, Request::WriteBindv6only { .. }));
+            .retain(|_, r| !matches!(r, Request::WriteBindv6only { .. }));
         self.accepted = Config::new();
         self.wanted_tunnels.clear();
         self.wanted_sessions.clear();
@@ -328,6 +357,7 @@ impl<K: Kernel> Reconciler<K> {
         self.store
             .shutdown
             .get_or_insert(self.k.now() + DELETION_WAIT);
+        self.store.retry_now(self.k.now());
         self.verify_inherited();
         self.incomplete = false;
         self.remove_unwanted_sessions();
@@ -435,7 +465,7 @@ impl<K: Kernel> Reconciler<K> {
             self.next_request += 1;
             let deadline = self.k.now() + Duration::from_secs(5);
             self.tunable_pending = Some((self.next_request, deadline));
-            self.requests.push(Request::WriteBindv6only {
+            self.queue_request(Request::WriteBindv6only {
                 id: self.next_request,
                 deadline,
             });

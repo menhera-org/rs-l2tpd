@@ -14,6 +14,8 @@ pub(super) struct Store {
     names: BTreeSet<String>,
     inherited: BTreeMap<String, Vec<OwnedFd>>,
     pub retiring: BTreeMap<String, Retirement>,
+    pending: BTreeMap<u64, (String, Instant)>,
+    blocked: BTreeMap<u32, usize>,
     deadlines: super::deadlines::Deadlines<String>,
     pub shutdown: Option<Instant>,
 }
@@ -43,6 +45,12 @@ impl<K: Kernel> Drop for Reconciler<K> {
 }
 
 impl Store {
+    pub fn retry_now(&mut self, now: Instant) {
+        for name in self.retiring.keys() {
+            self.deadlines.insert(name.clone(), now);
+        }
+    }
+
     pub fn next_deadline(&self, now: Instant) -> Option<Instant> {
         if self.shutdown.is_some_and(|deadline| now >= deadline) {
             return None;
@@ -57,7 +65,7 @@ impl Store {
     pub fn blocks(&self, id: u32) -> bool {
         let name = format!("t{id}");
         self.inherited.contains_key(&name)
-            || self.retiring.values().any(|r| r.ids.contains(&id))
+            || self.blocked.contains_key(&id)
             || self.retiring.contains_key(&name)
     }
 }
@@ -107,7 +115,7 @@ impl<K: Kernel> Reconciler<K> {
         match self.k.clone_fd(socket) {
             Ok(fd) => {
                 self.store.names.insert(name.clone());
-                self.requests.push(Request::StoreSocket {
+                self.queue_request(Request::StoreSocket {
                     tunnel_id: id,
                     name,
                     fd,
@@ -135,9 +143,7 @@ impl<K: Kernel> Reconciler<K> {
         fds: Vec<OwnedFd>,
         id: Option<u32>,
     ) {
-        self.requests.retain(
-            |r| !matches!(r, Request::StoreSocket { name: pending, .. } if pending == &name),
-        );
+        self.cancel_stored_request(&name);
         let now = self.k.now();
         let r = self
             .store
@@ -155,7 +161,11 @@ impl<K: Kernel> Reconciler<K> {
             });
         r.sockets.extend(sockets);
         r.fds.extend(fds);
-        r.ids.extend(id);
+        if let Some(id) = id
+            && r.ids.insert(id)
+        {
+            *self.store.blocked.entry(id).or_default() += 1;
+        }
         self.store
             .deadlines
             .insert(name, r.pending.map_or(r.next, |(_, at)| at));
@@ -166,22 +176,23 @@ impl<K: Kernel> Reconciler<K> {
     /// Stale acknowledgements cannot release a later store submission.
     pub fn socket_forgotten(&mut self, id: u64, processed: bool) {
         let now = self.k.now();
-        for r in self.store.retiring.values_mut() {
-            if r.pending
-                .is_some_and(|(pending, deadline)| pending == id && now < deadline)
-            {
-                r.pending = None;
-                r.withdrawn = processed;
-                r.next = now + RETRY;
-                for socket in r.sockets.drain(..) {
-                    self.k.close(socket);
-                }
-                r.fds.clear();
-                r.closed.get_or_insert(now);
-                self.retire_sockets();
-                return;
-            }
+        let Some((name, deadline)) = self.store.pending.get(&id).cloned() else {
+            return;
+        };
+        if now >= deadline {
+            return;
         }
+        self.store.pending.remove(&id);
+        let r = self.store.retiring.get_mut(&name).unwrap();
+        r.pending = None;
+        r.withdrawn = processed;
+        r.next = now + RETRY;
+        for socket in r.sockets.drain(..) {
+            self.k.close(socket);
+        }
+        r.fds.clear();
+        r.closed.get_or_insert(now);
+        self.retire_socket(name);
     }
 
     pub(super) fn verify_inherited(&mut self) {
@@ -259,67 +270,318 @@ impl<K: Kernel> Reconciler<K> {
 
     pub(super) fn retire_sockets(&mut self) {
         let now = self.k.now();
-        let stopping = self.store.shutdown.is_some_and(|deadline| now >= deadline);
-        let names: Vec<_> = self.store.retiring.keys().cloned().collect();
+        let names: Vec<_> = if self.store.shutdown.is_some_and(|deadline| now >= deadline) {
+            self.store.retiring.keys().cloned().collect()
+        } else {
+            self.store.deadlines.due(now).cloned().collect()
+        };
         for name in names {
-            let r = self.store.retiring.get_mut(&name).unwrap();
-            let expired = r.pending.is_some_and(|(_, deadline)| now >= deadline);
-            if expired || stopping {
-                r.pending = None;
-                for socket in r.sockets.drain(..) {
-                    self.k.close(socket);
+            self.retire_socket(name);
+        }
+    }
+
+    fn retire_socket(&mut self, name: String) {
+        let now = self.k.now();
+        let stopping = self.store.shutdown.is_some_and(|deadline| now >= deadline);
+        let r = self.store.retiring.get_mut(&name).unwrap();
+        let expired = r.pending.is_some_and(|(_, deadline)| now >= deadline);
+        if expired || stopping {
+            if let Some((id, _)) = r.pending.take() {
+                self.store.pending.remove(&id);
+            }
+            for socket in r.sockets.drain(..) {
+                self.k.close(socket);
+            }
+            r.fds.clear();
+            r.closed.get_or_insert(now);
+            r.next = now + RETRY;
+        }
+        if r.withdrawn {
+            for socket in r.sockets.drain(..) {
+                self.k.close(socket);
+            }
+            r.fds.clear();
+            r.closed.get_or_insert(now);
+        }
+        let absent = r.sockets.is_empty()
+            && r.fds.is_empty()
+            && r.ids
+                .iter()
+                .all(|id| matches!(self.k.tunnel(*id), Ok(None)));
+        if r.withdrawn && absent {
+            let removed = self.store.retiring.remove(&name).unwrap();
+            for id in removed.ids {
+                let count = self.store.blocked.get_mut(&id).unwrap();
+                *count -= 1;
+                if *count == 0 {
+                    self.store.blocked.remove(&id);
                 }
-                r.fds.clear();
-                r.closed.get_or_insert(now);
-                r.next = now + RETRY;
             }
-            if r.withdrawn {
-                for socket in r.sockets.drain(..) {
-                    self.k.close(socket);
-                }
-                r.fds.clear();
-                r.closed.get_or_insert(now);
-            }
-            let absent = r.sockets.is_empty()
-                && r.fds.is_empty()
-                && r.ids
-                    .iter()
-                    .all(|id| matches!(self.k.tunnel(*id), Ok(None)));
-            if r.withdrawn && absent {
-                self.store.retiring.remove(&name);
-                self.store.deadlines.remove(&name);
-                self.store.names.remove(&name);
-                continue;
-            }
-            if stopping {
-                if !r.reported
-                    && (!r.withdrawn || r.closed.is_none_or(|closed| now >= closed + DELETION_WAIT))
-                {
-                    log::error!("descriptor store cleanup incomplete for {name}");
-                    r.reported = true;
-                }
-                self.store
-                    .deadlines
-                    .insert(name, r.pending.map_or(r.next, |(_, at)| at));
-                continue;
-            }
-            if !r.withdrawn && r.pending.is_none() && now >= r.next {
-                self.next_request += 1;
-                let deadline = now + DELETION_WAIT;
-                r.pending = Some((self.next_request, deadline));
-                self.requests.retain(|r| !matches!(r, Request::ForgetSocket { name: pending, .. } if pending == &name));
-                self.requests.push(Request::ForgetSocket {
-                    name: name.clone(),
-                    id: self.next_request,
-                    deadline,
-                });
-            }
-            if r.pending.is_none() && r.next <= now {
-                r.next = now + RETRY;
+            self.store.deadlines.remove(&name);
+            self.store.names.remove(&name);
+            return;
+        }
+        if stopping {
+            if !r.reported
+                && (!r.withdrawn || r.closed.is_none_or(|closed| now >= closed + DELETION_WAIT))
+            {
+                log::error!("descriptor store cleanup incomplete for {name}");
+                r.reported = true;
             }
             self.store
                 .deadlines
                 .insert(name, r.pending.map_or(r.next, |(_, at)| at));
+            return;
         }
+        let request = if !r.withdrawn && r.pending.is_none() && now >= r.next {
+            self.next_request += 1;
+            let deadline = now + DELETION_WAIT;
+            r.pending = Some((self.next_request, deadline));
+            self.store
+                .pending
+                .insert(self.next_request, (name.clone(), deadline));
+            Some(Request::ForgetSocket {
+                name: name.clone(),
+                id: self.next_request,
+                deadline,
+            })
+        } else {
+            None
+        };
+        if r.pending.is_none() && r.next <= now {
+            r.next = now + RETRY;
+        }
+        self.store
+            .deadlines
+            .insert(name, r.pending.map_or(r.next, |(_, at)| at));
+        if let Some(request) = request {
+            self.queue_request(request);
+        }
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod cost_tests {
+    use super::*;
+    use crate::kernel::fake::FakeKernel;
+    use crate::reconciler::IphostResolve;
+
+    fn assert_indexes(r: &Reconciler<FakeKernel>) {
+        let expected: BTreeMap<_, _> = r
+            .store
+            .retiring
+            .iter()
+            .filter_map(|(name, record)| {
+                record
+                    .pending
+                    .map(|(id, deadline)| (id, (name.clone(), deadline)))
+            })
+            .collect();
+        assert_eq!(r.store.pending, expected);
+        let mut blocked = BTreeMap::new();
+        for record in r.store.retiring.values() {
+            for id in &record.ids {
+                *blocked.entry(*id).or_default() += 1_usize;
+            }
+        }
+        assert_eq!(r.store.blocked, blocked);
+        assert_eq!(r.store.deadlines.len(), r.store.retiring.len());
+    }
+
+    /// spec: L12, L13, G23, M6, M16
+    #[test]
+    fn named_host_requests_coalesce_without_history_and_preserve_delivery_order() {
+        use std::io::Read;
+        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+        let deadline = r.k.now() + DELETION_WAIT;
+        r.queue_request(Request::WriteBindv6only { id: 1, deadline });
+        let (first, mut first_peer) = std::os::unix::net::UnixStream::pair().unwrap();
+        r.queue_request(Request::StoreSocket {
+            name: "t1".into(),
+            tunnel_id: 1,
+            fd: first.into(),
+        });
+        let (second, mut second_peer) = std::os::unix::net::UnixStream::pair().unwrap();
+        r.queue_request(Request::StoreSocket {
+            name: "t2".into(),
+            tunnel_id: 2,
+            fd: second.into(),
+        });
+        r.cancel_stored_request("t1");
+        assert_eq!(first_peer.read(&mut [0]).unwrap(), 0);
+        r.queue_request(Request::ForgetSocket {
+            name: "t2".into(),
+            id: 10,
+            deadline,
+        });
+        assert_eq!(second_peer.read(&mut [0]).unwrap(), 0);
+        for id in 20..1020 {
+            r.queue_request(Request::ForgetSocket {
+                name: "t1".into(),
+                id,
+                deadline,
+            });
+            assert_eq!(r.requests.len(), 3);
+            assert_eq!(r.request_names.len(), 2);
+        }
+        r.cancel_stored_request("t2");
+        r.cancel_stored_request("missing");
+        assert!(r.shutdown());
+        let delivered: Vec<_> = r
+            .take_requests()
+            .into_iter()
+            .map(|request| match request {
+                Request::ForgetSocket { name, id, .. } => (name, id),
+                _ => panic!("shutdown must cancel the tunable request"),
+            })
+            .collect();
+        assert_eq!(delivered, [("t2".into(), 10), ("t1".into(), 1019)]);
+        assert!(r.requests.is_empty());
+        assert!(r.request_names.is_empty());
+    }
+
+    /// spec: L13, G23, M16
+    #[test]
+    fn completed_retirement_history_releases_acknowledgement_and_identifier_indexes() {
+        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+        r.set_store_capacity(1000);
+        r.retirement("anchor".into(), Vec::new(), Vec::new(), Some(77));
+        r.retire_sockets();
+        r.take_requests();
+        let anchor = r.store.retiring["anchor"].pending;
+        r.retirement("anchor".into(), Vec::new(), Vec::new(), Some(77));
+        assert_eq!(r.store.blocked[&77], 1);
+        for (epoch, count) in [1, 300, 300, 1].into_iter().enumerate() {
+            for n in 0..count {
+                r.retirement(
+                    format!("alias{epoch}_{n}"),
+                    Vec::new(),
+                    Vec::new(),
+                    Some(77),
+                );
+            }
+            r.retire_sockets();
+            assert_indexes(&r);
+            assert_eq!(r.store.blocked[&77], count + 1);
+            let requests = r.take_requests();
+            assert_eq!(requests.len(), count);
+            for request in requests {
+                let Request::ForgetSocket { id, .. } = request else {
+                    panic!("unexpected request")
+                };
+                r.socket_forgotten(id, true);
+                assert_indexes(&r);
+            }
+            assert_eq!(r.store.retiring.len(), 1);
+            assert_eq!(r.store.pending.len(), 1);
+            assert_eq!(r.store.blocked, BTreeMap::from([(77, 1)]));
+            assert_eq!(r.store.retiring["anchor"].pending, anchor);
+            println!("STORE_HISTORY epoch={epoch} retired={count} survivors=1");
+        }
+        r.socket_forgotten(anchor.unwrap().0, true);
+        assert_indexes(&r);
+        assert!(r.store.retiring.is_empty());
+        assert!(r.store.pending.is_empty());
+        assert!(r.store.blocked.is_empty());
+        assert_eq!(r.store.next_deadline(r.k.now()), None);
+    }
+
+    /// spec: L13, M14, G23
+    #[test]
+    fn expired_and_refused_acknowledgements_keep_only_the_current_incarnation() {
+        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+        r.set_store_capacity(1);
+        r.retirement("t77".into(), Vec::new(), Vec::new(), Some(77));
+        r.retire_sockets();
+        r.take_requests();
+        let first = r.store.retiring["t77"].pending.unwrap().0;
+        r.k.advance(DELETION_WAIT);
+        r.socket_forgotten(first, true);
+        assert!(!r.store.retiring["t77"].withdrawn);
+        assert_indexes(&r);
+        r.retire_sockets();
+        assert!(r.store.pending.is_empty());
+        assert_indexes(&r);
+        r.k.advance(RETRY);
+        r.retire_sockets();
+        r.take_requests();
+        let second = r.store.retiring["t77"].pending.unwrap().0;
+        assert_ne!(first, second);
+        r.socket_forgotten(first, true);
+        assert_eq!(r.store.retiring["t77"].pending.unwrap().0, second);
+        r.socket_forgotten(second, false);
+        assert!(!r.store.retiring["t77"].withdrawn);
+        assert_indexes(&r);
+        r.k.advance(RETRY);
+        r.retire_sockets();
+        r.take_requests();
+        let third = r.store.retiring["t77"].pending.unwrap().0;
+        r.socket_forgotten(third, true);
+        assert_indexes(&r);
+        assert!(r.store.retiring.is_empty());
+    }
+
+    /// spec: M16, G12, G23, L13
+    #[test]
+    fn stale_acknowledgement_cost_with_unrelated_retirements() {
+        for count in [1, 300, 20_000] {
+            let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+            r.set_store_capacity(count);
+            for n in 0..count {
+                r.retirement(format!("unused{n}"), Vec::new(), Vec::new(), None);
+            }
+            r.retire_sockets();
+            assert_eq!(r.take_requests().len(), count);
+            let deadline = r.store.next_deadline(r.k.now());
+            let started = Instant::now();
+            for id in u64::try_from(count).unwrap() + 1..=u64::try_from(count).unwrap() + 500 {
+                r.socket_forgotten(id, true);
+            }
+            println!(
+                "STORE_ACK_COST unrelated={count} stale=500 elapsed_ns={}",
+                started.elapsed().as_nanos()
+            );
+            assert_eq!(r.store.retiring.len(), count);
+            assert_eq!(r.store.next_deadline(r.k.now()), deadline);
+            assert!(
+                r.store
+                    .retiring
+                    .values()
+                    .all(|record| record.pending.is_some() && !record.withdrawn)
+            );
+            assert!(r.take_requests().is_empty());
+            assert!(r.k.ops().is_empty());
+        }
+    }
+
+    /// spec: M16, G12, L13
+    #[test]
+    fn a_processing_barrier_queries_only_its_own_retiring_tunnel() {
+        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+        r.set_store_capacity(2);
+        r.retirement("t10".into(), Vec::new(), Vec::new(), Some(10));
+        r.retirement("t20".into(), Vec::new(), Vec::new(), Some(20));
+        r.retire_sockets();
+        let request = r
+            .take_requests()
+            .into_iter()
+            .find_map(|request| match request {
+                Request::ForgetSocket { name, id, .. } if name == "t10" => Some(id),
+                _ => None,
+            })
+            .unwrap();
+        let unrelated = r.store.retiring["t20"].pending;
+        // A single failed confirmation must consume only the first refusal.
+        r.k.fail_next("tunnel", nix::errno::Errno::EIO);
+        r.k.fail_next("tunnel", nix::errno::Errno::EIO);
+        r.socket_forgotten(request, true);
+        assert_eq!(
+            r.k.tunnel(999).unwrap_err().raw_os_error(),
+            Some(nix::libc::EIO)
+        );
+        assert!(r.k.tunnel(999).unwrap().is_none());
+        assert_eq!(r.store.retiring["t20"].pending, unrelated);
+        assert!(r.store.retiring["t10"].withdrawn);
     }
 }

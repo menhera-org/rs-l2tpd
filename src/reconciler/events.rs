@@ -679,7 +679,7 @@ mod resource_tests {
         assert!(r.take_requests().is_empty());
     }
 
-    fn sizes(r: &Reconciler<FakeKernel>) -> [usize; 31] {
+    fn sizes(r: &Reconciler<FakeKernel>) -> [usize; 32] {
         [
             r.wanted_tunnels.len(),
             r.wanted_sessions.len(),
@@ -695,6 +695,7 @@ mod resource_tests {
             r.conflict_times.len(),
             r.retries.len(),
             r.requests.len(),
+            r.request_names.len(),
             r.vrfs.len(),
             r.masters.len(),
             r.members.len(),
