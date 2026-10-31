@@ -307,7 +307,7 @@ mod stream_tests {
                     // Model a descriptor being reused between the probe and open.
                     crate::syscall_fault::refuse(&[libc::SYS_fcntl], libc::EBADF);
                     if case == "dup-failure" {
-                        crate::syscall_fault::refuse(&[libc::SYS_dup2], libc::EIO);
+                        crate::syscall_fault::refuse_dup2(libc::EIO);
                     }
                 }
                 _ => panic!("unknown stream fault"),

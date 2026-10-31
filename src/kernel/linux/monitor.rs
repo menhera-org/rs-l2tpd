@@ -195,6 +195,23 @@ mod tests {
     /// spec: E20, E21, E22, A13
     #[test]
     fn broken_datagrams_and_reopen_failure_keep_loss_observable() {
+        for kind in [
+            netlink_packet_core::NLMSG_DONE,
+            libc::RTM_NEWLINK,
+            libc::RTM_DELLINK,
+            libc::RTM_NEWADDR,
+            libc::RTM_DELADDR,
+        ] {
+            assert!(
+                decode(&Msg {
+                    kind,
+                    flags: 0,
+                    seq: 0,
+                    payload: &[]
+                })
+                .is_none()
+            );
+        }
         let socket = super::super::request::open(NETLINK_ROUTE).unwrap();
         let mut feed = Feed::new(
             socket,
@@ -280,5 +297,146 @@ mod tests {
             .unwrap()
         });
         assert!(matches!(notice, Notice::LinkNew(link) if link.name.to_string_lossy() == "actual"));
+    }
+
+    // kernel: (K29, K36) recv errors invalidate the feed; reactor registration can fail independently.
+    /// spec: A13, E20, E21, G12, L9
+    #[test]
+    #[ignore = "serial isolated live runner; child forks must not inherit concurrent fake descriptors"]
+    fn registration_and_receive_failures_preserve_loss_and_retry_bounds() {
+        const CHILD: &str = "PHASE6_FEED_FAULT";
+        if let Ok(case) = std::env::var(CHILD) {
+            if case == "open" {
+                super::super::syscall_fault::refuse(&[libc::SYS_socket], libc::EMFILE);
+                assert_eq!(monitor().err().unwrap().raw_os_error(), Some(libc::EMFILE));
+                println!("FEED_FAULT_CHECKED={case}");
+                return;
+            }
+            use netlink_packet_core::{
+                NLM_F_REQUEST, NetlinkHeader, NetlinkMessage, NetlinkPayload,
+            };
+            use netlink_packet_route::{RouteNetlinkMessage, link::LinkMessage};
+            use std::sync::{
+                Arc,
+                atomic::{AtomicUsize, Ordering},
+            };
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            let opened = super::super::request::open(NETLINK_ROUTE).unwrap();
+            let mut header = NetlinkHeader::default();
+            header.flags = NLM_F_REQUEST;
+            let mut request = NetlinkMessage::new(
+                header,
+                NetlinkPayload::InnerMessage(RouteNetlinkMessage::GetLink(LinkMessage::default())),
+            );
+            request.finalize();
+            let mut bytes = vec![0; request.buffer_len()];
+            request.serialize(&mut bytes);
+            opened.send(&bytes, 0).unwrap();
+            let attempts = Arc::new(AtomicUsize::new(0));
+            let reopened = attempts.clone();
+            let mut feed = Feed::new(
+                opened,
+                Box::new(decode),
+                Box::new(move || {
+                    reopened.fetch_add(1, Ordering::SeqCst);
+                    super::super::request::open(NETLINK_ROUTE)
+                }),
+            );
+            match case.as_str() {
+                "registration" => {
+                    super::super::syscall_fault::refuse(&[libc::SYS_epoll_ctl], libc::EPERM)
+                }
+                "overflow" => {
+                    super::super::syscall_fault::refuse(&[libc::SYS_recvfrom], libc::ENOBUFS)
+                }
+                "receive" => super::super::syscall_fault::refuse(&[libc::SYS_recvfrom], libc::EIO),
+                _ => panic!("unknown feed fault"),
+            }
+            runtime.block_on(async {
+                let next = std::future::poll_fn(|cx| feed.poll_notice(cx));
+                assert_eq!(
+                    tokio::time::timeout(std::time::Duration::from_secs(3), next)
+                        .await
+                        .unwrap(),
+                    Notice::Loss
+                );
+                assert_eq!(attempts.load(Ordering::SeqCst), 0);
+                if case == "registration" {
+                    assert!(feed.registered.is_none());
+                    let retry = feed.retry.as_ref().unwrap().deadline();
+                    let next = std::future::poll_fn(|cx| feed.poll_notice(cx));
+                    assert_eq!(
+                        tokio::time::timeout(std::time::Duration::from_secs(3), next)
+                            .await
+                            .unwrap(),
+                        Notice::Loss
+                    );
+                    assert!(tokio::time::Instant::now() >= retry);
+                    assert_eq!(attempts.load(Ordering::SeqCst), 1);
+                } else {
+                    assert_eq!(feed.registered.is_some(), case == "overflow");
+                    assert!(feed.retry.is_none());
+                }
+            });
+            println!("FEED_FAULT_CHECKED={case}");
+            return;
+        }
+        for case in ["open", "registration", "overflow", "receive"] {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--ignored", "--exact", "kernel::linux::monitor::tests::registration_and_receive_failures_preserve_loss_and_retry_bounds", "--nocapture", "--test-threads=1"])
+                .env(CHILD, case).output().unwrap();
+            assert!(output.status.success(), "{case}: {output:?}");
+            assert!(
+                String::from_utf8_lossy(&output.stdout)
+                    .contains(&format!("FEED_FAULT_CHECKED={case}"))
+            );
+            println!("FEED_FAULT_VERIFIED={case}");
+        }
+    }
+
+    // kernel: (K29) the old subscription cannot deliver after its reactor has shut down.
+    /// spec: A13, E20
+    #[test]
+    fn reactor_shutdown_reports_loss_before_reopening_on_the_next_runtime() {
+        use std::sync::{
+            Arc,
+            atomic::{AtomicUsize, Ordering},
+        };
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let reopened = attempts.clone();
+        let socket = super::super::request::open(NETLINK_ROUTE).unwrap();
+        let mut feed = Feed::new(
+            socket,
+            Box::new(decode),
+            Box::new(move || {
+                reopened.fetch_add(1, Ordering::SeqCst);
+                super::super::request::open(NETLINK_ROUTE)
+            }),
+        );
+        let first = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        first.block_on(std::future::poll_fn(|cx| {
+            assert!(feed.poll_notice(cx).is_pending());
+            Poll::Ready(())
+        }));
+        assert!(feed.registered.is_some());
+        drop(first);
+        let second = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        second.block_on(std::future::poll_fn(|cx| {
+            assert_eq!(feed.poll_notice(cx), Poll::Ready(Notice::Loss));
+            assert!(feed.registered.is_none());
+            assert!(feed.poll_notice(cx).is_pending());
+            Poll::Ready(())
+        }));
+        assert!(feed.registered.is_some());
+        assert_eq!(attempts.load(Ordering::SeqCst), 1);
     }
 }

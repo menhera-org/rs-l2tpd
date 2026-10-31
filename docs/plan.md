@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 94.50% lines /
-83.87% branches: 469 missing lines and 292 missing branches, with no
+approved production-code scope, the latest merged report is 94.72% lines /
+84.20% branches: 450 missing lines and 286 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner has passing records and the later H11 failure described below.
@@ -646,6 +646,13 @@ peerless target conversion is removed. Common checks, ten seeds and fresh
 GNU/Incus/root-systemd profiles pass; `audit/phase6/io-faults-20261031/` retains
 the failed fixtures and final collection. A required matrix is running in an
 isolated checkout of that source; it has no final result yet.
+
+Monitor registration/receive errors, reactor shutdown and lifetime-reader
+failure now have socket-backed assertions. The forking fault fixtures run
+serially and pass three GNU and three musl repetitions. ARM64, RISC-V64 and
+PowerPC64LE all-target test builds pass after fixing syscall assumptions.
+Common checks, ten seeds and compatible GNU profiles pass; the repository
+record is `audit/phase6/monitor-faults-20261031/`. No shipping logic changes.
 
 ### Phase 7 — release
 

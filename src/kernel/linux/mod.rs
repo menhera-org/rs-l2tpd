@@ -11,6 +11,12 @@ mod request;
 mod rtnl;
 mod socket;
 
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[allow(unsafe_code)]
+#[path = "../../../tests/tools/syscall_fault.rs"]
+mod syscall_fault;
+
 use std::collections::HashMap;
 use std::io;
 use std::net::IpAddr;

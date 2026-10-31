@@ -13,7 +13,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
-| P4 coverage | Approved production scope: fresh merged GNU report 94.50% lines / 83.87% branches after I/O fault cases; no production exclusions or saturated inferred counts | 469 missing lines / 292 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: merged GNU report 94.72% lines / 84.20% branches after monitor fault cases; production mappings match across test-only corrections, with no exclusions or saturated counts | 450 missing lines / 286 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -891,3 +891,17 @@ with no production exclusions or saturated regions. Both preceding fake-handle
 CI jobs pass in run `41242867879`. A required matrix is running in an isolated
 snapshot of this source; its driver result remains pending. H11/P5 and the
 other global proof obligations remain open.
+
+## Monitor faults and cross-target fixtures
+
+[The monitor record](phase6/monitor-faults-20261031/README.md) adds socket-backed
+open/registration/receive refusals, overflow, reactor shutdown and lifetime
+loss assertions. Forking fault declarations run only in the serial live
+runner. Three final GNU and three musl repetitions pass. ARM64 initially
+exposed legacy syscall assumptions; all-target test builds now pass on
+ARM64, RISC-V64 and PowerPC64LE musl. Common checks, ten final seeds and GNU
+profiles pass. Production coverage mappings match across the test-only
+corrections; totals are 94.72% lines / 84.20% branches, with 450 lines and
+286 branches missing and zero saturated regions. The earlier production
+source passes both CI jobs in run `41245243701`. P5 and the other global
+proof obligations remain open.

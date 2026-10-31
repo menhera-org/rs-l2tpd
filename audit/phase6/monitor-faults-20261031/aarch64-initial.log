@@ -1,0 +1,57 @@
+   Compiling zerocopy v0.8.63
+   Compiling getrandom v0.3.4
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+   Compiling memoffset v0.9.1
+   Compiling nix v0.30.1
+    Checking tokio v1.54.1
+    Checking futures-util v0.3.34
+    Checking thiserror v2.0.21
+    Checking thiserror v1.0.69
+    Checking serde v1.0.229
+    Checking iphost v0.4.3
+    Checking futures-executor v0.3.34
+    Checking netlink-sys v0.9.0
+    Checking futures v0.3.34
+    Checking netlink-proto v0.13.0
+    Checking netlink-packet-generic v0.5.0
+    Checking netlink-packet-route v0.33.0
+    Checking netlink-packet-l2tp v0.4.0
+    Checking genetlink v0.3.0
+    Checking l2tp v0.5.0
+error[E0425]: cannot find value `SYS_poll` in crate `libc`
+   --> src/kernel/linux/lifetime.rs:982:53
+    |
+982 | ...   super::super::syscall_fault::refuse(&[libc::SYS_poll, libc::SYS_r...
+    |                                                   ^^^^^^^^
+    |
+   ::: /home/dev/.cargo/registry/src/index.crates.menhera.org-f259c46fe2d9c39b/libc-0.2.191/src/unix/linux_like/linux/musl/b64/aarch64/mod.rs:374:1
+    |
+374 | pub const SYS_ppoll: c_long = 73;
+    | --------------------------- similarly named constant `SYS_ppoll` defined here
+    |
+help: a constant with a similar name exists
+    |
+982 |         super::super::syscall_fault::refuse(&[libc::SYS_ppoll, libc::SYS_recvfrom], libc::EIO);
+    |                                                          +
+
+error[E0425]: cannot find value `SYS_dup2` in crate `libc`
+   --> src/bin/rs-l2tpd/main.rs:310:62
+    |
+310 | ...   crate::syscall_fault::refuse(&[libc::SYS_dup2], libc::EIO);
+    |                                            ^^^^^^^^
+    |
+   ::: /home/dev/.cargo/registry/src/index.crates.menhera.org-f259c46fe2d9c39b/libc-0.2.191/src/unix/linux_like/linux/musl/b64/aarch64/mod.rs:324:1
+    |
+324 | pub const SYS_dup: c_long = 23;
+    | ------------------------- similarly named constant `SYS_dup` defined here
+    |
+help: a constant with a similar name exists
+    |
+310 -                         crate::syscall_fault::refuse(&[libc::SYS_dup2], libc::EIO);
+310 +                         crate::syscall_fault::refuse(&[libc::SYS_dup], libc::EIO);
+    |
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `rs-l2tpd` (bin "rs-l2tpd" test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `rs-l2tpd` (lib test) due to 1 previous error

@@ -954,4 +954,58 @@ mod tests {
         assert_eq!(state.generation, 1);
         assert!(state.tracked.is_empty() && state.lookups.is_empty());
     }
+
+    // kernel: (K29, K36) recv failure ends the generation; a failed socket reopen cannot recover proofs.
+    /// spec: A13, E20, E21, M18
+    #[test]
+    #[ignore = "serial isolated live runner; child forks must not inherit concurrent fake descriptors"]
+    fn reader_io_errors_end_old_proofs_and_failed_reopen_remains_stoppable() {
+        const CHILD: &str = "PHASE6_LIFETIME_READER_FAULT";
+        if std::env::var_os(CHILD).is_none() {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--ignored", "--exact", "kernel::linux::lifetime::tests::reader_io_errors_end_old_proofs_and_failed_reopen_remains_stoppable", "--nocapture", "--test-threads=1"])
+                .env(CHILD, "1").output().unwrap();
+            assert!(output.status.success(), "{output:?}");
+            assert!(
+                String::from_utf8_lossy(&output.stdout).contains("LIFETIME_READER_FAULT_CHECKED")
+            );
+            return;
+        }
+        log::set_max_level(log::LevelFilter::Warn);
+        let mut initial = state();
+        initial.socket = Some(Arc::new(open().unwrap()));
+        initial.tracked.insert((1, 1), false);
+        let shared = Arc::new(Shared {
+            state: Mutex::new(initial),
+            changed: Condvar::new(),
+        });
+        let receive_syscalls = &[
+            #[cfg(target_arch = "x86_64")]
+            libc::SYS_poll,
+            libc::SYS_ppoll,
+            libc::SYS_recvfrom,
+        ];
+        super::super::syscall_fault::refuse(receive_syscalls, libc::EIO);
+        super::super::syscall_fault::refuse(&[libc::SYS_socket], libc::EMFILE);
+        let reader = shared.clone();
+        let lifetime = Lifetime {
+            shared,
+            thread: Some(std::thread::spawn(move || read(reader))),
+        };
+        let deadline = Instant::now() + std::time::Duration::from_secs(3);
+        let mut state = lifetime.shared.lock();
+        while state.generation == 0 {
+            let (next, waited) = lifetime.shared.wait_until(state, deadline);
+            state = next;
+            assert!(waited, "reader did not report loss");
+        }
+        assert_eq!(state.generation, 1);
+        assert!(state.socket.is_none() && state.tracked.is_empty() && state.lookups.is_empty());
+        drop(state);
+        assert_eq!(lifetime.prove(&Registration::new(1, 0, 1)), Proof::Lost);
+        let stopping = Instant::now();
+        drop(lifetime);
+        assert!(stopping.elapsed() < std::time::Duration::from_secs(3));
+        println!("LIFETIME_READER_FAULT_CHECKED");
+    }
 }

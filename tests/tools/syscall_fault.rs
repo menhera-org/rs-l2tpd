@@ -2,6 +2,33 @@ use nix::libc;
 
 #[allow(
     dead_code,
+    reason = "shared helper; not every test binary denies duplication"
+)]
+pub(crate) fn refuse_dup2(errno: i32) {
+    let syscalls = &[
+        #[cfg(any(
+            target_arch = "arm",
+            target_arch = "x86",
+            target_arch = "x86_64",
+            target_arch = "powerpc",
+            target_arch = "powerpc64",
+            target_arch = "s390x",
+            target_arch = "sparc",
+            target_arch = "sparc64",
+            target_arch = "mips",
+            target_arch = "mips64",
+            target_arch = "mips32r6",
+            target_arch = "mips64r6",
+            target_arch = "m68k"
+        ))]
+        libc::SYS_dup2,
+        libc::SYS_dup3,
+    ];
+    refuse(syscalls, errno);
+}
+
+#[allow(
+    dead_code,
     reason = "shared helper; not every test binary denies file opens"
 )]
 pub(crate) fn refuse_open(errno: i32) {
