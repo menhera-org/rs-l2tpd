@@ -1,0 +1,268 @@
+diff --git a/src/kernel/linux/lifetime.rs b/src/kernel/linux/lifetime.rs
+index dcae3d2..b98939e 100644
+--- a/src/kernel/linux/lifetime.rs
++++ b/src/kernel/linux/lifetime.rs
+@@ -464,6 +464,115 @@ mod tests {
+         }
+     }
+ 
++    // kernel: (K29, K30, K42) net/core/rtnetlink.c rtnl_getlink; seq/port identify replies.
++    /// spec: E21, E22, S9, M18
++    #[test]
++    fn only_the_requested_kernel_reply_can_resolve_a_lookup() {
++        let mut state = state();
++        let seq = 7u32;
++        let mut found = link(libc::RTM_NEWLINK, 0, 8, b"owned");
++        found[8..12].copy_from_slice(&seq.to_ne_bytes());
++        state.lookups.insert(seq, Answer::Pending);
++        state.receive(&found, &SocketAddr::new(99, 0));
++        assert!(matches!(state.lookups[&seq], Answer::Pending));
++        found[8..12].copy_from_slice(&(seq + 1).to_ne_bytes());
++        state.receive(&found, &SocketAddr::new(0, 0));
++        assert!(matches!(state.lookups[&seq], Answer::Pending));
++        found[8..12].copy_from_slice(&seq.to_ne_bytes());
++        state.receive(&found, &SocketAddr::new(0, 0));
++        assert!(matches!(state.lookups[&seq], Answer::Found));
++        for (kind, code, absent) in [
++            (NLMSG_ERROR, -libc::ENODEV, true),
++            (NLMSG_ERROR, -libc::EINVAL, false),
++            (netlink_packet_core::NLMSG_DONE, 0, false),
++        ] {
++            let mut reply = 20u32.to_ne_bytes().to_vec();
++            reply.extend_from_slice(&kind.to_ne_bytes());
++            reply.extend_from_slice(&0u16.to_ne_bytes());
++            reply.extend_from_slice(&seq.to_ne_bytes());
++            reply.extend_from_slice(&0u32.to_ne_bytes());
++            reply.extend_from_slice(&code.to_ne_bytes());
++            state.receive(&reply, &SocketAddr::new(0, 0));
++            assert_eq!(matches!(state.lookups[&seq], Answer::Absent), absent);
++            assert_eq!(matches!(state.lookups[&seq], Answer::Failed), !absent);
++        }
++        let generation = state.generation;
++        state.receive(&[0], &SocketAddr::new(99, 0));
++        assert_eq!(state.generation, generation);
++        state.receive(&[0], &SocketAddr::new(0, 0));
++        assert_eq!(state.generation, generation + 1);
++        assert!(state.lookups.is_empty());
++    }
++
++    // kernel: (K20, K29, K36) registration captures cannot survive a lost generation.
++    /// spec: S8, S9, S19, E20, M18
++    #[test]
++    fn unavailable_duplicate_and_expired_captures_never_create_proofs() {
++        let lifetime = Lifetime {
++            shared: Arc::new(Shared {
++                state: Mutex::new(state()),
++                changed: Condvar::new(),
++            }),
++            thread: None,
++        };
++        let name = L2tpIfName::new(b"owned").unwrap();
++        assert_eq!(
++            lifetime.arm(&name).unwrap_err().raw_os_error(),
++            Some(libc::ENOBUFS)
++        );
++        lifetime.shared.lock().socket = Some(Arc::new(open().unwrap()));
++        let generation = lifetime.arm(&name).unwrap();
++        assert_eq!(
++            lifetime.arm(&name).unwrap_err().raw_os_error(),
++            Some(libc::EEXIST)
++        );
++        assert_eq!(
++            lifetime
++                .capture(&name, generation, Instant::now())
++                .unwrap_err()
++                .raw_os_error(),
++            Some(libc::ETIMEDOUT)
++        );
++        assert!(lifetime.shared.lock().captures.is_empty());
++        let registration = Registration::new(8, generation, 1);
++        assert_eq!(lifetime.prove(&registration), Proof::Lost);
++        {
++            let mut state = lifetime.shared.lock();
++            state.tracked.insert((8, 1), false);
++            state.socket = None;
++        }
++        assert_eq!(lifetime.prove(&registration), Proof::Lost);
++        lifetime.shared.lock().tracked.insert((8, 1), true);
++        assert_eq!(lifetime.prove(&registration), Proof::Removed);
++        lifetime.shared.lock().end_generation();
++        assert_eq!(
++            lifetime
++                .capture(&name, generation, Instant::now())
++                .unwrap_err()
++                .raw_os_error(),
++            Some(libc::ETIMEDOUT)
++        );
++        assert_eq!(lifetime.prove(&registration), Proof::Lost);
++        let next = lifetime.arm(&name).unwrap();
++        {
++            let mut state = lifetime.shared.lock();
++            state.receive(
++                &link(libc::RTM_NEWLINK, 0, 8, b"owned"),
++                &SocketAddr::new(0, libc::RTNLGRP_LINK),
++            );
++            assert_eq!(state.tracked.len(), 1);
++        }
++        lifetime.disarm(&name);
++        assert!(lifetime.shared.lock().tracked.is_empty());
++        assert_eq!(
++            lifetime
++                .capture(&name, next, Instant::now())
++                .unwrap_err()
++                .raw_os_error(),
++            Some(libc::ETIMEDOUT)
++        );
++    }
++
+     // kernel: net/core/dev.c unregister_netdevice broadcasts RTM_DELLINK (K29)
+     /// spec: G12, M16
+     #[test]
+diff --git a/src/runtime/tests.rs b/src/runtime/tests.rs
+index a48323e..63f5565 100644
+--- a/src/runtime/tests.rs
++++ b/src/runtime/tests.rs
+@@ -206,6 +206,45 @@ fn queue_full_waiter_and_shutdown_precedence() {
+     });
+ }
+ 
++/// spec: L6, L9, L13, A6, A13
++#[test]
++fn dropping_the_owner_releases_a_waiter_and_rejects_later_completions() {
++    let engine = engine();
++    let control = engine.block_on(async {
++        let r = runtime();
++        let control = r.control();
++        for _ in 0..QUEUE_CAPACITY {
++            control.send(ControlEvent::Tick).await.unwrap();
++        }
++        assert!(control.reload().is_err());
++        assert!(control.restart().is_err());
++        {
++            let mut waiting = pin!(control.reload_wait());
++            assert!(
++                waiting
++                    .as_mut()
++                    .poll(&mut Context::from_waker(Waker::noop()))
++                    .is_pending()
++            );
++            drop(r);
++            assert!(waiting.await.is_err());
++        }
++        control
++    });
++    assert!(control.reload().is_err());
++    assert!(control.restart().is_err());
++    assert!(control.tunable_written_blocking(1, true).is_err());
++    assert!(control.socket_forgotten_blocking(1, true).is_err());
++    engine.block_on(async {
++        assert!(control.reload_wait().await.is_err());
++        assert!(control.tunable_written(1, true).await.is_err());
++        assert!(control.socket_forgotten(1, true).await.is_err());
++    });
++    control.shutdown();
++    control.shutdown();
++    assert_eq!(control.config(), Config::new());
++}
++
+ /// spec: L9, L10, A6
+ #[test]
+ fn subscription_loss_survives_a_full_queue_and_a_second_loss() {
+diff --git a/tests/kernel/conformance.rs b/tests/kernel/conformance.rs
+index 31ae7e9..f284041 100644
+--- a/tests/kernel/conformance.rs
++++ b/tests/kernel/conformance.rs
+@@ -320,6 +320,7 @@ pub fn connect_selects_the_source_of_the_device(f: &mut dyn Fixture) {
+     f.k().register_tunnel(socket, 9181, 9181).unwrap();
+     f.k().bind_index(socket, device).unwrap();
+     let v4 = Peer::new("192.0.2.2".parse().unwrap(), None);
++    eprintln!("connect peer={} zone={:?}", v4.addr(), v4.zone());
+     let source = f.k().connect(socket, &v4).unwrap();
+     assert_eq!(
+         source.to_canonical(),
+@@ -372,12 +373,18 @@ pub fn a_link_local_zone_must_match_the_binding(f: &mut dyn Fixture) {
+     let socket = f.k().create_socket(Family::V6, 9201, 9201).unwrap();
+     f.k().bind_index(socket, vrf).unwrap();
+     let peer = |zone: &str| Peer::new("fe80::91:2".parse().unwrap(), Some(name(zone)));
++    let member_peer = peer("conf-llm");
++    eprintln!(
++        "connect peer={} zone={:?}",
++        member_peer.addr(),
++        member_peer.zone()
++    );
+     assert_eq!(
+         errno(f.k().connect(socket, &peer("conf-llo"))),
+         nix::libc::EINVAL
+     );
+     assert_eq!(
+-        f.k().connect(socket, &peer("conf-llm")).unwrap(),
++        f.k().connect(socket, &member_peer).unwrap(),
+         "fe80::91:1".parse::<IpAddr>().unwrap()
+     );
+     f.k().close(socket);
+diff --git a/tests/kernel/fake.rs b/tests/kernel/fake.rs
+index b31b7de..c354436 100644
+--- a/tests/kernel/fake.rs
++++ b/tests/kernel/fake.rs
+@@ -62,8 +62,21 @@ impl Fixture for FakeFixture {
+ /// spec: K16, K17, K18, K19, K20, K22, K24, K26, K27, K28, K31, K34, K35, K37, K41, S9, S19, S28, E5, T7, O5
+ #[test]
+ fn conformance_on_the_fake_kernel() {
+-    for (case, run) in conformance::CASES {
+-        eprintln!("case {case}");
+-        run(&mut FakeFixture(FakeKernel::new(7)));
++    for (net_raw, asynchronous) in [(false, false), (false, true), (true, false), (true, true)] {
++        for (case, run) in conformance::CASES {
++            let mut kernel = FakeKernel::new(7);
++            kernel.set_net_raw(net_raw);
++            kernel.set_async_session_delete(asynchronous);
++            eprintln!(
++                "case {case}: inet6={} bindv6only={} only_v6_error={:?} net_raw={} async_delete={} tunnel_delete_delay={:?}",
++                kernel.inet6(),
++                kernel.bindv6only(),
++                kernel.only_v6_error(),
++                kernel.net_raw(),
++                kernel.async_session_delete(),
++                kernel.tunnel_delete_delay(),
++            );
++            run(&mut FakeFixture(kernel));
++        }
+     }
+ }
+diff --git a/tests/service.rs b/tests/service.rs
+index 89d15a2..4d2c48b 100644
+--- a/tests/service.rs
++++ b/tests/service.rs
+@@ -536,6 +536,32 @@ fn tokio_service_run_converges_without_explicit_converge() {
+     });
+ }
+ 
++/// spec: L5, L6, L7, G14
++#[test]
++fn completed_tokio_service_rejects_reuse_and_host_capacity_changes() {
++    engine().block_on(async {
++        let runtime = Runtime::with_kernel(Host::new(), Box::new(NoDns), vec![])
++            .map_err(|(e, _)| e)
++            .unwrap();
++        let mut service = service::Service::with_runtime(Config::new(), runtime)
++            .map_err(|(e, _)| e)
++            .unwrap();
++        assert!(service.converge().await.unwrap().is_empty());
++        let control = service.control();
++        control.shutdown();
++        service.run(Ok, |_| Ok(())).await.unwrap();
++        assert_eq!(
++            service.run(Ok, |_| Ok(())).await.unwrap_err().to_string(),
++            "run already completed"
++        );
++        assert!(service.set_store_capacity(1).await.is_err());
++        assert!(service.converge().await.unwrap().is_empty());
++        assert!(service.take_requests().is_some());
++        assert!(service.take_requests().is_none());
++        assert_eq!(control.config(), Config::new());
++    });
++}
++
+ /// spec: L6, L8
+ #[test]
+ fn run_after_shutdown_reports_the_completed_cleanup() {

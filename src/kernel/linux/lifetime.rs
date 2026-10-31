@@ -464,6 +464,115 @@ mod tests {
         }
     }
 
+    // kernel: (K29, K30, K42) net/core/rtnetlink.c rtnl_getlink; seq/port identify replies.
+    /// spec: E21, E22, S9, M18
+    #[test]
+    fn only_the_requested_kernel_reply_can_resolve_a_lookup() {
+        let mut state = state();
+        let seq = 7u32;
+        let mut found = link(libc::RTM_NEWLINK, 0, 8, b"owned");
+        found[8..12].copy_from_slice(&seq.to_ne_bytes());
+        state.lookups.insert(seq, Answer::Pending);
+        state.receive(&found, &SocketAddr::new(99, 0));
+        assert!(matches!(state.lookups[&seq], Answer::Pending));
+        found[8..12].copy_from_slice(&(seq + 1).to_ne_bytes());
+        state.receive(&found, &SocketAddr::new(0, 0));
+        assert!(matches!(state.lookups[&seq], Answer::Pending));
+        found[8..12].copy_from_slice(&seq.to_ne_bytes());
+        state.receive(&found, &SocketAddr::new(0, 0));
+        assert!(matches!(state.lookups[&seq], Answer::Found));
+        for (kind, code, absent) in [
+            (NLMSG_ERROR, -libc::ENODEV, true),
+            (NLMSG_ERROR, -libc::EINVAL, false),
+            (netlink_packet_core::NLMSG_DONE, 0, false),
+        ] {
+            let mut reply = 20u32.to_ne_bytes().to_vec();
+            reply.extend_from_slice(&kind.to_ne_bytes());
+            reply.extend_from_slice(&0u16.to_ne_bytes());
+            reply.extend_from_slice(&seq.to_ne_bytes());
+            reply.extend_from_slice(&0u32.to_ne_bytes());
+            reply.extend_from_slice(&code.to_ne_bytes());
+            state.receive(&reply, &SocketAddr::new(0, 0));
+            assert_eq!(matches!(state.lookups[&seq], Answer::Absent), absent);
+            assert_eq!(matches!(state.lookups[&seq], Answer::Failed), !absent);
+        }
+        let generation = state.generation;
+        state.receive(&[0], &SocketAddr::new(99, 0));
+        assert_eq!(state.generation, generation);
+        state.receive(&[0], &SocketAddr::new(0, 0));
+        assert_eq!(state.generation, generation + 1);
+        assert!(state.lookups.is_empty());
+    }
+
+    // kernel: (K20, K29, K36) registration captures cannot survive a lost generation.
+    /// spec: S8, S9, S19, E20, M18
+    #[test]
+    fn unavailable_duplicate_and_expired_captures_never_create_proofs() {
+        let lifetime = Lifetime {
+            shared: Arc::new(Shared {
+                state: Mutex::new(state()),
+                changed: Condvar::new(),
+            }),
+            thread: None,
+        };
+        let name = L2tpIfName::new(b"owned").unwrap();
+        assert_eq!(
+            lifetime.arm(&name).unwrap_err().raw_os_error(),
+            Some(libc::ENOBUFS)
+        );
+        lifetime.shared.lock().socket = Some(Arc::new(open().unwrap()));
+        let generation = lifetime.arm(&name).unwrap();
+        assert_eq!(
+            lifetime.arm(&name).unwrap_err().raw_os_error(),
+            Some(libc::EEXIST)
+        );
+        assert_eq!(
+            lifetime
+                .capture(&name, generation, Instant::now())
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::ETIMEDOUT)
+        );
+        assert!(lifetime.shared.lock().captures.is_empty());
+        let registration = Registration::new(8, generation, 1);
+        assert_eq!(lifetime.prove(&registration), Proof::Lost);
+        {
+            let mut state = lifetime.shared.lock();
+            state.tracked.insert((8, 1), false);
+            state.socket = None;
+        }
+        assert_eq!(lifetime.prove(&registration), Proof::Lost);
+        lifetime.shared.lock().tracked.insert((8, 1), true);
+        assert_eq!(lifetime.prove(&registration), Proof::Removed);
+        lifetime.shared.lock().end_generation();
+        assert_eq!(
+            lifetime
+                .capture(&name, generation, Instant::now())
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::ETIMEDOUT)
+        );
+        assert_eq!(lifetime.prove(&registration), Proof::Lost);
+        let next = lifetime.arm(&name).unwrap();
+        {
+            let mut state = lifetime.shared.lock();
+            state.receive(
+                &link(libc::RTM_NEWLINK, 0, 8, b"owned"),
+                &SocketAddr::new(0, libc::RTNLGRP_LINK),
+            );
+            assert_eq!(state.tracked.len(), 1);
+        }
+        lifetime.disarm(&name);
+        assert!(lifetime.shared.lock().tracked.is_empty());
+        assert_eq!(
+            lifetime
+                .capture(&name, next, Instant::now())
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::ETIMEDOUT)
+        );
+    }
+
     // kernel: net/core/dev.c unregister_netdevice broadcasts RTM_DELLINK (K29)
     /// spec: G12, M16
     #[test]

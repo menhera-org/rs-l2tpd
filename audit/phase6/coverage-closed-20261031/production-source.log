@@ -1,0 +1,2 @@
+src/runtime/tests.rs belongs entirely to the excluded runtime test module.
+lifetime.rs: production prefix unchanged; additions inside its existing coverage(off) test module.

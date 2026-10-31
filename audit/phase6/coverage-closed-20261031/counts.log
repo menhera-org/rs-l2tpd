@@ -1,0 +1,13 @@
+{
+  "lines": {
+    "count": 8377,
+    "covered": 7767,
+    "percent": 92.71815685806376
+  },
+  "branches": {
+    "count": 1758,
+    "covered": 1407,
+    "notcovered": 351,
+    "percent": 80.03412969283276
+  }
+}

@@ -536,6 +536,32 @@ fn tokio_service_run_converges_without_explicit_converge() {
     });
 }
 
+/// spec: L5, L6, L7, G14
+#[test]
+fn completed_tokio_service_rejects_reuse_and_host_capacity_changes() {
+    engine().block_on(async {
+        let runtime = Runtime::with_kernel(Host::new(), Box::new(NoDns), vec![])
+            .map_err(|(e, _)| e)
+            .unwrap();
+        let mut service = service::Service::with_runtime(Config::new(), runtime)
+            .map_err(|(e, _)| e)
+            .unwrap();
+        assert!(service.converge().await.unwrap().is_empty());
+        let control = service.control();
+        control.shutdown();
+        service.run(Ok, |_| Ok(())).await.unwrap();
+        assert_eq!(
+            service.run(Ok, |_| Ok(())).await.unwrap_err().to_string(),
+            "run already completed"
+        );
+        assert!(service.set_store_capacity(1).await.is_err());
+        assert!(service.converge().await.unwrap().is_empty());
+        assert!(service.take_requests().is_some());
+        assert!(service.take_requests().is_none());
+        assert_eq!(control.config(), Config::new());
+    });
+}
+
 /// spec: L6, L8
 #[test]
 fn run_after_shutdown_reports_the_completed_cleanup() {

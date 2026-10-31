@@ -320,6 +320,7 @@ pub fn connect_selects_the_source_of_the_device(f: &mut dyn Fixture) {
     f.k().register_tunnel(socket, 9181, 9181).unwrap();
     f.k().bind_index(socket, device).unwrap();
     let v4 = Peer::new("192.0.2.2".parse().unwrap(), None);
+    eprintln!("connect peer={} zone={:?}", v4.addr(), v4.zone());
     let source = f.k().connect(socket, &v4).unwrap();
     assert_eq!(
         source.to_canonical(),
@@ -372,12 +373,18 @@ pub fn a_link_local_zone_must_match_the_binding(f: &mut dyn Fixture) {
     let socket = f.k().create_socket(Family::V6, 9201, 9201).unwrap();
     f.k().bind_index(socket, vrf).unwrap();
     let peer = |zone: &str| Peer::new("fe80::91:2".parse().unwrap(), Some(name(zone)));
+    let member_peer = peer("conf-llm");
+    eprintln!(
+        "connect peer={} zone={:?}",
+        member_peer.addr(),
+        member_peer.zone()
+    );
     assert_eq!(
         errno(f.k().connect(socket, &peer("conf-llo"))),
         nix::libc::EINVAL
     );
     assert_eq!(
-        f.k().connect(socket, &peer("conf-llm")).unwrap(),
+        f.k().connect(socket, &member_peer).unwrap(),
         "fe80::91:1".parse::<IpAddr>().unwrap()
     );
     f.k().close(socket);

@@ -206,6 +206,45 @@ fn queue_full_waiter_and_shutdown_precedence() {
     });
 }
 
+/// spec: L6, L9, L13, A6, A13
+#[test]
+fn dropping_the_owner_releases_a_waiter_and_rejects_later_completions() {
+    let engine = engine();
+    let control = engine.block_on(async {
+        let r = runtime();
+        let control = r.control();
+        for _ in 0..QUEUE_CAPACITY {
+            control.send(ControlEvent::Tick).await.unwrap();
+        }
+        assert!(control.reload().is_err());
+        assert!(control.restart().is_err());
+        {
+            let mut waiting = pin!(control.reload_wait());
+            assert!(
+                waiting
+                    .as_mut()
+                    .poll(&mut Context::from_waker(Waker::noop()))
+                    .is_pending()
+            );
+            drop(r);
+            assert!(waiting.await.is_err());
+        }
+        control
+    });
+    assert!(control.reload().is_err());
+    assert!(control.restart().is_err());
+    assert!(control.tunable_written_blocking(1, true).is_err());
+    assert!(control.socket_forgotten_blocking(1, true).is_err());
+    engine.block_on(async {
+        assert!(control.reload_wait().await.is_err());
+        assert!(control.tunable_written(1, true).await.is_err());
+        assert!(control.socket_forgotten(1, true).await.is_err());
+    });
+    control.shutdown();
+    control.shutdown();
+    assert_eq!(control.config(), Config::new());
+}
+
 /// spec: L9, L10, A6
 #[test]
 fn subscription_loss_survives_a_full_queue_and_a_second_loss() {

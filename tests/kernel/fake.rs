@@ -62,8 +62,21 @@ impl Fixture for FakeFixture {
 /// spec: K16, K17, K18, K19, K20, K22, K24, K26, K27, K28, K31, K34, K35, K37, K41, S9, S19, S28, E5, T7, O5
 #[test]
 fn conformance_on_the_fake_kernel() {
-    for (case, run) in conformance::CASES {
-        eprintln!("case {case}");
-        run(&mut FakeFixture(FakeKernel::new(7)));
+    for (net_raw, asynchronous) in [(false, false), (false, true), (true, false), (true, true)] {
+        for (case, run) in conformance::CASES {
+            let mut kernel = FakeKernel::new(7);
+            kernel.set_net_raw(net_raw);
+            kernel.set_async_session_delete(asynchronous);
+            eprintln!(
+                "case {case}: inet6={} bindv6only={} only_v6_error={:?} net_raw={} async_delete={} tunnel_delete_delay={:?}",
+                kernel.inet6(),
+                kernel.bindv6only(),
+                kernel.only_v6_error(),
+                kernel.net_raw(),
+                kernel.async_session_delete(),
+                kernel.tunnel_delete_delay(),
+            );
+            run(&mut FakeFixture(kernel));
+        }
     }
 }
