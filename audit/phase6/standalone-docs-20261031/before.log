@@ -1,0 +1,43 @@
+docs/dependencies.md: outside docs: .github/workflows/codeql.yml
+docs/dependencies.md: outside docs: .github/codeql-config.yml
+docs/dependencies.md: outside docs: .github/workflows/ci.yml
+docs/kernel-behavior.md: outside docs: audit/phase6/matrix-20261031T133318Z-3943822/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/vanilla7014-refresh-20261031/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/kernel-contract-20261031/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/kernel-behavior-20261031/config-features.log
+docs/kernel-behavior.md: outside docs: audit/phase6/matrix-20261031T133318Z-3943822/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/incus-20261031T134611Z-3957335/scenario.log
+docs/kernel-behavior.md: outside docs: audit/phase6/root-systemd-current-20261031/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/kernel-behavior-20261031/source-comparison.log
+docs/kernel-behavior.md: outside docs: audit/phase6/P5_VERIFICATION_2026-10-30.md
+docs/kernel-behavior.md: outside docs: audit/phase6/boot-memory-20261031/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/matrix-20261031T071523Z-3533819/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/matrix-20261031T071523Z-3533819/noble/run.log
+docs/kernel-behavior.md: outside docs: audit/phase6/matrix-20261031T071523Z-3533819/vanilla-6.8.12/run.log
+docs/kernel-behavior.md: outside docs: audit/phase6/matrix-20261031T071523Z-3533819/resolute/run.log
+docs/kernel-behavior.md: outside docs: audit/phase6/matrix-20261031T071523Z-3533819/vanilla-7.0.14/run.log
+docs/kernel-behavior.md: outside docs: audit/phase6/matrix-20261031T071523Z-3533819/vanilla-7.3/run.log
+docs/kernel-behavior.md: outside docs: audit/phase6/P3_MATRIX_DRIVER_2026-10-31.md
+docs/kernel-behavior.md: outside docs: audit/phase6/H15-20261031/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/qemu-clock-noble-20261031/run.log
+docs/kernel-behavior.md: outside docs: audit/phase6/qemu-clock-vanilla6812-20261031/run.log
+docs/kernel-behavior.md: outside docs: audit/phase6/qemu-clock-resolute-20261031/run.log
+docs/kernel-behavior.md: outside docs: audit/phase6/qemu-clock-vanilla7014-20261031/run.log
+docs/kernel-behavior.md: outside docs: audit/phase6/H16-20261031/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/H16-20261031/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/event-cache-20261031/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/R6-R9-20261031/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/library-requirements-20261031/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/operator-requirements-20261031/README.md
+docs/kernel-behavior.md: outside docs: audit/phase6/host-requirements-20261031/README.md
+docs/phase6.md: outside docs: audit/phase6/strict-gates-20261031/README.md
+docs/phase6.md: outside docs: audit/phase6/boot-memory-20261031/README.md
+docs/testing.md: outside docs: audit/phase6/strict-gates-20261031/README.md
+docs/testing.md: outside docs: audit/phase6/host-requirements-20261031/README.md
+files=27 local_file_links=849 outside=36
+
+thread 'main' (238730) panicked at /home/dev/rs-l2tpd/audit/phase6/standalone-docs-20261031/check.rs:91:5:
+assertion `left == right` failed: docs must stand alone
+  left: 36
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

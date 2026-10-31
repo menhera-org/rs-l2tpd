@@ -1,0 +1,36 @@
+docs/phase6.md:145: retained qualification -> audit/phase6/strict-gates-20261031/README.md
+docs/phase6.md:241: the controlled boot evidence -> audit/phase6/boot-memory-20261031/README.md
+docs/testing.md:181: initial CI qualification -> audit/phase6/strict-gates-20261031/README.md
+docs/testing.md:243: host-requirement record -> audit/phase6/host-requirements-20261031/README.md
+docs/kernel-behavior.md:13: Current results and source identity -> audit/phase6/matrix-20261031T133318Z-3943822/README.md
+docs/kernel-behavior.md:14: Vanilla 7.0.14 correction and rerun -> audit/phase6/vanilla7014-refresh-20261031/README.md
+docs/kernel-behavior.md:35: Source comparison and original failure -> audit/phase6/kernel-contract-20261031/README.md
+docs/kernel-behavior.md:50: Exact config flags and digests -> audit/phase6/kernel-behavior-20261031/config-features.log
+docs/kernel-behavior.md:114: current matrix -> audit/phase6/matrix-20261031T133318Z-3943822/README.md
+docs/kernel-behavior.md:115: Incus/H11 -> audit/phase6/incus-20261031T134611Z-3957335/scenario.log
+docs/kernel-behavior.md:116: root-systemd -> audit/phase6/root-systemd-current-20261031/README.md
+docs/kernel-behavior.md:134: Versioned source URLs, hashes and excerpts -> audit/phase6/kernel-behavior-20261031/source-comparison.log
+docs/kernel-behavior.md:223: executed Incus evidence -> audit/phase6/P5_VERIFICATION_2026-10-30.md
+docs/kernel-behavior.md:253: Source, commands, failed boots and controls -> audit/phase6/boot-memory-20261031/README.md
+docs/kernel-behavior.md:265: matrix-20261031T071523Z-3533819 -> audit/phase6/matrix-20261031T071523Z-3533819/README.md
+docs/kernel-behavior.md:269: run -> audit/phase6/matrix-20261031T071523Z-3533819/noble/run.log
+docs/kernel-behavior.md:270: run -> audit/phase6/matrix-20261031T071523Z-3533819/vanilla-6.8.12/run.log
+docs/kernel-behavior.md:271: run -> audit/phase6/matrix-20261031T071523Z-3533819/resolute/run.log
+docs/kernel-behavior.md:272: run -> audit/phase6/matrix-20261031T071523Z-3533819/vanilla-7.0.14/run.log
+docs/kernel-behavior.md:273: run -> audit/phase6/matrix-20261031T071523Z-3533819/vanilla-7.3/run.log
+docs/kernel-behavior.md:286: the P3 history -> audit/phase6/P3_MATRIX_DRIVER_2026-10-31.md
+docs/kernel-behavior.md:298: H15 degradation cases -> audit/phase6/H15-20261031/README.md
+docs/kernel-behavior.md:311: Pass -> audit/phase6/qemu-clock-noble-20261031/run.log
+docs/kernel-behavior.md:312: Pass -> audit/phase6/qemu-clock-vanilla6812-20261031/run.log
+docs/kernel-behavior.md:313: Pass -> audit/phase6/qemu-clock-resolute-20261031/run.log
+docs/kernel-behavior.md:314: Pass -> audit/phase6/qemu-clock-vanilla7014-20261031/run.log
+docs/kernel-behavior.md:315: Pass, three repetitions -> audit/phase6/H16-20261031/README.md
+docs/kernel-behavior.md:322: Measurements and exact scope -> audit/phase6/H16-20261031/README.md
+docs/kernel-behavior.md:348: event-cache package -> audit/phase6/event-cache-20261031/README.md
+docs/kernel-behavior.md:400: R6/R9 package -> audit/phase6/R6-R9-20261031/README.md
+docs/kernel-behavior.md:421: library requirement package -> audit/phase6/library-requirements-20261031/README.md
+docs/kernel-behavior.md:436: operator requirement follow-up -> audit/phase6/operator-requirements-20261031/README.md
+docs/kernel-behavior.md:446: R45 guest profile -> audit/phase6/host-requirements-20261031/README.md
+docs/dependencies.md:51: the workflow -> .github/workflows/codeql.yml
+docs/dependencies.md:51: the configuration -> .github/codeql-config.yml
+docs/dependencies.md:52: CI -> .github/workflows/ci.yml

@@ -142,7 +142,7 @@ lists the rules that gained tests with their test locations.
 
 On 2026-10-31, [CI run 41205847108](https://github.com/menhera-org/rs-l2tpd/actions/runs/41205847108)
 passed all ten seeded fake/live repetitions on its first attempt. The
-[retained qualification](../audit/phase6/strict-gates-20261031/README.md)
+retained qualification (`audit/phase6/strict-gates-20261031/README.md`)
 identifies the source and each result. Both strict flags are now set in
 the common CI script; regular CI retains one full guest per run. This
 establishes declaration traceability. The updated strict workflow also
@@ -238,7 +238,7 @@ container, and requires the result marker, not QEMU's exit code.
   default, the cold-boot helper adds `kho=off` to prevent its scratch
   reservation from starving initramfs unpacking. This suite never uses
   kernel kexec; daemon execve restart remains tested. See
-  [the controlled boot evidence](../audit/phase6/boot-memory-20261031/README.md)
+  the controlled boot evidence (`audit/phase6/boot-memory-20261031/README.md`)
   and [per-target behavior](kernel-behavior.md).
 - Each required target also boots the separate H16 clock profile: guest
   wall-clock steps and a controller-confirmed QMP pause/resume. Its one-case

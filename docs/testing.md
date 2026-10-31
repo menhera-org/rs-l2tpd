@@ -178,7 +178,7 @@ source-link checks. A green CI run does not establish the coverage or complete k
 gates. Current review probes and exact commands are in repository file
 `tests/kernel/README.md`.
 
-The [initial CI qualification](../audit/phase6/strict-gates-20261031/README.md)
+The initial CI qualification (`audit/phase6/strict-gates-20261031/README.md`)
 passed all ten seeded fake/live repetitions on its first attempt. The
 qualification used one fresh QEMU guest per seed, with at most two jobs
 running at once. Regular CI now runs one full live guest per push or pull
@@ -240,7 +240,7 @@ the VRF driver unloaded and disables guest module autoload, requires a real
 VRF creation refusal, then tests ordinary-device binding and frames over both
 families. It is a scoped profile, separate from the normal suite; it never
 changes the host's modules or autoload policy. See the
-[host-requirement record](../audit/phase6/host-requirements-20261031/README.md).
+host-requirement record (`audit/phase6/host-requirements-20261031/README.md`).
 
 These cases are required by the 2026-10-29 contract corrections.
 Phase 2–3 evidence (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`) identifies

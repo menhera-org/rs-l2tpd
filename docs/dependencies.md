@@ -48,8 +48,8 @@ the logger is thirty lines over `log::Log` (O1), the PID file, signals,
 
 | Tool | For |
 |---|---|
-| `github/codeql-action` v4, pinned by commit in [the workflow](../.github/workflows/codeql.yml) | Rust and Actions security analysis; [the configuration](../.github/codeql-config.yml) retains the extended suite and excludes `rust/cleartext-logging`, which mistakes public tunnel/session identifiers for credentials |
-| `actions/upload-artifact` v4, pinned by commit in [CI](../.github/workflows/ci.yml) | Retains each determinism repetition's fake-suite, kernel-package and guest logs for 14 days, including failed runs |
+| `github/codeql-action` v4, pinned by commit in the workflow (`.github/workflows/codeql.yml`) | Rust and Actions security analysis; the configuration (`.github/codeql-config.yml`) retains the extended suite and excludes `rust/cleartext-logging`, which mistakes public tunnel/session identifiers for credentials |
+| `actions/upload-artifact` v4, pinned by commit in CI (`.github/workflows/ci.yml`) | Retains each determinism repetition's fake-suite, kernel-package and guest logs for 14 days, including failed runs |
 
 ## Removed
 

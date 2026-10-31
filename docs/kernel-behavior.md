@@ -10,8 +10,9 @@ request-count assertion on vanilla 7.0.14. A subsequent targeted run passes
 that kernel's full normal and clock profiles after correcting the fixture's
 shutdown measurement boundary. All five targets pass their H20 and
 300-tunnel scenarios; a final consistent-source matrix is still required.
-[Current results and source identity](../audit/phase6/matrix-20261031T133318Z-3943822/README.md).
-[Vanilla 7.0.14 correction and rerun](../audit/phase6/vanilla7014-refresh-20261031/README.md).
+Repository files `audit/phase6/matrix-20261031T133318Z-3943822/README.md`
+and `audit/phase6/vanilla7014-refresh-20261031/README.md` record exact
+sources, results and the targeted correction.
 
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.
@@ -32,7 +33,8 @@ tunnel disconnected and retry when its dependencies change. The exception
 is the tested empty-VRF/no-source/no-route case; it does not turn every
 source-selection failure into `ENETUNREACH`. No daemon change is needed.
 The shared test records the actual errno and rejects other errors.
-[Source comparison and original failure](../audit/phase6/kernel-contract-20261031/README.md).
+Repository file `audit/phase6/kernel-contract-20261031/README.md` records
+the source comparison and original failure.
 
 For K41, every notification is only a reason to check local state.
 On older kernels an unrelated namespace can use the same identifiers;
@@ -47,8 +49,9 @@ distribution backports require the live check.
 
 All five normal profiles enable IPv6 and network namespaces. The stock
 Ubuntu kernels supply L2TP/VRF as modules; the three vanilla builds
-include them in the image. [Exact config flags and digests](../audit/phase6/kernel-behavior-20261031/config-features.log)
-also show that only the Ubuntu 26.04 profile enables KHO by default.
+include them in the image. Repository file
+`audit/phase6/kernel-behavior-20261031/config-features.log` lists the exact
+flags and digests; only the Ubuntu 26.04 profile enables KHO by default.
 
 ## What is established for each required kernel
 
@@ -111,9 +114,9 @@ they are not a single final run of the current daemon on all targets.
 | Mainline `7.3.0` | 26 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the
-[current matrix](../audit/phase6/matrix-20261031T133318Z-3943822/README.md).
-Current [Incus/H11](../audit/phase6/incus-20261031T134611Z-3957335/scenario.log)
-and [root-systemd](../audit/phase6/root-systemd-current-20261031/README.md)
+current matrix (`audit/phase6/matrix-20261031T133318Z-3943822/README.md`).
+Current Incus/H11 (`audit/phase6/incus-20261031T134611Z-3957335/scenario.log`)
+and root-systemd (`audit/phase6/root-systemd-current-20261031/README.md`)
 results apply to Ubuntu 6.8.0-147 only. The dated packages below retain
 their original scope; the current table supersedes their per-target
 execution summaries.
@@ -131,7 +134,7 @@ these are **source observations**, separate from the live reuse probe:
 | Vanilla `7.0.14` | Queue `session->del_work`; worker unhashes/closes | Identifier-based `l2tp_session_get_next` |
 | Mainline `7.3` | Queue `session->del_work`; worker unhashes/closes | Identifier-based `l2tp_session_get_next` |
 
-[Versioned source URLs, hashes and excerpts](../audit/phase6/kernel-behavior-20261031/source-comparison.log)
+Versioned source URLs, hashes and excerpts (`audit/phase6/kernel-behavior-20261031/source-comparison.log`)
 record the actual distribution implementations rather than assuming a
 backport policy. A zero-retry delete/recreate run cannot establish this
 boundary: a queued worker can finish before the next request. The daemon
@@ -220,7 +223,7 @@ activation, and separately orders persistent assignment while down and
 checks stability across re-creation. It does not promise persistent MAC
 assignment for every manager race or every staged temporary name.
 [Exact manager limitations](spec/hosts.md#other-network-managers) and
-[executed Incus evidence](../audit/phase6/P5_VERIFICATION_2026-10-30.md).
+executed Incus evidence (`audit/phase6/P5_VERIFICATION_2026-10-30.md`).
 Manager behavior depends on the userspace image and ordering as well as
 the kernel. The mainline/vanilla QEMU profile does not run udev/networkd,
 so a bare-kernel pass is not per-distribution proof of H11.
@@ -250,7 +253,8 @@ default. The stock kernel image, module tree, config and 2 GiB memory
 remain the same. This is a test cold-boot setting, not a required daemon
 installation setting. Daemon re-exec uses `execve`, not kernel kexec.
 The tests make no kernel-handover preservation claim.
-[Source, commands, failed boots and controls](../audit/phase6/boot-memory-20261031/README.md).
+Repository file `audit/phase6/boot-memory-20261031/README.md` records the
+source, commands, failed boots and controls.
 
 ## Earlier execution records
 
@@ -262,15 +266,17 @@ calibration returned **MATRIX_RESULT=0**, with unchanged published targets
 and test sources between its beginning/end. All five normal guests used
 identical test/daemon executable identities. Exact commands, configurations,
 image/module identities, features and guest releases are in
-[matrix-20261031T071523Z-3533819](../audit/phase6/matrix-20261031T071523Z-3533819/README.md).
+repository file `audit/phase6/matrix-20261031T071523Z-3533819/README.md`.
+The transcript paths below are relative to repository directory
+`audit/phase6/matrix-20261031T071523Z-3533819/`.
 
 | Required kernel | Normal implemented profile | H20, all eight combinations | Transcript |
 |---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | Pass | Pass | [run](../audit/phase6/matrix-20261031T071523Z-3533819/noble/run.log) |
-| Vanilla `6.8.12` | Pass; empty-VRF errno 101 | Pass | [run](../audit/phase6/matrix-20261031T071523Z-3533819/vanilla-6.8.12/run.log) |
-| Ubuntu `7.0.0-42-generic` | Pass; KHO disabled for cold boot | Pass | [run](../audit/phase6/matrix-20261031T071523Z-3533819/resolute/run.log) |
-| Vanilla `7.0.14` | Pass | Pass | [run](../audit/phase6/matrix-20261031T071523Z-3533819/vanilla-7.0.14/run.log) |
-| Mainline `7.3.0` | Pass | Pass | [run](../audit/phase6/matrix-20261031T071523Z-3533819/vanilla-7.3/run.log) |
+| Ubuntu `6.8.0-147-generic` | Pass | Pass | `noble/run.log` |
+| Vanilla `6.8.12` | Pass; empty-VRF errno 101 | Pass | `vanilla-6.8.12/run.log` |
+| Ubuntu `7.0.0-42-generic` | Pass; KHO disabled for cold boot | Pass | `resolute/run.log` |
+| Vanilla `7.0.14` | Pass | Pass | `vanilla-7.0.14/run.log` |
+| Mainline `7.3.0` | Pass | Pass | `vanilla-7.3/run.log` |
 
 Each normal guest passed 10 library live cases, 16 kernel cases, five
 review cases, 38 ordinary binary cases plus three explicit privileged
@@ -283,7 +289,7 @@ Earlier full implemented-profile passes exist for Ubuntu 24.04, vanilla
 26.04 after that fix. Vanilla 6.8.12 originally stopped at K26/K34 before
 process/scenario execution. The original driver failure, failed boot,
 userspace fixture corrections and retry remain in
-[the P3 history](../audit/phase6/P3_MATRIX_DRIVER_2026-10-31.md).
+the P3 history (`audit/phase6/P3_MATRIX_DRIVER_2026-10-31.md`).
 
 Extra mainline boots with `ipv6.disable=1` and `CONFIG_IPV6=n` each run
 only the scoped H4/T4 case: IPv4 works on AF_INET sockets while IPv6 peers
@@ -295,7 +301,7 @@ start and end; superseded versions cannot pass the final Phase 6 gate.
 Ubuntu's mentioned `6.8.0-148.148` was not published in the inspected
 release/updates/security indexes; proposed packages and a planned
 `6.8.0-149.149` do not substitute for a fetchable required target.
-[H15 degradation cases](../audit/phase6/H15-20261031/README.md) now add four
+H15 degradation cases (`audit/phase6/H15-20261031/README.md`) now add four
 passing host scenarios and a passing scoped missing-driver guest, and fix
 host-defect severity/errno reporting. They postdate the five-target
 18-scenario matrix above; the latest expanded-suite refresh is recorded
@@ -304,22 +310,23 @@ has a passing positive case in the same Ubuntu 6.8 host profile.
 
 ### Clock steps and pause/resume on each target
 
-The separate H16 clock profile passes on all five required targets:
+The separate H16 clock profile passes on all five required targets.
+The record paths below are relative to repository directory `audit/phase6/`:
 
-| Required target | Forward/backward wall-clock steps and monitored VM pause |
-|---|---|
-| Ubuntu 6.8.0-147-generic | [Pass](../audit/phase6/qemu-clock-noble-20261031/run.log) |
-| Vanilla 6.8.12 | [Pass](../audit/phase6/qemu-clock-vanilla6812-20261031/run.log) |
-| Ubuntu 7.0.0-42-generic | [Pass](../audit/phase6/qemu-clock-resolute-20261031/run.log) |
-| Vanilla 7.0.14 | [Pass](../audit/phase6/qemu-clock-vanilla7014-20261031/run.log) |
-| Mainline 7.3.0 | [Pass, three repetitions](../audit/phase6/H16-20261031/README.md) |
+| Required target | Forward/backward wall-clock steps and monitored VM pause | Record |
+|---|---|---|
+| Ubuntu 6.8.0-147-generic | Pass | `qemu-clock-noble-20261031/run.log` |
+| Vanilla 6.8.12 | Pass | `qemu-clock-vanilla6812-20261031/run.log` |
+| Ubuntu 7.0.0-42-generic | Pass | `qemu-clock-resolute-20261031/run.log` |
+| Vanilla 7.0.14 | Pass | `qemu-clock-vanilla7014-20261031/run.log` |
+| Mainline 7.3.0 | Pass, three repetitions | `H16-20261031/README.md` |
 
 On every target, one-second pending-peer retries and thirty-second wire
 DNS refreshes follow monotonic time across the steps and a QMP-confirmed
 three-second pause. An unchanged DNS answer preserves the connected
 tunnel. After resume, route-only recovery, address changes and temporary
 bind-name loss recover with real bidirectional frames and stable session
-indexes. [Measurements and exact scope](../audit/phase6/H16-20261031/README.md)
+indexes. Measurements and exact scope (`audit/phase6/H16-20261031/README.md`)
 include the independent host/guest pause observations. This is a separate
 one-case boot, not a rerun of the normal conformance/scenario profile.
 Physical S3 and subscription overflow during a stopped guest are not
@@ -345,7 +352,7 @@ subsequently replaces those scans with ordered indexes, passing all
 23 host scenarios, 26 process cases and a fresh mainline H16 clock/pause
 case. Relevant-event cache maintenance still needs its complete CPU-cost
 proof; a zero-request assertion alone cannot establish it.
-The subsequent [event-cache package](../audit/phase6/event-cache-20261031/README.md)
+The subsequent event-cache package (`audit/phase6/event-cache-20261031/README.md`)
 replaces global cache scans with updates for changed dependencies and
 fixes stale addresses after monitor resync and accumulated unbound VRF
 sibling records. Its five focused regressions and all 23 host scenarios
@@ -397,7 +404,7 @@ limits and remaining G23/matrix work.
 
 ### Refused monitor filters and descriptor exhaustion
 
-The [R6/R9 package](../audit/phase6/R6-R9-20261031/README.md) adds two
+The R6/R9 package (`audit/phase6/R6-R9-20261031/README.md`) adds two
 host cases on Ubuntu `6.8.0-147-generic`. Denying `SO_ATTACH_FILTER` to
 the daemon child produces one warning; the unfiltered monitor still
 handles address removal/recovery, preserves the session index and carries
@@ -418,7 +425,7 @@ passing cases. No separate capability profile in Incus is established.
 
 ### Library ownership and missing privileges
 
-The [library requirement package](../audit/phase6/library-requirements-20261031/README.md)
+The library requirement package (`audit/phase6/library-requirements-20261031/README.md`)
 adds three live cases on Ubuntu `6.8.0-147-generic`. Missing Tokio context
 returns constructor errors with adopted descriptors still owned by the caller;
 the blocking service works without a caller runtime. Dropping only the test
@@ -433,7 +440,7 @@ store. The current refresh passes these kernel/process cases on all five
 targets. Current Incus and root-manager profiles also pass on Ubuntu 6.8;
 those manager results do not extend to the other distributions.
 
-The [operator requirement follow-up](../audit/phase6/operator-requirements-20261031/README.md)
+The operator requirement follow-up (`audit/phase6/operator-requirements-20261031/README.md`)
 strengthens wrong-session-ID and cookie rejection with separate negative
 windows before the positive frame, and hides both `/proc` and `/sys` from the
 daemon in the H9 container case. All 19 kernel, 26 process and 25 host cases
@@ -443,7 +450,7 @@ the strengthened assertions on all five targets. Its real user-manager store cas
 
 ### Unavailable VRF driver
 
-The [R45 guest profile](../audit/phase6/host-requirements-20261031/README.md)
+The R45 guest profile (`audit/phase6/host-requirements-20261031/README.md`)
 passes on both modular Ubuntu targets, `6.8.0-147-generic` and
 `7.0.0-42-generic`. With `vrf` unloaded and guest autoload disabled, actual
 VRF creation is refused. Ordinary veth devices named `vrf0` still support
