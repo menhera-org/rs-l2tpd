@@ -24,11 +24,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           toolchain: stable
-          components: rustfmt, clippy
+          components: rustfmt, clippy, llvm-tools-preview
           targets: x86_64-unknown-linux-musl
 
       - name: CI gates
         run: ./test-ci-gates.sh
+
+      - name: Generate coverage
+        run: |
+          cargo install cargo-llvm-cov --locked
+          cargo llvm-cov --locked --all-features --lcov --output-path target/lcov.info
 
       - uses: qltysh/qlty-action/coverage@ebcd284bf32e36a030afe15f1e136c7be08b9506
         with:
