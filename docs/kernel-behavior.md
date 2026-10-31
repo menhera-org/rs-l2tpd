@@ -5,6 +5,11 @@
 This page records the behavior relevant to rs-l2tpd for **each required
 kernel**, resolved on 2026-10-31. The specification defines the contract;
 this page distinguishes observations, source evidence and remaining tests.
+The latest full refresh passes four normal profiles and fails one H8
+request-count assertion on vanilla 7.0.14. All five targets pass their H20
+and 300-tunnel scenarios; the failed suite keeps the matrix gate red.
+[Current results and source identity](../audit/phase6/matrix-20261031T133318Z-3943822/README.md).
+
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.
 
@@ -61,7 +66,8 @@ not mean that every possible failure mode was exercised on that target.
   Cross-namespace deletion events, inline session deletion and positional
   dumps have the same documented limitations as the Ubuntu 6.8 target.
   L2TP/VRF are built into the test image. There is no per-target
-  udev/networkd, unprivileged-container or 300-tunnel result.
+  udev/networkd or unprivileged-container result. The current 300-tunnel
+  case passes.
 - **Ubuntu 26.04, `7.0.0-42.42`:** the empty VRF refuses with
   `EADDRNOTAVAIL`; deletion events can still cross namespaces. Its exact
   distribution source queues session deletion and traverses sessions by
@@ -73,13 +79,15 @@ not mean that every possible failure mode was exercised on that target.
 - **Vanilla `7.0.14`:** the empty VRF refuses with `EADDRNOTAVAIL`;
   deletion events can cross namespaces. Session deletion is queued and
   dump traversal is identifier-based. L2TP/VRF are built in. Its normal
-  and clock profiles pass; the additional capability, scale and
-  system-container profiles have not run on this target.
+  profile currently fails the H8 total-request equality; its other 25
+  scenarios, including capability and scale cases, pass. An earlier clock
+  profile passed; this refresh skipped it after the normal-profile failure.
+  No system-container profile has run on this target.
 - **Mainline `7.3.0`:** the empty VRF refuses with `EADDRNOTAVAIL`;
   commanded deletion events stay within the object's namespace. Session
   deletion is queued and dump traversal is identifier-based. L2TP/VRF are
   built in. In addition to the normal and clock profiles, the expanded
-  23-scenario/300-tunnel profile, four capability/netlink degradation
+  26-scenario/300-tunnel profile, capability/netlink degradation
   cases and both scoped IPv6-absent boots pass.
   These bare-kernel guests provide no udev/networkd or unprivileged
   system-container result.
@@ -92,21 +100,21 @@ including all eight H20 fragmentation combinations. The additional
 profiles below use the dated source snapshots linked later on this page;
 they are not a single final run of the current daemon on all targets.
 
-| Required kernel | Normal profile and H20 | H15 additional degradation | H16 clock/pause | H17 300 tunnels | H11/unprivileged system container |
+| Required kernel | Current normal profile / H20 | Capability/netlink degradation | H16 clock/pause | H17 300 tunnels | H11/unprivileged system container |
 |---|---|---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | Pass | Four capability/netlink cases; low-port DHCPv6 positive case | Pass | Pass | Pass, with documented MAC race and buffer fallback |
-| Vanilla `6.8.12` | Pass | Not run | Pass | Not run | Not run |
-| Ubuntu `7.0.0-42-generic` | Pass, with cold-boot KHO override | Missing-driver/recovery case | Pass | Not run | Not run |
-| Vanilla `7.0.14` | Pass | Not run | Pass | Not run | Not run |
-| Mainline `7.3.0` | Pass; expanded profile also passes | Four capability/netlink cases; low-port DHCPv6 positive case | Pass | Pass | Not run |
+| Ubuntu `6.8.0-147-generic` | 26 pass / pass | Pass | Pass | Pass | Pass, with documented MAC race and buffer fallback |
+| Vanilla `6.8.12` | 26 pass / pass | Pass | Pass | Pass | Not run |
+| Ubuntu `7.0.0-42-generic` | 26 pass / pass; cold-boot KHO override | Pass; missing-driver recovery also passes | Pass | Pass | Not run |
+| Vanilla `7.0.14` | 25 pass, H8 count fails / pass | Pass | Earlier pass; current boot skipped after failure | Pass | Not run |
+| Mainline `7.3.0` | 26 pass / pass | Pass | Pass | Pass | Not run |
 
-Reproduction and transcripts: [normal/H20 matrix](../audit/phase6/matrix-20261031T071523Z-3533819/README.md),
-[H15](../audit/phase6/H15-20261031/README.md),
-[H16](../audit/phase6/H16-20261031/README.md),
-[H17](../audit/phase6/H17-20261031/README.md), and
-[Incus/H11](../audit/phase6/P5_VERIFICATION_2026-10-30.md).
-The separately executed root system-unit sandbox is recorded in
-[P6](../audit/phase6/P6_ROOT_SANDBOX_2026-10-30.md).
+Reproduction and transcripts are in the
+[current matrix](../audit/phase6/matrix-20261031T133318Z-3943822/README.md).
+Current [Incus/H11](../audit/phase6/incus-20261031T134611Z-3957335/run.log)
+and [root-systemd](../audit/phase6/root-systemd-current-20261031/README.md)
+results apply to Ubuntu 6.8.0-147 only. The dated packages below retain
+their original scope; the current table supersedes their per-target
+execution summaries.
 
 ## Session deletion and dump traversal by target
 
@@ -242,7 +250,10 @@ installation setting. Daemon re-exec uses `execve`, not kernel kexec.
 The tests make no kernel-handover preservation claim.
 [Source, commands, failed boots and controls](../audit/phase6/boot-memory-20261031/README.md).
 
-## Recorded execution and remaining work
+## Earlier execution records
+
+The following dated records explain the earlier tests and fixes. The
+current per-target table above reports the latest refresh.
 
 The fresh required matrix after the approved errno correction and boot
 calibration returned **MATRIX_RESULT=0**, with unchanged published targets
@@ -285,8 +296,8 @@ release/updates/security indexes; proposed packages and a planned
 [H15 degradation cases](../audit/phase6/H15-20261031/README.md) now add four
 passing host scenarios and a passing scoped missing-driver guest, and fix
 host-defect severity/errno reporting. They postdate the five-target
-18-scenario matrix above; the expanded suite/current reports still need
-a complete latest-target rerun. The low-port-range DHCPv6 exception now
+18-scenario matrix above; the latest expanded-suite refresh is recorded
+in the current table. The low-port-range DHCPv6 exception now
 has a passing positive case in the same Ubuntu 6.8 host profile.
 
 ### Clock steps and pause/resume on each target
@@ -314,7 +325,7 @@ injected; live overflow/resync evidence remains separate.
 
 ### Scale and resource observations
 
-The H17 profiles on Ubuntu 6.8.0-147-generic and mainline 7.3.0 pass fresh 300-entry
+The original H17 profiles on Ubuntu 6.8.0-147-generic and mainline 7.3.0 passed fresh 300-entry
 readiness, bidirectional traffic through every session, and three cycles
 from 300 owned tunnels down to one. Descriptors return from 314 to 15.
 An identical 300-entry reload issues 600 netlink requests; unrelated link
@@ -336,22 +347,23 @@ The subsequent [event-cache package](../audit/phase6/event-cache-20261031/README
 replaces global cache scans with updates for changed dependencies and
 fixes stale addresses after monitor resync and accumulated unbound VRF
 sibling records. Its five focused regressions and all 23 host scenarios
-pass on Ubuntu 6.8.0-147-generic. This policy change has not yet had a new
-five-target matrix run; the earlier guest snapshots remain dated evidence.
+pass on Ubuntu 6.8.0-147-generic. The current five-target refresh includes this policy change.
 The fresh mainline normal profile also passes 11 live library, 16 kernel,
 five review, 38 ordinary binary plus three privileged binary, 26 process
 and 23 scenario cases. Fresh readiness for both 300-entry daemons takes
 38.43 seconds under the recorded TCG profile. These results predate the indexed lifetime change except for its fresh
 Ubuntu 6.8 host checks. They are scoped to the executed profiles; H17 has
-not yet run on every required target. Repository record
+now passed on every required target in the current refresh. Repository record
 `audit/phase6/H17-20261031/README.md` gives the scale commands and limits;
 `audit/phase6/lifetime-index-20261031/README.md` records indexed lifetime
 proofs; `audit/phase6/deadline-index-20261031/README.md` records indexed
 deadlines, conflict cancellation and fresh host/mainline-clock checks.
 
-Coverage, rule completeness, full resource/event-cost proof, the expanded
-normal matrix, final manager/profile refreshes and strict CI remain open. This page does not
-declare Phase 6 complete or claim behavior for unexecuted cases.
+Current merged coverage is 92.26% of lines and 78.16% of branches; the
+threshold remains 100%. Both strict map flags are enabled after ten CI
+qualification passes, with the updated workflow run pending. The matrix
+failure, complete clause/event-cost/resource/history proof and remaining
+coverage/profile work keep Phase 6 incomplete.
 
 ### Refused monitor filters and descriptor exhaustion
 
@@ -370,9 +382,9 @@ tunnels and readiness while preserving the session index. No host limit
 is changed. The package also distinguishes a real kernel `EAGAIN` from
 the internal tunable wait and checks both tunnel/session creation reports.
 
-These new cases extend the host suite to 25 scenarios. They have not
-run separately on the other four required targets or in Incus, and do
-not extend those targets' recorded coverage automatically.
+That package extended the host suite to 25 scenarios. The current refresh
+executes these cases on all five targets, including vanilla 7.0.14's 25
+passing cases. No separate capability profile in Incus is established.
 
 ### Library ownership and missing privileges
 
@@ -387,16 +399,16 @@ while preserving a foreign tunnel, session and interface index.
 The expanded live kernel suite passes all 19 cases, the process suite all 26,
 and the full host suite all 25 on this target. A SIGKILL assertion also checks
 that both the tunnel and its session disappear without an external socket
-store. These additions and the ownership fix still need the other four targets
-and current-code Incus/manager refreshes; prior target records keep their
-original scope.
+store. The current refresh passes these kernel/process cases on all five
+targets. Current Incus and root-manager profiles also pass on Ubuntu 6.8;
+those manager results do not extend to the other distributions.
 
 The [operator requirement follow-up](../audit/phase6/operator-requirements-20261031/README.md)
 strengthens wrong-session-ID and cookie rejection with separate negative
 windows before the positive frame, and hides both `/proc` and `/sys` from the
 daemon in the H9 container case. All 19 kernel, 26 process and 25 host cases
-pass on `6.8.0-147-generic`; the new assertions have not yet run on the other
-four targets. Its real user-manager store case passes separately from the
+pass in that package on `6.8.0-147-generic`. The current refresh executes
+the strengthened assertions on all five targets. Its real user-manager store case passes separately from the
 41-case container binary suite and does not replace the root P6 sandbox test.
 
 ### Unavailable VRF driver

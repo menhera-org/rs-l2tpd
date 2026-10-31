@@ -1,0 +1,14 @@
+#
+# configuration written to .config
+#
+#
+# configuration written to .config
+#
+  SYNC    include/config/auto.conf
+  DESCEND objtool
+Kernel: arch/x86/boot/bzImage is ready  (#1)
+source: linux-7.3.tar.xz; git-blob: c0764c4a457f9e2afd951694addb7922442d166f
+config git-blob: 8ff940e534253c78a1e225c8bf80c0120a263ae8
+image git-blob: 3c5406820f56be184ce75624d264a1c50c945558
+KERNEL_IMAGE=/home/dev/rs-l2tpd/target/phase6-kernels/linux-7.3-no-ipv6/arch/x86/boot/bzImage
+KERNEL_CONFIG=/home/dev/rs-l2tpd/target/phase6-kernels/linux-7.3-no-ipv6/.config

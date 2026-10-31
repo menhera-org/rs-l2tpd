@@ -1,0 +1,123 @@
+
+
+
+UBUNTU_SUITE=resolute
+UBUNTU_META_VERSION=7.0.0-42.42
+KERNEL_RELEASE=7.0.0-42-generic
+Package: linux-image-generic
+Source: linux-meta
+Priority: optional
+Section: kernel
+Installed-Size: 13
+Maintainer: Ubuntu Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 7.0.0-42.42
+Recommends: thermald
+Provides: ivsc-modules (= 0~git202311021215.73a044d9), virtualbox-guest-modules (= 7.0.0-42), wireguard-modules (= 1.0.0)
+Depends: linux-image-7.0.0-42-generic, linux-modules-7.0.0-42-generic, linux-main-modules-zfs-7.0.0-42-generic, linux-main-modules-v4l2loopback-7.0.0-42-generic, linux-firmware, intel-microcode, amd64-microcode
+Conflicts: linux-image-fb-generic
+Filename: pool/main/l/linux-meta/linux-image-generic_7.0.0-42.42_amd64.deb
+Size: 2486
+MD5sum: a66746f1b8172d28601df8c9ae7bebfa
+SHA1: 58bb5e7982de67454fc939ca9b8f21fbab7f167a
+SHA256: d497440edea7e4347db6f9dc76b819aa5a07f212127dbcbc4a549eb6362fbe4d
+SHA512: e331f3d43b2aaffcbf003d2b3598d8560b2567c6d3bf336b7935c6ab8ca27ad1b1f529d1469d880882d3f153edf309fd3ade532cef063f974924f65f9ad7196c
+Description: Generic Linux kernel image
+Description-md5: 6d632579c673704f44b290b16e7dbfd1
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Package: linux-image-7.0.0-42-generic
+Source: linux-signed
+Priority: optional
+Section: kernel
+Installed-Size: 16960
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 7.0.0-42.42
+Recommends: grub-pc | grub-efi-amd64 | grub-efi-ia32 | grub | lilo, dracut | linux-initramfs-tool
+Suggests: bpftool, linux-perf, linux-tools, linux-headers-7.0.0-42-generic
+Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, redhat-cluster-modules, virtualbox-guest-modules
+Depends: kmod, linux-base (>= 4.5ubuntu1~16.04.1), linux-modules-7.0.0-42-generic
+Conflicts: linux-image-unsigned-7.0.0-42-generic
+Filename: pool/main/l/linux-signed/linux-image-7.0.0-42-generic_7.0.0-42.42_amd64.deb
+Size: 17064814
+MD5sum: 6355204772b84f405e8c5cbbeb72d1a2
+SHA1: 5f695bacb395a071ecab7cd96c1698625d878679
+SHA256: 179381704964d6b79c8d2bab2f5d51d8679cb13e9bf51a3293e28f90b708c96e
+SHA512: 58286fcca406d629b6dd9bf61635abe20e8e580135bd40b4be38c9bae4e219972a57d9feceb53b21169f63402adc18fd9f0e6a33e5f360e1cd9db2c60684f5ad
+Description: Signed kernel image generic
+Description-md5: b0fd0df88b1cd31408007b00d2458952
+Built-Using: linux (= 7.0.0-42.42)
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+/package.deb: OK
+Package: linux-modules-7.0.0-42-generic
+Source: linux
+Priority: optional
+Section: kernel
+Installed-Size: 163700
+Maintainer: Ubuntu Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 7.0.0-42.42
+Depends: linux-main-modules-zfs-7.0.0-42-generic, linux-main-modules-v4l2loopback-7.0.0-42-generic, wireless-regdb
+Filename: pool/main/l/linux/linux-modules-7.0.0-42-generic_7.0.0-42.42_amd64.deb
+Size: 169543872
+MD5sum: 2c644f906dd71e54a07890878e16356c
+SHA1: ea937f44a69b1faf340ebede7c24c0e1d6f18262
+SHA256: af173ab8a9a18ec6f4f450963de4c73ccef4c61bd5c1ab20f7a085b7ca15c9d6
+SHA512: 3f30e47ff9f556f7cdb4a52f35496f67a3d44d9bf6c618a7acb47710260d0487fd840137dbc9288c52837e88a2279c5e551c28b68eb155f513eb5d3797b0f5b9
+Description: Linux kernel modules for version 7.0.0
+Description-md5: a02d3ab9bae753cdbf933c595a9b3909
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+/package.deb: OK
+Package: kmod
+Priority: important
+Section: admin
+Installed-Size: 264
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 34.2-2ubuntu2
+Replaces: bash-completion (<< 1:2.16.0-1)
+Depends: libc6 (>= 2.38), libssl3t64 (>= 3.0.0), libkmod2 (= 34.2-2ubuntu2)
+Breaks: bash-completion (<< 1:2.16.0-1)
+Filename: pool/main/k/kmod/kmod_34.2-2ubuntu2_amd64.deb
+Size: 100832
+MD5sum: 00e7ba0696aa4551022eaaff54e51a61
+SHA1: 5f583d0bae18fe4bae1acbf25e9a2b1950b0e360
+SHA256: 5595fb6bb2fba1dc53e005e17d24a389450296bdc5defb19dbcc0aa0ae33ae91
+SHA512: 302e20e9e34eab026148e7079146996a83b158c94d874dd7274dc844ef849c941c639b18e555d3c1f2cd1425892cc78993802e46be8522d0ff3a2311daf03d66
+Description: tools for managing Linux kernel modules
+Description-md5: 0cd8f9566ff621a593309a12fd64999f
+Multi-Arch: foreign
+Original-Maintainer: Marco d'Itri <md@linux.it>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Task: cloud-minimal, minimal, server-minimal
+/package.deb: OK
+Package: libkmod2
+Source: kmod
+Priority: important
+Section: libs
+Installed-Size: 146
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 34.2-2ubuntu2
+Depends: libc6 (>= 2.38), libssl3t64 (>= 3.0.0)
+Filename: pool/main/k/kmod/libkmod2_34.2-2ubuntu2_amd64.deb
+Size: 50890
+MD5sum: 1c494d05a16423e1a4e09823b28e51ef
+SHA1: da8bed5d8a8ea93b2cd894ce3d1d20afcbe938e8
+SHA256: bb55dd5908866cf5b76b642ddfcb494ab35adb43ccba07431116398b373d4845
+SHA512: 6b86c8a5864e8544af8edfd3f2a9f16218966a03de610ed95061b504ac0e8aeaeaf3cce96bc8b9a28cc24ddc83649367b5e0a8c4fd3f2a4014f9612c6d0fa68a
+Description: libkmod shared library
+Description-md5: e60216aabe72168f06218f037958581e
+Multi-Arch: same
+Original-Maintainer: Marco d'Itri <md@linux.it>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Task: cloud-minimal, minimal, server-minimal
+/package.deb: OK
+KERNEL_IMAGE=/home/dev/rs-l2tpd/target/phase6-kernels/ubuntu-resolute-7.0.0-42.42/root/boot/vmlinuz-7.0.0-42-generic
+KERNEL_ROOT=/home/dev/rs-l2tpd/target/phase6-kernels/ubuntu-resolute-7.0.0-42.42/root
+KERNEL_MODULES=/home/dev/rs-l2tpd/target/phase6-kernels/ubuntu-resolute-7.0.0-42.42/root/usr/lib/modules/7.0.0-42-generic

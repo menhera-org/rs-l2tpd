@@ -15,7 +15,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P3 matrix | Current refresh passes full normal profiles on both Ubuntu kernels, vanilla 6.8.12 and mainline 7.3.0; vanilla 7.0.14 fails one netlink-count assertion | Resolve that failure and finish current matrix/clock validation; complete P2/delegated proof |
 | P4 coverage | Current merged GNU report: 92.26% lines / 78.16% branches, including real user manager and full Incus case; no exclusions | 804 missing lines / 408 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Current unmodified musl full case passes, including manager race/ordered policy/store/re-exec; instrumented GNU full case exports seven daemon profiles | Repeat if relevant source changes; retain documented MAC limitations |
-| P6 root sandbox | October 30 full real-root-systemd sandbox case passed, without drop-ins | Final phase validation; no new sandbox claim from the coverage-only user-manager case |
+| P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions pass on their first attempt; both strict map flags set; regular CI retains one full live guest | Updated strict workflow run, complete verification and coverage enforcement remain open |
 
 Current P1/ordinary/warning checks are in
@@ -531,3 +531,22 @@ on vanilla 7.0.14: total requests differ by one generic-netlink request,
 while both captures contain exactly the two deliberate fixture route queries.
 That failure is retained and under investigation. The successful Ubuntu CI
 qualification does not establish a passing five-kernel matrix.
+
+## Current matrix and root-systemd refresh
+
+[The current required matrix](phase6/matrix-20261031T133318Z-3943822/README.md)
+finishes with `MATRIX_RESULT=1`: four normal profiles pass all 26 scenarios;
+vanilla 7.0.14 passes 25 and fails the H8 aggregate request-count assertion.
+All five targets pass their kernel/process cases, H20 fragmentation and
+H17 300-tunnel cases. Four current clock profiles pass; vanilla 7.0.14's
+clock boot is skipped after its normal-profile failure. Both mainline H4
+boots and the stock Ubuntu 7.0 missing-Ethernet-driver recovery case pass.
+Initial/final published versions match and both source patches are empty.
+The earlier metadata TLS failure ran no tests and is recorded separately.
+
+[The current P6 root-systemd profile](phase6/root-systemd-current-20261031/README.md)
+passes its full one-case suite in 26.30 seconds on Ubuntu 6.8.0-147. The
+actual supplied unit has no drop-ins; private mounts, protected root and
+tunables, the writable exception, exact capabilities, autoload/readiness,
+manager store/re-exec and cleanup assertions pass. This is uninstrumented
+musl evidence, separate from the coverage-only manager drop-in profile.
