@@ -1,5 +1,8 @@
 # rs-l2tpd
 
+[![CI](https://github.com/menhera-org/rs-l2tpd/actions/workflows/ci.yml/badge.svg)](https://github.com/menhera-org/rs-l2tpd/actions/workflows/ci.yml)
+![GitHub License](https://img.shields.io/github/license/menhera-org/rs-l2tpd)
+
 [![crates.io](https://img.shields.io/crates/v/rs-l2tpd.svg)](https://crates.io/crates/rs-l2tpd)
 [![Maintainability](https://qlty.sh/gh/menhera-org/projects/rs-l2tpd/maintainability.svg)](https://qlty.sh/gh/menhera-org/projects/rs-l2tpd)
 [![Code Coverage](https://qlty.sh/gh/menhera-org/projects/rs-l2tpd/coverage.svg)](https://qlty.sh/gh/menhera-org/projects/rs-l2tpd)
@@ -83,3 +86,12 @@ Start with the [documentation index](docs/README.md):
 
 The audit reports and reviews behind the specification are in
 [audit/](audit/).
+
+## License
+
+Dual-licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- Mozilla Public License, Version 2.0 ([LICENSE-MPL](LICENSE-MPL))
+
+at your option.
