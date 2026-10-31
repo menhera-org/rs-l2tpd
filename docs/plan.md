@@ -565,8 +565,8 @@ observations, proof scope and limitations.
 
 The earlier coverage refresh on Rust source `0f5292e` included inline test
 code and measured 92.26% lines / 78.16% branches. Under the maintainer's
-approved production-code scope, the latest merged report is 93.32% lines /
-80.95% branches: 563 missing lines and 338 missing branches, with no
+approved production-code scope, the latest merged report is 93.29% lines /
+80.91% branches: 569 missing lines and 341 missing branches, with no
 production exclusions. It includes all 26 normal scenarios, real user
 manager and full Incus manager profiles. The unmodified musl
 Incus runner also passes. The required-kernel refresh found a vanilla 7.0.14
@@ -599,6 +599,15 @@ profiles and a deterministic no-waiter readiness test retain 93.32% line /
 80.95% branch coverage. Repository record
 `audit/phase6/upstream-dhcp-queues-20261031/` gives exact scope. Complete
 resource/event-cost proof, remaining clauses and the final matrix stay open.
+
+Desired identifiers now index configuration names without repeated full scans;
+complete identity checks still decide ownership. The rename planner uses
+ordered holder/waiter indexes, and a session deletion retries only that entry.
+Both changes pass ten seeds and fresh live, Incus and root-systemd profiles.
+Repository records `audit/phase6/reconcile-lookups-20261031/` and
+`audit/phase6/rename-cost-20261031/` retain comparisons and exact scope.
+The standalone documentation check also passes after removing 36 links to
+files outside `docs/`; its record is `audit/phase6/standalone-docs-20261031/`.
 
 ### Phase 7 — release
 

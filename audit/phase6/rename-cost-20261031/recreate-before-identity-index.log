@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-rename-baseline)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (/home/dev/rs-l2tpd/target/phase6-rename-baseline/debug/deps/rules-9173433df0983df3)
+
+running 1 test
+
+thread 'events::a_session_deletion_retries_only_that_entry_before_the_global_retry' (286223) panicked at tests/rules/events.rs:338:5:
+unrelated creation must wait for its own retry
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test events::a_session_deletion_retries_only_that_entry_before_the_global_retry ... FAILED
+
+failures:
+
+failures:
+    events::a_session_deletion_retries_only_that_entry_before_the_global_retry
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 79 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`

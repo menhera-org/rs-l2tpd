@@ -2,6 +2,7 @@
 //! renames (with temporary names for swaps), deferred hardware addresses,
 //! and removal with the proof of S9 or S22.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::io;
 
 use nix::errno::Errno;
@@ -176,38 +177,46 @@ impl<K: Kernel> Reconciler<K> {
             .map(|(n, s)| (n.clone(), s.clone()))
             .collect();
         for (name, config) in wanted {
-            let tid = self.accepted.tunnels()[config.tunnel_name()].tunnel_id();
-            let identity = self.accepted.session_identity(&name).unwrap();
-            if self
-                .tunnels
-                .get(&tid)
-                .is_none_or(|t| t.identity != identity.tunnel())
-            {
-                continue;
+            self.create_wanted_session(name, config);
+        }
+        if self.incomplete {
+            self.reconcile_at.get_or_insert(self.k.now() + super::RETRY);
+        }
+    }
+
+    pub(super) fn create_wanted_session(&mut self, name: String, config: SessionConfig) {
+        let tid = self.accepted.tunnels()[config.tunnel_name()].tunnel_id();
+        let identity = self.accepted.session_identity(&name).unwrap();
+        if self
+            .tunnels
+            .get(&tid)
+            .is_none_or(|t| t.identity != identity.tunnel())
+        {
+            return;
+        }
+        let sid = config.session_id();
+        if self.deleting_sessions.contains_key(&(tid, sid)) {
+            self.incomplete = true;
+            self.reconcile_at.get_or_insert(self.k.now() + super::RETRY);
+            return;
+        }
+        let conflict = ConflictIdentity::Session(identity);
+        if !self.may_try(true, sid, conflict) {
+            return;
+        }
+        let label = report::session(&name, tid, sid);
+        match self.stage(&name, &config, identity, tid) {
+            Ok(()) => {
+                self.conflict_over(true, sid, &label);
+                self.report.end(&label, "create", || "created".into());
+                self.report.forget_condition(&label, "random");
             }
-            let sid = config.session_id();
-            if self.deleting_sessions.contains_key(&(tid, sid)) {
+            Err(e) if errno(&e) == Errno::EEXIST as i32 => {
+                self.conflict(true, sid, conflict, &label, &e)
+            }
+            Err(e) => {
                 self.incomplete = true;
-                continue;
-            }
-            let conflict = ConflictIdentity::Session(identity);
-            if !self.may_try(true, sid, conflict) {
-                continue;
-            }
-            let label = report::session(&name, tid, sid);
-            match self.stage(&name, &config, identity, tid) {
-                Ok(()) => {
-                    self.conflict_over(true, sid, &label);
-                    self.report.end(&label, "create", || "created".into());
-                    self.report.forget_condition(&label, "random");
-                }
-                Err(e) if errno(&e) == Errno::EEXIST as i32 => {
-                    self.conflict(true, sid, conflict, &label, &e)
-                }
-                Err(e) => {
-                    self.incomplete = true;
-                    self.report.cannot_create(&label, "create", &e);
-                }
+                self.report.cannot_create(&label, "create", &e);
             }
         }
         if self.incomplete {
@@ -332,55 +341,77 @@ impl<K: Kernel> Reconciler<K> {
     /// Renames to temporary names the published devices whose name another
     /// owned device is about to take, so that no rename collides (S11, M6).
     pub(super) fn clear_swaps(&mut self) {
-        // Drain acyclic rename dependencies first; only cycles need a
-        // temporary name (S11).
-        loop {
-            let movable =
-                self.sessions
-                    .iter()
-                    .find(|(_, r)| {
-                        r.name_state == Enforce::Pending
-                            && matches!(r.state, Identity::Proved(_))
-                            && r.current_name != Some(*r.config.interface_name())
-                            && !self.sessions.values().any(|holder| {
-                                holder.current_name == Some(*r.config.interface_name())
-                            })
-                    })
-                    .map(|(sid, _)| *sid);
-            let Some(sid) = movable else { break };
+        let mut holders = BTreeMap::<_, BTreeSet<_>>::new();
+        let mut waiting = BTreeMap::<_, BTreeSet<_>>::new();
+        for (sid, record) in &self.sessions {
+            if let Some(name) = record.current_name {
+                holders.entry(name).or_default().insert(*sid);
+            }
+            if record.name_state == Enforce::Pending
+                && matches!(record.state, Identity::Proved(_))
+                && record.current_name != Some(*record.config.interface_name())
+            {
+                waiting
+                    .entry(*record.config.interface_name())
+                    .or_default()
+                    .insert(*sid);
+            }
+        }
+        // Release acyclic dependencies before staging cycles (S11).
+        let mut ready: BTreeSet<_> = waiting
+            .iter()
+            .filter(|(name, _)| !holders.contains_key(name))
+            .flat_map(|(_, ids)| ids.iter().copied())
+            .collect();
+        while let Some(sid) = ready.pop_first() {
+            let target = *self.sessions[&sid].config.interface_name();
+            if holders.contains_key(&target) {
+                continue;
+            }
             let before = self.sessions[&sid].current_name;
             self.converge_session(sid);
             if self
                 .sessions
                 .get(&sid)
-                .is_some_and(|r| r.current_name == before)
+                .is_some_and(|record| record.current_name == before)
             {
                 break;
             }
+            if let Some(name) = before {
+                super::events::remove(&mut holders, name, sid);
+                if !holders.contains_key(&name) {
+                    ready.extend(waiting.get(&name).into_iter().flatten().copied());
+                }
+            }
+            if let Some(name) = self
+                .sessions
+                .get(&sid)
+                .and_then(|record| record.current_name)
+            {
+                holders.entry(name).or_default().insert(sid);
+            }
         }
-        let targets: Vec<(u32, L2tpIfName)> = self
+        holders.retain(|_, ids| {
+            ids.retain(|sid| matches!(self.sessions[sid].state, Identity::Proved(_)));
+            !ids.is_empty()
+        });
+        let targets: BTreeMap<_, _> = self
             .sessions
             .iter()
-            .filter(|(_, r)| {
-                r.name_state == Enforce::Pending && matches!(r.state, Identity::Proved(_))
+            .filter(|(_, record)| {
+                record.name_state == Enforce::Pending && matches!(record.state, Identity::Proved(_))
             })
-            .map(|(sid, r)| (*sid, *r.config.interface_name()))
+            .map(|(sid, record)| (*sid, *record.config.interface_name()))
             .collect();
         for (sid, target) in &targets {
-            let holder = self
-                .sessions
-                .iter()
-                .find(|(other, r)| {
-                    other != &sid
-                        && r.current_name == Some(*target)
-                        && matches!(r.state, Identity::Proved(_))
-                })
-                .map(|(other, _)| *other);
+            let holder = holders
+                .get(target)
+                .and_then(|ids| ids.iter().find(|other| *other != sid))
+                .copied();
             let Some(holder) = holder else { continue };
-            // Only a holder that is itself moving away gives the name up.
             if !targets
-                .iter()
-                .any(|(s, t)| *s == holder && Some(*t) != self.sessions[&holder].current_name)
+                .get(&holder)
+                .is_some_and(|name| Some(*name) != self.sessions[&holder].current_name)
             {
                 continue;
             }
@@ -405,9 +436,11 @@ impl<K: Kernel> Reconciler<K> {
                 match self.k.rename(registration.index, &temp) {
                     Ok(()) => {
                         self.sessions.get_mut(&holder).unwrap().current_name = Some(temp);
+                        super::events::remove(&mut holders, *target, holder);
+                        holders.entry(temp).or_default().insert(holder);
                         break;
                     }
-                    Err(e) if errno(&e) == Errno::EEXIST as i32 => continue,
+                    Err(error) if errno(&error) == Errno::EEXIST as i32 => continue,
                     Err(_) => break,
                 }
             }

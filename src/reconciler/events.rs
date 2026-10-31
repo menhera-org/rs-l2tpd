@@ -238,9 +238,11 @@ impl<K: Kernel> Reconciler<K> {
         let master = self.masters.get(&link.index).copied();
         self.set_master(link.index, None);
         if let Some(sid) = self.owned_session(link.index) {
+            let record = &self.sessions[&sid];
+            let creation = record.created_as.map(|name| (name, record.tunnel_id));
             self.observed_removal(sid);
             if !self.sessions.contains_key(&sid) {
-                self.recreate_session(sid);
+                self.recreate_session(sid, creation);
             }
         }
         let ids: BTreeSet<_> = self
@@ -376,9 +378,10 @@ impl<K: Kernel> Reconciler<K> {
         match self.k.session(tid, sid) {
             Ok(None) => {
                 let label = self.session_label_of(sid);
+                let creation = self.sessions[&sid].created_as.map(|name| (name, tid));
                 self.forget_session(sid);
                 log::warn!("{label}: deleted outside the daemon; creating it again (S27)");
-                self.recreate_session(sid);
+                self.recreate_session(sid, creation);
                 true
             }
             Ok(Some(_)) => self.sessions[&sid]
@@ -397,11 +400,16 @@ impl<K: Kernel> Reconciler<K> {
         }
     }
 
-    fn recreate_session(&mut self, sid: u32) {
-        // Both callers just confirmed absence, so its creation names are free (S4).
-        self.reserved
-            .retain(|_, (_, reserved_sid)| *reserved_sid != sid);
-        self.create_wanted_sessions();
+    fn recreate_session(&mut self, sid: u32, creation: Option<(L2tpIfName, u32)>) {
+        // Both callers confirmed this session absent; other reservations stay (S4).
+        if let Some((name, tid)) = creation
+            && self.reserved.get(&name) == Some(&(tid, sid))
+        {
+            self.reserved.remove(&name);
+        }
+        if let Some(name) = self.wanted_sessions.get(&sid) {
+            self.create_wanted_session(name.clone(), self.accepted.sessions()[name].clone());
+        }
         if self.sessions.contains_key(&sid) && !self.converge_session(sid) {
             self.incomplete = true;
             self.reconcile_at.get_or_insert(self.k.now() + super::RETRY);
@@ -705,6 +713,27 @@ mod resource_tests {
             r.index.sessions.len(),
             r.index.registrations.len(),
         ]
+    }
+
+    /// spec: S4, S27, G4, G23
+    #[test]
+    fn confirmed_absence_releases_only_the_matching_creation_reservation() {
+        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(Watches::default()));
+        let own = L2tpIfName::new(b"own").unwrap();
+        let other_tunnel = L2tpIfName::new(b"other-tunnel").unwrap();
+        let other_session = L2tpIfName::new(b"other-session").unwrap();
+        r.reserved.insert(own, (10, 100));
+        r.reserved.insert(other_tunnel, (11, 100));
+        r.reserved.insert(other_session, (10, 101));
+        r.recreate_session(100, Some((other_tunnel, 10)));
+        r.recreate_session(100, Some((other_session, 10)));
+        r.recreate_session(100, None);
+        assert_eq!(r.reserved.len(), 3);
+        r.recreate_session(100, Some((own, 10)));
+        assert_eq!(r.reserved.len(), 2);
+        assert_eq!(r.reserved[&other_tunnel], (11, 100));
+        assert_eq!(r.reserved[&other_session], (10, 101));
+        assert!(r.k.ops().is_empty());
     }
 
     /// spec: G23, M16, V7, S25, T8

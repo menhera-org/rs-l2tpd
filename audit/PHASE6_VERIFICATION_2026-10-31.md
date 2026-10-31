@@ -13,7 +13,7 @@ previously approved evidence-map and H11 MAC decisions remain in force.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and the fresh resource-fix profile; H16 has passing required-kernel records; table/index/queue history checks pass | Complete event-cost/resource proof and remaining clauses |
 | P3 matrix | Four normal profiles pass in the full refresh; the vanilla 7.0.14 fixture failure is corrected and its targeted full normal/clock rerun passes | Final consistent-source five-target driver result; complete P2/delegated proof |
-| P4 coverage | Approved production scope: merged GNU report 93.32% lines / 80.95% branches, adding test-only error cases to the fresh resolver collection; no production exclusions | 563 missing lines / 338 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: fresh merged GNU report 93.29% lines / 80.91% branches after indexed rename/session recreation; no production exclusions | 569 missing lines / 341 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Current unmodified musl full case passes, including manager race/ordered policy/store/re-exec; instrumented GNU full case exports seven daemon profiles | Repeat if relevant source changes; retain documented MAC limitations |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -782,3 +782,22 @@ production lines / 80.95% branches, with 563 lines and 338 branches missing,
 no production exclusions and no mismatch warnings. CI run `41230781172`
 passes both jobs on the first attempt at the preceding `da65fc5` source.
 Full G23 inventory, clause/event-cost proof, coverage and final matrix remain open.
+
+## Standalone docs and indexed reconciliation work
+
+[Standalone documentation](phase6/standalone-docs-20261031/README.md) passes
+using only a copied `docs/` tree after fixing 36 outside links: 27 Markdown
+files, 813 internal file links, zero outside links. External URLs and fragments
+are outside this file-target check.
+
+[Desired identity indexes](phase6/reconcile-lookups-20261031/README.md) replace
+repeated configuration scans while retaining full ownership comparisons.
+The one-entry baseline returns after eight large reload epochs across 31
+collections. [Rename/session recreation](phase6/rename-cost-20261031/README.md)
+adds ordered dependency planning and fixes unrelated creation on a deletion
+notice, with a failing baseline regression. Both batches pass ten seeds and
+fresh live, Incus, manager and supplied root-unit profiles. The preceding
+identifier-index CI run `41236261835` passes both jobs on its first attempt.
+Fresh combined coverage is 93.29% lines / 80.91% branches, leaving 569 lines
+and 341 branches. Complete event/resource bounds, clauses, 100% coverage and
+the final consistent-source matrix remain open.

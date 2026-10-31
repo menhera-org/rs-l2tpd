@@ -1,0 +1,15 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-rename-baseline)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (/home/dev/rs-l2tpd/target/phase6-rename-baseline/debug/deps/rules-9173433df0983df3)
+
+running 1 test
+RENAME_COST sessions=1 cycle=false elapsed_ns=192420 renames=1
+RENAME_COST sessions=1 cycle=true elapsed_ns=43534 renames=0
+RENAME_COST sessions=100 cycle=false elapsed_ns=20444075 renames=100
+RENAME_COST sessions=100 cycle=true elapsed_ns=4059212 renames=200
+RENAME_COST sessions=300 cycle=false elapsed_ns=397454214 renames=300
+RENAME_COST sessions=300 cycle=true elapsed_ns=23287518 renames=600
+test sessions::long_reverse_chains_and_cycles_preserve_devices_in_one_reconcile ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 0.58s
+

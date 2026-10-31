@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-2992259725ba1531)
+
+running 1 test
+
+thread 'reconciler::sessions::wanted_tests::a_removed_middle_of_a_rename_chain_releases_only_its_own_cached_name' (281638) panicked at src/reconciler/wanted_tests.rs:186:56:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reconciler::sessions::wanted_tests::a_removed_middle_of_a_rename_chain_releases_only_its_own_cached_name ... FAILED
+
+failures:
+
+failures:
+    reconciler::sessions::wanted_tests::a_removed_middle_of_a_rename_chain_releases_only_its_own_cached_name
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 124 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

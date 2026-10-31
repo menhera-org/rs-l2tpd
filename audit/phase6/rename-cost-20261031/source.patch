@@ -1,0 +1,529 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index 6370404..b29299f 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -238,9 +238,11 @@ impl<K: Kernel> Reconciler<K> {
+         let master = self.masters.get(&link.index).copied();
+         self.set_master(link.index, None);
+         if let Some(sid) = self.owned_session(link.index) {
++            let record = &self.sessions[&sid];
++            let creation = record.created_as.map(|name| (name, record.tunnel_id));
+             self.observed_removal(sid);
+             if !self.sessions.contains_key(&sid) {
+-                self.recreate_session(sid);
++                self.recreate_session(sid, creation);
+             }
+         }
+         let ids: BTreeSet<_> = self
+@@ -376,9 +378,10 @@ impl<K: Kernel> Reconciler<K> {
+         match self.k.session(tid, sid) {
+             Ok(None) => {
+                 let label = self.session_label_of(sid);
++                let creation = self.sessions[&sid].created_as.map(|name| (name, tid));
+                 self.forget_session(sid);
+                 log::warn!("{label}: deleted outside the daemon; creating it again (S27)");
+-                self.recreate_session(sid);
++                self.recreate_session(sid, creation);
+                 true
+             }
+             Ok(Some(_)) => self.sessions[&sid]
+@@ -397,11 +400,16 @@ impl<K: Kernel> Reconciler<K> {
+         }
+     }
+ 
+-    fn recreate_session(&mut self, sid: u32) {
+-        // Both callers just confirmed absence, so its creation names are free (S4).
+-        self.reserved
+-            .retain(|_, (_, reserved_sid)| *reserved_sid != sid);
+-        self.create_wanted_sessions();
++    fn recreate_session(&mut self, sid: u32, creation: Option<(L2tpIfName, u32)>) {
++        // Both callers confirmed this session absent; other reservations stay (S4).
++        if let Some((name, tid)) = creation
++            && self.reserved.get(&name) == Some(&(tid, sid))
++        {
++            self.reserved.remove(&name);
++        }
++        if let Some(name) = self.wanted_sessions.get(&sid) {
++            self.create_wanted_session(name.clone(), self.accepted.sessions()[name].clone());
++        }
+         if self.sessions.contains_key(&sid) && !self.converge_session(sid) {
+             self.incomplete = true;
+             self.reconcile_at.get_or_insert(self.k.now() + super::RETRY);
+@@ -707,6 +715,27 @@ mod resource_tests {
+         ]
+     }
+ 
++    /// spec: S4, S27, G4, G23
++    #[test]
++    fn confirmed_absence_releases_only_the_matching_creation_reservation() {
++        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(Watches::default()));
++        let own = L2tpIfName::new(b"own").unwrap();
++        let other_tunnel = L2tpIfName::new(b"other-tunnel").unwrap();
++        let other_session = L2tpIfName::new(b"other-session").unwrap();
++        r.reserved.insert(own, (10, 100));
++        r.reserved.insert(other_tunnel, (11, 100));
++        r.reserved.insert(other_session, (10, 101));
++        r.recreate_session(100, Some((other_tunnel, 10)));
++        r.recreate_session(100, Some((other_session, 10)));
++        r.recreate_session(100, None);
++        assert_eq!(r.reserved.len(), 3);
++        r.recreate_session(100, Some((own, 10)));
++        assert_eq!(r.reserved.len(), 2);
++        assert_eq!(r.reserved[&other_tunnel], (11, 100));
++        assert_eq!(r.reserved[&other_session], (10, 101));
++        assert!(r.k.ops().is_empty());
++    }
++
+     /// spec: G23, M16, V7, S25, T8
+     #[test]
+     fn completed_configuration_history_releases_records_indexes_and_watches() {
+diff --git a/src/reconciler/sessions.rs b/src/reconciler/sessions.rs
+index 66550aa..c42119f 100644
+--- a/src/reconciler/sessions.rs
++++ b/src/reconciler/sessions.rs
+@@ -2,6 +2,7 @@
+ //! renames (with temporary names for swaps), deferred hardware addresses,
+ //! and removal with the proof of S9 or S22.
+ 
++use std::collections::{BTreeMap, BTreeSet};
+ use std::io;
+ 
+ use nix::errno::Errno;
+@@ -176,38 +177,46 @@ impl<K: Kernel> Reconciler<K> {
+             .map(|(n, s)| (n.clone(), s.clone()))
+             .collect();
+         for (name, config) in wanted {
+-            let tid = self.accepted.tunnels()[config.tunnel_name()].tunnel_id();
+-            let identity = self.accepted.session_identity(&name).unwrap();
+-            if self
+-                .tunnels
+-                .get(&tid)
+-                .is_none_or(|t| t.identity != identity.tunnel())
+-            {
+-                continue;
+-            }
+-            let sid = config.session_id();
+-            if self.deleting_sessions.contains_key(&(tid, sid)) {
+-                self.incomplete = true;
+-                continue;
++            self.create_wanted_session(name, config);
++        }
++        if self.incomplete {
++            self.reconcile_at.get_or_insert(self.k.now() + super::RETRY);
++        }
++    }
++
++    pub(super) fn create_wanted_session(&mut self, name: String, config: SessionConfig) {
++        let tid = self.accepted.tunnels()[config.tunnel_name()].tunnel_id();
++        let identity = self.accepted.session_identity(&name).unwrap();
++        if self
++            .tunnels
++            .get(&tid)
++            .is_none_or(|t| t.identity != identity.tunnel())
++        {
++            return;
++        }
++        let sid = config.session_id();
++        if self.deleting_sessions.contains_key(&(tid, sid)) {
++            self.incomplete = true;
++            self.reconcile_at.get_or_insert(self.k.now() + super::RETRY);
++            return;
++        }
++        let conflict = ConflictIdentity::Session(identity);
++        if !self.may_try(true, sid, conflict) {
++            return;
++        }
++        let label = report::session(&name, tid, sid);
++        match self.stage(&name, &config, identity, tid) {
++            Ok(()) => {
++                self.conflict_over(true, sid, &label);
++                self.report.end(&label, "create", || "created".into());
++                self.report.forget_condition(&label, "random");
+             }
+-            let conflict = ConflictIdentity::Session(identity);
+-            if !self.may_try(true, sid, conflict) {
+-                continue;
++            Err(e) if errno(&e) == Errno::EEXIST as i32 => {
++                self.conflict(true, sid, conflict, &label, &e)
+             }
+-            let label = report::session(&name, tid, sid);
+-            match self.stage(&name, &config, identity, tid) {
+-                Ok(()) => {
+-                    self.conflict_over(true, sid, &label);
+-                    self.report.end(&label, "create", || "created".into());
+-                    self.report.forget_condition(&label, "random");
+-                }
+-                Err(e) if errno(&e) == Errno::EEXIST as i32 => {
+-                    self.conflict(true, sid, conflict, &label, &e)
+-                }
+-                Err(e) => {
+-                    self.incomplete = true;
+-                    self.report.cannot_create(&label, "create", &e);
+-                }
++            Err(e) => {
++                self.incomplete = true;
++                self.report.cannot_create(&label, "create", &e);
+             }
+         }
+         if self.incomplete {
+@@ -332,55 +341,77 @@ impl<K: Kernel> Reconciler<K> {
+     /// Renames to temporary names the published devices whose name another
+     /// owned device is about to take, so that no rename collides (S11, M6).
+     pub(super) fn clear_swaps(&mut self) {
+-        // Drain acyclic rename dependencies first; only cycles need a
+-        // temporary name (S11).
+-        loop {
+-            let movable =
+-                self.sessions
+-                    .iter()
+-                    .find(|(_, r)| {
+-                        r.name_state == Enforce::Pending
+-                            && matches!(r.state, Identity::Proved(_))
+-                            && r.current_name != Some(*r.config.interface_name())
+-                            && !self.sessions.values().any(|holder| {
+-                                holder.current_name == Some(*r.config.interface_name())
+-                            })
+-                    })
+-                    .map(|(sid, _)| *sid);
+-            let Some(sid) = movable else { break };
++        let mut holders = BTreeMap::<_, BTreeSet<_>>::new();
++        let mut waiting = BTreeMap::<_, BTreeSet<_>>::new();
++        for (sid, record) in &self.sessions {
++            if let Some(name) = record.current_name {
++                holders.entry(name).or_default().insert(*sid);
++            }
++            if record.name_state == Enforce::Pending
++                && matches!(record.state, Identity::Proved(_))
++                && record.current_name != Some(*record.config.interface_name())
++            {
++                waiting
++                    .entry(*record.config.interface_name())
++                    .or_default()
++                    .insert(*sid);
++            }
++        }
++        // Release acyclic dependencies before staging cycles (S11).
++        let mut ready: BTreeSet<_> = waiting
++            .iter()
++            .filter(|(name, _)| !holders.contains_key(name))
++            .flat_map(|(_, ids)| ids.iter().copied())
++            .collect();
++        while let Some(sid) = ready.pop_first() {
++            let target = *self.sessions[&sid].config.interface_name();
++            if holders.contains_key(&target) {
++                continue;
++            }
+             let before = self.sessions[&sid].current_name;
+             self.converge_session(sid);
+             if self
+                 .sessions
+                 .get(&sid)
+-                .is_some_and(|r| r.current_name == before)
++                .is_some_and(|record| record.current_name == before)
+             {
+                 break;
+             }
++            if let Some(name) = before {
++                super::events::remove(&mut holders, name, sid);
++                if !holders.contains_key(&name) {
++                    ready.extend(waiting.get(&name).into_iter().flatten().copied());
++                }
++            }
++            if let Some(name) = self
++                .sessions
++                .get(&sid)
++                .and_then(|record| record.current_name)
++            {
++                holders.entry(name).or_default().insert(sid);
++            }
+         }
+-        let targets: Vec<(u32, L2tpIfName)> = self
++        holders.retain(|_, ids| {
++            ids.retain(|sid| matches!(self.sessions[sid].state, Identity::Proved(_)));
++            !ids.is_empty()
++        });
++        let targets: BTreeMap<_, _> = self
+             .sessions
+             .iter()
+-            .filter(|(_, r)| {
+-                r.name_state == Enforce::Pending && matches!(r.state, Identity::Proved(_))
++            .filter(|(_, record)| {
++                record.name_state == Enforce::Pending && matches!(record.state, Identity::Proved(_))
+             })
+-            .map(|(sid, r)| (*sid, *r.config.interface_name()))
++            .map(|(sid, record)| (*sid, *record.config.interface_name()))
+             .collect();
+         for (sid, target) in &targets {
+-            let holder = self
+-                .sessions
+-                .iter()
+-                .find(|(other, r)| {
+-                    other != &sid
+-                        && r.current_name == Some(*target)
+-                        && matches!(r.state, Identity::Proved(_))
+-                })
+-                .map(|(other, _)| *other);
++            let holder = holders
++                .get(target)
++                .and_then(|ids| ids.iter().find(|other| *other != sid))
++                .copied();
+             let Some(holder) = holder else { continue };
+-            // Only a holder that is itself moving away gives the name up.
+             if !targets
+-                .iter()
+-                .any(|(s, t)| *s == holder && Some(*t) != self.sessions[&holder].current_name)
++                .get(&holder)
++                .is_some_and(|name| Some(*name) != self.sessions[&holder].current_name)
+             {
+                 continue;
+             }
+@@ -405,9 +436,11 @@ impl<K: Kernel> Reconciler<K> {
+                 match self.k.rename(registration.index, &temp) {
+                     Ok(()) => {
+                         self.sessions.get_mut(&holder).unwrap().current_name = Some(temp);
++                        super::events::remove(&mut holders, *target, holder);
++                        holders.entry(temp).or_default().insert(holder);
+                         break;
+                     }
+-                    Err(e) if errno(&e) == Errno::EEXIST as i32 => continue,
++                    Err(error) if errno(&error) == Errno::EEXIST as i32 => continue,
+                     Err(_) => break,
+                 }
+             }
+diff --git a/src/reconciler/wanted_tests.rs b/src/reconciler/wanted_tests.rs
+index c9c229d..f3d59a2 100644
+--- a/src/reconciler/wanted_tests.rs
++++ b/src/reconciler/wanted_tests.rs
+@@ -148,3 +148,118 @@ fn desired_indexes_follow_operator_names_and_release_on_shutdown() {
+     assert!(r.wanted_tunnels.is_empty());
+     assert!(r.wanted_sessions.is_empty());
+ }
++
++/// spec: S11, S19, S27, M6, G2, G4
++#[test]
++fn a_removed_middle_of_a_rename_chain_releases_only_its_own_cached_name() {
++    for fail_rename in [false, true] {
++        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
++        let document = |changed: bool| {
++            let mut text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n".to_owned();
++            for n in 0..3 {
++                let target = n + usize::from(changed);
++                text += &format!(
++                    "[sessions.s{n}]\ntunnel_name='a'\nsession_id={}\ninterface_name='n{target}'\n",
++                    100 + n
++                );
++            }
++            toml::from_str(&text).unwrap()
++        };
++        assert!(r.reconcile(document(false)));
++        let first = r.k.session_index(10, 100);
++        let middle = r.k.session_index(10, 101);
++        let last = r.k.session_index(10, 102);
++        r.k.operator_delete_session(10, 101);
++        r.k.tick();
++        if fail_rename {
++            r.k.fail_next("rename", nix::errno::Errno::EIO);
++        }
++        r.reconcile(document(true));
++        for _ in 0..3 {
++            r.k.advance(super::super::RETRY);
++            r.k.tick();
++            for notice in r.k.take_monitor() {
++                r.handle(super::super::Source::Monitor, notice);
++            }
++            for notice in r.k.take_l2tp() {
++                r.handle(super::super::Source::L2tp, notice);
++            }
++            r.tick();
++        }
++        assert_eq!(r.k.session_index(10, 100), first);
++        assert_ne!(r.k.session_index(10, 101), middle);
++        assert_eq!(r.k.session_index(10, 102), last);
++        for n in 0..3 {
++            let index = r.k.session_index(10, 100 + n).unwrap();
++            assert_eq!(
++                r.k.link(index).unwrap().name().to_string_lossy(),
++                format!("n{}", n + 1)
++            );
++        }
++    }
++}
++
++/// spec: S11, S17, G2, G4
++#[test]
++fn overlapping_retained_targets_never_move_the_first_completed_holder() {
++    let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
++    let text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.a]\ntunnel_name='a'\nsession_id=100\ninterface_name='n0'\n[sessions.b]\ntunnel_name='a'\nsession_id=101\ninterface_name='n1'\n";
++    assert!(r.reconcile(toml::from_str(text).unwrap()));
++    // Old records retained after failed deletion can overlap new targets.
++    for (sid, record) in &mut r.sessions {
++        record.config = SessionConfig::builder("a", *sid, L2tpIfName::new(b"n2").unwrap())
++            .build()
++            .unwrap();
++        record.name_state = Enforce::Pending;
++    }
++    r.k.clear_ops();
++    r.clear_swaps();
++    assert_eq!(
++        r.sessions[&100].current_name.unwrap().to_string_lossy(),
++        "n2"
++    );
++    assert_eq!(r.sessions[&100].name_state, Enforce::Applied);
++    assert_eq!(
++        r.sessions[&101].current_name.unwrap().to_string_lossy(),
++        "n1"
++    );
++    assert_eq!(r.sessions[&101].name_state, Enforce::Pending);
++    assert_eq!(
++        r.k.ops()
++            .iter()
++            .filter(|op| op.starts_with("rename "))
++            .count(),
++        1
++    );
++}
++
++/// spec: S11, M6, G2, G4
++#[test]
++fn duplicate_cached_names_remain_held_until_the_last_record_moves() {
++    let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
++    let document = |changed: bool| {
++        let mut text =
++            "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n"
++                .to_owned();
++        for n in 0..3 {
++            let target = n + if changed { 2 } else { 0 };
++            text += &format!(
++                "[sessions.s{n}]\ntunnel_name='a'\nsession_id={}\ninterface_name='n{target}'\n",
++                100 + n
++            );
++        }
++        toml::from_str(&text).unwrap()
++    };
++    assert!(r.reconcile(document(false)));
++    r.sessions.get_mut(&100).unwrap().current_name = Some(L2tpIfName::new(b"n1").unwrap());
++    r.k.clear_ops();
++    assert!(r.reconcile(document(true)));
++    assert!(!r.k.ops().iter().any(|op| op.contains("rsl2tp-r")));
++    for n in 0..3 {
++        let index = r.k.session_index(10, 100 + n).unwrap();
++        assert_eq!(
++            r.k.link(index).unwrap().name().to_string_lossy(),
++            format!("n{}", n + 2)
++        );
++    }
++}
+diff --git a/tests/rules/events.rs b/tests/rules/events.rs
+index 3b2273a..3da2399 100644
+--- a/tests/rules/events.rs
++++ b/tests/rules/events.rs
+@@ -319,3 +319,41 @@ fn a_cached_master_is_not_queried_again_on_each_converge() {
+         );
+     }
+ }
++
++/// spec: E27, S27, M3, M5, M16, G23
++#[test]
++fn a_session_deletion_retries_only_that_entry_before_the_global_retry() {
++    let (mut r, _) = reconciler();
++    let text = format!(
++        "{TUNNEL}\n[sessions.a]\ntunnel_name='a'\nsession_id=100\ninterface_name='n0'\n[sessions.b]\ntunnel_name='a'\nsession_id=101\ninterface_name='n1'\n"
++    );
++    r.kernel_mut().fail_next("create", nix::errno::Errno::EIO);
++    assert!(!r.reconcile(config(&text)));
++    assert!(r.kernel().session_index(10, 100).is_none());
++    let removed = r.kernel().session_index(10, 101).unwrap();
++    r.kernel_mut().operator_delete_session(10, 101);
++    r.kernel_mut().tick();
++    ops(&mut r);
++    r.handle(
++        Source::L2tp,
++        Notice::SessionDeleted {
++            tunnel_id: 10,
++            session_id: 101,
++        },
++    );
++    let replacement = r.kernel().session_index(10, 101).unwrap();
++    assert_ne!(replacement, removed);
++    assert!(
++        r.kernel().session_index(10, 100).is_none(),
++        "unrelated creation must wait for its own retry"
++    );
++    assert!(
++        !ops(&mut r)
++            .iter()
++            .any(|op| op.starts_with("create 10 100 "))
++    );
++    r.kernel_mut().advance(std::time::Duration::from_secs(1));
++    r.tick();
++    assert!(r.kernel().session_index(10, 100).is_some());
++    assert_eq!(r.kernel().session_index(10, 101), Some(replacement));
++}
+diff --git a/tests/rules/sessions.rs b/tests/rules/sessions.rs
+index 93a4653..c1d6898 100644
+--- a/tests/rules/sessions.rs
++++ b/tests/rules/sessions.rs
+@@ -558,3 +558,63 @@ fn tolerated_fields_use_a_disconnected_tunnel_and_the_kernel_address() {
+     assert!(r.kernel().hwaddr(index).is_some());
+     assert!(!ops(&mut r).iter().any(|op| op.starts_with("hwaddr ")));
+ }
++
++/// spec: S11, S17, M6, M16, G2, G4, G23
++#[test]
++fn long_reverse_chains_and_cycles_preserve_devices_in_one_reconcile() {
++    for count in [1, 100, 300] {
++        for cycle in [false, true] {
++            let document = |changed: bool| {
++                let mut text = TUNNEL.to_owned();
++                for n in 0..count {
++                    let target = if !changed {
++                        n
++                    } else if cycle {
++                        (n + 1) % count
++                    } else {
++                        n + 1
++                    };
++                    text += &format!(
++                        "\n[sessions.s{n:04}]\ntunnel_name='a'\nsession_id={}\ninterface_name='n{target}'\n",
++                        1000 + n
++                    );
++                }
++                config(&text)
++            };
++            let (mut r, _) = reconciler();
++            assert!(r.reconcile(document(false)));
++            let before: Vec<_> = (0..count)
++                .map(|n| r.kernel().session_index(10, 1000 + n).unwrap())
++                .collect();
++            ops(&mut r);
++            let changed = document(true);
++            let started = std::time::Instant::now();
++            assert!(r.reconcile(changed));
++            let elapsed = started.elapsed();
++            let changes = ops(&mut r);
++            assert!(!changes.iter().any(|op| op.starts_with("create ")
++                || op.starts_with("delete ")
++                || op.starts_with("close ")));
++            if !cycle {
++                assert!(!changes.iter().any(|op| op.contains("rsl2tp-r")));
++            }
++            for (n, device) in before.into_iter().enumerate() {
++                let n = u32::try_from(n).unwrap();
++                let target = if cycle { (n + 1) % count } else { n + 1 };
++                assert_eq!(r.kernel().session_index(10, 1000 + n), Some(device));
++                assert_eq!(
++                    r.kernel().link(device).unwrap().name().to_string_lossy(),
++                    format!("n{target}")
++                );
++            }
++            println!(
++                "RENAME_COST sessions={count} cycle={cycle} elapsed_ns={} renames={}",
++                elapsed.as_nanos(),
++                changes
++                    .iter()
++                    .filter(|op| op.starts_with("rename "))
++                    .count()
++            );
++        }
++    }
++}
