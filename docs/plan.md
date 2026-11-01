@@ -508,8 +508,8 @@ GNU/musl live suites, three musl Incus runs and the root sandbox pass.
 The fresh required matrix is running. Merged coverage remains below 100%.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh production coverage is **96.86% of lines and
-89.68% of branches**, leaving **272 lines and 191 branches**. The 100% gate and complete
+GNU/musl qualification. Fresh production coverage is **96.92% of lines and
+89.73% of branches**, leaving **267 lines and 190 branches**. The 100% gate and complete
 clause/history/resource/event-cost proof remain open. Repository file
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.
 The following entries retain the history of earlier measurements.
@@ -1058,6 +1058,14 @@ and common checks pass. Repository record
 `audit/phase6/shared-startup-harness-20261101/` gives fresh 96.86% line /
 89.68% branch coverage: 272 lines and 191 branches remain. Shipping logic is
 unchanged; complete clause/history/resource proof and 100% remain required.
+
+Resolver-pressure reporting now has two complete warning/recovery episodes
+that preserve the accepted peer, lookup and socket without kernel mutation.
+Both omitted-report controls fail. Ten ordinary and instrumented repetitions,
+three musl suites and common checks pass. Repository record
+`audit/phase6/worker-pressure-reporting-20261101/` gives identical common
+production mappings and 96.92% line / 89.73% branch coverage: 267 lines and
+190 branches remain. Shipping logic is unchanged.
 
 ### Phase 7 — release
 

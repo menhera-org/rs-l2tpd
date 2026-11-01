@@ -294,7 +294,7 @@ fn an_ipv4_label_notice_does_not_reconnect_a_second_time() {
     assert!(ops(&mut r).is_empty());
 }
 
-/// spec: G13, O2, O3, O4, E20, T21, T25, R9
+/// spec: G13, O2, O3, O4, E20, T21, T25, R9, V15, V6
 #[test]
 fn completion_report_counts() {
     // Forking here can temporarily inherit other tests' fake socket references.
@@ -432,6 +432,63 @@ fn completion_report_counts() {
     answers.refuse(false);
     run_for(&mut resolver_case, 30);
     assert_eq!(count(log::Level::Info, "its resolver started"), 1);
+
+    let source = resolver_case.kernel_mut().add_link("worker-source", false);
+    resolver_case
+        .kernel_mut()
+        .add_addr(source, "2001:db8::1".parse().unwrap());
+    answers.answer("controlled.example", &["2001:db8::2"]);
+    run_for(&mut resolver_case, 1);
+    let socket = resolver_case.kernel().tunnel_socket(10).unwrap();
+    let peer = resolver_case.kernel().connection(socket).unwrap();
+    let watching = answers.watching();
+    assert_eq!(watching.len(), 1);
+    assert_eq!(peer.0, "2001:db8::2".parse::<std::net::IpAddr>().unwrap());
+    ops(&mut resolver_case);
+    for episode in 1..=2 {
+        answers.waiting(true);
+        assert!(rs_l2tpd::reconciler::Resolve::waiting(
+            &answers,
+            watching[0].id()
+        ));
+        assert!(!rs_l2tpd::reconciler::Resolve::waiting(&answers, u64::MAX));
+        run_for(&mut resolver_case, 5);
+        assert_eq!(
+            count(log::Level::Warn, "resolver waits for a process-wide worker"),
+            episode
+        );
+        assert_eq!(
+            count(
+                log::Level::Info,
+                "resolver worker capacity is available again"
+            ),
+            episode - 1
+        );
+        assert!(resolver_case.ready());
+        assert_eq!(resolver_case.kernel().connection(socket), Some(peer));
+        assert_eq!(answers.watching(), watching);
+
+        answers.waiting(false);
+        run_for(&mut resolver_case, 5);
+        assert_eq!(
+            count(
+                log::Level::Info,
+                "resolver worker capacity is available again"
+            ),
+            episode
+        );
+        assert_eq!(
+            count(log::Level::Warn, "resolver waits for a process-wide worker"),
+            episode
+        );
+        assert_eq!(resolver_case.kernel().tunnel_socket(10), Some(socket));
+        assert_eq!(resolver_case.kernel().connection(socket), Some(peer));
+        assert_eq!(answers.watching(), watching);
+        assert!(
+            ops(&mut resolver_case).is_empty(),
+            "worker admission must preserve the established tunnel"
+        );
+    }
     capture.messages.lock().unwrap().clear();
     let (mut r, _) = reconciler();
     r.reconcile(config(TUNNEL));

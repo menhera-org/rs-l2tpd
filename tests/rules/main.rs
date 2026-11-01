@@ -33,6 +33,7 @@ struct Lookups {
     results: Vec<(u64, Vec<IpAddr>)>,
     refuse: bool,
     partial: bool,
+    waiting: bool,
 }
 
 /// The test's side of the lookups: it answers host names when it likes.
@@ -66,6 +67,11 @@ impl Answers {
         self.0.lock().unwrap().partial = partial;
     }
 
+    /// Controls admission pressure for current lookups (V15).
+    pub fn waiting(&self, waiting: bool) {
+        self.0.lock().unwrap().waiting = waiting;
+    }
+
     /// Makes the next watches fail, as a refused port would (V12).
     pub fn refuse(&self, refuse: bool) {
         self.0.lock().unwrap().refuse = refuse;
@@ -89,6 +95,10 @@ impl Resolve for Answers {
     }
     fn retry_discovery(&self, _: u64) -> bool {
         self.0.lock().unwrap().partial
+    }
+    fn waiting(&self, id: u64) -> bool {
+        let state = self.0.lock().unwrap();
+        state.waiting && state.watching.contains_key(&id)
     }
 }
 

@@ -1,0 +1,13 @@
+diff --git a/src/reconciler/resolvers.rs b/src/reconciler/resolvers.rs
+index 70befc2..2cf7e56 100644
+--- a/src/reconciler/resolvers.rs
++++ b/src/reconciler/resolvers.rs
+@@ -496,7 +496,7 @@ impl<K: Kernel> Reconciler<K> {
+                 continue;
+             };
+             let label = report::tunnel(&tunnel.name, *tid);
+-            if self.resolvers.resolve.waiting(watch.id) {
++            if false && self.resolvers.resolve.waiting(watch.id) {
+                 self.report.begin(&label, "worker", || "resolver waits for a process-wide worker; obsolete calls keep their permits (V15)".into());
+             } else {
+                 self.report.end(&label, "worker", || {
