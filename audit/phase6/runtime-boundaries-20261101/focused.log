@@ -1,0 +1,33 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-dc5105cc1b329540)
+
+running 25 tests
+test runtime::tests::absent_log_sink_does_not_change_kernel_refusal_or_recovery ... ignored, serial isolated runner; child exec must not inherit concurrent fake socket references
+test runtime::tests::adopted_identifiers_require_canonical_nonzero_names_and_retain_ownership ... ok
+test runtime::tests::closed_admission_returns_errors_without_accepting_or_queuing_requests ... ok
+test runtime::tests::a_dropped_source_removal_stays_stale_until_resync_is_forwarded ... ok
+test runtime::tests::dropping_runtime_stops_both_subscription_tasks_and_closes_the_queue ... ok
+test runtime::tests::shutdown_discards_tunable_work_that_the_program_has_not_received ... ok
+test runtime::tests::cleanup_verifies_kernel_absence_and_reports_a_remaining_reference ... ok
+test runtime::tests::blocking_completions_work_inside_spawn_blocking ... ok
+test runtime::tests::event_wait_without_tokio_reports_an_error_and_channels_remain_usable ... ok
+test runtime::tests::adopted_names_are_verified_or_retired_and_store_wait_is_bounded ... ok
+test runtime::tests::shutdown_request_and_started_shutdown_both_refuse_new_configuration ... ok
+test runtime::tests::shutdown_keeps_withdrawal_and_kernel_deletion_windows_separate ... ok
+test runtime::tests::tunable_handshake_is_observed_forwarded_and_answered_without_host_io ... ok
+test runtime::tests::store_submission_and_withdrawal_acknowledgements_keep_the_incarnation ... ok
+test runtime::tests::queue_full_waiter_and_shutdown_precedence ... ok
+test runtime::tests::dropping_the_owner_releases_a_waiter_and_rejects_later_completions ... ok
+test runtime::tests::library_boundary_and_extensible_api ... ok
+test runtime::tests::concurrent_completions_return_each_admission_slot_once ... ok
+test runtime::tests::lifetime_proofs_do_not_use_the_full_event_queue ... ok
+test runtime::tests::subscription_loss_survives_a_full_queue_and_a_second_loss ... ok
+test runtime::tests::l2tp_queue_loss_uses_its_own_resync_flag ... ok
+test runtime::tests::cancelling_unaccepted_reload_wait_does_not_inflate_admission_capacity ... ok
+test runtime::tests::tunable_timeout_ignores_late_success_and_shutdown_cancels_pending ... ok
+test runtime::tests::unapplied_socket_operations_are_reported_without_gating_peer_availability ... ok
+test runtime::tests::completed_store_retirements_release_outgoing_queue_storage ... ok
+
+test result: ok. 24 passed; 0 failed; 1 ignored; 0 measured; 236 filtered out; finished in 0.06s
+

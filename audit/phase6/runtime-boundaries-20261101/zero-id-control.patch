@@ -1,0 +1,12 @@
+diff --git a/src/runtime.rs b/src/runtime.rs
+--- a/src/runtime.rs
++++ b/src/runtime.rs
+@@ -72,7 +72,7 @@ impl AdoptedSocket {
+         self.name
+             .strip_prefix('t')
+             .and_then(|id| id.parse::<u32>().ok())
+-            .filter(|id| *id != 0 && self.name == format!("t{id}"))
++            .filter(|id| self.name == format!("t{id}"))
+     }
+     /// Returns ownership and the unchanged name.
+     pub fn into_parts(self) -> (String, OwnedFd) {

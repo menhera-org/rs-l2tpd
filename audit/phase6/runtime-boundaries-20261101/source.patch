@@ -1,0 +1,116 @@
+diff --git a/src/runtime/tests.rs b/src/runtime/tests.rs
+index dc34ecf..330ee15 100644
+--- a/src/runtime/tests.rs
++++ b/src/runtime/tests.rs
+@@ -924,3 +924,111 @@ fn concurrent_completions_return_each_admission_slot_once() {
+         finish(&mut runtime);
+     });
+ }
++
++/// spec: L13, P14
++#[test]
++fn adopted_identifiers_require_canonical_nonzero_names_and_retain_ownership() {
++    use std::io::{Read, Write};
++    use std::os::fd::AsRawFd;
++    use std::os::unix::net::UnixStream;
++    for (name, expected) in [
++        ("t1", Some(1)),
++        ("t4294967295", Some(u32::MAX)),
++        ("", None),
++        ("t", None),
++        ("t0", None),
++        ("t00", None),
++        ("t01", None),
++        ("t+1", None),
++        ("t-1", None),
++        ("T1", None),
++        ("t1 ", None),
++        ("t4294967296", None),
++    ] {
++        let (stream, mut peer) = UnixStream::pair().unwrap();
++        let original = stream.as_raw_fd();
++        let adopted = AdoptedSocket::new(name, stream.into());
++        assert_eq!(adopted.name(), name);
++        assert_eq!(adopted.tunnel_id(), expected, "{name:?}");
++        assert_eq!(adopted.fd().as_raw_fd(), original);
++        let (returned_name, fd) = adopted.into_parts();
++        assert_eq!(returned_name, name);
++        assert_eq!(fd.as_raw_fd(), original);
++        let mut stream = UnixStream::from(fd);
++        stream
++            .set_read_timeout(Some(Duration::from_secs(3)))
++            .unwrap();
++        peer.write_all(b"alive").unwrap();
++        let mut bytes = [0; 5];
++        stream.read_exact(&mut bytes).unwrap();
++        assert_eq!(&bytes, b"alive");
++    }
++}
++
++/// spec: L9, L11, L13, G20
++#[test]
++fn shutdown_request_and_started_shutdown_both_refuse_new_configuration() {
++    engine().block_on(async {
++        for request_only in [false, true] {
++            let mut runtime = runtime();
++            assert!(runtime.reconcile(Config::new()));
++            if request_only {
++                runtime.control().shutdown();
++            } else {
++                assert!(runtime.shutdown().unwrap());
++            }
++            runtime.reconciler.kernel_mut().clear_ops();
++            assert!(!runtime.reconcile(config()));
++            assert!(runtime.control().config().tunnels().is_empty());
++            assert!(runtime.reconciler.kernel().ops().is_empty());
++            finish(&mut runtime);
++        }
++    });
++}
++
++/// spec: L6, L11, G23
++#[test]
++fn closed_admission_returns_errors_without_accepting_or_queuing_requests() {
++    engine().block_on(async {
++        let mut runtime = runtime();
++        let control = runtime.control();
++        control.shared.requests.close();
++        let generation = control.shared.generation.load(Ordering::Acquire);
++        let try_error = control.shared.requests.try_acquire().unwrap_err().to_string();
++        for error in [control.reload().unwrap_err(), control.restart().unwrap_err()] {
++            assert!(matches!(error, Error::Other(message) if message == try_error));
++        }
++        let wait_error = control.shared.requests.acquire().await.unwrap_err().to_string();
++        assert!(matches!(control.reload_wait().await, Err(Error::Other(message)) if message == wait_error));
++        assert_eq!(control.shared.generation.load(Ordering::Acquire), generation);
++        assert_eq!(control.shared.admitted.load(Ordering::Acquire), 0);
++        assert_eq!(control.shared.requests.available_permits(), QUEUE_CAPACITY);
++        assert_eq!(control.tx.capacity(), QUEUE_CAPACITY);
++        finish(&mut runtime);
++    });
++}
++
++/// spec: L8, L13, P25, G20
++#[test]
++fn shutdown_discards_tunable_work_that_the_program_has_not_received() {
++    engine().block_on(async {
++        let mut runtime = runtime();
++        runtime.reconciler.kernel_mut().set_bindv6only(true);
++        runtime.reconcile(config());
++        assert!(
++            runtime
++                .outgoing
++                .iter()
++                .any(|event| matches!(event, ControlEvent::WriteTunable { .. }))
++        );
++        runtime.shutdown().unwrap();
++        assert!(
++            !runtime
++                .outgoing
++                .iter()
++                .any(|event| matches!(event, ControlEvent::WriteTunable { .. }))
++        );
++        assert!(runtime.reconciler.kernel().bindv6only());
++        finish(&mut runtime);
++    });
++}

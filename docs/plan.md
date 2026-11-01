@@ -517,8 +517,8 @@ scenario/Incus repetitions pass. The required matrix is running on
 frozen signed commit `584062d`; its results remain separate from `11bef84`.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.11% of
-lines and 90.11% of branches**, leaving **251 lines and 183 branches**. The 100% gate and complete
+GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.12% of
+lines and 90.27% of branches**, leaving **250 lines and 180 branches**. The 100% gate and complete
 clause/history/resource/event-cost proof remain open. Repository file
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.
 The following entries retain the history of earlier measurements.

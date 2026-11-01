@@ -12,7 +12,7 @@ infrastructure. The current E27 correction changes session-verification
 behavior: a queued-deletion witness fails on the preceding code and passes
 with the correction. Repeated models, GNU/musl live suites, three musl Incus
 runs and the root sandbox pass. Its required matrix passes all thirteen profiles. Fresh coverage for
-0.4.4, the standard-library boundaries and host-worker case is 97.11% lines / 90.11%
+0.4.4, the standard-library boundaries and runtime cases is 97.12% lines / 90.27%
 branches. Common checks, ten native and instrumented seeds, three musl
 model runs, GNU live/Incus, manager, task limits and root-systemd pass.
 Three musl scenario/Incus repetitions pass. The new required matrix is
@@ -44,7 +44,7 @@ original execution scope.
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | All 27 normal cases pass on each of five required kernels, including H20, H17 and the new VRF reload regression. Three current musl host suites also pass | Complete clause, history and resource/event-cost proof |
 | P3 required kernels | Frozen `11bef84` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Requalify the released iphost 0.4.4 integration and boundary changes; later test-only additions have separate records |
-| P4 coverage | Fresh 0.4.4/boundary profiles plus the host-worker case: 8,420/8,671 lines (97.11%); 1,667/1,850 branches (90.11%). No production exclusions, profile mismatches or saturated regions | Cover 251 lines and 183 branches; enable the completed 100% gate in CI |
+| P4 coverage | Fresh 0.4.4/boundary profiles plus the runtime cases: 8,421/8,671 lines (97.12%); 1,670/1,850 branches (90.27%). No production exclusions, profile mismatches or saturated regions | Cover 250 lines and 180 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | The 0.4.4/boundary source passes GNU in 17.79 s and three unprivileged musl cases in 10.71, 19.44 and 20.06 s; all containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | The 0.4.4/boundary source and the unmodified supplied unit pass in 30.97 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
@@ -87,6 +87,14 @@ Broader distributions and live non-x86 architectures remain unrun.
 Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 
 ## Current coverage evidence
+
+The [runtime boundaries](phase6/runtime-boundaries-20261101/README.md)
+add canonical adopted-name, descriptor ownership, shutdown admission and
+queued-tunable checks. Ten native and instrumented seeds, three musl
+library runs and common checks pass; six controls fail. All 4,302 coverage
+mappings remain identical. The library has 242 ordinary passing cases and
+19 ignored cases (22 in the instrumented serial profile). Coverage reaches
+8,421/8,671 lines and 1,670/1,850 branches; no production code changed.
 
 The [host-worker case](phase6/host-worker-boundaries-20261101/README.md)
 adds test-only refusal, completion-ID and descriptor-release checks. Ten
