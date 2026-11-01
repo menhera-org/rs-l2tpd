@@ -1,0 +1,5 @@
+command: timeout 20 docker run --rm --network none --pids-limit 1 IMAGE DAEMON --foreground --config /config.toml --config-dir /absent --pid-file /probe.pid
+ERROR rs_l2tpd: Resource temporarily unavailable (os error 11)
+THREAD_LIMIT_CHECKED=1
+command: timeout 20 docker run --rm --network none --pids-limit 2 IMAGE DAEMON --foreground --config /config.toml --config-dir /absent --pid-file /probe.pid
+unexpected exit: 124

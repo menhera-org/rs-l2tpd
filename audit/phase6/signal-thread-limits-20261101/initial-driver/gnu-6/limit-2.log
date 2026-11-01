@@ -1,0 +1,1 @@
+command: timeout 20 docker run --rm --network none --pids-limit 2 IMAGE DAEMON --foreground --config /config.toml --config-dir /absent --pid-file /probe.pid

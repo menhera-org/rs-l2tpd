@@ -21,7 +21,7 @@ tests/
   process.rs      actual-binary CLI and live process cases; binary unit tests live in src/bin/
   process/        instructions for privileged and real-manager process checks
   scenarios/      partial Phase 6 host/manager scenarios plus the Incus system-unit case
-  docker/         run.sh scenarios|matrix|incus; full scenario and matrix gates remain open
+  docker/         scenario/matrix/Incus runners and thread-limits.sh resource checks
   tools/
     rulemap.rs    the rule-map check
     srclink.rs    the source-link check
@@ -45,7 +45,7 @@ repository file `audit/phase6/P6_ROOT_SANDBOX_2026-10-30.md`. The November 1
 required matrix passed its 26-scenario normal profile and separate clock
 profiles on all five resolved targets. Later changes still need final
 qualification. Repository file `audit/PHASE6_VERIFICATION_2026-11-01.md`
-tracks the H11/G23 decisions, upstream signal release, remaining proof and
+tracks the H11/G23 decisions, checked libc signal exception, remaining proof and
 merged 100% coverage gate.
 
 ## The four suites
@@ -64,6 +64,20 @@ must provide capacity for the single 300-session fixture and its other
 workloads. Independent QEMU guests can run concurrently. The controlled
 reproduction and source evidence are in repository record
 `audit/phase6/neighbour-pressure-20261101/`.
+
+The signal-thread resource check runs the actual daemon in disposable
+networkless Docker containers with task limits of one and two. Both must
+return EAGAIN and exit one before kernel startup, without panic. This needs
+Docker's pids controller and a `timeout` command. It changes only each test
+container's limit. Container creation has a separate 60-second bound;
+attached execution has a 20-second bound. The CI step allows three minutes
+for both cases and retains their logs with the live artifacts.
+
+```sh
+tests/docker/thread-limits.sh rs-l2tpd-audit-vm:local \
+    target/x86_64-unknown-linux-musl/debug/rs-l2tpd \
+    audit/phase6/thread-limits target/thread-limit-profiles
+```
 
 ### The conformance suite
 

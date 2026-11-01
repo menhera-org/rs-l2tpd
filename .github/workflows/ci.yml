@@ -111,6 +111,18 @@ jobs:
           cargo test --locked --all-features --target x86_64-unknown-linux-musl --no-run
           tests/docker/baseline.sh "$RECORD"
 
+      - name: Check signal thread resource failures
+        timeout-minutes: 3
+        run: |
+          tests/docker/thread-limits.sh rs-l2tpd-audit-vm:local \
+            target/x86_64-unknown-linux-musl/debug/rs-l2tpd \
+            "$RECORD/thread-limits" target/phase6-thread-limit-profiles \
+            > "$RECORD/thread-limits.log" 2>&1 || {
+              cat "$RECORD/thread-limits.log"
+              exit 1
+            }
+          cat "$RECORD/thread-limits.log"
+
       - name: Run live suites in a fresh guest
         timeout-minutes: 20
         run: |

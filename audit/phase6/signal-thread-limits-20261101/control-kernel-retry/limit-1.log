@@ -1,0 +1,4 @@
+command: timeout 60 docker create --network none --init=false --pids-limit 1 IMAGE DAEMON; timeout 20 docker start --attach NAME
+b73ab2ddba5d51be886f23de3425784843ecf90167f7ebb440373227a6da6fe2
+os error 11
+opening kernel interfaces

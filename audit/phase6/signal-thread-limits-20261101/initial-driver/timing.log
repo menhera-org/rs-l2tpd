@@ -1,0 +1,5 @@
+Command log creation: 2026-11-01 04:30:54.994190658 UTC
+Cleanup attempt log creation: 2026-11-01 04:31:15.008461596 UTC
+Docker create event: 1793507475235887969 ns since Unix epoch
+Docker destroy event (manual cleanup): 1793507606842013142 ns since Unix epoch
+Docker state before manual cleanup: Created; Pid=0; StartedAt unset

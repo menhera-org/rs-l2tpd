@@ -874,6 +874,14 @@ pass, with identical production mappings. Repository record
 87.81% branch report: 353 lines and 223 branches remain. Production code
 and guest fixtures are unchanged; the frozen `ce6a70a` matrix is running.
 
+Real task limits now refuse the first and second signal-thread allocations.
+Ten GNU and three musl final-driver runs pass; the missing-wakeup control
+fails at join. The bounded CI command and checker controls also pass locally.
+Repository record `audit/phase6/signal-thread-limits-20261101/` retains the
+initial container-creation timeout, its cleanup and the corrected driver.
+Compatible profiles bring coverage to 95.95% lines / 87.81% branches,
+leaving 348 lines and 223 branches. Production mappings are unchanged.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what
