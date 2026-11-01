@@ -42,7 +42,9 @@ the preceding implementation and passes with the correction. Repeated models,
 GNU/musl live suites, three musl Incus runs and the root sandbox pass.
 The fresh required matrix is running. Merged coverage remains below 100%.
 
-Phase 6 remains open. Strict rule-map/source-link checks have passing CI
+Phase 6 remains open. A confirmed V12 upstream defect is under repair:
+an anonymous iphost client accepts a Reply carrying another client identifier.
+Three live witnesses fail; the specification remains unchanged. Strict rule-map/source-link checks have passing CI
 records, including ten-repetition qualification. Unprivileged Incus and the
 root unit sandbox have passing local records. The approved MAC and
 dependency-state contracts are applied. Broken `nix` signal wrappers use

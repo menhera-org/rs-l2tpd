@@ -46,7 +46,9 @@ capture loss. Guards kill daemons and delete namespaces on panic. Frame
 delivery and drop counters are asserted, along with interface identity,
 kernel objects, logs and bounded event waits.
 
-Phase 6 remains incomplete. Production source `2051827` passes all thirteen
+Phase 6 remains incomplete. A confirmed V12 defect in iphost 0.4.3 is under
+upstream repair: anonymous clients accept Replies carrying a Client Identifier.
+The three failing live witnesses are retained in the current verification record. Production source `2051827` passes all thirteen
 required profiles, including 27 normal scenarios on each of five kernels,
 five clock profiles, both IPv6-absent boots and missing-driver recovery.
 The E27 correction passes repeated model and GNU/musl live tests, three

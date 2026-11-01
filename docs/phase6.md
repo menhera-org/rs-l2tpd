@@ -27,7 +27,9 @@ the scenario suite below; read them before writing new scenarios.
 
 ## Execution status, 2026-11-01
 
-Phase 6 remains open. Production source `2051827` passes all thirteen required
+Phase 6 remains open. A confirmed V12 upstream defect is under repair:
+an anonymous iphost client accepts a Reply carrying another client identifier.
+Three live witnesses fail; the specification remains unchanged. Production source `2051827` passes all thirteen required
 matrix profiles, including 27 normal scenarios on each of the five kernels.
 Strict maps, unprivileged Incus and the root sandbox have passing records.
 The current E27 correction fixes verification stopping while a session's

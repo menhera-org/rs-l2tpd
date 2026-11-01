@@ -501,6 +501,11 @@ recovery. Strict rule/source maps, unprivileged Incus and the root sandbox
 have passing records. The checked libc exception is applied; no nix
 contribution or release is required.
 
+A confirmed V12 upstream defect is under repair: an anonymous iphost client
+accepts a Reply carrying another client identifier. Three live witnesses
+fail. The specification remains unchanged; the upstream fix and released
+dependency integration are required.
+
 The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,

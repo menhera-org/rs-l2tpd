@@ -1,6 +1,9 @@
 # Phase 6 verification, 2026-11-01
 
-Phase 6 is incomplete. Production source `2051827` has completed the
+Phase 6 is incomplete. A newly confirmed [anonymous Reply defect](phase6/anonymous-reply-20261101/README.md)
+violates V12 in released iphost 0.4.3. Three live witnesses accept the wrong
+DNS server; the upstream correction and released integration are required.
+The specification remains unchanged. Production source `2051827` has completed the
 [required matrix](phase6/matrix-20261101T075850Z-1691154/README.md).
 It includes kernel-selected inventories, VRF inventory-completion tracking
 and checked libc signal calls. Later commits add tests and measurement

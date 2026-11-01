@@ -233,7 +233,9 @@ ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
 merged report is 97.01% lines / 89.89% branches, with no production
 exclusions; 259 lines and 187 branches remain. The E27 correction has fresh
-profiles. Repository file
+profiles. A separate three-run live witness fails V12's anonymous Reply
+validation in iphost 0.4.3; its upstream correction and released integration
+remain required. Repository file
 `audit/phase6/resolver-wire-identity-20261101/README.md` identifies the latest
 measurement and its qualified scope. The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public
