@@ -6,17 +6,18 @@ Strict CI map flags were enabled after the ten-run qualification recorded
 below; the updated strict workflow also passed. The maintainer approved the K26/K34
 kernel distinction on 2026-10-31, and the correction is applied. The
 previously approved evidence-map and H11 MAC decisions remain in force.
-The new signal-fault package waits for a compatible nix release with the
-fix proposed in upstream PR #2852; no daemon workaround is applied.
+The maintainer-approved libc exception now replaces broken nix signal
+wrappers. GNU/musl refusals and all five required kernel targets pass;
+no nix contribution or release is required.
 
 | Gate/package | Current evidence | Remaining work |
 |---|---|---|
 | P1 source link | Strict local and CI passes: 43 facts, 37 production-cited and six classified; no uncited functions. Ten CI repetitions passed | Maintain strict enforcement as sources change |
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
-| P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and fresh profiles; H16 has passing required-kernel records; table/index/queue history checks pass | G23 witnesses retain 100–10,000 current address/member records with one configured tunnel; complete this bound, event-cost proof and remaining clauses |
-| P3 matrix | Latest required driver returns MATRIX_RESULT=0: five normal and five clock profiles, both IPv6-absent boots and missing-Ethernet-driver recovery pass; published versions match before/after | Later test additions need final consistent-source qualification; complete P2/delegated proof remains open |
-| P4 coverage | Approved production scope: merged GNU report 95.03% lines / 84.97% branches after shared alias-state correction; production mappings match across final fixture additions, with no exclusions or saturated counts | 424 missing lines / 272 branches; add meaningful cases and remaining profiles to reach 100% |
-| P5 Incus | Unmodified musl run now fails its staged configured-MAC assertion; the preceding committed daemon reproduces the udev override on creation three | Maintainer decision on H11 precedence wording and prepared explicit-authority test; later individual passes do not establish determinism |
+| P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and fresh profiles; H16 has passing required-kernel records; table/index/queue history checks pass | Approved current-dependency storage uses streamed inventories; a one-event witness still reads all unrelated addresses. Fix and prove event cost and remaining clauses |
+| P3 matrix | Latest required driver returns MATRIX_RESULT=0: five normal and five clock profiles, both IPv6-absent boots and missing-Ethernet-driver recovery pass; published versions match before/after | Frozen ce6a70a includes checked libc signal calls; later test-only additions are separately qualified. Complete P2/delegated proof remains open |
+| P4 coverage | Approved production scope: fresh checked-libc collection reaches 96.00% lines / 87.81% branches; production mappings match across test-only additions, with no exclusions or saturated counts | 344 missing lines / 223 branches; add meaningful cases and remaining profiles to reach 100% |
+| P5 Incus | Approved explicit MAC authority and later-manager limitation applied; three fresh unmodified musl Incus runs pass | Repeat after relevant production changes; other distribution userspaces remain untested |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
 
@@ -1065,3 +1066,14 @@ root-systemd guest passes in 28.04 seconds. Coverage is 95.05% lines /
 85.07% branches, leaving 422 lines and 270 branches, with zero saturated
 regions or production exclusions. No daemon or Linux-adapter behavior changes;
 the outstanding contract, release and final qualification gates remain open.
+
+## Checked-libc matrix refresh, November 1
+
+[The frozen matrix](phase6/matrix-20261101T041133Z-1418227/README.md)
+passes all thirteen profiles with matching published selections and empty
+source patches. It includes checked libc signal refusals on all five
+targets. The later test-only tree passes both GitHub jobs in run 41277232235,
+including actual first/second signal-thread resource refusals. Current
+coverage is 96.00% lines / 87.81% branches; the separate ordinary-event
+witness reads 2, 101 and 10,001 address records as unrelated state grows.
+This is an implementation defect to fix, not a closed event-cost gate.

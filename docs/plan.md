@@ -891,6 +891,14 @@ record `audit/phase6/file-reload-conflict-20261101/` gives the current
 The separate event-cost witness finds a namespace-wide address scan for one
 ordinary VRF-member event; targeted inventory work is under investigation.
 
+The frozen checked-libc source now passes all five required normal and
+clock profiles, both IPv6-absent boots and missing-driver recovery. Initial
+and final publication checks agree. Repository record
+`audit/phase6/matrix-20261101T041133Z-1418227/` records all thirteen profiles
+and their exact scope. The later test-only tree also passes both GitHub
+jobs, including the signal-thread resource step (run 41277232235).
+The reproduced ordinary-event inventory cost and 100% coverage remain open.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

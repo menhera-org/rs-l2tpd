@@ -9,9 +9,9 @@ The latest required matrix passes all five normal and clock profiles,
 including H20 fragmentation and both 300-entry daemons. It also passes both
 IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
 publication checks select the same versions. Repository record
-`audit/phase6/matrix-20261101T025846Z-1217029/README.md` identifies the frozen
-streamed-inventory implementation and approved fixtures tested. The later
-checked libc signal calls and test additions still need five-target qualification.
+`audit/phase6/matrix-20261101T041133Z-1418227/README.md` identifies the frozen
+streamed-inventory implementation, checked libc signal calls and approved
+fixtures tested. Later test-only additions have separate qualification.
 The approved H11 configured-MAC policy now passes three fresh Incus runs
 and a root-systemd guest on Ubuntu 6.8.0-147; its userspace scope is below.
 
@@ -105,8 +105,8 @@ The normal profile proves the shared assertions it actually executes,
 including all eight H20 fragmentation combinations. The additional
 profiles below use the I/O source identified by the latest matrix record.
 This snapshot includes the later monitor/process/inheritance assertions.
-Subsequent socket application/cleanup fixes and approved MAC/timing fixtures
-have separate Ubuntu 6.8 evidence and still need final five-target qualification.
+Socket application/cleanup fixes, approved MAC/timing fixtures and checked
+signal-mask/wait refusals pass on all five required targets.
 
 | Required kernel | Matrix normal profile / H20 | Capability/netlink degradation | H16 clock/pause | H17 300 tunnels | H11/unprivileged system container |
 |---|---|---|---|---|---|
@@ -117,7 +117,7 @@ have separate Ubuntu 6.8 evidence and still need final five-target qualification
 | Mainline `7.3.0` | 26 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the
-latest matrix (`audit/phase6/matrix-20261101T003757Z-933582/README.md`).
+latest matrix (`audit/phase6/matrix-20261101T041133Z-1418227/README.md`).
 The approved explicit-MAC-authority case passes three fresh unprivileged
 Incus runs and the unmodified root-systemd guest. Their source and logs are
 in `audit/phase6/maintainer-decisions-20261101/README.md`; the earlier failure
@@ -129,21 +129,21 @@ execution summaries.
 
 ### Latest matrix counts and ownership observations
 
-Each normal guest runs twelve live library cases, nineteen Linux cases
-(including the seventeen shared conformance cases), five review cases, fifty
-ordinary binary cases and three privileged binary cases. Eight descriptor
-fault paths run separately in those binary fixtures. All 27 process cases
+Each normal guest runs fourteen live library cases, twenty Linux cases,
+five review cases, fifty-six ordinary binary cases and three privileged
+binary cases. Eight daemon fault paths include signal-mask and signal-wait
+refusals. All 28 process cases
 and 26 normal scenarios pass on each target; the real-manager and clock
 declarations are outside the normal scenario profile. The clock profile runs
 one case per target with controller-confirmed pause/resume.
 
 | Required target | Normal scenarios | H16 clock/pause | Closed and unregistered socket ownership |
 |---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 26 pass, 542.06 s | Pass, 64.74 s | Both families pass |
-| Vanilla `6.8.12` | 26 pass, 474.47 s | Pass, 64.30 s | Both families pass |
-| Ubuntu `7.0.0-42-generic` | 26 pass, 492.10 s | Pass, 64.50 s | Both families pass |
-| Vanilla `7.0.14` | 26 pass, 459.38 s | Pass, 64.27 s | Both families pass |
-| Mainline `7.3.0` | 26 pass, 446.56 s | Pass, 64.40 s | Both families pass |
+| Ubuntu `6.8.0-147-generic` | 26 pass, 557.56 s | Pass, 64.38 s | Both families pass |
+| Vanilla `6.8.12` | 26 pass, 461.43 s | Pass, 64.36 s | Both families pass |
+| Ubuntu `7.0.0-42-generic` | 26 pass, 491.09 s | Pass, 64.47 s | Both families pass |
+| Vanilla `7.0.14` | 26 pass, 432.07 s | Pass, 64.31 s | Both families pass |
+| Mainline `7.3.0` | 26 pass, 435.94 s | Pass, 64.24 s | Both families pass |
 
 After a local socket handle closes, its five socket operations return EBADF
 even while an external descriptor retains the tunnel. An unregistered
