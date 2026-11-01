@@ -1,0 +1,8 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 1 test
+test pidfile::fault_tests::publication_and_removal_faults_preserve_existing_files_and_clear_temporary_names ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 57 filtered out; finished in 0.33s
+

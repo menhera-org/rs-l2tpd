@@ -836,6 +836,13 @@ common checks pass, with identical production coverage mappings. Repository
 record `audit/phase6/pid-authority-20261101/` gives the current 95.63%
 line / 87.05% branch report: 375 lines and 237 branches remain.
 
+Eight PID syscall-fault cases now verify original errors, preserved existing
+files and temporary-name cleanup; the omitted-cleanup control fails. Ten
+seeded suites, three musl binary suites, cross-target compiles and common
+checks pass, with identical production coverage mappings. Repository record
+`audit/phase6/pid-faults-20261101/` gives the current 95.72% line / 87.38%
+branch report: 367 lines and 231 branches remain.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

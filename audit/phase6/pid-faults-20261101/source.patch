@@ -1,0 +1,129 @@
+diff --git a/src/bin/rs-l2tpd/pidfile.rs b/src/bin/rs-l2tpd/pidfile.rs
+index 903f0ef..edbb124 100644
+--- a/src/bin/rs-l2tpd/pidfile.rs
++++ b/src/bin/rs-l2tpd/pidfile.rs
+@@ -639,3 +639,124 @@ mod edge_tests {
+         }
+     }
+ }
++
++#[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
++mod fault_tests {
++    use super::*;
++    use crate::testdir::Dir;
++
++    /// spec: P10, P11, P17
++    #[test]
++    fn pid_syscall_fault_child() {
++        let Some(case) = std::env::var_os("PHASE6_PID_SYSCALL") else {
++            return;
++        };
++        let case = case.to_str().unwrap();
++        let root = PathBuf::from(std::env::var_os("PHASE6_PID_ROOT").unwrap());
++        let path = root.join(if case.starts_with("mkdir") {
++            "new/pid"
++        } else {
++            "pid"
++        });
++        let syscalls: &[libc::c_long] = match case {
++            "mkdir" | "mkdir-race" => &[libc::SYS_mkdirat],
++            "mkdir-mode" => &[libc::SYS_fchmod],
++            "truncate" => &[
++                libc::SYS_ftruncate,
++                #[cfg(target_pointer_width = "32")]
++                libc::SYS_ftruncate64,
++            ],
++            "sync" => &[libc::SYS_fsync],
++            "rename" => &[
++                #[cfg(not(any(
++                    target_arch = "riscv32",
++                    target_arch = "riscv64",
++                    target_arch = "loongarch64"
++                )))]
++                libc::SYS_renameat,
++                libc::SYS_renameat2,
++            ],
++            "unlink" => &[libc::SYS_unlinkat],
++            "random" => &[libc::SYS_getrandom],
++            _ => panic!("unknown PID fault fixture"),
++        };
++        let errno = match case {
++            "mkdir-race" => libc::EEXIST,
++            _ => libc::EIO,
++        };
++        crate::syscall_fault::refuse(syscalls, errno);
++        let entropy_error = (case == "random").then(|| {
++            let error = getrandom::fill(&mut [0; 8]).unwrap_err();
++            assert_eq!(error.raw_os_error(), Some(errno));
++            error.to_string()
++        });
++        let result = if case == "unlink" {
++            let metadata = std::fs::metadata(&path).unwrap();
++            PidFile {
++                path,
++                dev: metadata.dev(),
++                ino: metadata.ino(),
++            }
++            .remove()
++        } else {
++            PidFile::publish(&path).map(|_| ())
++        };
++        let error = result.unwrap_err();
++        if let Some(expected) = entropy_error {
++            assert_eq!(error.kind(), io::ErrorKind::Other);
++            assert_eq!(error.to_string(), expected);
++        } else {
++            assert_eq!(
++                error.raw_os_error(),
++                Some(if case == "mkdir-race" {
++                    libc::ENOENT
++                } else {
++                    errno
++                })
++            );
++        }
++    }
++
++    /// spec: P10, P11, P17
++    #[test]
++    fn publication_and_removal_faults_preserve_existing_files_and_clear_temporary_names() {
++        for case in [
++            "mkdir",
++            "mkdir-race",
++            "mkdir-mode",
++            "truncate",
++            "sync",
++            "rename",
++            "unlink",
++            "random",
++        ] {
++            let dir = Dir::new();
++            let existing = dir.path().join("pid");
++            std::fs::write(&existing, "keep").unwrap();
++            let output = std::process::Command::new(std::env::current_exe().unwrap())
++                .args([
++                    "--exact",
++                    "pidfile::fault_tests::pid_syscall_fault_child",
++                    "--nocapture",
++                ])
++                .env("PHASE6_PID_SYSCALL", case)
++                .env("PHASE6_PID_ROOT", dir.path())
++                .output()
++                .unwrap();
++            assert!(output.status.success(), "{case}: {output:?}");
++            assert_eq!(std::fs::read_to_string(existing).unwrap(), "keep", "{case}");
++            assert!(!dir.path().join("new/pid").exists(), "{case}");
++            for entry in std::fs::read_dir(dir.path()).unwrap() {
++                assert!(
++                    !entry
++                        .unwrap()
++                        .file_name()
++                        .to_string_lossy()
++                        .starts_with(".rs-l2tpd-"),
++                    "{case}: temporary PID file remains"
++                );
++            }
++        }
++    }
++}
