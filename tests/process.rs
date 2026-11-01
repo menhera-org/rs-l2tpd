@@ -5,7 +5,7 @@ use nix::unistd::Pid;
 use rs_l2tpd::kernel::{Kernel, L2tpIfName, linux::LinuxKernel};
 use std::collections::HashMap;
 use std::fs;
-use std::io::{BufRead, BufReader, IoSliceMut};
+use std::io::{self, BufRead, BufReader, IoSliceMut};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::os::unix::net::UnixDatagram;
 use std::os::unix::process::CommandExt;
@@ -1320,6 +1320,7 @@ fn daemon_setup_failures_return_the_original_error_before_kernel_startup() {
             command.arg0("relative/rs-l2tpd");
         }
         let mut fault = syscall_fault::on_exec(syscalls, error);
+        let mut streams = (case == "streams").then(|| syscall_fault::on_exec_stdin_probe(error));
         let mut sockets = syscall_fault::on_exec(&[libc::SYS_socket], libc::EACCES);
         let mut next_stage =
             (case == "fork").then(|| syscall_fault::on_exec(&[libc::SYS_setsid], libc::EACCES));
@@ -1330,7 +1331,11 @@ fn daemon_setup_failures_return_the_original_error_before_kernel_startup() {
                 if let Some(guard) = &mut next_stage {
                     guard()?;
                 }
-                fault()
+                if let Some(probe) = &mut streams {
+                    probe()
+                } else {
+                    fault()
+                }
             });
         }
         let mut process = Process::spawn(command);
@@ -1351,6 +1356,57 @@ fn daemon_setup_failures_return_the_original_error_before_kernel_startup() {
         process.done = true;
         assert_eq!(status.code(), Some(1), "{case}");
         assert_eq!(fs::read_to_string(&pid).unwrap(), "sentinel");
+        loop {
+            match process
+                .logs
+                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+            {
+                Ok(line) => assert!(!line.contains("LLVM Profile Error"), "{case}: {line}"),
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                Err(error) => panic!("{case}: daemon stderr did not close: {error}"),
+            }
+        }
         println!("DAEMON_FAULT_CHECKED={case}");
     }
+}
+
+#[test]
+fn stream_probe_fault_preserves_other_descriptor_operations() {
+    use nix::libc;
+    if std::env::var_os("RS_L2TPD_STREAM_PROBE_CHILD").is_none() {
+        let output = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "stream_probe_fault_preserves_other_descriptor_operations",
+                "--nocapture",
+            ])
+            .env("RS_L2TPD_STREAM_PROBE_CHILD", "1")
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(output.status.success(), "{stderr}");
+        assert!(!stderr.contains("LLVM Profile Error"), "{stderr}");
+        return;
+    }
+    let dir = Dir::new();
+    let file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create_new(true)
+        .open(dir.path().join("probe"))
+        .unwrap();
+    syscall_fault::on_exec_stdin_probe(libc::EIO)().unwrap();
+    assert_eq!(unsafe { libc::fcntl(0, libc::F_GETFD) }, -1);
+    assert_eq!(io::Error::last_os_error().raw_os_error(), Some(libc::EIO));
+    assert!(unsafe { libc::fcntl(1, libc::F_GETFD) } >= 0);
+    assert!(unsafe { libc::fcntl(0, libc::F_GETFL) } >= 0);
+    assert!(unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETFD) } >= 0);
+    let flags = unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETFL) };
+    assert!(flags >= 0);
+    assert_eq!(
+        unsafe { libc::fcntl(file.as_raw_fd(), libc::F_SETFL, flags) },
+        0
+    );
+    assert_eq!(unsafe { libc::fcntl(-1, libc::F_GETFD) }, -1);
+    assert_eq!(io::Error::last_os_error().raw_os_error(), Some(libc::EBADF));
 }

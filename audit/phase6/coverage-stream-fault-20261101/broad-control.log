@@ -1,0 +1,19 @@
+6.8.0-147-generic
+
+running 1 test
+test daemon_setup_failures_return_the_original_error_before_kernel_startup ... daemon: standard streams: Input/output error (os error 5)
+daemon: LLVM Profile Error: Failed to write file "/tmp/phase6-stream-broad-control-profiles/broad-9-17439585308454600606_0.profraw": Input/output error
+
+thread 'daemon_setup_failures_return_the_original_error_before_kernel_startup' (8) panicked at tests/process.rs:1361:29:
+streams: LLVM Profile Error: Failed to write file "/tmp/phase6-stream-broad-control-profiles/broad-9-17439585308454600606_0.profraw": Input/output error
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    daemon_setup_failures_return_the_original_error_before_kernel_startup
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.01s
+
+BROAD_CONTROL_EXPECTED_EXIT=101

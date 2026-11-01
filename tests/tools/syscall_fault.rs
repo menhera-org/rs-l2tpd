@@ -93,6 +93,37 @@ pub(crate) fn on_exec(
         jf: 0,
         k: 0x7fff0000,
     });
+    install(filter)
+}
+
+/// Refuses only the daemon's first standard-stream probe, preserving profile I/O.
+#[allow(
+    dead_code,
+    reason = "shared helper; only process fixtures deny the stdin probe"
+)]
+pub(crate) fn on_exec_stdin_probe(
+    errno: i32,
+) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
+    let low_word = if cfg!(target_endian = "little") { 0 } else { 4 };
+    let filter = [
+        (0x20, 0, 0, 0),
+        (0x15, 0, 5, libc::SYS_fcntl.try_into().unwrap()),
+        (0x20, 0, 0, 16 + low_word),
+        (0x15, 0, 3, 0),
+        (0x20, 0, 0, 24 + low_word),
+        (0x15, 0, 1, libc::F_GETFD.try_into().unwrap()),
+        (0x06, 0, 0, 0x00050000 | u32::try_from(errno).unwrap()),
+        (0x06, 0, 0, 0x7fff0000),
+    ]
+    .into_iter()
+    .map(|(code, jt, jf, k)| libc::sock_filter { code, jt, jf, k })
+    .collect();
+    install(filter)
+}
+
+fn install(
+    mut filter: Vec<libc::sock_filter>,
+) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
     let length = filter.len().try_into().unwrap();
     // TSYNC also covers an already-started dispatcher in this subprocess.
     // The kernel copies the filter while its allocation is still alive.

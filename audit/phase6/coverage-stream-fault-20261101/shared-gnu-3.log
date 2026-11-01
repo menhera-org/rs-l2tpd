@@ -1,0 +1,17 @@
+6.8.0-147-generic
+
+running 1 test
+test kernel::linux::lifetime::tests::reader_io_errors_end_old_proofs_and_failed_reopen_remains_stoppable ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 150 filtered out; finished in 0.00s
+
+
+running 1 test
+test kernel::linux::monitor::tests::registration_and_receive_failures_preserve_loss_and_retry_bounds ... FEED_FAULT_VERIFIED=open
+FEED_FAULT_VERIFIED=registration
+FEED_FAULT_VERIFIED=overflow
+FEED_FAULT_VERIFIED=receive
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 150 filtered out; finished in 1.01s
+

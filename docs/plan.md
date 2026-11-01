@@ -925,6 +925,14 @@ and fresh 96.05% line / 88.04% branch coverage: 342 lines and 221 branches
 remain. The all-fcntl fault's profile-write limitation, new required matrix
 and complete clause/history/coverage proof remain open.
 
+The standard-stream fault now refuses only stdin's descriptor probe, preserving
+LLVM profile I/O. Its broad-fault control fails the new profile-error check;
+three GNU and three musl repetitions, ten seeded suites, cross-target builds
+and common checks pass. Repository record
+`audit/phase6/coverage-stream-fault-20261101/` gives unchanged production
+mappings and 96.07% line / 88.10% branch coverage: 340 lines and 220 branches
+remain. Production code is unchanged; the frozen required matrix continues.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what
