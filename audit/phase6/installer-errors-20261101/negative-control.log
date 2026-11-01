@@ -1,0 +1,23 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/rs-l2tpd-member-control.cvCvT5dw)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 1 test
+binary: No such file or directory (os error 2)
+unit: done
+configuration directory: done
+configuration: done
+
+thread 'setup::completion_tests::failed_install_steps_preserve_existing_files_and_attempt_the_remaining_steps' (1436988) panicked at src/bin/rs-l2tpd/setup.rs:332:13:
+missing-source
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test setup::completion_tests::failed_install_steps_preserve_existing_files_and_attempt_the_remaining_steps ... FAILED
+
+failures:
+
+failures:
+    setup::completion_tests::failed_install_steps_preserve_existing_files_and_attempt_the_remaining_steps
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 60 filtered out; finished in 0.29s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

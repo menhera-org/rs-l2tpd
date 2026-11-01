@@ -1,0 +1,35 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 1 test
+binary: No such file or directory (os error 2)
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: Is a directory (os error 21)
+configuration directory: done
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: done
+configuration directory: Not a directory (os error 20)
+configuration: Not a directory (os error 20)
+binary: done
+unit: done
+configuration directory: done
+configuration: done
+test setup::completion_tests::failed_install_steps_preserve_existing_files_and_attempt_the_remaining_steps ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 60 filtered out; finished in 0.32s
+

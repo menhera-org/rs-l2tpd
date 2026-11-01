@@ -866,6 +866,14 @@ Fresh production coverage is 95.83% lines / 87.65% branches: 358 lines and
 later libc change needs its own required matrix; the complete clause/
 resource/event-cost proof and 100% gate remain open.
 
+Installer cases now verify failed-step reporting, preserved conflicting files,
+continued independent steps and successful repair/retry. The false-success
+control fails. Ten seeded suites, three musl binary suites and common checks
+pass, with identical production mappings. Repository record
+`audit/phase6/installer-errors-20261101/` gives the current 95.89% line /
+87.81% branch report: 353 lines and 223 branches remain. Production code
+and guest fixtures are unchanged; the frozen `ce6a70a` matrix is running.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what
