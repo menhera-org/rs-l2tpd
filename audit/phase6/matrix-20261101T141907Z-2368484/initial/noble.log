@@ -1,0 +1,24 @@
+UBUNTU_SUITE=noble
+UBUNTU_META_VERSION=6.8.0-147.147
+KERNEL_RELEASE=6.8.0-147-generic
+Package: linux-image-generic
+Source: linux-meta
+Priority: optional
+Section: kernel
+Installed-Size: 18
+Maintainer: Ubuntu Kernel Team <kernel-team@lists.ubuntu.com>
+Architecture: amd64
+Version: 6.8.0-147.147
+Recommends: thermald
+Provides: ivsc-modules (= 0~git202311021215.73a044d9), spl-modules (= 2.2.2-0ubuntu9.5), v4l2loopback-modules (= 0.12.7-2ubuntu5.1), virtualbox-guest-modules (= 6.8.0-147), wireguard-modules (= 1.0.0), zfs-modules (= 2.2.2-0ubuntu9.5)
+Depends: linux-image-6.8.0-147-generic, linux-modules-extra-6.8.0-147-generic, linux-firmware, intel-microcode, amd64-microcode
+Filename: pool/main/l/linux-meta/linux-image-generic_6.8.0-147.147_amd64.deb
+Size: 11596
+MD5sum: f3b893acb8cd5bdd5110169af82de8dc
+SHA1: 65a637eeda4718c3a926941ea33e12739640288d
+SHA256: 2b4fb41fff454fd9032806d6d0c26dede869321207e821d0fc891a5b159342a3
+SHA512: 174bf72a7be39bfb1bcb19fe365207c46e5a78c17e5544fd0477c005d85006c08923e5f37246fd10366c923f3fc9153350c29c293e10e8807146d9f7d27bf060
+Description: Generic Linux kernel image
+Description-md5: 6d632579c673704f44b290b16e7dbfd1
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug

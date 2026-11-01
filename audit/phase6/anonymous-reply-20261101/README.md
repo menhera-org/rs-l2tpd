@@ -52,11 +52,12 @@ manifest and lockfile use the registry release, with no path override.
 counterexample and correction. `candidate-source.patch` records the isolated
 proposal's source. Failed witnesses never enter production coverage.
 
-The completed required matrix is frozen at production source 11bef84 with
-iphost 0.4.3. Its positive profiles do not close the missing validation case.
-Full downstream qualification now uses a fresh collector and the final
-source described in `../iphost044-integration-20261101/`, including the
-standard-library boundary changes. Native/common, live, Incus, root-systemd,
-coverage and required-kernel results must qualify that source before exit.
+The required matrix on production 11bef84 retains its iphost 0.4.3 scope.
+The new matrix on frozen 584062d with registry 0.4.4 passes all thirteen
+profiles; this anonymous Reply case and the positive client-ID/binding
+case pass on all five required kernels. Native/common, GNU/musl live,
+Incus, root-systemd and a fresh coverage collection also pass in
+`../iphost044-integration-20261101/`. Later test-only packages retain their
+separate source and execution records; 100% coverage remains open.
 The preceding 97.01% line / 89.89% branch report remains historical;
 complete clause/history/resource proof and 100% coverage remain open.

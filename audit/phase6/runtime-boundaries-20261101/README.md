@@ -31,7 +31,8 @@ host-worker package. The report reaches **8,421/8,671 lines (97.12%)** and
 **1,670/1,850 branches (90.27%)**: 250 lines and 180 branches remain.
 No production exclusion, profile mismatch or saturated region is present.
 
-The required matrix continues from frozen production commit 584062d.
+The required matrix passes all thirteen profiles on frozen production
+commit 584062d.
 It does not execute these later declarations. No production, dependency,
 public API or specification changes. Complete clause/history/resource
 proof and the 100% coverage gate remain open.

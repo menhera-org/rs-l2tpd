@@ -33,8 +33,8 @@ identifiers remain accepted; the documented tolerance for an identified
 client's Reply without an identifier is preserved. Three downstream live
 witnesses fail with 0.4.3 and pass with the registry release.
 Repository record `audit/phase6/anonymous-reply-20261101/` retains upstream
-qualification, publication and package verification. Full downstream and
-required-kernel qualification are in progress in
+qualification, publication and package verification. Local and all thirteen
+required-kernel profiles pass on frozen downstream 584062d, recorded in
 `audit/phase6/iphost044-integration-20261101/`.
 
 This is an implementation instruction for the general-purpose `iphost`

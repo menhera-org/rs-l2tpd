@@ -35,7 +35,8 @@ mappings remain unchanged. Of the complete entries, 4,301 are identical;
 one previously uncalled worker instance now exposes its three branch
 records. No function is added or removed from that catalog.
 
-The required-kernel matrix runs separately from frozen 584062d. It does
+The required-kernel matrix passes all thirteen profiles separately from
+frozen 584062d. It does
 not include this later test declaration. Three normal musl scenario/Incus
 repetitions and the root sandbox qualify that same production source in
 [the integration record](../iphost044-integration-20261101/README.md).

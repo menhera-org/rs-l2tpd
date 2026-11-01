@@ -494,7 +494,7 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
 Exit: all five gates green on the running kernel and on every required
 kernel target; the Incus/LXD scenario run, not skipped.
 
-**Status: in progress on 2026-11-01.** Production source `11bef84`
+**Status: in progress on 2026-11-01.** Production source `584062d`
 passes all thirteen required matrix profiles: five normal suites of 27
 scenarios, five clock profiles, both IPv6-absent boots and missing-driver
 recovery. Strict rule/source maps, unprivileged Incus and the root sandbox
@@ -502,19 +502,21 @@ have passing records. The checked libc exception is applied; no nix
 contribution or release is required.
 
 Released iphost 0.4.4 fixes V12's anonymous Reply validation defect. Three
-live witnesses fail with 0.4.3 and pass with the registry release. Full
-downstream qualification is in progress; the specification remains unchanged.
+live witnesses fail with 0.4.3 and pass with the registry release. Local
+and required-kernel integration checks pass; the specification remains unchanged.
 
 The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,
 GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The E27 required matrix passes all thirteen profiles on `11bef84`.
+The required matrix passes all thirteen profiles on `584062d`, including
+the E27 correction and released iphost 0.4.4.
 The iphost 0.4.4 integration and standard-library boundary changes pass
 common checks, ten native and instrumented seeds, three musl model runs,
 GNU live/Incus, manager, task limits and the root sandbox. Three musl
-scenario/Incus repetitions pass. The required matrix is running on
-frozen signed commit `584062d`; its results remain separate from `11bef84`.
+scenario/Incus repetitions pass. The required matrix also passes all
+thirteen profiles on frozen signed commit `584062d`. Later test-only
+additions retain their separate execution records.
 
 Earlier test-only additions have passing common checks and repeated
 GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.12% of

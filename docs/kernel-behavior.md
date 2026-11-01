@@ -9,14 +9,13 @@ The latest required matrix passes all five normal and clock profiles,
 including H20 fragmentation and both 300-entry daemons. It also passes both
 IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
 publication checks select the same versions. Repository record
-`audit/phase6/matrix-20261101T115808Z-2050597/README.md` identifies the frozen
+`audit/phase6/matrix-20261101T141907Z-2368484/README.md` identifies the frozen
 implementation with kernel-selected inventories, complete VRF member tracking,
 checked libc signal calls, approved fixtures and the E27 correction.
-The matrix freezes production source 11bef84 with iphost 0.4.3. Later
-test-only additions have separate qualification. Released iphost 0.4.4 fixes
-V12's anonymous Reply validation: three witnesses fail with 0.4.3 and pass
-with the registry release. Full downstream and required-kernel qualification
-are in progress for that integration and the standard-library boundaries.
+The matrix freezes production source 584062d with released iphost 0.4.4
+and the standard-library boundaries. The positive resolver wire case and
+anonymous Reply validation pass on all five targets. Later test-only
+additions have separate qualification; no broader execution is inferred.
 With iphost 0.4.4 and the boundary changes, the approved H11 configured-MAC
 policy passes three musl Incus runs (10.71, 19.44 and 20.06 s), GNU Incus
 (17.79 s) and the root-systemd guest (30.97 s) on Ubuntu 6.8.0-147.
@@ -136,7 +135,7 @@ signal-mask/wait refusals pass on all five required targets.
 | Mainline `7.3.0` | 27 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the
-latest matrix (`audit/phase6/matrix-20261101T115808Z-2050597/README.md`).
+latest matrix (`audit/phase6/matrix-20261101T141907Z-2368484/README.md`).
 The approved explicit-MAC-authority case passes three fresh unprivileged
 Incus runs and the unmodified root-systemd guest. Their source and logs are
 in `audit/phase6/maintainer-decisions-20261101/README.md`; the earlier failure
@@ -150,23 +149,24 @@ execution summaries.
 
 ### Latest matrix counts and ownership observations
 
-The frozen `11bef84` guests run 17 serial library cases, 24 Linux cases,
-five review cases, 59 ordinary binary cases and three privileged binary
+The frozen `584062d` guests run 19 serial library cases, 24 Linux cases,
+five review cases, 62 ordinary binary cases and three privileged binary
 cases. Eight daemon fault paths include signal-mask and signal-wait refusals.
 All 29 process cases and 27 normal scenarios pass on each target. Selected
 inventories, VRF-binding reload and the E27 live replay pass on all five.
-Later test-only additions have separate qualification, including the new
-resolver wire case on Ubuntu 6.8. The real-manager and clock declarations
+The client-ID/static-binding and anonymous Reply cases pass on all five
+with released iphost 0.4.4. Later test-only additions have separate
+qualification. The real-manager and clock declarations
 are outside the normal scenario profile. The clock profile runs one case
 per target with controller-confirmed pause/resume.
 
 | Required target | Normal scenarios | H16 clock/pause | Closed and unregistered socket ownership |
 |---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 27 pass, 559.54 s | Pass, 64.78 s | Both families pass |
-| Vanilla `6.8.12` | 27 pass, 484.36 s | Pass, 64.33 s | Both families pass |
-| Ubuntu `7.0.0-42-generic` | 27 pass, 540.15 s | Pass, 64.70 s | Both families pass |
-| Vanilla `7.0.14` | 27 pass, 464.66 s | Pass, 64.79 s | Both families pass |
-| Mainline `7.3.0` | 27 pass, 445.57 s | Pass, 64.43 s | Both families pass |
+| Ubuntu `6.8.0-147-generic` | 27 pass, 555.54 s | Pass, 64.59 s | Both families pass |
+| Vanilla `6.8.12` | 27 pass, 487.12 s | Pass, 64.42 s | Both families pass |
+| Ubuntu `7.0.0-42-generic` | 27 pass, 549.94 s | Pass, 64.59 s | Both families pass |
+| Vanilla `7.0.14` | 27 pass, 460.22 s | Pass, 64.49 s | Both families pass |
+| Mainline `7.3.0` | 27 pass, 476.57 s | Pass, 64.27 s | Both families pass |
 
 After a local socket handle closes, its five socket operations return EBADF
 even while an external descriptor retains the tunnel. An unregistered
@@ -199,15 +199,19 @@ witnesses, source identities and deliberately broken controls.
 
 ## Resolver client identities
 
-The released adapter's positive wire case passes three GNU and three musl
-runs on Ubuntu 6.8.0-147. Anonymous, link-layer, random and raw identifiers
-have the expected bytes across two DHCPv6 transmissions; a matching Reply
-is accepted. Static resolver configuration retains its bind device and
-exchanges both DNS address families with the controlled server.
-Repository record `audit/phase6/resolver-wire-identity-20261101/` retains
-the packets' assertions and three failing mapping controls. This specific
-case has not run on the other four required kernels, and it does not prove
-every malformed-Reply refusal.
+The released adapter's positive wire and anonymous Reply cases pass in
+all five required normal profiles with registry iphost 0.4.4. Anonymous,
+link-layer, random and raw identifiers have the expected bytes across two
+DHCPv6 transmissions; a matching Reply is accepted. Static DNS retains its
+bind device and exchanges both address families with the controlled server.
+An anonymous request rejects a Reply carrying another Client Identifier
+and accepts the valid anonymous Reply that follows.
+
+The positive case also has three GNU and three musl runs on Ubuntu
+6.8.0-147. Repository record `audit/phase6/resolver-wire-identity-20261101/`
+retains three failing mapping controls; `audit/phase6/anonymous-reply-20261101/`
+retains the failing 0.4.3 witnesses and released correction. These cases
+do not establish every malformed-Reply refusal on every target.
 
 ## Advisory session verification
 

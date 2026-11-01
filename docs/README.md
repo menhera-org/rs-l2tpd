@@ -34,22 +34,24 @@ and glibc. The November 1 matrix passes all 27 normal scenarios on each
 of the five required kernels, including fragmentation, 300 tunnels and the
 VRF reload regression. All five clock profiles, both IPv6-absent boots
 and missing-driver recovery pass. The matrix freezes production source
-`11bef84`; later test-only additions have separate qualification records.
+`584062d` with released iphost 0.4.4; later test-only additions have separate qualification records.
 
 The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,
 GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The E27 required matrix passes all thirteen profiles on `11bef84`.
+The required matrix passes all thirteen profiles on `584062d`, including
+the E27 correction and released iphost 0.4.4.
 The iphost 0.4.4 integration and standard-library boundary changes pass
 common checks, ten native and instrumented seeds, three musl model runs,
 GNU live/Incus, manager, task limits and the root sandbox. Three musl
-scenario/Incus repetitions pass. The required matrix is running on
-frozen signed commit `584062d`; its results remain separate from `11bef84`.
+scenario/Incus repetitions pass. The required matrix also passes all
+thirteen profiles on frozen signed commit `584062d`. Later test-only
+additions retain their separate execution records.
 
 Phase 6 remains open. Released iphost 0.4.4 fixes V12's anonymous Reply
 validation defect. Three live witnesses fail with 0.4.3 and pass with the
-registry release. Full downstream qualification is in progress; the
+registry release. Local and required-kernel integration checks pass; the
 specification remains unchanged. Strict rule-map/source-link checks have passing CI
 records, including ten-repetition qualification. Unprivileged Incus and the
 root unit sandbox have passing local records. The approved MAC and

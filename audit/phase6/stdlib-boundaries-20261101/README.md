@@ -25,7 +25,8 @@ and are restored before qualification. Each control patch applies after
 The complete tested tree also integrates released iphost 0.4.4 and its live
 regression; `../iphost044-integration-20261101/` records that full source
 and the passing repeated/native/musl/common/GNU-live qualification.
-Three musl scenario/Incus repetitions and the required matrix remain open.
+Three musl scenario/Incus repetitions and all thirteen required matrix
+profiles now pass for production 584062d; later tests have separate records.
 
 No public API, dependency or specification change is part of these boundary
 refactors. The fresh collector reports 97.06% line / 90.05% branch

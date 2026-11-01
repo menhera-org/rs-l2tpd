@@ -29,20 +29,22 @@ the scenario suite below; read them before writing new scenarios.
 
 Phase 6 remains open. Released iphost 0.4.4 fixes V12's anonymous Reply
 validation defect. Three live witnesses fail with 0.4.3 and pass with the
-registry release. Full downstream qualification is in progress; the
-specification remains unchanged. Production source `11bef84` passes all thirteen required
+registry release. Local and required-kernel integration checks pass; the
+specification remains unchanged. Production source `584062d` passes all thirteen required
 matrix profiles, including 27 normal scenarios on each of the five kernels.
 Strict maps, unprivileged Incus and the root sandbox have passing records.
 The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,
 GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The E27 required matrix passes all thirteen profiles on `11bef84`.
+The required matrix passes all thirteen profiles on `584062d`, including
+the E27 correction and released iphost 0.4.4.
 The iphost 0.4.4 integration and standard-library boundary changes pass
 common checks, ten native and instrumented seeds, three musl model runs,
 GNU live/Incus, manager, task limits and the root sandbox. Three musl
-scenario/Incus repetitions pass. The required matrix is running on
-frozen signed commit `584062d`; its results remain separate from `11bef84`.
+scenario/Incus repetitions pass. The required matrix also passes all
+thirteen profiles on frozen signed commit `584062d`. Later test-only
+additions retain their separate execution records.
 
 Earlier test-only additions have passing common checks and repeated
 GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.12% of

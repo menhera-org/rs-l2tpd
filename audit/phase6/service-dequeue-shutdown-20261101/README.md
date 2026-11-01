@@ -48,7 +48,7 @@ identical; two additional default Resolve-method instances belong to the
 test resolver. No production exclusion, profile mismatch or saturated
 region is present.
 
-The required matrix continues from frozen 584062d and does not execute
+The required matrix passes all thirteen profiles on frozen 584062d and does not execute
 these later declarations. This package adds no live kernel result.
 Complete clause/history/resource proof and the 100% coverage gate remain
 open.

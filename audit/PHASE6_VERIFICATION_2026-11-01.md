@@ -3,9 +3,9 @@
 Phase 6 is incomplete. Released iphost 0.4.4 fixes the
 [anonymous Reply defect](phase6/anonymous-reply-20261101/README.md).
 Three live witnesses fail with 0.4.3 and pass with the downloaded registry
-release. Upstream qualification and publication pass; full downstream
-qualification is in progress. The specification remains unchanged. Production source `11bef84` has completed the
-[required matrix](phase6/matrix-20261101T115808Z-2050597/README.md).
+release. Upstream, local integration and required-kernel qualification pass.
+The specification remains unchanged. Production source `584062d` has completed
+the [required matrix](phase6/matrix-20261101T141907Z-2368484/README.md).
 It includes kernel-selected inventories, VRF inventory-completion tracking
 and checked libc signal calls. Later commits add tests and measurement
 infrastructure. The current E27 correction changes session-verification
@@ -15,8 +15,8 @@ runs and the root sandbox pass. Its required matrix passes all thirteen profiles
 0.4.4, the standard-library boundaries and runtime cases is 97.12% lines / 90.27%
 branches. Common checks, ten native and instrumented seeds, three musl
 model runs, GNU live/Incus, manager, task limits and root-systemd pass.
-Three musl scenario/Incus repetitions pass. The new required matrix is
-running on frozen signed commit `584062d`.
+Three musl scenario/Incus repetitions pass. The required matrix passes all
+thirteen profiles on frozen signed commit `584062d`.
 
 The current [E27 correction](phase6/event-verification-20261101/README.md)
 is committed as `11bef84`, based on `4881c32` plus its retained source patch.
@@ -43,7 +43,7 @@ original execution scope.
 |---|---|---|
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | All 27 normal cases pass on each of five required kernels, including H20, H17 and the new VRF reload regression. Three current musl host suites also pass | Complete clause, history and resource/event-cost proof |
-| P3 required kernels | Frozen `11bef84` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Requalify the released iphost 0.4.4 integration and boundary changes; later test-only additions have separate records |
+| P3 required kernels | Frozen `584062d` with released iphost 0.4.4 passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree and source patches are empty | Preserve the per-target scope; later test-only additions have separate records |
 | P4 coverage | Fresh 0.4.4/boundary profiles plus the runtime cases: 8,421/8,671 lines (97.12%); 1,670/1,850 branches (90.27%). No production exclusions, profile mismatches or saturated regions | Cover 250 lines and 180 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | The 0.4.4/boundary source passes GNU in 17.79 s and three unprivileged musl cases in 10.71, 19.44 and 20.06 s; all containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | The 0.4.4/boundary source and the unmodified supplied unit pass in 30.97 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
@@ -67,8 +67,10 @@ Initial and final publication checks select the same five stable targets:
 | Vanilla 7.0.14 | 7.0.14 | 27 pass | pass |
 | Mainline 7.3 | 7.3.0 | 27 pass | pass |
 
-Each frozen normal guest also passes 17 serial library, 24 Linux, five review,
-59 ordinary binary, three privileged binary and 29 process cases. All eight
+Each frozen 584062d normal guest also passes 19 serial library, 24 Linux,
+five review, 62 ordinary binary, three privileged binary and 29 process cases.
+The positive client-ID/binding and anonymous Reply cases pass on all five
+required kernels with released iphost 0.4.4. All eight
 daemon setup faults pass. Mainline passes both IPv6-absent boots; Ubuntu 7.0
 passes missing-Ethernet-driver degradation and recovery. All thirteen profiles
 have zero result markers, and both tracked-source patches are empty.
@@ -117,7 +119,7 @@ privileged cases.
 
 Three 0.4.4 musl host scenario runs pass in 161.71, 162.55 and 160.21 s.
 Their paired Incus runs pass in 10.71, 19.44 and 20.06 s. The required
-matrix remains running on frozen 584062d.
+matrix passes all thirteen profiles on frozen 584062d.
 
 The [0.4.4 integration](phase6/iphost044-integration-20261101/README.md)
 uses a fresh collector after the production boundary changes. It includes

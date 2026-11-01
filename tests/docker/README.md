@@ -48,12 +48,13 @@ kernel objects, logs and bounded event waits.
 
 Phase 6 remains incomplete. Released iphost 0.4.4 fixes V12's anonymous
 Reply validation defect. Three live witnesses fail with 0.4.3 and pass with
-the registry release; full downstream qualification is in progress. Production source `11bef84` passes all thirteen
+the registry release; local and required-kernel integration checks pass.
+Production source `584062d` passes all thirteen
 required profiles, including 27 normal scenarios on each of five kernels,
 five clock profiles, both IPv6-absent boots and missing-driver recovery.
 The E27 correction passes repeated model and GNU/musl live tests, three
 musl Incus runs and the root sandbox. Its required matrix now passes all
-thirteen profiles on 11bef84; the iphost correction needs fresh qualification. The approved checked-libc signal
+thirteen profiles on 584062d with released iphost 0.4.4. The approved checked-libc signal
 exception is applied; no nix contribution or release is required.
 Later test-only additions have separate GNU/musl qualification.
 Fresh merged coverage for 0.4.4 and the boundary changes is 97.12% of lines

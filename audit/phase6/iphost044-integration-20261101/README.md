@@ -1,4 +1,4 @@
-# Released iphost 0.4.4 integration: qualification in progress
+# Released iphost 0.4.4 integration: local and required kernels pass
 
 The manifest and lockfile use the downloaded crates.io release. The signed
 upstream correction, package verification, three failing 0.4.3 witnesses
@@ -57,8 +57,10 @@ kernel-fake and TEST_SEED.
 Three musl scenario runs pass in 161.71, 162.55 and 160.21 s. Their paired
 Incus runs pass in 10.71, 19.44 and 20.06 s; every container is deleted.
 The logs and original per-run directories are listed in local-records.log.
-The required-kernel
-matrix is running from frozen signed downstream commit `584062d`.
-Results from that run will be recorded separately; the earlier `11bef84`
-matrix does not qualify this source. Complete clause/history/resource
+The required-kernel matrix passes all thirteen profiles from frozen signed
+commit `584062d`: five normal suites of 27 scenarios, five clock profiles,
+both IPv6-absent boots and missing-driver recovery. Its record is
+`../matrix-20261101T141907Z-2368484/`; both source patches are empty and
+publication selections agree. The earlier `11bef84` matrix retains its
+iphost 0.4.3 scope. Complete clause/history/resource
 proof and 100% coverage remain open.

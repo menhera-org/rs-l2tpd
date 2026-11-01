@@ -236,7 +236,8 @@ exclusions; 250 lines and 180 branches remain. Its fresh collector qualifies
 iphost 0.4.4 and the standard-library boundary changes, including GNU live,
 Incus, manager and task-limit profiles. The anonymous Reply witness fails
 with 0.4.3 and passes with the registry release. Three musl scenario/Incus
-repetitions pass; the required matrix is running on frozen 584062d. Repository file
+repetitions pass; the required matrix passes all thirteen profiles on frozen
+584062d with released iphost 0.4.4. Repository file
 `audit/phase6/service-dequeue-shutdown-20261101/README.md` identifies the latest
 measurement and its qualified scope. The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public
