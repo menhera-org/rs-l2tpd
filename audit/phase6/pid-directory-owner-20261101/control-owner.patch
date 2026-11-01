@@ -1,0 +1,13 @@
+diff --git a/tmp/phase6-pid-owner-candidate.rs b/src/bin/rs-l2tpd/pidfile.rs
+index b727bf6..b3c4e5e 100644
+--- a/tmp/phase6-pid-owner-candidate.rs
++++ b/src/bin/rs-l2tpd/pidfile.rs
+@@ -93,7 +93,7 @@ fn directory(path: &Path, create: bool) -> io::Result<(OwnedFd, CString)> {
+         }
+         let metadata = File::from(dir.try_clone()?).metadata()?;
+         let uid = unsafe { libc::geteuid() };
+-        if metadata.uid() != 0 && metadata.uid() != uid {
++        if metadata.uid() != 0 && metadata.uid() == uid {
+             return Err(io::Error::new(
+                 io::ErrorKind::PermissionDenied,
+                 "PID directory is not owned by root or daemon user",

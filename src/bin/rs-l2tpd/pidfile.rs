@@ -496,6 +496,17 @@ mod permission_tests {
                 std::fs::remove_file(link).unwrap();
             }
         }
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o755)).unwrap();
+        let name = cstr(dir.path().as_os_str().as_bytes()).unwrap();
+        assert_eq!(unsafe { libc::chown(name.as_ptr(), 65534, 65534) }, 0);
+        let error = PidFile::publish(&path).err().unwrap();
+        assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+        assert_eq!(
+            error.to_string(),
+            "PID directory is not owned by root or daemon user"
+        );
+        assert!(std::fs::read_dir(dir.path()).unwrap().next().is_none());
+        assert_eq!(unsafe { libc::chown(name.as_ptr(), 0, 0) }, 0);
     }
 }
 

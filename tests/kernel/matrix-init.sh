@@ -18,6 +18,12 @@ run_suite() {
     [ "$(cat /tmp/suite.status)" = 0 ] || return 1
     grep -Eq 'test result: ok\. [1-9][0-9]* passed;' /tmp/suite.log
 }
+run_binary() {
+run_suite /binary-unit --test-threads=1 --nocapture
+run_suite /binary-unit --ignored --exact pidfile::permission_tests::precreated_permissions_links_and_owner --nocapture
+run_suite /binary-unit --ignored --exact pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes --nocapture
+run_suite /binary-unit --ignored --exact files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths --nocapture
+}
 mode=$(cat /matrix-mode)
 export RS_L2TPD_SCENARIO_CONTAINER=1
 # Parameterless built-in drivers need not have a /sys/module directory.
@@ -60,8 +66,8 @@ if [ "$mode" = clock ]; then
     exit 0
 fi
 if [ "$mode" = binary ]; then
-    echo 'scope: ordinary CLI unit tests only'
-    run_suite /binary-unit --test-threads=1 --nocapture
+    echo 'scope: ordinary CLI units and selected filesystem-permission cases'
+    run_binary
     echo BINARY_UNIT_RESULT=0
     exit 0
 fi
@@ -76,10 +82,7 @@ fi
 run_suite /kernel-unit --ignored --test-threads=1 --nocapture
 run_suite /kernel-linux --ignored --test-threads=1 --nocapture
 run_suite /review-kernel --ignored --test-threads=1 --nocapture
-run_suite /binary-unit --test-threads=1 --nocapture
-run_suite /binary-unit --ignored --exact pidfile::permission_tests::precreated_permissions_links_and_owner --nocapture
-run_suite /binary-unit --ignored --exact pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes --nocapture
-run_suite /binary-unit --ignored --exact files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths --nocapture
+run_binary
 run_suite /process-test --include-ignored --test-threads=1 --nocapture
 echo CONFORMANCE_RESULT=0
 export RS_L2TPD_BASELINE=/baseline
