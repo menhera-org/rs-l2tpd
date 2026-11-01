@@ -1,0 +1,20 @@
+    Checking rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+error: unnecessary use of `clone` to create a slice from a reference
+   --> tests/rules/resolvers.rs:276:9
+    |
+276 |         assert_eq!(answers.watching(), [initial.clone()], "{outcome}");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cloned_ref_to_slice_refs
+    = note: `-D clippy::cloned-ref-to-slice-refs` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::cloned_ref_to_slice_refs)]`
+
+error: unnecessary use of `clone` to create a slice from a reference
+   --> tests/rules/resolvers.rs:299:17
+    |
+299 |                 assert_eq!(watching, [initial.clone()]);
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cloned_ref_to_slice_refs
+
+error: could not compile `rs-l2tpd` (test "rules") due to 2 previous errors

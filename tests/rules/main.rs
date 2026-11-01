@@ -32,6 +32,7 @@ struct Lookups {
     watching: BTreeMap<u64, Lookup>,
     results: Vec<(u64, Vec<IpAddr>)>,
     refuse: bool,
+    partial: bool,
 }
 
 /// The test's side of the lookups: it answers host names when it likes.
@@ -60,6 +61,11 @@ impl Answers {
         self.0.lock().unwrap().watching.values().cloned().collect()
     }
 
+    /// Controls whether existing discovery jobs need their thirty-second retry.
+    pub fn partial(&self, partial: bool) {
+        self.0.lock().unwrap().partial = partial;
+    }
+
     /// Makes the next watches fail, as a refused port would (V12).
     pub fn refuse(&self, refuse: bool) {
         self.0.lock().unwrap().refuse = refuse;
@@ -80,6 +86,9 @@ impl Resolve for Answers {
     }
     fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
         std::mem::take(&mut self.0.lock().unwrap().results)
+    }
+    fn retry_discovery(&self, _: u64) -> bool {
+        self.0.lock().unwrap().partial
     }
 }
 

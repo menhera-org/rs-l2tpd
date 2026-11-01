@@ -1,0 +1,20 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/rs-l2tpd-member-control.cvCvT5dw)
+     Running tests/rules/main.rs (target/debug/deps/rules-9173433df0983df3)
+
+running 1 test
+
+thread 'resolvers::discovery_retries_preserve_completed_jobs_and_revalidate_device_incarnations' (1263236) panicked at tests/rules/resolvers.rs:303:17:
+assertion `left == right` failed
+  left: [Lookup { id: 3, host: "peer.example", resolver: Ipv6 { interface: "dns", client_id: None } }]
+ right: [Lookup { id: 2, host: "peer.example", resolver: Ipv6 { interface: "dns", client_id: None } }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test resolvers::discovery_retries_preserve_completed_jobs_and_revalidate_device_incarnations ... FAILED
+
+failures:
+
+failures:
+    resolvers::discovery_retries_preserve_completed_jobs_and_revalidate_device_incarnations
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 87 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`

@@ -814,6 +814,14 @@ match the preceding collection. Repository record
 line / 86.34% branch report: 385 lines and 250 branches remain. Production
 and guest fixtures are unchanged; the frozen 012764f matrix is running.
 
+Discovery retry cases now check completed-job reuse, partial restarts,
+missing/replaced devices and refused startup, preserving accepted peers.
+Both omitted-reuse and omitted-dependency controls fail. Ten seeded suites,
+three musl rule suites and common checks pass. Repository record
+`audit/phase6/discovery-retries-20261101/` gives compatible coverage
+mappings and the current 95.59% line / 86.72% branch report: 378 lines and
+243 branches remain. Production and guest fixtures are unchanged.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

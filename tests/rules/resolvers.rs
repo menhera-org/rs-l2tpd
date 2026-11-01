@@ -249,3 +249,90 @@ fn an_unreachable_new_answer_never_restores_the_previous_peer() {
     run_for(&mut r, 1);
     assert_eq!(r.kernel().connection(socket).unwrap().0, next);
 }
+
+/// spec: V6, V7, V9, V12, V14, M14
+#[test]
+fn discovery_retries_preserve_completed_jobs_and_revalidate_device_incarnations() {
+    for outcome in ["complete", "partial", "missing", "replacement", "refused"] {
+        let (mut r, answers) = reconciler();
+        let source = r.kernel_mut().add_link("source", false);
+        r.kernel_mut()
+            .add_addr(source, "192.0.2.1".parse().unwrap());
+        let dns = r.kernel_mut().add_link("dns", false);
+        let text = format!(
+            "{NAMED}resolver_name='r'\n[resolvers.r]\nmethod='ipv6'\nbind_interface='dns'\ndhcpv6_identity='anonymous'\n"
+        );
+        answers.partial(true);
+        assert!(r.reconcile(config(&text)));
+        super::deliver(&mut r);
+        let initial = answers.watching()[0].clone();
+        assert!(matches!(initial.resolver(), ResolverSpec::Ipv6 { .. }));
+        answers.answer("peer.example", &["192.0.2.2"]);
+        r.tick();
+        let socket = r.kernel().tunnel_socket(10).unwrap();
+        let connected = r.kernel().connection(socket).unwrap();
+        ops(&mut r);
+        run_for(&mut r, 29);
+        assert_eq!(
+            answers.watching(),
+            std::slice::from_ref(&initial),
+            "{outcome}"
+        );
+        assert!(ops(&mut r).is_empty(), "{outcome}: no early retry");
+
+        answers.partial(outcome == "partial");
+        match outcome {
+            "missing" | "replacement" => {
+                // Leave the queued notices unread: the retry must validate the devices itself.
+                r.kernel_mut().remove_link(dns);
+                if outcome == "replacement" {
+                    let replacement = r.kernel_mut().add_link("dns", false);
+                    assert_ne!(replacement, dns);
+                }
+            }
+            "refused" => {
+                answers.partial(true);
+                answers.refuse(true);
+            }
+            _ => {}
+        }
+        run_for(&mut r, 1);
+        let watching = answers.watching();
+        match outcome {
+            "complete" => {
+                assert_eq!(watching, std::slice::from_ref(&initial));
+            }
+            "partial" | "replacement" => {
+                assert_eq!(watching.len(), 1);
+                assert_ne!(watching[0].id(), initial.id());
+                assert_eq!(watching[0].resolver(), initial.resolver());
+            }
+            _ => {
+                assert!(watching.is_empty(), "{outcome}");
+                answers.refuse(false);
+                answers.partial(false);
+                if outcome == "missing" {
+                    r.kernel_mut().add_link("dns", false);
+                }
+                run_for(&mut r, 29);
+                assert!(answers.watching().is_empty());
+                run_for(&mut r, 1);
+                let recovered = answers.watching();
+                assert_eq!(recovered.len(), 1);
+                assert_ne!(recovered[0].id(), initial.id());
+                assert_eq!(recovered[0].resolver(), initial.resolver());
+            }
+        }
+        answers.partial(false);
+        let completed = answers.watching();
+        run_for(&mut r, 30);
+        assert_eq!(
+            answers.watching(),
+            completed,
+            "{outcome}: completed job restarted"
+        );
+        assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
+        assert_eq!(r.kernel().connection(socket), Some(connected));
+        assert!(ops(&mut r).is_empty(), "{outcome}: retained answer changed");
+    }
+}
