@@ -17,10 +17,12 @@ lines / 91.90% branches, leaving 184 lines and 150 branches. Request handling
 now covers 156/156 lines and 34/34 branches; socket handling covers
 103/103 lines and 12/12 branches.
 
-The [3f503cd matrix](phase6/matrix-20261101T182115Z-2714445/README.md)
+The [2d5ae45 matrix](phase6/matrix-20261101T205406Z-3041229/README.md)
 passes all thirteen profiles with the production reply correction and
 released iphost 0.4.4. Publication selections agree and source patches are
-empty. Later test-only request I/O probes have separate local qualification. Earlier
+empty. Controlled request I/O and synthetic socket-error cases run in its
+22 serial library cases. Later test-only lifetime, policy and resolver
+assertions retain their separate qualification. Earlier
 [anonymous Reply](phase6/anonymous-reply-20261101/README.md),
 [E27](phase6/event-verification-20261101/README.md) and other packages below
 retain their original source scope. The specification is unchanged.
@@ -36,8 +38,8 @@ profile transport fixes a rejected directory-reuse attempt and preserves
 | Requirement | Executed evidence | Still required |
 |---|---|---|
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
-| P2 scenarios | Frozen 3f503cd passes 27 normal cases on every required kernel; the corrected reply source also passes three shipped-musl suites locally | Complete clause/history/resource/event-cost proof |
-| P3 required kernels | Frozen 3f503cd passes five normal, five clock, two IPv6-absent and one missing-driver profiles; selections agree and source patches are empty | Preserve exact source and later test-only execution scopes |
+| P2 scenarios | Frozen 2d5ae45 passes 27 normal cases on every required kernel; the corrected reply source also passes three shipped-musl suites locally | Complete clause/history/resource/event-cost proof |
+| P3 required kernels | Frozen 2d5ae45 passes five normal, five clock, two IPv6-absent and one missing-driver profiles; selections agree and source patches are empty | Preserve exact source and later test-only execution scopes |
 | P4 coverage | Custom-resolver profiles: 8,503/8,687 lines (97.88%); 1,702/1,852 branches (91.90%). No production exclusions, profile mismatches or saturated regions | Cover 184 lines and 150 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | Signed 1b3d876 passes GNU in 17.19 s and three unprivileged musl cases in 24.81, 17.88 and 16.02 s; containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | Checked replies and the unmodified supplied unit pass in 29.41 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
@@ -51,7 +53,7 @@ source scope in the [VRF record](phase6/vrf-inventory-state-20261101/README.md).
 
 ## Required-kernel snapshot
 
-The completed 3f503cd matrix's initial and final publication checks select
+The completed 2d5ae45 matrix's initial and final publication checks select
 the same five stable targets. This snapshot includes the reply correction:
 
 | Package/version | Guest release | Normal scenarios | H16 clock/pause |
@@ -62,7 +64,7 @@ the same five stable targets. This snapshot includes the reply correction:
 | Vanilla 7.0.14 | 7.0.14 | 27 pass | pass |
 | Mainline 7.3 | 7.3.0 | 27 pass | pass |
 
-Each frozen 3f503cd normal guest also passes 20 serial library, 24 Linux,
+Each frozen 2d5ae45 normal guest also passes 22 serial library, 24 Linux,
 five review, 65 ordinary binary, three privileged binary and 29 process cases.
 The positive client-ID/binding and anonymous Reply cases pass on all five
 required kernels with released iphost 0.4.4. All eight

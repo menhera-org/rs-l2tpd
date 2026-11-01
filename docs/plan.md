@@ -499,9 +499,9 @@ malformed signed statuses without panic while preserving valid kernel
 errors, sequence checks and first-error precedence. Repeated native,
 instrumented and musl models, common gates, GNU live/Incus, manager, thread
 limits and the root sandbox pass. Three shipped-musl scenario/Incus pairs
-pass on Ubuntu 6.8.0-147. Frozen 3f503cd passes all thirteen required matrix
+pass on Ubuntu 6.8.0-147. Frozen 2d5ae45 passes all thirteen required matrix
 profiles with the production reply correction; publication selections agree
-and source patches are empty. Later test-only request I/O, service queue, reconciler record and error
+and source patches are empty. Additional request I/O, service queue, reconciler record and error
 boundary guards pass repeated GNU/musl/instrumented runs. Three real buffer-force guests
 also pass.
 

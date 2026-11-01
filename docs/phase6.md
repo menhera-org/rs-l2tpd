@@ -32,11 +32,12 @@ statuses without panicking and preserves valid errors, sequence checks and
 first-error precedence. Eight synthetic cases and eight failure controls
 are qualified in `audit/phase6/netlink-reply-state-20261101/`.
 
-Frozen signed source 3f503cd passes all thirteen required matrix profiles
+Frozen signed source 2d5ae45 passes all thirteen required matrix profiles
 with released iphost 0.4.4. All five targets pass normal and clock profiles;
-both IPv6-absent boots and missing-driver recovery pass. Initial/final
+both IPv6-absent boots and missing-driver recovery pass. Its 22 serial
+library cases include controlled I/O and synthetic socket-error guards. Initial/final
 publication selections agree and source patches are empty. Repository
-record `audit/phase6/matrix-20261101T182115Z-2714445/` seals the result.
+record `audit/phase6/matrix-20261101T205406Z-3041229/` seals the result.
 The checked-reply implementation also has passing local GNU/musl, Incus,
 manager, thread-limit and unmodified root-unit results on Ubuntu 6.8.0-147.
 Later signed code 1b3d876 passes fresh GNU live/Incus and three stable-musl
@@ -44,7 +45,7 @@ scenario/Incus pairs. Independent profile transport preserves earlier
 exports; `audit/phase6/current-head-qualification-20261101/` records the fix,
 rejected attempt and successful collections.
 
-Later test-only packages qualify request I/O errors and real buffer-force
+Test packages qualify request I/O errors and real buffer-force
 success, service queue ordering, reconciler record/retirement guards and
 runtime/socket error boundaries, deferred MAC changes after device removal
 and lifetime input/state boundaries. The latest tests add missing-session
@@ -202,7 +203,7 @@ establishes declaration traceability. The updated strict workflow also
 [passes in CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41211013318).
 Declaration traceability passes; complete clause proof and 100% coverage
 remain open. The latest November 1 required matrix passes on signed production source
-`3f503cd`, as recorded above.
+`2d5ae45`, as recorded above.
 
 ## P2. The scenario suite
 
