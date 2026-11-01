@@ -115,6 +115,16 @@ pub(super) fn wait(socket: &Socket, deadline: Instant) -> io::Result<()> {
     }
 }
 
+// kernel: (K7, K29) net/netlink/af_netlink.c NETLINK_GET_STRICT_CHK;
+// net/ipv4/devinet.c inet_valid_dump_ifaddr_req.
+fn open_request(protocol: isize) -> io::Result<Socket> {
+    let socket = open(protocol)?;
+    if protocol == netlink_sys::protocols::NETLINK_ROUTE {
+        socket.set_netlink_get_strict_chk(true)?;
+    }
+    Ok(socket)
+}
+
 /// A request socket of one protocol, opened again after a failure.
 pub(super) struct Request {
     protocol: isize,
@@ -129,7 +139,7 @@ impl Request {
     pub(super) fn new(protocol: isize) -> io::Result<Self> {
         Ok(Request {
             protocol,
-            socket: Some(open(protocol)?),
+            socket: Some(open_request(protocol)?),
             seq: 0,
         })
     }
@@ -152,7 +162,7 @@ impl Request {
     ) -> io::Result<()> {
         let socket = match self.socket.take() {
             Some(socket) => socket,
-            None => open(self.protocol)?,
+            None => open_request(self.protocol)?,
         };
         self.seq = self.seq.wrapping_add(1).max(1);
         match exchange(&socket, self.seq, payload, dump, deadline, visit) {
@@ -338,6 +348,18 @@ mod tests {
         );
         // A reopened socket may reuse the old port; its sequence still advances.
         assert_eq!(request.seq, 2);
+        let mut query = netlink_packet_route::address::AddressMessage::default();
+        query.header.family = netlink_packet_route::AddressFamily::Inet;
+        query.header.index = i32::MAX as u32;
+        let error = request
+            .run(
+                netlink_packet_route::RouteNetlinkMessage::GetAddress(query),
+                true,
+                Instant::now() + DEADLINE,
+                &mut |_, _| Ok(()),
+            )
+            .unwrap_err();
+        assert_eq!(error.raw_os_error(), Some(libc::ENODEV));
     }
 }
 
@@ -427,5 +449,54 @@ mod buffer_tests {
         assert_eq!(actual, expected);
         assert!(actual <= 2 * SUBSCRIPTION_BUFFER);
         println!("SUBSCRIPTION_RCVBUF={actual}");
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod strict_option_tests {
+    use super::*;
+
+    // kernel: (K7) net/netlink/af_netlink.c NETLINK_GET_STRICT_CHK.
+    /// spec: K7, E21, L9
+    #[test]
+    fn a_refused_strict_option_returns_the_original_error_without_leaking_sockets() {
+        const CHILD: &str = "RS_L2TPD_STRICT_OPTION_FAULT";
+        if std::env::var_os(CHILD).is_some() {
+            let mut request = Request::new(netlink_sys::protocols::NETLINK_ROUTE).unwrap();
+            request.socket = None;
+            super::super::syscall_fault::refuse(&[libc::SYS_setsockopt], libc::EIO);
+            let descriptors = || std::fs::read_dir("/proc/self/fd").unwrap().count();
+            let before = descriptors();
+            let error = Request::new(netlink_sys::protocols::NETLINK_ROUTE)
+                .err()
+                .unwrap();
+            assert_eq!(error.raw_os_error(), Some(libc::EIO));
+            assert_eq!(descriptors(), before);
+            let error = request
+                .run(
+                    netlink_packet_route::RouteNetlinkMessage::GetLink(
+                        netlink_packet_route::link::LinkMessage::default(),
+                    ),
+                    false,
+                    Instant::now() + DEADLINE,
+                    &mut |_, _| Ok(()),
+                )
+                .unwrap_err();
+            assert_eq!(error.raw_os_error(), Some(libc::EIO));
+            assert!(request.socket.is_none());
+            assert_eq!(request.seq, 0);
+            assert_eq!(descriptors(), before);
+            drop(Request::new(netlink_sys::protocols::NETLINK_GENERIC).unwrap());
+            assert_eq!(descriptors(), before);
+            println!("STRICT_REQUEST_FAULT_VERIFIED");
+            return;
+        }
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "kernel::linux::request::strict_option_tests::a_refused_strict_option_returns_the_original_error_without_leaking_sockets", "--nocapture"])
+            .env(CHILD, "1").output().unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert!(String::from_utf8_lossy(&output.stdout).contains("STRICT_REQUEST_FAULT_VERIFIED"));
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("LLVM Profile Error"));
     }
 }

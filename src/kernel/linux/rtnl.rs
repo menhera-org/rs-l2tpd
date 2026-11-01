@@ -29,6 +29,8 @@ pub(super) struct Link {
     pub info: LinkInfo,
     /// `IFLA_ADDRESS` when it has six bytes.
     pub address: Option<[u8; 6]>,
+    /// IPv6 device state advertised in IFLA_AF_SPEC.
+    pub ipv6: bool,
 }
 
 // kernel: (K9, K32) net/core/rtnetlink.c rtnl_fill_ifinfo (ifinfomsg,
@@ -40,6 +42,7 @@ pub(super) fn parse_link(payload: &[u8]) -> Option<Link> {
     let index = u32::from_ne_bytes(header[4..8].try_into().ok()?);
     let flags = u32::from_ne_bytes(header[8..12].try_into().ok()?);
     let (mut name, mut master, mut vrf, mut address) = (None, None, false, None);
+    let mut ipv6 = false;
     for nla in NlasIterator::new(&payload[16..]) {
         let nla = nla.ok()?;
         let value = nla.value();
@@ -49,6 +52,12 @@ pub(super) fn parse_link(payload: &[u8]) -> Option<Link> {
             }
             libc::IFLA_MASTER => master = Some(u32::from_ne_bytes(value.try_into().ok()?)),
             libc::IFLA_ADDRESS => address = value.try_into().ok(),
+            libc::IFLA_AF_SPEC => {
+                for family in NlasIterator::new(value) {
+                    ipv6 |=
+                        family.ok()?.kind() & libc::NLA_TYPE_MASK as u16 == libc::AF_INET6 as u16;
+                }
+            }
             libc::IFLA_LINKINFO => {
                 for info in NlasIterator::new(value) {
                     let info = info.ok()?;
@@ -63,6 +72,7 @@ pub(super) fn parse_link(payload: &[u8]) -> Option<Link> {
     (index != 0).then_some(())?;
     Some(Link {
         family: header[0],
+        ipv6,
         arphrd: u16::from_ne_bytes([header[2], header[3]]),
         info: LinkInfo {
             index,
@@ -212,9 +222,17 @@ impl Rtnl {
     }
 
     // kernel: net/core/rtnetlink.c rtnl_dump_ifinfo (K7, K29)
-    pub(super) fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
+    pub(super) fn scan_links(
+        &mut self,
+        master: u32,
+        visit: &mut dyn FnMut(&LinkInfo),
+    ) -> io::Result<()> {
+        let mut message = LinkMessage::default();
+        if master != 0 {
+            message.attributes.push(LinkAttribute::Controller(master));
+        }
         self.0.run(
-            RouteNetlinkMessage::GetLink(LinkMessage::default()),
+            RouteNetlinkMessage::GetLink(message),
             true,
             Instant::now() + DEADLINE,
             &mut |kind, payload| {
@@ -226,11 +244,41 @@ impl Rtnl {
         )
     }
 
-    // kernel: (K7, K29) net/core/rtnetlink.c rtnl_dump_all over
-    // every registered address family
-    pub(super) fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
+    // kernel: (K7, K29) net/core/rtnetlink.c rtnl_fill_link_af, rtnl_dump_all;
+    // net/ipv6/addrconf.c inet6_fill_link_af omits absent IPv6 device state.
+    pub(super) fn scan_addrs(
+        &mut self,
+        index: u32,
+        visit: &mut dyn FnMut(&AddrInfo),
+    ) -> io::Result<()> {
+        use netlink_packet_route::AddressFamily;
+        if index == 0 {
+            return self.scan_addr_family(index, AddressFamily::Unspec, visit);
+        }
+        let mut message = LinkMessage::default();
+        message.header.index = index;
+        // An absent family handler falls back to the all-family dump.
+        let ipv6 = self.get(message)?.ok_or_else(|| errno(libc::ENODEV))?.ipv6;
+        self.scan_addr_family(index, AddressFamily::Inet, visit)?;
+        if ipv6 {
+            self.scan_addr_family(index, AddressFamily::Inet6, visit)?;
+        }
+        Ok(())
+    }
+
+    // kernel: (K7, K29) net/ipv4/devinet.c inet_dump_ifaddr;
+    // net/ipv6/addrconf.c inet6_dump_addr: strict ifa_index filtering.
+    fn scan_addr_family(
+        &mut self,
+        index: u32,
+        family: netlink_packet_route::AddressFamily,
+        visit: &mut dyn FnMut(&AddrInfo),
+    ) -> io::Result<()> {
+        let mut message = AddressMessage::default();
+        message.header.index = index;
+        message.header.family = family;
         self.0.run(
-            RouteNetlinkMessage::GetAddress(AddressMessage::default()),
+            RouteNetlinkMessage::GetAddress(message),
             true,
             Instant::now() + DEADLINE,
             &mut |kind, payload| visit_addr(visit, kind, payload),
@@ -374,6 +422,41 @@ mod tests {
             );
             assert_eq!(addrs.len(), 2);
         }
+    }
+
+    // kernel: (K7) net/core/rtnetlink.c rtnl_fill_link_af;
+    // net/ipv6/addrconf.c inet6_fill_link_af omits devices without IPv6 state.
+    /// spec: K7, E20
+    #[test]
+    fn ipv6_inventory_requires_the_devices_ipv6_family_attribute() {
+        for (attrs, expected) in [
+            (vec![], false),
+            (vec![nla(libc::IFLA_AF_SPEC, &[])], false),
+            (
+                vec![nla(libc::IFLA_AF_SPEC, &nla(libc::AF_INET as u16, &[]))],
+                false,
+            ),
+            (
+                vec![nla(libc::IFLA_AF_SPEC, &nla(libc::AF_INET6 as u16, &[]))],
+                true,
+            ),
+            (
+                vec![nla(
+                    libc::IFLA_AF_SPEC,
+                    &nla(libc::AF_INET6 as u16 | libc::NLA_F_NESTED as u16, &[]),
+                )],
+                true,
+            ),
+        ] {
+            let mut attrs = attrs;
+            attrs.push(nla(libc::IFLA_IFNAME, b"wan\0"));
+            assert_eq!(parse_link(&link(0, 7, 0, &attrs)).unwrap().ipv6, expected);
+        }
+        let attrs = [
+            nla(libc::IFLA_IFNAME, b"wan\0"),
+            nla(libc::IFLA_AF_SPEC, &[1, 0, 0, 0]),
+        ];
+        assert!(parse_link(&link(0, 7, 0, &attrs)).is_none());
     }
 
     // kernel: net/ipv4/devinet.c inet_fill_ifaddr (K7)

@@ -1,0 +1,270 @@
+Source selections: exact published Ubuntu tags and built upstream releases.
+
+target: noble
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/noble/plain/net/core/rtnetlink.c?h=Ubuntu-6.8.0-147.147
+git-blob: cce078a8c5d9838b291490620a21eba442169245
+2218:	if (master_idx == -1)
+2282:static int rtnl_valid_dump_ifinfo_req(const struct nlmsghdr *nlh,
+2326:static int rtnl_dump_ifinfo(struct sk_buff *skb, struct netlink_callback *cb)
+2340:	int master_idx = 0;
+2349:		if (cb->strict_check)
+2373:			master_idx = nla_get_u32(tb[i]);
+2379:			if (cb->strict_check) {
+4139:static int rtnl_dump_all(struct sk_buff *skb, struct netlink_callback *cb)
+4768:	if (cb->strict_check)
+5476:		return -ENODATA;
+5651:		return -ENODATA;
+5738:	ifsm->family = PF_UNSPEC;
+6315:	if (cb->strict_check) {
+6670:			family = PF_UNSPEC;
+6708:		family = PF_UNSPEC;
+
+target: noble
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/noble/plain/net/ipv4/devinet.c?h=Ubuntu-6.8.0-147.147
+git-blob: 5d0994ee3409737ff561dd52193900210c0f2131
+1371:	master_idx = l3mdev_master_ifindex_rcu(dev);
+1756:static int inet_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+1856:static int inet_dump_ifaddr(struct sk_buff *skb, struct netlink_callback *cb)
+1880:	if (cb->strict_check) {
+1887:		if (fillargs.ifindex) {
+1991:		return -ENODATA;
+2286:	if (cb->strict_check) {
+
+target: noble
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/noble/plain/net/ipv6/addrconf.c?h=Ubuntu-6.8.0-147.147
+git-blob: 3878e2dcc350141f59c80ff160410cdcd1bfa239
+739:	if (cb->strict_check) {
+1851:		int master_idx = 0;
+1859:			master_idx = master->ifindex;
+5339:static int inet6_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+5395:static int inet6_dump_addr(struct sk_buff *skb, struct netlink_callback *cb,
+5418:	if (cb->strict_check) {
+5425:		if (fillargs.ifindex) {
+5877:static int inet6_fill_link_af(struct sk_buff *skb, const struct net_device *dev,
+5883:		return -ENODATA;
+6148:	if (cb->strict_check) {
+
+target: noble
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/noble/plain/net/netlink/af_netlink.c?h=Ubuntu-6.8.0-147.147
+git-blob: 60d4fe867a05540a8c6ed17dcbc1983c38cf5e4d
+1713:	case NETLINK_GET_STRICT_CHK:
+1777:	case NETLINK_GET_STRICT_CHK:
+1832:		return -ENODATA;
+
+target: resolute
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/resolute/plain/net/core/rtnetlink.c?h=Ubuntu-7.0.0-42.42
+git-blob: 4071a001d8eadd61323b7eaf2c60d37c05bcc997
+2373:	if (master_idx == -1)
+2437:static int rtnl_valid_dump_ifinfo_req(const struct nlmsghdr *nlh,
+2481:static int rtnl_dump_ifinfo(struct sk_buff *skb, struct netlink_callback *cb)
+2496:	int master_idx = 0;
+2502:		if (cb->strict_check)
+2528:			master_idx = nla_get_u32(tb[i]);
+2534:			if (cb->strict_check) {
+4399:static int rtnl_dump_all(struct sk_buff *skb, struct netlink_callback *cb)
+5034:	if (cb->strict_check)
+5722:		return -ENODATA;
+5897:		return -ENODATA;
+5984:	ifsm->family = PF_UNSPEC;
+6545:	if (cb->strict_check) {
+6946:			family = PF_UNSPEC;
+6984:		family = PF_UNSPEC;
+
+target: resolute
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/resolute/plain/net/ipv4/devinet.c?h=Ubuntu-7.0.0-42.42
+git-blob: 537bb6c315d2e25916984623e7e28169b9fa9196
+1393:	master_idx = l3mdev_master_ifindex_rcu(dev);
+1784:static int inet_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+1950:	if (cb->strict_check) {
+1956:		if (fillargs.ifindex) {
+1989:static int inet_dump_ifaddr(struct sk_buff *skb, struct netlink_callback *cb)
+2050:		return -ENODATA;
+2349:	if (cb->strict_check) {
+
+target: resolute
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/resolute/plain/net/ipv6/addrconf.c?h=Ubuntu-7.0.0-42.42
+git-blob: 5d89060bcc4fd0cdb072bf2e295dfe44ac5c889c
+747:	if (cb->strict_check) {
+1876:		int master_idx = 0;
+1884:			master_idx = master->ifindex;
+5365:static int inet6_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+5421:static int inet6_dump_addr(struct sk_buff *skb, struct netlink_callback *cb,
+5443:	if (cb->strict_check) {
+5450:		if (fillargs.ifindex) {
+5900:static int inet6_fill_link_af(struct sk_buff *skb, const struct net_device *dev,
+5906:		return -ENODATA;
+6175:	if (cb->strict_check) {
+
+target: resolute
+source: https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/resolute/plain/net/netlink/af_netlink.c?h=Ubuntu-7.0.0-42.42
+git-blob: 661d19a7735637bfbba01ff31c4a7fcd8765344e
+1731:	case NETLINK_GET_STRICT_CHK:
+1798:	case NETLINK_GET_STRICT_CHK:
+1853:		return -ENODATA;
+
+target: 6.8.12
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/core/rtnetlink.c?h=v6.8.12
+git-blob: 95e62235b5410a87effd7b69e039cd58b1bb9628
+2101:	if (master_idx == -1)
+2157:static int rtnl_valid_dump_ifinfo_req(const struct nlmsghdr *nlh,
+2201:static int rtnl_dump_ifinfo(struct sk_buff *skb, struct netlink_callback *cb)
+2215:	int master_idx = 0;
+2224:		if (cb->strict_check)
+2248:			master_idx = nla_get_u32(tb[i]);
+2254:			if (cb->strict_check) {
+4014:static int rtnl_dump_all(struct sk_buff *skb, struct netlink_callback *cb)
+4646:	if (cb->strict_check)
+5354:		return -ENODATA;
+5529:		return -ENODATA;
+5616:	ifsm->family = PF_UNSPEC;
+6193:	if (cb->strict_check) {
+6548:			family = PF_UNSPEC;
+6584:		family = PF_UNSPEC;
+
+target: 6.8.12
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/ipv4/devinet.c?h=v6.8.12
+git-blob: bc74f131fe4dfad327e71c1a8f0a4b66cdc526e5
+1358:	master_idx = l3mdev_master_ifindex_rcu(dev);
+1743:static int inet_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+1843:static int inet_dump_ifaddr(struct sk_buff *skb, struct netlink_callback *cb)
+1867:	if (cb->strict_check) {
+1874:		if (fillargs.ifindex) {
+1978:		return -ENODATA;
+2273:	if (cb->strict_check) {
+
+target: 6.8.12
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/ipv6/addrconf.c?h=v6.8.12
+git-blob: c4e2f9d35e68741edbd4c3c3b41c10b0b6d2e6e5
+738:	if (cb->strict_check) {
+1831:		int master_idx = 0;
+1839:			master_idx = master->ifindex;
+5277:static int inet6_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+5333:static int inet6_dump_addr(struct sk_buff *skb, struct netlink_callback *cb,
+5356:	if (cb->strict_check) {
+5363:		if (fillargs.ifindex) {
+5802:static int inet6_fill_link_af(struct sk_buff *skb, const struct net_device *dev,
+5808:		return -ENODATA;
+6073:	if (cb->strict_check) {
+
+target: 6.8.12
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/netlink/af_netlink.c?h=v6.8.12
+git-blob: ff315351269fe643073bb2984485b3a76566b1c8
+1724:	case NETLINK_GET_STRICT_CHK:
+1788:	case NETLINK_GET_STRICT_CHK:
+1843:		return -ENODATA;
+
+target: 7.0.14
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/core/rtnetlink.c?h=v7.0.14
+git-blob: ad0c7b0b4a506e2c33f0aa2f19d7922eb2cbbb59
+2368:	if (master_idx == -1)
+2424:static int rtnl_valid_dump_ifinfo_req(const struct nlmsghdr *nlh,
+2468:static int rtnl_dump_ifinfo(struct sk_buff *skb, struct netlink_callback *cb)
+2483:	int master_idx = 0;
+2489:		if (cb->strict_check)
+2515:			master_idx = nla_get_u32(tb[i]);
+2521:			if (cb->strict_check) {
+4386:static int rtnl_dump_all(struct sk_buff *skb, struct netlink_callback *cb)
+5021:	if (cb->strict_check)
+5709:		return -ENODATA;
+5884:		return -ENODATA;
+5971:	ifsm->family = PF_UNSPEC;
+6532:	if (cb->strict_check) {
+6933:			family = PF_UNSPEC;
+6971:		family = PF_UNSPEC;
+
+target: 7.0.14
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/ipv4/devinet.c?h=v7.0.14
+git-blob: 537bb6c315d2e25916984623e7e28169b9fa9196
+1393:	master_idx = l3mdev_master_ifindex_rcu(dev);
+1784:static int inet_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+1950:	if (cb->strict_check) {
+1956:		if (fillargs.ifindex) {
+1989:static int inet_dump_ifaddr(struct sk_buff *skb, struct netlink_callback *cb)
+2050:		return -ENODATA;
+2349:	if (cb->strict_check) {
+
+target: 7.0.14
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/ipv6/addrconf.c?h=v7.0.14
+git-blob: 8f8fdc9cfce224571693e1e497a18b0ebd927081
+747:	if (cb->strict_check) {
+1869:		int master_idx = 0;
+1877:			master_idx = master->ifindex;
+5344:static int inet6_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+5400:static int inet6_dump_addr(struct sk_buff *skb, struct netlink_callback *cb,
+5422:	if (cb->strict_check) {
+5429:		if (fillargs.ifindex) {
+5879:static int inet6_fill_link_af(struct sk_buff *skb, const struct net_device *dev,
+5885:		return -ENODATA;
+6154:	if (cb->strict_check) {
+
+target: 7.0.14
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/netlink/af_netlink.c?h=v7.0.14
+git-blob: c47f530b9ff7d971730f018535e4ad8941400a8f
+1712:	case NETLINK_GET_STRICT_CHK:
+1779:	case NETLINK_GET_STRICT_CHK:
+1834:		return -ENODATA;
+
+target: 7.3
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/core/rtnetlink.c?h=v7.3
+git-blob: be9d1625bac310ee3c6d7e4a98bb31a8a44b07e2
+2441:	if (master_idx == -1)
+2505:static int rtnl_valid_dump_ifinfo_req(const struct nlmsghdr *nlh,
+2549:static int rtnl_dump_ifinfo(struct sk_buff *skb, struct netlink_callback *cb)
+2564:	int master_idx = 0;
+2571:		if (cb->strict_check)
+2597:			master_idx = nla_get_u32(tb[i]);
+2603:			if (cb->strict_check) {
+4527:static int rtnl_dump_all(struct sk_buff *skb, struct netlink_callback *cb)
+5162:	if (cb->strict_check)
+5850:		return -ENODATA;
+6025:		return -ENODATA;
+6112:	ifsm->family = PF_UNSPEC;
+6674:	if (cb->strict_check) {
+7075:			family = PF_UNSPEC;
+7113:		family = PF_UNSPEC;
+
+target: 7.3
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/ipv4/devinet.c?h=v7.3
+git-blob: 5b6b11c943e453742b4893f1c9bd9e70d3d37a6f
+1393:	master_idx = l3mdev_master_ifindex_rcu(dev);
+1784:static int inet_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+1950:	if (cb->strict_check) {
+1956:		if (fillargs.ifindex) {
+1989:static int inet_dump_ifaddr(struct sk_buff *skb, struct netlink_callback *cb)
+2050:		return -ENODATA;
+2450:	if (cb->strict_check) {
+
+target: 7.3
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/ipv6/addrconf.c?h=v7.3
+git-blob: c90ee6dd7446cd10064c9fb95484b538b3ffc18c
+748:	if (cb->strict_check) {
+1877:		int master_idx = 0;
+1885:			master_idx = master->ifindex;
+5375:static int inet6_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+5431:static int inet6_dump_addr(struct sk_buff *skb, struct netlink_callback *cb,
+5453:	if (cb->strict_check) {
+5460:		if (fillargs.ifindex) {
+5910:static int inet6_fill_link_af(struct sk_buff *skb, const struct net_device *dev,
+5916:		return -ENODATA;
+6185:	if (cb->strict_check) {
+
+target: 7.3
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/netlink/af_netlink.c?h=v7.3
+git-blob: 3029894edad11c74a7bff78184c9eafbb985251b
+1736:	case NETLINK_GET_STRICT_CHK:
+1803:	case NETLINK_GET_STRICT_CHK:
+1858:		return -ENODATA;
+
+Foreign-family boundary, upstream 6.8.12:
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/mctp/device.c?h=v6.8.12
+git-blob: acb97b2574289628ea6ea1da02433eef119e6d8b
+78:	hdr->ifa_index = mdev->dev->ifindex;
+114:static int mctp_dump_addrinfo(struct sk_buff *skb, struct netlink_callback *cb)
+127:	ifindex = hdr->ifa_index;
+218:	dev = __dev_get_by_index(net, ifm->ifa_index);
+281:	dev = __dev_get_by_index(net, ifm->ifa_index);
+source: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/net/phonet/pn_netlink.c?h=v6.8.12
+git-blob: dd4c7e9a634fbe29645107de04a90688cdfb1a01
+82:	dev = __dev_get_by_index(net, ifm->ifa_index);
+110:	ifm->ifa_index = dev->ifindex;
+121:static int getaddr_dumpit(struct sk_buff *skb, struct netlink_callback *cb)

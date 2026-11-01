@@ -1,0 +1,12 @@
+diff --git a/src/kernel/linux/request.rs b/src/kernel/linux/request.rs
+--- a/src/kernel/linux/request.rs
++++ b/src/kernel/linux/request.rs
+@@ -119,7 +119,7 @@
+ fn open_request(protocol: isize) -> io::Result<Socket> {
+     let socket = open(protocol)?;
+     if protocol == netlink_sys::protocols::NETLINK_ROUTE {
+-        socket.set_netlink_get_strict_chk(true)?;
++        let _ = socket.set_netlink_get_strict_chk(true);
+     }
+     Ok(socket)
+ }

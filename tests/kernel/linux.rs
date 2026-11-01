@@ -1097,3 +1097,67 @@ fn tunnel_sockets_enable_fragmentation_before_connect() {
         f.kernel.close(socket);
     }
 }
+
+/// spec: K7, E20, M16
+#[test]
+#[ignore = "isolated network namespace with CAP_NET_ADMIN"]
+fn selected_address_inventory_works_when_the_devices_ipv6_is_disabled() {
+    let mut f = LinuxFixture::new();
+    let selected = f.add_link("scan-off", false);
+    let noise = f.add_link("scan-on", false);
+    f.add_addr(selected, "192.0.2.1".parse().unwrap());
+    f.add_addr(noise, "198.51.100.1".parse().unwrap());
+    f.add_addr(noise, "2001:db8:2::1".parse().unwrap());
+    std::fs::write("/proc/sys/net/ipv6/conf/scan-off/disable_ipv6", "1\n").unwrap();
+    let mut addresses = Vec::new();
+    f.k()
+        .scan_addrs(selected, &mut |addr| {
+            assert_eq!(addr.index(), selected);
+            addresses.push(addr.addr());
+        })
+        .unwrap();
+    assert_eq!(addresses, ["192.0.2.1".parse::<IpAddr>().unwrap()]);
+}
+
+/// spec: K7, E20, E22
+#[test]
+#[ignore = "isolated network namespace with CAP_NET_ADMIN"]
+fn selected_address_inventory_refuses_a_device_lost_between_families() {
+    let mut f = LinuxFixture::new();
+    let selected = f.add_link("scan-lost", false);
+    f.add_addr(selected, "192.0.2.1".parse().unwrap());
+    f.add_addr(selected, "2001:db8:1::1".parse().unwrap());
+    let mut visited = Vec::new();
+    let error = f
+        .k()
+        .scan_addrs(selected, &mut |addr| {
+            assert_eq!(addr.index(), selected);
+            visited.push(addr.addr());
+            ip(&["link", "del", "dev", "scan-lost"]);
+        })
+        .unwrap_err();
+    assert_eq!(error.raw_os_error(), Some(libc::ENODEV));
+    assert_eq!(visited, ["192.0.2.1".parse::<IpAddr>().unwrap()]);
+}
+
+/// spec: K7, E20, M16
+#[test]
+#[ignore = "isolated network namespace with CAP_NET_ADMIN"]
+fn selected_address_inventory_works_without_ipv6_device_state() {
+    let mut f = LinuxFixture::new();
+    ip(&["link", "add", "scan-small", "mtu", "68", "type", "dummy"]);
+    let selected = index_of("scan-small");
+    assert!(!std::path::Path::new("/proc/sys/net/ipv6/conf/scan-small").exists());
+    let noise = f.add_link("scan-normal", false);
+    f.add_addr(selected, "192.0.2.1".parse().unwrap());
+    f.add_addr(noise, "198.51.100.1".parse().unwrap());
+    f.add_addr(noise, "2001:db8:2::1".parse().unwrap());
+    let mut addresses = Vec::new();
+    f.k()
+        .scan_addrs(selected, &mut |addr| {
+            assert_eq!(addr.index(), selected);
+            addresses.push(addr.addr());
+        })
+        .unwrap();
+    assert_eq!(addresses, ["192.0.2.1".parse::<IpAddr>().unwrap()]);
+}

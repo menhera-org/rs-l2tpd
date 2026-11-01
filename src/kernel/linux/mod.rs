@@ -255,13 +255,13 @@ impl Kernel for LinuxKernel {
     }
 
     // kernel: net/core/rtnetlink.c rtnl_dump_ifinfo (K7)
-    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
-        self.rtnl.scan_links(visit)
+    fn scan_links(&mut self, master: u32, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
+        self.rtnl.scan_links(master, visit)
     }
 
     // kernel: net/core/rtnetlink.c rtnl_dump_all (K7)
-    fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
-        self.rtnl.scan_addrs(visit)
+    fn scan_addrs(&mut self, index: u32, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
+        self.rtnl.scan_addrs(index, visit)
     }
 
     // kernel: net/core/filter.c sk_attach_filter (K7, K10, K29)

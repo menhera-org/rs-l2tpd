@@ -38,6 +38,32 @@ Every capability of this table is required ([R49](requirements.md#the-host)):
 Not required: the `dummy` driver, any route, any route lookup, the route
 multicast groups and `/sys`. The daemon MUST NOT depend on any of them.
 
+### Dependency inventories (K7)
+
+Rtnetlink request sockets enable `NETLINK_GET_STRICT_CHK`, including after
+reopening. Under strict checking, `RTM_GETADDR` honors `ifa_index` for
+IPv4/IPv6; without it those handlers ignore the selector. Link dumps accept
+`IFLA_MASTER` to select members of one master. These selectors bound the
+records delivered to the daemon; they do not promise constant kernel CPU
+time for its internal traversal.
+
+A missing family-specific dump handler falls back to `PF_UNSPEC`.
+That can include foreign protocols, whose handlers need not honor the
+interface selector. Selected address inventories therefore request IPv4
+explicitly and request IPv6 only when the device's `IFLA_AF_SPEC`
+advertises IPv6 state. Generic link replies omit that family attribute
+when IPv6 device state is absent. A vanished device or incomplete family
+dump returns an error; partial visits do not establish a complete inventory.
+
+Sources: `net/netlink/af_netlink.c` (`NETLINK_GET_STRICT_CHK`);
+`net/core/rtnetlink.c` (`rtnl_dump_ifinfo`, `rtnl_fill_link_af`,
+`rtnetlink_rcv_msg`);
+`net/ipv4/devinet.c` (`inet_valid_dump_ifaddr_req`, `inet_dump_ifaddr`);
+`net/ipv6/addrconf.c` (`inet6_fill_link_af`,
+`inet6_valid_dump_ifaddr_req`, `inet6_dump_addr`).
+Exact required-target source identities are retained in repository record
+`audit/phase6/event-inventory-cost-20261101/source-links.log`.
+
 ## Facts
 
 Facts the other pages rely on. A fact is cited as K*n*; a page that

@@ -103,7 +103,10 @@ pub trait Kernel {
     fn rename(&mut self, index: u32, name: &IfName) -> Result<()>;       // EEXIST when taken
     fn set_hwaddr(&mut self, index: u32, addr: HwAddr) -> Result<()>;    // EBUSY while up (K31)
     fn ether_addr(&self, index: u32) -> Result<Option<HwAddr>>;          // DUID-LL (V12)
-    fn dump_links(&self) -> Result<Vec<LinkInfo>>;  fn dump_addrs(&self) -> Result<Vec<AddrInfo>>; // resync (E20)
+    fn scan_links(&mut self, master: u32, visit: &mut dyn FnMut(&LinkInfo)) -> Result<()>;
+    fn scan_addrs(&mut self, index: u32, visit: &mut dyn FnMut(&AddrInfo)) -> Result<()>;
+    fn dump_links(&mut self) -> Result<Vec<LinkInfo>>;
+    fn dump_addrs(&mut self) -> Result<Vec<AddrInfo>>; // explicit owned inventories
 
     // Subscriptions: streams the runtime drives (A5–A7)
     fn monitor(&mut self) -> Result<Box<dyn Subscription<Item = MonitorEvent>>>;   // links + addresses, filtered
@@ -127,6 +130,16 @@ Retain proofs only for armed captures and tracked dependencies, not every
 foreign index. Session dumps stream into bounded checks/reservations;
 never collect all foreign sessions into a namespace-sized `Vec`. A failed
 or interrupted dump cannot establish uniqueness or absence.
+Link and address inventories stream into staged dependency state. A nonzero
+selector restricts links to one master or addresses to one interface; zero
+requests the full namespace. The Linux adapter applies selectors in the
+kernel, so an ordinary dependency event does not parse unrelated records.
+Every selected inventory must complete before staged addresses become
+authoritative. The owned dump helpers explicitly collect the zero-selector
+inventory; monitor resync streams its link passes instead. Custom kernel
+backends must implement both selector arguments and the same completion
+contract.
+
 A `Subscription` exposes loss separately from its bounded event queue,
 so a full queue cannot drop the loss marker (E20). Loss is handled as
 state, never an error that unwinds the reconciler (A13).

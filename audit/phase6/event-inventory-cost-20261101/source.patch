@@ -1,0 +1,782 @@
+diff --git a/src/kernel/fake.rs b/src/kernel/fake.rs
+index 6da0b63..6951e30 100644
+--- a/src/kernel/fake.rs
++++ b/src/kernel/fake.rs
+@@ -1088,17 +1088,28 @@ impl Kernel for FakeKernel {
+         }
+     }
+ 
+-    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
++    fn scan_links(&mut self, master: u32, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
+         self.injected("dump")?;
+-        for link in self.links.values() {
++        for link in self
++            .links
++            .values()
++            .filter(|link| master == 0 || link.info.master == Some(master))
++        {
+             visit(&link.info);
+         }
+         self.injected("dump-end")
+     }
+ 
+-    fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
++    fn scan_addrs(&mut self, index: u32, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
+         self.injected("dump")?;
+-        for addr in &self.addrs {
++        if index != 0 && !self.links.contains_key(&index) {
++            return fail(Errno::ENODEV);
++        }
++        for addr in self
++            .addrs
++            .iter()
++            .filter(|addr| index == 0 || addr.index == index)
++        {
+             visit(addr);
+         }
+         self.injected("dump-end")
+diff --git a/src/kernel/linux/mod.rs b/src/kernel/linux/mod.rs
+index 4f31181..acef4bc 100644
+--- a/src/kernel/linux/mod.rs
++++ b/src/kernel/linux/mod.rs
+@@ -255,13 +255,13 @@ impl Kernel for LinuxKernel {
+     }
+ 
+     // kernel: net/core/rtnetlink.c rtnl_dump_ifinfo (K7)
+-    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
+-        self.rtnl.scan_links(visit)
++    fn scan_links(&mut self, master: u32, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
++        self.rtnl.scan_links(master, visit)
+     }
+ 
+     // kernel: net/core/rtnetlink.c rtnl_dump_all (K7)
+-    fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
+-        self.rtnl.scan_addrs(visit)
++    fn scan_addrs(&mut self, index: u32, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
++        self.rtnl.scan_addrs(index, visit)
+     }
+ 
+     // kernel: net/core/filter.c sk_attach_filter (K7, K10, K29)
+diff --git a/src/kernel/linux/request.rs b/src/kernel/linux/request.rs
+index 014c732..acbec79 100644
+--- a/src/kernel/linux/request.rs
++++ b/src/kernel/linux/request.rs
+@@ -115,6 +115,16 @@ pub(super) fn wait(socket: &Socket, deadline: Instant) -> io::Result<()> {
+     }
+ }
+ 
++// kernel: (K7, K29) net/netlink/af_netlink.c NETLINK_GET_STRICT_CHK;
++// net/ipv4/devinet.c inet_valid_dump_ifaddr_req.
++fn open_request(protocol: isize) -> io::Result<Socket> {
++    let socket = open(protocol)?;
++    if protocol == netlink_sys::protocols::NETLINK_ROUTE {
++        socket.set_netlink_get_strict_chk(true)?;
++    }
++    Ok(socket)
++}
++
+ /// A request socket of one protocol, opened again after a failure.
+ pub(super) struct Request {
+     protocol: isize,
+@@ -129,7 +139,7 @@ impl Request {
+     pub(super) fn new(protocol: isize) -> io::Result<Self> {
+         Ok(Request {
+             protocol,
+-            socket: Some(open(protocol)?),
++            socket: Some(open_request(protocol)?),
+             seq: 0,
+         })
+     }
+@@ -152,7 +162,7 @@ impl Request {
+     ) -> io::Result<()> {
+         let socket = match self.socket.take() {
+             Some(socket) => socket,
+-            None => open(self.protocol)?,
++            None => open_request(self.protocol)?,
+         };
+         self.seq = self.seq.wrapping_add(1).max(1);
+         match exchange(&socket, self.seq, payload, dump, deadline, visit) {
+@@ -338,6 +348,18 @@ mod tests {
+         );
+         // A reopened socket may reuse the old port; its sequence still advances.
+         assert_eq!(request.seq, 2);
++        let mut query = netlink_packet_route::address::AddressMessage::default();
++        query.header.family = netlink_packet_route::AddressFamily::Inet;
++        query.header.index = i32::MAX as u32;
++        let error = request
++            .run(
++                netlink_packet_route::RouteNetlinkMessage::GetAddress(query),
++                true,
++                Instant::now() + DEADLINE,
++                &mut |_, _| Ok(()),
++            )
++            .unwrap_err();
++        assert_eq!(error.raw_os_error(), Some(libc::ENODEV));
+     }
+ }
+ 
+@@ -429,3 +451,52 @@ mod buffer_tests {
+         println!("SUBSCRIPTION_RCVBUF={actual}");
+     }
+ }
++
++#[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
++mod strict_option_tests {
++    use super::*;
++
++    // kernel: (K7) net/netlink/af_netlink.c NETLINK_GET_STRICT_CHK.
++    /// spec: K7, E21, L9
++    #[test]
++    fn a_refused_strict_option_returns_the_original_error_without_leaking_sockets() {
++        const CHILD: &str = "RS_L2TPD_STRICT_OPTION_FAULT";
++        if std::env::var_os(CHILD).is_some() {
++            let mut request = Request::new(netlink_sys::protocols::NETLINK_ROUTE).unwrap();
++            request.socket = None;
++            super::super::syscall_fault::refuse(&[libc::SYS_setsockopt], libc::EIO);
++            let descriptors = || std::fs::read_dir("/proc/self/fd").unwrap().count();
++            let before = descriptors();
++            let error = Request::new(netlink_sys::protocols::NETLINK_ROUTE)
++                .err()
++                .unwrap();
++            assert_eq!(error.raw_os_error(), Some(libc::EIO));
++            assert_eq!(descriptors(), before);
++            let error = request
++                .run(
++                    netlink_packet_route::RouteNetlinkMessage::GetLink(
++                        netlink_packet_route::link::LinkMessage::default(),
++                    ),
++                    false,
++                    Instant::now() + DEADLINE,
++                    &mut |_, _| Ok(()),
++                )
++                .unwrap_err();
++            assert_eq!(error.raw_os_error(), Some(libc::EIO));
++            assert!(request.socket.is_none());
++            assert_eq!(request.seq, 0);
++            assert_eq!(descriptors(), before);
++            drop(Request::new(netlink_sys::protocols::NETLINK_GENERIC).unwrap());
++            assert_eq!(descriptors(), before);
++            println!("STRICT_REQUEST_FAULT_VERIFIED");
++            return;
++        }
++        let output = std::process::Command::new(std::env::current_exe().unwrap())
++            .args(["--exact", "kernel::linux::request::strict_option_tests::a_refused_strict_option_returns_the_original_error_without_leaking_sockets", "--nocapture"])
++            .env(CHILD, "1").output().unwrap();
++        assert!(output.status.success(), "{output:?}");
++        assert!(String::from_utf8_lossy(&output.stdout).contains("STRICT_REQUEST_FAULT_VERIFIED"));
++        assert!(!String::from_utf8_lossy(&output.stderr).contains("LLVM Profile Error"));
++    }
++}
+diff --git a/src/kernel/linux/rtnl.rs b/src/kernel/linux/rtnl.rs
+index c07046d..0a61e8b 100644
+--- a/src/kernel/linux/rtnl.rs
++++ b/src/kernel/linux/rtnl.rs
+@@ -29,6 +29,8 @@ pub(super) struct Link {
+     pub info: LinkInfo,
+     /// `IFLA_ADDRESS` when it has six bytes.
+     pub address: Option<[u8; 6]>,
++    /// IPv6 device state advertised in IFLA_AF_SPEC.
++    pub ipv6: bool,
+ }
+ 
+ // kernel: (K9, K32) net/core/rtnetlink.c rtnl_fill_ifinfo (ifinfomsg,
+@@ -40,6 +42,7 @@ pub(super) fn parse_link(payload: &[u8]) -> Option<Link> {
+     let index = u32::from_ne_bytes(header[4..8].try_into().ok()?);
+     let flags = u32::from_ne_bytes(header[8..12].try_into().ok()?);
+     let (mut name, mut master, mut vrf, mut address) = (None, None, false, None);
++    let mut ipv6 = false;
+     for nla in NlasIterator::new(&payload[16..]) {
+         let nla = nla.ok()?;
+         let value = nla.value();
+@@ -49,6 +52,12 @@ pub(super) fn parse_link(payload: &[u8]) -> Option<Link> {
+             }
+             libc::IFLA_MASTER => master = Some(u32::from_ne_bytes(value.try_into().ok()?)),
+             libc::IFLA_ADDRESS => address = value.try_into().ok(),
++            libc::IFLA_AF_SPEC => {
++                for family in NlasIterator::new(value) {
++                    ipv6 |=
++                        family.ok()?.kind() & libc::NLA_TYPE_MASK as u16 == libc::AF_INET6 as u16;
++                }
++            }
+             libc::IFLA_LINKINFO => {
+                 for info in NlasIterator::new(value) {
+                     let info = info.ok()?;
+@@ -63,6 +72,7 @@ pub(super) fn parse_link(payload: &[u8]) -> Option<Link> {
+     (index != 0).then_some(())?;
+     Some(Link {
+         family: header[0],
++        ipv6,
+         arphrd: u16::from_ne_bytes([header[2], header[3]]),
+         info: LinkInfo {
+             index,
+@@ -212,9 +222,17 @@ impl Rtnl {
+     }
+ 
+     // kernel: net/core/rtnetlink.c rtnl_dump_ifinfo (K7, K29)
+-    pub(super) fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
++    pub(super) fn scan_links(
++        &mut self,
++        master: u32,
++        visit: &mut dyn FnMut(&LinkInfo),
++    ) -> io::Result<()> {
++        let mut message = LinkMessage::default();
++        if master != 0 {
++            message.attributes.push(LinkAttribute::Controller(master));
++        }
+         self.0.run(
+-            RouteNetlinkMessage::GetLink(LinkMessage::default()),
++            RouteNetlinkMessage::GetLink(message),
+             true,
+             Instant::now() + DEADLINE,
+             &mut |kind, payload| {
+@@ -226,11 +244,41 @@ impl Rtnl {
+         )
+     }
+ 
+-    // kernel: (K7, K29) net/core/rtnetlink.c rtnl_dump_all over
+-    // every registered address family
+-    pub(super) fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
++    // kernel: (K7, K29) net/core/rtnetlink.c rtnl_fill_link_af, rtnl_dump_all;
++    // net/ipv6/addrconf.c inet6_fill_link_af omits absent IPv6 device state.
++    pub(super) fn scan_addrs(
++        &mut self,
++        index: u32,
++        visit: &mut dyn FnMut(&AddrInfo),
++    ) -> io::Result<()> {
++        use netlink_packet_route::AddressFamily;
++        if index == 0 {
++            return self.scan_addr_family(index, AddressFamily::Unspec, visit);
++        }
++        let mut message = LinkMessage::default();
++        message.header.index = index;
++        // An absent family handler falls back to the all-family dump.
++        let ipv6 = self.get(message)?.ok_or_else(|| errno(libc::ENODEV))?.ipv6;
++        self.scan_addr_family(index, AddressFamily::Inet, visit)?;
++        if ipv6 {
++            self.scan_addr_family(index, AddressFamily::Inet6, visit)?;
++        }
++        Ok(())
++    }
++
++    // kernel: (K7, K29) net/ipv4/devinet.c inet_dump_ifaddr;
++    // net/ipv6/addrconf.c inet6_dump_addr: strict ifa_index filtering.
++    fn scan_addr_family(
++        &mut self,
++        index: u32,
++        family: netlink_packet_route::AddressFamily,
++        visit: &mut dyn FnMut(&AddrInfo),
++    ) -> io::Result<()> {
++        let mut message = AddressMessage::default();
++        message.header.index = index;
++        message.header.family = family;
+         self.0.run(
+-            RouteNetlinkMessage::GetAddress(AddressMessage::default()),
++            RouteNetlinkMessage::GetAddress(message),
+             true,
+             Instant::now() + DEADLINE,
+             &mut |kind, payload| visit_addr(visit, kind, payload),
+@@ -376,6 +424,41 @@ mod tests {
+         }
+     }
+ 
++    // kernel: (K7) net/core/rtnetlink.c rtnl_fill_link_af;
++    // net/ipv6/addrconf.c inet6_fill_link_af omits devices without IPv6 state.
++    /// spec: K7, E20
++    #[test]
++    fn ipv6_inventory_requires_the_devices_ipv6_family_attribute() {
++        for (attrs, expected) in [
++            (vec![], false),
++            (vec![nla(libc::IFLA_AF_SPEC, &[])], false),
++            (
++                vec![nla(libc::IFLA_AF_SPEC, &nla(libc::AF_INET as u16, &[]))],
++                false,
++            ),
++            (
++                vec![nla(libc::IFLA_AF_SPEC, &nla(libc::AF_INET6 as u16, &[]))],
++                true,
++            ),
++            (
++                vec![nla(
++                    libc::IFLA_AF_SPEC,
++                    &nla(libc::AF_INET6 as u16 | libc::NLA_F_NESTED as u16, &[]),
++                )],
++                true,
++            ),
++        ] {
++            let mut attrs = attrs;
++            attrs.push(nla(libc::IFLA_IFNAME, b"wan\0"));
++            assert_eq!(parse_link(&link(0, 7, 0, &attrs)).unwrap().ipv6, expected);
++        }
++        let attrs = [
++            nla(libc::IFLA_IFNAME, b"wan\0"),
++            nla(libc::IFLA_AF_SPEC, &[1, 0, 0, 0]),
++        ];
++        assert!(parse_link(&link(0, 7, 0, &attrs)).is_none());
++    }
++
+     // kernel: net/ipv4/devinet.c inet_fill_ifaddr (K7)
+     /// spec: A5
+     #[test]
+diff --git a/src/kernel/mod.rs b/src/kernel/mod.rs
+index c7336f3..b68ae60 100644
+--- a/src/kernel/mod.rs
++++ b/src/kernel/mod.rs
+@@ -319,21 +319,21 @@ pub trait Kernel: Send {
+     fn set_hwaddr(&mut self, index: u32, addr: HwAddr) -> io::Result<()>;
+     /// A device's Ethernet address, `None` for a device without one (V12).
+     fn ether_addr(&mut self, index: u32) -> io::Result<Option<HwAddr>>;
+-    /// Every device, streamed from a complete dump (E20, G23).
++    /// Devices enslaved to `master`, or every device when zero (E20, G23).
+     /// An error means the partially visited inventory proves nothing.
+-    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()>;
+-    /// Every address, with the same streaming/completion contract.
+-    fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()>;
++    fn scan_links(&mut self, master: u32, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()>;
++    /// Addresses of `index`, or every address when zero; same completion contract.
++    fn scan_addrs(&mut self, index: u32, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()>;
+     /// Collects every device when the caller requests an owned inventory.
+     fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>> {
+         let mut links = Vec::new();
+-        self.scan_links(&mut |link| links.push(link.clone()))?;
++        self.scan_links(0, &mut |link| links.push(link.clone()))?;
+         Ok(links)
+     }
+     /// Collects every address when the caller requests an owned inventory.
+     fn dump_addrs(&mut self) -> io::Result<Vec<AddrInfo>> {
+         let mut addrs = Vec::new();
+-        self.scan_addrs(&mut |addr| addrs.push(addr.clone()))?;
++        self.scan_addrs(0, &mut |addr| addrs.push(addr.clone()))?;
+         Ok(addrs)
+     }
+ 
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index 9b28e44..2a9265e 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -432,7 +432,7 @@ impl<K: Kernel> Reconciler<K> {
+         let mut links = BTreeMap::new();
+         if self
+             .k
+-            .scan_links(&mut |link| {
++            .scan_links(0, &mut |link| {
+                 if self.index.devices.contains_key(&link.index)
+                     || self.index.sessions.contains_key(&link.index)
+                 {
+@@ -457,7 +457,7 @@ impl<K: Kernel> Reconciler<K> {
+         if (!watched_vrfs.is_empty() || !parents.is_empty())
+             && self
+                 .k
+-                .scan_links(&mut |link| {
++                .scan_links(0, &mut |link| {
+                     if parents.contains(&link.index)
+                         || link
+                             .master
+@@ -582,8 +582,8 @@ impl<K: Kernel> Reconciler<K> {
+     pub(super) fn remember_device(&mut self, link: &LinkInfo) -> std::io::Result<()> {
+         if link.vrf && !self.vrfs.contains(&link.index) {
+             let mut members = Vec::new();
+-            self.k.scan_links(&mut |member| {
+-                if member.master == Some(link.index) && !self.masters.contains_key(&member.index) {
++            self.k.scan_links(link.index, &mut |member| {
++                if !self.masters.contains_key(&member.index) {
+                     members.push(member.index);
+                 }
+             })?;
+@@ -662,13 +662,13 @@ impl<K: Kernel> Reconciler<K> {
+             return;
+         }
+         let mut addresses: BTreeMap<u32, BTreeSet<IpAddr>> = BTreeMap::new();
+-        let scanned = self.k.scan_addrs(&mut |address| {
+-            if seed.contains(&address.index) {
++        let scanned = seed.iter().try_for_each(|&index| {
++            self.k.scan_addrs(index, &mut |address| {
+                 addresses
+                     .entry(address.index)
+                     .or_default()
+                     .insert(address.addr.to_canonical());
+-            }
++            })
+         });
+         match scanned {
+             Ok(()) => {
+@@ -957,7 +957,7 @@ mod resource_tests {
+     /// spec: G23, M3, E20, E22
+     #[test]
+     fn failed_inventory_completion_never_commits_visited_partial_state() {
+-        for completed in [0, 1, 2] {
++        for completed in [0, 1, 2, 3, 4] {
+             let mut kernel = FakeKernel::new(42);
+             let member = kernel.add_link("member", false);
+             let wanted = kernel.add_link("wanted", true);
+diff --git a/tests/kernel/conformance.rs b/tests/kernel/conformance.rs
+index 377c96a..13f848b 100644
+--- a/tests/kernel/conformance.rs
++++ b/tests/kernel/conformance.rs
+@@ -534,11 +534,78 @@ pub fn disconnected_sessions_count_frame_drops(f: &mut dyn Fixture) {
+     f.k().close(socket);
+ }
+ 
++/// spec: K7, K9, E20, G23, M16
++pub fn inventories_select_only_the_requested_dependency(f: &mut dyn Fixture) {
++    let master = f.add_link("scan-blue", true);
++    let other_master = f.add_link("scan-red", true);
++    let member = f.add_link("scan-member", false);
++    let noise = f.add_link("scan-noise", false);
++    let empty = f.add_link("scan-empty", false);
++    f.set_master(member, master);
++    f.set_master(noise, other_master);
++    for (index, v4, v6) in [
++        (member, "192.0.2.1", "2001:db8:1::1"),
++        (noise, "198.51.100.1", "2001:db8:2::1"),
++    ] {
++        f.add_addr(index, v4.parse().unwrap());
++        f.add_addr(index, v6.parse().unwrap());
++    }
++    let mut links = Vec::new();
++    f.k()
++        .scan_links(master, &mut |link| links.push(link.index()))
++        .unwrap();
++    assert_eq!(links, [member]);
++    links.clear();
++    f.k()
++        .scan_links(empty, &mut |link| links.push(link.index()))
++        .unwrap();
++    assert!(links.is_empty());
++    let mut addresses = Vec::new();
++    f.k()
++        .scan_addrs(member, &mut |addr| {
++            assert_eq!(
++                addr.index(),
++                member,
++                "an unrelated address reached the visitor"
++            );
++            addresses.push(addr.addr());
++        })
++        .unwrap();
++    assert!(addresses.contains(&"192.0.2.1".parse().unwrap()));
++    assert!(addresses.contains(&"2001:db8:1::1".parse().unwrap()));
++    addresses.clear();
++    f.k()
++        .scan_addrs(empty, &mut |addr| addresses.push(addr.addr()))
++        .unwrap();
++    assert!(addresses.is_empty());
++    assert_eq!(
++        errno(f.k().scan_addrs(i32::MAX as u32, &mut |_| panic!(
++            "missing device produced an address"
++        ))),
++        nix::libc::ENODEV
++    );
++    let all = f.k().dump_links().unwrap();
++    assert!(
++        [master, other_master, member, noise, empty]
++            .iter()
++            .all(|index| all.iter().any(|link| link.index() == *index))
++    );
++    let all = f.k().dump_addrs().unwrap();
++    assert!(
++        all.iter().any(|addr| addr.index() == noise
++            && addr.addr() == "198.51.100.1".parse::<IpAddr>().unwrap())
++    );
++}
++
+ /// A case of the suite.
+ pub type Case = fn(&mut dyn Fixture);
+ 
+ /// Every case, by name, for the runners.
+ pub const CASES: &[(&str, Case)] = &[
++    (
++        "inventories_select_only_the_requested_dependency",
++        inventories_select_only_the_requested_dependency,
++    ),
+     (
+         "disconnected_sessions_count_frame_drops",
+         disconnected_sessions_count_frame_drops,
+diff --git a/tests/kernel/linux.rs b/tests/kernel/linux.rs
+index 53f742d..1bc51d0 100644
+--- a/tests/kernel/linux.rs
++++ b/tests/kernel/linux.rs
+@@ -1097,3 +1097,67 @@ fn tunnel_sockets_enable_fragmentation_before_connect() {
+         f.kernel.close(socket);
+     }
+ }
++
++/// spec: K7, E20, M16
++#[test]
++#[ignore = "isolated network namespace with CAP_NET_ADMIN"]
++fn selected_address_inventory_works_when_the_devices_ipv6_is_disabled() {
++    let mut f = LinuxFixture::new();
++    let selected = f.add_link("scan-off", false);
++    let noise = f.add_link("scan-on", false);
++    f.add_addr(selected, "192.0.2.1".parse().unwrap());
++    f.add_addr(noise, "198.51.100.1".parse().unwrap());
++    f.add_addr(noise, "2001:db8:2::1".parse().unwrap());
++    std::fs::write("/proc/sys/net/ipv6/conf/scan-off/disable_ipv6", "1\n").unwrap();
++    let mut addresses = Vec::new();
++    f.k()
++        .scan_addrs(selected, &mut |addr| {
++            assert_eq!(addr.index(), selected);
++            addresses.push(addr.addr());
++        })
++        .unwrap();
++    assert_eq!(addresses, ["192.0.2.1".parse::<IpAddr>().unwrap()]);
++}
++
++/// spec: K7, E20, E22
++#[test]
++#[ignore = "isolated network namespace with CAP_NET_ADMIN"]
++fn selected_address_inventory_refuses_a_device_lost_between_families() {
++    let mut f = LinuxFixture::new();
++    let selected = f.add_link("scan-lost", false);
++    f.add_addr(selected, "192.0.2.1".parse().unwrap());
++    f.add_addr(selected, "2001:db8:1::1".parse().unwrap());
++    let mut visited = Vec::new();
++    let error = f
++        .k()
++        .scan_addrs(selected, &mut |addr| {
++            assert_eq!(addr.index(), selected);
++            visited.push(addr.addr());
++            ip(&["link", "del", "dev", "scan-lost"]);
++        })
++        .unwrap_err();
++    assert_eq!(error.raw_os_error(), Some(libc::ENODEV));
++    assert_eq!(visited, ["192.0.2.1".parse::<IpAddr>().unwrap()]);
++}
++
++/// spec: K7, E20, M16
++#[test]
++#[ignore = "isolated network namespace with CAP_NET_ADMIN"]
++fn selected_address_inventory_works_without_ipv6_device_state() {
++    let mut f = LinuxFixture::new();
++    ip(&["link", "add", "scan-small", "mtu", "68", "type", "dummy"]);
++    let selected = index_of("scan-small");
++    assert!(!std::path::Path::new("/proc/sys/net/ipv6/conf/scan-small").exists());
++    let noise = f.add_link("scan-normal", false);
++    f.add_addr(selected, "192.0.2.1".parse().unwrap());
++    f.add_addr(noise, "198.51.100.1".parse().unwrap());
++    f.add_addr(noise, "2001:db8:2::1".parse().unwrap());
++    let mut addresses = Vec::new();
++    f.k()
++        .scan_addrs(selected, &mut |addr| {
++            assert_eq!(addr.index(), selected);
++            addresses.push(addr.addr());
++        })
++        .unwrap();
++    assert_eq!(addresses, ["192.0.2.1".parse::<IpAddr>().unwrap()]);
++}
+diff --git a/tests/scenarios/boot.rs b/tests/scenarios/boot.rs
+index 27de47a..e7eb585 100644
+--- a/tests/scenarios/boot.rs
++++ b/tests/scenarios/boot.rs
+@@ -87,8 +87,11 @@ fn absent_ipv6_stack_uses_native_ipv4_and_keeps_ipv6_peers_disconnected() {
+     ));
+     let pair = Pair::new();
+     pair.underlay(true, false);
+-    let mut a = pair.start(0, &config(0, &["192.0.2.2", "2001:db8:1::2"]));
+-    let mut b = pair.start(1, &config(1, &["192.0.2.1", "2001:db8:1::1"]));
++    let bound = |side, peers: &[&str]| {
++        config(side, peers).replace("[sessions.s", "bind_interface='underlay'\n[sessions.s")
++    };
++    let mut a = pair.start(0, &bound(0, &["192.0.2.2", "2001:db8:1::2"]));
++    let mut b = pair.start(1, &bound(1, &["192.0.2.1", "2001:db8:1::1"]));
+     a.event("ready");
+     b.event("ready");
+     let indices = [pair.index(0, "l2tp0"), pair.index(0, "l2tp1")];
+diff --git a/tests/service.rs b/tests/service.rs
+index b9f5076..99cea5e 100644
+--- a/tests/service.rs
++++ b/tests/service.rs
+@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
+ use rs_l2tpd::config::{Config, Family, HwAddr, L2tpIfName, SessionConfig, TunnelConfig};
+ use rs_l2tpd::kernel::fake::FakeKernel;
+ use rs_l2tpd::kernel::*;
+-use rs_l2tpd::reconciler::{Lookup, Resolve};
++use rs_l2tpd::reconciler::{Lookup, Reconciler, Resolve, Source};
+ use rs_l2tpd::runtime::{AdoptedSocket, Runtime};
+ use rs_l2tpd::{Error, blocking, service};
+ 
+@@ -24,6 +24,8 @@ struct Host(
+     Arc<Mutex<Option<mpsc::SyncSender<()>>>>,
+     Arc<AtomicBool>,
+     Arc<Mutex<Option<Gate>>>,
++    Arc<AtomicUsize>,
++    Arc<AtomicUsize>,
+ );
+ struct Gate {
+     entered: mpsc::SyncSender<()>,
+@@ -53,6 +55,8 @@ impl Host {
+             Arc::new(Mutex::new(None)),
+             Arc::new(AtomicBool::new(false)),
+             Arc::new(Mutex::new(None)),
++            Arc::new(AtomicUsize::new(0)),
++            Arc::new(AtomicUsize::new(0)),
+         )
+     }
+     fn with<T>(&self, f: impl FnOnce(&mut FakeKernel) -> T) -> T {
+@@ -112,7 +116,15 @@ impl Kernel for Host {
+             count: self.2.clone(),
+         }))
+     }
+-    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
++    fn scan_addrs(&mut self, index: u32, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
++        self.callback_context();
++        let count = self.8.clone();
++        self.0.lock().unwrap().scan_addrs(index, &mut |address| {
++            count.fetch_add(1, Ordering::SeqCst);
++            visit(address);
++        })
++    }
++    fn scan_links(&mut self, master: u32, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
+         self.callback_context();
+         self.3.fetch_add(1, Ordering::SeqCst);
+         let gate = self.1.lock().unwrap().take();
+@@ -120,7 +132,11 @@ impl Kernel for Host {
+             gate.entered.send(()).unwrap();
+             gate.release.recv().unwrap();
+         }
+-        self.0.lock().unwrap().scan_links(visit)
++        let count = self.9.clone();
++        self.0.lock().unwrap().scan_links(master, &mut |link| {
++            count.fetch_add(1, Ordering::SeqCst);
++            visit(link);
++        })
+     }
+     fn now(&self) -> Instant {
+         self.callback_context();
+@@ -154,7 +170,6 @@ impl Kernel for Host {
+         link_by_name(name: &L2tpIfName) -> io::Result<Option<LinkInfo>>;
+         set_hwaddr(index: u32, addr: HwAddr) -> io::Result<()>;
+         ether_addr(index: u32) -> io::Result<Option<HwAddr>>;
+-        scan_addrs(visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()>;
+         l2tp_events() -> io::Result<Box<dyn Subscription>>;
+     }
+ }
+@@ -1360,3 +1375,128 @@ fn services_return_final_cleanup_query_errors_and_release_local_descriptors() {
+         });
+     }
+ }
++
++#[test]
++fn ordinary_member_event_address_work_is_independent_of_unrelated_inventory() {
++    let mut observed = Vec::new();
++    for unrelated in [1u128, 100, 10_000] {
++        let host = Host::new();
++        let (vrf, member) = host.with(|kernel| {
++            let vrf = kernel.add_link("blue", true);
++            kernel.set_up(vrf, true);
++            let noise = kernel.add_link("unrelated", false);
++            let member = kernel.add_link("member", false);
++            kernel.add_addr(member, "192.0.2.1".parse().unwrap());
++            let prefix = u128::from("2001:db8:ffff::".parse::<std::net::Ipv6Addr>().unwrap());
++            for offset in 1..=unrelated {
++                kernel.add_addr(noise, std::net::Ipv6Addr::from(prefix + offset).into());
++            }
++            (vrf, member)
++        });
++        let mut configuration = Config::new();
++        configuration
++            .insert_tunnel(
++                "one",
++                TunnelConfig::builder(10)
++                    .bind_interface(L2tpIfName::new("blue").unwrap())
++                    .ip_version(Family::V6)
++                    .build()
++                    .unwrap(),
++            )
++            .unwrap();
++        let mut reconciler = Reconciler::new(host.clone(), Box::new(NoDns));
++        assert!(reconciler.reconcile(configuration));
++        loop {
++            let (monitor, l2tp) = host.with(|kernel| (kernel.take_monitor(), kernel.take_l2tp()));
++            if monitor.is_empty() && l2tp.is_empty() {
++                break;
++            }
++            for notice in monitor {
++                reconciler.handle(Source::Monitor, notice);
++            }
++            for notice in l2tp {
++                reconciler.handle(Source::L2tp, notice);
++            }
++        }
++        host.8.store(0, Ordering::SeqCst);
++        host.with(|kernel| kernel.set_master(member, Some(vrf)));
++        let notices = host.with(|kernel| kernel.take_monitor());
++        assert_eq!(notices.len(), 1);
++        for notice in notices {
++            reconciler.handle(Source::Monitor, notice);
++        }
++        assert_eq!(reconciler.accepted().tunnels().len(), 1);
++        assert!(reconciler.ready());
++        let visits = host.8.load(Ordering::SeqCst);
++        println!(
++            "M16_EVENT_COST entries=1 events=1 unrelated={unrelated} address_callbacks={visits}"
++        );
++        observed.push(visits);
++        assert!(reconciler.shutdown());
++    }
++    assert!(
++        observed.windows(2).all(|pair| pair[0] == pair[1]),
++        "one configured entry and one ordinary event changed work with unrelated host state: {observed:?}"
++    );
++}
++
++/// spec: M16, G12, G23
++#[test]
++fn ordinary_vrf_appearance_link_work_is_independent_of_unrelated_inventory() {
++    let mut observed = Vec::new();
++    for unrelated in [1u128, 100, 10_000] {
++        let host = Host::new();
++        let vrf = host.with(|kernel| {
++            let vrf = kernel.add_link("unwatched", true);
++            kernel.set_up(vrf, true);
++            let member = kernel.add_link("member", false);
++            kernel.set_master(member, Some(vrf));
++            for offset in 1..=unrelated {
++                kernel.add_link(&format!("noise{offset}"), false);
++            }
++            vrf
++        });
++        let mut configuration = Config::new();
++        configuration
++            .insert_tunnel(
++                "one",
++                TunnelConfig::builder(10)
++                    .bind_interface(L2tpIfName::new("blue").unwrap())
++                    .ip_version(Family::V6)
++                    .build()
++                    .unwrap(),
++            )
++            .unwrap();
++        let mut reconciler = Reconciler::new(host.clone(), Box::new(NoDns));
++        assert!(reconciler.reconcile(configuration));
++        loop {
++            let (monitor, l2tp) = host.with(|kernel| (kernel.take_monitor(), kernel.take_l2tp()));
++            if monitor.is_empty() && l2tp.is_empty() {
++                break;
++            }
++            for notice in monitor {
++                reconciler.handle(Source::Monitor, notice);
++            }
++            for notice in l2tp {
++                reconciler.handle(Source::L2tp, notice);
++            }
++        }
++        host.9.store(0, Ordering::SeqCst);
++        host.with(|kernel| kernel.rename_link(vrf, "blue"));
++        let notices = host.with(|kernel| kernel.take_monitor());
++        assert_eq!(notices.len(), 1);
++        for notice in notices {
++            reconciler.handle(Source::Monitor, notice);
++        }
++        assert_eq!(reconciler.accepted().tunnels().len(), 1);
++        assert!(reconciler.ready());
++        let visits = host.9.load(Ordering::SeqCst);
++        println!("M16_EVENT_COST entries=1 events=1 unrelated={unrelated} link_callbacks={visits}");
++        observed.push(visits);
++        assert!(reconciler.shutdown());
++    }
++    assert!(
++        observed.windows(2).all(|pair| pair[0] == pair[1]),
++        "one configured entry and one ordinary event changed work with unrelated host state: {observed:?}"
++    );
++}

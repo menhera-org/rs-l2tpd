@@ -1,0 +1,15 @@
+
+running 1 test
+
+thread 'kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket' (7) panicked at src/kernel/linux/request.rs:361:14:
+called `Result::unwrap_err()` on an `Ok` value: ()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... FAILED
+
+failures:
+
+failures:
+    kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 147 filtered out; finished in 0.05s
+

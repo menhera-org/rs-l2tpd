@@ -534,11 +534,78 @@ pub fn disconnected_sessions_count_frame_drops(f: &mut dyn Fixture) {
     f.k().close(socket);
 }
 
+/// spec: K7, K9, E20, G23, M16
+pub fn inventories_select_only_the_requested_dependency(f: &mut dyn Fixture) {
+    let master = f.add_link("scan-blue", true);
+    let other_master = f.add_link("scan-red", true);
+    let member = f.add_link("scan-member", false);
+    let noise = f.add_link("scan-noise", false);
+    let empty = f.add_link("scan-empty", false);
+    f.set_master(member, master);
+    f.set_master(noise, other_master);
+    for (index, v4, v6) in [
+        (member, "192.0.2.1", "2001:db8:1::1"),
+        (noise, "198.51.100.1", "2001:db8:2::1"),
+    ] {
+        f.add_addr(index, v4.parse().unwrap());
+        f.add_addr(index, v6.parse().unwrap());
+    }
+    let mut links = Vec::new();
+    f.k()
+        .scan_links(master, &mut |link| links.push(link.index()))
+        .unwrap();
+    assert_eq!(links, [member]);
+    links.clear();
+    f.k()
+        .scan_links(empty, &mut |link| links.push(link.index()))
+        .unwrap();
+    assert!(links.is_empty());
+    let mut addresses = Vec::new();
+    f.k()
+        .scan_addrs(member, &mut |addr| {
+            assert_eq!(
+                addr.index(),
+                member,
+                "an unrelated address reached the visitor"
+            );
+            addresses.push(addr.addr());
+        })
+        .unwrap();
+    assert!(addresses.contains(&"192.0.2.1".parse().unwrap()));
+    assert!(addresses.contains(&"2001:db8:1::1".parse().unwrap()));
+    addresses.clear();
+    f.k()
+        .scan_addrs(empty, &mut |addr| addresses.push(addr.addr()))
+        .unwrap();
+    assert!(addresses.is_empty());
+    assert_eq!(
+        errno(f.k().scan_addrs(i32::MAX as u32, &mut |_| panic!(
+            "missing device produced an address"
+        ))),
+        nix::libc::ENODEV
+    );
+    let all = f.k().dump_links().unwrap();
+    assert!(
+        [master, other_master, member, noise, empty]
+            .iter()
+            .all(|index| all.iter().any(|link| link.index() == *index))
+    );
+    let all = f.k().dump_addrs().unwrap();
+    assert!(
+        all.iter().any(|addr| addr.index() == noise
+            && addr.addr() == "198.51.100.1".parse::<IpAddr>().unwrap())
+    );
+}
+
 /// A case of the suite.
 pub type Case = fn(&mut dyn Fixture);
 
 /// Every case, by name, for the runners.
 pub const CASES: &[(&str, Case)] = &[
+    (
+        "inventories_select_only_the_requested_dependency",
+        inventories_select_only_the_requested_dependency,
+    ),
     (
         "disconnected_sessions_count_frame_drops",
         disconnected_sessions_count_frame_drops,

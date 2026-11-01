@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 use rs_l2tpd::config::{Config, Family, HwAddr, L2tpIfName, SessionConfig, TunnelConfig};
 use rs_l2tpd::kernel::fake::FakeKernel;
 use rs_l2tpd::kernel::*;
-use rs_l2tpd::reconciler::{Lookup, Resolve};
+use rs_l2tpd::reconciler::{Lookup, Reconciler, Resolve, Source};
 use rs_l2tpd::runtime::{AdoptedSocket, Runtime};
 use rs_l2tpd::{Error, blocking, service};
 
@@ -24,6 +24,8 @@ struct Host(
     Arc<Mutex<Option<mpsc::SyncSender<()>>>>,
     Arc<AtomicBool>,
     Arc<Mutex<Option<Gate>>>,
+    Arc<AtomicUsize>,
+    Arc<AtomicUsize>,
 );
 struct Gate {
     entered: mpsc::SyncSender<()>,
@@ -53,6 +55,8 @@ impl Host {
             Arc::new(Mutex::new(None)),
             Arc::new(AtomicBool::new(false)),
             Arc::new(Mutex::new(None)),
+            Arc::new(AtomicUsize::new(0)),
+            Arc::new(AtomicUsize::new(0)),
         )
     }
     fn with<T>(&self, f: impl FnOnce(&mut FakeKernel) -> T) -> T {
@@ -112,7 +116,15 @@ impl Kernel for Host {
             count: self.2.clone(),
         }))
     }
-    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
+    fn scan_addrs(&mut self, index: u32, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
+        self.callback_context();
+        let count = self.8.clone();
+        self.0.lock().unwrap().scan_addrs(index, &mut |address| {
+            count.fetch_add(1, Ordering::SeqCst);
+            visit(address);
+        })
+    }
+    fn scan_links(&mut self, master: u32, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
         self.callback_context();
         self.3.fetch_add(1, Ordering::SeqCst);
         let gate = self.1.lock().unwrap().take();
@@ -120,7 +132,11 @@ impl Kernel for Host {
             gate.entered.send(()).unwrap();
             gate.release.recv().unwrap();
         }
-        self.0.lock().unwrap().scan_links(visit)
+        let count = self.9.clone();
+        self.0.lock().unwrap().scan_links(master, &mut |link| {
+            count.fetch_add(1, Ordering::SeqCst);
+            visit(link);
+        })
     }
     fn now(&self) -> Instant {
         self.callback_context();
@@ -154,7 +170,6 @@ impl Kernel for Host {
         link_by_name(name: &L2tpIfName) -> io::Result<Option<LinkInfo>>;
         set_hwaddr(index: u32, addr: HwAddr) -> io::Result<()>;
         ether_addr(index: u32) -> io::Result<Option<HwAddr>>;
-        scan_addrs(visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()>;
         l2tp_events() -> io::Result<Box<dyn Subscription>>;
     }
 }
@@ -1359,4 +1374,129 @@ fn services_return_final_cleanup_query_errors_and_release_local_descriptors() {
             assert!(deleted < closed);
         });
     }
+}
+
+#[test]
+fn ordinary_member_event_address_work_is_independent_of_unrelated_inventory() {
+    let mut observed = Vec::new();
+    for unrelated in [1u128, 100, 10_000] {
+        let host = Host::new();
+        let (vrf, member) = host.with(|kernel| {
+            let vrf = kernel.add_link("blue", true);
+            kernel.set_up(vrf, true);
+            let noise = kernel.add_link("unrelated", false);
+            let member = kernel.add_link("member", false);
+            kernel.add_addr(member, "192.0.2.1".parse().unwrap());
+            let prefix = u128::from("2001:db8:ffff::".parse::<std::net::Ipv6Addr>().unwrap());
+            for offset in 1..=unrelated {
+                kernel.add_addr(noise, std::net::Ipv6Addr::from(prefix + offset).into());
+            }
+            (vrf, member)
+        });
+        let mut configuration = Config::new();
+        configuration
+            .insert_tunnel(
+                "one",
+                TunnelConfig::builder(10)
+                    .bind_interface(L2tpIfName::new("blue").unwrap())
+                    .ip_version(Family::V6)
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        let mut reconciler = Reconciler::new(host.clone(), Box::new(NoDns));
+        assert!(reconciler.reconcile(configuration));
+        loop {
+            let (monitor, l2tp) = host.with(|kernel| (kernel.take_monitor(), kernel.take_l2tp()));
+            if monitor.is_empty() && l2tp.is_empty() {
+                break;
+            }
+            for notice in monitor {
+                reconciler.handle(Source::Monitor, notice);
+            }
+            for notice in l2tp {
+                reconciler.handle(Source::L2tp, notice);
+            }
+        }
+        host.8.store(0, Ordering::SeqCst);
+        host.with(|kernel| kernel.set_master(member, Some(vrf)));
+        let notices = host.with(|kernel| kernel.take_monitor());
+        assert_eq!(notices.len(), 1);
+        for notice in notices {
+            reconciler.handle(Source::Monitor, notice);
+        }
+        assert_eq!(reconciler.accepted().tunnels().len(), 1);
+        assert!(reconciler.ready());
+        let visits = host.8.load(Ordering::SeqCst);
+        println!(
+            "M16_EVENT_COST entries=1 events=1 unrelated={unrelated} address_callbacks={visits}"
+        );
+        observed.push(visits);
+        assert!(reconciler.shutdown());
+    }
+    assert!(
+        observed.windows(2).all(|pair| pair[0] == pair[1]),
+        "one configured entry and one ordinary event changed work with unrelated host state: {observed:?}"
+    );
+}
+
+/// spec: M16, G12, G23
+#[test]
+fn ordinary_vrf_appearance_link_work_is_independent_of_unrelated_inventory() {
+    let mut observed = Vec::new();
+    for unrelated in [1u128, 100, 10_000] {
+        let host = Host::new();
+        let vrf = host.with(|kernel| {
+            let vrf = kernel.add_link("unwatched", true);
+            kernel.set_up(vrf, true);
+            let member = kernel.add_link("member", false);
+            kernel.set_master(member, Some(vrf));
+            for offset in 1..=unrelated {
+                kernel.add_link(&format!("noise{offset}"), false);
+            }
+            vrf
+        });
+        let mut configuration = Config::new();
+        configuration
+            .insert_tunnel(
+                "one",
+                TunnelConfig::builder(10)
+                    .bind_interface(L2tpIfName::new("blue").unwrap())
+                    .ip_version(Family::V6)
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        let mut reconciler = Reconciler::new(host.clone(), Box::new(NoDns));
+        assert!(reconciler.reconcile(configuration));
+        loop {
+            let (monitor, l2tp) = host.with(|kernel| (kernel.take_monitor(), kernel.take_l2tp()));
+            if monitor.is_empty() && l2tp.is_empty() {
+                break;
+            }
+            for notice in monitor {
+                reconciler.handle(Source::Monitor, notice);
+            }
+            for notice in l2tp {
+                reconciler.handle(Source::L2tp, notice);
+            }
+        }
+        host.9.store(0, Ordering::SeqCst);
+        host.with(|kernel| kernel.rename_link(vrf, "blue"));
+        let notices = host.with(|kernel| kernel.take_monitor());
+        assert_eq!(notices.len(), 1);
+        for notice in notices {
+            reconciler.handle(Source::Monitor, notice);
+        }
+        assert_eq!(reconciler.accepted().tunnels().len(), 1);
+        assert!(reconciler.ready());
+        let visits = host.9.load(Ordering::SeqCst);
+        println!("M16_EVENT_COST entries=1 events=1 unrelated={unrelated} link_callbacks={visits}");
+        observed.push(visits);
+        assert!(reconciler.shutdown());
+    }
+    assert!(
+        observed.windows(2).all(|pair| pair[0] == pair[1]),
+        "one configured entry and one ordinary event changed work with unrelated host state: {observed:?}"
+    );
 }

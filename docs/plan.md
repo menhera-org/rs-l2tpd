@@ -899,6 +899,18 @@ and their exact scope. The later test-only tree also passes both GitHub
 jobs, including the signal-thread resource step (run 41277232235).
 The reproduced ordinary-event inventory cost and 100% coverage remain open.
 
+Ordinary dependency inventories now use kernel selectors instead of reading
+unrelated namespace records. Address/member and new-VRF witnesses remain at
+one callback with 1, 100 or 10,000 unrelated records; broad, non-strict,
+reopen and fail-open controls fail. Ten seeded suites, GNU/musl live
+repetitions, three musl normal/Incus runs, both IPv6-absent boots, root
+systemd and common checks pass. Repository record
+`audit/phase6/event-inventory-cost-20261101/` gives exact source and fresh
+96.01% line / 87.89% branch coverage: 345 lines and 223 branches remain.
+A further witness finds a stale master when a member joins a newly appearing
+VRF before its member event arrives. That cache fix, the new production
+matrix and complete clause/history/coverage proof remain open.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

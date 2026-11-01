@@ -14,9 +14,9 @@ no nix contribution or release is required.
 |---|---|---|
 | P1 source link | Strict local and CI passes: 43 facts, 37 production-cited and six classified; no uncited functions. Ten CI repetitions passed | Maintain strict enforcement as sources change |
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
-| P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and fresh profiles; H16 has passing required-kernel records; table/index/queue history checks pass | Approved current-dependency storage uses streamed inventories; a one-event witness still reads all unrelated addresses. Fix and prove event cost and remaining clauses |
-| P3 matrix | Latest required driver returns MATRIX_RESULT=0: five normal and five clock profiles, both IPv6-absent boots and missing-Ethernet-driver recovery pass; published versions match before/after | Frozen ce6a70a includes checked libc signal calls; later test-only additions are separately qualified. Complete P2/delegated proof remains open |
-| P4 coverage | Approved production scope: fresh checked-libc collection reaches 96.00% lines / 87.81% branches; production mappings match across test-only additions, with no exclusions or saturated counts | 344 missing lines / 223 branches; add meaningful cases and remaining profiles to reach 100% |
+| P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and fresh profiles; H16 has passing required-kernel records; table/index/queue history checks pass | Kernel-selected inventories fix the one-event namespace scan. A further new-VRF witness retains a member under its old master; fix this cache case and finish clause/history proof |
+| P3 matrix | Latest required driver returns MATRIX_RESULT=0: five normal and five clock profiles, both IPv6-absent boots and missing-Ethernet-driver recovery pass; published versions match before/after | Frozen ce6a70a includes checked libc signal calls; filtered inventories now need a fresh matrix after the cache follow-up |
+| P4 coverage | Approved production scope: fresh filtered-inventory collection reaches 96.01% lines / 87.89% branches, with no production exclusions, profile mismatches or saturated counts | 345 missing lines / 223 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Approved explicit MAC authority and later-manager limitation applied; three fresh unmodified musl Incus runs pass | Repeat after relevant production changes; other distribution userspaces remain untested |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -1077,3 +1077,15 @@ including actual first/second signal-thread resource refusals. Current
 coverage is 96.00% lines / 87.81% branches; the separate ordinary-event
 witness reads 2, 101 and 10,001 address records as unrelated state grows.
 This is an implementation defect to fix, not a closed event-cost gate.
+
+## Filtered inventories, November 1
+
+[The inventory record](phase6/event-inventory-cost-20261101/README.md)
+fixes namespace-wide reads for ordinary member and newly recognized VRF
+events. Real selector, IPv6-state, disappearance, lost-reply/reopen and
+refused-option tests pass, with four failing controls. Ten seeded suites,
+three GNU/musl live kernel repetitions, three musl normal and Incus runs,
+both IPv6-absent boots, real manager and root-systemd checks pass. Fresh
+coverage is 96.01% lines / 87.89% branches, leaving 345 lines and 223 branches.
+A further witness finds a stale old-master association during a new-VRF
+inventory; the cache follow-up and final matrix remain required.

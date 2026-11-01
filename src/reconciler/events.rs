@@ -432,7 +432,7 @@ impl<K: Kernel> Reconciler<K> {
         let mut links = BTreeMap::new();
         if self
             .k
-            .scan_links(&mut |link| {
+            .scan_links(0, &mut |link| {
                 if self.index.devices.contains_key(&link.index)
                     || self.index.sessions.contains_key(&link.index)
                 {
@@ -457,7 +457,7 @@ impl<K: Kernel> Reconciler<K> {
         if (!watched_vrfs.is_empty() || !parents.is_empty())
             && self
                 .k
-                .scan_links(&mut |link| {
+                .scan_links(0, &mut |link| {
                     if parents.contains(&link.index)
                         || link
                             .master
@@ -582,8 +582,8 @@ impl<K: Kernel> Reconciler<K> {
     pub(super) fn remember_device(&mut self, link: &LinkInfo) -> std::io::Result<()> {
         if link.vrf && !self.vrfs.contains(&link.index) {
             let mut members = Vec::new();
-            self.k.scan_links(&mut |member| {
-                if member.master == Some(link.index) && !self.masters.contains_key(&member.index) {
+            self.k.scan_links(link.index, &mut |member| {
+                if !self.masters.contains_key(&member.index) {
                     members.push(member.index);
                 }
             })?;
@@ -662,13 +662,13 @@ impl<K: Kernel> Reconciler<K> {
             return;
         }
         let mut addresses: BTreeMap<u32, BTreeSet<IpAddr>> = BTreeMap::new();
-        let scanned = self.k.scan_addrs(&mut |address| {
-            if seed.contains(&address.index) {
+        let scanned = seed.iter().try_for_each(|&index| {
+            self.k.scan_addrs(index, &mut |address| {
                 addresses
                     .entry(address.index)
                     .or_default()
                     .insert(address.addr.to_canonical());
-            }
+            })
         });
         match scanned {
             Ok(()) => {
@@ -957,7 +957,7 @@ mod resource_tests {
     /// spec: G23, M3, E20, E22
     #[test]
     fn failed_inventory_completion_never_commits_visited_partial_state() {
-        for completed in [0, 1, 2] {
+        for completed in [0, 1, 2, 3, 4] {
             let mut kernel = FakeKernel::new(42);
             let member = kernel.add_link("member", false);
             let wanted = kernel.add_link("wanted", true);

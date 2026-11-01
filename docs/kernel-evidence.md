@@ -21,7 +21,7 @@ their own relevant citations.
 | K4 | requirement + live positive: V6 socket creation; refusal policy is tested with both errnos in `socket_family_fallback_never_recreates_existing_tunnels`; the scoped mainline H4/T4 boots exercise ipv6.disable=1 and CONFIG_IPV6=n (see kernel-behavior.md) | linux |
 | K5 | shared: `disconnected_sessions_count_frame_drops`; live: `disconnected_sessions_drop_outbound_but_receive_only_matching_cookies` transmits and observes counters | linux |
 | K6 | shared: `connect_selects_the_source_of_the_device`, disconnect/reconnect across families | linux |
-| K7 | shared: `the_monitor_reports_links_and_addresses`; live: ordered lifetime requests and loss tests | linux |
+| K7 | shared: `the_monitor_reports_links_and_addresses`, `inventories_select_only_the_requested_dependency`; live: ordered lifetime requests, filtered inventories, IPv6-state and lost-reply/reopen tests | linux |
 | K8 | requirement: kernel command capability checks cited by `LinuxKernel::new` and the L2TP adapter; privileged positive operation runs | linux |
 | K9 | live: `links_are_found_by_name_and_dumped`; shared VRF/zone/source cases | linux |
 | K10 | unit: BPF instruction cases; live: production filtered monitor observes link and address changes; R6's child-only SO_ATTACH_FILTER refusal proves unfiltered address recovery and real frames on Ubuntu 6.8.0-147 | linux |

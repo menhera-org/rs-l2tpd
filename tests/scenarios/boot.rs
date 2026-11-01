@@ -87,8 +87,11 @@ fn absent_ipv6_stack_uses_native_ipv4_and_keeps_ipv6_peers_disconnected() {
     ));
     let pair = Pair::new();
     pair.underlay(true, false);
-    let mut a = pair.start(0, &config(0, &["192.0.2.2", "2001:db8:1::2"]));
-    let mut b = pair.start(1, &config(1, &["192.0.2.1", "2001:db8:1::1"]));
+    let bound = |side, peers: &[&str]| {
+        config(side, peers).replace("[sessions.s", "bind_interface='underlay'\n[sessions.s")
+    };
+    let mut a = pair.start(0, &bound(0, &["192.0.2.2", "2001:db8:1::2"]));
+    let mut b = pair.start(1, &bound(1, &["192.0.2.1", "2001:db8:1::1"]));
     a.event("ready");
     b.event("ready");
     let indices = [pair.index(0, "l2tp0"), pair.index(0, "l2tp1")];

@@ -1,0 +1,23 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -582,7 +582,7 @@
+     pub(super) fn remember_device(&mut self, link: &LinkInfo) -> std::io::Result<()> {
+         if link.vrf && !self.vrfs.contains(&link.index) {
+             let mut members = Vec::new();
+-            self.k.scan_links(link.index, &mut |member| {
++            self.k.scan_links(0, &mut |member| {
+                 if !self.masters.contains_key(&member.index) {
+                     members.push(member.index);
+                 }
+@@ -662,8 +662,8 @@
+             return;
+         }
+         let mut addresses: BTreeMap<u32, BTreeSet<IpAddr>> = BTreeMap::new();
+-        let scanned = seed.iter().try_for_each(|&index| {
+-            self.k.scan_addrs(index, &mut |address| {
++        let scanned = seed.iter().try_for_each(|&_index| {
++            self.k.scan_addrs(0, &mut |address| {
+                 addresses
+                     .entry(address.index)
+                     .or_default()

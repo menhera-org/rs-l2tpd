@@ -158,6 +158,22 @@ one boot case each. The modular Ubuntu 7.0 target passes missing-Ethernet-driver
 degradation and recovery in a separate boot. No new system-container result
 is inferred for any other kernel.
 
+### Filtered dependency inventories
+
+Exact source for both Ubuntu targets and all three upstream releases
+supports strict interface-selected address dumps and master-selected link
+dumps. IPv6-absent fallback and foreign-family handlers need the precautions
+documented under [K7](spec/kernel.md#dependency-inventories-k7).
+
+The new implementation passes the shared selectors, disabled-device IPv6,
+mid-inventory disappearance and request-reopening checks on Ubuntu
+`6.8.0-147-generic`. Its two model witnesses deliver one dependency record
+with 1, 100 or 10,000 unrelated records. The earlier implementation reads
+all those records. This follow-up changes production code after the matrix
+above; its full required-target qualification is still pending.
+Repository record `audit/phase6/event-inventory-cost-20261101/` keeps the
+witnesses, source identities and deliberately broken controls.
+
 ## Session deletion and dump traversal by target
 
 The exact Ubuntu tags were checked alongside the built upstream tarballs;

@@ -1088,17 +1088,28 @@ impl Kernel for FakeKernel {
         }
     }
 
-    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
+    fn scan_links(&mut self, master: u32, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
         self.injected("dump")?;
-        for link in self.links.values() {
+        for link in self
+            .links
+            .values()
+            .filter(|link| master == 0 || link.info.master == Some(master))
+        {
             visit(&link.info);
         }
         self.injected("dump-end")
     }
 
-    fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
+    fn scan_addrs(&mut self, index: u32, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
         self.injected("dump")?;
-        for addr in &self.addrs {
+        if index != 0 && !self.links.contains_key(&index) {
+            return fail(Errno::ENODEV);
+        }
+        for addr in self
+            .addrs
+            .iter()
+            .filter(|addr| index == 0 || addr.index == index)
+        {
             visit(addr);
         }
         self.injected("dump-end")

@@ -1,0 +1,26 @@
+
+running 2 tests
+M16_EVENT_COST entries=1 events=1 unrelated=1 link_callbacks=3
+M16_EVENT_COST entries=1 events=1 unrelated=1 address_callbacks=2
+M16_EVENT_COST entries=1 events=1 unrelated=100 link_callbacks=102
+M16_EVENT_COST entries=1 events=1 unrelated=100 address_callbacks=101
+M16_EVENT_COST entries=1 events=1 unrelated=10000 link_callbacks=10002
+
+thread 'ordinary_vrf_appearance_link_work_is_independent_of_unrelated_inventory' (1516200) panicked at tests/service.rs:1498:5:
+one configured entry and one ordinary event changed work with unrelated host state: [3, 102, 10002]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test ordinary_vrf_appearance_link_work_is_independent_of_unrelated_inventory ... FAILED
+M16_EVENT_COST entries=1 events=1 unrelated=10000 address_callbacks=10001
+
+thread 'ordinary_member_event_address_work_is_independent_of_unrelated_inventory' (1516199) panicked at tests/service.rs:1437:5:
+one configured entry and one ordinary event changed work with unrelated host state: [2, 101, 10001]
+test ordinary_member_event_address_work_is_independent_of_unrelated_inventory ... FAILED
+
+failures:
+
+failures:
+    ordinary_member_event_address_work_is_independent_of_unrelated_inventory
+    ordinary_vrf_appearance_link_work_is_independent_of_unrelated_inventory
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.25s
+
