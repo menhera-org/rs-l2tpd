@@ -90,6 +90,14 @@ Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 
 ## Current coverage evidence
 
+The [startup open-error cases](phase6/startup-open-errors-20261101/README.md)
+add direct Runtime and async Service socket refusals to the existing
+fixture. Ten native and serial instrumented repetitions, three musl runs
+and common gates pass. Four controls reject lost descriptors, changed
+errno and panics. All 4,304 mappings remain identical. Constructor success
+and refusal counters exist in different compiled instances; the aggregate
+remains 97.14% / 90.38%. The fixture now checks eight startup faults.
+
 The [netlink peer cases](phase6/netlink-peer-boundaries-20261101/README.md)
 exercise expired transmission, malformed framing and forged replies over
 real userspace netlink sockets. Ten native and instrumented seeds, three

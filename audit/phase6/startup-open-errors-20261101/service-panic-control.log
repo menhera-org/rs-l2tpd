@@ -1,0 +1,20 @@
+   Compiling rs-l2tpd v0.2.0 (<control-checkout>
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running tests/startup.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/debug/deps/startup-71b28cbbee7b5b5d)
+
+running 1 test
+STARTUP_FAILURE_VERIFIED=runtime-open
+
+thread 'startup_resource_failures_return_errors_and_preserve_adopted_fds' (2509909) panicked at tests/startup.rs:356:9:
+service-open: Output { status: ExitStatus(unix_wait_status(25856)), stdout: "\nrunning 1 test\ntest startup_resource_failures_return_errors_and_preserve_adopted_fds ... FAILED\n\nfailures:\n\nfailures:\n    startup_resource_failures_return_errors_and_preserve_adopted_fds\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s\n\n", stderr: "\nthread 'startup_resource_failures_return_errors_and_preserve_adopted_fds' (2509913) panicked at src/service.rs:62:58:\ncalled `Result::unwrap()` on an `Err` value: (Io(Os { code: 1, kind: PermissionDenied, message: \"Operation not permitted\" }), [AdoptedSocket { name: \"malformed inherited name\", fd: OwnedFd { fd: 6 } }, AdoptedSocket { name: \"t7\", fd: OwnedFd { fd: 8 } }])\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test startup_resource_failures_return_errors_and_preserve_adopted_fds ... FAILED
+
+failures:
+
+failures:
+    startup_resource_failures_return_errors_and_preserve_adopted_fds
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test startup`

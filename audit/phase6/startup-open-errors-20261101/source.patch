@@ -1,0 +1,37 @@
+diff --git a/tests/startup.rs b/tests/startup.rs
+index c2af2b9..fc39b8e 100644
+--- a/tests/startup.rs
++++ b/tests/startup.rs
+@@ -243,6 +243,14 @@ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
+             adopted.push(AdoptedSocket::new(name, fd.into()));
+         }
+         let result = match fault.as_str() {
++            "runtime-open" | "service-open" => {
++                refuse_startup_syscalls(&[libc::SYS_socket], libc::EPERM);
++                if fault == "runtime-open" {
++                    Runtime::new(adopted).map(|_| ())
++                } else {
++                    service::Service::new(Config::new(), adopted).map(|_| ())
++                }
++            }
+             "runtime-thread" => {
+                 refuse_startup_syscalls(&[libc::SYS_clone, libc::SYS_clone3], libc::EAGAIN);
+                 Runtime::with_kernel(
+@@ -299,7 +307,7 @@ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
+             error.raw_os_error(),
+             Some(if fault.ends_with("engine") {
+                 libc::EMFILE
+-            } else if fault == "blocking-open" {
++            } else if fault.ends_with("-open") {
+                 libc::EPERM
+             } else {
+                 libc::EAGAIN
+@@ -324,6 +332,8 @@ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
+         return;
+     }
+     for fault in [
++        "runtime-open",
++        "service-open",
+         "runtime-thread",
+         "service-thread",
+         "service-engine",

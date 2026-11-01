@@ -62,6 +62,14 @@ and common gates pass; four controls fail. Its source mappings are
 unchanged, with 248 lines and 178 branches still uncovered. Its live scope
 is Ubuntu 6.8.0-147, separately from the frozen production matrix.
 
+The public startup fixture also checks direct Runtime and async Service
+socket failures without losing adopted inputs. Ten native and serial
+instrumented repetitions, three musl runs and common gates pass; four
+controls fail. The aggregate percentage is unchanged because constructor
+success and failure counters belong to different compiled instances.
+Repository record `audit/phase6/startup-open-errors-20261101/` retains the
+counter evidence and all eight startup faults.
+
 Complete clause/history/resource/event-cost proof and the 100% coverage
 gate remain required. The [testing page](testing.md) gives current gate
 commands; repository file `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies
