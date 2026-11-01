@@ -27,12 +27,16 @@ the scenario suite below; read them before writing new scenarios.
 
 ## Execution status, 2026-11-01
 
-Phase 6 remains open. The production reply decoder rejects malformed signed
+Phase 6 remains open. The 23:11 UTC publication recheck selects mainline
+7.4-rc1, while the four Ubuntu/vanilla targets remain unchanged. The RC
+archive is cached and verified; its build, source review and live profiles
+are pending. P3 is open again. The completed 2d5ae45 matrix retains its
+previous 7.3 snapshot; superseded results do not qualify the new target. The production reply decoder rejects malformed signed
 statuses without panicking and preserves valid errors, sequence checks and
 first-error precedence. Eight synthetic cases and eight failure controls
 are qualified in `audit/phase6/netlink-reply-state-20261101/`.
 
-Frozen signed source 2d5ae45 passes all thirteen required matrix profiles
+Frozen signed source 2d5ae45 passed all thirteen profiles of the earlier target snapshot
 with released iphost 0.4.4. All five targets pass normal and clock profiles;
 both IPv6-absent boots and missing-driver recovery pass. Its 22 serial
 library cases include controlled I/O and synthetic socket-error guards. Initial/final
@@ -72,9 +76,9 @@ the exact live or fake scope:
 `audit/phase6/resolver-default-capacity-20261101/` and
 `audit/phase6/pidfile-inspection-errors-20261101/`.
 
-The current collector reports **97.96% of production lines and 91.95% of
-branches**: 8,510/8,687 lines and 1,703/1,852 branches, leaving **177 lines
-and 149 branches**. All 4,327 production mappings remain unchanged from the
+The current collector reports **98.01% of production lines and 92.01% of
+branches**: 8,514/8,687 lines and 1,704/1,852 branches, leaving **173 lines
+and 148 branches**. All 4,327 production mappings remain unchanged from the
 preceding custom-resolver report.
 Profiles from earlier production implementations are not merged. There
 are no production exclusions, profile mismatches or saturated regions.

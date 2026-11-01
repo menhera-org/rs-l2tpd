@@ -40,7 +40,7 @@ The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,
 GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The required matrix passes all thirteen profiles on `584062d`, including
+The earlier target snapshot passed all thirteen profiles on `584062d`, including
 the E27 correction and released iphost 0.4.4.
 The iphost 0.4.4 integration and standard-library boundary changes pass
 common checks, ten native and instrumented seeds, three musl model runs,
@@ -61,12 +61,13 @@ checked `libc` calls under the [documented exception](dependencies.md#upstream-n
 differences, source evidence, execution scope and limitations. Repository
 file `audit/PHASE6_VERIFICATION_2026-11-01.md` gives coverage and the remaining
 clause/resource/event-cost proof and identifies each test package's source.
-Fresh coverage for iphost 0.4.4 and the boundary changes is **97.96% of lines
-and 91.95% of branches**, leaving 177 lines and 149 branches. Repeated model
+Fresh coverage for iphost 0.4.4 and the boundary changes is **98.01% of lines
+and 92.01% of branches**, leaving 173 lines and 148 branches. Repeated model
 and GNU/musl tests include
 failure controls for session ownership and descriptor handover. The checked
-reply decoder passes all thirteen required matrix profiles. Request handling
-has complete line/branch coverage, including real buffer-force success. The global gates remain open.
+reply decoder passed all thirteen profiles of the former 7.3 snapshot. Request handling
+has complete line/branch coverage, including real buffer-force success. The global gates remain open. Mainline advanced to 7.4-rc1 during the
+pre-pause check; its build and live qualification are pending.
 The specification's
 [known gaps](spec/README.md#known-gaps) describe historical commit
 `741117b`, removed in Phase 0. The interface page describes the target.

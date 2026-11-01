@@ -115,7 +115,9 @@ a matrix run on a superseded version does not count.
 
 Resolved on 2026-11-01 from the published Ubuntu updates/security
 `linux-image-generic` candidates and kernel.org releases and source
-indexes. Proposed packages do not replace the published targets:
+indexes, refreshed at 23:11 UTC. Mainline has advanced from the previously
+tested 7.3 to untested 7.4-rc1; P3 is open again. Proposed packages do not
+replace the published targets:
 
 | Kernel | Rule | How it runs |
 |---|---|---|
@@ -123,7 +125,7 @@ indexes. Proposed packages do not replace the published targets:
 | Ubuntu 26.04 `7.0.0-42-generic` (also 24.04's HWE kernel) | newer of the two latest LTS kernels | QEMU, the `vmlinuz` and modules unpacked from the `linux-image` package of the `ubuntu:26.04` image |
 | vanilla `6.8.12` (the last 6.8.y) | vanilla equivalent of the 24.04 kernel | QEMU, built from the kernel.org tarball with `x86_64_defconfig` plus L2TP |
 | vanilla `7.0.14` | vanilla equivalent of the 26.04 kernel | QEMU, built the same way |
-| mainline `v7.3` | the newest release | QEMU, built the same way |
+| mainline `v7.4-rc1` | newest mainline tag, selected at the 23:11 UTC recheck | Archive verified; build and live profiles pending |
 
 [Per-target behavior and limitations](kernel-behavior.md) records the
 observed errnos, notification scope, fragmentation, container/manager
@@ -235,7 +237,7 @@ merged report includes netlink I/O faults, real buffer-force success and
 service queue, reconciler record, runtime/socket error guards and deferred
 MAC changes after device removal, lifetime inputs, deletion recovery,
 stale completions, foreign-family parsing and PID-file inspection errors:
-97.96% lines / 91.95% branches, leaving 177 lines and 149 branches. Its fresh collector includes
+98.01% lines / 92.01% branches, leaving 173 lines and 148 branches. Its fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
 production exclusions, mismatches or saturated regions. The checked-reply
 implementation fixes the denominators at 8,687 lines and 1,852 branches.
@@ -245,7 +247,7 @@ Signed code 1b3d876 passes fresh GNU live/Incus and three shipped-musl
 scenario/Incus pairs locally on Ubuntu 6.8.0-147. Profile exports use unique
 collection/container prefixes to preserve earlier data. The root sandbox
 passes on signed 419c9b1 with the unmodified supplied unit; three GNU
-manager/task-limit repetitions also pass. Frozen 2d5ae45 passes all thirteen required matrix
+manager/task-limit repetitions also pass. Frozen 2d5ae45 passed all thirteen previous-snapshot matrix
 profiles with the checked reply correction. Later test-only additions retain
 their separate execution scope.
 Repository record `audit/phase6/netlink-reply-state-20261101/README.md`

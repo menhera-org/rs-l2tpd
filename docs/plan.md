@@ -499,14 +499,19 @@ malformed signed statuses without panic while preserving valid kernel
 errors, sequence checks and first-error precedence. Repeated native,
 instrumented and musl models, common gates, GNU live/Incus, manager, thread
 limits and the root sandbox pass. Three shipped-musl scenario/Incus pairs
-pass on Ubuntu 6.8.0-147. Frozen 2d5ae45 passes all thirteen required matrix
+pass on Ubuntu 6.8.0-147. Frozen 2d5ae45 passed all thirteen previous-snapshot matrix
 profiles with the production reply correction; publication selections agree
 and source patches are empty. Additional request I/O, service queue, reconciler record and error
 boundary guards pass repeated GNU/musl/instrumented runs. Three real buffer-force guests
 also pass.
 
-Fresh corrected-source coverage is **97.96% of lines and 91.95% of branches**:
-8,510/8,687 lines and 1,703/1,852 branches, leaving **177 lines and 150
+Mainline advanced to 7.4-rc1 at the pre-pause publication recheck. Its
+archive is cached and verified; build, source review and live qualification
+remain pending, reopening P3. The completed 2d5ae45 run retains the previous
+7.3 snapshot.
+
+Fresh corrected-source coverage is **98.01% of lines and 92.01% of branches**:
+8,514/8,687 lines and 1,704/1,852 branches, leaving **173 lines and 150
 branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files

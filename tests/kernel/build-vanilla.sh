@@ -6,16 +6,25 @@ repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
 # shellcheck disable=SC2015
 [ "$#" -ge 1 ] && [ "$#" -le 2 ] || { echo "usage: $0 VERSION [no-ipv6]" >&2; exit 2; }
 version=$1
-case $version in ''|*[!0-9.]*|.*|*.|*..*) echo "invalid release: $version" >&2; exit 2 ;; esac
+valid_release() {
+    printf '%s\n' "$1" | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+|-rc[1-9][0-9]*)?$'
+}
+source_url() {
+    case $1 in
+        *-rc*) printf 'https://git.kernel.org/torvalds/t/linux-%s.tar.gz\n' "$1" ;;
+        *) printf 'https://cdn.kernel.org/pub/linux/kernel/v%s.x/linux-%s.tar.xz\n' "${1%%.*}" "$1" ;;
+    esac
+}
+valid_release "$version" || { echo "invalid release: $version" >&2; exit 2; }
 mode=${2-ipv6}
 case $mode in ipv6|no-ipv6) ;; *) echo "invalid mode: $mode" >&2; exit 2 ;; esac
 cache=$repo/target/phase6-kernels
-archive=$cache/downloads/linux-$version.tar.xz
-major=${version%%.*}
+url=$(source_url "$version")
+archive=$cache/downloads/${url##*/}
 mkdir -p "$cache/downloads"
 if [ ! -s "$archive" ]; then
     curl --fail --location --max-time 180 --output "$archive.part" \
-        "https://cdn.kernel.org/pub/linux/kernel/v$major.x/linux-$version.tar.xz"
+        "$url"
     mv "$archive.part" "$archive"
 fi
 recipe=$(git --no-pager hash-object "$repo/tests/kernel/build-vanilla.sh")
@@ -31,10 +40,10 @@ trap 'exit 1' 1 2 3 15
 if [ ! -f "$build/complete" ] || [ "$(cat "$build/complete")" != "$recipe" ]; then
     rm -f "$build/complete" "$cidfile"
     docker run --rm --cidfile "$cidfile" --network none --user "$(id -u):$(id -g)" \
-        --mount "type=bind,source=$archive,target=/source.tar.xz,readonly" \
+        --mount "type=bind,source=$archive,target=/source.tar,readonly" \
         --mount "type=bind,source=$build,target=/build" \
         --workdir /build --entrypoint sh rs-l2tpd-kernel-builder:phase23 -ec '
-            if [ ! -f Makefile ]; then tar -xf /source.tar.xz --strip-components=1; fi
+            if [ ! -f Makefile ]; then tar -xf /source.tar --strip-components=1; fi
             export KBUILD_BUILD_USER=phase6 KBUILD_BUILD_HOST=builder KBUILD_BUILD_VERSION=1
             export KBUILD_BUILD_TIMESTAMP='"'"'Thu Jan 1 00:00:00 UTC 1970'"'"'
             make x86_64_defconfig
@@ -53,7 +62,7 @@ if [ ! -f "$build/complete" ] || [ "$(cat "$build/complete")" != "$recipe" ]; th
         ' build "$mode"
     printf '%s\n' "$recipe" > "$build/complete"
 fi
-printf 'source: linux-%s.tar.xz; git-blob: ' "$version"
+printf 'source: %s; git-blob: ' "${archive##*/}"
 git --no-pager hash-object "$archive"
 printf 'config git-blob: '
 git --no-pager hash-object "$build/.config"

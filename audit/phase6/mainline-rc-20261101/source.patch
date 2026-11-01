@@ -1,0 +1,114 @@
+diff --git a/tests/kernel/build-vanilla.sh b/tests/kernel/build-vanilla.sh
+index 4d046fd..53274dd 100755
+--- a/tests/kernel/build-vanilla.sh
++++ b/tests/kernel/build-vanilla.sh
+@@ -6,16 +6,25 @@ repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
+ # shellcheck disable=SC2015
+ [ "$#" -ge 1 ] && [ "$#" -le 2 ] || { echo "usage: $0 VERSION [no-ipv6]" >&2; exit 2; }
+ version=$1
+-case $version in ''|*[!0-9.]*|.*|*.|*..*) echo "invalid release: $version" >&2; exit 2 ;; esac
++valid_release() {
++    printf '%s\n' "$1" | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+|-rc[1-9][0-9]*)?$'
++}
++source_url() {
++    case $1 in
++        *-rc*) printf 'https://git.kernel.org/torvalds/t/linux-%s.tar.gz\n' "$1" ;;
++        *) printf 'https://cdn.kernel.org/pub/linux/kernel/v%s.x/linux-%s.tar.xz\n' "${1%%.*}" "$1" ;;
++    esac
++}
++valid_release "$version" || { echo "invalid release: $version" >&2; exit 2; }
+ mode=${2-ipv6}
+ case $mode in ipv6|no-ipv6) ;; *) echo "invalid mode: $mode" >&2; exit 2 ;; esac
+ cache=$repo/target/phase6-kernels
+-archive=$cache/downloads/linux-$version.tar.xz
+-major=${version%%.*}
++url=$(source_url "$version")
++archive=$cache/downloads/${url##*/}
+ mkdir -p "$cache/downloads"
+ if [ ! -s "$archive" ]; then
+     curl --fail --location --max-time 180 --output "$archive.part" \
+-        "https://cdn.kernel.org/pub/linux/kernel/v$major.x/linux-$version.tar.xz"
++        "$url"
+     mv "$archive.part" "$archive"
+ fi
+ recipe=$(git --no-pager hash-object "$repo/tests/kernel/build-vanilla.sh")
+@@ -31,10 +40,10 @@ trap 'exit 1' 1 2 3 15
+ if [ ! -f "$build/complete" ] || [ "$(cat "$build/complete")" != "$recipe" ]; then
+     rm -f "$build/complete" "$cidfile"
+     docker run --rm --cidfile "$cidfile" --network none --user "$(id -u):$(id -g)" \
+-        --mount "type=bind,source=$archive,target=/source.tar.xz,readonly" \
++        --mount "type=bind,source=$archive,target=/source.tar,readonly" \
+         --mount "type=bind,source=$build,target=/build" \
+         --workdir /build --entrypoint sh rs-l2tpd-kernel-builder:phase23 -ec '
+-            if [ ! -f Makefile ]; then tar -xf /source.tar.xz --strip-components=1; fi
++            if [ ! -f Makefile ]; then tar -xf /source.tar --strip-components=1; fi
+             export KBUILD_BUILD_USER=phase6 KBUILD_BUILD_HOST=builder KBUILD_BUILD_VERSION=1
+             export KBUILD_BUILD_TIMESTAMP='"'"'Thu Jan 1 00:00:00 UTC 1970'"'"'
+             make x86_64_defconfig
+@@ -53,7 +62,7 @@ if [ ! -f "$build/complete" ] || [ "$(cat "$build/complete")" != "$recipe" ]; th
+         ' build "$mode"
+     printf '%s\n' "$recipe" > "$build/complete"
+ fi
+-printf 'source: linux-%s.tar.xz; git-blob: ' "$version"
++printf 'source: %s; git-blob: ' "${archive##*/}"
+ git --no-pager hash-object "$archive"
+ printf 'config git-blob: '
+ git --no-pager hash-object "$build/.config"
+diff --git a/tests/kernel/matrix.sh b/tests/kernel/matrix.sh
+index b606618..e59961e 100755
+--- a/tests/kernel/matrix.sh
++++ b/tests/kernel/matrix.sh
+@@ -17,14 +17,14 @@ latest_series() {
+         END { if(!found) exit 1; print result }
+     ' "$2"
+ }
+-# shortcut: final mainline releases and v6/v7 indexes; extend when the required set moves beyond them.
++# shortcut: v6/v7 source indexes; extend when the required set moves beyond them.
+ mainline() {
+     # Fail closed if the publication format changes; never select a stable
+     # entry accidentally when the mainline entry is absent or malformed.
+     awk '
+         /^[[:space:]]*"moniker":[[:space:]]*"mainline",[[:space:]]*$/ {
+             if(getline <= 0) exit 1
+-            if($0 !~ /^[[:space:]]*"version":[[:space:]]*"[0-9]+\.[0-9]+(\.[0-9]+)?",[[:space:]]*$/) exit 1
++            if($0 !~ /^[[:space:]]*"version":[[:space:]]*"[0-9]+\.[0-9]+(\.[0-9]+|-rc[1-9][0-9]*)?",[[:space:]]*$/) exit 1
+             version=$0; sub(/^[^:]*:[[:space:]]*"/,"",version); sub(/",.*$/,"",version)
+             print version; found=1; exit
+         }
+@@ -32,6 +32,9 @@ mainline() {
+     ' "$1"
+ }
+ field() { sed -n "s/^$1=//p" "$2"; }
++release_name() {
++    printf '%s\n' "$1" | awk -F- '{if(split($1,a,".")==2)$1=$1 ".0"; print $1 (NF>1 ? "-" $2 : "")}'
++}
+ [ "$#" = 1 ] || { echo "usage: $0 required|v6.8..v7.3|self-test" >&2; exit 2; }
+ selection=$1
+ if [ "$selection" = self-test ]; then
+@@ -48,6 +51,17 @@ if [ "$selection" = self-test ]; then
+     if mainline "$fixture/releases" >/dev/null; then exit 1; fi
+     printf '%s\n' ' "moniker": "mainline",' ' "source": "not a version",' > "$fixture/releases"
+     if mainline "$fixture/releases" >/dev/null; then exit 1; fi
++    for version in 7.3 7.3.1 7.4-rc1 7.4-rc12; do
++        printf ' "moniker": "mainline",\n "version": "%s",\n' "$version" > "$fixture/releases"
++        [ "$(mainline "$fixture/releases")" = "$version" ]
++    done
++    for version in 7.4-rc0 7.4-rc 7.4-rc1-extra 7.4.1-rc1 7.4foo; do
++        printf ' "moniker": "mainline",\n "version": "%s",\n' "$version" > "$fixture/releases"
++        if mainline "$fixture/releases" >/dev/null; then exit 1; fi
++    done
++    for pair in 7.3:7.3.0 6.8.12:6.8.12 7.4-rc1:7.4.0-rc1; do
++        [ "$(release_name "${pair%%:*}")" = "${pair#*:}" ]
++    done
+     echo 'matrix publication parser: passed'
+     exit 0
+ fi
+@@ -90,7 +104,7 @@ run_vanilla() {
+     tests/kernel/build-vanilla.sh "$version" > "$record/build-$version.log" 2>&1 || return 1
+     image=$(field KERNEL_IMAGE "$record/build-$version.log")
+     config=$(field KERNEL_CONFIG "$record/build-$version.log")
+-    expected=$(printf '%s\n' "$version" | awk -F. '{if(NF==2)print $0 ".0";else print}')
++    expected=$(release_name "$version")
+     tests/kernel/run-guest.sh "$image" - "$config" normal "$record/vanilla-$version" || return 1
+     grep -qx "GUEST_KERNEL_RELEASE=$expected" "$record/vanilla-$version/run.log" || return 1
+     tests/kernel/run-guest.sh "$image" - "$config" clock "$record/vanilla-$version-clock" || return 1

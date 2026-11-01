@@ -49,7 +49,7 @@ The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,
 GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The required matrix passes all thirteen profiles on `584062d`, including
+The earlier target snapshot passed all thirteen profiles on `584062d`, including
 the E27 correction and released iphost 0.4.4.
 The iphost 0.4.4 integration and standard-library boundary changes pass
 common checks, ten native and instrumented seeds, three musl model runs,
@@ -68,17 +68,18 @@ and dependency-state contracts are applied. Broken `nix` signal wrappers
 use checked `libc` calls under the documented exception. The
 [latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-01.md) gives coverage
 and the remaining clause/resource/event-cost proof. Fresh November 1
-coverage for iphost 0.4.4 and the boundary changes is **97.96% of lines and
-91.95% of branches**, leaving 177 lines and 149 branches. Recent test packages
+coverage for iphost 0.4.4 and the boundary changes is **98.01% of lines and
+92.01% of branches**, leaving 173 lines and 148 branches. Recent test packages
 cover deferred MAC changes, resolver validation
 and cleanup, public service constructors, staging bounds, ownership races,
 descriptor handover and socket-family fallback; their deliberately broken
 controls fail.
 [Required-kernel behavior](docs/kernel-behavior.md) records each target's
 differences, source evidence and limitations. The checked reply decoder passes
-all thirteen required-kernel matrix profiles. Request handling also has
+all thirteen profiles of the former 7.3 target snapshot. Request handling also has
 complete line/branch coverage after real buffer-force and I/O-fault checks.
-The global gates remain open.
+The global gates remain open. The pre-pause publication check selects
+mainline 7.4-rc1; its build and live qualification are pending.
 The known-gap tables describe historical commit `741117b`.
 
 ## Quick start

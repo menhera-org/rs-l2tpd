@@ -17,14 +17,14 @@ latest_series() {
         END { if(!found) exit 1; print result }
     ' "$2"
 }
-# shortcut: final mainline releases and v6/v7 indexes; extend when the required set moves beyond them.
+# shortcut: v6/v7 source indexes; extend when the required set moves beyond them.
 mainline() {
     # Fail closed if the publication format changes; never select a stable
     # entry accidentally when the mainline entry is absent or malformed.
     awk '
         /^[[:space:]]*"moniker":[[:space:]]*"mainline",[[:space:]]*$/ {
             if(getline <= 0) exit 1
-            if($0 !~ /^[[:space:]]*"version":[[:space:]]*"[0-9]+\.[0-9]+(\.[0-9]+)?",[[:space:]]*$/) exit 1
+            if($0 !~ /^[[:space:]]*"version":[[:space:]]*"[0-9]+\.[0-9]+(\.[0-9]+|-rc[1-9][0-9]*)?",[[:space:]]*$/) exit 1
             version=$0; sub(/^[^:]*:[[:space:]]*"/,"",version); sub(/",.*$/,"",version)
             print version; found=1; exit
         }
@@ -32,6 +32,9 @@ mainline() {
     ' "$1"
 }
 field() { sed -n "s/^$1=//p" "$2"; }
+release_name() {
+    printf '%s\n' "$1" | awk -F- '{if(split($1,a,".")==2)$1=$1 ".0"; print $1 (NF>1 ? "-" $2 : "")}'
+}
 [ "$#" = 1 ] || { echo "usage: $0 required|v6.8..v7.3|self-test" >&2; exit 2; }
 selection=$1
 if [ "$selection" = self-test ]; then
@@ -48,6 +51,17 @@ if [ "$selection" = self-test ]; then
     if mainline "$fixture/releases" >/dev/null; then exit 1; fi
     printf '%s\n' ' "moniker": "mainline",' ' "source": "not a version",' > "$fixture/releases"
     if mainline "$fixture/releases" >/dev/null; then exit 1; fi
+    for version in 7.3 7.3.1 7.4-rc1 7.4-rc12; do
+        printf ' "moniker": "mainline",\n "version": "%s",\n' "$version" > "$fixture/releases"
+        [ "$(mainline "$fixture/releases")" = "$version" ]
+    done
+    for version in 7.4-rc0 7.4-rc 7.4-rc1-extra 7.4.1-rc1 7.4foo; do
+        printf ' "moniker": "mainline",\n "version": "%s",\n' "$version" > "$fixture/releases"
+        if mainline "$fixture/releases" >/dev/null; then exit 1; fi
+    done
+    for pair in 7.3:7.3.0 6.8.12:6.8.12 7.4-rc1:7.4.0-rc1; do
+        [ "$(release_name "${pair%%:*}")" = "${pair#*:}" ]
+    done
     echo 'matrix publication parser: passed'
     exit 0
 fi
@@ -90,7 +104,7 @@ run_vanilla() {
     tests/kernel/build-vanilla.sh "$version" > "$record/build-$version.log" 2>&1 || return 1
     image=$(field KERNEL_IMAGE "$record/build-$version.log")
     config=$(field KERNEL_CONFIG "$record/build-$version.log")
-    expected=$(printf '%s\n' "$version" | awk -F. '{if(NF==2)print $0 ".0";else print}')
+    expected=$(release_name "$version")
     tests/kernel/run-guest.sh "$image" - "$config" normal "$record/vanilla-$version" || return 1
     grep -qx "GUEST_KERNEL_RELEASE=$expected" "$record/vanilla-$version/run.log" || return 1
     tests/kernel/run-guest.sh "$image" - "$config" clock "$record/vanilla-$version-clock" || return 1
