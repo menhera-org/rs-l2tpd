@@ -9,11 +9,11 @@ The latest required matrix passes all five normal and clock profiles,
 including H20 fragmentation and both 300-entry daemons. It also passes both
 IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
 publication checks select the same versions. Repository record
-`audit/phase6/matrix-20261101T141907Z-2368484/README.md` identifies the frozen
+`audit/phase6/matrix-20261101T162452Z-2573413/README.md` identifies the frozen
 implementation with kernel-selected inventories, complete VRF member tracking,
 checked libc signal calls, approved fixtures and the E27 correction.
-The matrix freezes production source 584062d with released iphost 0.4.4
-and the standard-library boundaries. The positive resolver wire case and
+The matrix freezes signed source fb0620d, whose shipping logic matches
+584062d with released iphost 0.4.4 and the standard-library boundaries. The positive resolver wire case and
 anonymous Reply validation pass on all five targets. Later test-only
 additions have separate qualification; no broader execution is inferred.
 With iphost 0.4.4 and the boundary changes, the approved H11 configured-MAC
@@ -22,7 +22,8 @@ policy passes three musl Incus runs (10.71, 19.44 and 20.06 s), GNU Incus
 Repository record `audit/phase6/iphost044-integration-20261101/` retains
 those results; their userspace scope is below.
 The later userspace-netlink peer/deadline tests run on Ubuntu 6.8.0-147
-with GNU and musl. They are not declarations in the frozen 584062d matrix;
+with GNU and musl. Those ordinary library declarations are outside the matrix's serial
+ignored profile;
 `audit/phase6/netlink-peer-boundaries-20261101/` records their precise scope.
 
 An Ubuntu ABI/package version identifies a patched distribution kernel;
@@ -138,7 +139,7 @@ signal-mask/wait refusals pass on all five required targets.
 | Mainline `7.3.0` | 27 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the
-latest matrix (`audit/phase6/matrix-20261101T141907Z-2368484/README.md`).
+latest matrix (`audit/phase6/matrix-20261101T162452Z-2573413/README.md`).
 The approved explicit-MAC-authority case passes three fresh unprivileged
 Incus runs and the unmodified root-systemd guest. Their source and logs are
 in `audit/phase6/maintainer-decisions-20261101/README.md`; the earlier failure
@@ -152,24 +153,25 @@ execution summaries.
 
 ### Latest matrix counts and ownership observations
 
-The frozen `584062d` guests run 19 serial library cases, 24 Linux cases,
-five review cases, 62 ordinary binary cases and three privileged binary
+The frozen `fb0620d` guests run 20 serial library cases, 24 Linux cases,
+five review cases, 63 ordinary binary cases and three privileged binary
 cases. Eight daemon fault paths include signal-mask and signal-wait refusals.
 All 29 process cases and 27 normal scenarios pass on each target. Selected
 inventories, VRF-binding reload and the E27 live replay pass on all five.
 The client-ID/static-binding and anonymous Reply cases pass on all five
-with released iphost 0.4.4. Later test-only additions have separate
-qualification. The real-manager and clock declarations
+with released iphost 0.4.4. The absent-family cache-recovery case also
+passes on all five. Later host-adapter fixtures and the production reply-
+state correction retain their separate qualification. The real-manager and clock declarations
 are outside the normal scenario profile. The clock profile runs one case
 per target with controller-confirmed pause/resume.
 
 | Required target | Normal scenarios | H16 clock/pause | Closed and unregistered socket ownership |
 |---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 27 pass, 555.54 s | Pass, 64.59 s | Both families pass |
-| Vanilla `6.8.12` | 27 pass, 487.12 s | Pass, 64.42 s | Both families pass |
-| Ubuntu `7.0.0-42-generic` | 27 pass, 549.94 s | Pass, 64.59 s | Both families pass |
-| Vanilla `7.0.14` | 27 pass, 460.22 s | Pass, 64.49 s | Both families pass |
-| Mainline `7.3.0` | 27 pass, 476.57 s | Pass, 64.27 s | Both families pass |
+| Ubuntu `6.8.0-147-generic` | 27 pass, 595.05 s | Pass, 64.88 s | Both families pass |
+| Vanilla `6.8.12` | 27 pass, 489.78 s | Pass, 64.35 s | Both families pass |
+| Ubuntu `7.0.0-42-generic` | 27 pass, 552.40 s | Pass, 64.62 s | Both families pass |
+| Vanilla `7.0.14` | 27 pass, 461.17 s | Pass, 64.29 s | Both families pass |
+| Mainline `7.3.0` | 27 pass, 459.84 s | Pass, 64.35 s | Both families pass |
 
 After a local socket handle closes, its five socket operations return EBADF
 even while an external descriptor retains the tunnel. An unregistered
