@@ -192,6 +192,18 @@ filtering follow-up and the VRF inventory-completion correction.
 Repository record `audit/phase6/event-inventory-cost-20261101/` keeps the
 witnesses, source identities and deliberately broken controls.
 
+## Resolver client identities
+
+The released adapter's positive wire case passes three GNU and three musl
+runs on Ubuntu 6.8.0-147. Anonymous, link-layer, random and raw identifiers
+have the expected bytes across two DHCPv6 transmissions; a matching Reply
+is accepted. Static resolver configuration retains its bind device and
+exchanges both DNS address families with the controlled server.
+Repository record `audit/phase6/resolver-wire-identity-20261101/` retains
+the packets' assertions and three failing mapping controls. This specific
+case has not run on the other four required kernels, and it does not prove
+every malformed-Reply refusal.
+
 ## Advisory session verification
 
 The current E27 correction keeps checking a suspected deletion while the

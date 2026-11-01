@@ -508,8 +508,8 @@ GNU/musl live suites, three musl Incus runs and the root sandbox pass.
 The fresh required matrix is running. Merged coverage remains below 100%.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh production coverage is **96.96% of lines and
-89.84% of branches**, leaving **263 lines and 188 branches**. The 100% gate and complete
+GNU/musl qualification. Fresh production coverage is **97.01% of lines and
+89.89% of branches**, leaving **259 lines and 187 branches**. The 100% gate and complete
 clause/history/resource/event-cost proof remain open. Repository file
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.
 The following entries retain the history of earlier measurements.
@@ -1082,6 +1082,16 @@ library suites and common checks pass. Repository record
 `audit/phase6/blocking-transport-20261101/` gives unchanged common production
 mappings and 96.96% line / 89.84% branch coverage: 263 lines and 188 branches
 remain. The ordinary library has 237 passing cases. Shipping logic is unchanged.
+
+The released resolver adapter now has live wire checks for anonymous,
+link-layer, random and raw identities, retransmission stability, accepted
+Replies and bound static DNS queries. All three broken mappings fail.
+Ten model and instrumented repetitions, three GNU and three musl live runs,
+musl library suites and common checks pass. Repository record
+`audit/phase6/resolver-wire-identity-20261101/` gives identical production
+mappings and 97.01% line / 89.89% branch coverage: 259 lines and 187 branches
+remain. This new wire case has Ubuntu 6.8 scope; other targets remain unrun
+for that specific case.
 
 ### Phase 7 — release
 

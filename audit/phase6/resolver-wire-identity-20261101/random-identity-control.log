@@ -1,0 +1,15 @@
+
+running 1 test
+
+thread 'reconciler::resolvers::tests::released_adapter_preserves_client_identifiers_and_static_device_binding' (7) panicked at src/reconciler/resolvers_tests.rs:706:21:
+random identity was not resolved
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reconciler::resolvers::tests::released_adapter_preserves_client_identifiers_and_static_device_binding ... FAILED
+
+failures:
+
+failures:
+    reconciler::resolvers::tests::released_adapter_preserves_client_identifiers_and_static_device_binding
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 254 filtered out; finished in 2.56s
+
