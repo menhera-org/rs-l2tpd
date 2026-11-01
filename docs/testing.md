@@ -235,7 +235,7 @@ merged report includes netlink I/O faults, real buffer-force success and
 service queue, reconciler record, runtime/socket error guards and deferred
 MAC changes after device removal, lifetime inputs, deletion recovery,
 stale completions and foreign-family parsing:
-97.85% lines / 91.90% branches, leaving 187 lines and 150 branches. Its fresh collector includes
+97.88% lines / 91.90% branches, leaving 184 lines and 150 branches. Its fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
 production exclusions, mismatches or saturated regions. The checked-reply
 implementation fixes the denominators at 8,687 lines and 1,852 branches.

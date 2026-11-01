@@ -1,0 +1,27 @@
+set -eu
+record=$PWD/audit/phase6/resolver-default-capacity-20261101
+cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report > /tmp/phase6-resolver-default-capacity-native.log 2>&1
+sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/; s/; merged doctests compilation took .*$/; merged doctests compilation took <build duration>/' /tmp/phase6-resolver-default-capacity-native.log > "$record/native.log"
+for seed in 1 2 3 4 5 6 7 8 9 10; do
+ TEST_SEED=$seed cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --test kernel-fake --test rules --test service --test startup > "/tmp/phase6-resolver-default-capacity-model-$seed.log" 2>&1
+ sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/' "/tmp/phase6-resolver-default-capacity-model-$seed.log" > "$record/model-$seed.log"
+ TEST_SEED=$seed cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --lib --test kernel-fake --test rules --test service --test startup --branch --no-report > "/tmp/phase6-resolver-default-capacity-coverage-model-$seed.log" 2>&1
+ sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/' "/tmp/phase6-resolver-default-capacity-coverage-model-$seed.log" > "$record/coverage-model-$seed.log"
+done
+for seed in 1 2 3; do
+ TEST_SEED=$seed cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --test kernel-fake --test rules --test service --test startup > "/tmp/phase6-resolver-default-capacity-musl-model-$seed.log" 2>&1
+ sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/' "/tmp/phase6-resolver-default-capacity-musl-model-$seed.log" > "$record/musl-model-$seed.log"
+done
+printf 'RESOLVER_DEFAULT_MODELS_RESULT=0\n'
+
+set -eu
+record=$PWD/audit/phase6/resolver-default-capacity-20261101
+./test-ci-gates.sh > /tmp/phase6-resolver-default-capacity-common.log 2>&1
+sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/; s/; merged doctests compilation took .*$/; merged doctests compilation took <build duration>/' /tmp/phase6-resolver-default-capacity-common.log > "$record/common.log"
+cargo +1.89.0 check --locked --all-features --all-targets > /tmp/phase6-resolver-default-capacity-msrv.log 2>&1
+sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/' /tmp/phase6-resolver-default-capacity-msrv.log > "$record/msrv.log"
+for target in aarch64-unknown-linux-musl riscv64gc-unknown-linux-musl powerpc64le-unknown-linux-musl; do
+ cargo check --locked --all-features --all-targets --target "$target" > "/tmp/phase6-resolver-default-capacity-cross-$target.log" 2>&1
+ sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/' "/tmp/phase6-resolver-default-capacity-cross-$target.log" > "$record/cross-$target.log"
+done
+printf 'RESOLVER_DEFAULT_COMMON_RESULT=0\n'

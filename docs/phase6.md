@@ -49,7 +49,8 @@ success, service queue ordering, reconciler record/retirement guards and
 runtime/socket error boundaries, deferred MAC changes after device removal
 and lifetime input/state boundaries. The latest tests add missing-session
 recovery, unsupported tunnel-deletion reporting, stale completions and
-foreign-family parsing.
+foreign-family parsing. The custom resolver's default capacity hook also
+passes active-watch and cleanup-history assertions.
 Each passes ten native/instrumented model runs, three musl model runs,
 common gates, Rust 1.89 and additional musl architecture compile checks.
 Three force guests export seven profiles each. Request handling covers
@@ -61,13 +62,14 @@ the exact live or fake scope:
 `audit/phase6/reconciler-record-guards-20261101/`,
 `audit/phase6/error-boundaries-20261101/`,
 `audit/phase6/removed-device-mac-20261101/`,
-`audit/phase6/lifetime-completion-20261101/` and
-`audit/phase6/deletion-and-parser-20261101/`.
+`audit/phase6/lifetime-completion-20261101/`,
+`audit/phase6/deletion-and-parser-20261101/` and
+`audit/phase6/resolver-default-capacity-20261101/`.
 
-The current collector reports **97.85% of production lines and 91.90% of
-branches**: 8,500/8,687 lines and 1,702/1,852 branches, leaving **187 lines
+The current collector reports **97.88% of production lines and 91.90% of
+branches**: 8,503/8,687 lines and 1,702/1,852 branches, leaving **184 lines
 and 150 branches**. All 4,327 production mappings remain unchanged from the
-preceding lifetime-boundary report.
+preceding deletion/completion/parser report.
 Profiles from earlier production implementations are not merged. There
 are no production exclusions, profile mismatches or saturated regions.
 Complete clause/history/resource/event-cost proof and the 100% gate remain
