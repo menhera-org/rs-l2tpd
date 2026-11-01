@@ -1,0 +1,11 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-dc5105cc1b329540)
+
+running 3 tests
+test kernel::linux::l2tp::family_recovery_tests::an_absent_family_is_forgotten_and_resolved_again ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::l2tp::family_recovery_tests::a_cached_family_without_its_group_returns_the_original_refusal ... ok
+test kernel::linux::l2tp::family_recovery_tests::a_transport_timeout_keeps_the_resolved_family ... ok
+
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 266 filtered out; finished in 0.00s
+

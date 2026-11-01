@@ -231,21 +231,22 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-merged report is 97.21% lines / 90.59% branches, with no production
-exclusions; 242 lines and 174 branches remain. Its fresh collector qualifies
+merged report is 97.23% lines / 90.65% branches, with no production
+exclusions; 240 lines and 173 branches remain. Its fresh collector qualifies
 iphost 0.4.4 and the standard-library boundary changes, including GNU live,
 Incus, manager and task-limit profiles. The anonymous Reply witness fails
 with 0.4.3 and passes with the registry release. Three musl scenario/Incus
 repetitions pass; the required matrix passes all thirteen profiles on frozen
 584062d with released iphost 0.4.4. Repository file
-`audit/phase6/shared-live-harness-20261101/README.md` identifies the latest
+`audit/phase6/generic-family-recovery-20261101/README.md` identifies the latest
 measurement and its qualified scope. The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public
 and private cases exercise one generic instantiation; both targets still run.
-The serial live profile runs 19 ordinary library cases, three additional
-startup cases and 24 shared Linux cases in the instrumented library.
-All 46 pass three repetitions; the full GNU collection retains the external
-Linux target as well.
+The shared live-harness record contains three passing 46-case serial
+library repetitions and the full GNU collection, including the external
+Linux target. The later family-recovery case raises the instrumented
+serial set to 47 (20 ordinary library cases, three startup and 24 shared
+Linux cases). That new case passes three GNU and three musl repetitions.
 Those startup declarations remain ordinary tests in the external target;
 its instrumented copies are ignored in favor of the serial library run. Repository file
 `audit/phase6/shared-rule-harness-20261101/README.md` records declaration

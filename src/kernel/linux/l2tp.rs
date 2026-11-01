@@ -606,3 +606,71 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod family_recovery_tests {
+    use super::*;
+
+    // kernel: (K1, K41) net/netlink/genetlink.c ctrl_fill_info advertises multicast groups.
+    /// spec: A14, E21, E27, G1
+    #[test]
+    fn a_cached_family_without_its_group_returns_the_original_refusal() {
+        let mut genl = Genl {
+            request: Request::new(netlink_sys::protocols::NETLINK_USERSOCK).unwrap(),
+            family: Some((42, None)),
+        };
+        for _ in 0..2 {
+            assert_eq!(
+                genl.events().err().unwrap().raw_os_error(),
+                Some(libc::ENOENT)
+            );
+            assert_eq!(genl.family, Some((42, None)));
+        }
+    }
+
+    // kernel: (K1, K29) net/netlink/genetlink.c genl_rcv_msg distinguishes ENOENT from transport loss.
+    /// spec: A14, E21
+    #[test]
+    fn a_transport_timeout_keeps_the_resolved_family() {
+        let mut genl = Genl {
+            request: Request::new(netlink_sys::protocols::NETLINK_USERSOCK).unwrap(),
+            family: Some((42, Some(7))),
+        };
+        let error = genl
+            .run(
+                L2tpMessage::new(L2tpCmd::TunnelGet),
+                false,
+                Instant::now(),
+                &mut |_| panic!("an expired request received a reply"),
+            )
+            .unwrap_err();
+        assert_eq!(error.raw_os_error(), Some(libc::ETIMEDOUT));
+        assert_eq!(genl.family, Some((42, Some(7))));
+    }
+
+    // kernel: (K1, K21, K41) net/netlink/genetlink.c genl_rcv_msg rejects absent families with ENOENT.
+    /// spec: A14, E21, E27, K1, K21, K41
+    #[test]
+    #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
+    fn an_absent_family_is_forgotten_and_resolved_again() {
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let mut genl = Genl::new().unwrap();
+        let original = genl.family.unwrap();
+        assert_ne!(original.0, u16::MAX);
+        genl.family = Some((u16::MAX, original.1));
+        let error = genl
+            .run(
+                L2tpMessage::new(L2tpCmd::TunnelGet),
+                false,
+                Instant::now() + DEADLINE,
+                &mut |_| panic!("an absent family supplied a reply"),
+            )
+            .unwrap_err();
+        assert_eq!(error.raw_os_error(), Some(libc::ENOENT));
+        assert_eq!(genl.family, None);
+        assert_eq!(genl.family(Instant::now() + DEADLINE).unwrap(), original);
+        assert!(genl.tunnel(u32::MAX).unwrap().is_none());
+        drop(genl.events().unwrap());
+    }
+}

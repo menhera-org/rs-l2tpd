@@ -1,0 +1,8 @@
+features: all; target: x86_64-unknown-linux-musl; command: /home/dev/rs-l2tpd/target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-44df86532ccfe7b5 --ignored --exact kernel::linux::l2tp::family_recovery_tests::an_absent_family_is_forgotten_and_resolved_again --nocapture
+6.8.0-147-generic
+
+running 1 test
+test kernel::linux::l2tp::family_recovery_tests::an_absent_family_is_forgotten_and_resolved_again ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 268 filtered out; finished in 0.00s
+

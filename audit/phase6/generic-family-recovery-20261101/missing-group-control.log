@@ -1,0 +1,21 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/debug/deps/rs_l2tpd-dc5105cc1b329540)
+
+running 1 test
+
+thread 'kernel::linux::l2tp::family_recovery_tests::a_cached_family_without_its_group_returns_the_original_refusal' (2562842) panicked at src/kernel/linux/l2tp.rs:624:13:
+assertion `left == right` failed
+  left: Some(22)
+ right: Some(2)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test kernel::linux::l2tp::family_recovery_tests::a_cached_family_without_its_group_returns_the_original_refusal ... FAILED
+
+failures:
+
+failures:
+    kernel::linux::l2tp::family_recovery_tests::a_cached_family_without_its_group_returns_the_original_refusal
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 268 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

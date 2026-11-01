@@ -47,8 +47,8 @@ thirteen profiles on frozen signed commit `584062d`. Later test-only
 additions retain their separate execution records.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.21% of
-lines and 90.59% of branches**, leaving **242 lines and 174 branches**.
+GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.23% of
+lines and 90.65% of branches**, leaving **240 lines and 173 branches**.
 
 A recent test-only package forces shutdown between service dequeue and
 dispatch and checks capacity acknowledgement. Ten native and instrumented
@@ -75,7 +75,12 @@ with the external target. Three serial library repetitions and the full GNU
 live collection pass, as do ten instrumented seeds, three musl library runs
 and common gates. Constructor success and refusal now execute in the same
 library instance. Repository record
-`audit/phase6/shared-live-harness-20261101/` gives the latest measurement.
+`audit/phase6/shared-live-harness-20261101/` records that measurement.
+The later generic-family cases check missing groups, timeout cache retention
+and live ENOENT recovery. Ten native/instrumented seeds, three musl library
+runs, three GNU/musl live repetitions and common gates pass; three controls
+fail. Repository record `audit/phase6/generic-family-recovery-20261101/`
+gives the latest measurement and its scope.
 
 Complete clause/history/resource/event-cost proof and the 100% coverage
 gate remain required. The [testing page](testing.md) gives current gate
