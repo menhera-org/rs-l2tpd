@@ -1,0 +1,13 @@
+diff --git a/src/reconciler/sessions.rs b/src/reconciler/sessions.rs
+index d422d86..aff26ad 100644
+--- a/src/reconciler/sessions.rs
++++ b/src/reconciler/sessions.rs
+@@ -622,7 +622,7 @@ impl<K: Kernel> Reconciler<K> {
+         if !skipped.is_empty() {
+             let why = match record.state {
+                 Identity::Adopted => "it was adopted from a previous instance",
+-                Identity::Removed => "its device left the namespace",
++                Identity::Removed => "notifications about its device were lost",
+                 _ => "notifications about its device were lost",
+             };
+             self.report.begin(&label, "unmanageable", || {

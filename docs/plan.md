@@ -505,12 +505,12 @@ and source patches are empty. Later test-only request I/O, service queue, reconc
 boundary guards pass repeated GNU/musl/instrumented runs. Three real buffer-force guests
 also pass.
 
-Fresh corrected-source coverage is **97.64% of lines and 91.58% of branches**:
-8,482/8,687 lines and 1,696/1,852 branches, leaving **205 lines and 156
+Fresh corrected-source coverage is **97.66% of lines and 91.63% of branches**:
+8,484/8,687 lines and 1,697/1,852 branches, leaving **203 lines and 155
 branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files
-`audit/phase6/error-boundaries-20261101/README.md` and
+`audit/phase6/removed-device-mac-20261101/README.md` and
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identify the source, controls and
 scope. The following entries retain earlier measurements.
 

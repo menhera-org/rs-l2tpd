@@ -42,7 +42,7 @@ manager, thread-limit and unmodified root-unit results on Ubuntu 6.8.0-147.
 
 Later test-only packages qualify request I/O errors and real buffer-force
 success, service queue ordering, reconciler record/retirement guards and
-runtime/socket error boundaries.
+runtime/socket error boundaries and deferred MAC changes after device removal.
 Each passes ten native/instrumented model runs, three musl model runs,
 common gates, Rust 1.89 and additional musl architecture compile checks.
 Three force guests export seven profiles each. Request handling covers
@@ -51,13 +51,14 @@ Three force guests export seven profiles each. Request handling covers
 the exact live or fake scope:
 `audit/phase6/netlink-io-faults-20261101/`,
 `audit/phase6/service-queue-guards-20261101/`,
-`audit/phase6/reconciler-record-guards-20261101/` and
-`audit/phase6/error-boundaries-20261101/`.
+`audit/phase6/reconciler-record-guards-20261101/`,
+`audit/phase6/error-boundaries-20261101/` and
+`audit/phase6/removed-device-mac-20261101/`.
 
-The current collector reports **97.64% of production lines and 91.58% of
-branches**: 8,482/8,687 lines and 1,696/1,852 branches, leaving **205 lines
-and 156 branches**. All preceding 4,319 mappings remain unchanged; eight service instantiations
-are added by the error-test callers, giving 4,327 mappings.
+The current collector reports **97.66% of production lines and 91.63% of
+branches**: 8,484/8,687 lines and 1,697/1,852 branches, leaving **203 lines
+and 155 branches**. All 4,327 production mappings remain unchanged from the
+preceding error-boundary report.
 Profiles from earlier production implementations are not merged. There
 are no production exclusions, profile mismatches or saturated regions.
 Complete clause/history/resource/event-cost proof and the 100% gate remain

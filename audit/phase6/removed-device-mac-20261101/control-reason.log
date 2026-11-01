@@ -1,0 +1,21 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running tests/rules/main.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/x86_64-unknown-linux-gnu/debug/deps/rules-8f2b3b750b0e164d)
+
+running 1 test
+
+thread 'completion::completion_report_counts' (3072138) panicked at tests/rules/completion.rs:351:9:
+assertion `left == right` failed
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test completion::completion_report_counts ... FAILED
+
+failures:
+
+failures:
+    completion::completion_report_counts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 93 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`

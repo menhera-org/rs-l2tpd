@@ -232,8 +232,9 @@ uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
 merged report includes netlink I/O faults, real buffer-force success and
-service queue, reconciler record and runtime/socket error guards:
-97.64% lines / 91.58% branches, leaving 205 lines and 156 branches. Its fresh collector includes
+service queue, reconciler record, runtime/socket error guards and deferred
+MAC changes after device removal:
+97.66% lines / 91.63% branches, leaving 203 lines and 155 branches. Its fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
 production exclusions, mismatches or saturated regions. The checked-reply
 implementation fixes the denominators at 8,687 lines and 1,852 branches.

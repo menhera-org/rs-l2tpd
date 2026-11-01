@@ -12,8 +12,8 @@ Ten native and instrumented model/rule/service/startup repetitions, three
 musl model runs, common checks, Rust 1.89 and three additional musl
 architecture compile checks pass. GNU live/Incus, user manager, three thread-
 limit runs and the root sandbox pass. Three shipped-musl scenario/Incus
-pairs pass. Local live scope is Ubuntu 6.8.0-147. Fresh coverage is 97.64%
-lines / 91.58% branches, leaving 205 lines and 156 branches. Request handling
+pairs pass. Local live scope is Ubuntu 6.8.0-147. Fresh coverage is 97.66%
+lines / 91.63% branches, leaving 203 lines and 155 branches. Request handling
 now covers 156/156 lines and 34/34 branches; socket handling covers
 103/103 lines and 12/12 branches.
 
@@ -32,7 +32,7 @@ retain their original source scope. The specification is unchanged.
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | Frozen 3f503cd passes 27 normal cases on every required kernel; the corrected reply source also passes three shipped-musl suites locally | Complete clause/history/resource/event-cost proof |
 | P3 required kernels | Frozen 3f503cd passes five normal, five clock, two IPv6-absent and one missing-driver profiles; selections agree and source patches are empty | Preserve exact source and later test-only execution scopes |
-| P4 coverage | Error-boundary profiles: 8,482/8,687 lines (97.64%); 1,696/1,852 branches (91.58%). No production exclusions, profile mismatches or saturated regions | Cover 205 lines and 156 branches; enable the completed 100% gate in CI |
+| P4 coverage | Removed-device MAC profiles: 8,484/8,687 lines (97.66%); 1,697/1,852 branches (91.63%). No production exclusions, profile mismatches or saturated regions | Cover 203 lines and 155 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | Checked replies pass GNU in 17.10 s and three unprivileged musl cases in 18.46, 9.39 and 19.69 s; containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | Checked replies and the unmodified supplied unit pass in 29.41 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
@@ -78,6 +78,14 @@ Broader distributions and live non-x86 architectures remain unrun.
 Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 
 ## Current coverage evidence
+
+The [removed-device MAC record](phase6/removed-device-mac-20261101/README.md)
+qualifies deferred MAC changes after a device departs. Three reconciliations
+finish without a write; one warning identifies the session and skipped
+operation. Ten native/instrumented and three musl model runs, common checks
+and two deliberately broken controls qualify the test. Coverage reaches
+8,484/8,687 lines and 1,697/1,852 branches; all 4,327 production mappings
+remain unchanged. This adds fake-policy evidence only.
 
 The [error boundaries](phase6/error-boundaries-20261101/README.md) add
 closed-queue admission, either subscription-initializer failure, partial
