@@ -1,0 +1,22 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/x86_64-unknown-linux-gnu/debug/deps/rs_l2tpd-7d7b0353a23499b8)
+
+running 1 test
+REQUEST_IO_FAULT_VERIFIED=buffers-failed
+REQUEST_IO_FAULT_VERIFIED=buffers-fallback
+REQUEST_IO_FAULT_VERIFIED=receive
+
+thread 'kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade' (2835199) panicked at src/kernel/linux/request.rs:961:13:
+poll-interrupted: Output { status: ExitStatus(unix_wait_status(25856)), stdout: "\nrunning 1 test\ntest kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade ... FAILED\n\nfailures:\n\nfailures:\n    kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 277 filtered out; finished in 0.00s\n\n", stderr: "\nthread 'kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade' (2835207) panicked at src/kernel/linux/request.rs:937:47:\ncalled `Result::unwrap()` on an `Err` value: Os { code: 4, kind: Interrupted, message: \"Interrupted system call\" }\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade ... FAILED
+
+failures:
+
+failures:
+    kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 277 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--lib`

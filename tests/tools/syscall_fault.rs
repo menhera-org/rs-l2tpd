@@ -173,3 +173,59 @@ fn keep_profile_output() {
         assert_eq!(__llvm_profile_set_file_object(file, 0), 0);
     }
 }
+
+// Test-only capability reduction: include/uapi/linux/capability.h and kernel/capability.c capget/capset.
+#[allow(
+    dead_code,
+    reason = "shared helper; only capability fixtures remove CAP_NET_ADMIN"
+)]
+pub(crate) fn drop_net_admin() -> bool {
+    #[repr(C)]
+    struct Header {
+        version: u32,
+        pid: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct Caps {
+        effective: u32,
+        permitted: u32,
+        inheritable: u32,
+    }
+    let mut header = Header {
+        version: 0x20080522,
+        pid: 0,
+    };
+    let mut caps = [Caps::default(); 2];
+    assert_eq!(
+        unsafe { libc::syscall(libc::SYS_capget, &mut header, caps.as_mut_ptr()) },
+        0
+    );
+    let held = caps[0].effective & (1 << 12) != 0;
+    caps[0].effective &= !(1 << 12);
+    assert_eq!(
+        unsafe { libc::syscall(libc::SYS_capset, &header, caps.as_ptr()) },
+        0
+    );
+    held
+}
+
+#[allow(
+    dead_code,
+    reason = "shared helper; only warning assertions need a logger"
+)]
+pub(crate) fn log_warnings() {
+    struct Logger;
+    impl log::Log for Logger {
+        fn enabled(&self, _: &log::Metadata<'_>) -> bool {
+            true
+        }
+        fn log(&self, record: &log::Record<'_>) {
+            eprintln!("{}", record.args());
+        }
+        fn flush(&self) {}
+    }
+    static LOGGER: Logger = Logger;
+    log::set_logger(&LOGGER).unwrap();
+    log::set_max_level(log::LevelFilter::Warn);
+}

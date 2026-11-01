@@ -1,0 +1,11 @@
+--- a/src/kernel/linux/request.rs
++++ b/src/kernel/linux/request.rs
+@@ -111,7 +111,7 @@
+     let ms = u16::try_from(left.as_millis() + 1).unwrap_or(u16::MAX);
+     let mut fds = [PollFd::new(socket.as_fd(), PollFlags::POLLIN)];
+     match poll(&mut fds, PollTimeout::from(ms)) {
+-        Ok(_) | Err(Errno::EINTR) => Ok(()),
++        Ok(_) => Ok(()),
+         Err(error) => Err(error.into()),
+     }
+ }

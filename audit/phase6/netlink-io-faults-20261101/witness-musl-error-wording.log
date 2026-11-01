@@ -1,0 +1,19 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-44df86532ccfe7b5)
+
+running 1 test
+
+thread 'kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade' (2754730) panicked at src/kernel/linux/request.rs:986:17:
+netlink receive buffer: I/O error (os error 5)
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade ... FAILED
+
+failures:
+
+failures:
+    kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 277 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

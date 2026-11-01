@@ -1,0 +1,11 @@
+--- a/src/kernel/linux/request.rs
++++ b/src/kernel/linux/request.rs
+@@ -91,7 +91,7 @@
+     if setsockopt(&socket, RcvBufForce, &SUBSCRIPTION_BUFFER).is_err()
+         && let Err(error) = SockRef::from(&socket).set_recv_buffer_size(SUBSCRIPTION_BUFFER)
+     {
+-        log::warn!("netlink receive buffer: {error}");
++        log::debug!("netlink receive buffer: {error}");
+     }
+     for &group in groups {
+         socket.add_membership(group)?;

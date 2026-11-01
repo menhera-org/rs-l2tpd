@@ -440,7 +440,7 @@ mod completion_tests {
     }
 
     // kernel: (K7, K29) net/netlink/af_netlink.c netlink_autobind and netlink_unicast.
-    fn userspace_peers() -> (Socket, Socket) {
+    pub(super) fn userspace_peers() -> (Socket, Socket) {
         let mut client = Socket::new(netlink_sys::protocols::NETLINK_USERSOCK).unwrap();
         let mut peer = Socket::new(netlink_sys::protocols::NETLINK_USERSOCK).unwrap();
         let client_address = client.bind_auto().unwrap();
@@ -846,5 +846,138 @@ mod reply_tests {
             Some(libc::ENOBUFS)
         );
         assert_eq!(seen, [(NLMSG_MIN_TYPE, b"data".to_vec())]);
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod io_fault_tests {
+    use super::*;
+
+    // kernel: (K7, K29, K36) net/core/sock.c sock_setsockopt; net/netlink/af_netlink.c netlink_recvmsg/poll.
+    /// spec: R10, A14, E21, G1
+    #[test]
+    #[ignore = "serial isolated runner; child exec must not inherit concurrent fake socket references"]
+    fn request_io_failures_are_fallible_and_buffers_degrade() {
+        const CHILD: &str = "RS_L2TPD_TEST_REQUEST_IO_FAULT";
+        if let Ok(case) = std::env::var(CHILD) {
+            super::super::syscall_fault::log_warnings();
+            let fault = &super::super::syscall_fault::refuse;
+            let future = Instant::now() + Duration::from_secs(3);
+            match case.as_str() {
+                "buffers-force" => {
+                    const REQUIRED: usize = 8 << 20;
+                    let probe = open(netlink_sys::protocols::NETLINK_ROUTE).unwrap();
+                    SockRef::from(&probe)
+                        .set_recv_buffer_size(REQUIRED)
+                        .unwrap();
+                    assert!(
+                        SockRef::from(&probe).recv_buffer_size().unwrap() < REQUIRED * 2,
+                        "fixture must constrain ordinary SO_RCVBUF"
+                    );
+                    let socket = subscribe(netlink_sys::protocols::NETLINK_ROUTE, &[1]).unwrap();
+                    assert_eq!(
+                        SockRef::from(&socket).recv_buffer_size().unwrap(),
+                        REQUIRED * 2
+                    );
+                }
+                "buffers-failed" => {
+                    fault(&[libc::SYS_setsockopt], libc::EIO);
+                    let socket = subscribe(netlink_sys::protocols::NETLINK_ROUTE, &[]).unwrap();
+                    assert!(SockRef::from(&socket).recv_buffer_size().unwrap() > 0);
+                }
+                "buffers-fallback" => {
+                    super::super::syscall_fault::drop_net_admin();
+                    let probe = open(netlink_sys::protocols::NETLINK_ROUTE).unwrap();
+                    assert_eq!(
+                        setsockopt(&probe, RcvBufForce, &SUBSCRIPTION_BUFFER).unwrap_err(),
+                        Errno::EPERM
+                    );
+                    let socket = subscribe(netlink_sys::protocols::NETLINK_ROUTE, &[]).unwrap();
+                    assert!(SockRef::from(&socket).recv_buffer_size().unwrap() > 0);
+                }
+                "receive" => {
+                    let (client, _peer) = super::completion_tests::userspace_peers();
+                    fault(&[libc::SYS_recvfrom, libc::SYS_recvmsg], libc::EIO);
+                    let payload = netlink_packet_route::RouteNetlinkMessage::GetLink(
+                        netlink_packet_route::link::LinkMessage::default(),
+                    );
+                    assert_eq!(
+                        exchange(&client, 7, payload, false, future, &mut |_, _| panic!(
+                            "failed receive visited data"
+                        ))
+                        .unwrap_err()
+                        .raw_os_error(),
+                        Some(libc::EIO)
+                    );
+                }
+                "poll-interrupted" | "poll-error" => {
+                    let socket = open(netlink_sys::protocols::NETLINK_ROUTE).unwrap();
+                    let calls = &[
+                        libc::SYS_ppoll,
+                        #[cfg(any(
+                            target_arch = "arm",
+                            target_arch = "x86",
+                            target_arch = "x86_64",
+                            target_arch = "powerpc",
+                            target_arch = "powerpc64",
+                            target_arch = "s390x",
+                            target_arch = "sparc",
+                            target_arch = "sparc64",
+                            target_arch = "mips",
+                            target_arch = "mips64",
+                            target_arch = "mips32r6",
+                            target_arch = "mips64r6",
+                            target_arch = "m68k"
+                        ))]
+                        libc::SYS_poll,
+                    ];
+                    if case == "poll-interrupted" {
+                        fault(calls, libc::EINTR);
+                        wait(&socket, future).unwrap();
+                    } else {
+                        fault(calls, libc::EIO);
+                        assert_eq!(
+                            wait(&socket, future).unwrap_err().raw_os_error(),
+                            Some(libc::EIO)
+                        );
+                    }
+                }
+                _ => panic!("unknown request I/O fixture"),
+            }
+            println!("REQUEST_IO_FAULT_CHECKED={case}");
+            return;
+        }
+        for case in [
+            "buffers-failed",
+            "buffers-fallback",
+            "receive",
+            "poll-interrupted",
+            "poll-error",
+        ] {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--ignored", "--exact", "kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade", "--nocapture", "--test-threads=1"])
+                .env(CHILD, case).output().unwrap();
+            assert!(output.status.success(), "{case}: {output:?}");
+            let stdout = String::from_utf8(output.stdout).unwrap();
+            assert!(
+                stdout.contains(&format!("REQUEST_IO_FAULT_CHECKED={case}")),
+                "{stdout}"
+            );
+            let stderr = String::from_utf8(output.stderr).unwrap();
+            assert_eq!(
+                stderr.matches("netlink receive buffer:").count(),
+                usize::from(case == "buffers-failed"),
+                "{stderr}"
+            );
+            if case == "buffers-failed" {
+                assert!(
+                    stderr.contains(&io::Error::from_raw_os_error(libc::EIO).to_string()),
+                    "{stderr}"
+                );
+            }
+            assert!(!stderr.contains("LLVM Profile Error"), "{stderr}");
+            println!("REQUEST_IO_FAULT_VERIFIED={case}");
+        }
     }
 }

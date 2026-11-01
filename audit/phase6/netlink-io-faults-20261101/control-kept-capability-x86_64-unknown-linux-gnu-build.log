@@ -1,0 +1,3 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+  Executable tests/kernel/linux.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/x86_64-unknown-linux-gnu/debug/deps/kernel_linux-8f3abaf4c48406f6)

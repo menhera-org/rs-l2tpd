@@ -5,6 +5,12 @@
 
 #[path = "conformance.rs"]
 mod conformance;
+#[allow(
+    dead_code,
+    reason = "shared fault helper; this fixture only reduces capabilities"
+)]
+#[path = "../tools/syscall_fault.rs"]
+mod syscall_fault;
 
 use std::net::IpAddr;
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -257,33 +263,7 @@ fn library_missing_net_admin_withholds_readiness_and_shutdown_still_succeeds() {
         requested.recv().unwrap();
         observer_kernel.tunnel(10)
     });
-    #[repr(C)]
-    struct Header {
-        version: u32,
-        pid: i32,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy, Default)]
-    struct Caps {
-        effective: u32,
-        permitted: u32,
-        inheritable: u32,
-    }
-    let mut header = Header {
-        version: 0x20080522,
-        pid: 0,
-    };
-    let mut caps = [Caps::default(); 2];
-    assert_eq!(
-        unsafe { libc::syscall(libc::SYS_capget, &mut header, caps.as_mut_ptr()) },
-        0
-    );
-    assert_ne!(caps[0].effective & (1 << 12), 0);
-    caps[0].effective &= !(1 << 12);
-    assert_eq!(
-        unsafe { libc::syscall(libc::SYS_capset, &header, caps.as_ptr()) },
-        0
-    );
+    assert!(syscall_fault::drop_net_admin());
     let mut runtime = {
         let _entered = fixture.runtime.enter();
         rs_l2tpd::Runtime::new(vec![]).map_err(|(e, _)| e).unwrap()

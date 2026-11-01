@@ -1,0 +1,54 @@
+warning: --branch option is unstable
+info: cargo-llvm-cov currently setting cfg(coverage) and cfg(coverage_nightly); you can opt-out it by passing --no-cfg-coverage and --no-cfg-coverage-nightly
+warning: `package.homepage` is redundant with `package.repository`
+  --> Cargo.toml:11:12
+   |
+10 | repository = "https://github.com/menhera-org/rs-l2tpd"
+   |              -----------------------------------------
+11 | homepage = "https://github.com/menhera-org/rs-l2tpd"
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `rs-l2tpd` (manifest) generated 1 warning
+warning: feature `coverage_attribute` is declared but not used
+  --> src/lib.rs:25:39
+   |
+25 | #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+   |                                       ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_features)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (lib) generated 1 warning
+warning: feature `coverage_attribute` is declared but not used
+ --> src/bin/rs-l2tpd/main.rs:2:39
+  |
+2 | #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+  |                                       ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_features)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (bin "rs-l2tpd") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running tests/startup.rs (target/phase6-coverage-netlink-reply-state-20261101/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/0f33f83bc14e0fcf/out/startup-0f33f83bc14e0fcf)
+
+running 3 tests
+test descriptor_resource_failures_preserve_inheritance_and_release_partial_sockets ... DESCRIPTOR_FAULT_VERIFIED=inherited-duplicate
+DESCRIPTOR_FAULT_VERIFIED=socket-duplicate
+DESCRIPTOR_FAULT_VERIFIED=socket-metadata
+ok
+test resolver_spawn_failures_return_errors_and_release_worker_permits ... RESOLVER_SPAWN_VERIFIED=owner
+RESOLVER_SPAWN_VERIFIED=worker
+ok
+test startup_resource_failures_return_errors_and_preserve_adopted_fds ... STARTUP_FAILURE_VERIFIED=runtime-open
+STARTUP_FAILURE_VERIFIED=service-open
+STARTUP_FAILURE_VERIFIED=runtime-thread
+STARTUP_FAILURE_VERIFIED=service-thread
+STARTUP_FAILURE_VERIFIED=service-engine
+STARTUP_FAILURE_VERIFIED=blocking-thread
+STARTUP_FAILURE_VERIFIED=blocking-engine
+STARTUP_FAILURE_VERIFIED=blocking-open
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

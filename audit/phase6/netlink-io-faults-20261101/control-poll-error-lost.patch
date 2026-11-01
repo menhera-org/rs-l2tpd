@@ -1,0 +1,11 @@
+--- a/src/kernel/linux/request.rs
++++ b/src/kernel/linux/request.rs
+@@ -112,7 +112,7 @@
+     let mut fds = [PollFd::new(socket.as_fd(), PollFlags::POLLIN)];
+     match poll(&mut fds, PollTimeout::from(ms)) {
+         Ok(_) | Err(Errno::EINTR) => Ok(()),
+-        Err(error) => Err(error.into()),
++        Err(_error) => Ok(()),
+     }
+ }
+ 

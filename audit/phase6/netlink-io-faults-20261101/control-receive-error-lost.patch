@@ -1,0 +1,11 @@
+--- a/src/kernel/linux/request.rs
++++ b/src/kernel/linux/request.rs
+@@ -213,7 +213,7 @@
+                 wait(socket, deadline)?;
+                 continue;
+             }
+-            Err(error) => return Err(error),
++            Err(_error) => return Ok(Ok(())),
+         };
+         if from.port_number() != 0 {
+             continue; // E22
