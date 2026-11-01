@@ -1,12 +1,12 @@
 #!/bin/sh
 set -eu
-[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd RECORD" >&2; exit 2; }
+[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|binary|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd RECORD" >&2; exit 2; }
 repo=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd)
 cd "$repo"
 kernel=$1; modules=$2; config=$3; mode=$4; record=$5
 case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
 case $record in /*) ;; *) record=$repo/$record ;; esac
-case $mode in normal|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd) ;; *) exit 2 ;; esac
+case $mode in normal|binary|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd) ;; *) exit 2 ;; esac
 [ -f "$kernel" ] && [ -s "$kernel" ] || exit 1
 [ "$modules" = - ] || [ -d "$modules" ] || { echo 'module directory missing' >&2; exit 1; }
 [ "$config" = - ] || [ -f "$config" ] || { echo 'kernel config missing' >&2; exit 1; }
@@ -141,6 +141,7 @@ grep -E 'Linux version|GUEST_KERNEL_RELEASE|scope:|test result:|_RESULT=' "$reco
 [ "$result" = 0 ] || exit "$result"
 markers='CONFORMANCE_RESULT=0 SCENARIO_RESULT=0 MATRIX_GUEST_RESULT=0'
 if [ "$mode" = systemd ]; then markers='ROOT_SYSTEMD_RESULT=0'; fi
+if [ "$mode" = binary ]; then markers='BINARY_UNIT_RESULT=0 MATRIX_GUEST_RESULT=0'; fi
 if [ "$mode" = clock ]; then markers="$markers H16_CONTROLLER_RESULT=0"; fi
 for marker in $markers; do
     grep -q "^$marker" "$record/run.log" || exit 1

@@ -1,0 +1,15 @@
+MARKERS profile=normal complete=accepted
+MARKERS profile=normal missing=CONFORMANCE_RESULT=0 rejected=1
+MARKERS profile=normal missing=SCENARIO_RESULT=0 rejected=1
+MARKERS profile=normal missing=MATRIX_GUEST_RESULT=0 rejected=1
+MARKERS profile=binary complete=accepted
+MARKERS profile=binary missing=BINARY_UNIT_RESULT=0 rejected=1
+MARKERS profile=binary missing=MATRIX_GUEST_RESULT=0 rejected=1
+MARKERS profile=systemd complete=accepted
+MARKERS profile=systemd missing=ROOT_SYSTEMD_RESULT=0 rejected=1
+MARKERS profile=clock complete=accepted
+MARKERS profile=clock missing=CONFORMANCE_RESULT=0 rejected=1
+MARKERS profile=clock missing=SCENARIO_RESULT=0 rejected=1
+MARKERS profile=clock missing=MATRIX_GUEST_RESULT=0 rejected=1
+MARKERS profile=clock missing=H16_CONTROLLER_RESULT=0 rejected=1
+INVALID_MODE_REJECTED=2

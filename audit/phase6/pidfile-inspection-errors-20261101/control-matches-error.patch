@@ -1,0 +1,13 @@
+diff --git a/tmp/phase6-pid-cleanup-candidate.rs b/src/bin/rs-l2tpd/pidfile.rs
+index 0e5a0f7..a4deabb 100644
+--- a/tmp/phase6-pid-cleanup-candidate.rs
++++ b/src/bin/rs-l2tpd/pidfile.rs
+@@ -231,7 +231,7 @@ impl PidFile {
+         match std::fs::symlink_metadata(&self.path) {
+             Ok(m) => Ok(m.is_file() && m.dev() == self.dev && m.ino() == self.ino),
+             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
+-            Err(e) => Err(e),
++            Err(_) => Ok(false),
+         }
+     }
+     pub fn remove(&self) -> io::Result<()> {

@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/x86_64-unknown-linux-gnu/debug/deps/rs_l2tpd-86bfbebc7b9fb9d4)
+
+running 1 test
+
+thread 'pidfile::fault_tests::publication_and_removal_faults_preserve_existing_files_and_clear_temporary_names' (3307836) panicked at src/bin/rs-l2tpd/pidfile.rs:825:13:
+matches: Output { status: ExitStatus(unix_wait_status(25856)), stdout: "\nrunning 1 test\ntest pidfile::fault_tests::pid_syscall_fault_child ... FAILED\n\nfailures:\n\nfailures:\n    pidfile::fault_tests::pid_syscall_fault_child\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.00s\n\n", stderr: "\nthread 'pidfile::fault_tests::pid_syscall_fault_child' (3307879) panicked at src/bin/rs-l2tpd/pidfile.rs:777:28:\ncalled `Result::unwrap_err()` on an `Ok` value: ()\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test pidfile::fault_tests::publication_and_removal_faults_preserve_existing_files_and_clear_temporary_names ... FAILED
+
+failures:
+
+failures:
+    pidfile::fault_tests::publication_and_removal_faults_preserve_existing_files_and_clear_temporary_names
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.35s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

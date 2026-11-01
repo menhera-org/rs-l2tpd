@@ -1,0 +1,13 @@
+diff --git a/tmp/phase6-pid-cleanup-candidate.rs b/src/bin/rs-l2tpd/pidfile.rs
+index 0e5a0f7..4a18ae2 100644
+--- a/tmp/phase6-pid-cleanup-candidate.rs
++++ b/src/bin/rs-l2tpd/pidfile.rs
+@@ -243,7 +243,7 @@ impl PidFile {
+                     "PID file cleanup could not inspect {}: {e}; leaving it alone",
+                     self.path.display()
+                 );
+-                return Ok(());
++                return Err(e);
+             }
+         };
+         let stat = match inspect(&dir, &name) {

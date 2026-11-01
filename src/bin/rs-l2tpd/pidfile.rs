@@ -572,6 +572,7 @@ mod edge_tests {
             "eperm" | "fifo" => Some(libc::EPERM),
             "erofs" => Some(libc::EROFS),
             "eacces" => Some(libc::EACCES),
+            "eio" => Some(libc::EIO),
             _ => None,
         };
         if let Some(errno) = errno {
@@ -590,7 +591,10 @@ mod edge_tests {
                     jf: 3,
                     k: libc::SYS_openat as u32,
                 },
-                stmt(libc::BPF_LD | libc::BPF_W | libc::BPF_ABS, 32),
+                stmt(
+                    libc::BPF_LD | libc::BPF_W | libc::BPF_ABS,
+                    32 + if cfg!(target_endian = "little") { 0 } else { 4 },
+                ),
                 libc::sock_filter {
                     code: (libc::BPF_JMP | libc::BPF_JSET | libc::BPF_K) as u16,
                     jt: 0,
@@ -620,6 +624,12 @@ mod edge_tests {
             std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(mode)).unwrap();
         }
         let result = PidFile::publish(&path);
+        if case == "eio" {
+            assert_eq!(result.err().unwrap().raw_os_error(), Some(libc::EIO));
+            assert_eq!(std::fs::metadata(&path).unwrap().ino(), inode);
+            assert_eq!(std::fs::read_to_string(&path).unwrap(), "old");
+            return;
+        }
         if case == "fifo" {
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -644,7 +654,9 @@ mod edge_tests {
     #[test]
     fn sticky_warning_and_unwritable_directory_fallbacks() {
         let mut ancestor_warnings = None;
-        for case in ["sticky", "writable", "eperm", "erofs", "eacces", "fifo"] {
+        for case in [
+            "sticky", "writable", "eperm", "erofs", "eacces", "eio", "fifo",
+        ] {
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args([
                     "--exact",
@@ -656,6 +668,7 @@ mod edge_tests {
                 .unwrap();
             assert!(output.status.success(), "{case}: {output:?}");
             let logs = String::from_utf8(output.stderr).unwrap();
+            assert!(!logs.contains("LLVM Profile"), "{case}: {logs}");
             let warnings = logs.matches("PID directory permits replacement").count();
             let baseline = *ancestor_warnings.get_or_insert(warnings);
             assert_eq!(
@@ -680,6 +693,7 @@ mod fault_tests {
             return;
         };
         let case = case.to_str().unwrap();
+        crate::logger::init(false);
         let root = PathBuf::from(std::env::var_os("PHASE6_PID_ROOT").unwrap());
         let path = root.join(if case.starts_with("mkdir") {
             "new/pid"
@@ -706,26 +720,57 @@ mod fault_tests {
             ],
             "unlink" => &[libc::SYS_unlinkat],
             "random" => &[libc::SYS_getrandom],
+            "remove-open" => &[],
+            #[cfg(target_pointer_width = "64")]
+            "remove-inspect" | "matches" => &[
+                libc::SYS_newfstatat,
+                libc::SYS_statx,
+                #[cfg(any(
+                    target_arch = "x86_64",
+                    target_arch = "powerpc64",
+                    target_arch = "s390x",
+                    target_arch = "sparc64",
+                    target_arch = "mips64",
+                    target_arch = "mips64r6"
+                ))]
+                libc::SYS_lstat,
+            ],
             _ => panic!("unknown PID fault fixture"),
         };
         let errno = match case {
             "mkdir-race" => libc::EEXIST,
             _ => libc::EIO,
         };
-        crate::syscall_fault::refuse(syscalls, errno);
+        let prepared = matches!(
+            case,
+            "unlink" | "remove-open" | "remove-inspect" | "matches"
+        )
+        .then(|| {
+            let metadata = std::fs::metadata(&path).unwrap();
+            PidFile {
+                path: path.clone(),
+                dev: metadata.dev(),
+                ino: metadata.ino(),
+            }
+        });
+        if case == "remove-open" {
+            crate::syscall_fault::refuse_open(errno);
+        } else {
+            crate::syscall_fault::refuse(syscalls, errno);
+        }
+        if case.starts_with("remove-") {
+            prepared.as_ref().unwrap().remove().unwrap();
+            return;
+        }
         let entropy_error = (case == "random").then(|| {
             let error = getrandom::fill(&mut [0; 8]).unwrap_err();
             assert_eq!(error.raw_os_error(), Some(errno));
             error.to_string()
         });
         let result = if case == "unlink" {
-            let metadata = std::fs::metadata(&path).unwrap();
-            PidFile {
-                path,
-                dev: metadata.dev(),
-                ino: metadata.ino(),
-            }
-            .remove()
+            prepared.as_ref().unwrap().remove()
+        } else if case == "matches" {
+            prepared.as_ref().unwrap().matches().map(|_| ())
         } else {
             PidFile::publish(&path).map(|_| ())
         };
@@ -757,10 +802,16 @@ mod fault_tests {
             "rename",
             "unlink",
             "random",
+            "remove-open",
+            #[cfg(target_pointer_width = "64")]
+            "remove-inspect",
+            #[cfg(target_pointer_width = "64")]
+            "matches",
         ] {
             let dir = Dir::new();
             let existing = dir.path().join("pid");
             std::fs::write(&existing, "keep").unwrap();
+            let inode = std::fs::metadata(&existing).unwrap().ino();
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args([
                     "--exact",
@@ -772,6 +823,14 @@ mod fault_tests {
                 .output()
                 .unwrap();
             assert!(output.status.success(), "{case}: {output:?}");
+            let logs = String::from_utf8(output.stderr).unwrap();
+            assert!(!logs.contains("LLVM Profile"), "{case}: {logs}");
+            assert_eq!(
+                logs.matches("PID file cleanup could not inspect").count(),
+                usize::from(case.starts_with("remove-")),
+                "{case}: {logs}"
+            );
+            assert_eq!(std::fs::metadata(&existing).unwrap().ino(), inode, "{case}");
             assert_eq!(std::fs::read_to_string(existing).unwrap(), "keep", "{case}");
             assert!(!dir.path().join("new/pid").exists(), "{case}");
             for entry in std::fs::read_dir(dir.path()).unwrap() {

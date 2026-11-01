@@ -12,8 +12,8 @@ Ten native and instrumented model/rule/service/startup repetitions, three
 musl model runs, common checks, Rust 1.89 and three additional musl
 architecture compile checks pass. GNU live/Incus, user manager, three thread-
 limit runs and the root sandbox pass. Three shipped-musl scenario/Incus
-pairs pass. Local live scope is Ubuntu 6.8.0-147. Fresh coverage is 97.88%
-lines / 91.90% branches, leaving 184 lines and 150 branches. Request handling
+pairs pass. Local live scope is Ubuntu 6.8.0-147. Fresh coverage is 97.96%
+lines / 91.95% branches, leaving 177 lines and 149 branches. Request handling
 now covers 156/156 lines and 34/34 branches; socket handling covers
 103/103 lines and 12/12 branches.
 
@@ -45,7 +45,7 @@ pass; the unmodified root system unit passes in 26.72 s on Ubuntu
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | Frozen 2d5ae45 passes 27 normal cases on every required kernel; the corrected reply source also passes three shipped-musl suites locally | Complete clause/history/resource/event-cost proof |
 | P3 required kernels | Frozen 2d5ae45 passes five normal, five clock, two IPv6-absent and one missing-driver profiles; selections agree and source patches are empty | Preserve exact source and later test-only execution scopes |
-| P4 coverage | Custom-resolver profiles: 8,503/8,687 lines (97.88%); 1,702/1,852 branches (91.90%). No production exclusions, profile mismatches or saturated regions | Cover 184 lines and 150 branches; enable the completed 100% gate in CI |
+| P4 coverage | PID-file inspection profiles: 8,510/8,687 lines (97.96%); 1,703/1,852 branches (91.95%). No production exclusions, profile mismatches or saturated regions | Cover 177 lines and 149 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | Signed 1b3d876 passes GNU in 17.19 s and three unprivileged musl cases in 24.81, 17.88 and 16.02 s; containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | Signed 419c9b1 and the unmodified supplied unit pass in 26.72 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
@@ -91,6 +91,16 @@ Broader distributions and live non-x86 architectures remain unrun.
 Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 
 ## Current coverage evidence
+
+The [PID-file refusal record](phase6/pidfile-inspection-errors-20261101/README.md)
+adds creation EIO, uninspectable cleanup and metadata-error propagation.
+Ten native/instrumented and three musl repetitions now include ordinary CLI
+units; five controls fail. Corrected fixtures cover the musl legacy metadata
+syscall. The CLI-only guest profile passes all 65 ordinary tests on each of
+the completed matrix's five kernels, with five privileged cases ignored.
+Marker checks reject every missing result. Coverage reaches 8,510/8,687
+lines and 1,703/1,852 branches; all 4,327 production mappings remain identical.
+The complete thirteen-profile matrix retains its separate frozen source.
 
 The [custom-resolver default record](phase6/resolver-default-capacity-20261101/README.md)
 polls active custom-resolver watches during the existing four 300-watch

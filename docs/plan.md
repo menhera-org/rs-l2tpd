@@ -505,12 +505,12 @@ and source patches are empty. Additional request I/O, service queue, reconciler 
 boundary guards pass repeated GNU/musl/instrumented runs. Three real buffer-force guests
 also pass.
 
-Fresh corrected-source coverage is **97.88% of lines and 91.90% of branches**:
-8,503/8,687 lines and 1,702/1,852 branches, leaving **184 lines and 150
+Fresh corrected-source coverage is **97.96% of lines and 91.95% of branches**:
+8,510/8,687 lines and 1,703/1,852 branches, leaving **177 lines and 150
 branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files
-`audit/phase6/resolver-default-capacity-20261101/README.md` and
+`audit/phase6/pidfile-inspection-errors-20261101/README.md` and
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identify the source, controls and
 scope. The following entries retain earlier measurements.
 

@@ -45,6 +45,13 @@ userspace, plus three GNU manager/task-limit repetitions; repository record
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.
 
+The later PID-file fixtures pass 65 ordinary CLI units on each of those
+five kernel versions, including controlled creation/inspection refusals.
+Five privileged cases remain ignored in that CLI-only profile. Repository
+record `audit/phase6/pidfile-inspection-errors-20261101/README.md` identifies
+the exact patch, results and corrected musl metadata-denial fixture. These
+additional boots retain their separate scope from the complete matrix.
+
 ## Per-kernel differences
 
 | Required target | Empty IPv6 VRF, no usable source or route (K26/K34) | Foreign-namespace L2TP deletion notification (K41) | Test boot |

@@ -26,7 +26,7 @@ if ! grep -q 'l2tp_builtin=1' /proc/cmdline; then
     depmod -a
     for module in l2tp_core l2tp_netlink l2tp_ip dummy veth; do modprobe "$module"; done
     if [ "$mode" != no-ethernet ]; then modprobe l2tp_eth; fi
-    if [ "$mode" = normal ] || [ "$mode" = clock ]; then
+    if [ "$mode" = normal ] || [ "$mode" = clock ] || [ "$mode" = binary ]; then
         for module in l2tp_ip6 vrf bridge 8021q nlmon; do modprobe "$module"; done
     fi
 fi
@@ -57,6 +57,12 @@ if [ "$mode" = clock ]; then
     run_suite /boot-scenarios --ignored --exact clocks::clock_steps_and_vm_pause_preserve_retries_refreshes_and_network_events --nocapture
     echo CONFORMANCE_RESULT=0
     echo SCENARIO_RESULT=0
+    exit 0
+fi
+if [ "$mode" = binary ]; then
+    echo 'scope: ordinary CLI unit tests only'
+    run_suite /binary-unit --test-threads=1 --nocapture
+    echo BINARY_UNIT_RESULT=0
     exit 0
 fi
 if [ "$mode" != normal ]; then

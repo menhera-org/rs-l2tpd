@@ -43,6 +43,20 @@ use `init.sh` below. For a kernel with built-in L2TP support, append
 IPv6 multiple tables, veth, dummy and network namespaces. Require the final
 `REVIEW_RESULT=0` marker and each suite's result, not merely a zero QEMU exit.
 
+## Ordinary CLI units in QEMU
+
+The `binary` profile runs ordinary CLI unit tests on a selected kernel.
+Its printed summary retains ignored tests. The runner requires
+`BINARY_UNIT_RESULT=0` and `MATRIX_GUEST_RESULT=0`; it records this scope
+separately from the full scenario, conformance and clock profiles.
+
+```sh
+tests/kernel/run-guest.sh "$KERNEL_IMAGE" "$KERNEL_MODULES" "$KERNEL_CONFIG" binary "$RECORD"
+```
+
+Use `-` for built-in modules or an unavailable configuration, as permitted
+by the runner. The guest image, artifacts and result log are recorded.
+
 ## Real manager reference
 
 `store-kernel` has two ignored halves. The first runs in a user systemd notify
