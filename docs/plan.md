@@ -949,6 +949,16 @@ three musl library runs and common checks pass. Repository record
 and 96.28% line / 88.26% branch coverage: 322 lines and 217 branches remain.
 Production code is unchanged.
 
+The public Tokio and blocking service constructors now have a live lifecycle
+case: configured objects, repeated readiness, one host receiver, late capacity
+refusal and complete cleanup. An ignored-configuration control fails. Three
+GNU and three musl runs pass all 24 Linux cases, alongside cross-target builds
+and common checks. Repository record
+`audit/phase6/service-constructors-20261101/` gives unchanged prior production
+mappings, nine new generic instantiations and the positive live return counter.
+LLVM's aggregate stays at 96.28% lines / 88.26% branches; the gate remains open.
+Production code is unchanged.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

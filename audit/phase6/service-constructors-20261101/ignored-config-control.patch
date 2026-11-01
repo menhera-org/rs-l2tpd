@@ -1,0 +1,13 @@
+diff --git a/src/blocking.rs b/src/blocking.rs
+index 8e270c4..f03679e 100644
+--- a/src/blocking.rs
++++ b/src/blocking.rs
+@@ -41,7 +41,7 @@ pub struct Service {
+ impl Service {
+     /// Opens kernel interfaces immediately on the private runtime.
+     pub fn new(config: Config, adopted: Vec<AdoptedSocket>) -> StartResult<Self> {
+-        Self::open(config, adopted, || {
++        Self::open(Config::new(), adopted, || {
+             Ok((
+                 LinuxKernel::new()?,
+                 Box::new(IphostResolve::default()) as Box<dyn Resolve>,
