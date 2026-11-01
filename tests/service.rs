@@ -14,6 +14,8 @@ use rs_l2tpd::reconciler::{Lookup, Reconciler, Resolve, Source};
 use rs_l2tpd::runtime::{AdoptedSocket, Runtime};
 use rs_l2tpd::{Error, blocking, service};
 
+type ProofAction = Box<dyn FnOnce(&mut FakeKernel) + Send>;
+
 #[derive(Clone)]
 struct Host(
     Arc<Mutex<FakeKernel>>,
@@ -26,6 +28,7 @@ struct Host(
     Arc<Mutex<Option<Gate>>>,
     Arc<AtomicUsize>,
     Arc<AtomicUsize>,
+    Arc<Mutex<Option<(usize, ProofAction)>>>,
 );
 struct Gate {
     entered: mpsc::SyncSender<()>,
@@ -57,10 +60,21 @@ impl Host {
             Arc::new(Mutex::new(None)),
             Arc::new(AtomicUsize::new(0)),
             Arc::new(AtomicUsize::new(0)),
+            Arc::new(Mutex::new(None)),
         )
     }
     fn with<T>(&self, f: impl FnOnce(&mut FakeKernel) -> T) -> T {
-        f(&mut self.0.lock().unwrap())
+        let mut kernel = self.0.lock().unwrap();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(&mut kernel)));
+        // Assertion failures must unwind after releasing the fixture lock.
+        drop(kernel);
+        match result {
+            Ok(value) => value,
+            Err(error) => std::panic::resume_unwind(error),
+        }
+    }
+    fn before_proof(&self, calls: usize, action: impl FnOnce(&mut FakeKernel) + Send + 'static) {
+        *self.10.lock().unwrap() = Some((calls, Box::new(action)));
     }
     fn callback_context(&self) {
         if self.6.load(Ordering::SeqCst) {
@@ -84,6 +98,25 @@ macro_rules! forward {
     };
 }
 impl Kernel for Host {
+    fn prove(&mut self, registration: &Registration) -> Proof {
+        self.callback_context();
+        let action = {
+            let mut pending = self.10.lock().unwrap();
+            match pending.as_mut() {
+                Some((0, _)) => pending.take().map(|(_, action)| action),
+                Some((remaining, _)) => {
+                    *remaining -= 1;
+                    None
+                }
+                None => None,
+            }
+        };
+        let mut kernel = self.0.lock().unwrap();
+        if let Some(action) = action {
+            action(&mut kernel);
+        }
+        kernel.prove(registration)
+    }
     fn rename(&mut self, index: u32, name: &L2tpIfName) -> io::Result<()> {
         self.callback_context();
         let gate = self.1.lock().unwrap().take();
@@ -165,7 +198,6 @@ impl Kernel for Host {
         scan_sessions(tunnel_id: Option<u32>, visit: &mut dyn FnMut(&SessionInfo)) -> io::Result<()>;
         delete_session(tunnel_id: u32, session_id: u32) -> io::Result<()>;
         delete_session_by_name(ifname: &L2tpIfName) -> io::Result<()>;
-        prove(registration: &Registration) -> Proof;
         release(registration: &Registration) -> ();
         link_by_name(name: &L2tpIfName) -> io::Result<Option<LinkInfo>>;
         set_hwaddr(index: u32, addr: HwAddr) -> io::Result<()>;
@@ -1499,4 +1531,236 @@ fn ordinary_vrf_appearance_link_work_is_independent_of_unrelated_inventory() {
         observed.windows(2).all(|pair| pair[0] == pair[1]),
         "one configured entry and one ordinary event changed work with unrelated host state: {observed:?}"
     );
+}
+
+/// spec: S4, S7, K20, G2, G8
+#[test]
+fn a_name_taken_after_the_creation_check_stages_and_publishes_when_freed() {
+    let host = Host::new();
+    let (entered_tx, entered_rx) = mpsc::sync_channel(1);
+    let (release_tx, release_rx) = mpsc::sync_channel(1);
+    *host.7.lock().unwrap() = Some(Gate {
+        entered: entered_tx,
+        release: release_rx,
+    });
+    let mut service = start(&host, config(10));
+    let control = service.control();
+    let (completed_tx, completed_rx) = mpsc::sync_channel(1);
+    let converging = std::thread::spawn(move || {
+        assert!(service.converge().unwrap().is_empty());
+        assert!(completed_tx.send(service).is_ok());
+    });
+    entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    let (foreign, mac) = host.with(|kernel| {
+        let index = kernel.add_link("l2tp0", false);
+        kernel.set_up(index, true);
+        (
+            kernel.link(index).unwrap().clone(),
+            kernel.ether_addr(index).unwrap(),
+        )
+    });
+    release_tx.send(()).unwrap();
+    let mut service = match completed_rx.recv_timeout(Duration::from_secs(5)) {
+        Ok(service) => service,
+        Err(error) => {
+            control.shutdown();
+            converging.join().unwrap();
+            panic!("creation race did not converge: {error}");
+        }
+    };
+    converging.join().unwrap();
+    let index = host.with(|kernel| {
+        assert_eq!(kernel.link(foreign.index()), Some(&foreign));
+        assert_eq!(kernel.ether_addr(foreign.index()).unwrap(), mac);
+        let index = kernel.session_index(10, 110).unwrap();
+        assert_ne!(index, foreign.index());
+        assert!(
+            kernel
+                .link(index)
+                .unwrap()
+                .name()
+                .to_string_lossy()
+                .starts_with("rsl2tp-t")
+        );
+        kernel.remove_link(foreign.index());
+        kernel.advance(Duration::from_secs(1));
+        index
+    });
+    assert!(service.converge().unwrap().is_empty());
+    wait(|| {
+        host.with(|kernel| {
+            kernel
+                .link(index)
+                .is_some_and(|link| link.name().to_string_lossy() == "l2tp0")
+        })
+    });
+    service.control().shutdown();
+    service.run(Ok, |_| Ok(())).unwrap();
+}
+
+/// spec: S9, S22, S23, S27, G2, G4
+#[test]
+fn a_late_staging_proof_change_never_publishes_the_unproved_index() {
+    for removed in [false, true] {
+        let host = Host::new();
+        host.with(|kernel| kernel.set_async_session_delete(true));
+        let old = Arc::new(AtomicUsize::new(0));
+        let captured = old.clone();
+        host.before_proof(1, move |kernel| {
+            let index = kernel.session_index(10, 110).unwrap();
+            captured.store(index as usize, Ordering::SeqCst);
+            if removed {
+                kernel.operator_delete_session(10, 110);
+                kernel.tick();
+                kernel.add_link_at(index, "foreign", false);
+                kernel.set_up(index, true);
+            } else {
+                kernel.lose_lifetime();
+            }
+            kernel.clear_ops();
+        });
+        let mut wanted = config(10);
+        wanted.set_host(rs_l2tpd::config::HostConfig::new().with_fix_bindv6only(false));
+        let mac = HwAddr::new([2, 0, 0, 0, 0, 1]).unwrap();
+        wanted
+            .insert_session(
+                "lan",
+                SessionConfig::builder("wan", 110, L2tpIfName::new("l2tp0").unwrap())
+                    .interface_hwaddr(mac)
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        let engine = engine();
+        let _entered = engine.enter();
+        let mut runtime = Runtime::with_kernel(host.clone(), Box::new(NoDns), vec![])
+            .map_err(|(error, _)| error)
+            .unwrap();
+        assert!(!runtime.reconcile(wanted));
+        assert!(host.10.lock().unwrap().is_none());
+        let old = old.load(Ordering::SeqCst) as u32;
+        assert_ne!(old, 0);
+        let foreign = host.with(|kernel| {
+            assert!(
+                !kernel
+                    .ops()
+                    .iter()
+                    .any(|op| op.starts_with(&format!("rename {old} "))
+                        || op.starts_with(&format!("hwaddr {old} ")))
+            );
+            if removed {
+                Some((
+                    kernel.link(old).unwrap().clone(),
+                    kernel.ether_addr(old).unwrap(),
+                ))
+            } else {
+                assert!(
+                    kernel
+                        .link(old)
+                        .unwrap()
+                        .name()
+                        .to_string_lossy()
+                        .starts_with("rsl2tp-t")
+                );
+                None
+            }
+        });
+        for _ in 0..4 {
+            host.with(|kernel| {
+                kernel.tick();
+                kernel.advance(Duration::from_secs(1));
+            });
+            runtime
+                .handle_event(rs_l2tpd::runtime::ControlEvent::Tick)
+                .unwrap();
+            if runtime.ready() {
+                break;
+            }
+        }
+        assert!(runtime.ready());
+        host.with(|kernel| {
+            let index = kernel.session_index(10, 110).unwrap();
+            assert_ne!(index, old);
+            assert_eq!(
+                kernel.link(index).unwrap().name().to_string_lossy(),
+                "l2tp0"
+            );
+            assert_eq!(kernel.ether_addr(index).unwrap(), Some(mac));
+            if let Some((link, mac)) = &foreign {
+                assert_eq!(kernel.link(old), Some(link));
+                assert_eq!(kernel.ether_addr(old).unwrap(), *mac);
+            }
+        });
+        if !runtime.shutdown().unwrap() {
+            host.with(|kernel| kernel.tick());
+        }
+        assert!(runtime.shutdown().unwrap());
+        if let Some((link, mac)) = foreign {
+            host.with(|kernel| {
+                assert_eq!(kernel.link(old), Some(&link));
+                assert_eq!(kernel.ether_addr(old).unwrap(), mac);
+            });
+        }
+    }
+}
+
+/// spec: S9, S17, S20, G4
+#[test]
+fn late_proof_loss_on_a_published_session_skips_rename_and_later_mac_changes() {
+    let host = Host::new();
+    let mut wanted = config(10);
+    wanted.set_host(rs_l2tpd::config::HostConfig::new().with_fix_bindv6only(false));
+    let engine = engine();
+    let _entered = engine.enter();
+    let mut runtime = Runtime::with_kernel(host.clone(), Box::new(NoDns), vec![])
+        .map_err(|(error, _)| error)
+        .unwrap();
+    assert!(runtime.reconcile(wanted.clone()));
+    let (index, original) = host.with(|kernel| {
+        let index = kernel.session_index(10, 110).unwrap();
+        (index, kernel.ether_addr(index).unwrap())
+    });
+    wanted
+        .insert_session(
+            "lan",
+            SessionConfig::builder("wan", 110, L2tpIfName::new("renamed").unwrap())
+                .build()
+                .unwrap(),
+        )
+        .unwrap();
+    host.before_proof(1, |kernel| {
+        kernel.lose_lifetime();
+        kernel.clear_ops();
+    });
+    assert!(runtime.reconcile(wanted.clone()));
+    assert!(host.10.lock().unwrap().is_none());
+    let mac = HwAddr::new([2, 0, 0, 0, 0, 99]).unwrap();
+    wanted
+        .insert_session(
+            "lan",
+            SessionConfig::builder("wan", 110, L2tpIfName::new("renamed").unwrap())
+                .interface_hwaddr(mac)
+                .build()
+                .unwrap(),
+        )
+        .unwrap();
+    assert!(runtime.reconcile(wanted));
+    host.with(|kernel| {
+        assert_eq!(kernel.session_index(10, 110), Some(index));
+        assert_eq!(
+            kernel.link(index).unwrap().name().to_string_lossy(),
+            "l2tp0"
+        );
+        assert_eq!(kernel.ether_addr(index).unwrap(), original);
+        assert!(
+            !kernel
+                .ops()
+                .iter()
+                .any(|op| op.starts_with("rename ") || op.starts_with("hwaddr "))
+        );
+    });
+    if !runtime.shutdown().unwrap() {
+        host.with(|kernel| kernel.tick());
+    }
+    assert!(runtime.shutdown().unwrap());
 }

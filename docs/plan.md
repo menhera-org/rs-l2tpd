@@ -986,6 +986,15 @@ repetitions, three musl library runs and common checks pass. Repository record
 and 96.50% line / 88.91% branch coverage: 303 lines and 205 branches remain.
 Shipping code is unchanged.
 
+Session race tests now interleave a creation-name collision and late ownership
+loss/removal before publication. They require safe staging, preservation of
+foreign indexes/MACs, bounded recovery and no changes after published ownership
+is lost. All three broken controls fail. Ten seeded suites, ten instrumented
+service repetitions, three musl service runs and common checks pass. Repository
+record `audit/phase6/session-races-20261101/` gives unchanged prior mappings,
+five callback instantiations and 96.56% line / 89.02% branch coverage: 298 lines
+and 203 branches remain. Shipping code is unchanged.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

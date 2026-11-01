@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/service.rs (target/debug/deps/service-2be296bb95ae8e05)
+
+running 1 test
+
+thread 'a_late_staging_proof_change_never_publishes_the_unproved_index' (1864006) panicked at tests/service.rs:1639:9:
+assertion failed: !runtime.reconcile(wanted)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test a_late_staging_proof_change_never_publishes_the_unproved_index ... FAILED
+
+failures:
+
+failures:
+    a_late_staging_proof_change_never_publishes_the_unproved_index
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 34 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test service`

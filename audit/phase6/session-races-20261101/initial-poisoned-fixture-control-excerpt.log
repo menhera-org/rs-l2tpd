@@ -1,0 +1,31 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/service.rs (target/debug/deps/service-2be296bb95ae8e05)
+
+running 2 tests
+
+thread 'a_late_staging_proof_change_never_publishes_the_unproved_index' (1859933) panicked at tests/service.rs:1632:9:
+assertion failed: !runtime.reconcile(wanted)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'late_proof_loss_on_a_published_session_skips_rename_and_later_mac_changes' (1859934) panicked at tests/service.rs:1743:9:
+assertion `left == right` failed
+  left: "renamed"
+ right: "l2tp0"
+
+thread 'late_proof_loss_on_a_published_session_skips_rename_and_later_mac_changes' (1859934) panicked at tests/service.rs:179:5:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+stack backtrace:
+test a_late_staging_proof_change_never_publishes_the_unproved_index ... FAILED
+   0:     0x5d4c95692631 - std[68c81ae915296b05]::backtrace_rs::backtrace::libunwind::trace
+                               at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/../../backtrace/src/backtrace/libunwind.rs:117:9
+   1:     0x5d4c95692631 - std[68c81ae915296b05]::backtrace_rs::backtrace::trace_unsynchronized::<std[68c81ae915296b05]::sys::backtrace::_print_fmt::{closure#1}>
+                               at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/../../backtrace/src/backtrace/mod.rs:66:14
+
+thread 'late_proof_loss_on_a_published_session_skips_rename_and_later_mac_changes' (1859934) panicked at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/panicking.rs:233:5:
+panic in a destructor during cleanup
+thread caused non-unwinding panic. aborting.
+error: test failed, to rerun pass `--test service`
+
+Caused by:
+  process didn't exit successfully: `/home/dev/rs-l2tpd/target/debug/deps/service-2be296bb95ae8e05 late_ --nocapture` (signal: 6, SIGABRT: process abort signal)

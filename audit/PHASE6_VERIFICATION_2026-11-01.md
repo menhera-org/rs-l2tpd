@@ -19,7 +19,7 @@ original execution scope.
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | All 27 normal cases pass on each of five required kernels, including H20, H17 and the new VRF reload regression. Three current musl host suites also pass | Complete clause, history and resource/event-cost proof |
 | P3 required kernels | Frozen `2051827` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Later test-only additions have separate qualification; repeat after relevant production changes |
-| P4 coverage | 8,357/8,660 lines (96.50%); 1,643/1,848 branches (88.91%). No production exclusions, profile mismatches or saturated regions | Cover 303 lines and 205 branches; enable the completed 100% gate in CI |
+| P4 coverage | 8,362/8,660 lines (96.56%); 1,645/1,848 branches (89.02%). No production exclusions, profile mismatches or saturated regions | Cover 298 lines and 203 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | Cache-fix source passes the full GNU case in 19.85 s and three unprivileged musl cases in 18.82, 9.43 and 20.28 s | Preserve the recorded userspace/kernel scope; repeat after relevant production changes |
 | P6 root sandbox | The unmodified supplied unit passes in 29.97 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
@@ -93,7 +93,10 @@ the frozen matrix's 23 Linux and 14 serial library cases.
 Test-only bodies remain excluded under the approved production scope while
 their tests execute. The mapping catalog has three placeholder-to-concrete
 replacements with identical shapes and one added default-trait instantiation.
-No counter mismatch or saturation is hidden. ARM64, RISC-V64 and PowerPC64LE
+The [session races](phase6/session-races-20261101/README.md) add five callback
+instantiations while preserving all preceding mappings. Their three broken
+controls fail; ten ordinary and ten instrumented repetitions, three musl
+service runs and common checks pass. No counter mismatch or saturation is hidden. ARM64, RISC-V64 and PowerPC64LE
 results remain compile checks only.
 
 ## Decisions, interference and remaining work
@@ -125,8 +128,8 @@ Production `2051827` passes both jobs in
 [CI run 41286660781](https://github.com/menhera-org/rs-l2tpd/actions/runs/41286660781).
 The later public-constructor test head `8844ed7` passes both jobs in
 [run 41290353555](https://github.com/menhera-org/rs-l2tpd/actions/runs/41290353555).
-The shared harness has passing local qualification; its new CI run is not yet
-claimed here.
+The later staging tests `e5da0c3` pass both jobs in
+[run 41295708288](https://github.com/menhera-org/rs-l2tpd/actions/runs/41295708288).
 
 Full clause/history and resource/event-cost proof, the remaining coverage
 paths, and final CI enforcement still require work. No Phase 6 completion

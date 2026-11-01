@@ -1,0 +1,14 @@
+diff --git a/src/reconciler/sessions.rs b/src/reconciler/sessions.rs
+index 60d3958..79c74d4 100644
+--- a/src/reconciler/sessions.rs
++++ b/src/reconciler/sessions.rs
+@@ -262,8 +262,7 @@ impl<K: Kernel> Reconciler<K> {
+                     if errno(&e) == Errno::EEXIST as i32 || errno(&e) == Errno::ENFILE as i32 =>
+                 {
+                     if self.k.link_by_name(&temp)?.is_some() {
+-                        direct = false;
+-                        continue;
++                        return Err(e);
+                     }
+                     return Err(e);
+                 }

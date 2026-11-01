@@ -1,0 +1,26 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/service.rs (target/debug/deps/service-2be296bb95ae8e05)
+
+running 2 tests
+
+thread 'a_late_staging_proof_change_never_publishes_the_unproved_index' (1863241) panicked at tests/service.rs:1639:9:
+assertion failed: !runtime.reconcile(wanted)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'late_proof_loss_on_a_published_session_skips_rename_and_later_mac_changes' (1863242) panicked at tests/service.rs:1750:9:
+assertion `left == right` failed
+  left: "renamed"
+ right: "l2tp0"
+test a_late_staging_proof_change_never_publishes_the_unproved_index ... FAILED
+test late_proof_loss_on_a_published_session_skips_rename_and_later_mac_changes ... FAILED
+
+failures:
+
+failures:
+    a_late_staging_proof_change_never_publishes_the_unproved_index
+    late_proof_loss_on_a_published_session_skips_rename_and_later_mac_changes
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test service`
