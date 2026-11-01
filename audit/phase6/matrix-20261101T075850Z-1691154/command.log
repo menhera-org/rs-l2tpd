@@ -1,0 +1,2 @@
+selection: required
+command: tests/docker/run.sh matrix required

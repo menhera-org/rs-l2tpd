@@ -9,9 +9,10 @@ The latest required matrix passes all five normal and clock profiles,
 including H20 fragmentation and both 300-entry daemons. It also passes both
 IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
 publication checks select the same versions. Repository record
-`audit/phase6/matrix-20261101T041133Z-1418227/README.md` identifies the frozen
-streamed-inventory implementation, checked libc signal calls and approved
-fixtures tested. Later test-only additions have separate qualification.
+`audit/phase6/matrix-20261101T075850Z-1691154/README.md` identifies the frozen
+implementation with kernel-selected inventories, complete VRF member tracking,
+checked libc signal calls and approved fixtures. Later test-only additions
+have separate qualification.
 The approved H11 configured-MAC policy now passes three fresh Incus runs
 and a root-systemd guest on Ubuntu 6.8.0-147; its userspace scope is below.
 
@@ -97,14 +98,14 @@ not mean that every possible failure mode was exercised on that target.
 - **Vanilla `7.0.14`:** the empty VRF refuses with `EADDRNOTAVAIL`;
   deletion events can cross namespaces. Session deletion is queued and
   dump traversal is identifier-based. L2TP/VRF are built in. Its normal
-  profile passes all 26 scenarios with the H8 fixture correction, including
+  profile passes all 27 scenarios with the H8 fixture correction, including
   capability and scale cases. The separate current clock profile also passes.
   No system-container profile has run on this target.
 - **Mainline `7.3.0`:** the empty VRF refuses with `EADDRNOTAVAIL`;
   commanded deletion events stay within the object's namespace. Session
   deletion is queued and dump traversal is identifier-based. L2TP/VRF are
   built in. In addition to the normal and clock profiles, the expanded
-  26-scenario/300-tunnel profile, capability/netlink degradation
+  27-scenario/300-tunnel profile, capability/netlink degradation
   cases and both scoped IPv6-absent boots pass.
   These bare-kernel guests provide no udev/networkd or unprivileged
   system-container result.
@@ -121,40 +122,44 @@ signal-mask/wait refusals pass on all five required targets.
 
 | Required kernel | Matrix normal profile / H20 | Capability/netlink degradation | H16 clock/pause | H17 300 tunnels | H11/unprivileged system container |
 |---|---|---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 26 pass / pass | Pass | Pass | Pass | Three fresh Incus passes with the approved explicit MAC policy (2026-11-01) |
-| Vanilla `6.8.12` | 26 pass / pass | Pass | Pass | Pass | Not run |
-| Ubuntu `7.0.0-42-generic` | 26 pass / pass; cold-boot KHO override | Pass; missing-driver recovery also passes | Pass | Pass | Not run |
-| Vanilla `7.0.14` | 26 pass / pass | Pass | Pass | Pass | Not run |
-| Mainline `7.3.0` | 26 pass / pass | Pass | Pass | Pass | Not run |
+| Ubuntu `6.8.0-147-generic` | 27 pass / pass | Pass | Pass | Pass | Three fresh Incus passes with the approved explicit MAC policy (2026-11-01) |
+| Vanilla `6.8.12` | 27 pass / pass | Pass | Pass | Pass | Not run |
+| Ubuntu `7.0.0-42-generic` | 27 pass / pass; cold-boot KHO override | Pass; missing-driver recovery also passes | Pass | Pass | Not run |
+| Vanilla `7.0.14` | 27 pass / pass | Pass | Pass | Pass | Not run |
+| Mainline `7.3.0` | 27 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the
-latest matrix (`audit/phase6/matrix-20261101T041133Z-1418227/README.md`).
+latest matrix (`audit/phase6/matrix-20261101T075850Z-1691154/README.md`).
 The approved explicit-MAC-authority case passes three fresh unprivileged
 Incus runs and the unmodified root-systemd guest. Their source and logs are
 in `audit/phase6/maintainer-decisions-20261101/README.md`; the earlier failure
 and authority controls remain in `audit/phase6/staged-mac-override-20261031/`.
-These new manager results use daemon source `eeec257` and apply to Ubuntu
-6.8.0-147 only. The dated packages below retain
+The later cache-fix source also passes three musl Incus runs and an
+unmodified root-systemd guest, recorded in
+`audit/phase6/vrf-inventory-state-20261101/README.md`. These userspace results
+apply to Ubuntu 6.8.0-147 only. The dated packages below retain
 their original scope; the current table supersedes their per-target
 execution summaries.
 
 ### Latest matrix counts and ownership observations
 
-Each normal guest runs fourteen live library cases, twenty Linux cases,
-five review cases, fifty-six ordinary binary cases and three privileged
+The frozen `2051827` guests run fourteen serial library cases, 23 Linux
+cases, five review cases, 58 ordinary binary cases and three privileged
 binary cases. Eight daemon fault paths include signal-mask and signal-wait
-refusals. All 28 process cases
-and 26 normal scenarios pass on each target; the real-manager and clock
+refusals. All 28 process cases and 27 normal scenarios pass on each target.
+The selectors and the VRF-binding reload regression pass on all five.
+Later test-only additions, including the 17-case serial library profile and
+the 24th Linux case, have separate qualification. The real-manager and clock
 declarations are outside the normal scenario profile. The clock profile runs
 one case per target with controller-confirmed pause/resume.
 
 | Required target | Normal scenarios | H16 clock/pause | Closed and unregistered socket ownership |
 |---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 26 pass, 557.56 s | Pass, 64.38 s | Both families pass |
-| Vanilla `6.8.12` | 26 pass, 461.43 s | Pass, 64.36 s | Both families pass |
-| Ubuntu `7.0.0-42-generic` | 26 pass, 491.09 s | Pass, 64.47 s | Both families pass |
-| Vanilla `7.0.14` | 26 pass, 432.07 s | Pass, 64.31 s | Both families pass |
-| Mainline `7.3.0` | 26 pass, 435.94 s | Pass, 64.24 s | Both families pass |
+| Ubuntu `6.8.0-147-generic` | 27 pass, 562.94 s | Pass, 64.69 s | Both families pass |
+| Vanilla `6.8.12` | 27 pass, 485.76 s | Pass, 64.59 s | Both families pass |
+| Ubuntu `7.0.0-42-generic` | 27 pass, 514.57 s | Pass, 64.55 s | Both families pass |
+| Vanilla `7.0.14` | 27 pass, 482.78 s | Pass, 64.43 s | Both families pass |
+| Mainline `7.3.0` | 27 pass, 447.25 s | Pass, 64.32 s | Both families pass |
 
 After a local socket handle closes, its five socket operations return EBADF
 even while an external descriptor retains the tunnel. An unregistered

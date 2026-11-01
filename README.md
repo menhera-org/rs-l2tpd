@@ -38,11 +38,12 @@ review corrections and their acceptance work. Configuration, kernel,
 reconciler, runtime, service and process code exists; Phases 1–5 have scoped
 verification records, including the
 [Phase 5 conformance follow-up](audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md).
-The binary runs on musl and glibc. The October 31 matrix passed its
-26-scenario normal profile on all five resolved kernel targets, including
-fragmentation and the 300-tunnel scale case. Separate clock-step and
-pause/resume profiles also passed on all five. Later code and test changes
-still need final matrix qualification.
+The binary runs on musl and glibc. The November 1 matrix passes all 27
+normal scenarios on each of the five required kernels, including
+fragmentation, 300 tunnels and the VRF reload regression. All five clock
+profiles, both IPv6-absent boots and missing-driver recovery pass.
+The matrix freezes production source `2051827`; later test-only additions
+have separate qualification records.
 
 Phase 6 remains open. Strict rule-map/source-link checks have passing CI
 records, including ten-repetition qualification. Unprivileged Incus and

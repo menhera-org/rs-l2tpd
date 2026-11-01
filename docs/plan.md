@@ -968,6 +968,15 @@ record `audit/phase6/shared-rule-harness-20261101/` gives unchanged line/branch
 denominators and 96.47% line / 88.85% branch coverage: 306 lines and 206 branches
 remain. Shipping code is unchanged.
 
+The frozen filtered-inventory/cache implementation now passes all thirteen
+required profiles: five normal suites of 27 cases, five clock profiles,
+both IPv6-absent boots and missing-driver recovery. Initial/final published
+versions agree and both source patches are empty. Repository record
+`audit/phase6/matrix-20261101T075850Z-1691154/` identifies `2051827` and the
+later test-only scope. Per-kernel documentation and the current checkpoint
+now use that result. Complete clause/history proof and 100% coverage remain
+open.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what
