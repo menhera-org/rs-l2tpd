@@ -1,0 +1,28 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 1 test
+INHERITANCE_CASE_VERIFIED=valid
+INHERITANCE_CASE_VERIFIED=invalid-count
+INHERITANCE_CASE_VERIFIED=negative-count
+INHERITANCE_CASE_VERIFIED=excess-count
+INHERITANCE_CASE_VERIFIED=missing-name
+INHERITANCE_CASE_VERIFIED=extra-name
+INHERITANCE_CASE_VERIFIED=control-name
+INHERITANCE_CASE_VERIFIED=missing-fd
+INHERITANCE_CASE_VERIFIED=foreign-pid
+
+thread 'fdstore::inheritance_tests::malformed_announcements_and_close_fallback_preserve_descriptor_ownership' (1887452) panicked at src/bin/rs-l2tpd/fdstore.rs:742:13:
+fallback: Output { status: ExitStatus(unix_wait_status(25856)), stdout: "\nrunning 1 test\ntest fdstore::inheritance_tests::malformed_announcements_and_close_fallback_preserve_descriptor_ownership ... FAILED\n\nfailures:\n\nfailures:\n    fdstore::inheritance_tests::malformed_announcements_and_close_fallback_preserve_descriptor_ownership\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 62 filtered out; finished in 0.01s\n\n", stderr: "\nthread 'fdstore::inheritance_tests::malformed_announcements_and_close_fallback_preserve_descriptor_ownership' (1887482) panicked at src/bin/rs-l2tpd/fdstore.rs:706:13:\nassertion `left == right` failed\n  left: true\n right: false\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test fdstore::inheritance_tests::malformed_announcements_and_close_fallback_preserve_descriptor_ownership ... FAILED
+
+failures:
+
+failures:
+    fdstore::inheritance_tests::malformed_announcements_and_close_fallback_preserve_descriptor_ownership
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 62 filtered out; finished in 0.21s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

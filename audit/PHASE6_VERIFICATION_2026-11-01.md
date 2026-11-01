@@ -19,7 +19,7 @@ original execution scope.
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | All 27 normal cases pass on each of five required kernels, including H20, H17 and the new VRF reload regression. Three current musl host suites also pass | Complete clause, history and resource/event-cost proof |
 | P3 required kernels | Frozen `2051827` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Later test-only additions have separate qualification; repeat after relevant production changes |
-| P4 coverage | 8,362/8,660 lines (96.56%); 1,645/1,848 branches (89.02%). No production exclusions, profile mismatches or saturated regions | Cover 298 lines and 203 branches; enable the completed 100% gate in CI |
+| P4 coverage | 8,372/8,660 lines (96.67%); 1,650/1,848 branches (89.29%). No production exclusions, profile mismatches or saturated regions | Cover 288 lines and 198 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | Cache-fix source passes the full GNU case in 19.85 s and three unprivileged musl cases in 18.82, 9.43 and 20.28 s | Preserve the recorded userspace/kernel scope; repeat after relevant production changes |
 | P6 root sandbox | The unmodified supplied unit passes in 29.97 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
@@ -96,7 +96,12 @@ replacements with identical shapes and one added default-trait instantiation.
 The [session races](phase6/session-races-20261101/README.md) add five callback
 instantiations while preserving all preceding mappings. Their three broken
 controls fail; ten ordinary and ten instrumented repetitions, three musl
-service runs and common checks pass. No counter mismatch or saturation is hidden. ARM64, RISC-V64 and PowerPC64LE
+service runs and common checks pass. The
+[inheritance cases](phase6/descriptor-inheritance-20261101/README.md) add eleven
+subprocess checks for malformed announcements and descriptor cleanup fallback.
+Three faulty controls fail; repeated GNU/musl runs and common checks pass.
+Previously unexecuted binary-test instances now expose branch records with
+unchanged source regions. No counter mismatch or saturation is hidden. ARM64, RISC-V64 and PowerPC64LE
 results remain compile checks only.
 
 ## Decisions, interference and remaining work

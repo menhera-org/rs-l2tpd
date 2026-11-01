@@ -231,7 +231,7 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-merged report is 96.56% lines / 89.02% branches, with no production
+merged report is 96.67% lines / 89.29% branches, with no production
 exclusions; 100% remains required. The library test harness also compiles
 the same 88 public rule cases as the external rules target. This lets public
 and private cases exercise one generic instantiation; both targets still run.

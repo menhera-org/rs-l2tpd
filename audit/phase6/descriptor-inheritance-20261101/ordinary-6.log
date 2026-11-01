@@ -1,0 +1,19 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 1 test
+INHERITANCE_CASE_VERIFIED=valid
+INHERITANCE_CASE_VERIFIED=invalid-count
+INHERITANCE_CASE_VERIFIED=negative-count
+INHERITANCE_CASE_VERIFIED=excess-count
+INHERITANCE_CASE_VERIFIED=missing-name
+INHERITANCE_CASE_VERIFIED=extra-name
+INHERITANCE_CASE_VERIFIED=control-name
+INHERITANCE_CASE_VERIFIED=missing-fd
+INHERITANCE_CASE_VERIFIED=foreign-pid
+INHERITANCE_CASE_VERIFIED=fallback
+INHERITANCE_CASE_VERIFIED=fallback-limit-error
+test fdstore::inheritance_tests::malformed_announcements_and_close_fallback_preserve_descriptor_ownership ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 0.19s
+

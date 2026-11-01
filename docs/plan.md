@@ -995,6 +995,15 @@ record `audit/phase6/session-races-20261101/` gives unchanged prior mappings,
 five callback instantiations and 96.56% line / 89.02% branch coverage: 298 lines
 and 203 branches remain. Shipping code is unchanged.
 
+Descriptor inheritance now has eleven isolated cases for count/name refusals,
+ownership and close-on-exec, unannounced cleanup, foreign PID announcements,
+and close_range fallback through the hard limit or its original query error.
+All three faulty controls fail. Ten ordinary and ten instrumented repetitions,
+three musl binary suites, three cross-target checks and common checks pass.
+Repository record `audit/phase6/descriptor-inheritance-20261101/` gives
+unchanged source regions and 96.67% line / 89.29% branch coverage: 288 lines
+and 198 branches remain. Shipping code is unchanged.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what
