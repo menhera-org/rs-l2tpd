@@ -76,7 +76,6 @@ struct FakeLink {
 
 struct Tracked {
     index: u32,
-    generation: u64,
     removed: bool,
 }
 
@@ -953,7 +952,6 @@ impl Kernel for FakeKernel {
             self.incarnation,
             Tracked {
                 index,
-                generation: self.generation,
                 removed: false,
             },
         );
@@ -1018,12 +1016,7 @@ impl Kernel for FakeKernel {
 
     fn prove(&mut self, registration: &Registration) -> Proof {
         match self.tracked.get(&registration.incarnation) {
-            Some(t)
-                if t.generation != self.generation
-                    || registration.generation != self.generation =>
-            {
-                Proof::Lost
-            }
+            Some(_) if registration.generation != self.generation => Proof::Lost,
             Some(t) if !t.removed && t.index == registration.index => Proof::Proved,
             Some(_) => Proof::Removed,
             None => Proof::Lost,

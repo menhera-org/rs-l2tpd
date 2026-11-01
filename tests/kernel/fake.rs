@@ -314,3 +314,36 @@ fn replacing_one_tunnel_invalidates_only_its_registrations() {
     assert!(k.tunnel(100).unwrap().is_none());
     assert!(k.tunnel(200).unwrap().is_none());
 }
+
+/// spec: K42, M18, S9, S19, S23, S24
+#[test]
+fn lifetime_loss_never_revives_a_registration_or_removes_a_reused_index() {
+    for asynchronous in [false, true] {
+        let mut k = FakeKernel::new(7);
+        k.set_async_session_delete(asynchronous);
+        let socket = k.create_socket(Family::V6, 100, 200).unwrap();
+        k.register_tunnel(socket, 100, 200).unwrap();
+        let create = SessionCreate::new(100, 101, 201, None, None, name("old"));
+        let original = k.create_session(&create).unwrap();
+        k.remove_link(original.index());
+        k.add_link_at(original.index(), "foreign", false);
+        assert_eq!(k.prove(&original), Proof::Removed);
+        k.delete_session(100, 101).unwrap();
+        k.tick();
+        assert!(k.session(100, 101).unwrap().is_none());
+        assert_eq!(k.link(original.index()).unwrap().name(), name("foreign"));
+        assert_eq!(k.prove(&original), Proof::Removed);
+
+        k.lose_lifetime();
+        assert_eq!(k.prove(&original), Proof::Lost);
+        let current = k.create_session(&create).unwrap();
+        assert_eq!(current.generation(), original.generation() + 1);
+        assert_ne!(current.incarnation(), original.incarnation());
+        assert_eq!(k.prove(&current), Proof::Proved);
+        assert_eq!(k.prove(&original), Proof::Lost);
+        k.close(socket);
+        k.tick();
+        assert_eq!(k.prove(&current), Proof::Removed);
+        assert_eq!(k.link(original.index()).unwrap().name(), name("foreign"));
+    }
+}

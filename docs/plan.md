@@ -735,6 +735,15 @@ record `audit/phase6/closed-host-receiver-20261101/` gives compatible coverage
 mappings and the remaining scope. Production coverage reaches 95.05% lines /
 85.03% branches; the 100% gate remains open.
 
+The fake no longer duplicates the generation in each tracked registration:
+generation changes clear that map. Stronger fake/Linux index-reuse checks
+preserve a foreign replacement through deletion and invalidate old lifetime
+registrations. Ten seeded suites, GNU/musl live repetitions, fresh GNU/live/
+manager/Incus profiles, an unmodified musl root-systemd guest, cross-target
+compiles and common checks pass. Repository record
+`audit/phase6/tracked-lifetime-20261101/` gives the fresh totals: 95.05% lines /
+85.07% branches, with the remaining global requirements open.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

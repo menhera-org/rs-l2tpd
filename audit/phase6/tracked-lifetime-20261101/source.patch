@@ -1,0 +1,116 @@
+diff --git a/src/kernel/fake.rs b/src/kernel/fake.rs
+index e2da05f..6c21be1 100644
+--- a/src/kernel/fake.rs
++++ b/src/kernel/fake.rs
+@@ -76,7 +76,6 @@ struct FakeLink {
+ 
+ struct Tracked {
+     index: u32,
+-    generation: u64,
+     removed: bool,
+ }
+ 
+@@ -953,7 +952,6 @@ impl Kernel for FakeKernel {
+             self.incarnation,
+             Tracked {
+                 index,
+-                generation: self.generation,
+                 removed: false,
+             },
+         );
+@@ -1018,12 +1016,7 @@ impl Kernel for FakeKernel {
+ 
+     fn prove(&mut self, registration: &Registration) -> Proof {
+         match self.tracked.get(&registration.incarnation) {
+-            Some(t)
+-                if t.generation != self.generation
+-                    || registration.generation != self.generation =>
+-            {
+-                Proof::Lost
+-            }
++            Some(_) if registration.generation != self.generation => Proof::Lost,
+             Some(t) if !t.removed && t.index == registration.index => Proof::Proved,
+             Some(_) => Proof::Removed,
+             None => Proof::Lost,
+diff --git a/tests/kernel/conformance.rs b/tests/kernel/conformance.rs
+index a01abb1..377c96a 100644
+--- a/tests/kernel/conformance.rs
++++ b/tests/kernel/conformance.rs
+@@ -61,7 +61,10 @@ fn create(tunnel_id: u32, session_id: u32, ifname: &str) -> SessionCreate {
+ }
+ 
+ /// Polls `check` after letting the kernel work, a bounded number of times.
+-fn eventually(f: &mut dyn Fixture, mut check: impl FnMut(&mut dyn Kernel) -> bool) -> bool {
++pub(super) fn eventually(
++    f: &mut dyn Fixture,
++    mut check: impl FnMut(&mut dyn Kernel) -> bool,
++) -> bool {
+     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+     loop {
+         f.settle();
+diff --git a/tests/kernel/fake.rs b/tests/kernel/fake.rs
+index 793ab6c..97694ae 100644
+--- a/tests/kernel/fake.rs
++++ b/tests/kernel/fake.rs
+@@ -314,3 +314,36 @@ fn replacing_one_tunnel_invalidates_only_its_registrations() {
+     assert!(k.tunnel(100).unwrap().is_none());
+     assert!(k.tunnel(200).unwrap().is_none());
+ }
++
++/// spec: K42, M18, S9, S19, S23, S24
++#[test]
++fn lifetime_loss_never_revives_a_registration_or_removes_a_reused_index() {
++    for asynchronous in [false, true] {
++        let mut k = FakeKernel::new(7);
++        k.set_async_session_delete(asynchronous);
++        let socket = k.create_socket(Family::V6, 100, 200).unwrap();
++        k.register_tunnel(socket, 100, 200).unwrap();
++        let create = SessionCreate::new(100, 101, 201, None, None, name("old"));
++        let original = k.create_session(&create).unwrap();
++        k.remove_link(original.index());
++        k.add_link_at(original.index(), "foreign", false);
++        assert_eq!(k.prove(&original), Proof::Removed);
++        k.delete_session(100, 101).unwrap();
++        k.tick();
++        assert!(k.session(100, 101).unwrap().is_none());
++        assert_eq!(k.link(original.index()).unwrap().name(), name("foreign"));
++        assert_eq!(k.prove(&original), Proof::Removed);
++
++        k.lose_lifetime();
++        assert_eq!(k.prove(&original), Proof::Lost);
++        let current = k.create_session(&create).unwrap();
++        assert_eq!(current.generation(), original.generation() + 1);
++        assert_ne!(current.incarnation(), original.incarnation());
++        assert_eq!(k.prove(&current), Proof::Proved);
++        assert_eq!(k.prove(&original), Proof::Lost);
++        k.close(socket);
++        k.tick();
++        assert_eq!(k.prove(&current), Proof::Removed);
++        assert_eq!(k.link(original.index()).unwrap().name(), name("foreign"));
++    }
++}
+diff --git a/tests/kernel/linux.rs b/tests/kernel/linux.rs
+index 2da1069..53f742d 100644
+--- a/tests/kernel/linux.rs
++++ b/tests/kernel/linux.rs
+@@ -662,6 +662,20 @@ fn a_reused_index_and_creation_name_never_revive_an_old_registration() {
+     finish.send(()).unwrap();
+     child.join().unwrap();
+     f.k().close(socket);
++    assert!(conformance::eventually(&mut f, |k| k
++        .tunnel(9341)
++        .unwrap()
++        .is_none()));
++    assert_eq!(
++        f.k()
++            .link_by_index(original.index())
++            .unwrap()
++            .unwrap()
++            .name(),
++        name("reuse-stage")
++    );
++    assert_eq!(f.k().prove(&original), Proof::Removed);
++    assert_eq!(f.k().prove(&other), Proof::Removed);
+ }
+ 
+ /// spec: K23, T26, L12

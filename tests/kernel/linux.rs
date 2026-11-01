@@ -662,6 +662,20 @@ fn a_reused_index_and_creation_name_never_revive_an_old_registration() {
     finish.send(()).unwrap();
     child.join().unwrap();
     f.k().close(socket);
+    assert!(conformance::eventually(&mut f, |k| k
+        .tunnel(9341)
+        .unwrap()
+        .is_none()));
+    assert_eq!(
+        f.k()
+            .link_by_index(original.index())
+            .unwrap()
+            .unwrap()
+            .name(),
+        name("reuse-stage")
+    );
+    assert_eq!(f.k().prove(&original), Proof::Removed);
+    assert_eq!(f.k().prove(&other), Proof::Removed);
 }
 
 /// spec: K23, T26, L12

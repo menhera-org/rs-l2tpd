@@ -1052,3 +1052,16 @@ repetitions. Native coverage, compatible production mappings and common
 checks pass. Coverage reaches 95.05% lines / 85.03% branches, leaving 422
 lines and 271 branches, without production exclusions or saturated regions.
 The remaining Phase 6 proof and decision requirements stay open.
+
+## Tracked lifetime state, November 1
+
+[The lifetime record](phase6/tracked-lifetime-20261101/README.md) removes the
+fake's redundant per-registration generation and strengthens fake/Linux
+index-reuse checks through complete tunnel cleanup. Ten seeded suites,
+three GNU and three musl live repetitions, cross-target compiles and common
+checks pass. A fresh coverage directory includes complete native/live,
+process, 26-scenario normal, real-manager and Incus runs. The unmodified musl
+root-systemd guest passes in 28.04 seconds. Coverage is 95.05% lines /
+85.07% branches, leaving 422 lines and 270 branches, with zero saturated
+regions or production exclusions. No daemon or Linux-adapter behavior changes;
+the outstanding contract, release and final qualification gates remain open.

@@ -61,7 +61,10 @@ fn create(tunnel_id: u32, session_id: u32, ifname: &str) -> SessionCreate {
 }
 
 /// Polls `check` after letting the kernel work, a bounded number of times.
-fn eventually(f: &mut dyn Fixture, mut check: impl FnMut(&mut dyn Kernel) -> bool) -> bool {
+pub(super) fn eventually(
+    f: &mut dyn Fixture,
+    mut check: impl FnMut(&mut dyn Kernel) -> bool,
+) -> bool {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
     loop {
         f.settle();
