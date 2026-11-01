@@ -1,0 +1,32 @@
+warning: --branch option is unstable
+info: cargo-llvm-cov currently setting cfg(coverage) and cfg(coverage_nightly); you can opt-out it by passing --no-cfg-coverage and --no-cfg-coverage-nightly
+warning: `package.homepage` is redundant with `package.repository`
+  --> Cargo.toml:11:12
+   |
+10 | repository = "https://github.com/menhera-org/rs-l2tpd"
+   |              -----------------------------------------
+11 | homepage = "https://github.com/menhera-org/rs-l2tpd"
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `rs-l2tpd` (manifest) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/phase6-coverage-vrf-inventory-state-20261101/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/741d8d4ff1a01747/out/rs_l2tpd-741d8d4ff1a01747)
+
+running 8 tests
+test reconciler::sessions::wanted_tests::overlapping_retained_targets_never_move_the_first_completed_holder ... ok
+test reconciler::sessions::wanted_tests::desired_indexes_follow_operator_names_and_release_on_shutdown ... ok
+test reconciler::sessions::wanted_tests::duplicate_cached_names_remain_held_until_the_last_record_moves ... ok
+test reconciler::sessions::wanted_tests::staging_uses_a_free_eighth_name_and_refuses_after_eight_collisions ... ok
+WANTED_LOOKUP entries=1 queries=500 scan_ns=428551 indexed_ns=547357
+test reconciler::sessions::wanted_tests::a_creation_refusal_without_a_name_collision_preserves_the_errno_and_retries_cleanly ... ok
+test reconciler::sessions::wanted_tests::a_removed_middle_of_a_rename_chain_releases_only_its_own_cached_name ... ok
+test reconciler::sessions::wanted_tests::timed_out_creation_keeps_uncertainty_until_a_complete_fresh_scan ... ok
+WANTED_LOOKUP entries=100 queries=500 scan_ns=51244744 indexed_ns=1580056
+WANTED_LOOKUP entries=300 queries=500 scan_ns=163352721 indexed_ns=1634998
+WANTED_LOOKUP entries=1000 queries=500 scan_ns=680523985 indexed_ns=2335263
+test reconciler::sessions::wanted_tests::wanted_lookup_cost_and_identity_checks ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 237 filtered out; finished in 1.06s
+

@@ -977,6 +977,15 @@ later test-only scope. Per-kernel documentation and the current checkpoint
 now use that result. Complete clause/history proof and 100% coverage remain
 open.
 
+Staging cases now require a free eighth name to succeed, eight collisions to
+leave no partial state, original creation errnos to survive, and retry to
+preserve the tunnel and foreign links. Both draw-bound controls and the
+errno-replacement control fail. Ten seeded suites, ten instrumented session
+repetitions, three musl library runs and common checks pass. Repository record
+`audit/phase6/staging-bounds-20261101/` gives identical production mappings
+and 96.50% line / 88.91% branch coverage: 303 lines and 205 branches remain.
+Shipping code is unchanged.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

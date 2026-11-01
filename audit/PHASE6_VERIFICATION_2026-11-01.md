@@ -19,7 +19,7 @@ original execution scope.
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | All 27 normal cases pass on each of five required kernels, including H20, H17 and the new VRF reload regression. Three current musl host suites also pass | Complete clause, history and resource/event-cost proof |
 | P3 required kernels | Frozen `2051827` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Later test-only additions have separate qualification; repeat after relevant production changes |
-| P4 coverage | 8,354/8,660 lines (96.47%); 1,642/1,848 branches (88.85%). No production exclusions, profile mismatches or saturated regions | Cover 306 lines and 206 branches; enable the completed 100% gate in CI |
+| P4 coverage | 8,357/8,660 lines (96.50%); 1,643/1,848 branches (88.91%). No production exclusions, profile mismatches or saturated regions | Cover 303 lines and 205 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | Cache-fix source passes the full GNU case in 19.85 s and three unprivileged musl cases in 18.82, 9.43 and 20.28 s | Preserve the recorded userspace/kernel scope; repeat after relevant production changes |
 | P6 root sandbox | The unmodified supplied unit passes in 29.97 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
@@ -68,7 +68,9 @@ the library and external target. Private cases and public behavior therefore
 exercise the same library instantiations. The declaration lists compare
 exactly; line and branch denominators are unchanged.
 
-The ordinary library passes 226 cases. Three child-launching cases join the
+The ordinary library passes 228 cases after the
+[staging-bound cases](phase6/staging-bounds-20261101/README.md), which preserve
+original refusals and test the seventh/eighth-name boundary. Three child-launching cases join the
 existing isolated profile to avoid global logger and fake lifetime
 interference; all 17 serial cases pass three GNU and three musl runs.
 Ten ordinary and ten instrumented seeded repetitions, three musl runs,

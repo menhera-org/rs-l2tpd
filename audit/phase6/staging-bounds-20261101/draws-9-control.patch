@@ -1,0 +1,13 @@
+diff --git a/src/reconciler/sessions.rs b/src/reconciler/sessions.rs
+index 60d3958..bd604de 100644
+--- a/src/reconciler/sessions.rs
++++ b/src/reconciler/sessions.rs
+@@ -14,7 +14,7 @@ use super::records::{ConflictIdentity, Enforce, Identity, SessionRecord};
+ use super::{Reconciler, report};
+ 
+ /// Draws of a staging name in one attempt (S7).
+-const DRAWS: usize = 8;
++const DRAWS: usize = 9;
+ 
+ #[cfg(all(test, feature = "fake-kernel", feature = "serde"))]
+ #[cfg_attr(coverage_nightly, coverage(off))]
