@@ -1,5 +1,11 @@
 # Staged configured MAC: H11 decision pending
 
+The maintainer approved and applied the documented limitation and explicit
+MAC authority on 2026-11-01. The new qualification is in
+`audit/phase6/maintainer-decisions-20261101/`; this record retains the
+original failure and authority controls.
+
+
 **P5 remains unresolved.** An unmodified musl Incus run fails after 31.93
 seconds at `staged configured MAC and networkd address`. Direct/concurrent
 and both ordered persistent-MAC cases pass first. The retained interface is

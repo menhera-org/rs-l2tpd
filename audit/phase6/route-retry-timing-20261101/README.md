@@ -23,7 +23,7 @@ separate quantities. Rule regressions check the exact next deadline and
 recovery after advancing the fake clock by one second, including refused
 peers and simultaneous retry types.
 
-`proposed.patch` is **unapplied**. It would:
+The maintainer approved `proposed.patch` on 2026-11-01. It is applied and:
 
 - Keep the exact one-second retry deadline under deterministic rule tests.
 - Retain the live fixture's existing ten-second event timeout and require
@@ -37,5 +37,6 @@ Phase 6's rule: “Never weaken a rule to make a gate pass.” The alternative
 is to retain that bound and redesign the timing/event contract and its
 implementation; another numerical tolerance would need justification too.
 
-The patch passes `git apply --check`; it has not been applied or counted as
-a passing gate.
+Before application, `git apply --check` passed. Qualification of the applied
+change is retained in `audit/phase6/maintainer-decisions-20261101/`;
+passing the new gate requires its actual scenario results.

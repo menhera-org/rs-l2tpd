@@ -259,8 +259,9 @@ per event, and the number of events is the host's; the cost is buffer
 space and, under bursts, a resync ([R6](requirements.md#the-host)). A
 rename event is matched against the configured bind names and the owned
 indexes by lookup, not by scanning the configuration. Memory follows
-G23: current configuration, monitor buffers, bounded discovery state and
-fixed in-flight lookup budgets. Removed entries release queued work;
+G23: current configuration and the current link/address state needed by its
+configured dependencies, monitor buffers, bounded discovery state and fixed
+in-flight lookup budgets. Removed entries release queued work;
 uncertain mutations and descriptor-store retirements retain only the
 ownership/cleanup record needed to finish safely (L13). Finished records
 and unused discovery configurations are released, never cached by history.

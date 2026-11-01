@@ -1,5 +1,11 @@
 # Current host state exceeds the configuration-only cache bound
 
+The maintainer approved and applied the current-dependency-state bound on
+2026-11-01, with streamed inventories required. The implementation and
+resource proof remain separate work. This record retains the original
+witnesses and proposal.
+
+
 Two deterministic witnesses keep the configuration at one tunnel and vary
 only current host state. They measure the reconciler's own collections,
 separately from the fake kernel and its notification queues.

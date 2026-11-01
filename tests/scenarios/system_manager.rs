@@ -218,6 +218,15 @@ pub(super) fn mac_policy(original_index: u32) {
         previous_index = current_index;
         stop();
     }
+    // Give this configured-MAC case one authority for both creation names.
+    fs::write(
+        "/etc/systemd/network/05-phase6-custom.link",
+        "[Match]\nOriginalName=incusl2tp rsl2tp-t*\n[Link]\nMACAddressPolicy=none\n",
+    )
+    .unwrap();
+    let mut reload = Command::new("udevadm");
+    reload.args(["control", "--reload"]);
+    checked(reload);
     fs::write(
         "/etc/rs-l2tpd.toml",
         format!("{text}interface_hwaddr='02:00:5e:00:53:01'\n"),

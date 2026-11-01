@@ -190,7 +190,7 @@ The scenarios, one test function each, tag in the doc comment:
 | H3 | `disable_ipv6=1` on `all` and `default` | as H2, sockets still `AF_INET6` |
 | H4, T4 | a QEMU kernel booted with `ipv6.disable=1`, and one built without IPv6 (P3) | `AF_INET` sockets, every rule of T4 |
 | H5 | IPv6-only | the mirror of H2 |
-| H6, G21, P1 | no route at all at start | ready at once, tunnels created disconnected, connect within 1 s of the first route |
+| H6, G21, P1 | no route at all at start | ready at once, tunnels created disconnected; exact one-second retry deadline checked with the fake; live connect within the existing 10 s fixture timeout, with monotonic delay recorded |
 | H7, E4, T27 | VRF with and without members, member join and `nomaster`, zoned link-local peer | source from the VRF domain, disconnect on `nomaster`, zone member rule |
 | H8 | a table of 100 000 routes, no default route | no request from the daemon touches routes (count `RTM_GETROUTE` through a second netlink socket), convergence time unchanged |
 | H9 | the daemon in a non-initial namespace with `/proc` unmounted | works; `SO_RCVBUFFORCE` refused handled (K36) |
@@ -210,6 +210,12 @@ The scenarios, one test function each, tag in the doc comment:
 
 Acceptance: `tests/docker/run.sh scenarios` passes on the host kernel
 three times in a row; every H rule and G15–G23 carry a citation.
+
+**Maintainer decision, 2026-11-01:** H6 checks the exact one-second retry
+deadline with the fake clock. The live case retains its ten-second event
+timeout and frame exchange, records monotonic route-to-connect time, and
+includes scheduling and kernel-operation delays as H6 now states. Earlier
+observed overshoots remain in the verification record.
 
 ## P3. The kernel matrix
 
@@ -315,8 +321,15 @@ approved by the maintainer on 2026-10-30:
   MAC assignment on the down interface, then activate networkd. Repeat a
   clean removal/re-creation and require the same MAC with unchanged
   machine identity, configured name and policy.
-- Keep the staged configured-MAC case and the P14 hand-over across a
-  `kill -9` under the container's systemd.
+- Keep the staged configured-MAC case with an explicit `.link` MAC authority
+  matching both creation names, and the P14 hand-over across a `kill -9`
+  under the container's systemd.
+
+**Maintainer decision, 2026-11-01:** later udev MAC assignments remain
+manager overrides under S12/G4. The configured-MAC case uses
+`MACAddressPolicy=none`; H11 documents why matching the final name alone
+does not prevent the staged-creation race. The concurrent and ordered
+persistent-MAC cases stay in force.
 
 The ordered case proves the stated ordering prerequisite only. It must
 not be reported as a guarantee that persistent assignment always wins

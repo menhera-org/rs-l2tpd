@@ -1,0 +1,67 @@
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 rs-l2tpd[468]: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 rs-l2tpd[468]: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 rs-l2tpd[468]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 rs-l2tpd[468]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as incusl2tp
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 rs-l2tpd[468]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 rs-l2tpd[468]: INFO rs_l2tpd: ready pid=468
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 systemd[1]: Reloading rs-l2tpd.service - Resilient L2TPv3 daemon...
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 systemd[1]: Reloaded rs-l2tpd.service - Resilient L2TPv3 daemon.
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 rs-l2tpd[468]: INFO rs_l2tpd::service: reload completed
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 systemd[1]: rs-l2tpd.service: Main process exited, code=killed, status=9/KILL
+Nov 01 01:45:15 rs-l2tpd-phase6-1107991 systemd[1]: rs-l2tpd.service: Failed with result 'signal'.
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 systemd[1]: rs-l2tpd.service: Scheduled restart job, restart counter is at 1.
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[530]: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[530]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[530]: WARN rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[530]: INFO rs_l2tpd: ready pid=530
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[530]: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[530]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[530]: WARN rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[530]: INFO rs_l2tpd: re-exec resumed
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[530]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[530]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[530]: INFO rs_l2tpd: shutdown complete
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[570]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[570]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as incusl2tp
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[570]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 rs-l2tpd[570]: INFO rs_l2tpd: ready pid=570
+Nov 01 01:45:18 rs-l2tpd-phase6-1107991 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[570]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[570]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[570]: INFO rs_l2tpd: shutdown complete
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[597]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[597]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as incusl2tp
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[597]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[597]: INFO rs_l2tpd: ready pid=597
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[597]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[597]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[597]: INFO rs_l2tpd: shutdown complete
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: Starting rs-l2tpd.service - Resilient L2TPv3 daemon...
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[623]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[623]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as rsl2tp-t1be7f0
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[623]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[623]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): published as incusl2tp
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[623]: INFO rs_l2tpd: ready pid=623
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: Started rs-l2tpd.service - Resilient L2TPv3 daemon.
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: Stopping rs-l2tpd.service - Resilient L2TPv3 daemon...
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[623]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[623]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 rs-l2tpd[623]: INFO rs_l2tpd: shutdown complete
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: rs-l2tpd.service: Deactivated successfully.
+Nov 01 01:45:19 rs-l2tpd-phase6-1107991 systemd[1]: Stopped rs-l2tpd.service - Resilient L2TPv3 daemon.

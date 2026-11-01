@@ -39,6 +39,8 @@ before routing is configured): every tunnel is created disconnected and
 every session exists; readiness is reached as soon as the kernel has
 created them; real peers are connected as soon as routes appear, by the
 one-second retry ([E13](events.md#timers)).
+The second bounds the retry deadline. Timer execution and observed
+completion also include scheduling and kernel-operation delays.
 
 ## VRFs
 
@@ -119,10 +121,17 @@ uevent. Hosts with networkd v253
 or later (Ubuntu 24.04 and later) are not affected. udev's
 `MACAddressPolicy=persistent` derives the address from the name the
 device had at its `add` uevent, so a staged device would get an address
-derived from its temporary name; staging happens only when a hardware
-address is configured, which takes precedence, or when the name is
-occupied. Direct creation avoids these temporary-name and rename-rematching
-limitations.
+derived from its temporary name. Staging happens when a hardware address
+is configured or when the name is occupied. The daemon applies a configured
+address before publication, but udev can have read the earlier kernel
+assignment type and apply its persistent policy afterward while the device
+is still down. Such a later assignment is a manager override under
+[S12](sessions.md#hardware-addresses); the daemon preserves it. To require the
+configured address before activation, the operator must coordinate MAC
+authority, for example with `MACAddressPolicy=none` in a `.link` file that
+matches the temporary creation name as well as the configured name.
+A configured name match alone does not prevent this race. Direct creation
+avoids the temporary-name and rename-rematching limitations.
 
 **Persistent MAC assignment and activation are separate operations.**
 Even for a session created directly under its configured name, networkd

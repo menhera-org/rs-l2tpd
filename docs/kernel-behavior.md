@@ -10,8 +10,9 @@ including H20 fragmentation and both 300-entry daemons. It also passes both
 IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
 publication checks select the same versions. Repository record
 `audit/phase6/matrix-20261031T213935Z-567802/README.md` identifies the I/O
-source and fixture set tested. Later test-only additions and the unresolved
-H11 manager-policy case still need final qualification.
+source and fixture set tested. Later daemon and fixture changes still need final five-target qualification.
+The approved H11 configured-MAC policy now passes three fresh Incus runs
+and a root-systemd guest on Ubuntu 6.8.0-147; its userspace scope is below.
 
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.
@@ -105,9 +106,9 @@ profiles below use the I/O source identified by the latest matrix record.
 Subsequent monitor/process/inheritance fixtures have separate Ubuntu 6.8
 evidence and are not included in that five-target fixture set.
 
-| Required kernel | Current normal profile / H20 | Capability/netlink degradation | H16 clock/pause | H17 300 tunnels | H11/unprivileged system container |
+| Required kernel | Matrix normal profile / H20 | Capability/netlink degradation | H16 clock/pause | H17 300 tunnels | H11/unprivileged system container |
 |---|---|---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 26 pass / pass | Pass | Pass | Pass | Individual passes; later staged configured-MAC override leaves H11/P5 unresolved |
+| Ubuntu `6.8.0-147-generic` | 26 pass / pass | Pass | Pass | Pass | Three fresh Incus passes with the approved explicit MAC policy (2026-11-01) |
 | Vanilla `6.8.12` | 26 pass / pass | Pass | Pass | Pass | Not run |
 | Ubuntu `7.0.0-42-generic` | 26 pass / pass; cold-boot KHO override | Pass; missing-driver recovery also passes | Pass | Pass | Not run |
 | Vanilla `7.0.14` | 26 pass / pass | Pass | Pass | Pass | Not run |
@@ -115,12 +116,12 @@ evidence and are not included in that five-target fixture set.
 
 Reproduction and transcripts are in the
 latest matrix (`audit/phase6/matrix-20261031T213935Z-567802/README.md`).
-The latest individual instrumented Incus pass is recorded in
-`audit/phase6/process-errors-20261031/README.md`; the unmodified failure and
-unapplied H11 correction are in `audit/phase6/staged-mac-override-20261031/`.
-The latest unmodified root-systemd pass is in
-`audit/phase6/io-faults-20261031/README.md`. All these manager results apply
-to Ubuntu 6.8.0-147 only. The dated packages below retain
+The approved explicit-MAC-authority case passes three fresh unprivileged
+Incus runs and the unmodified root-systemd guest. Their source and logs are
+in `audit/phase6/maintainer-decisions-20261101/README.md`; the earlier failure
+and authority controls remain in `audit/phase6/staged-mac-override-20261031/`.
+These new manager results use daemon source `eeec257` and apply to Ubuntu
+6.8.0-147 only. The dated packages below retain
 their original scope; the current table supersedes their per-target
 execution summaries.
 
@@ -256,6 +257,11 @@ The approved combined H11 contract tests both outcomes under concurrent
 activation, and separately orders persistent assignment while down and
 checks stability across re-creation. It does not promise persistent MAC
 assignment for every manager race or every staged temporary name.
+For a staged configured MAC, udev can apply a persistent value after the
+daemon's assignment; the daemon preserves that later manager override.
+An operator requiring the configured value must coordinate authority,
+for example with `MACAddressPolicy=none` matching both creation names.
+The corrected fixture retains the concurrent and ordered persistent cases.
 [Exact manager limitations](spec/hosts.md#other-network-managers) and
 executed Incus evidence (`audit/phase6/P5_VERIFICATION_2026-10-30.md`).
 Manager behavior depends on the userspace image and ordering as well as
