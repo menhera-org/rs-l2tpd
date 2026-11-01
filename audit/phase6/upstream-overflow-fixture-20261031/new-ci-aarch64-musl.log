@@ -1,0 +1,7 @@
+2026-10-31T23:52:25.8043248Z test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-31T23:52:25.8474017Z test sys::test_socket::test_recvmsg_rxq_ovfl ... ok
+2026-10-31T23:52:38.2478851Z test result: ok. 363 passed; 0 failed; 12 ignored; 0 measured; 0 filtered out; finished in 12.44s
+2026-10-31T23:52:38.2488328Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-31T23:52:38.2499901Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-31T23:52:38.2521839Z test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-31T23:52:45.2474344Z test result: ok. 106 passed; 0 failed; 22 ignored; 0 measured; 0 filtered out; finished in 5.97s

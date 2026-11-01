@@ -712,6 +712,13 @@ seeds, common checks and compatible GNU profiles pass; the fake reaches 100%
 line coverage. Repository record `audit/phase6/alias-state-20261031/` gives
 the baseline failure, production mapping checks and remaining scope.
 
+The new upstream signal regression passes all four native Linux jobs, whose
+full suites fail an unchanged receive-overflow test. Independent PR #2853
+replaces its fixed packet-capacity assumption with measured loss. All 30
+returned upstream CI jobs pass for that proposal. Repository record
+`audit/phase6/upstream-overflow-fixture-20261031/` retains the controls;
+both upstream fixes still await integration and the signal release.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

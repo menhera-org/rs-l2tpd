@@ -62,6 +62,16 @@ remains 95.00% lines / 84.86% branches. CI runs 41249093334 and 41249482678
 pass both jobs in about fourteen and thirteen minutes. Later runs remain
 separate from this upstream proof.
 
+## Upstream CI dependency
+
+The new regression passes all four native Linux jobs in PR #2852. Their
+full suites fail the unchanged receive-overflow fixture, which assumes a
+fixed packet capacity. Independent [PR #2853](https://github.com/nix-rust/nix/pull/2853)
+measures the dropped packets instead; all 30 returned jobs pass in its CI
+run. The [fixture record](../upstream-overflow-fixture-20261031/README.md)
+retains the failures and controls. Both proposals still need upstream
+integration, followed by a compatible published signal fix.
+
 ## Final upstream regression scope
 
 Follow-up commit `97552cd403bc846bfa0015719b212af3c6eaa9b2` confines the

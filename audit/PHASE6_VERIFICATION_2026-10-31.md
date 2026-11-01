@@ -1014,3 +1014,15 @@ builds and compatible GNU profiles pass. The fake reaches 100% lines and
 94.20% branches. Overall coverage is 95.03% lines / 84.97% branches, leaving
 424 lines and 272 branches with no production exclusions or saturated regions.
 The H11/G23 decisions and other global proof requirements remain open.
+
+## Upstream receive-overflow fixture
+
+[The fixture record](phase6/upstream-overflow-fixture-20261031/README.md)
+traces the four native Linux failures in signal PR #2852 to an unchanged
+test's packet-capacity assumption. Independent PR #2853 requires the exact
+measured positive loss. Three GNU, three musl and three reduced-buffer musl
+controls pass; the old reduced-buffer fixture fails as expected. All 30
+returned upstream CI jobs pass for PR #2853, including all four native Linux
+jobs. Both proposals await upstream integration; the compatible signal
+release and downstream fault tests remain pending. No daemon dependency,
+implementation, specification or coverage exclusion changes.
