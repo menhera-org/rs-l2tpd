@@ -1,0 +1,20 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+     Running tests/rules/main.rs (target/debug/deps/rules-9173433df0983df3)
+
+running 1 test
+
+thread 'events::vrf_address_removal_reselects_only_the_affected_family_and_member_loss_recovers' (940320) panicked at tests/rules/events.rs:188:5:
+assertion `left == right` failed
+  left: Some(192.0.2.9)
+ right: Some(192.0.2.1)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test events::vrf_address_removal_reselects_only_the_affected_family_and_member_loss_recovers ... FAILED
+
+failures:
+
+failures:
+    events::vrf_address_removal_reselects_only_the_affected_family_and_member_loss_recovers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 83 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`

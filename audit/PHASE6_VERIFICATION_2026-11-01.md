@@ -15,7 +15,7 @@ identifies exact source, commands, features, kernel, counts and logs.
 | P1 source links | Current strict check passes with no uncited Linux functions; delegated/source-only facts retain evidence-map classification | Maintain source assertions and execution scope as targets change |
 | P2 scenarios | Fresh GNU collection passes 26 normal scenarios on Ubuntu 6.8.0-147-generic in 161.25 s, including H20 fragmentation and the 300-tunnel/session case | Complete clause/resource/event-cost proof; resolve the current-host-state G23 bound |
 | P3 required kernels | The [October 31 matrix](phase6/matrix-20261031T213935Z-567802/README.md) returns MATRIX_RESULT=0 for five normal and five clock profiles, plus scoped IPv6-absent and missing-driver boots | Re-resolve published targets and qualify the final source/fixture set |
-| P4 coverage | Compatible production merge: 95.20% lines, 85.56% branches; zero exclusions and saturated regions | Cover 409 lines and 261 branches; enforce the completed 100% gate in CI |
+| P4 coverage | Compatible production merge: 95.27% lines, 86.01% branches; zero exclusions and saturated regions | Cover 403 lines and 253 branches; enforce the completed 100% gate in CI |
 | P5 Incus/LXD | Fresh unprivileged Incus case passes in 19.78 s; seven daemon profiles exported, receive-buffer fallback checked | Resolve staged-MAC H11 contract and establish required determinism; individual passes do not cancel the retained failure |
 | P6 root sandbox | Unmodified musl root-systemd case passes on Ubuntu 6.8.0-147-generic in 28.04 s, ROOT_SYSTEMD_RESULT=0 | Repeat after relevant changes; no other-userspace sandbox claim |
 | P7 documentation/CI | README/index/testing status now distinguish the passing matrix snapshot from final qualification. Strict flags remain enabled; CI budgets remain bounded | Final consistent-source record, complete proof and coverage enforcement |
@@ -25,7 +25,10 @@ passes both jobs for `54e99d2`, about sixteen minutes overall. Runs for later
 commits remain separate from that result. No timeout was observed in this
 completed run. Current implementation CI is
 [run 41256606416](https://github.com/menhera-org/rs-l2tpd/actions/runs/41256606416),
-still pending at this checkpoint.
+now passes both jobs. Its [job metadata](phase6/vrf-address-events-20261101/ci-production-jobs.json)
+identifies the qualified implementation; later rule additions retain their
+separate local results. A new required matrix is running in a frozen bdf81b5
+checkout, with no result claimed until its driver finishes.
 
 ## Required-kernel snapshot
 
@@ -56,8 +59,8 @@ library/Linux/review/process cases, normal scenarios, a real user-manager
 case and an unprivileged Incus case contribute profiles from one production
 implementation. Earlier production implementations are not merged.
 
-The [latest summary](phase6/uncertain-sessions-20261101/coverage-summary.json) reports
-8,111/8,520 production lines and 1,547/1,808 branches covered. The fake has
+The [latest summary](phase6/vrf-address-events-20261101/coverage-summary.json) reports
+8,117/8,520 production lines and 1,555/1,808 branches covered. The fake has
 828/828 lines and 130/136 branches. Test-only bodies/helpers remain excluded
 from instrumentation under the maintainer-approved production scope, while
 the tests execute. There are no production exclusions or saturated inferred
@@ -77,6 +80,13 @@ three musl library/rules runs and common checks pass. Production mappings
 match the fresh lifetime collection exactly, preserving its broader live
 profiles. The applied kernel outcome is modeled; this does not establish a
 live lost-netlink-reply result.
+
+[VRF address/member events](phase6/vrf-address-events-20261101/README.md)
+now check family-specific reconnects, forced source fallback after member
+removal and one-second IPv6 recovery, preserving unrelated sockets and both
+sessions. Ten seeded and three musl rule suites and common checks pass.
+An initial source-preference assumption is corrected to E6's actual
+reselection contract. Production mappings remain unchanged.
 
 ## Pending decisions and upstream integration
 

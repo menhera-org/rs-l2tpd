@@ -752,6 +752,14 @@ repetitions and common checks pass, with unchanged production mappings.
 Repository record `audit/phase6/uncertain-sessions-20261101/` gives the
 95.20% line / 85.56% branch report and its remaining proof limits.
 
+A dual-family VRF event case checks address removals, member loss and
+one-second recovery while preserving sessions and an unrelated tunnel.
+Ten seeded suites, three musl rule repetitions and common checks pass.
+Repository record `audit/phase6/vrf-address-events-20261101/` gives the
+95.27% line / 86.01% branch report, compatible mappings, the corrected
+source-preference assumption and the current implementation's passing CI.
+The new required matrix runs in a frozen checkout; its outcome is pending.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what
