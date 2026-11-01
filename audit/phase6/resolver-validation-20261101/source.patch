@@ -1,0 +1,193 @@
+diff --git a/src/reconciler/resolvers_tests.rs b/src/reconciler/resolvers_tests.rs
+index 7e3a425..6b5cf3e 100644
+--- a/src/reconciler/resolvers_tests.rs
++++ b/src/reconciler/resolvers_tests.rs
+@@ -489,3 +489,188 @@ fn removing_the_last_watch_releases_discovery_threads_and_descriptors() {
+     assert!(resolve.workers.is_none());
+     until(|| threads() <= baseline.0 && descriptors() <= baseline.1);
+ }
++
++#[cfg(feature = "fake-kernel")]
++mod validation {
++    use super::*;
++    use crate::config::NameServer;
++    use crate::kernel::fake::FakeKernel;
++    use nix::errno::Errno;
++
++    fn server(zone: Option<L2tpIfName>, bind: Option<L2tpIfName>) -> ResolverConfig {
++        ResolverConfig::with_addresses(
++            vec![NameServer::new("fe80::53".parse().unwrap(), zone, 5353).unwrap()],
++            bind,
++        )
++        .unwrap()
++    }
++
++    /// spec: V9, V12, C16
++    #[test]
++    fn dependency_and_spec_checks_refuse_missing_vrf_and_failed_link_queries() {
++        let mut k = FakeKernel::new(42);
++        k.add_link("red", true);
++        let red = L2tpIfName::new(b"red").unwrap();
++        let missing = L2tpIfName::new(b"absent").unwrap();
++        let mut r = Reconciler::new(k, Box::new(IphostResolve::default()));
++        r.ensure_lookup(u32::MAX);
++        assert!(r.resolvers.watches.is_empty() && r.resolvers.lookups.is_empty());
++        for (bind, text) in [
++            (red, "red is a VRF, not a link"),
++            (missing, "absent does not exist"),
++        ] {
++            let config = server(None, Some(bind));
++            assert_eq!(r.resolver_dependencies(&config).unwrap_err(), text);
++            assert_eq!(r.resolver_spec(&config).unwrap_err(), text);
++        }
++        let link = L2tpIfName::new(b"dns").unwrap();
++        let index = r.k.add_link("dns", false);
++        let config = server(None, Some(link));
++        for dependencies in [false, true] {
++            r.k.fail_next("link", Errno::EIO);
++            let error = if dependencies {
++                r.resolver_dependencies(&config).unwrap_err()
++            } else {
++                r.resolver_spec(&config).unwrap_err()
++            };
++            assert!(error.starts_with("EIO: "), "{error}");
++        }
++        assert_eq!(r.resolver_dependencies(&config).unwrap(), [(link, index)]);
++        let invalid = L2tpIfName::new(b"dns\xff").unwrap();
++        let config = server(None, Some(invalid));
++        let error = r.resolver_spec(&config).unwrap_err();
++        assert!(error.contains("not UTF-8"), "{error}");
++    }
++
++    /// spec: V9, C16, K14
++    #[test]
++    fn link_local_servers_use_only_the_matching_live_link_as_their_scope() {
++        let mut k = FakeKernel::new(42);
++        let index = k.add_link("dns", false);
++        k.add_link("other", false);
++        let link = L2tpIfName::new(b"dns").unwrap();
++        let other = L2tpIfName::new(b"other").unwrap();
++        let mut r = Reconciler::new(k, Box::new(IphostResolve::default()));
++        for (zone, bind) in [
++            (None, Some(link)),
++            (Some(link), None),
++            (Some(link), Some(link)),
++        ] {
++            let config = server(zone, bind);
++            assert_eq!(r.resolver_dependencies(&config).unwrap(), [(link, index)]);
++            assert_eq!(
++                r.resolver_spec(&config).unwrap(),
++                ResolverSpec::Static {
++                    servers: vec![SocketAddr::V6(SocketAddrV6::new(
++                        "fe80::53".parse().unwrap(),
++                        5353,
++                        0,
++                        index,
++                    ))],
++                    bind: bind.map(|name| name.to_str().unwrap().to_owned()),
++                }
++            );
++        }
++        r.k.remove_link(index);
++        let replacement = r.k.add_link("dns", false);
++        assert_ne!(replacement, index);
++        let config = server(Some(link), None);
++        assert_eq!(
++            r.resolver_dependencies(&config).unwrap(),
++            [(link, replacement)]
++        );
++        assert!(matches!(
++            r.resolver_spec(&config).unwrap(),
++            ResolverSpec::Static { servers, .. }
++                if matches!(servers.as_slice(), [SocketAddr::V6(server)] if server.scope_id() == replacement)
++        ));
++        r.k.fail_next("link", Errno::EIO);
++        assert!(r.resolver_spec(&config).unwrap_err().starts_with("EIO: "));
++        let config = server(Some(other), Some(link));
++        assert_eq!(
++            r.resolver_spec(&config).unwrap_err(),
++            "a server's zone is not its bind link",
++        );
++        let config = server(Some(L2tpIfName::new(b"gone").unwrap()), None);
++        assert_eq!(r.resolver_spec(&config).unwrap_err(), "gone does not exist");
++        r.k.add_link("red", true);
++        let config = server(Some(L2tpIfName::new(b"red").unwrap()), None);
++        assert_eq!(
++            r.resolver_spec(&config).unwrap_err(),
++            "red is a VRF, not a link"
++        );
++    }
++
++    /// spec: V10, V12, V14, C16
++    #[test]
++    fn discovery_identities_preserve_explicit_values_and_handle_missing_or_refused_mac() {
++        let mut k = FakeKernel::new(42);
++        let index = k.add_link("dns", false);
++        let link = L2tpIfName::new(b"dns").unwrap();
++        let mac = k.ether_addr(index).unwrap().unwrap().octets();
++        let mut r = Reconciler::new(k, Box::new(IphostResolve::default()));
++        for method in [Method::Dhcpv6, Method::Ipv6] {
++            for (identity, client_id) in [
++                (None, ClientId::DuidLl(mac)),
++                (Some(Dhcpv6Identity::Anonymous), ClientId::None),
++                (Some(Dhcpv6Identity::Random), ClientId::RandomDuidLl),
++                (
++                    Some(Dhcpv6Identity::Duid(vec![0, 4, 9])),
++                    ClientId::Raw(vec![0, 4, 9]),
++                ),
++            ] {
++                let config = ResolverConfig::with_method(method, link, identity).unwrap();
++                let expected = if method == Method::Dhcpv6 {
++                    ResolverSpec::Dhcpv6 {
++                        interface: "dns".into(),
++                        client_id,
++                    }
++                } else {
++                    ResolverSpec::Ipv6 {
++                        interface: "dns".into(),
++                        client_id,
++                    }
++                };
++                assert_eq!(r.resolver_spec(&config).unwrap(), expected);
++            }
++            let config = ResolverConfig::with_method(method, link, None).unwrap();
++            for refused in [false, true] {
++                if refused {
++                    r.k.fail_after("link", 1, Errno::EIO);
++                } else {
++                    r.k.clear_link_hwaddr(index);
++                }
++                if method == Method::Dhcpv6 {
++                    assert_eq!(
++                        r.resolver_spec(&config).unwrap_err(),
++                        "dns has no Ethernet address for a DUID-LL",
++                    );
++                } else {
++                    assert_eq!(
++                        r.resolver_spec(&config).unwrap(),
++                        ResolverSpec::Ra {
++                            interface: "dns".into()
++                        },
++                    );
++                }
++                r.k.set_link_hwaddr(index, crate::config::HwAddr::new(mac).unwrap());
++                assert!(
++                    r.resolver_spec(&config).is_ok(),
++                    "retry must recover the MAC"
++                );
++            }
++        }
++        let config = ResolverConfig::with_method(Method::Ra, link, None).unwrap();
++        r.k.fail_after("link", 1, Errno::EIO);
++        assert_eq!(
++            r.resolver_spec(&config).unwrap(),
++            ResolverSpec::Ra {
++                interface: "dns".into()
++            },
++        );
++        assert_eq!(
++            r.k.ether_addr(index).unwrap_err().raw_os_error(),
++            Some(libc::EIO)
++        );
++    }
++}

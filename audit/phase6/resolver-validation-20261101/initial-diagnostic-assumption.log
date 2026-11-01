@@ -1,0 +1,20 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-2992259725ba1531)
+
+running 3 tests
+
+thread 'reconciler::resolvers::tests::validation::dependency_and_spec_checks_refuse_missing_vrf_and_failed_link_queries' (1721566) panicked at src/reconciler/resolvers_tests.rs:535:13:
+EIO: I/O error
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reconciler::resolvers::tests::validation::link_local_servers_use_only_the_matching_live_link_as_their_scope ... ok
+test reconciler::resolvers::tests::validation::discovery_identities_preserve_explicit_values_and_refuse_missing_default_mac ... ok
+test reconciler::resolvers::tests::validation::dependency_and_spec_checks_refuse_missing_vrf_and_failed_link_queries ... FAILED
+
+failures:
+
+failures:
+    reconciler::resolvers::tests::validation::dependency_and_spec_checks_refuse_missing_vrf_and_failed_link_queries
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 151 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`
