@@ -1,0 +1,9 @@
+features: all; native/coverage: x86_64-unknown-linux-gnu; musl: x86_64-unknown-linux-musl
+cargo test --locked --all-features --lib kernel::linux::request::completion_tests -- --nocapture
+for seed in 1 2 3 4 5 6 7 8 9 10; do TEST_SEED=$seed cargo test --locked --all-features --lib; done
+for seed in 1 2 3; do TEST_SEED=$seed cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib; done
+./test-ci-gates.sh
+for seed in 1 2 3 4 5 6 7 8 9 10; do TEST_SEED=$seed CARGO_LLVM_COV_TARGET_DIR=<released-0.4.4 collector> cargo +nightly-2026-10-28 llvm-cov --target x86_64-unknown-linux-gnu --all-features --branch --no-report --lib; done
+CARGO_LLVM_COV_TARGET_DIR=<same collector> cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path <report.json>
+CARGO_LLVM_COV_TARGET_DIR=<same collector> cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines
+# Each isolated, uninstrumented control runs its single completion_tests case with --exact --nocapture; patches/logs identify the case.

@@ -47,15 +47,20 @@ thirteen profiles on frozen signed commit `584062d`. Later test-only
 additions retain their separate execution records.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.12% of
-lines and 90.27% of branches**, leaving **250 lines and 180 branches**.
+GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.14% of
+lines and 90.38% of branches**, leaving **248 lines and 178 branches**.
 
-The latest test-only package forces shutdown between service dequeue and
+A recent test-only package forces shutdown between service dequeue and
 dispatch and checks capacity acknowledgement. Ten native and instrumented
 seeds, three musl runs and common checks pass. Five controls fail; a retained
 single-guard control shows the independent reconciliation safeguard. The
 aggregate coverage is unchanged. Repository record
 `audit/phase6/service-dequeue-shutdown-20261101/` gives the exact scope.
+The later netlink peer package adds real userspace-socket deadline and
+sender-validation checks. Ten native/instrumented seeds, three musl runs
+and common gates pass; four controls fail. Its source mappings are
+unchanged, with 248 lines and 178 branches still uncovered. Its live scope
+is Ubuntu 6.8.0-147, separately from the frozen production matrix.
 
 Complete clause/history/resource/event-cost proof and the 100% coverage
 gate remain required. The [testing page](testing.md) gives current gate

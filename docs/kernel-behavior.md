@@ -21,6 +21,9 @@ policy passes three musl Incus runs (10.71, 19.44 and 20.06 s), GNU Incus
 (17.79 s) and the root-systemd guest (30.97 s) on Ubuntu 6.8.0-147.
 Repository record `audit/phase6/iphost044-integration-20261101/` retains
 those results; their userspace scope is below.
+The later userspace-netlink peer/deadline tests run on Ubuntu 6.8.0-147
+with GNU and musl. They are not declarations in the frozen 584062d matrix;
+`audit/phase6/netlink-peer-boundaries-20261101/` records their precise scope.
 
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.

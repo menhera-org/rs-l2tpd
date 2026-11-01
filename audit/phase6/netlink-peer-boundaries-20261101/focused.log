@@ -1,0 +1,12 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-dc5105cc1b329540)
+
+running 4 tests
+test kernel::linux::request::completion_tests::payload_debug_is_redacted_without_changing_serialization ... ok
+test kernel::linux::request::completion_tests::an_expired_exchange_sends_nothing_to_its_peer ... ok
+test kernel::linux::request::completion_tests::undersized_headers_and_lengths_return_protocol_errors_without_panics ... ok
+test kernel::linux::request::completion_tests::userspace_datagrams_are_rejected_before_framing_or_header_pid_is_trusted ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 262 filtered out; finished in 2.00s
+

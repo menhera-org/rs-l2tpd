@@ -57,8 +57,8 @@ musl Incus runs and the root sandbox. Its required matrix now passes all
 thirteen profiles on 584062d with released iphost 0.4.4. The approved checked-libc signal
 exception is applied; no nix contribution or release is required.
 Later test-only additions have separate GNU/musl qualification.
-Fresh merged coverage for 0.4.4 and the boundary changes is 97.12% of lines
-and 90.27% of branches; 250 lines and 180 branches remain.
+Fresh merged coverage for 0.4.4 and the boundary changes is 97.14% of lines
+and 90.38% of branches; 248 lines and 178 branches remain.
 100% coverage and complete clause/history/resource/event-cost proof remain
 open. See the [current verification record](../../audit/PHASE6_VERIFICATION_2026-11-01.md).
 The normal suite includes the 300-tunnel/session case. H20 now covers full-MTU frames and 1 MiB transfers over both families,

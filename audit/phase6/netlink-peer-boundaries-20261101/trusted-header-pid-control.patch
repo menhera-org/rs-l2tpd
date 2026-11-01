@@ -1,0 +1,12 @@
+diff --git a/src/kernel/linux/request.rs b/src/kernel/linux/request.rs
+--- a/src/kernel/linux/request.rs
++++ b/src/kernel/linux/request.rs
+@@ -214,7 +214,7 @@ fn exchange<I: NetlinkSerializable>(
+             }
+             Err(error) => return Err(error),
+         };
+-        if from.port_number() != 0 {
++        if from.port_number() != 0 && datagram.get(12..16) != Some(&[0u8; 4][..]) {
+             continue; // E22
+         }
+         for msg in messages(&datagram)? {

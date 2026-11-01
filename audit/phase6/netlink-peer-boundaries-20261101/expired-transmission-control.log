@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (<control-checkout>
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/debug/deps/rs_l2tpd-dc5105cc1b329540)
+
+running 1 test
+
+thread 'kernel::linux::request::completion_tests::an_expired_exchange_sends_nothing_to_its_peer' (2482775) panicked at src/kernel/linux/request.rs:471:35:
+called `Result::unwrap_err()` on an `Ok` value: ([32, 0, 0, 0, 18, 0, 5, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], SocketAddr(nl_family=16, nl_pid=2482774, nl_groups=0))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test kernel::linux::request::completion_tests::an_expired_exchange_sends_nothing_to_its_peer ... FAILED
+
+failures:
+
+failures:
+    kernel::linux::request::completion_tests::an_expired_exchange_sends_nothing_to_its_peer
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 265 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`
