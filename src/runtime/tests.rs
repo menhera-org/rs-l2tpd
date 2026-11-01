@@ -55,6 +55,102 @@ fn config() -> Config {
     config
 }
 
+/// spec: L9, T1, T21, M3, G8
+#[test]
+fn unapplied_socket_operations_are_reported_without_gating_peer_availability() {
+    let engine = engine();
+    let _entered = engine.enter();
+    for fault in [
+        "disconnect",
+        "bind",
+        "peer",
+        "clear-source",
+        "no-source",
+        "rebind",
+    ] {
+        let mut runtime = runtime();
+        let kernel = runtime.reconciler.kernel_mut();
+        let wan = kernel.add_link("wan", false);
+        kernel.add_addr(wan, "192.0.2.1".parse().unwrap());
+        let text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wan'\n";
+        assert!(runtime.reconcile(toml::from_str(text).unwrap()));
+        let socket = runtime.reconciler.kernel().tunnel_socket(10).unwrap();
+        let mut next: Config = toml::from_str(&text.replace("192.0.2.2", "192.0.2.3")).unwrap();
+        if matches!(fault, "clear-source" | "no-source" | "rebind") {
+            runtime
+                .reconciler
+                .kernel_mut()
+                .del_addr(wan, "192.0.2.1".parse().unwrap());
+            if fault != "no-source" {
+                runtime.reconciler.kernel_mut().fail_after(
+                    if fault == "rebind" {
+                        "bind"
+                    } else {
+                        "disconnect"
+                    },
+                    1,
+                    nix::errno::Errno::EIO,
+                );
+            }
+        } else if fault == "peer" {
+            runtime.reconciler.kernel_mut().refuse(
+                "192.0.2.3".parse().unwrap(),
+                Some(nix::errno::Errno::ENETUNREACH),
+            );
+        } else {
+            next.insert_tunnel(
+                "a",
+                TunnelConfig::builder(10)
+                    .ip_version(Family::V4)
+                    .bind_interface("wan".parse().unwrap())
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+            runtime
+                .reconciler
+                .kernel_mut()
+                .fail_next(fault, nix::errno::Errno::EIO);
+        }
+        let applied = matches!(fault, "peer" | "no-source");
+        assert_eq!(runtime.reconcile(next.clone()), applied);
+        assert_eq!(runtime.applied(), applied);
+        assert!(runtime.ready());
+        assert_eq!(runtime.control().config(), next);
+        if matches!(fault, "no-source" | "rebind") {
+            assert_eq!(
+                runtime.reconciler.kernel().binding(socket),
+                if fault == "rebind" { None } else { Some(wan) }
+            );
+            assert!(runtime.reconciler.kernel().connection(socket).is_none());
+        }
+        runtime
+            .reconciler
+            .kernel_mut()
+            .refuse("192.0.2.3".parse().unwrap(), None);
+        if matches!(fault, "clear-source" | "no-source" | "rebind") {
+            runtime
+                .reconciler
+                .kernel_mut()
+                .add_addr(wan, "192.0.2.1".parse().unwrap());
+        }
+        runtime
+            .reconciler
+            .kernel_mut()
+            .advance(Duration::from_secs(1));
+        runtime.handle_event(ControlEvent::Tick).unwrap();
+        assert!(runtime.applied());
+        assert!(runtime.ready());
+        assert_eq!(runtime.reconciler.kernel().tunnel_socket(10), Some(socket));
+        assert_eq!(runtime.reconciler.kernel().binding(socket), Some(wan));
+        assert_eq!(
+            runtime.reconciler.kernel().connection(socket).is_some(),
+            matches!(fault, "peer" | "clear-source" | "no-source" | "rebind")
+        );
+        finish(&mut runtime);
+    }
+}
+
 /// spec: R39, L10, E20, G14
 #[test]
 fn a_dropped_source_removal_stays_stale_until_resync_is_forwarded() {

@@ -92,6 +92,24 @@ fn peer(text: &str, zone: Option<&str>) -> Peer {
     Peer::new(text.parse().unwrap(), zone.map(name))
 }
 
+#[test]
+fn a_delayed_fault_refuses_once_after_the_requested_calls() {
+    let mut k = FakeKernel::new(7);
+    let device = k.add_link("wan", false);
+    let socket = k.create_socket(Family::V4, 100, 200).unwrap();
+    k.bind_index(socket, device).unwrap();
+    k.fail_after("disconnect", 1, nix::errno::Errno::EIO);
+    k.disconnect(socket).unwrap();
+    assert_eq!(k.binding(socket), None);
+    k.bind_index(socket, device).unwrap();
+    assert_eq!(errno(k.disconnect(socket)), nix::libc::EIO);
+    assert_eq!(k.binding(socket), Some(device));
+    k.disconnect(socket).unwrap();
+    assert_eq!(k.binding(socket), None);
+    k.close(socket);
+    assert_eq!(k.open_sockets(), 0);
+}
+
 fn errno<T: std::fmt::Debug>(result: std::io::Result<T>) -> i32 {
     result.unwrap_err().raw_os_error().unwrap()
 }

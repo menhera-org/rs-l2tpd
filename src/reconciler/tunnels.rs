@@ -348,7 +348,8 @@ impl<K: Kernel> Reconciler<K> {
     }
 
     /// Converges one tunnel's binding and connection to its target (T1,
-    /// T2). Returns false when something is left to retry.
+    /// T2). Returns whether required socket operations applied; peer
+    /// availability has its own retry (E13).
     pub(super) fn converge_tunnel(&mut self, id: u32) -> bool {
         self.unindex_tunnel(id);
         let result = self.converge_tunnel_inner(id);
@@ -385,7 +386,7 @@ impl<K: Kernel> Reconciler<K> {
                         self.report
                             .begin(&label, "pending", || format!("disconnected: {why}"));
                         self.arm_retry(id);
-                        false
+                        true
                     }
                     _ => true,
                 }
@@ -472,8 +473,9 @@ impl<K: Kernel> Reconciler<K> {
                 self.tunnels.get_mut(&id).unwrap().bound = Some(index);
             }),
             None => Ok(()),
-        }
-        .and_then(|()| self.k.connect(socket, &peer));
+        };
+        let mut applied = result.is_ok();
+        let result = result.and_then(|()| self.k.connect(socket, &peer));
         match result {
             Ok(source) if !source.to_canonical().is_unspecified() => {
                 let record = self.tunnels.get_mut(&id).unwrap();
@@ -494,9 +496,8 @@ impl<K: Kernel> Reconciler<K> {
             outcome => {
                 self.tunnels.get_mut(&id).unwrap().stale = true;
                 // T20, T28: no source selected is a failed connect.
-                if outcome.is_ok() {
-                    let _ = self.k.disconnect(socket);
-                    self.tunnels.get_mut(&id).unwrap().bound = None;
+                if outcome.is_ok() && !self.disconnect_to(id, bind, Some(peer.clone())) {
+                    applied = false;
                 }
                 let why = match &outcome {
                     Err(e) => report::describe(e),
@@ -514,7 +515,7 @@ impl<K: Kernel> Reconciler<K> {
                     format!("disconnected, peer {} pending: {why}", peer.addr)
                 });
                 self.arm_retry(id);
-                false
+                applied
             }
         }
     }

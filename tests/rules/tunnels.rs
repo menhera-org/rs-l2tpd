@@ -51,6 +51,183 @@ fn an_identical_reload_issues_no_operation() {
     assert_eq!(ops(&mut r), Vec::<String>::new());
 }
 
+/// spec: T6, T8, T21, E12, G6, M3, M5
+#[test]
+fn failed_tunnel_setup_closes_partial_sockets_and_keeps_sibling_progress() {
+    for operation in ["link", "bind", "register"] {
+        let (mut r, _) = reconciler();
+        let wan = r.kernel_mut().add_link("wan", false);
+        r.kernel_mut().add_addr(wan, "192.0.2.1".parse().unwrap());
+        let text = format!(
+            "{TUNNEL}bind_interface='wan'\n[tunnels.b]\ntunnel_id=11\nremote_addr='192.0.2.4'\n[sessions.a]\ntunnel_name='a'\nsession_id=100\ninterface_name='main'\n[sessions.b]\ntunnel_name='b'\nsession_id=101\ninterface_name='sibling'\n"
+        );
+        r.kernel_mut().fail_next(operation, nix::errno::Errno::EIO);
+        assert!(!r.reconcile(config(&text)));
+        assert!(r.kernel_mut().tunnel(10).unwrap().is_none());
+        assert!(r.kernel().session_index(10, 100).is_none());
+        assert_eq!(r.kernel().open_sockets(), 1);
+        let sibling = r.kernel().tunnel_socket(11).unwrap();
+        let sibling_session = r.kernel().session_index(11, 101).unwrap();
+        assert!(r.kernel().connection(sibling).is_some());
+        assert_eq!(
+            ops(&mut r)
+                .iter()
+                .filter(|op| op.starts_with("close "))
+                .count(),
+            1
+        );
+        super::run_for(&mut r, 1);
+        assert!(r.ready());
+        let socket = r.kernel().tunnel_socket(10).unwrap();
+        assert_eq!(r.kernel().binding(socket), Some(wan));
+        assert!(r.kernel().connection(socket).is_some());
+        assert!(r.kernel().session_index(10, 100).is_some());
+        assert_eq!(r.kernel().open_sockets(), 2);
+        assert_eq!(r.kernel().tunnel_socket(11), Some(sibling));
+        assert_eq!(r.kernel().session_index(11, 101), Some(sibling_session));
+        assert!(
+            !ops(&mut r)
+                .iter()
+                .any(|op| op.starts_with("close ") || op.starts_with("delete"))
+        );
+        assert_eq!(r.next_deadline(), None);
+    }
+}
+
+/// spec: L9, T1, T2, T19, T21, T22, E8, G5, G17, M14
+#[test]
+fn failed_disconnect_or_bind_stops_the_transition_until_retry() {
+    use rs_l2tpd::config::{Family, L2tpIfName, TunnelConfig};
+    for peerless in [false, true] {
+        for operation in ["disconnect", "bind"] {
+            let (mut r, _) = reconciler();
+            let wan = r.kernel_mut().add_link("wan", false);
+            r.kernel_mut().add_addr(wan, "192.0.2.1".parse().unwrap());
+            let text = format!(
+                "{TUNNEL}bind_interface='wan'\n[tunnels.b]\ntunnel_id=11\nremote_addr='192.0.2.4'\n[sessions.a]\ntunnel_name='a'\nsession_id=100\ninterface_name='main'\n[sessions.b]\ntunnel_name='b'\nsession_id=101\ninterface_name='sibling'\n"
+            );
+            assert!(r.reconcile(config(&text)));
+            let socket = r.kernel().tunnel_socket(10).unwrap();
+            let before = r.kernel().connection(socket).unwrap();
+            let sibling = r.kernel().tunnel_socket(11).unwrap();
+            let sibling_connection = r.kernel().connection(sibling);
+            let sessions = (
+                r.kernel().session_index(10, 100).unwrap(),
+                r.kernel().session_index(11, 101).unwrap(),
+            );
+            let mut next = config(&text.replace("192.0.2.2", "192.0.2.3"));
+            if peerless {
+                next.insert_tunnel(
+                    "a",
+                    TunnelConfig::builder(10)
+                        .peer_tunnel_id(20)
+                        .ip_version(Family::V4)
+                        .bind_interface(L2tpIfName::new(b"wan").unwrap())
+                        .build()
+                        .unwrap(),
+                )
+                .unwrap();
+            }
+            ops(&mut r);
+            r.kernel_mut().fail_next(operation, nix::errno::Errno::EIO);
+            assert!(!r.reconcile(next.clone()));
+            if operation == "disconnect" {
+                assert_eq!(r.kernel().connection(socket), Some(before));
+                assert_eq!(r.kernel().binding(socket), Some(wan));
+            } else {
+                assert_eq!(r.kernel().connection(socket), None);
+                assert_eq!(r.kernel().binding(socket), None);
+            }
+            let trace = ops(&mut r);
+            assert!(!trace.iter().any(|op| op.starts_with("bind ")
+                || op.starts_with("connect ")
+                || op.starts_with("close ")
+                || op.starts_with("delete")
+                || op.starts_with("create ")));
+            assert!(r.next_deadline().is_some());
+            super::run_for(&mut r, 1);
+            assert!(r.ready());
+            assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
+            assert_eq!(r.kernel().binding(socket), Some(wan));
+            assert_eq!(
+                r.kernel().connection(socket).map(|(peer, _)| peer),
+                if peerless {
+                    None
+                } else {
+                    Some("192.0.2.3".parse().unwrap())
+                }
+            );
+            assert_eq!(r.kernel().tunnel_socket(11), Some(sibling));
+            assert_eq!(r.kernel().connection(sibling), sibling_connection);
+            assert_eq!(
+                (
+                    r.kernel().session_index(10, 100),
+                    r.kernel().session_index(11, 101)
+                ),
+                (Some(sessions.0), Some(sessions.1))
+            );
+            let trace = ops(&mut r);
+            assert!(!trace.iter().any(|op| op.starts_with("close ")
+                || op.starts_with("delete")
+                || op.starts_with("create ")));
+            assert!(
+                trace
+                    .iter()
+                    .filter(|op| op.starts_with("disconnect "))
+                    .all(|op| *op == format!("disconnect {}", socket.get()))
+            );
+            assert_eq!(r.next_deadline(), None);
+            assert!(r.reconcile(next));
+            assert!(ops(&mut r).is_empty());
+        }
+    }
+}
+
+/// spec: E8, E12, E13, M3, M14, M15, G6
+#[test]
+fn simultaneous_reconcile_and_peer_retries_attempt_each_tunnel_once() {
+    let (mut r, _) = reconciler();
+    let device = r.kernel_mut().add_link("wan", false);
+    r.kernel_mut()
+        .add_addr(device, "192.0.2.1".parse().unwrap());
+    r.kernel_mut().refuse(
+        "192.0.2.2".parse().unwrap(),
+        Some(nix::errno::Errno::ENETUNREACH),
+    );
+    let text = format!(
+        "{TUNNEL}\n[sessions.s]\ntunnel_name='a'\nsession_id=100\ninterface_name='l2tp0'\n"
+    );
+    r.kernel_mut().fail_next("create", nix::errno::Errno::EIO);
+    assert!(!r.reconcile(config(&text)));
+    let socket = r.kernel().tunnel_socket(10).unwrap();
+    assert!(r.kernel().session_index(10, 100).is_none());
+    ops(&mut r);
+    super::run_for(&mut r, 1);
+    assert!(r.kernel().session_index(10, 100).is_some());
+    let trace = ops(&mut r);
+    assert_eq!(
+        trace.iter().filter(|op| op.starts_with("connect ")).count(),
+        1
+    );
+    assert!(r.ready());
+    assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
+    assert_eq!(
+        r.next_deadline(),
+        Some(r.kernel().now() + std::time::Duration::from_secs(1))
+    );
+    r.kernel_mut().refuse("192.0.2.2".parse().unwrap(), None);
+    super::run_for(&mut r, 1);
+    assert!(r.kernel().connection(socket).is_some());
+    assert_eq!(
+        ops(&mut r)
+            .iter()
+            .filter(|op| op.starts_with("connect "))
+            .count(),
+        1
+    );
+    assert_eq!(r.next_deadline(), None);
+}
+
 /// Shutdown closes every socket (P16, T8).
 /// spec: P16, T8
 #[test]

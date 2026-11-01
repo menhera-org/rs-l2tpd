@@ -80,15 +80,14 @@ fn wire(pair: &Pair, count: usize) {
     for n in 0..count {
         for side in 0..2 {
             let peer = format!("198.18.{}.{}", n / 64, (n % 64) * 4 + 2 - side);
+            let output = pair.output(
+                side,
+                "ping",
+                &["-c", "1", "-W", "2", "-I", &format!("l2tp{n}"), &peer],
+            );
             assert!(
-                pair.output(
-                    side,
-                    "ping",
-                    &["-c", "1", "-W", "2", "-I", &format!("l2tp{n}"), &peer]
-                )
-                .status
-                .success(),
-                "session {n} side {side}"
+                output.status.success(),
+                "session {n} side {side}: {output:?}"
             );
         }
     }

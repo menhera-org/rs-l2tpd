@@ -1,0 +1,20 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/rules/main.rs (target/debug/deps/rules-9173433df0983df3)
+
+running 1 test
+
+thread 'tunnels::simultaneous_reconcile_and_peer_retries_attempt_each_tunnel_once' (1042165) panicked at tests/rules/tunnels.rs:208:5:
+assertion `left == right` failed
+  left: 2
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tunnels::simultaneous_reconcile_and_peer_retries_attempt_each_tunnel_once ... FAILED
+
+failures:
+
+failures:
+    tunnels::simultaneous_reconcile_and_peer_retries_attempt_each_tunnel_once
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`

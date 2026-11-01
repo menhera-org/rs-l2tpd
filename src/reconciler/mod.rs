@@ -332,7 +332,9 @@ impl<K: Kernel> Reconciler<K> {
         for id in ids {
             self.ensure_lookup(id);
             // A pending peer has its own retry (E13), not the reconcile's.
-            self.converge_tunnel(id);
+            if !self.converge_tunnel(id) {
+                self.incomplete = true;
+            }
         }
         self.clear_swaps();
         let sids: Vec<u32> = self.sessions.keys().copied().collect();

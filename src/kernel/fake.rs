@@ -147,7 +147,7 @@ pub struct FakeKernel {
     tracked: BTreeMap<u64, Tracked>,
     monitor: Arc<Mutex<Queue>>,
     l2tp: Arc<Mutex<Queue>>,
-    failures: Vec<(&'static str, Errno)>,
+    failures: Vec<(&'static str, usize, Errno)>,
     ops: Vec<String>,
     /// `AF_INET6` L2TP/IP sockets exist (K4, T4).
     pub(crate) inet6: bool,
@@ -212,8 +212,12 @@ impl FakeKernel {
     }
 
     fn injected(&mut self, op: &'static str) -> io::Result<()> {
-        match self.failures.iter().position(|(o, _)| *o == op) {
-            Some(i) => fail(self.failures.remove(i).1),
+        match self.failures.iter().position(|(o, _, _)| *o == op) {
+            Some(i) if self.failures[i].1 != 0 => {
+                self.failures[i].1 -= 1;
+                Ok(())
+            }
+            Some(i) => fail(self.failures.remove(i).2),
             None => Ok(()),
         }
     }
@@ -411,7 +415,12 @@ impl FakeKernel {
     /// of its [`ops`](Self::ops) entry, or `scan`, `tunnel`, `session`,
     /// `link`, `dump`) fail with `errno`.
     pub fn fail_next(&mut self, op: &'static str, errno: Errno) {
-        self.failures.push((op, errno));
+        self.fail_after(op, 0, errno);
+    }
+
+    /// Lets `calls` invocations pass the injection point, then refuses one.
+    pub fn fail_after(&mut self, op: &'static str, calls: usize, errno: Errno) {
+        self.failures.push((op, calls, errno));
     }
 
     /// An operator's `ip l2tp del session`: commanded over netlink, so

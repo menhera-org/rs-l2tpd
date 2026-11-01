@@ -58,15 +58,18 @@ impl<K: Kernel> Reconciler<K> {
                 .deleting_sessions
                 .first_deadline()
                 .is_some_and(|at| at <= now);
+        let due: Vec<u32> = self.retries.due(now).copied().collect();
+        for id in &due {
+            self.retries.remove(id);
+        }
         if self.reconcile_at.is_some_and(|t| t <= now) || left_out_due || departed_due {
             self.reconcile_at = None;
             let config = self.accepted.clone();
             self.reconcile_current(config);
-        }
-        let due: Vec<u32> = self.retries.due(now).copied().collect();
-        for id in due {
-            self.retries.remove(&id);
-            self.converge_tunnel(id);
+        } else {
+            for id in due {
+                self.converge_tunnel(id);
+            }
         }
         let verify: Vec<_> = self.verify_sessions.iter().copied().collect();
         for sid in verify {

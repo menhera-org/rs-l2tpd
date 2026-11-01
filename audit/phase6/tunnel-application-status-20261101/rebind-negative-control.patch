@@ -1,0 +1,15 @@
+--- a/src/reconciler/tunnels.rs
++++ b/src/reconciler/tunnels.rs
+@@ -499,3 +499,10 @@
+-                if outcome.is_ok() && !self.disconnect_to(id, bind, Some(peer.clone())) {
+-                    applied = false;
++                if outcome.is_ok() {
++                    if let Err(error) = self.k.disconnect(socket) {
++                        applied = false;
++                        self.report.begin_error(&label, "disconnect", || {
++                            format!("disconnect failed: {}", report::describe(&error))
++                        });
++                    } else {
++                        self.tunnels.get_mut(&id).unwrap().bound = None;
++                    }
+                 }
