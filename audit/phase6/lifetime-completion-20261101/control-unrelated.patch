@@ -1,0 +1,13 @@
+diff --git a/tmp/phase6-lifetime-completion-candidate.rs b/src/kernel/linux/lifetime.rs
+index f320b28..a976d65 100644
+--- a/tmp/phase6-lifetime-completion-candidate.rs
++++ b/src/kernel/linux/lifetime.rs
+@@ -129,7 +129,7 @@ impl State {
+                         *removed = true;
+                     }
+                 }
+-                _ => {}
++                _ => self.end_generation(),
+             }
+         }
+     }

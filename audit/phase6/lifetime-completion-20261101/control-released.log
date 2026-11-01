@@ -1,0 +1,34 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/x86_64-unknown-linux-gnu/debug/deps/rs_l2tpd-7d7b0353a23499b8)
+
+running 13 tests
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::reader_io_errors_end_old_proofs_and_failed_reopen_remains_stoppable ... ignored, serial isolated live runner; child forks must not inherit concurrent fake descriptors
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test kernel::linux::lifetime::tests::a_refused_lookup_send_ends_the_generation_without_leaking_a_pending_answer ... ok
+test kernel::linux::lifetime::tests::deletion_and_release_are_scoped_by_index_and_incarnation ... ok
+test kernel::linux::lifetime::tests::only_the_requested_kernel_reply_can_resolve_a_lookup ... ok
+test kernel::linux::lifetime::tests::unrelated_or_unusable_multicast_records_preserve_capture_state ... ok
+test kernel::linux::lifetime::tests::unavailable_duplicate_and_expired_captures_never_create_proofs ... ok
+test kernel::linux::lifetime::tests::retired_registrations_leave_only_survivors_and_generation_loss_clears_them ... ok
+
+thread 'kernel::linux::lifetime::tests::ordered_lookup_completion_keeps_removal_and_generation_authority' (3092827) panicked at src/kernel/linux/lifetime.rs:940:30:
+assertion failed: state.tracked.is_empty()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test kernel::linux::lifetime::tests::ordered_lookup_completion_keeps_removal_and_generation_authority ... FAILED
+LIFETIME_COST registrations=1 events=20000 elapsed_ns=23195794
+LIFETIME_COST registrations=300 events=20000 elapsed_ns=28844108
+LIFETIME_COST registrations=20000 events=20000 elapsed_ns=37931466
+test kernel::linux::lifetime::tests::foreign_deletion_workload_preserves_current_registrations ... ok
+test kernel::linux::lifetime::tests::an_unanswered_lookup_times_out_and_discards_every_old_proof ... ok
+
+failures:
+
+failures:
+    kernel::linux::lifetime::tests::ordered_lookup_completion_keeps_removal_and_generation_authority
+
+test result: FAILED. 9 passed; 1 failed; 3 ignored; 0 measured; 274 filtered out; finished in 5.00s
+
+error: test failed, to rerun pass `--lib`

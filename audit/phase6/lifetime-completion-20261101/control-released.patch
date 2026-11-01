@@ -1,0 +1,15 @@
+diff --git a/tmp/phase6-lifetime-completion-candidate.rs b/src/kernel/linux/lifetime.rs
+index f320b28..72e1148 100644
+--- a/tmp/phase6-lifetime-completion-candidate.rs
++++ b/src/kernel/linux/lifetime.rs
+@@ -364,9 +364,7 @@ impl Lifetime {
+             }
+             let answer = state.lookups.get(&seq).copied().unwrap_or(Answer::Failed);
+             let removed = |state: &mut State| {
+-                if let Some(removed) = state.tracked.get_mut(&key) {
+-                    *removed = true;
+-                }
++                *state.tracked.entry(key).or_insert(false) = true;
+                 Proof::Removed
+             };
+             match answer {

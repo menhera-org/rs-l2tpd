@@ -61,8 +61,8 @@ checked `libc` calls under the [documented exception](dependencies.md#upstream-n
 differences, source evidence, execution scope and limitations. Repository
 file `audit/PHASE6_VERIFICATION_2026-11-01.md` gives coverage and the remaining
 clause/resource/event-cost proof and identifies each test package's source.
-Fresh coverage for iphost 0.4.4 and the boundary changes is **97.66% of lines
-and 91.63% of branches**, leaving 203 lines and 155 branches. Repeated model
+Fresh coverage for iphost 0.4.4 and the boundary changes is **97.70% of lines
+and 91.74% of branches**, leaving 200 lines and 153 branches. Repeated model
 and GNU/musl tests include
 failure controls for session ownership and descriptor handover. The checked
 reply decoder passes all thirteen required matrix profiles. Request handling

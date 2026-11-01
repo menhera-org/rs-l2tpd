@@ -1,0 +1,13 @@
+diff --git a/tmp/phase6-lifetime-completion-candidate.rs b/src/kernel/linux/lifetime.rs
+index f320b28..5fcc545 100644
+--- a/tmp/phase6-lifetime-completion-candidate.rs
++++ b/src/kernel/linux/lifetime.rs
+@@ -109,7 +109,7 @@ impl State {
+                 continue;
+             }
+             let Some(link) = parse_link(msg.payload) else {
+-                continue;
++                return self.end_generation();
+             };
+             if link.family != libc::AF_UNSPEC as u8 {
+                 continue; // E5
