@@ -959,6 +959,15 @@ mappings, nine new generic instantiations and the positive live return counter.
 LLVM's aggregate stays at 96.28% lines / 88.26% branches; the gate remains open.
 Production code is unchanged.
 
+The library harness now reuses all 88 public rule declarations alongside
+private cases, improving generic-instance coverage without new exclusions.
+The external target remains. Logger and child-launch interference are isolated;
+all 17 serial cases pass three GNU and three musl runs. Ten ordinary and ten
+instrumented seeds, three musl runs and final common checks pass. Repository
+record `audit/phase6/shared-rule-harness-20261101/` gives unchanged line/branch
+denominators and 96.47% line / 88.85% branch coverage: 306 lines and 206 branches
+remain. Shipping code is unchanged.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

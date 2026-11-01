@@ -460,6 +460,7 @@ mod strict_option_tests {
     // kernel: (K7) net/netlink/af_netlink.c NETLINK_GET_STRICT_CHK.
     /// spec: K7, E21, L9
     #[test]
+    #[ignore = "serial isolated runner; child exec must not inherit concurrent fake socket references"]
     fn a_refused_strict_option_returns_the_original_error_without_leaking_sockets() {
         const CHILD: &str = "RS_L2TPD_STRICT_OPTION_FAULT";
         if std::env::var_os(CHILD).is_some() {
@@ -493,7 +494,7 @@ mod strict_option_tests {
             return;
         }
         let output = std::process::Command::new(std::env::current_exe().unwrap())
-            .args(["--exact", "kernel::linux::request::strict_option_tests::a_refused_strict_option_returns_the_original_error_without_leaking_sockets", "--nocapture"])
+            .args(["--ignored", "--exact", "kernel::linux::request::strict_option_tests::a_refused_strict_option_returns_the_original_error_without_leaking_sockets", "--nocapture"])
             .env(CHILD, "1").output().unwrap();
         assert!(output.status.success(), "{output:?}");
         assert!(String::from_utf8_lossy(&output.stdout).contains("STRICT_REQUEST_FAULT_VERIFIED"));

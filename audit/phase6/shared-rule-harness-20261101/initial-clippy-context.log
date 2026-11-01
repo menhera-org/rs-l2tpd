@@ -1,0 +1,20 @@
+    Checking rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+error: unreachable pattern
+  --> src/../tests/rules/completion.rs:47:13
+   |
+47 |             _ => unreachable!(),
+   |             ^ no value can reach this
+   |
+note: multiple earlier patterns match some of the same values
+  --> src/../tests/rules/completion.rs:47:13
+   |
+45 |             Source::Monitor => monitor,
+   |             --------------- matches some of the same values
+46 |             Source::L2tp => l2tp,
+   |             ------------ matches some of the same values
+47 |             _ => unreachable!(),
+   |             ^ collectively making this unreachable
+   = note: `-D unreachable-patterns` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(unreachable_patterns)]`
+
+error: could not compile `rs-l2tpd` (lib test) due to 1 previous error

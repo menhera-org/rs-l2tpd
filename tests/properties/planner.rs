@@ -1,5 +1,5 @@
 //! Seeded reload/event sequences, checking invariants after every step.
-use crate::{config, deliver, ops, reconciler, run_for};
+use super::{config, deliver, ops, reconciler, run_for};
 use rs_l2tpd::config::Config;
 use rs_l2tpd::kernel::{Kernel, L2tpIfName, SessionInfo};
 

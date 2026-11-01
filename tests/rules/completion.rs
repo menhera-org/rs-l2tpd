@@ -41,11 +41,12 @@ fn direct_creation_and_recreation_preserve_publication_rules() {
         if retry {
             r.kernel_mut().fail_next("session", Errno::EIO);
         }
-        for notice in match source {
-            Source::Monitor => monitor,
-            Source::L2tp => l2tp,
-            _ => unreachable!(),
-        } {
+        let notices = if matches!(source, Source::Monitor) {
+            monitor
+        } else {
+            l2tp
+        };
+        for notice in notices {
             r.handle(source, notice);
         }
         if retry {

@@ -231,13 +231,21 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-merged report is 93.32% lines / 80.95% branches, with no production
-exclusions; 100% remains required. Repository file
+merged report is 96.47% lines / 88.85% branches, with no production
+exclusions; 100% remains required. The library test harness also compiles
+the same 88 public rule cases as the external rules target. This lets public
+and private cases exercise one generic instantiation; both targets still run.
+Child-launching cases use the existing serial live profile, which currently
+runs 17 library cases. Repository file
+`audit/phase6/shared-rule-harness-20261101/README.md` records declaration
+equality, isolation controls and GNU/musl qualification.
+
+Earlier repository file
 `audit/phase6/upstream-dhcp-queues-20261031/README.md` records fresh native,
 live, manager, Incus and root-systemd profiles with released `iphost` 0.4.3,
 including a deterministic readiness case. It fixes subscriber history and
 queue bounds after 0.4.2 fixed namespace isolation. Complete resource/event-cost
-proof and the final matrix remain open.
+proof and final qualification remain open.
 
 ## Running
 
@@ -249,7 +257,9 @@ tests/docker/run.sh scenarios                # the scenario suite
 tests/docker/run.sh matrix required          # the required kernels of "Kernel targets" (QEMU, TCG, unprivileged)
 tests/docker/run.sh matrix v6.8..v7.3        # every vanilla release of the range
 tests/docker/run.sh incus                    # the unprivileged system-container scenario, on an Incus/LXD host
-cargo llvm-cov --all-features -- --include-ignored   # with the container profiles mounted back
+cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report
+# Run the ignored suites with the isolated runners; copy completed profiles back.
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch
 ```
 
 The musl command and the scenarios, matrix and Incus entry points exist;

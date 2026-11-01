@@ -201,7 +201,24 @@ fn a_dropped_source_removal_stays_stale_until_resync_is_forwarded() {
 
 /// spec: R41, R38, G14, L11
 #[test]
+#[ignore = "serial isolated runner; child exec must not inherit concurrent fake socket references"]
 fn absent_log_sink_does_not_change_kernel_refusal_or_recovery() {
+    const CHILD: &str = "RS_L2TPD_ABSENT_LOG_CHILD";
+    if std::env::var_os(CHILD).is_none() {
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--ignored",
+                "--exact",
+                "runtime::tests::absent_log_sink_does_not_change_kernel_refusal_or_recovery",
+                "--nocapture",
+            ])
+            .env(CHILD, "1")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("LLVM Profile Error"));
+        return;
+    }
     assert_eq!(log::max_level(), log::LevelFilter::Off);
     engine().block_on(async {
         let mut r = runtime();

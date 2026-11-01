@@ -36,3 +36,12 @@ pub mod service;
 
 pub use error::{Error, Result};
 pub use runtime::{AdoptedSocket, Control, ControlEvent, Runtime};
+
+#[cfg(all(test, feature = "serde", feature = "fake-kernel"))]
+extern crate self as rs_l2tpd;
+
+// Share the public rule cases with private cases in the same generic instantiation.
+#[cfg(all(test, feature = "serde", feature = "fake-kernel"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[path = "../tests/rules/main.rs"]
+mod rule_tests;

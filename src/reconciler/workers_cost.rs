@@ -37,12 +37,14 @@ fn cancellation_cost_with_unrelated_jobs() {
 
 /// spec: V7, V15, G23, M16
 #[test]
+#[ignore = "serial isolated runner; child exec must not inherit concurrent fake socket references"]
 fn dropping_an_adapter_cancels_only_its_jobs_and_preserves_other_answers() {
     use crate::reconciler::{IphostResolve, Lookup, Resolve, ResolverSpec};
     const CHILD: &str = "RS_L2TPD_ADAPTER_DROP_CHILD";
     if std::env::var_os(CHILD).is_none() {
         let mut child = std::process::Command::new(std::env::current_exe().unwrap())
             .args([
+                "--ignored",
                 "--exact",
                 "reconciler::workers::cost_tests::dropping_an_adapter_cancels_only_its_jobs_and_preserves_other_answers",
                 "--nocapture",
