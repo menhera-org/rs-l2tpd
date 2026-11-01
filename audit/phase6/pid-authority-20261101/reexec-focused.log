@@ -1,0 +1,10 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 3 tests
+test pidfile::edge_tests::pid_edge_child ... ok
+test restart::completion_tests::pid_inspection_error_child ... ok
+test restart::completion_tests::pid_metadata_mismatches_and_inspection_errors_discard_only_removal_authority ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.02s
+

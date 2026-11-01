@@ -415,7 +415,7 @@ mod signal_tests {
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod completion_tests {
     use super::*;
-    use std::os::unix::fs::{PermissionsExt, symlink};
+    use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
     /// spec: P26
     #[test]
     fn malformed_entry_child() {
@@ -550,17 +550,36 @@ mod completion_tests {
     /// spec: P26
     #[test]
     fn pid_inspection_error_child() {
-        if std::env::var_os("COMPLETION_PID_ENTRY").is_none() {
+        let Some(case) = std::env::var_os("COMPLETION_PID_ENTRY") else {
             return;
-        }
-        let dir = crate::testdir::Dir::new();
-        let parent = dir.path().join("file");
-        std::fs::write(&parent, "").unwrap();
-        let pid = PidFile {
-            path: parent.join("pid"),
-            dev: 0,
-            ino: 0,
         };
+        let dir = crate::testdir::Dir::new();
+        let keep = dir.path().join("file");
+        std::fs::write(&keep, "keep").unwrap();
+        let metadata = std::fs::metadata(&keep).unwrap();
+        let mut pid = PidFile {
+            path: keep.clone(),
+            dev: metadata.dev(),
+            ino: metadata.ino(),
+        };
+        match case.to_str().unwrap() {
+            "inspect" => pid.path = keep.join("pid"),
+            "device" => pid.dev ^= 1,
+            "inode" => pid.ino ^= 1,
+            "symlink" | "directory" => {
+                pid.path = if case == "symlink" {
+                    let alias = dir.path().join("alias");
+                    symlink(&keep, &alias).unwrap();
+                    alias
+                } else {
+                    dir.path().to_owned()
+                };
+                let metadata = std::fs::symlink_metadata(&pid.path).unwrap();
+                pid.dev = metadata.dev();
+                pid.ino = metadata.ino();
+            }
+            _ => panic!("unknown PID fixture"),
+        }
         unsafe {
             std::env::set_var("RS_L2TPD_REEXEC", format!("1:{}", std::process::id()));
             std::env::set_var("RS_L2TPD_PIDFILE", state(Some(&pid)));
@@ -569,19 +588,23 @@ mod completion_tests {
         }
         let result = entry().unwrap();
         assert!(result.reexec && result.pid.is_none());
+        assert_eq!(std::fs::read_to_string(keep).unwrap(), "keep");
+        assert!(std::fs::symlink_metadata(&pid.path).is_ok() || case == "inspect");
     }
-    /// spec: P26
+    /// spec: P11, P26
     #[test]
-    fn pid_inspection_error_discards_only_removal_authority() {
-        let output = Command::new(std::env::current_exe().unwrap())
-            .args([
-                "--exact",
-                "restart::completion_tests::pid_inspection_error_child",
-            ])
-            .env("COMPLETION_PID_ENTRY", "1")
-            .output()
-            .unwrap();
-        assert!(output.status.success(), "{output:?}");
+    fn pid_metadata_mismatches_and_inspection_errors_discard_only_removal_authority() {
+        for case in ["inspect", "device", "inode", "symlink", "directory"] {
+            let output = Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "restart::completion_tests::pid_inspection_error_child",
+                ])
+                .env("COMPLETION_PID_ENTRY", case)
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{case}: {output:?}");
+        }
     }
 
     /// spec: P23 P26

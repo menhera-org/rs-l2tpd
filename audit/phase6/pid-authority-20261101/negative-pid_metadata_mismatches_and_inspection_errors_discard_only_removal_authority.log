@@ -1,0 +1,17 @@
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 1 test
+
+thread 'restart::completion_tests::pid_metadata_mismatches_and_inspection_errors_discard_only_removal_authority' (1295216) panicked at src/bin/rs-l2tpd/restart.rs:606:13:
+symlink: Output { status: ExitStatus(unix_wait_status(25856)), stdout: "\nrunning 1 test\ntest restart::completion_tests::pid_inspection_error_child ... FAILED\n\nfailures:\n\n---- restart::completion_tests::pid_inspection_error_child stdout ----\n\nthread 'restart::completion_tests::pid_inspection_error_child' (1295226) panicked at src/bin/rs-l2tpd/restart.rs:590:9:\nassertion failed: result.reexec && result.pid.is_none()\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    restart::completion_tests::pid_inspection_error_child\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 55 filtered out; finished in 0.00s\n\n", stderr: "" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test restart::completion_tests::pid_metadata_mismatches_and_inspection_errors_discard_only_removal_authority ... FAILED
+
+failures:
+
+failures:
+    restart::completion_tests::pid_metadata_mismatches_and_inspection_errors_discard_only_removal_authority
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 55 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

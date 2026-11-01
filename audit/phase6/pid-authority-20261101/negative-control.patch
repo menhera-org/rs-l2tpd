@@ -1,0 +1,13 @@
+diff --git a/src/bin/rs-l2tpd/pidfile.rs b/src/bin/rs-l2tpd/pidfile.rs
+index 903f0ef..4853bbc 100644
+--- a/src/bin/rs-l2tpd/pidfile.rs
++++ b/src/bin/rs-l2tpd/pidfile.rs
+@@ -229,7 +229,7 @@ impl PidFile {
+     }
+     pub fn matches(&self) -> io::Result<bool> {
+         match std::fs::symlink_metadata(&self.path) {
+-            Ok(m) => Ok(m.is_file() && m.dev() == self.dev && m.ino() == self.ino),
++            Ok(m) => Ok(m.dev() == self.dev && m.ino() == self.ino),
+             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
+             Err(e) => Err(e),
+         }

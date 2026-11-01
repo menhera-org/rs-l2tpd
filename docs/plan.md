@@ -829,6 +829,13 @@ musl library suites and common checks pass. Repository record
 mappings and 100% line/branch coverage of the text parser. Overall coverage
 is 95.62% lines / 86.83% branches: 376 lines and 241 branches remain.
 
+PID-file cases now reject device/inode mismatches and non-regular paths
+both directly and through re-exec state parsing. An omitted-type-check
+control fails both tests. Ten seeded suites, three musl binary suites and
+common checks pass, with identical production coverage mappings. Repository
+record `audit/phase6/pid-authority-20261101/` gives the current 95.63%
+line / 87.05% branch report: 375 lines and 237 branches remain.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

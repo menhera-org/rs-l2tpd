@@ -303,6 +303,56 @@ mod tests {
         second.remove().unwrap();
         assert!(!path.exists());
     }
+    /// spec: P11, P26, G2
+    #[test]
+    fn incorrect_inode_hints_and_nonregular_paths_never_authorize_removal() {
+        let dir = Dir::new();
+        let pid = PidFile::publish(&dir.path().join("daemon.pid")).unwrap();
+        let contents = std::fs::read(&pid.path).unwrap();
+        for (dev, ino) in [(pid.dev ^ 1, pid.ino), (pid.dev, pid.ino ^ 1)] {
+            let hint = PidFile {
+                path: pid.path.clone(),
+                dev,
+                ino,
+            };
+            assert!(!hint.matches().unwrap());
+            hint.remove().unwrap();
+            assert_eq!(std::fs::read(&pid.path).unwrap(), contents);
+        }
+        let link = dir.path().join("alias");
+        symlink(&pid.path, &link).unwrap();
+        for path in [dir.path(), link.as_path()] {
+            let metadata = std::fs::symlink_metadata(path).unwrap();
+            let hint = PidFile {
+                path: path.to_owned(),
+                dev: metadata.dev(),
+                ino: metadata.ino(),
+            };
+            assert!(!hint.matches().unwrap());
+            hint.remove().unwrap();
+            assert_eq!(
+                std::fs::symlink_metadata(path).unwrap().ino(),
+                metadata.ino()
+            );
+            assert_eq!(std::fs::read(&pid.path).unwrap(), contents);
+        }
+        assert!(
+            std::fs::symlink_metadata(&link)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
+        assert!(pid.matches().unwrap());
+        pid.remove().unwrap();
+        assert!(!pid.path.exists());
+        assert!(
+            std::fs::symlink_metadata(link)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
+    }
+
     /// spec: P10 P11
     #[test]
     fn symlink_refusal_and_directory_permissions_preserved() {

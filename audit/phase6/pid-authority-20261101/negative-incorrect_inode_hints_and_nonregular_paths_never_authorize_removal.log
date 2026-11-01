@@ -1,0 +1,18 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/rs-l2tpd-member-control.cvCvT5dw)
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 1 test
+
+thread 'pidfile::tests::incorrect_inode_hints_and_nonregular_paths_never_authorize_removal' (1295193) panicked at src/bin/rs-l2tpd/pidfile.rs:331:13:
+assertion failed: !hint.matches().unwrap()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test pidfile::tests::incorrect_inode_hints_and_nonregular_paths_never_authorize_removal ... FAILED
+
+failures:
+
+failures:
+    pidfile::tests::incorrect_inode_hints_and_nonregular_paths_never_authorize_removal
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 55 filtered out; finished in 1.01s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`
