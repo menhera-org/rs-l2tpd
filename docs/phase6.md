@@ -43,7 +43,9 @@ manager, thread-limit and unmodified root-unit results on Ubuntu 6.8.0-147.
 Later signed code 1b3d876 passes fresh GNU live/Incus and three stable-musl
 scenario/Incus pairs. Independent profile transport preserves earlier
 exports; `audit/phase6/current-head-qualification-20261101/` records the fix,
-rejected attempt and successful collections.
+rejected attempt and successful collections. Signed 419c9b1 also passes
+three GNU manager/task-limit repetitions and the unmodified root-unit
+sandbox; `audit/phase6/final-sandbox-20261101/` records the exact scope.
 
 Test packages qualify request I/O errors and real buffer-force
 success, service queue ordering, reconciler record/retirement guards and

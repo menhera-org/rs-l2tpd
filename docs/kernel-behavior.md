@@ -37,7 +37,10 @@ The later signed code 1b3d876 passes GNU Incus in 17.19 s and three
 stable-musl Incus cases in 24.81, 17.88 and 16.02 s, again on Ubuntu
 24.04 / 6.8.0-147. Repository record
 `audit/phase6/current-head-qualification-20261101/README.md` identifies
-those runs and their unchanged production behavior.
+those runs and their unchanged production behavior. Signed 419c9b1 later
+passes the unmodified root-unit sandbox in 26.72 s on the same kernel and
+userspace, plus three GNU manager/task-limit repetitions; repository record
+`audit/phase6/final-sandbox-20261101/README.md` retains those results.
 
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.

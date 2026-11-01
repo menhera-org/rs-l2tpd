@@ -33,6 +33,11 @@ three stable-musl scenario/Incus pairs. All containers are deleted. Unique
 profile transport fixes a rejected directory-reuse attempt and preserves
 274 earlier exports. This adds no other kernel/userspace scope.
 
+The refreshed [sandbox record](phase6/final-sandbox-20261101/README.md)
+freezes signed code 419c9b1. Three GNU manager and task-limit repetitions
+pass; the unmodified root system unit passes in 26.72 s on Ubuntu
+24.04 / 6.8.0-147. All transient units and containers are gone.
+
 ## Gate status
 
 | Requirement | Executed evidence | Still required |
@@ -42,7 +47,7 @@ profile transport fixes a rejected directory-reuse attempt and preserves
 | P3 required kernels | Frozen 2d5ae45 passes five normal, five clock, two IPv6-absent and one missing-driver profiles; selections agree and source patches are empty | Preserve exact source and later test-only execution scopes |
 | P4 coverage | Custom-resolver profiles: 8,503/8,687 lines (97.88%); 1,702/1,852 branches (91.90%). No production exclusions, profile mismatches or saturated regions | Cover 184 lines and 150 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | Signed 1b3d876 passes GNU in 17.19 s and three unprivileged musl cases in 24.81, 17.88 and 16.02 s; containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
-| P6 root sandbox | Checked replies and the unmodified supplied unit pass in 29.41 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
+| P6 root sandbox | Signed 419c9b1 and the unmodified supplied unit pass in 26.72 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
 
 The earlier [E27 record](phase6/event-verification-20261101/README.md) retains
