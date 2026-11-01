@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 1 test
+
+thread 'files::completion_tests::empty_paths_are_absent_without_configuration_errors' (2145426) panicked at src/bin/rs-l2tpd/files.rs:495:9:
+assertion failed: !present(empty).unwrap()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test files::completion_tests::empty_paths_are_absent_without_configuration_errors ... FAILED
+
+failures:
+
+failures:
+    files::completion_tests::empty_paths_are_absent_without_configuration_errors
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 64 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

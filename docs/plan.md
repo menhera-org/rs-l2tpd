@@ -508,8 +508,8 @@ GNU/musl live suites, three musl Incus runs and the root sandbox pass.
 The fresh required matrix is running. Merged coverage remains below 100%.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh production coverage is **96.92% of lines and
-89.73% of branches**, leaving **267 lines and 190 branches**. The 100% gate and complete
+GNU/musl qualification. Fresh production coverage is **96.93% of lines and
+89.84% of branches**, leaving **266 lines and 188 branches**. The 100% gate and complete
 clause/history/resource/event-cost proof remain open. Repository file
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.
 The following entries retain the history of earlier measurements.
@@ -1066,6 +1066,14 @@ three musl suites and common checks pass. Repository record
 `audit/phase6/worker-pressure-reporting-20261101/` gives identical common
 production mappings and 96.92% line / 89.73% branch coverage: 267 lines and
 190 branches remain. Shipping logic is unchanged.
+
+Tunable input guards and empty configuration paths now have direct boundary
+cases. All three guard controls fail inside networkless containers; the
+false-presence control also fails. Ten ordinary and instrumented binary
+runs, three musl binary suites and common checks pass. Repository record
+`audit/phase6/input-boundaries-20261101/` gives unchanged production source
+regions and 96.93% line / 89.84% branch coverage: 266 lines and 188 branches
+remain. Shipping logic is unchanged.
 
 ### Phase 7 — release
 

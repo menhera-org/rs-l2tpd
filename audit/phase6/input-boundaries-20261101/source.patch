@@ -1,0 +1,46 @@
+diff --git a/src/bin/rs-l2tpd/files.rs b/src/bin/rs-l2tpd/files.rs
+index 903cbc6..7a1eb31 100644
+--- a/src/bin/rs-l2tpd/files.rs
++++ b/src/bin/rs-l2tpd/files.rs
+@@ -487,4 +487,16 @@ mod completion_tests {
+         assert_eq!(accepted.tunnels()["a"], retained);
+         assert_eq!(accepted.tunnels()["b"].tunnel_id(), 3);
+     }
++
++    /// spec: C1, C3, C4
++    #[test]
++    fn empty_paths_are_absent_without_configuration_errors() {
++        let empty = Path::new("");
++        assert!(!present(empty).unwrap());
++        let loaded = load(empty, empty);
++        assert!(loaded.errors.is_empty());
++        let (config, problems) = loaded.partial.into_config_lenient();
++        assert!(problems.is_empty());
++        assert_eq!(config, Config::new());
++    }
+ }
+diff --git a/src/bin/rs-l2tpd/tunable.rs b/src/bin/rs-l2tpd/tunable.rs
+index 5bbc13d..e5ec549 100644
+--- a/src/bin/rs-l2tpd/tunable.rs
++++ b/src/bin/rs-l2tpd/tunable.rs
+@@ -21,6 +21,20 @@ fn set(path: &std::path::Path) -> io::Result<()> {
+ #[cfg(test)]
+ #[cfg_attr(coverage_nightly, coverage(off))]
+ mod tests {
++    /// spec: P25, L12
++    #[test]
++    fn unsupported_or_expired_writes_are_refused() {
++        let now = std::time::Instant::now();
++        let future = now + std::time::Duration::from_secs(5);
++        for (name, value, deadline) in [
++            ("net.ipv4.ip_forward", "0", future),
++            ("net.ipv6.bindv6only", "1", future),
++            ("net.ipv6.bindv6only", "0", now),
++        ] {
++            assert!(!super::write(name, value, deadline), "{name}={value}");
++        }
++    }
++
+     /// spec: P25
+     #[test]
+     fn writes_only_when_needed() {

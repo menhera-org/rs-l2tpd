@@ -202,6 +202,12 @@ coalesced verification task. Configuration identity changes also cancel it
 when failed session cleanup leaves an obsolete record temporarily retained;
 late announcements cannot recreate that obsolete task.
 
+A matching-ID foreign notice can leave periodic verification active for the
+life of that configured local session. Repeated notices add no task state;
+a name-only configuration rename preserves the task. The four required
+kernels before 7.3 deliver such foreign notices. Mainline 7.3 confines them
+to the originating namespace, while stale local notices remain advisory.
+
 A model witness withholds queued deletion work for three daemon ticks;
 the preceding implementation drops verification after the first tick.
 The live fixture replays a genuine deletion notice after recreation and

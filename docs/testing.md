@@ -231,10 +231,10 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-merged report is 96.92% lines / 89.73% branches, with no production
-exclusions; 267 lines and 190 branches remain. The E27 correction has fresh
+merged report is 96.93% lines / 89.84% branches, with no production
+exclusions; 266 lines and 188 branches remain. The E27 correction has fresh
 profiles. Repository file
-`audit/phase6/worker-pressure-reporting-20261101/README.md` identifies the latest
+`audit/phase6/input-boundaries-20261101/README.md` identifies the latest
 measurement and its qualified scope. The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public
 and private cases exercise one generic instantiation; both targets still run.

@@ -21,6 +21,20 @@ fn set(path: &std::path::Path) -> io::Result<()> {
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
+    /// spec: P25, L12
+    #[test]
+    fn unsupported_or_expired_writes_are_refused() {
+        let now = std::time::Instant::now();
+        let future = now + std::time::Duration::from_secs(5);
+        for (name, value, deadline) in [
+            ("net.ipv4.ip_forward", "0", future),
+            ("net.ipv6.bindv6only", "1", future),
+            ("net.ipv6.bindv6only", "0", now),
+        ] {
+            assert!(!super::write(name, value, deadline), "{name}={value}");
+        }
+    }
+
     /// spec: P25
     #[test]
     fn writes_only_when_needed() {

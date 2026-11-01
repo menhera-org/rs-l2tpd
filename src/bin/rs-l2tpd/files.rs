@@ -487,4 +487,16 @@ mod completion_tests {
         assert_eq!(accepted.tunnels()["a"], retained);
         assert_eq!(accepted.tunnels()["b"].tunnel_id(), 3);
     }
+
+    /// spec: C1, C3, C4
+    #[test]
+    fn empty_paths_are_absent_without_configuration_errors() {
+        let empty = Path::new("");
+        assert!(!present(empty).unwrap());
+        let loaded = load(empty, empty);
+        assert!(loaded.errors.is_empty());
+        let (config, problems) = loaded.partial.into_config_lenient();
+        assert!(problems.is_empty());
+        assert_eq!(config, Config::new());
+    }
 }

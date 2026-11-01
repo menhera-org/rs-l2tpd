@@ -8,13 +8,14 @@ infrastructure. The current E27 correction changes session-verification
 behavior: a queued-deletion witness fails on the preceding code and passes
 with the correction. Repeated models, GNU/musl live suites, three musl Incus
 runs and the root sandbox pass. Its required matrix is running. Fresh merged
-coverage is 96.92% lines / 89.73% branches; earlier results retain their scope.
+coverage is 96.93% lines / 89.84% branches; earlier results retain their scope.
 
 The current [E27 correction](phase6/event-verification-20261101/README.md)
 is committed as `11bef84`, based on `4881c32` plus its retained source patch.
 The [serial startup harness](phase6/shared-startup-harness-20261101/README.md)
 adds test-only qualification. The [worker-pressure case](phase6/worker-pressure-reporting-20261101/README.md)
-adds complete warning/recovery episodes and the latest merged coverage. The preceding
+adds complete warning/recovery episodes. The [input boundaries](phase6/input-boundaries-20261101/README.md)
+add tunable and empty-path cases and the latest merged coverage. The preceding
 [model controls](phase6/model-controls-20261101/README.md) preserve their
 original test-only scope. The preceding
 [fallback case](phase6/family-fallback-20261101/README.md) preserves sessions
@@ -33,7 +34,7 @@ original execution scope.
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | All 27 normal cases pass on each of five required kernels, including H20, H17 and the new VRF reload regression. Three current musl host suites also pass | Complete clause, history and resource/event-cost proof |
 | P3 required kernels | Frozen `2051827` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Requalify the E27 correction; later test-only additions have separate records |
-| P4 coverage | Fresh E27 profiles: 8,396/8,663 lines (96.92%); 1,660/1,850 branches (89.73%). No production exclusions, profile mismatches or saturated regions | Cover 267 lines and 190 branches; enable the completed 100% gate in CI |
+| P4 coverage | Fresh E27 profiles: 8,397/8,663 lines (96.93%); 1,662/1,850 branches (89.84%). No production exclusions, profile mismatches or saturated regions | Cover 266 lines and 188 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | E27 source passes the full GNU case in 17.20 s and three unprivileged musl cases in 29.47, 24.78 and 24.53 s; all containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | E27 source and the unmodified supplied unit pass in 30.93 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
@@ -85,7 +86,9 @@ ten instrumented repetitions, GNU/musl qualification and common checks pass;
 the incorrect child-name control fails all three cases. Failed parallel and
 child-selection attempts are retained and their profiles quarantined. The
 fresh report includes E27 live, Incus, manager and task-limit profiles and
-now leaves 267 lines and 190 branches after the worker-pressure case. Generic-instance catalog changes are
+now leaves 266 lines and 188 branches after the worker-pressure and input
+boundary cases. The ordinary binary has 61 passing cases and four ignored
+privileged cases. Faulty writer guards run only in networkless containers. Generic-instance catalog changes are
 listed explicitly; production source regions remain unchanged by this harness.
 
 The shared harness compiles the same 94 public rule declarations into both
