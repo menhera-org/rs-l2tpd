@@ -38,19 +38,21 @@ review corrections and their acceptance work. Configuration, kernel,
 reconciler, runtime, service and process code exists; Phases 1–5 have scoped
 verification records, including the
 [Phase 5 conformance follow-up](audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md).
-The binary runs on musl and glibc. All five required kernels passed the
-recorded 18-scenario profile, including fragmentation. H15's newer
-capability/netlink and missing-driver cases have passing host/guest records;
-the current host subset passes 25 scenarios, including filter refusal,
-descriptor exhaustion/recovery and the 300-tunnel scale case. H16 clock steps and monitored
-pause/resume also pass on all five required kernels. The expanded normal
-suite still needs a final matrix refresh. Phase 6 is underway: the source-link check,
-unprivileged Incus case and root system-unit sandbox also have passing
-local records. [Required-kernel behavior](docs/kernel-behavior.md) records
-each target's differences, source evidence and limitations. The
-[latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-10-31.md) tracks the
-approved errno distinction, readiness fix, boot-memory diagnosis and
-remaining coverage/scenario/CI work. The global gates remain open.
+The binary runs on musl and glibc. The October 31 matrix passed its
+26-scenario normal profile on all five resolved kernel targets, including
+fragmentation and the 300-tunnel scale case. Separate clock-step and
+pause/resume profiles also passed on all five. Later code and test changes
+still need final matrix qualification.
+
+Phase 6 remains open. Strict rule-map/source-link checks have passing CI
+records, including ten-repetition qualification. Unprivileged Incus and
+the root system-unit sandbox have passing local records. The staged-MAC
+contract and current host-state memory bound await maintainer decisions;
+signal-error integration awaits an upstream nix release. The
+[latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-01.md) gives coverage
+and the remaining clause/resource/event-cost proof.
+[Required-kernel behavior](docs/kernel-behavior.md) records each target's
+differences, source evidence and limitations. The global gates remain open.
 The known-gap tables describe historical commit `741117b`.
 
 ## Quick start

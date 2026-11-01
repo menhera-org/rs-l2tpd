@@ -41,9 +41,12 @@ Repository file `tests/process/README.md` gives the container and native
 systemd transport commands. The manager test covers the address-family
 filter and descriptor protocol. The complete root system-unit mount
 sandbox, including the bindv6only write, subsequently passed in QEMU; see
-repository file `audit/phase6/P6_ROOT_SANDBOX_2026-10-30.md`. The full
-required matrix, remaining scenarios and merged 100% coverage remain open
-in `audit/PHASE6_VERIFICATION_2026-10-31.md`.
+repository file `audit/phase6/P6_ROOT_SANDBOX_2026-10-30.md`. The October 31
+required matrix passed its 26-scenario normal profile and separate clock
+profiles on all five resolved targets. Later changes still need final
+qualification. Repository file `audit/PHASE6_VERIFICATION_2026-11-01.md`
+tracks the H11/G23 decisions, upstream signal release, remaining proof and
+merged 100% coverage gate.
 
 ## The four suites
 

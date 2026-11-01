@@ -30,18 +30,20 @@ runtime, services and binary; Phases 1–5 have scoped verification records.
 The latest Phase 5 evidence is repository file
 `audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md`, following the initial
 `audit/PHASE5_VERIFICATION_2026-10-29.md` record. The binary runs on musl
-and glibc; all five required kernels passed the recorded 18-scenario
-profile, including fragmentation. Newer H15 capability/netlink and
-missing-driver cases pass in their host/guest profiles; the current host
-subset passes 23 scenarios, including the 300-tunnel scale case. H16 clock steps and monitored pause/resume pass
-on all five required kernels; the expanded normal suite still needs a final
-matrix refresh. Phase 6 is underway: source links, the unprivileged Incus case and the root unit
-sandbox have passing local records.
+and glibc. The October 31 matrix passed its 26-scenario normal profile on
+all five resolved targets, including fragmentation and the 300-tunnel scale
+case. Separate clock-step and pause/resume profiles also passed on all five.
+Later code and test changes still need final matrix qualification.
+
+Phase 6 remains open. Strict rule-map/source-link checks have passing CI
+records, including ten-repetition qualification. Unprivileged Incus and the
+root unit sandbox have passing local records. The staged-MAC contract and
+current host-state memory bound await maintainer decisions; signal-error
+integration awaits an upstream nix release.
 [Required-kernel behavior](kernel-behavior.md) records each target's
 differences, source evidence, execution scope and limitations. Repository
-file `audit/PHASE6_VERIFICATION_2026-10-31.md` records the approved errno
-distinction, readiness fix, guest boot-memory diagnosis and remaining
-coverage/scenario/CI work. The global gates remain open.
+file `audit/PHASE6_VERIFICATION_2026-11-01.md` gives coverage and the remaining
+clause/resource/event-cost proof. The global gates remain open.
 The specification's
 [known gaps](spec/README.md#known-gaps) describe historical commit
 `741117b`, removed in Phase 0. The interface page describes the target.
