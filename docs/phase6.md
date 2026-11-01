@@ -32,7 +32,7 @@ matrix profiles, including 27 normal scenarios on each of the five kernels.
 Strict maps, unprivileged Incus and the root sandbox have passing records.
 Later test-only additions have passing common checks and repeated
 GNU/musl qualification. Merged production coverage is **96.71% of lines and
-89.34% of branches**, leaving **285 lines and 197 branches**.
+89.56% of branches**, leaving **285 lines and 193 branches**.
 
 Complete clause/history/resource/event-cost proof and the 100% coverage
 gate remain required. The [testing page](testing.md) gives current gate

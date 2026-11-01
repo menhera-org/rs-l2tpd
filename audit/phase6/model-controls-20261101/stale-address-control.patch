@@ -1,0 +1,13 @@
+diff --git a/src/kernel/fake.rs b/src/kernel/fake.rs
+index 6951e30..45ba25c 100644
+--- a/src/kernel/fake.rs
++++ b/src/kernel/fake.rs
+@@ -607,7 +607,7 @@ impl FakeKernel {
+                         .is_some_and(|l| l.info.master == Some(vrf))
+             }
+             (Some(device), None) => a.index == device,
+-            (None, None) => self.links.contains_key(&a.index) && vrf_of(a.index).is_none(),
++            (None, None) => vrf_of(a.index).is_none(),
+         };
+         let link_local = |a: &IpAddr| matches!(a, IpAddr::V6(v6) if v6.is_unicast_link_local());
+         self.addrs

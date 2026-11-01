@@ -52,8 +52,8 @@ and dependency-state contracts are applied. Broken `nix` signal wrappers
 use checked `libc` calls under the documented exception. The
 [latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-01.md) gives coverage
 and the remaining clause/resource/event-cost proof. As of November 1, merged
-production coverage is **96.71% of lines and 89.34% of branches**, leaving
-285 lines and 197 branches. Recent test packages cover resolver validation
+production coverage is **96.71% of lines and 89.56% of branches**, leaving
+285 lines and 193 branches. Recent test packages cover resolver validation
 and cleanup, public service constructors, staging bounds, ownership races,
 descriptor handover and socket-family fallback; their deliberately broken
 controls fail.

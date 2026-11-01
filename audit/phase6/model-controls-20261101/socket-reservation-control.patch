@@ -1,0 +1,13 @@
+diff --git a/src/kernel/fake.rs b/src/kernel/fake.rs
+index 6951e30..353453c 100644
+--- a/src/kernel/fake.rs
++++ b/src/kernel/fake.rs
+@@ -644,7 +644,7 @@ impl Kernel for FakeKernel {
+         // kernel: a bound connection id is refused (K19, T7)
+         if self.sockets.values().any(|s| {
+             s.tunnel_id == tunnel_id
+-                && (!s.last_reference_closed() || self.tunnels.contains_key(&tunnel_id))
++                && true
+         }) {
+             return fail(Errno::EADDRINUSE);
+         }

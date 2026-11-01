@@ -1,0 +1,113 @@
+diff --git a/tests/kernel/fake.rs b/tests/kernel/fake.rs
+index e2870a9..5d80d9f 100644
+--- a/tests/kernel/fake.rs
++++ b/tests/kernel/fake.rs
+@@ -365,3 +365,108 @@ fn lifetime_loss_never_revives_a_registration_or_removes_a_reused_index() {
+         assert_eq!(k.link(original.index()).unwrap().name(), name("foreign"));
+     }
+ }
++
++/// spec: K28, K34, A5
++#[test]
++fn model_source_selection_keeps_vrf_local_and_stale_addresses_out_of_the_default_domain() {
++    let mut k = FakeKernel::new(7);
++    let vrf = k.add_link("blue", true);
++    let vrf_source = "2001:db8:1::1".parse::<IpAddr>().unwrap();
++    k.add_addr(vrf, vrf_source);
++    let socket = k.create_socket(Family::V6, 100, 200).unwrap();
++    k.bind_index(socket, vrf).unwrap();
++    assert_eq!(
++        k.connect(socket, &peer("2001:db8::2", None)).unwrap(),
++        vrf_source
++    );
++    k.disconnect(socket).unwrap();
++    assert_eq!(
++        errno(k.connect(socket, &peer("2001:db8::2", None))),
++        nix::libc::EADDRNOTAVAIL
++    );
++    let stale_source = "2001:db8:2::1".parse::<IpAddr>().unwrap();
++    k.add_addr(999, stale_source);
++    assert_eq!(
++        errno(k.connect(socket, &peer("2001:db8::2", None))),
++        nix::libc::EADDRNOTAVAIL
++    );
++    k.add_link_at(999, "late", false);
++    assert_eq!(
++        k.connect(socket, &peer("2001:db8::2", None)).unwrap(),
++        stale_source
++    );
++    k.disconnect(socket).unwrap();
++    k.bind_index(socket, vrf).unwrap();
++    assert_eq!(
++        k.connect(socket, &peer("2001:db8::2", None)).unwrap(),
++        vrf_source
++    );
++    k.close(socket);
++    assert_eq!(k.open_sockets(), 0);
++}
++
++/// spec: K19, K37, T7
++#[test]
++fn model_unregistered_socket_ids_release_only_after_the_final_external_descriptor() {
++    let mut k = FakeKernel::new(7);
++    let original = k.create_socket(Family::V6, 100, 200).unwrap();
++    let external = k.clone_fd(original).unwrap();
++    k.close(original);
++    assert_eq!(
++        errno(k.create_socket(Family::V6, 100, 200)),
++        nix::libc::EADDRINUSE
++    );
++    drop(external);
++    let replacement = k.create_socket(Family::V6, 100, 201).unwrap();
++    assert_ne!(replacement, original);
++    assert!(k.tunnel(100).unwrap().is_none());
++    k.tick();
++    assert_eq!(k.open_sockets(), 1);
++    assert!(!k.only_v6(replacement).unwrap());
++    k.close(replacement);
++    k.tick();
++    assert_eq!(k.open_sockets(), 0);
++}
++
++/// spec: K31, S12
++#[test]
++fn model_mac_changes_distinguish_ordinary_links_and_up_session_devices() {
++    let mut k = FakeKernel::new(7);
++    let ordinary = k.add_link("ordinary", false);
++    k.set_up(ordinary, true);
++    let original_link = k.link(ordinary).unwrap().clone();
++    let changed = HwAddr::new([2, 0, 0, 0, 0, 1]).unwrap();
++    k.set_hwaddr(ordinary, changed).unwrap();
++    assert_eq!(k.link(ordinary), Some(&original_link));
++    assert_eq!(k.ether_addr(ordinary).unwrap(), Some(changed));
++
++    let socket = k.create_socket(Family::V6, 100, 200).unwrap();
++    k.register_tunnel(socket, 100, 200).unwrap();
++    let session = k
++        .create_session(&SessionCreate::new(
++            100,
++            101,
++            201,
++            None,
++            None,
++            name("session"),
++        ))
++        .unwrap();
++    let index = session.index();
++    let initial = k.ether_addr(index).unwrap().unwrap();
++    k.set_up(index, true);
++    k.set_hwaddr(index, initial).unwrap();
++    assert_eq!(errno(k.set_hwaddr(index, changed)), nix::libc::EBUSY);
++    assert_eq!(k.ether_addr(index).unwrap(), Some(initial));
++    k.set_up(index, false);
++    k.set_hwaddr(index, changed).unwrap();
++    k.set_up(index, true);
++    k.set_hwaddr(index, changed).unwrap();
++    assert_eq!(errno(k.set_hwaddr(index, initial)), nix::libc::EBUSY);
++    assert_eq!(k.ether_addr(index).unwrap(), Some(changed));
++    k.close(socket);
++    k.tick();
++    assert!(k.link(index).is_none());
++    assert_eq!(k.link(ordinary), Some(&original_link));
++    assert_eq!(k.ether_addr(ordinary).unwrap(), Some(changed));
++}

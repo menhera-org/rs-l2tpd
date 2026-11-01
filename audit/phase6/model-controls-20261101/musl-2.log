@@ -1,0 +1,18 @@
+    Blocking waiting for file lock on build directory
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-da409f27837bf574)
+
+running 10 tests
+test a_delayed_fault_refuses_once_after_the_requested_calls ... ok
+test an_external_descriptor_keeps_frame_delivery_until_the_last_reference_closes ... ok
+test invalid_handles_and_fixture_identity_mistakes_preserve_existing_objects ... ok
+test lifetime_loss_never_revives_a_registration_or_removes_a_reused_index ... ok
+test link_local_scope_checks_precede_source_selection_and_disconnect_releases_the_cache ... ok
+test model_source_selection_keeps_vrf_local_and_stale_addresses_out_of_the_default_domain ... ok
+test model_unregistered_socket_ids_release_only_after_the_final_external_descriptor ... ok
+test model_mac_changes_distinguish_ordinary_links_and_up_session_devices ... ok
+test replacing_one_tunnel_invalidates_only_its_registrations ... ok
+test conformance_on_the_fake_kernel ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

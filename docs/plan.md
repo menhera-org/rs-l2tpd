@@ -502,8 +502,8 @@ have passing records. The checked libc exception is applied; no nix
 contribution or release is required.
 
 Later test-only additions have passing common checks and repeated
-GNU/musl qualification. Merged coverage is **96.71% of lines and 89.34% of
-branches**, leaving **285 lines and 197 branches**. The 100% gate and complete
+GNU/musl qualification. Merged coverage is **96.71% of lines and 89.56% of
+branches**, leaving **285 lines and 193 branches**. The 100% gate and complete
 clause/history/resource/event-cost proof remain open. Repository file
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.
 The following entries retain the history of earlier measurements.
@@ -1026,6 +1026,14 @@ library/rule suites and common checks pass. Both shared rule catalogs have
 89 cases. Repository record `audit/phase6/family-fallback-20261101/` gives
 identical production mappings and 96.71% line / 89.34% branch coverage:
 285 lines and 197 branches remain. Shipping code is unchanged.
+
+The fake controls now have explicit cases for a VRF's own address, stale
+address input, unregistered socket descriptor lifetimes and ordinary versus
+L2TP MAC changes. All four faulty controls fail. Ten ordinary and ten
+instrumented repetitions, three full musl fake suites and common checks
+pass. Repository record `audit/phase6/model-controls-20261101/` gives identical
+production mappings and 96.71% line / 89.56% branch coverage: 285 lines and
+193 branches remain. Neither the model nor shipping behavior changes.
 
 ### Phase 7 — release
 

@@ -50,7 +50,7 @@ Phase 6 remains incomplete. Production source `2051827` passes all thirteen
 required profiles, including 27 normal scenarios on each of five kernels,
 five clock profiles, both IPv6-absent boots and missing-driver recovery.
 The approved checked-libc signal exception is applied; no nix contribution
-or release is required. Later test-only additions have separate GNU/musl qualification. Merged coverage is 96.71% of lines and 89.34% of branches;
+or release is required. Later test-only additions have separate GNU/musl qualification. Merged coverage is 96.71% of lines and 89.56% of branches;
 100% coverage and complete clause/history/resource/event-cost proof remain
 open. See the [current verification record](../../audit/PHASE6_VERIFICATION_2026-11-01.md).
 The normal suite includes the 300-tunnel/session case. H20 now covers full-MTU frames and 1 MiB transfers over both families,
