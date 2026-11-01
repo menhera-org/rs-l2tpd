@@ -93,3 +93,11 @@ cargo fmt --all -- --check
 # In the daemon checkout:
 ./test-ci-gates.sh
 ```
+
+## Superseding maintainer decision, 2026-11-01
+
+The maintainer authorized a documented local `libc` exception for broken
+`nix` wrappers and clarified that contributing to `nix` is not required.
+The binary now replaces the affected mask and wait calls; the new record
+`audit/phase6/libc-signals-20261101/` retains verification. The release wait
+above describes the earlier policy, which no longer blocks this work.

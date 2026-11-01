@@ -850,6 +850,22 @@ production mappings. Repository record `audit/phase6/pid-fifo-20261101/`
 gives the current 95.73% line / 87.49% branch report: 366 lines and
 229 branches remain. Profiling helpers remain unchanged.
 
+The frozen streamed-inventory matrix (`012764f`) now passes five normal and
+five clock profiles, both IPv6-absent profiles and missing-driver degradation.
+Initial/final publication selections agree. Repository record
+`audit/phase6/matrix-20261101T025846Z-1217029/` retains all result markers.
+
+The maintainer approved direct `libc` calls for broken `nix` wrappers,
+without requiring contributions to `nix` or a release wait. Checked mask
+setup and signal wait now replace the affected wrappers. GNU/musl delivery,
+refusal and return-convention tests, actual-daemon errors, both failure
+controls, ten seeded suites, three musl suites and common checks pass.
+Fresh production coverage is 95.83% lines / 87.65% branches: 358 lines and
+226 branches remain. Repository record
+`audit/phase6/libc-signals-20261101/` gives exact sources and tests. The
+later libc change needs its own required matrix; the complete clause/
+resource/event-cost proof and 100% gate remain open.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

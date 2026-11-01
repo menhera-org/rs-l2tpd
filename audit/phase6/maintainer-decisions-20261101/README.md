@@ -64,3 +64,12 @@ tests/docker/run.sh incus
 # Root guest command and artifact identities:
 # root-systemd/command.log and root-systemd/artifacts.log
 ```
+
+## Later decision: broken nix wrappers
+
+The maintainer approved a documented direct `libc` exception when a `nix`
+wrapper is broken and clarified that contributing to `nix` is not required.
+The prior release prerequisite above is superseded. Checked signal-mask
+and signal-wait calls are now applied; the source, GNU/musl success/error
+checks and failure controls are in `audit/phase6/libc-signals-20261101/`.
+The original revision/patch here still identifies the three earlier proposals.

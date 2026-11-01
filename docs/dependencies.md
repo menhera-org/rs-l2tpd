@@ -34,15 +34,15 @@ registry), so that one copy of the core crate is built.
 |---|---|---|
 | `toml` | Parsing the documents | C1 |
 | `serde` | With it | C5 |
-| `libc` | Capability, fork, descriptor-relative PID-file and exec handover operations; `unshare(CLONE_FILES)` isolates exec descriptor remapping from live threads. The library's sole exception is L2's socket-option call | R49, P4, P10, P26, L2 |
+| `libc` | Checked signal-mask and signal-wait calls under the documented `nix` exception; capability, fork, descriptor-relative PID-file and exec handover operations; `unshare(CLONE_FILES)` isolates exec descriptor remapping from live threads. The library's sole exception is L2's socket-option call | R49, P4, P10, P12, P16, P26, L2 |
 
 The `setup-systemd` feature ([packaging](packaging.md)) adds no crate:
 the unit is embedded with `include_str!`, the copy is `std`, and
 `systemctl` is run as a child process.
 
 Nothing else: the command line (P27) is parsed by hand,
-the logger is thirty lines over `log::Log` (O1), the PID file, signals,
-`setsid` and the store protocol are `std` and `nix` calls.
+the logger is thirty lines over `log::Log` (O1), and the process/store code
+uses `std`, `nix` and the documented direct `libc` calls.
 
 ## CI analysis
 
@@ -68,12 +68,18 @@ an upstream bug. Fix discrepancies against their own documented contracts,
 and request compatible additions for new policy. A missing required API
 stops the dependent implementation until it ships upstream
 (`CONTRIBUTING.md`, step 5); unrelated work may continue.
+The maintainer permits a narrow exception when a `nix` wrapper is broken:
+use the existing `libc` dependency, document the defect and return conventions,
+and test success and failure on GNU and musl. Contributing to `nix` or waiting
+for its release is not required. Current uses are confined to the binary's
+signal calls below; L2's library unsafe-code boundary is unchanged.
+
 The [iphost instruction](upstream-iphost.md) records the distinction,
 regressions, compatibility requirements and integration gate.
 
 | Need | Crate | Status |
 |---|---|---|
-| Original errors from signal-mask changes and signal waits (P4, P12, P16) | `nix` 0.30.1; upstream master 0.31.3 also affected | **Blocked on upstream release:** positive pthread error codes are treated as success; failed wait/get-mask outputs can be read before initialization. [PR #2852](https://github.com/nix-rust/nix/pull/2852) checks errors before outputs and preserves musl's -1/errno convention. Its new regression passes all four native Linux jobs, whose full suites fail an unchanged receive-overflow fixture. Independent [PR #2853](https://github.com/nix-rust/nix/pull/2853) fixes that fixture's hardcoded packet-capacity assumption; all 30 returned CI jobs pass. Both proposals await upstream integration. No daemon workaround or dependency override is applied. Repository records `audit/phase6/upstream-signal-errors-20261031/` and `audit/phase6/upstream-overflow-fixture-20261031/` retain reproductions, patches and checks |
+| Original errors from signal-mask changes and signal waits (P4, P12, P16) | `nix` 0.30.1; reproduced upstream revision `89339c6` (0.31.3) | **Local libc exception approved 2026-11-01:** positive pthread errors are treated as success by `nix`, and failed wait/get-mask outputs can be read before initialization. The binary uses checked `libc::pthread_sigmask` and `libc::sigwait` calls instead. It handles positive error numbers and musl's -1/errno convention before reading the initialized wait output; invalid signals return an error. Safe signal-set construction and unrelated wrappers remain in `nix`; no dependency override is needed. [PR #2852](https://github.com/nix-rust/nix/pull/2852) and independent overflow-fixture [PR #2853](https://github.com/nix-rust/nix/pull/2853) retain upstream proposals; their integration is not a daemon prerequisite. Repository records `audit/phase6/libc-signals-20261101/`, `audit/phase6/upstream-signal-errors-20261031/` and `audit/phase6/upstream-overflow-fixture-20261031/` retain the local tests and upstream evidence |
 | `TunnelSocket::disconnect`, `from_fd`, `into_fd`, `local_addr_ip` | `l2tp` | in 0.4.0 |
 | `delete_session_by_ifname`, `get_session_by_ifname` (S22, name-only primitive; not an atomic identity check) | `l2tp` | in 0.4.0 |
 | `SessionInfo` reports cookies and peer identifiers (S28) | `l2tp` | in 0.4.0 |

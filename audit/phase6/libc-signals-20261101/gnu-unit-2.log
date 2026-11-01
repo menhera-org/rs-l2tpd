@@ -1,0 +1,12 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
+
+running 2 tests
+test signals::libc_tests::signal_errors_use_the_return_code_or_errno_as_required ... ok
+LIBC_SIGNAL_CHECKED=delivery
+LIBC_SIGNAL_CHECKED=mask-error
+LIBC_SIGNAL_CHECKED=wait-error
+test signals::libc_tests::blocked_signals_and_wait_failures_are_checked_in_subprocesses ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 58 filtered out; finished in 0.01s
+

@@ -63,6 +63,11 @@ The final state must satisfy the following requirements:
 5. [ ] Refactor the whole codebase for minimal testable codebase satisifying every spec item. Don't aim for minimal diff, but refactor everything to minimize the codebase (`ponytail` skill is useful; coding agents are encouraged to ask humans for its installation), to minimize the supply-chain size (i.e. remove unnecessary deps), to minimize the attack surface, and to minimize the ongoing maintenance costs. **NOTE: if we need fixes upstream (notably `l2tp` crate), please stop and fix upstream**.
 6. [ ] Make everything satisfy the requirements above. The specs and the kernel sources are authoritative, along with live kernel tests.
 
+A broken `nix` wrapper may be replaced by a narrowly scoped direct `libc`
+call. Document the defect and error conventions, check errors before reading
+outputs, and test the GNU and musl paths. This exception does not require
+contributing to `nix` or waiting for an upstream release.
+
 ## Kernel targets
 
 Currently, the latest two Ubuntu LTS kernels MUST be tested,

@@ -38,7 +38,9 @@ the scenario suite below; read them before writing new scenarios.
   the others.
 - **Stop at the upstream boundary.** A need in `l2tp` or `iphost` is
   written into [dependencies](dependencies.md#upstream-needs) and fixed
-  upstream first (`CONTRIBUTING.md`, step 5). No workaround in the daemon.
+  upstream first (`CONTRIBUTING.md`, step 5). The maintainer-approved `nix`
+  exception permits direct `libc` calls for broken wrappers, with documented
+  defects and GNU/musl tests ([dependencies](dependencies.md#upstream-needs)).
 - **No new dependency without a row in [dependencies](dependencies.md).**
   Test tooling is pure Rust or POSIX `sh`; no Python, Node or Perl on
   the host or in the images. `cargo-llvm-cov` is the one tool installed

@@ -46,9 +46,9 @@ still need final matrix qualification.
 
 Phase 6 remains open. Strict rule-map/source-link checks have passing CI
 records, including ten-repetition qualification. Unprivileged Incus and
-the root system-unit sandbox have passing local records. The staged-MAC
-contract and current host-state memory bound await maintainer decisions;
-signal-error integration awaits an upstream nix release. The
+the root system-unit sandbox have passing local records. The approved MAC
+and dependency-state contracts are applied. Broken `nix` signal wrappers
+use checked `libc` calls under the documented exception. The
 [latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-01.md) gives coverage
 and the remaining clause/resource/event-cost proof.
 [Required-kernel behavior](docs/kernel-behavior.md) records each target's
