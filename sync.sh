@@ -1,8 +1,8 @@
 #!/bin/sh
 # Fetch, rebase the current branch onto its upstream, and push.
 set -eu
-git fetch --prune
+git --no-pager fetch --prune
 # --autostash: others edit this tree concurrently; keep their uncommitted
 # changes out of the rebase's way.
-git rebase --autostash
-git push
+git --no-pager rebase --autostash
+git --no-pager push

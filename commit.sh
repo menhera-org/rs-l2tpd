@@ -46,8 +46,8 @@ if [ "$mode" = exclude ]; then
         set -- "$@" ":(exclude)$a"
     done
     set -- ':/' "$@"
-    git add -A -- "$@"
+    git --no-pager add -A -- "$@"
 fi
 
-[ $# -eq 0 ] || git add -- "$@"
-git commit -s -S -m "$msg" -- "$@"
+[ $# -eq 0 ] || git --no-pager add -- "$@"
+git --no-pager commit -s -S -m "$msg" -- "$@"
