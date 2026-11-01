@@ -9,11 +9,11 @@ The latest required matrix passes all five normal and clock profiles,
 including H20 fragmentation and both 300-entry daemons. It also passes both
 IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
 publication checks select the same versions. Repository record
-`audit/phase6/matrix-20261101T162452Z-2573413/README.md` identifies the frozen
+`audit/phase6/matrix-20261101T182115Z-2714445/README.md` identifies the frozen
 implementation with kernel-selected inventories, complete VRF member tracking,
 checked libc signal calls, approved fixtures and the E27 correction.
-The matrix freezes signed source fb0620d, whose shipping logic matches
-584062d with released iphost 0.4.4 and the standard-library boundaries. The positive resolver wire case and
+The matrix freezes signed source 3f503cd, including the corrected netlink
+reply decoder, released iphost 0.4.4 and the standard-library boundaries. The positive resolver wire case and
 anonymous Reply validation pass on all five targets. Later test-only
 additions have separate qualification; no broader execution is inferred.
 With iphost 0.4.4 and the boundary changes, the approved H11 configured-MAC
@@ -25,11 +25,13 @@ The later userspace-netlink peer/deadline tests run on Ubuntu 6.8.0-147
 with GNU and musl. Those ordinary library declarations are outside the matrix's serial
 ignored profile;
 `audit/phase6/netlink-peer-boundaries-20261101/` records their precise scope.
-The later checked reply decoder passes local GNU/musl, Incus and root-unit
-qualification on Ubuntu 6.8.0-147; its required matrix remains pending.
-Its malformed signed-status cases are synthetic decoder inputs, not live
-kernel observations. Repository record
-`audit/phase6/netlink-reply-state-20261101/README.md` gives the exact scope.
+The checked reply decoder also passes local GNU/musl, Incus and root-unit
+qualification on Ubuntu 6.8.0-147. Its malformed signed-status cases are
+synthetic decoder inputs, not live kernel observations. Repository record
+`audit/phase6/netlink-reply-state-20261101/README.md` gives that scope.
+Later test-only request I/O assertions pass three GNU buffer-force guests
+on Ubuntu 6.8.0-147; `audit/phase6/netlink-io-faults-20261101/README.md`
+records the actual force/fallback distinction and injected failures.
 
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.
@@ -144,7 +146,7 @@ signal-mask/wait refusals pass on all five required targets.
 | Mainline `7.3.0` | 27 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the
-latest matrix (`audit/phase6/matrix-20261101T162452Z-2573413/README.md`).
+latest matrix (`audit/phase6/matrix-20261101T182115Z-2714445/README.md`).
 The approved explicit-MAC-authority case passes three fresh unprivileged
 Incus runs and the unmodified root-systemd guest. Their source and logs are
 in `audit/phase6/maintainer-decisions-20261101/README.md`; the earlier failure
@@ -158,25 +160,26 @@ execution summaries.
 
 ### Latest matrix counts and ownership observations
 
-The frozen `fb0620d` guests run 20 serial library cases, 24 Linux cases,
-five review cases, 63 ordinary binary cases and three privileged binary
+The frozen `3f503cd` guests run 20 serial library cases, 24 Linux cases,
+five review cases, 65 ordinary binary cases and three privileged binary
 cases. Eight daemon fault paths include signal-mask and signal-wait refusals.
 All 29 process cases and 27 normal scenarios pass on each target. Selected
 inventories, VRF-binding reload and the E27 live replay pass on all five.
 The client-ID/static-binding and anonymous Reply cases pass on all five
 with released iphost 0.4.4. The absent-family cache-recovery case also
-passes on all five. Later host-adapter fixtures and the production reply-
-state correction retain their separate qualification. The real-manager and clock declarations
+passes on all five. The host-adapter fixtures and corrected production
+reply decoder are included. Later test-only request I/O probes retain their
+separate qualification. The real-manager and clock declarations
 are outside the normal scenario profile. The clock profile runs one case
 per target with controller-confirmed pause/resume.
 
 | Required target | Normal scenarios | H16 clock/pause | Closed and unregistered socket ownership |
 |---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 27 pass, 595.05 s | Pass, 64.88 s | Both families pass |
-| Vanilla `6.8.12` | 27 pass, 489.78 s | Pass, 64.35 s | Both families pass |
-| Ubuntu `7.0.0-42-generic` | 27 pass, 552.40 s | Pass, 64.62 s | Both families pass |
-| Vanilla `7.0.14` | 27 pass, 461.17 s | Pass, 64.29 s | Both families pass |
-| Mainline `7.3.0` | 27 pass, 459.84 s | Pass, 64.35 s | Both families pass |
+| Ubuntu `6.8.0-147-generic` | 27 pass, 573.85 s | Pass, 64.87 s | Both families pass |
+| Vanilla `6.8.12` | 27 pass, 474.48 s | Pass, 64.55 s | Both families pass |
+| Ubuntu `7.0.0-42-generic` | 27 pass, 538.87 s | Pass, 65.09 s | Both families pass |
+| Vanilla `7.0.14` | 27 pass, 460.38 s | Pass, 64.29 s | Both families pass |
+| Mainline `7.3.0` | 27 pass, 475.70 s | Pass, 64.36 s | Both families pass |
 
 After a local socket handle closes, its five socket operations return EBADF
 even while an external descriptor retains the tunnel. An unregistered

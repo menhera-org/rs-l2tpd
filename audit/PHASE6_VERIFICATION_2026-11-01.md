@@ -12,13 +12,14 @@ Ten native and instrumented model/rule/service/startup repetitions, three
 musl model runs, common checks, Rust 1.89 and three additional musl
 architecture compile checks pass. GNU live/Incus, user manager, three thread-
 limit runs and the root sandbox pass. Three shipped-musl scenario/Incus
-pairs pass. Local live scope is Ubuntu 6.8.0-147. Fresh coverage is 97.34%
-lines / 91.09% branches, leaving 231 lines and 165 branches.
+pairs pass. Local live scope is Ubuntu 6.8.0-147. Fresh coverage is 97.41%
+lines / 91.36% branches, leaving 225 lines and 160 branches. Request handling
+now covers 156/156 lines and 34/34 branches.
 
-The prior [fb0620d matrix](phase6/matrix-20261101T162452Z-2573413/README.md)
-passes all thirteen profiles with released iphost 0.4.4, matching publication
-selections and empty source patches. It predates the reply correction.
-The corrected production source still needs a required matrix. Earlier
+The [3f503cd matrix](phase6/matrix-20261101T182115Z-2714445/README.md)
+passes all thirteen profiles with the production reply correction and
+released iphost 0.4.4. Publication selections agree and source patches are
+empty. Later test-only request I/O probes have separate local qualification. Earlier
 [anonymous Reply](phase6/anonymous-reply-20261101/README.md),
 [E27](phase6/event-verification-20261101/README.md) and other packages below
 retain their original source scope. The specification is unchanged.
@@ -28,9 +29,9 @@ retain their original source scope. The specification is unchanged.
 | Requirement | Executed evidence | Still required |
 |---|---|---|
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
-| P2 scenarios | Prior fb0620d passes 27 normal cases on each required kernel; the corrected reply source passes three shipped-musl suites locally | Complete clause/history/resource/event-cost proof; requalify corrected source across required kernels |
-| P3 required kernels | Prior frozen fb0620d passes five normal, five clock, two IPv6-absent and one missing-driver profiles; selections agree and source patches are empty | Run the corrected reply source on the required set; the prior matrix does not qualify this production change |
-| P4 coverage | Fresh checked-reply source: 8,456/8,687 lines (97.34%); 1,687/1,852 branches (91.09%). No production exclusions, profile mismatches or saturated regions | Cover 231 lines and 165 branches; enable the completed 100% gate in CI |
+| P2 scenarios | Frozen 3f503cd passes 27 normal cases on every required kernel; the corrected reply source also passes three shipped-musl suites locally | Complete clause/history/resource/event-cost proof |
+| P3 required kernels | Frozen 3f503cd passes five normal, five clock, two IPv6-absent and one missing-driver profiles; selections agree and source patches are empty | Preserve exact source and later test-only execution scopes |
+| P4 coverage | Netlink I/O profiles: 8,462/8,687 lines (97.41%); 1,692/1,852 branches (91.36%). No production exclusions, profile mismatches or saturated regions | Cover 225 lines and 160 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | Checked replies pass GNU in 17.10 s and three unprivileged musl cases in 18.46, 9.39 and 19.69 s; containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | Checked replies and the unmodified supplied unit pass in 29.41 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
@@ -43,8 +44,8 @@ source scope in the [VRF record](phase6/vrf-inventory-state-20261101/README.md).
 
 ## Required-kernel snapshot
 
-The completed fb0620d matrix's initial and final publication checks select
-the same five stable targets. This snapshot predates the reply correction:
+The completed 3f503cd matrix's initial and final publication checks select
+the same five stable targets. This snapshot includes the reply correction:
 
 | Package/version | Guest release | Normal scenarios | H16 clock/pause |
 |---|---|---|---|
@@ -54,8 +55,8 @@ the same five stable targets. This snapshot predates the reply correction:
 | Vanilla 7.0.14 | 7.0.14 | 27 pass | pass |
 | Mainline 7.3 | 7.3.0 | 27 pass | pass |
 
-Each frozen fb0620d normal guest also passes 20 serial library, 24 Linux,
-five review, 63 ordinary binary, three privileged binary and 29 process cases.
+Each frozen 3f503cd normal guest also passes 20 serial library, 24 Linux,
+five review, 65 ordinary binary, three privileged binary and 29 process cases.
 The positive client-ID/binding and anonymous Reply cases pass on all five
 required kernels with released iphost 0.4.4. All eight
 daemon setup faults pass. Mainline passes both IPv6-absent boots; Ubuntu 7.0
@@ -77,7 +78,17 @@ Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 
 ## Current coverage evidence
 
-The [reply correction](phase6/netlink-reply-state-20261101/README.md) records
+The [netlink I/O record](phase6/netlink-io-faults-20261101/README.md) adds
+receive/poll failures, interruption, buffer fallback and three accepted real
+buffer-force guests. Seven profiles per accepted guest are merged; a reduced-
+buffer control fails. Three GNU/musl external Linux repetitions and their
+capability-retention controls pass/fail as expected. Serial startup profiles
+are also collected. The report reaches 8,462/8,687 lines and 1,692/1,852
+branches. All 4,311 production mappings remain identical. Rejected wording,
+source-link and marker-prefix attempts are retained and not counted as
+qualification. The specification and production code are unchanged.
+
+The preceding [reply correction](phase6/netlink-reply-state-20261101/README.md) records
 the malformed-status witnesses, eight passing cases, eight rejected controls
 and all local GNU/musl qualifications. Its fresh collector reports
 8,456/8,687 lines and 1,687/1,852 branches. No older profiles are merged.

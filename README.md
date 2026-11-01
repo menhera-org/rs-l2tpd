@@ -68,14 +68,15 @@ and dependency-state contracts are applied. Broken `nix` signal wrappers
 use checked `libc` calls under the documented exception. The
 [latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-01.md) gives coverage
 and the remaining clause/resource/event-cost proof. Fresh November 1
-coverage for iphost 0.4.4 and the boundary changes is **97.34% of lines and
-91.09% of branches**, leaving 231 lines and 165 branches. Recent test packages cover resolver validation
+coverage for iphost 0.4.4 and the boundary changes is **97.41% of lines and
+91.36% of branches**, leaving 225 lines and 160 branches. Recent test packages cover resolver validation
 and cleanup, public service constructors, staging bounds, ownership races,
 descriptor handover and socket-family fallback; their deliberately broken
 controls fail.
 [Required-kernel behavior](docs/kernel-behavior.md) records each target's
-differences, source evidence and limitations. The checked reply decoder has
-passing local qualification; its required-kernel matrix remains pending.
+differences, source evidence and limitations. The checked reply decoder passes
+all thirteen required-kernel matrix profiles. Request handling also has
+complete line/branch coverage after real buffer-force and I/O-fault checks.
 The global gates remain open.
 The known-gap tables describe historical commit `741117b`.
 

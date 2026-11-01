@@ -41,14 +41,23 @@ architecture compile checks pass. GNU live/Incus, user-manager, three
 thread-limit runs and the unmodified root sandbox pass. Three shipped-musl
 scenario/Incus pairs pass. These local live results apply to Ubuntu 6.8.0-147.
 
-The prior frozen source fb0620d passes all thirteen required matrix profiles,
-including the absent-family recovery case on all five kernels. Its shipping
-logic matches 584062d with released iphost 0.4.4. Initial/final selections
-agree and source patches are empty. That matrix predates the reply
-correction; the corrected source still needs its required matrix.
+Frozen signed source 3f503cd passes all thirteen required matrix profiles,
+including the corrected reply decoder, absent-family recovery and released
+iphost 0.4.4 on all five kernels. Initial/final publication selections agree
+and tracked-source patches are empty. Repository record
+`audit/phase6/matrix-20261101T182115Z-2714445/` seals this qualification.
 
-The fresh corrected-source collector reports **97.34% of production lines
-and 91.09% of branches**, leaving **231 lines and 165 branches**. Its
+Additional test-only request I/O checks pass three GNU, musl and instrumented
+runs, ten native/instrumented model runs and three musl model runs. Common
+and cross-architecture compile checks pass. Three fresh guests prove real
+buffer-force success and export seven profiles each; the reduced-buffer
+control fails. Request handling covers 156/156 lines and 34/34 branches.
+All 4,311 production mappings remain identical. Repository record
+`audit/phase6/netlink-io-faults-20261101/` identifies the accepted runs and
+rejected attempts.
+
+The merged collector reports **97.41% of production lines and 91.36% of
+branches**, leaving **225 lines and 160 branches**. Its
 denominators are 8,687 lines and 1,852 branches. Earlier profiles are not
 merged; no production exclusions, profile mismatches or saturated regions
 are present. Complete clause/history/resource/event-cost proof and the
@@ -181,8 +190,8 @@ the common CI script; regular CI retains one full guest per run. This
 establishes declaration traceability. The updated strict workflow also
 [passes in CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41211013318).
 Declaration traceability passes; complete clause proof and 100% coverage
-remain open. The November 1 required matrix passes on production source
-`11bef84`, as recorded above.
+remain open. The latest November 1 required matrix passes on signed production source
+`3f503cd`, as recorded above.
 
 ## P2. The scenario suite
 

@@ -499,15 +499,17 @@ malformed signed statuses without panic while preserving valid kernel
 errors, sequence checks and first-error precedence. Repeated native,
 instrumented and musl models, common gates, GNU live/Incus, manager, thread
 limits and the root sandbox pass. Three shipped-musl scenario/Incus pairs
-pass on Ubuntu 6.8.0-147. The prior fb0620d matrix passes all thirteen
-profiles; the corrected production source still needs its required matrix.
+pass on Ubuntu 6.8.0-147. Frozen 3f503cd passes all thirteen required matrix
+profiles with the production reply correction; publication selections agree
+and source patches are empty. Later test-only request I/O assertions pass
+three GNU/musl/instrumented runs and three real buffer-force guests.
 
-Fresh corrected-source coverage is **97.34% of lines and 91.09% of branches**:
-8,456/8,687 lines and 1,687/1,852 branches, leaving **231 lines and 165
+Fresh corrected-source coverage is **97.41% of lines and 91.36% of branches**:
+8,462/8,687 lines and 1,692/1,852 branches, leaving **225 lines and 160
 branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files
-`audit/phase6/netlink-reply-state-20261101/README.md` and
+`audit/phase6/netlink-io-faults-20261101/README.md` and
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identify the source, controls and
 scope. The following entries retain earlier measurements.
 

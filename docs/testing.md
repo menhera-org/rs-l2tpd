@@ -42,7 +42,7 @@ systemd transport commands. The manager test covers the address-family
 filter and descriptor protocol. The complete root system-unit mount
 sandbox, including the bindv6only write, subsequently passed in QEMU; see
 repository file `audit/phase6/P6_ROOT_SANDBOX_2026-10-30.md`. The November 1
-required matrix passed its 26-scenario normal profile and separate clock
+required matrix passed its 27-scenario normal profile and separate clock
 profiles on all five resolved targets. Later changes still need final
 qualification. Repository file `audit/PHASE6_VERIFICATION_2026-11-01.md`
 tracks the H11/G23 decisions, checked libc signal exception, remaining proof and
@@ -231,19 +231,24 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-merged report covers the checked reply decoder: 97.34% lines / 91.09%
-branches, leaving 231 lines and 165 branches. Its fresh collector includes
+merged report includes netlink I/O faults and real buffer-force success:
+97.41% lines / 91.36% branches, leaving 225 lines and 160 branches. Its fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
 production exclusions, mismatches or saturated regions. The production
 change alters the denominators to 8,687 lines and 1,852 branches; older
 profiles are not merged.
 
 Three shipped-musl scenario/Incus pairs and the root sandbox pass locally
-on Ubuntu 6.8.0-147. The prior fb0620d source passes all thirteen required
-matrix profiles; the checked reply correction still needs its matrix.
+on Ubuntu 6.8.0-147. Frozen 3f503cd passes all thirteen required matrix
+profiles with the checked reply correction. Later test-only additions retain
+their separate execution scope.
 Repository record `audit/phase6/netlink-reply-state-20261101/README.md`
 identifies the source, malformed-status witnesses, eight controls, complete
-commands and execution limits.
+commands and execution limits. Repository record
+`audit/phase6/netlink-io-faults-20261101/README.md` records three accepted GNU
+buffer-force guests, the reduced-buffer control, serial startup profiles
+and unchanged production mappings. Request handling covers 156/156 lines
+and 34/34 branches. The initial rejected wrapper run is not merged.
 
 The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public
