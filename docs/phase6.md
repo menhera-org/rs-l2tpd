@@ -47,8 +47,8 @@ thirteen profiles on frozen signed commit `584062d`. Later test-only
 additions retain their separate execution records.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.14% of
-lines and 90.38% of branches**, leaving **248 lines and 178 branches**.
+GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.21% of
+lines and 90.59% of branches**, leaving **242 lines and 174 branches**.
 
 A recent test-only package forces shutdown between service dequeue and
 dispatch and checks capacity acknowledgement. Ten native and instrumented
@@ -69,6 +69,13 @@ controls fail. The aggregate percentage is unchanged because constructor
 success and failure counters belong to different compiled instances.
 Repository record `audit/phase6/startup-open-errors-20261101/` retains the
 counter evidence and all eight startup faults.
+
+The instrumented library now also shares all 24 existing Linux declarations
+with the external target. Three serial library repetitions and the full GNU
+live collection pass, as do ten instrumented seeds, three musl library runs
+and common gates. Constructor success and refusal now execute in the same
+library instance. Repository record
+`audit/phase6/shared-live-harness-20261101/` gives the latest measurement.
 
 Complete clause/history/resource/event-cost proof and the 100% coverage
 gate remain required. The [testing page](testing.md) gives current gate

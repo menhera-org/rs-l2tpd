@@ -52,3 +52,10 @@ mod rule_tests;
 #[allow(unsafe_code)]
 #[path = "../tests/startup.rs"]
 mod startup_tests;
+
+// Share live cases with private cases in the instrumented library instance.
+#[cfg(all(test, coverage_nightly, feature = "serde", feature = "fake-kernel"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[allow(unsafe_code)]
+#[path = "../tests/kernel/linux.rs"]
+mod live_kernel_tests;

@@ -1,0 +1,11 @@
+features: all; native coverage target: x86_64-unknown-linux-gnu; stable target: x86_64-unknown-linux-musl
+CARGO_LLVM_COV_TARGET_DIR=<released-0.4.4 collector> cargo +nightly-2026-10-28 llvm-cov --target x86_64-unknown-linux-gnu --all-features --branch --no-report
+# Compare normalized --list --ignored declarations from the instrumented library and external kernel-linux target; both must contain all 24 existing Linux declarations.
+PHASE6_COVERAGE_RECORD=<this record> CARGO_LLVM_COV_TARGET_DIR=<same collector> sh audit/phase6/process-errors-20261031/run-live.sh
+# The live runner serially executes 46 library cases, the retained external 24 Linux and five review cases, three privileged binary cases, 29 process cases and 27 normal scenarios.
+for seed in 1 2 3 4 5 6 7 8 9 10; do TEST_SEED=$seed cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --lib --branch --no-report; done
+for seed in 1 2 3; do TEST_SEED=$seed cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib; done
+./test-ci-gates.sh
+# Repeat the same instrumented library --ignored --test-threads=1 --nocapture profile twice more in isolated Docker containers; live-library-2.log and live-library-3.log retain exact executable paths and all 46 results.
+CARGO_LLVM_COV_TARGET_DIR=<same collector> cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path /tmp/phase6-shared-live-coverage.json
+CARGO_LLVM_COV_TARGET_DIR=<same collector> cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines

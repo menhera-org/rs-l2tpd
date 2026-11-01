@@ -1,0 +1,113 @@
+[
+  {
+    "removed": "_RNCNvYpNtNtCscOmcwvr6zNL_8rs_l2tpd6kernel6Kernel10dump_links0B9_",
+    "old": {
+      "branches": [],
+      "filenames": [
+        "/home/dev/rs-l2tpd/src/kernel/mod.rs"
+      ],
+      "name": "_RNCNvYpNtNtCscOmcwvr6zNL_8rs_l2tpd6kernel6Kernel10dump_links0B9_",
+      "regions": [
+        [
+          330,
+          40,
+          330,
+          45,
+          0,
+          0,
+          0
+        ],
+        [
+          330,
+          51,
+          330,
+          63,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "same_region_additions": [
+      "_RNCNvYNtNtNtCscOmcwvr6zNL_8rs_l2tpd6kernel5linux11LinuxKernelNtB8_6Kernel10dump_links0Ba_"
+    ]
+  },
+  {
+    "removed": "_RNvYpNtNtCscOmcwvr6zNL_8rs_l2tpd6kernel6Kernel10dump_linksB7_",
+    "old": {
+      "branches": [],
+      "filenames": [
+        "/home/dev/rs-l2tpd/src/kernel/mod.rs"
+      ],
+      "name": "_RNvYpNtNtCscOmcwvr6zNL_8rs_l2tpd6kernel6Kernel10dump_linksB7_",
+      "regions": [
+        [
+          328,
+          5,
+          328,
+          58,
+          0,
+          0,
+          0
+        ],
+        [
+          329,
+          25,
+          329,
+          35,
+          0,
+          0,
+          0
+        ],
+        [
+          330,
+          9,
+          330,
+          13,
+          0,
+          0,
+          0
+        ],
+        [
+          330,
+          25,
+          330,
+          26,
+          0,
+          0,
+          0
+        ],
+        [
+          330,
+          65,
+          330,
+          66,
+          0,
+          0,
+          0
+        ],
+        [
+          331,
+          9,
+          331,
+          18,
+          0,
+          0,
+          0
+        ],
+        [
+          332,
+          5,
+          332,
+          6,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "same_region_additions": [
+      "_RNvYNtNtNtCscOmcwvr6zNL_8rs_l2tpd6kernel5linux11LinuxKernelNtB6_6Kernel10dump_linksB8_"
+    ]
+  }
+]
