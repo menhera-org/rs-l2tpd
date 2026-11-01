@@ -83,7 +83,7 @@ new mainline tag appears, the table MUST be updated and the matrix
 re-run on the new versions before the phase 6 gate is called green;
 a matrix run on a superseded version does not count.
 
-Resolved on 2026-10-31 from the published Ubuntu updates/security
+Resolved on 2026-11-01 from the published Ubuntu updates/security
 `linux-image-generic` candidates and kernel.org releases and source
 indexes. Proposed packages do not replace the published targets:
 

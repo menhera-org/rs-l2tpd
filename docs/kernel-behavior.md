@@ -3,13 +3,13 @@
 [Documentation index](README.md) · [Required targets](testing.md#kernel-targets) · [Kernel specification](spec/kernel.md) · [Evidence map](kernel-evidence.md)
 
 This page records the behavior relevant to rs-l2tpd for **each required
-kernel**, resolved on 2026-10-31. The specification defines the contract;
+kernel**, resolved on 2026-11-01. The specification defines the contract;
 this page distinguishes observations, source evidence and remaining tests.
 The latest required matrix passes all five normal and clock profiles,
 including H20 fragmentation and both 300-entry daemons. It also passes both
 IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
 publication checks select the same versions. Repository record
-`audit/phase6/matrix-20261031T213935Z-567802/README.md` identifies the I/O
+`audit/phase6/matrix-20261101T003757Z-933582/README.md` identifies the frozen
 source and fixture set tested. Later daemon and fixture changes still need final five-target qualification.
 The approved H11 configured-MAC policy now passes three fresh Incus runs
 and a root-systemd guest on Ubuntu 6.8.0-147; its userspace scope is below.
@@ -103,8 +103,9 @@ not mean that every possible failure mode was exercised on that target.
 The normal profile proves the shared assertions it actually executes,
 including all eight H20 fragmentation combinations. The additional
 profiles below use the I/O source identified by the latest matrix record.
-Subsequent monitor/process/inheritance fixtures have separate Ubuntu 6.8
-evidence and are not included in that five-target fixture set.
+This snapshot includes the later monitor/process/inheritance assertions.
+Subsequent socket application/cleanup fixes and approved MAC/timing fixtures
+have separate Ubuntu 6.8 evidence and still need final five-target qualification.
 
 | Required kernel | Matrix normal profile / H20 | Capability/netlink degradation | H16 clock/pause | H17 300 tunnels | H11/unprivileged system container |
 |---|---|---|---|---|---|
@@ -115,7 +116,7 @@ evidence and are not included in that five-target fixture set.
 | Mainline `7.3.0` | 26 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the
-latest matrix (`audit/phase6/matrix-20261031T213935Z-567802/README.md`).
+latest matrix (`audit/phase6/matrix-20261101T003757Z-933582/README.md`).
 The approved explicit-MAC-authority case passes three fresh unprivileged
 Incus runs and the unmodified root-systemd guest. Their source and logs are
 in `audit/phase6/maintainer-decisions-20261101/README.md`; the earlier failure

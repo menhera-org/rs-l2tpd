@@ -758,7 +758,33 @@ Ten seeded suites, three musl rule repetitions and common checks pass.
 Repository record `audit/phase6/vrf-address-events-20261101/` gives the
 95.27% line / 86.01% branch report, compatible mappings, the corrected
 source-preference assumption and the current implementation's passing CI.
-The new required matrix runs in a frozen checkout; its outcome is pending.
+The new required matrix now passes in its frozen bdf81b5 checkout; it
+predates the later socket-state and approved fixture changes.
+
+Required socket-operation failures now report unapplied work. Unspecified-
+source cleanup restores the configured binding, and simultaneous full/
+per-tunnel deadlines attempt each tunnel once. Ten seeded suites, three
+musl library/fake/rule runs, fresh live/manager profiles and the root
+sandbox pass. Repository record
+`audit/phase6/tunnel-application-status-20261101/` gives the fresh
+95.46% line / 86.11% branch report: 387 lines and 252 branches remain.
+
+The maintainer approved explicit staged-MAC authority, G23's current
+dependency-state bound with streamed inventories, and H6's retry-deadline/
+observed-completion distinction. The specifications and MAC/timing fixtures
+are updated. Three fresh Incus cases, the unmodified root-systemd guest,
+three normal suites and common checks pass. Repository record
+`audit/phase6/maintainer-decisions-20261101/` retains exact sources and
+earlier failures. Streamed inventories and their resource proof remain
+implementation work; approval alone does not pass G23.
+
+The November 1 required matrix re-resolves the same five published targets
+and passes all normal/clock and scoped degradation profiles on bdf81b5.
+Repository record `audit/phase6/matrix-20261101T003757Z-933582/` retains the
+frozen source and publication checks. Final source qualification, the nix
+release, full clause/resource/event-cost proof and 100% coverage remain
+open. The production eeec257 workflow passes both CI jobs in about fourteen
+minutes without timeout.
 
 ### Phase 7 — release
 
