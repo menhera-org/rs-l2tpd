@@ -25,6 +25,12 @@ empty. Later test-only request I/O probes have separate local qualification. Ear
 [E27](phase6/event-verification-20261101/README.md) and other packages below
 retain their original source scope. The specification is unchanged.
 
+The later [host qualification](phase6/current-head-qualification-20261101/README.md)
+freezes code at signed 1b3d876. GNU live and GNU Incus pass, followed by
+three stable-musl scenario/Incus pairs. All containers are deleted. Unique
+profile transport fixes a rejected directory-reuse attempt and preserves
+274 earlier exports. This adds no other kernel/userspace scope.
+
 ## Gate status
 
 | Requirement | Executed evidence | Still required |
@@ -33,7 +39,7 @@ retain their original source scope. The specification is unchanged.
 | P2 scenarios | Frozen 3f503cd passes 27 normal cases on every required kernel; the corrected reply source also passes three shipped-musl suites locally | Complete clause/history/resource/event-cost proof |
 | P3 required kernels | Frozen 3f503cd passes five normal, five clock, two IPv6-absent and one missing-driver profiles; selections agree and source patches are empty | Preserve exact source and later test-only execution scopes |
 | P4 coverage | Lifetime input/state profiles: 8,487/8,687 lines (97.70%); 1,699/1,852 branches (91.74%). No production exclusions, profile mismatches or saturated regions | Cover 200 lines and 153 branches; enable the completed 100% gate in CI |
-| P5 Incus/LXD | Checked replies pass GNU in 17.10 s and three unprivileged musl cases in 18.46, 9.39 and 19.69 s; containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
+| P5 Incus/LXD | Signed 1b3d876 passes GNU in 17.19 s and three unprivileged musl cases in 24.81, 17.88 and 16.02 s; containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | Checked replies and the unmodified supplied unit pass in 29.41 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
 

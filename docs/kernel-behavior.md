@@ -33,6 +33,12 @@ Later test-only request I/O assertions pass three GNU buffer-force guests
 on Ubuntu 6.8.0-147; `audit/phase6/netlink-io-faults-20261101/README.md`
 records the actual force/fallback distinction and injected failures.
 
+The later signed code 1b3d876 passes GNU Incus in 17.19 s and three
+stable-musl Incus cases in 24.81, 17.88 and 16.02 s, again on Ubuntu
+24.04 / 6.8.0-147. Repository record
+`audit/phase6/current-head-qualification-20261101/README.md` identifies
+those runs and their unchanged production behavior.
+
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.
 

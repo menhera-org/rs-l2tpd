@@ -1,0 +1,128 @@
+features: all; target: x86_64-unknown-linux-gnu; nightly branch coverage
+command: /home/dev/rs-l2tpd/target/phase6-coverage-netlink-reply-state-20261101/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/b4e0da4b3e4638a3/out/rs_l2tpd-b4e0da4b3e4638a3 --ignored --test-threads=1 --nocapture
+profile pattern: /home/dev/rs-l2tpd/target/phase6-coverage-netlink-reply-state-20261101/live-profiles/live-1-%p-%m.profraw
+6.8.0-147-generic
+
+running 50 tests
+test kernel::linux::l2tp::family_recovery_tests::an_absent_family_is_forgotten_and_resolved_again ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ok
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ok
+test kernel::linux::lifetime::tests::reader_io_errors_end_old_proofs_and_failed_reopen_remains_stoppable ... ok
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ok
+test kernel::linux::monitor::tests::registration_and_receive_failures_preserve_loss_and_retry_bounds ... FEED_FAULT_VERIFIED=open
+FEED_FAULT_VERIFIED=registration
+FEED_FAULT_VERIFIED=overflow
+FEED_FAULT_VERIFIED=receive
+ok
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... FORCE_RESULT=EPERM
+SUBSCRIPTION_RCVBUF=425984
+ok
+test kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade ... REQUEST_IO_FAULT_VERIFIED=buffers-failed
+
+thread 'kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade' (30) panicked at src/kernel/linux/request.rs:979:13:
+LLVM Profile Warning: Unable to merge profile data: source profile file is not compatible.
+LLVM Profile Error: Profile Merging of file /home/dev/rs-l2tpd/target/phase6-coverage-netlink-reply-state-20261101/live-profiles/live-1-33-12992292291738498623_0.profraw failed: File exists
+LLVM Profile Error: Failed to write file "/home/dev/rs-l2tpd/target/phase6-coverage-netlink-reply-state-20261101/live-profiles/live-1-33-12992292291738498623_0.profraw": File exists
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test kernel::linux::request::strict_option_tests::a_refused_strict_option_returns_the_original_error_without_leaking_sockets ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ok
+test kernel::linux::resources_tests::socket_storage_follows_survivors_after_a_large_configuration ... ok
+test kernel::linux::socket::tests::library_error_mapping_preserves_errno_and_reports_synthetic_refusals ... 
+thread 'kernel::linux::socket::tests::library_error_mapping_preserves_errno_and_reports_synthetic_refusals' (41) panicked at src/kernel/linux/socket.rs:257:9:
+tunnel socket: address family mismatch: local and remote must be the same IP version
+tunnel socket: encapsulation mismatch: operation does not apply to this socket
+tunnel socket: the peer connection ID of this adopted L2TP/IP socket is unknown
+tunnel socket: I/O error: controlled library error
+LLVM Profile Warning: Unable to merge profile data: source profile file is not compatible.
+LLVM Profile Error: Profile Merging of file /home/dev/rs-l2tpd/target/phase6-coverage-netlink-reply-state-20261101/live-profiles/live-1-42-12992292291738498623_0.profraw failed: File exists
+LLVM Profile Error: Failed to write file "/home/dev/rs-l2tpd/target/phase6-coverage-netlink-reply-state-20261101/live-profiles/live-1-42-12992292291738498623_0.profraw": File exists
+
+FAILED
+test live_kernel_tests::a_closed_socket_is_not_announced ... ok
+test live_kernel_tests::a_handed_over_socket_keeps_its_tunnel ... ok
+test live_kernel_tests::a_reused_index_and_creation_name_never_revive_an_old_registration ... ok
+test live_kernel_tests::a_tunable_write_changes_only_fresh_sockets ... ok
+test live_kernel_tests::completion_scoped_failure_lookup_and_random_refusal ... ok
+test live_kernel_tests::conformance_on_the_linux_kernel ... case inventories_select_only_the_requested_dependency
+case disconnected_sessions_count_frame_drops
+case tunnel_identifiers_are_unique
+case session_identifiers_are_unique_in_the_namespace
+case a_taken_name_creates_no_session
+case the_stored_name_is_the_creation_name
+case closing_the_socket_deletes_the_tunnel
+case a_deleted_session_identifier_is_released
+case a_registration_is_proved_until_removal
+case adoption_preserves_tunnel_and_session_records
+case reported_cookies_preserve_foreign_lengths
+case a_binding_is_set_on_an_unbound_socket
+LIVE_NET_RAW=true
+case connect_selects_the_source_of_the_device
+connect peer=192.0.2.2 zone=None
+case empty_ipv6_vrf_without_a_source_or_route_cannot_connect
+empty IPv6 VRF connect errno: 99
+case a_link_local_zone_must_match_the_binding
+connect peer=fe80::91:2 zone=Some(L2tpIfName("conf-llm"))
+case a_hardware_address_needs_the_device_down
+case the_monitor_reports_links_and_addresses
+case deletions_are_announced
+ok
+test live_kernel_tests::disconnected_sessions_drop_outbound_but_receive_only_matching_cookies ... ok
+test live_kernel_tests::event_recreation_uses_the_configured_creation_name_on_linux ... ok
+test live_kernel_tests::library_constructors_reject_missing_tokio_and_preserve_adopted_descriptors ... ok
+test live_kernel_tests::library_missing_net_admin_withholds_readiness_and_shutdown_still_succeeds ... ok
+test live_kernel_tests::library_runtime_drop_closes_active_and_retiring_tunnels_without_touching_foreign_ones ... ok
+test live_kernel_tests::links_are_found_by_name_and_dumped ... ok
+test live_kernel_tests::lowering_a_device_discards_ipv6_addresses_unless_preserved ... ok
+test live_kernel_tests::public_service_constructors_converge_repeatedly_and_release_their_tunnels ... ok
+test live_kernel_tests::selected_address_inventory_refuses_a_device_lost_between_families ... ok
+test live_kernel_tests::selected_address_inventory_works_when_the_devices_ipv6_is_disabled ... ok
+test live_kernel_tests::selected_address_inventory_works_without_ipv6_device_state ... ok
+test live_kernel_tests::services_converge_and_orderly_shutdown_on_linux ... ok
+test live_kernel_tests::sessions_are_captured_scanned_and_deleted ... ok
+test live_kernel_tests::sockets_bind_connect_and_report_their_source ... ok
+test live_kernel_tests::the_kernel_keeps_the_previous_ipv6_peer_after_disconnect ... ok
+test live_kernel_tests::the_monitor_reports_removals ... ok
+test live_kernel_tests::tunnel_sockets_enable_fragmentation_before_connect ... ok
+test live_kernel_tests::unrelated_inherited_descriptors_are_refused_and_consumed ... ok
+test reconciler::resolvers::tests::anonymous_adapter_rejects_a_reply_carrying_another_client_identifier ... ok
+test reconciler::resolvers::tests::released_adapter_preserves_client_identifiers_and_static_device_binding ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ok
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ok
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ok
+test reconciler::resolvers::tests::shared_partial_discovery_retries_replace_the_actual_lookup_snapshot ... ok
+test reconciler::workers::cost_tests::dropping_an_adapter_cancels_only_its_jobs_and_preserves_other_answers ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ok
+test runtime::tests::absent_log_sink_does_not_change_kernel_refusal_or_recovery ... ok
+test startup_tests::descriptor_resource_failures_preserve_inheritance_and_release_partial_sockets ... DESCRIPTOR_FAULT_VERIFIED=inherited-duplicate
+DESCRIPTOR_FAULT_VERIFIED=socket-duplicate
+DESCRIPTOR_FAULT_VERIFIED=socket-metadata
+ok
+test startup_tests::reload_thread_failure_returns_eagain_and_closes_the_service_queue ... RELOAD_THREAD_FAILURE_VERIFIED=EAGAIN
+ok
+test startup_tests::resolver_spawn_failures_return_errors_and_release_worker_permits ... RESOLVER_SPAWN_VERIFIED=owner
+RESOLVER_SPAWN_VERIFIED=worker
+ok
+test startup_tests::startup_resource_failures_return_errors_and_preserve_adopted_fds ... STARTUP_FAILURE_VERIFIED=runtime-open
+STARTUP_FAILURE_VERIFIED=service-open
+STARTUP_FAILURE_VERIFIED=runtime-thread
+STARTUP_FAILURE_VERIFIED=service-thread
+STARTUP_FAILURE_VERIFIED=service-engine
+STARTUP_FAILURE_VERIFIED=blocking-thread
+STARTUP_FAILURE_VERIFIED=blocking-engine
+STARTUP_FAILURE_VERIFIED=blocking-open
+ok
+
+failures:
+
+failures:
+    kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade
+    kernel::linux::socket::tests::library_error_mapping_preserves_errno_and_reports_synthetic_refusals
+
+test result: FAILED. 48 passed; 2 failed; 0 ignored; 0 measured; 265 filtered out; finished in 13.05s
+
+LLVM Profile Warning: Unable to merge profile data: source profile file is not compatible.
+LLVM Profile Error: Profile Merging of file /home/dev/rs-l2tpd/target/phase6-coverage-netlink-reply-state-20261101/live-profiles/live-1-1-12992292291738498623_0.profraw failed: File exists
+LLVM Profile Error: Failed to write file "/home/dev/rs-l2tpd/target/phase6-coverage-netlink-reply-state-20261101/live-profiles/live-1-1-12992292291738498623_0.profraw": File exists

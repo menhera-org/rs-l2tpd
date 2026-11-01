@@ -28,7 +28,7 @@ cleanup() {
     ' > "$record/incus-profiles.list"; then
         while IFS= read -r profile; do
             case $profile in /opt/phase6/profiles/*.profraw|/run/rs-l2tpd/*.profraw) ;; *) result=1; continue ;; esac
-            destination=$coverage/incus-${profile##*/}
+            destination=$coverage/incus-$name-${profile##*/}
             incus --quiet file pull "$name$profile" "$destination" || result=1
         done < "$record/incus-profiles.list"
         daemon_profiles=$(awk '/^\/run\/rs-l2tpd\/daemon-[0-9]+-[0-9]+(_[0-9]+)?\.profraw$/ {count++} END {print count+0}' "$record/incus-profiles.list")

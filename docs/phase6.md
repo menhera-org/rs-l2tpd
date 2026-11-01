@@ -39,6 +39,10 @@ publication selections agree and source patches are empty. Repository
 record `audit/phase6/matrix-20261101T182115Z-2714445/` seals the result.
 The checked-reply implementation also has passing local GNU/musl, Incus,
 manager, thread-limit and unmodified root-unit results on Ubuntu 6.8.0-147.
+Later signed code 1b3d876 passes fresh GNU live/Incus and three stable-musl
+scenario/Incus pairs. Independent profile transport preserves earlier
+exports; `audit/phase6/current-head-qualification-20261101/` records the fix,
+rejected attempt and successful collections.
 
 Later test-only packages qualify request I/O errors and real buffer-force
 success, service queue ordering, reconciler record/retirement guards and

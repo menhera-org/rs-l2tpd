@@ -240,8 +240,10 @@ production exclusions, mismatches or saturated regions. The checked-reply
 implementation fixes the denominators at 8,687 lines and 1,852 branches.
 Profiles from earlier production implementations are not merged.
 
-Three shipped-musl scenario/Incus pairs and the root sandbox pass locally
-on Ubuntu 6.8.0-147. Frozen 3f503cd passes all thirteen required matrix
+Signed code 1b3d876 passes fresh GNU live/Incus and three shipped-musl
+scenario/Incus pairs locally on Ubuntu 6.8.0-147. Profile exports use unique
+collection/container prefixes to preserve earlier data. The root sandbox
+retains its earlier checked-reply source scope. Frozen 3f503cd passes all thirteen required matrix
 profiles with the checked reply correction. Later test-only additions retain
 their separate execution scope.
 Repository record `audit/phase6/netlink-reply-state-20261101/README.md`
