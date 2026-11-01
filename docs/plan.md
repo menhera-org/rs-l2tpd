@@ -519,8 +519,8 @@ thirteen profiles on frozen signed commit `584062d`. Later test-only
 additions retain their separate execution records.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.27% of
-lines and 90.76% of branches**, leaving **237 lines and 171 branches**. The 100% gate and complete
+GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.28% of
+lines and 90.81% of branches**, leaving **236 lines and 170 branches**. The 100% gate and complete
 clause/history/resource/event-cost proof remain open. Repository file
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.
 The following entries retain the history of earlier measurements.

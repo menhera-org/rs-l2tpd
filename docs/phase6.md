@@ -47,8 +47,8 @@ thirteen profiles on frozen signed commit `584062d`. Later test-only
 additions retain their separate execution records.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.27% of
-lines and 90.76% of branches**, leaving **237 lines and 171 branches**.
+GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.28% of
+lines and 90.81% of branches**, leaving **236 lines and 170 branches**.
 
 A recent test-only package forces shutdown between service dequeue and
 dispatch and checks capacity acknowledgement. Ten native and instrumented
@@ -88,6 +88,12 @@ and common gates pass. Seven production controls and a namespace-fixture
 control fail. Repository record `audit/phase6/host-adapter-success-20261101/`
 gives the latest measurement. A required matrix frozen at fb0620d is running
 separately; it excludes these later declarations.
+A later fixture extension adds transient WouldBlock reads and a single-
+warning assertion for tunable correction. Repeated native/instrumented,
+GNU/musl container and common gates pass; both controls reject the broken
+behavior. caps.rs, fdstore.rs and tunable.rs now each reach complete line
+and branch coverage. Repository record
+`audit/phase6/host-adapter-completion-20261101/` gives the latest measurement.
 
 Complete clause/history/resource/event-cost proof and the 100% coverage
 gate remain required. The [testing page](testing.md) gives current gate

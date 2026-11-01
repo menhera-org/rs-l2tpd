@@ -304,6 +304,7 @@ mod tests {
                 "poll-interrupted" => (poll_syscalls, libc::EINTR),
                 "read" => (&[libc::SYS_read][..], libc::EIO),
                 "read-interrupted" => (&[libc::SYS_read][..], libc::EINTR),
+                "read-would-block" => (&[libc::SYS_read][..], libc::EAGAIN),
                 _ => panic!("unknown barrier fault"),
             };
             crate::syscall_fault::refuse(syscalls, error);
@@ -312,7 +313,7 @@ mod tests {
             let error = store
                 .barrier(Instant::now() + Duration::from_millis(200))
                 .unwrap_err();
-            if case.ends_with("interrupted") {
+            if case.ends_with("interrupted") || case == "read-would-block" {
                 assert_eq!(error.kind(), io::ErrorKind::TimedOut);
             } else {
                 assert_eq!(
@@ -338,6 +339,7 @@ mod tests {
             "poll-interrupted",
             "read",
             "read-interrupted",
+            "read-would-block",
         ] {
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args(["--exact", "fdstore::tests::failed_barrier_operations_preserve_errors_and_release_local_pipes", "--nocapture", "--test-threads=1"])

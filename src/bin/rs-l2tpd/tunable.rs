@@ -61,6 +61,7 @@ mod namespace_tests {
     #[test]
     #[ignore = "isolated network namespace with CAP_NET_ADMIN and writable namespace sysctls"]
     fn whitelisted_writes_apply_only_to_the_callers_network_namespace() {
+        crate::logger::init(false);
         let path = "/proc/sys/net/ipv6/bindv6only";
         let original = std::fs::read_to_string(path).unwrap();
         let namespace = std::fs::File::open("/proc/thread-self/ns/net").unwrap();

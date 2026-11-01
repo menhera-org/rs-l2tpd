@@ -1,0 +1,11 @@
+--- a/src/bin/rs-l2tpd/tunable.rs
++++ b/src/bin/rs-l2tpd/tunable.rs
+@@ -11,7 +11,7 @@
+     let previous = std::fs::read_to_string(path)?;
+     if previous.trim() != "0" {
+         std::fs::write(path, b"0\n")?;
+-        log::warn!(
++        log::debug!(
+             "net.ipv6.bindv6only set to 0 (previous value {})",
+             previous.trim()
+         );
