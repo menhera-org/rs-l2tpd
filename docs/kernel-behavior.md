@@ -9,8 +9,9 @@ The latest required matrix passes all five normal and clock profiles,
 including H20 fragmentation and both 300-entry daemons. It also passes both
 IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
 publication checks select the same versions. Repository record
-`audit/phase6/matrix-20261101T003757Z-933582/README.md` identifies the frozen
-source and fixture set tested. Later daemon and fixture changes still need final five-target qualification.
+`audit/phase6/matrix-20261101T025846Z-1217029/README.md` identifies the frozen
+streamed-inventory implementation and approved fixtures tested. The later
+checked libc signal calls and test additions still need five-target qualification.
 The approved H11 configured-MAC policy now passes three fresh Incus runs
 and a root-systemd guest on Ubuntu 6.8.0-147; its userspace scope is below.
 
