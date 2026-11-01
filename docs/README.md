@@ -44,7 +44,11 @@ checked `libc` calls under the [documented exception](dependencies.md#upstream-n
 [Required-kernel behavior](kernel-behavior.md) records each target's
 differences, source evidence, execution scope and limitations. Repository
 file `audit/PHASE6_VERIFICATION_2026-11-01.md` gives coverage and the remaining
-clause/resource/event-cost proof. The global gates remain open.
+clause/resource/event-cost proof. The latest test source is `2cfe6e8`;
+merged production coverage is **96.67% of lines and 89.29% of branches**,
+leaving 288 lines and 198 branches. Repeated model and GNU/musl tests include
+failure controls for session ownership and descriptor handover. The global
+gates remain open.
 The specification's
 [known gaps](spec/README.md#known-gaps) describe historical commit
 `741117b`, removed in Phase 0. The interface page describes the target.

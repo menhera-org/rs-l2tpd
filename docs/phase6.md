@@ -25,6 +25,21 @@ into P7's packaging page, F7 into P1's service tests). The live reconnection sce
 udev experiment (`audit/phase5-completion/networkd/`) are the seeds of
 the scenario suite below; read them before writing new scenarios.
 
+## Execution status, 2026-11-01
+
+Phase 6 remains open. Production source `2051827` passes all thirteen required
+matrix profiles, including 27 normal scenarios on each of the five kernels.
+Strict maps, unprivileged Incus and the root sandbox have passing records.
+Later test-only source `2cfe6e8` has passing common checks and repeated
+GNU/musl qualification. Merged production coverage is **96.67% of lines and
+89.29% of branches**, leaving **288 lines and 198 branches**.
+
+Complete clause/history/resource/event-cost proof and the 100% coverage
+gate remain required. The [testing page](testing.md) gives current gate
+commands; repository file `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies
+the source, commands, failures, controls and limitations of each result.
+The entry-state reports describe earlier trees.
+
 ## Rules that hold for the whole phase
 
 - **Nothing is proved by reading.** A gate is green when the command in
@@ -149,7 +164,9 @@ identifies the source and each result. Both strict flags are now set in
 the common CI script; regular CI retains one full guest per run. This
 establishes declaration traceability. The updated strict workflow also
 [passes in CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41211013318).
-The remaining clause, matrix and coverage gates stay open.
+Declaration traceability passes; complete clause proof and 100% coverage
+remain open. The November 1 required matrix passes on production source
+`2051827`, as recorded above.
 
 ## P2. The scenario suite
 
@@ -378,7 +395,8 @@ Acceptance: the guest's journal and the assertions in the record.
 P2 first, because P1's H rules and most G rules are its scenarios, and
 P3 and P5 reuse its tests. P1's non-scenario rules and P4's tooling can
 start in parallel with P2. P3 after P2 passes on the host kernel. P6
-needs P3's guest tooling. P5 waits for the maintainer's access decision.
+needs P3's guest tooling. P5 needs usable unprivileged Incus access; the current passing scope is
+recorded above.
 P7 is written as the gates turn green, not at the end.
 
 ## Stop and ask when
@@ -388,7 +406,7 @@ P7 is written as the gates turn green, not at the end.
 - `l2tp` or `iphost` lacks something the test needs;
 - a new fact has no source-link classification (P1's five existing
   delegated/source-only facts were decided on 2026-10-30);
-- the coverage job's toolchain (P4) has not been decided;
+- the pinned coverage toolchain (P4) cannot collect or merge branch profiles;
 - Incus/LXD access (P5) is missing;
 - a scenario shows the daemon doing something the specification does
   not say, even when the suite is green: that is either a defect or a

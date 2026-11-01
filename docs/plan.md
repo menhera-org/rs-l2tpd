@@ -494,7 +494,21 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
 Exit: all five gates green on the running kernel and on every required
 kernel target; the Incus/LXD scenario run, not skipped.
 
-**Status: in progress on 2026-10-31.** The strict source-link check
+**Status: in progress on 2026-11-01.** Production source `2051827`
+passes all thirteen required matrix profiles: five normal suites of 27
+scenarios, five clock profiles, both IPv6-absent boots and missing-driver
+recovery. Strict rule/source maps, unprivileged Incus and the root sandbox
+have passing records. The checked libc exception is applied; no nix
+contribution or release is required.
+
+Later test-only source `2cfe6e8` has passing common checks and repeated
+GNU/musl qualification. Merged coverage is **96.67% of lines and 89.29% of
+branches**, leaving **288 lines and 198 branches**. The 100% gate and complete
+clause/history/resource/event-cost proof remain open. Repository file
+`audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.
+The following entries retain the history of earlier measurements.
+
+**Initial status, 2026-10-31.** The strict source-link check
 passes locally. The partial host scenarios, unprivileged Incus case and
 root system-unit sandbox have passing records. The required matrix driver
 passes all five currently implemented profiles and both scoped H4

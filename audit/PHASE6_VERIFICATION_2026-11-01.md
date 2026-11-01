@@ -6,9 +6,11 @@ It includes kernel-selected inventories, VRF inventory-completion tracking
 and checked libc signal calls. Later commits add tests and measurement
 infrastructure; they do not change shipping behavior.
 
-The latest test harness is `5741e89`. Its
-[record](phase6/shared-rule-harness-20261101/README.md) identifies the source,
-commands, failures, isolation changes and current coverage. Earlier packages
+The latest test source is `2cfe6e8`. Its
+[descriptor record](phase6/descriptor-inheritance-20261101/README.md), the
+[session races](phase6/session-races-20261101/README.md) and the
+[shared harness](phase6/shared-rule-harness-20261101/README.md) identify
+the source, commands, failures, controls and current coverage. Earlier packages
 and the [October 31 record](PHASE6_VERIFICATION_2026-10-31.md) retain their
 original execution scope.
 

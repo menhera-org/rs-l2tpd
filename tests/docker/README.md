@@ -46,10 +46,15 @@ capture loss. Guards kill daemons and delete namespaces on panic. Frame
 delivery and drop counters are asserted, along with interface identity,
 kernel objects, logs and bounded event waits.
 
-Phase 6 remains incomplete: final-source matrix qualification, complete
-clause/resource/event-cost proof, the compatible upstream signal fix and
-100% production coverage remain open. The normal suite now includes the
-300-tunnel/session case. H20 now covers full-MTU frames and 1 MiB transfers over both families,
+Phase 6 remains incomplete. Production source `2051827` passes all thirteen
+required profiles, including 27 normal scenarios on each of five kernels,
+five clock profiles, both IPv6-absent boots and missing-driver recovery.
+The approved checked-libc signal exception is applied; no nix contribution
+or release is required. Later test-only source `2cfe6e8` has separate GNU/musl
+qualification. Merged coverage is 96.67% of lines and 89.29% of branches;
+100% coverage and complete clause/history/resource/event-cost proof remain
+open. See the [current verification record](../../audit/PHASE6_VERIFICATION_2026-11-01.md).
+The normal suite includes the 300-tunnel/session case. H20 now covers full-MTU frames and 1 MiB transfers over both families,
 1500/9000 session MTUs and VRF/no-VRF binding, with sender fragment and
 session receive/drop counters. A separate live socket test reads back
 T5's options; a child-only seccomp case checks actual option refusals.
