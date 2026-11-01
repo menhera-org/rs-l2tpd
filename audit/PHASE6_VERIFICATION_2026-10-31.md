@@ -1026,3 +1026,17 @@ returned upstream CI jobs pass for PR #2853, including all four native Linux
 jobs. Both proposals await upstream integration; the compatible signal
 release and downstream fault tests remain pending. No daemon dependency,
 implementation, specification or coverage exclusion changes.
+
+## Repeated operations, November 1
+
+[The repeated-operation record](phase6/repeated-operations-20261101/README.md)
+checks that a second scoped link-local connect succeeds after the first
+replaces the VRF binding, and that renaming an active device to its current
+name preserves identity. All shared cases pass three times per ABI with
+CAP_NET_RAW present and absent. The twelve-invocation driver timed out after
+eleven successes; its incomplete last invocation passes separately. Ten
+seeded suites, three instrumented live runs and common checks pass.
+Production mappings match the broader preceding collection. Coverage is
+95.03% lines / 85.03% branches, leaving 424 lines and 271 branches, with
+zero saturated regions or production exclusions. Final five-target fixture
+qualification and the H11/G23/upstream-release requirements remain open.

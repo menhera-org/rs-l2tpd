@@ -719,6 +719,14 @@ returned upstream CI jobs pass for that proposal. Repository record
 `audit/phase6/upstream-overflow-fixture-20261031/` retains the controls;
 both upstream fixes still await integration and the signal release.
 
+The shared suite now checks repeated scoped link-local connects and renames
+to the current name. GNU and musl cases pass three times with CAP_NET_RAW
+present and three times absent, alongside ten seeded suites and compatible
+coverage profiles. Repository record
+`audit/phase6/repeated-operations-20261101/` gives the results and the initial
+driver timeout. Production coverage reaches 95.03% lines / 85.03% branches;
+final qualification and the remaining Phase 6 requirements stay open.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what
