@@ -86,7 +86,7 @@ in 166.26 and 163.51 s. Their complete records are
 
 The unmodified root-systemd case passes in 30.93 s on Ubuntu 24.04 /
 6.8.0-147-generic. The real user-manager case and three GNU task-limit
-runs pass and supply fresh profiles. The latest merged report, including
+runs pass and supply fresh profiles. The first merged report, including
 the test-only serial startup harness, is retained in
 `../shared-startup-harness-20261101/`: 96.86% lines / 89.68% branches,
 leaving 272 lines and 191 branches. No preceding implementation's profiles

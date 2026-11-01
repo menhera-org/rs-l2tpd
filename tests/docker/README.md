@@ -53,7 +53,7 @@ The E27 correction passes repeated model and GNU/musl live tests, three
 musl Incus runs and the root sandbox. Its required matrix is running. The approved checked-libc signal
 exception is applied; no nix contribution or release is required.
 Later test-only additions have separate GNU/musl qualification.
-Fresh merged coverage is 96.93% of lines and 89.84% of branches;
+Fresh merged coverage is 96.96% of lines and 89.84% of branches;
 100% coverage and complete clause/history/resource/event-cost proof remain
 open. See the [current verification record](../../audit/PHASE6_VERIFICATION_2026-11-01.md).
 The normal suite includes the 300-tunnel/session case. H20 now covers full-MTU frames and 1 MiB transfers over both families,

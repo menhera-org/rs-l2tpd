@@ -37,8 +37,8 @@ GNU/musl live suites, three musl Incus runs and the root sandbox pass.
 The fresh required matrix is running. Merged coverage remains below 100%.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh production coverage is **96.93% of lines and
-89.84% of branches**, leaving **266 lines and 188 branches**.
+GNU/musl qualification. Fresh production coverage is **96.96% of lines and
+89.84% of branches**, leaving **263 lines and 188 branches**.
 
 Complete clause/history/resource/event-cost proof and the 100% coverage
 gate remain required. The [testing page](testing.md) gives current gate

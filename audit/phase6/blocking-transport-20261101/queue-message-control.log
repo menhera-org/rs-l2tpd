@@ -1,0 +1,20 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-2992259725ba1531)
+
+running 2 tests
+
+thread 'blocking::tests::unavailable_command_queues_return_the_original_error' (2159258) panicked at src/blocking.rs:238:17:
+Err(Other("discarded command error"))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test blocking::tests::unavailable_command_queues_return_the_original_error ... FAILED
+test blocking::tests::an_abandoned_command_reply_returns_the_original_error ... ok
+
+failures:
+
+failures:
+    blocking::tests::unavailable_command_queues_return_the_original_error
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 252 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`
