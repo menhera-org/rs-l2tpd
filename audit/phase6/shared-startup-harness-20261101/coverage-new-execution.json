@@ -1,0 +1,37 @@
+[
+  {
+    "name": "_RNCNCNvMs0_NtNtCs3PGHkOYU18N_8rs_l2tpd10reconciler5storeINtBb_10ReconcilerNtNtNtBd_6kernel4fake10FakeKernelE14take_inherited00Bd_",
+    "old_count": 0,
+    "new_count": 44
+  },
+  {
+    "name": "_RNCNvMs0_NtNtCs3PGHkOYU18N_8rs_l2tpd10reconciler5storeINtB9_10ReconcilerNtNtNtBb_6kernel4fake10FakeKernelE14take_inherited0Bb_",
+    "old_count": 0,
+    "new_count": 44
+  },
+  {
+    "name": "_RNCNvMs1_NtCs3PGHkOYU18N_8rs_l2tpd7runtimeINtB7_7RuntimeNtNtNtB9_6kernel4fake10FakeKernelE12into_adopted0B9_",
+    "old_count": 0,
+    "new_count": 44
+  },
+  {
+    "name": "_RNvMs1_NtCs3PGHkOYU18N_8rs_l2tpd7runtimeINtB5_7RuntimeNtNtNtB7_6kernel4fake10FakeKernelE12into_adoptedB7_",
+    "old_count": 0,
+    "new_count": 22
+  },
+  {
+    "name": "_RNvMs0_NtNtCs3PGHkOYU18N_8rs_l2tpd10reconciler5storeINtB7_10ReconcilerNtNtNtB9_6kernel4fake10FakeKernelE14take_inheritedB9_",
+    "old_count": 0,
+    "new_count": 22
+  },
+  {
+    "name": "_RNCNvMNtCs3PGHkOYU18N_8rs_l2tpd8blockingNtB4_7Service3new0B6_",
+    "old_count": 0,
+    "new_count": 11
+  },
+  {
+    "name": "_RNvMNtCs3PGHkOYU18N_8rs_l2tpd8blockingNtB2_7Service3new",
+    "old_count": 0,
+    "new_count": 11
+  }
+]

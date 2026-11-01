@@ -14,8 +14,19 @@ use rs_l2tpd::{Error, service};
 mod syscall_fault;
 use syscall_fault::refuse as refuse_startup_syscalls;
 
+fn test_name(name: &str) -> String {
+    match module_path!().split_once("::") {
+        Some((_, module)) => format!("{module}::{name}"),
+        None => name.to_owned(),
+    }
+}
+
 /// spec: L13, P14, G23
 #[test]
+#[cfg_attr(
+    coverage_nightly,
+    ignore = "serial coverage profile: child processes inherit concurrent fake descriptors"
+)]
 fn descriptor_resource_failures_preserve_inheritance_and_release_partial_sockets() {
     const CHILD: &str = "PHASE6_DESCRIPTOR_FAULT";
     if let Ok(case) = std::env::var(CHILD) {
@@ -107,7 +118,10 @@ fn descriptor_resource_failures_preserve_inheritance_and_release_partial_sockets
         let output = std::process::Command::new(std::env::current_exe().unwrap())
             .args([
                 "--exact",
-                "descriptor_resource_failures_preserve_inheritance_and_release_partial_sockets",
+                &test_name(
+                    "descriptor_resource_failures_preserve_inheritance_and_release_partial_sockets",
+                ),
+                "--include-ignored",
                 "--nocapture",
                 "--test-threads=1",
             ])
@@ -126,6 +140,10 @@ fn descriptor_resource_failures_preserve_inheritance_and_release_partial_sockets
 
 /// spec: V3, V4, V15, A9, G23
 #[test]
+#[cfg_attr(
+    coverage_nightly,
+    ignore = "serial coverage profile: child processes inherit concurrent fake descriptors"
+)]
 fn resolver_spawn_failures_return_errors_and_release_worker_permits() {
     use rs_l2tpd::reconciler::{Lookup, Resolve, ResolverSpec};
     const CHILD: &str = "RS_L2TPD_TEST_RESOLVER_SPAWN_FAILURE";
@@ -184,7 +202,8 @@ fn resolver_spawn_failures_return_errors_and_release_worker_permits() {
         let output = std::process::Command::new(std::env::current_exe().unwrap())
             .args([
                 "--exact",
-                "resolver_spawn_failures_return_errors_and_release_worker_permits",
+                &test_name("resolver_spawn_failures_return_errors_and_release_worker_permits"),
+                "--include-ignored",
                 "--nocapture",
                 "--test-threads=1",
             ])
@@ -203,6 +222,10 @@ fn resolver_spawn_failures_return_errors_and_release_worker_permits() {
 
 /// spec: L5, L9, G14
 #[test]
+#[cfg_attr(
+    coverage_nightly,
+    ignore = "serial coverage profile: child processes inherit concurrent fake descriptors"
+)]
 fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
     const CHILD: &str = "RS_L2TPD_TEST_STARTUP_FAILURE";
     if let Ok(fault) = std::env::var(CHILD) {
@@ -311,7 +334,8 @@ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
         let output = std::process::Command::new(std::env::current_exe().unwrap())
             .args([
                 "--exact",
-                "startup_resource_failures_return_errors_and_preserve_adopted_fds",
+                &test_name("startup_resource_failures_return_errors_and_preserve_adopted_fds"),
+                "--include-ignored",
                 "--nocapture",
                 "--test-threads=1",
             ])

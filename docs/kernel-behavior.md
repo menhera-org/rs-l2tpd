@@ -12,9 +12,9 @@ publication checks select the same versions. Repository record
 `audit/phase6/matrix-20261101T075850Z-1691154/README.md` identifies the frozen
 implementation with kernel-selected inventories, complete VRF member tracking,
 checked libc signal calls and approved fixtures. Later test-only additions
-have separate qualification. The current E27 correction requires fresh
-matrix, coverage, Incus and root-sandbox runs; the completed matrix above
-qualifies the preceding implementation.
+have separate qualification. The E27 correction passes fresh model,
+GNU/musl live, Incus and root-sandbox runs. Its required matrix is running;
+the completed matrix above qualifies the preceding implementation.
 The approved H11 configured-MAC policy now passes three fresh Incus runs
 and a root-systemd guest on Ubuntu 6.8.0-147; its userspace scope is below.
 
@@ -465,9 +465,9 @@ now passed on every required target in the current refresh. Repository record
 proofs; `audit/phase6/deadline-index-20261031/README.md` records indexed
 deadlines, conflict cancellation and fresh host/mainline-clock checks.
 
-Current merged production coverage remains below the required 100%; exact
-pre-correction totals are in repository file
-`audit/PHASE6_VERIFICATION_2026-11-01.md`; the E27 correction needs fresh profiles.
+Current merged production coverage remains below the required 100%; fresh
+E27 totals are in repository file
+`audit/PHASE6_VERIFICATION_2026-11-01.md`.
 The earlier 92.26% line report included inline
 test code. Both strict map flags are enabled after ten CI qualification
 passes, and the strict workflow and pinned-nightly coverage workflow pass.

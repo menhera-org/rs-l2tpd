@@ -1,0 +1,10 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/startup.rs (target/x86_64-unknown-linux-musl/debug/deps/startup-2bc6d7707ea25eaa)
+
+running 3 tests
+test resolver_spawn_failures_return_errors_and_release_worker_permits ... ok
+test descriptor_resource_failures_preserve_inheritance_and_release_partial_sockets ... ok
+test startup_resource_failures_return_errors_and_preserve_adopted_fds ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

@@ -231,15 +231,17 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-pre-correction merged report is 96.71% lines / 89.56% branches, with no production
-exclusions; 100% remains required. The queued-deletion E27 correction needs a
-fresh collection; these totals do not qualify that changed source. Repository file
-`audit/phase6/model-controls-20261101/README.md` identifies the latest
+merged report is 96.86% lines / 89.68% branches, with no production
+exclusions; 272 lines and 191 branches remain. The E27 correction has fresh
+profiles. Repository file
+`audit/phase6/shared-startup-harness-20261101/README.md` identifies the latest
 measurement and its qualified scope. The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public
 and private cases exercise one generic instantiation; both targets still run.
-Child-launching cases use the existing serial live profile, which currently
-runs 17 library cases. Repository file
+Child-launching cases use the serial live profile: 17 ordinary library
+cases and three additional startup cases in the instrumented library.
+Those startup declarations remain ordinary tests in the external target;
+its instrumented copies are ignored in favor of the serial library run. Repository file
 `audit/phase6/shared-rule-harness-20261101/README.md` records declaration
 equality, isolation controls and GNU/musl qualification.
 

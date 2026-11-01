@@ -45,3 +45,10 @@ extern crate self as rs_l2tpd;
 #[cfg_attr(coverage_nightly, coverage(off))]
 #[path = "../tests/rules/main.rs"]
 mod rule_tests;
+
+// Child launch must be isolated from concurrent fake descriptor owners.
+#[cfg(all(test, coverage_nightly, feature = "serde", feature = "fake-kernel"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[allow(unsafe_code)]
+#[path = "../tests/startup.rs"]
+mod startup_tests;

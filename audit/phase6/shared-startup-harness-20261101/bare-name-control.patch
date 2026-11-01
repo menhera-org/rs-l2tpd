@@ -1,0 +1,16 @@
+diff --git a/tests/startup.rs b/tests/startup.rs
+index c2af2b9..1f19c13 100644
+--- a/tests/startup.rs
++++ b/tests/startup.rs
+@@ -15,10 +15,7 @@ mod syscall_fault;
+ use syscall_fault::refuse as refuse_startup_syscalls;
+ 
+ fn test_name(name: &str) -> String {
+-    match module_path!().split_once("::") {
+-        Some((_, module)) => format!("{module}::{name}"),
+-        None => name.to_owned(),
+-    }
++    name.to_owned()
+ }
+ 
+ /// spec: L13, P14, G23

@@ -6,12 +6,14 @@ It includes kernel-selected inventories, VRF inventory-completion tracking
 and checked libc signal calls. Later commits add tests and measurement
 infrastructure. The current E27 correction changes session-verification
 behavior: a queued-deletion witness fails on the preceding code and passes
-with the correction. Repeated model suites, GNU/musl live cases and GNU Incus
-pass. Its fresh required matrix, stable Incus, root and merged coverage remain
-pending; earlier results do not qualify this changed source.
+with the correction. Repeated models, GNU/musl live suites, three musl Incus
+runs and the root sandbox pass. Its required matrix is running. Fresh merged
+coverage is 96.86% lines / 89.68% branches; earlier results retain their scope.
 
 The current [E27 correction](phase6/event-verification-20261101/README.md)
-is based on `4881c32` plus its retained source patch. The preceding
+is committed as `11bef84`, based on `4881c32` plus its retained source patch.
+The [serial startup harness](phase6/shared-startup-harness-20261101/README.md)
+adds test-only qualification and the latest merged coverage. The preceding
 [model controls](phase6/model-controls-20261101/README.md) preserve their
 original test-only scope. The preceding
 [fallback case](phase6/family-fallback-20261101/README.md) preserves sessions
@@ -30,15 +32,16 @@ original execution scope.
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | All 27 normal cases pass on each of five required kernels, including H20, H17 and the new VRF reload regression. Three current musl host suites also pass | Complete clause, history and resource/event-cost proof |
 | P3 required kernels | Frozen `2051827` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Requalify the E27 correction; later test-only additions have separate records |
-| P4 coverage | Pre-correction profiles: 8,375/8,660 lines (96.71%); 1,655/1,848 branches (89.56%). No production exclusions, profile mismatches or saturated regions | Collect fresh E27 profiles and reach 100%; preceding gaps were 285 lines / 193 branches |
-| P5 Incus/LXD | Cache-fix source passes the full GNU case in 19.85 s and three unprivileged musl cases in 18.82, 9.43 and 20.28 s | Preserve the recorded userspace/kernel scope; repeat after relevant production changes |
-| P6 root sandbox | The unmodified supplied unit passes in 29.97 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
+| P4 coverage | Fresh E27 profiles: 8,391/8,663 lines (96.86%); 1,659/1,850 branches (89.68%). No production exclusions, profile mismatches or saturated regions | Cover 272 lines and 191 branches; enable the completed 100% gate in CI |
+| P5 Incus/LXD | E27 source passes the full GNU case in 17.20 s and three unprivileged musl cases in 29.47, 24.78 and 24.53 s; all containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
+| P6 root sandbox | E27 source and the unmodified supplied unit pass in 30.93 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
 
-The [VRF cache record](phase6/vrf-inventory-state-20261101/README.md)
-contains the host scenario, Incus and root-systemd results above. Its three
-normal musl suites pass in 162.48, 159.70 and 162.57 s. The serialized GNU
-normal suite passes in 159.06 s with zero unrelated-event queries.
+The [E27 record](phase6/event-verification-20261101/README.md) contains the
+current local results above. Its three normal musl suites pass in 162.11,
+166.26 and 163.51 s; GNU passes in 158.14 s. The real user-manager case and
+three GNU task-limit runs pass. Earlier cache results retain their original
+source scope in the [VRF record](phase6/vrf-inventory-state-20261101/README.md).
 
 ## Required-kernel snapshot
 
@@ -74,10 +77,21 @@ Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 
 ## Current coverage evidence
 
+The [startup harness](phase6/shared-startup-harness-20261101/README.md)
+reuses three subprocess declarations in the instrumented serial library
+profile. Ordinary external startup tests still run. Ten final model seeds,
+ten instrumented repetitions, GNU/musl qualification and common checks pass;
+the incorrect child-name control fails all three cases. Failed parallel and
+child-selection attempts are retained and their profiles quarantined. The
+fresh report includes E27 live, Incus, manager and task-limit profiles and
+leaves 272 lines and 191 branches. Generic-instance catalog changes are
+listed explicitly; production source regions remain unchanged by this harness.
+
 The shared harness compiles the same 94 public rule declarations into both
 the library and external target. Private cases and public behavior therefore
 exercise the same library instantiations. The declaration lists compare
-exactly; line and branch denominators are unchanged.
+exactly. The corrected production source has 8,663 executable lines and
+1,850 branches; these denominators differ from the preceding implementation.
 
 The ordinary library passes 235 cases after the E27 additions and earlier
 [staging-bound cases](phase6/staging-bounds-20261101/README.md), which preserve

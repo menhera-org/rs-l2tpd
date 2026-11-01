@@ -33,12 +33,12 @@ Strict maps, unprivileged Incus and the root sandbox have passing records.
 The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,
-GNU/musl live suites and GNU Incus pass. The fresh required matrix,
-stable Incus, root sandbox and merged coverage remain pending.
+GNU/musl live suites, three musl Incus runs and the root sandbox pass.
+The fresh required matrix is running. Merged coverage remains below 100%.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Pre-correction coverage is **96.71% of lines and
-89.56% of branches**, leaving **285 lines and 193 branches**.
+GNU/musl qualification. Fresh production coverage is **96.86% of lines and
+89.68% of branches**, leaving **272 lines and 191 branches**.
 
 Complete clause/history/resource/event-cost proof and the 100% coverage
 gate remain required. The [testing page](testing.md) gives current gate

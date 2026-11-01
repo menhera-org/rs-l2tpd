@@ -504,12 +504,12 @@ contribution or release is required.
 The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,
-GNU/musl live suites and GNU Incus pass. The fresh required matrix,
-stable Incus, root sandbox and merged coverage remain pending.
+GNU/musl live suites, three musl Incus runs and the root sandbox pass.
+The fresh required matrix is running. Merged coverage remains below 100%.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Pre-correction coverage is **96.71% of lines and 89.56% of
-branches**, leaving **285 lines and 193 branches**. The 100% gate and complete
+GNU/musl qualification. Fresh production coverage is **96.86% of lines and
+89.68% of branches**, leaving **272 lines and 191 branches**. The 100% gate and complete
 clause/history/resource/event-cost proof remain open. Repository file
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.
 The following entries retain the history of earlier measurements.
@@ -1040,6 +1040,24 @@ instrumented repetitions, three full musl fake suites and common checks
 pass. Repository record `audit/phase6/model-controls-20261101/` gives identical
 production mappings and 96.71% line / 89.56% branch coverage: 285 lines and
 193 branches remain. Neither the model nor shipping behavior changes.
+
+Advisory session-deletion verification now remains pending while deletion
+work is queued. Configuration identity changes cancel obsolete tasks even
+when cleanup fails, and late notices cannot recreate them. Model and live
+regressions fail on the preceding code. Ten seeds, repeated GNU/musl live
+tests, three musl normal/Incus runs, root systemd, real-manager checks and
+task-limit profiles pass. Repository record
+`audit/phase6/event-verification-20261101/` identifies production commit
+`11bef84`; its required matrix is running.
+
+The instrumented library now reuses startup fault cases in the serial
+profile. Parallel-child interference and the initial child-selection
+mistake are retained, with failed profiles quarantined. Ten final seeds,
+ten instrumented repetitions, musl tests, the failing child-name control
+and common checks pass. Repository record
+`audit/phase6/shared-startup-harness-20261101/` gives fresh 96.86% line /
+89.68% branch coverage: 272 lines and 191 branches remain. Shipping logic is
+unchanged; complete clause/history/resource proof and 100% remain required.
 
 ### Phase 7 — release
 

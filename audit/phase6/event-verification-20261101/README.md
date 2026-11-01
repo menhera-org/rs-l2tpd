@@ -64,7 +64,7 @@ The initial remove-tunnel configuration fixture also removed child records;
 the corrected witness keeps the tunnel and fails session cleanup instead.
 These initial results are historical evidence, not acceptance.
 
-## Remaining qualification
+## Fresh profiles and remaining proof
 
 The fresh collector is
 `target/phase6-coverage-e27-queued-deletion-20261101`, using
@@ -75,12 +75,25 @@ those raw profiles were quarantined and the collector cleaned before the
 final correction was rebuilt.
 
 The instrumented GNU Incus case passes in 17.20 s and exports seven daemon
-profiles; its container is deleted. Stable musl Incus, root-systemd,
-real-manager/resource profiles and the required kernel matrix remain pending,
-as do two further musl normal repetitions.
-The preceding merged report was 96.71% lines / 89.56% branches; it does not
-qualify this changed implementation. Complete clause/history/resource proof
-and 100% coverage remain open.
+profiles. Three stable musl Incus cases pass in 29.47, 24.78 and 24.53 s.
+All containers are deleted. Two further musl normal suites pass all 27 cases
+in 166.26 and 163.51 s. Their complete records are
+`../scenarios-20261101T115814Z-2050684/` and
+`../scenarios-20261101T120131Z-2063373/`; the Incus records are
+`../incus-20261101T120430Z-2073438/`,
+`../incus-20261101T120519Z-2082162/` and
+`../incus-20261101T120552Z-2087273/`.
+
+The unmodified root-systemd case passes in 30.93 s on Ubuntu 24.04 /
+6.8.0-147-generic. The real user-manager case and three GNU task-limit
+runs pass and supply fresh profiles. The latest merged report, including
+the test-only serial startup harness, is retained in
+`../shared-startup-harness-20261101/`: 96.86% lines / 89.68% branches,
+leaving 272 lines and 191 branches. No preceding implementation's profiles
+or failed-run profiles are merged.
+
+The required matrix is running from frozen production commit `11bef84`.
+Complete clause/history/resource proof and 100% coverage remain open.
 
 ```sh
 TEST_SEED=1 cargo test --locked --all-features --lib --test kernel-fake --test rules --test service
