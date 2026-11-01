@@ -1,0 +1,14 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index 9b28e44..f79ca9b 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -458,8 +458,7 @@ impl<K: Kernel> Reconciler<K> {
+             && self
+                 .k
+                 .scan_links(&mut |link| {
+-                    if parents.contains(&link.index)
+-                        || link
++                    if link
+                             .master
+                             .is_some_and(|master| watched_vrfs.contains(&master))
+                     {

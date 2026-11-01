@@ -805,6 +805,15 @@ source and diagnostic-only scope. Final kernel qualification, the nix
 release, complete clause/resource/event-cost proof and 100% coverage remain
 open.
 
+A bound-member recovery case now verifies parent discovery without retaining
+unrelated siblings or their addresses, across 1–10,000 siblings and VRF or
+ordinary masters. Its omitted-parent control fails. Ten seeded suites,
+three musl suites and common checks pass; production coverage mappings
+match the preceding collection. Repository record
+`audit/phase6/member-inventory-resync-20261101/` gives the current 95.51%
+line / 86.34% branch report: 385 lines and 250 branches remain. Production
+and guest fixtures are unchanged; the frozen 012764f matrix is running.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

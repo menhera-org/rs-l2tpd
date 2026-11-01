@@ -1,0 +1,74 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index fa21a04..9b28e44 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -891,6 +891,69 @@ mod resource_tests {
+         }
+     }
+ 
++    /// spec: G23, M16, E4, E20, T10
++    #[test]
++    fn bound_member_resync_retains_its_parent_without_sibling_state() {
++        for count in [1, 100, 10_000] {
++            for vrf in [false, true] {
++                let mut kernel = FakeKernel::new(42);
++                let member = kernel.add_link("wanted", false);
++                let parent = kernel.add_link("parent", vrf);
++                kernel.set_master(member, Some(parent));
++                let address = "192.0.2.1".parse().unwrap();
++                kernel.add_addr(member, address);
++                for n in 0..count {
++                    let sibling = kernel.add_link(&format!("sibling{n}"), false);
++                    kernel.set_master(sibling, Some(parent));
++                    kernel.add_addr(sibling, IpAddr::from([198, 19, (n >> 8) as u8, n as u8]));
++                }
++                kernel.take_monitor();
++                let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++                let config = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wanted'\n";
++                assert!(r.reconcile(toml::from_str(config).unwrap()));
++                let socket = r.tunnels[&10].socket;
++                for resync in [false, true] {
++                    if resync {
++                        r.handle(Source::Monitor, Notice::Loss);
++                    }
++                    assert!(!r.monitor_pending);
++                    assert_eq!(r.masters, BTreeMap::from([(member, parent)]));
++                    assert_eq!(
++                        r.members,
++                        BTreeMap::from([(parent, BTreeSet::from([member]))])
++                    );
++                    assert_eq!(
++                        r.vrfs,
++                        if vrf {
++                            BTreeSet::from([parent])
++                        } else {
++                            BTreeSet::new()
++                        }
++                    );
++                    assert_eq!(r.address_devices, BTreeSet::from([member]));
++                    assert_eq!(
++                        r.addresses,
++                        BTreeMap::from([(member, BTreeSet::from([address]))])
++                    );
++                    assert_eq!(r.tunnels[&10].socket, socket);
++                    assert_eq!(
++                        r.k.connection(socket).map(|(_, source)| source),
++                        Some(address)
++                    );
++                    assert_eq!(r.tunnels[&10].bound, Some(member));
++                }
++                assert!(r.reconcile(toml::from_str("[host]\nfix_bindv6only=false\n").unwrap()));
++                for _ in 0..3 {
++                    r.k.advance(std::time::Duration::from_secs(1));
++                    r.k.tick();
++                    r.tick();
++                }
++                assert_eq!(sizes(&r), [0; 32], "siblings={count}, vrf={vrf}");
++                assert_eq!(r.next_deadline(), None);
++            }
++        }
++    }
++
+     /// spec: G23, M3, E20, E22
+     #[test]
+     fn failed_inventory_completion_never_commits_visited_partial_state() {
