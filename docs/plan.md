@@ -775,8 +775,8 @@ observed-completion distinction. The specifications and MAC/timing fixtures
 are updated. Three fresh Incus cases, the unmodified root-systemd guest,
 three normal suites and common checks pass. Repository record
 `audit/phase6/maintainer-decisions-20261101/` retains exact sources and
-earlier failures. Streamed inventories and their resource proof remain
-implementation work; approval alone does not pass G23.
+earlier failures. That approval alone did not pass G23; implementation and resource
+verification follow below.
 
 The November 1 required matrix re-resolves the same five published targets
 and passes all normal/clock and scoped degradation profiles on bdf81b5.
@@ -785,6 +785,25 @@ frozen source and publication checks. Final source qualification, the nix
 release, full clause/resource/event-cost proof and 100% coverage remain
 open. The production eeec257 workflow passes both CI jobs in about fourteen
 minutes without timeout.
+
+The daemon now streams link/address inventories and retains only current
+dependencies. Two-pass monitor resync handles members before their VRF;
+completed-dump staging rejects partial evidence. Resource cases cover
+1–10,000 entries and release of all tracked state after the final
+dependency; an early-commit negative control fails. Ten seeded suites,
+three musl suites, common/cross checks, fresh GNU/live/manager profiles,
+Incus, root sandbox and three serial normal suites pass. Repository record
+`audit/phase6/streamed-inventories-20261101/` gives the current 95.51% line /
+86.17% branch report: 385 lines and 253 branches remain.
+
+An isolated QEMU control reproduces simultaneous scale workloads exhausting
+the shared ARP budget: two packet failures coincide with two table-overflow
+increments; the same traffic passes alone with no overflow. Host-kernel
+scale qualification is now serial, with unchanged packet assertions.
+Repository record `audit/phase6/neighbour-pressure-20261101/` retains the
+source and diagnostic-only scope. Final kernel qualification, the nix
+release, complete clause/resource/event-cost proof and 100% coverage remain
+open.
 
 ### Phase 7 — release
 

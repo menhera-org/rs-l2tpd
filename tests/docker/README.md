@@ -12,6 +12,12 @@ path, and uses a disposable privileged Docker container with
 `--network none`. It records the command, features, kernel, image ID,
 build output and test results under `audit/phase6/scenarios-<run>/`.
 
+Run one host-kernel scale workload at a time, including GNU coverage and
+musl scenario runs. Network namespaces share the kernel's ARP neighbour
+budget; two concurrent 300-session workloads can exceed it. Provide enough
+shared capacity for one workload, or run parallel workloads in separate
+QEMU guests with independent kernels. The packet assertions remain unchanged.
+
 Prepare `rs-l2tpd-audit-vm:local` with
 `tests/kernel/build-review-image.sh`. It fetches signed Alpine indexes and
 packages on the caller, then builds `tests/kernel/Dockerfile.review` with
@@ -40,10 +46,10 @@ capture loss. Guards kill daemons and delete namespaces on panic. Frame
 delivery and drop counters are asserted, along with interface identity,
 kernel objects, logs and bounded event waits.
 
-This is **not the complete Phase 6 scenario gate**. Boot-only cases,
-large session tables, missing modules/capability fallbacks,
-networkd version combinations and the full promise case
-list remain open. H20 now covers full-MTU frames and 1 MiB transfers over both families,
+Phase 6 remains incomplete: final-source matrix qualification, complete
+clause/resource/event-cost proof, the compatible upstream signal fix and
+100% production coverage remain open. The normal suite now includes the
+300-tunnel/session case. H20 now covers full-MTU frames and 1 MiB transfers over both families,
 1500/9000 session MTUs and VRF/no-VRF binding, with sender fragment and
 session receive/drop counters. A separate live socket test reads back
 T5's options; a child-only seccomp case checks actual option refusals.
@@ -106,9 +112,11 @@ preserved; a separate case holds networkd inactive until udev assigns
 the persistent MAC while down, then checks activation and stable MAC
 across clean re-creation. The latter proves an ordering prerequisite,
 not unconditional success with concurrent managers. The daemon's
-configured-MAC rules are unchanged. See the precise limitations in
+configured-MAC case now gives both creation names an explicit
+`MACAddressPolicy=none` authority. A later udev assignment remains a manager
+override under S12/G4. See the precise limitations in
 [H11](../../docs/spec/hosts.md#other-network-managers) and the
-[verification record](../../audit/PHASE6_VERIFICATION_2026-10-30.md).
+repository record `audit/phase6/maintainer-decisions-20261101/`.
 
 For the existing live kernel and process suites, see
 [kernel verification](../kernel/README.md) and

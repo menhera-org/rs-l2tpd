@@ -319,10 +319,23 @@ pub trait Kernel: Send {
     fn set_hwaddr(&mut self, index: u32, addr: HwAddr) -> io::Result<()>;
     /// A device's Ethernet address, `None` for a device without one (V12).
     fn ether_addr(&mut self, index: u32) -> io::Result<Option<HwAddr>>;
-    /// Every device (E20 resync).
-    fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>>;
-    /// Every address (E20 resync).
-    fn dump_addrs(&mut self) -> io::Result<Vec<AddrInfo>>;
+    /// Every device, streamed from a complete dump (E20, G23).
+    /// An error means the partially visited inventory proves nothing.
+    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()>;
+    /// Every address, with the same streaming/completion contract.
+    fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()>;
+    /// Collects every device when the caller requests an owned inventory.
+    fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>> {
+        let mut links = Vec::new();
+        self.scan_links(&mut |link| links.push(link.clone()))?;
+        Ok(links)
+    }
+    /// Collects every address when the caller requests an owned inventory.
+    fn dump_addrs(&mut self) -> io::Result<Vec<AddrInfo>> {
+        let mut addrs = Vec::new();
+        self.scan_addrs(&mut |addr| addrs.push(addr.clone()))?;
+        Ok(addrs)
+    }
 
     /// Opens the event monitor: links of family `AF_UNSPEC` and addresses
     /// (A5, E5).

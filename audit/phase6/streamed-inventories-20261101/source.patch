@@ -1,0 +1,471 @@
+diff --git a/src/kernel/fake.rs b/src/kernel/fake.rs
+index 0e5974c..6da0b63 100644
+--- a/src/kernel/fake.rs
++++ b/src/kernel/fake.rs
+@@ -413,7 +413,7 @@ impl FakeKernel {
+ 
+     /// Makes the next call of the operation named `op` (the first word
+     /// of its [`ops`](Self::ops) entry, or `scan`, `tunnel`, `session`,
+-    /// `link`, `dump`) fail with `errno`.
++    /// `link`, `dump`, or `dump-end` after inventory records) fail with `errno`.
+     pub fn fail_next(&mut self, op: &'static str, errno: Errno) {
+         self.fail_after(op, 0, errno);
+     }
+@@ -1088,14 +1088,20 @@ impl Kernel for FakeKernel {
+         }
+     }
+ 
+-    fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>> {
++    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
+         self.injected("dump")?;
+-        Ok(self.links.values().map(|l| l.info.clone()).collect())
++        for link in self.links.values() {
++            visit(&link.info);
++        }
++        self.injected("dump-end")
+     }
+ 
+-    fn dump_addrs(&mut self) -> io::Result<Vec<AddrInfo>> {
++    fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
+         self.injected("dump")?;
+-        Ok(self.addrs.clone())
++        for addr in &self.addrs {
++            visit(addr);
++        }
++        self.injected("dump-end")
+     }
+ 
+     fn monitor(&mut self) -> io::Result<Box<dyn Subscription>> {
+diff --git a/src/kernel/linux/mod.rs b/src/kernel/linux/mod.rs
+index 1b50457..4f31181 100644
+--- a/src/kernel/linux/mod.rs
++++ b/src/kernel/linux/mod.rs
+@@ -255,13 +255,13 @@ impl Kernel for LinuxKernel {
+     }
+ 
+     // kernel: net/core/rtnetlink.c rtnl_dump_ifinfo (K7)
+-    fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>> {
+-        self.rtnl.dump_links()
++    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
++        self.rtnl.scan_links(visit)
+     }
+ 
+     // kernel: net/core/rtnetlink.c rtnl_dump_all (K7)
+-    fn dump_addrs(&mut self) -> io::Result<Vec<AddrInfo>> {
+-        self.rtnl.dump_addrs()
++    fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
++        self.rtnl.scan_addrs(visit)
+     }
+ 
+     // kernel: net/core/filter.c sk_attach_filter (K7, K10, K29)
+diff --git a/src/kernel/linux/rtnl.rs b/src/kernel/linux/rtnl.rs
+index 8faa8cd..c07046d 100644
+--- a/src/kernel/linux/rtnl.rs
++++ b/src/kernel/linux/rtnl.rs
+@@ -117,13 +117,13 @@ fn ifname(name: &L2tpIfName) -> LinkAttribute {
+ 
+ // kernel: (K7, K29) net/core/rtnetlink.c rtnl_dump_all visits every
+ // registered address family; inet_fill_ifaddr and inet6_fill_ifaddr use ifaddrmsg.
+-fn collect_addr(addrs: &mut Vec<AddrInfo>, kind: u16, payload: &[u8]) -> io::Result<()> {
++fn visit_addr(visit: &mut dyn FnMut(&AddrInfo), kind: u16, payload: &[u8]) -> io::Result<()> {
+     if kind == libc::RTM_NEWADDR {
+         let family = *payload.first().ok_or_else(|| errno(libc::EPROTO))? as i32;
+         if !matches!(family, libc::AF_INET | libc::AF_INET6) {
+             return Ok(());
+         }
+-        addrs.push(parse_addr(payload).ok_or_else(|| errno(libc::EPROTO))?);
++        visit(&parse_addr(payload).ok_or_else(|| errno(libc::EPROTO))?);
+     }
+     Ok(())
+ }
+@@ -212,33 +212,29 @@ impl Rtnl {
+     }
+ 
+     // kernel: net/core/rtnetlink.c rtnl_dump_ifinfo (K7, K29)
+-    pub(super) fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>> {
+-        let mut links = Vec::new();
++    pub(super) fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
+         self.0.run(
+             RouteNetlinkMessage::GetLink(LinkMessage::default()),
+             true,
+             Instant::now() + DEADLINE,
+             &mut |kind, payload| {
+                 if kind == libc::RTM_NEWLINK {
+-                    links.push(parse_link(payload).ok_or_else(|| errno(libc::EPROTO))?.info);
++                    visit(&parse_link(payload).ok_or_else(|| errno(libc::EPROTO))?.info);
+                 }
+                 Ok(())
+             },
+-        )?;
+-        Ok(links)
++        )
+     }
+ 
+     // kernel: (K7, K29) net/core/rtnetlink.c rtnl_dump_all over
+     // every registered address family
+-    pub(super) fn dump_addrs(&mut self) -> io::Result<Vec<AddrInfo>> {
+-        let mut addrs = Vec::new();
++    pub(super) fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
+         self.0.run(
+             RouteNetlinkMessage::GetAddress(AddressMessage::default()),
+             true,
+             Instant::now() + DEADLINE,
+-            &mut |kind, payload| collect_addr(&mut addrs, kind, payload),
+-        )?;
+-        Ok(addrs)
++            &mut |kind, payload| visit_addr(visit, kind, payload),
++        )
+     }
+ }
+ 
+@@ -347,12 +343,17 @@ mod tests {
+             addr(libc::AF_PHONET as u8, &[42]),
+             v6.clone(),
+         ] {
+-            collect_addr(&mut addrs, libc::RTM_NEWADDR, &payload).unwrap();
++            visit_addr(
++                &mut |addr| addrs.push(addr.clone()),
++                libc::RTM_NEWADDR,
++                &payload,
++            )
++            .unwrap();
+         }
+         assert_eq!(addrs.len(), 2);
+         assert_eq!(addrs[0], parse_addr(&v4).unwrap());
+         assert_eq!(addrs[1], parse_addr(&v6).unwrap());
+-        collect_addr(&mut addrs, libc::RTM_DELADDR, &[]).unwrap();
++        visit_addr(&mut |addr| addrs.push(addr.clone()), libc::RTM_DELADDR, &[]).unwrap();
+         assert_eq!(addrs.len(), 2);
+         for payload in [
+             vec![],
+@@ -362,9 +363,13 @@ mod tests {
+             addr(libc::AF_INET6 as u8, &[0; 15]),
+         ] {
+             assert_eq!(
+-                collect_addr(&mut addrs, libc::RTM_NEWADDR, &payload)
+-                    .unwrap_err()
+-                    .raw_os_error(),
++                visit_addr(
++                    &mut |addr| addrs.push(addr.clone()),
++                    libc::RTM_NEWADDR,
++                    &payload
++                )
++                .unwrap_err()
++                .raw_os_error(),
+                 Some(libc::EPROTO)
+             );
+             assert_eq!(addrs.len(), 2);
+diff --git a/src/kernel/mod.rs b/src/kernel/mod.rs
+index d9d447b..c7336f3 100644
+--- a/src/kernel/mod.rs
++++ b/src/kernel/mod.rs
+@@ -319,10 +319,23 @@ pub trait Kernel: Send {
+     fn set_hwaddr(&mut self, index: u32, addr: HwAddr) -> io::Result<()>;
+     /// A device's Ethernet address, `None` for a device without one (V12).
+     fn ether_addr(&mut self, index: u32) -> io::Result<Option<HwAddr>>;
+-    /// Every device (E20 resync).
+-    fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>>;
+-    /// Every address (E20 resync).
+-    fn dump_addrs(&mut self) -> io::Result<Vec<AddrInfo>>;
++    /// Every device, streamed from a complete dump (E20, G23).
++    /// An error means the partially visited inventory proves nothing.
++    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()>;
++    /// Every address, with the same streaming/completion contract.
++    fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()>;
++    /// Collects every device when the caller requests an owned inventory.
++    fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>> {
++        let mut links = Vec::new();
++        self.scan_links(&mut |link| links.push(link.clone()))?;
++        Ok(links)
++    }
++    /// Collects every address when the caller requests an owned inventory.
++    fn dump_addrs(&mut self) -> io::Result<Vec<AddrInfo>> {
++        let mut addrs = Vec::new();
++        self.scan_addrs(&mut |addr| addrs.push(addr.clone()))?;
++        Ok(addrs)
++    }
+ 
+     /// Opens the event monitor: links of family `AF_UNSPEC` and addresses
+     /// (A5, E5).
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index 58994be..fa21a04 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -429,18 +429,56 @@ impl<K: Kernel> Reconciler<K> {
+         self.report.begin("event monitor", "loss", || {
+             "lost notifications; resynchronising (E20)".into()
+         });
+-        let Ok(links) = self.k.dump_links() else {
++        let mut links = BTreeMap::new();
++        if self
++            .k
++            .scan_links(&mut |link| {
++                if self.index.devices.contains_key(&link.index)
++                    || self.index.sessions.contains_key(&link.index)
++                {
++                    links.insert(link.index, link.clone());
++                }
++            })
++            .is_err()
++        {
+             return;
+-        };
++        }
++        let watched_vrfs: BTreeSet<_> = links
++            .values()
++            .filter(|link| link.vrf && self.index.devices.contains_key(&link.index))
++            .map(|link| link.index)
++            .collect();
++        let parents: BTreeSet<_> = links
++            .values()
++            .filter(|link| self.index.devices.contains_key(&link.index))
++            .filter_map(|link| link.master)
++            .collect();
++        // Members can precede their VRF, so discover dependencies before streaming them.
++        if (!watched_vrfs.is_empty() || !parents.is_empty())
++            && self
++                .k
++                .scan_links(&mut |link| {
++                    if parents.contains(&link.index)
++                        || link
++                            .master
++                            .is_some_and(|master| watched_vrfs.contains(&master))
++                    {
++                        links.insert(link.index, link.clone());
++                    }
++                })
++                .is_err()
++        {
++            return;
++        }
+         self.changed_devices
+             .extend(self.address_devices.iter().copied());
+         self.vrfs = links
+-            .iter()
++            .values()
+             .filter(|link| link.vrf && self.index.devices.contains_key(&link.index))
+             .map(|link| link.index)
+             .collect();
+         self.masters = links
+-            .iter()
++            .values()
+             .filter(|link| {
+                 self.index.devices.contains_key(&link.index)
+                     || link.master.is_some_and(|master| {
+@@ -453,7 +491,7 @@ impl<K: Kernel> Reconciler<K> {
+         for (member, master) in &self.masters {
+             self.members.entry(*master).or_default().insert(*member);
+         }
+-        for link in &links {
++        for link in links.values() {
+             if self.members.contains_key(&link.index) && link.vrf {
+                 self.vrfs.insert(link.index);
+             }
+@@ -468,7 +506,7 @@ impl<K: Kernel> Reconciler<K> {
+                 .copied(),
+         );
+         self.monitor_pending = false;
+-        for link in &links {
++        for link in links.values() {
+             if let Some(sid) = self.owned_session(link.index) {
+                 self.session_device_changed(sid, link.name, link.up);
+             }
+@@ -543,13 +581,16 @@ impl<K: Kernel> Reconciler<K> {
+ impl<K: Kernel> Reconciler<K> {
+     pub(super) fn remember_device(&mut self, link: &LinkInfo) -> std::io::Result<()> {
+         if link.vrf && !self.vrfs.contains(&link.index) {
+-            let members = self.k.dump_links()?;
++            let mut members = Vec::new();
++            self.k.scan_links(&mut |member| {
++                if member.master == Some(link.index) && !self.masters.contains_key(&member.index) {
++                    members.push(member.index);
++                }
++            })?;
+             self.vrfs.insert(link.index);
+             self.changed_devices.insert(link.index);
+             for member in members {
+-                if member.master == Some(link.index) && !self.masters.contains_key(&member.index) {
+-                    self.set_master(member.index, Some(link.index));
+-                }
++                self.set_master(member, Some(link.index));
+             }
+         }
+         if let Some(master) = link.master
+@@ -620,15 +661,19 @@ impl<K: Kernel> Reconciler<K> {
+         if seed.is_empty() {
+             return;
+         }
+-        match self.k.dump_addrs() {
+-            Ok(addresses) => {
+-                for address in addresses {
+-                    if seed.contains(&address.index) {
+-                        self.addresses
+-                            .entry(address.index)
+-                            .or_default()
+-                            .insert(address.addr.to_canonical());
+-                    }
++        let mut addresses: BTreeMap<u32, BTreeSet<IpAddr>> = BTreeMap::new();
++        let scanned = self.k.scan_addrs(&mut |address| {
++            if seed.contains(&address.index) {
++                addresses
++                    .entry(address.index)
++                    .or_default()
++                    .insert(address.addr.to_canonical());
++            }
++        });
++        match scanned {
++            Ok(()) => {
++                for (index, values) in addresses {
++                    self.addresses.entry(index).or_default().extend(values);
+                 }
+                 self.address_devices.extend(seed);
+             }
+@@ -795,4 +840,117 @@ mod resource_tests {
+             );
+         }
+     }
++    /// spec: G23, M16, E4, E20
++    #[test]
++    fn current_dependency_inventories_stream_and_release_their_final_reference() {
++        for count in [1, 100, 10_000] {
++            for vrf in [false, true] {
++                let mut kernel = FakeKernel::new(42);
++                let members: Vec<_> = (0..count)
++                    .map(|n| kernel.add_link(&format!("member{n}"), false))
++                    .collect();
++                let wanted = kernel.add_link("wanted", vrf);
++                let unrelated = kernel.add_link("unrelated", true);
++                for (n, member) in members.iter().copied().enumerate() {
++                    let addr = IpAddr::from([10, 0, (n >> 8) as u8, n as u8]);
++                    if vrf {
++                        kernel.set_master(member, Some(wanted));
++                        kernel.add_addr(member, addr);
++                    } else {
++                        kernel.add_addr(wanted, addr);
++                    }
++                    let noise = kernel.add_link(&format!("noise{n}"), false);
++                    kernel.set_master(noise, Some(unrelated));
++                    kernel.add_addr(noise, IpAddr::from([198, 19, (n >> 8) as u8, n as u8]));
++                }
++                kernel.take_monitor();
++                let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++                let config = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wanted'\n";
++                assert!(r.reconcile(toml::from_str(config).unwrap()));
++                assert_eq!(r.tunnels.len(), 1);
++                assert_eq!(r.masters.len(), if vrf { count } else { 0 });
++                assert_eq!(
++                    r.addresses.values().map(BTreeSet::len).sum::<usize>(),
++                    count
++                );
++                assert!(!r.vrfs.contains(&unrelated));
++                let expected = sizes(&r);
++                r.handle(Source::Monitor, Notice::Loss);
++                assert!(!r.monitor_pending);
++                assert_eq!(sizes(&r), expected);
++                assert!(!r.addresses.contains_key(&unrelated));
++                assert!(r.reconcile(toml::from_str("[host]\nfix_bindv6only=false\n").unwrap()));
++                for _ in 0..3 {
++                    r.k.advance(std::time::Duration::from_secs(1));
++                    r.k.tick();
++                    r.tick();
++                }
++                assert_eq!(sizes(&r), [0; 32], "count={count}, vrf={vrf}");
++                assert_eq!(r.next_deadline(), None);
++            }
++        }
++    }
++
++    /// spec: G23, M3, E20, E22
++    #[test]
++    fn failed_inventory_completion_never_commits_visited_partial_state() {
++        for completed in [0, 1, 2] {
++            let mut kernel = FakeKernel::new(42);
++            let member = kernel.add_link("member", false);
++            let wanted = kernel.add_link("wanted", true);
++            kernel.set_master(member, Some(wanted));
++            kernel.add_addr(member, "192.0.2.1".parse().unwrap());
++            let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++            let config = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wanted'\n";
++            if completed == 0 {
++                r.k.fail_after("dump-end", 1, nix::errno::Errno::EIO);
++                assert!(!r.reconcile(toml::from_str(config).unwrap()));
++                assert!(r.masters.is_empty());
++                assert!(r.vrfs.is_empty());
++                assert!(r.addresses.is_empty());
++                r.k.advance(std::time::Duration::from_secs(1));
++                r.tick();
++            }
++            assert!(r.reconcile(toml::from_str(config).unwrap()));
++            r.k.take_monitor();
++            let old = (
++                r.masters.clone(),
++                r.members.clone(),
++                r.vrfs.clone(),
++                r.addresses.clone(),
++                r.address_devices.clone(),
++            );
++            let added = r.k.add_link("added", false);
++            r.k.set_master(added, Some(wanted));
++            let address = "192.0.2.2".parse().unwrap();
++            r.k.add_addr(added, address);
++            r.k.fail_after("dump-end", completed, nix::errno::Errno::EIO);
++            r.handle(Source::Monitor, Notice::Loss);
++            assert!(r.monitor_pending);
++            if completed < 2 {
++                assert_eq!(
++                    (
++                        r.masters.clone(),
++                        r.members.clone(),
++                        r.vrfs.clone(),
++                        r.addresses.clone(),
++                        r.address_devices.clone()
++                    ),
++                    old,
++                    "failed link pass {completed}",
++                );
++            } else {
++                assert_eq!(r.masters.get(&added), Some(&wanted));
++                assert!(r.addresses.is_empty());
++                assert!(r.address_devices.is_empty());
++            }
++            r.k.advance(std::time::Duration::from_secs(1));
++            r.tick();
++            assert!(!r.monitor_pending);
++            assert_eq!(r.masters.get(&added), Some(&wanted));
++            assert!(r.addresses[&added].contains(&address));
++            assert_eq!(r.addresses.values().map(BTreeSet::len).sum::<usize>(), 2);
++            assert_eq!(r.next_deadline(), None);
++        }
++    }
+ }
+diff --git a/tests/service.rs b/tests/service.rs
+index 4b8d3ed..b9f5076 100644
+--- a/tests/service.rs
++++ b/tests/service.rs
+@@ -112,7 +112,7 @@ impl Kernel for Host {
+             count: self.2.clone(),
+         }))
+     }
+-    fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>> {
++    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
+         self.callback_context();
+         self.3.fetch_add(1, Ordering::SeqCst);
+         let gate = self.1.lock().unwrap().take();
+@@ -120,7 +120,7 @@ impl Kernel for Host {
+             gate.entered.send(()).unwrap();
+             gate.release.recv().unwrap();
+         }
+-        self.0.lock().unwrap().dump_links()
++        self.0.lock().unwrap().scan_links(visit)
+     }
+     fn now(&self) -> Instant {
+         self.callback_context();
+@@ -154,7 +154,7 @@ impl Kernel for Host {
+         link_by_name(name: &L2tpIfName) -> io::Result<Option<LinkInfo>>;
+         set_hwaddr(index: u32, addr: HwAddr) -> io::Result<()>;
+         ether_addr(index: u32) -> io::Result<Option<HwAddr>>;
+-        dump_addrs() -> io::Result<Vec<AddrInfo>>;
++        scan_addrs(visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()>;
+         l2tp_events() -> io::Result<Box<dyn Subscription>>;
+     }
+ }

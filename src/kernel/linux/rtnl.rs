@@ -117,13 +117,13 @@ fn ifname(name: &L2tpIfName) -> LinkAttribute {
 
 // kernel: (K7, K29) net/core/rtnetlink.c rtnl_dump_all visits every
 // registered address family; inet_fill_ifaddr and inet6_fill_ifaddr use ifaddrmsg.
-fn collect_addr(addrs: &mut Vec<AddrInfo>, kind: u16, payload: &[u8]) -> io::Result<()> {
+fn visit_addr(visit: &mut dyn FnMut(&AddrInfo), kind: u16, payload: &[u8]) -> io::Result<()> {
     if kind == libc::RTM_NEWADDR {
         let family = *payload.first().ok_or_else(|| errno(libc::EPROTO))? as i32;
         if !matches!(family, libc::AF_INET | libc::AF_INET6) {
             return Ok(());
         }
-        addrs.push(parse_addr(payload).ok_or_else(|| errno(libc::EPROTO))?);
+        visit(&parse_addr(payload).ok_or_else(|| errno(libc::EPROTO))?);
     }
     Ok(())
 }
@@ -212,33 +212,29 @@ impl Rtnl {
     }
 
     // kernel: net/core/rtnetlink.c rtnl_dump_ifinfo (K7, K29)
-    pub(super) fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>> {
-        let mut links = Vec::new();
+    pub(super) fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
         self.0.run(
             RouteNetlinkMessage::GetLink(LinkMessage::default()),
             true,
             Instant::now() + DEADLINE,
             &mut |kind, payload| {
                 if kind == libc::RTM_NEWLINK {
-                    links.push(parse_link(payload).ok_or_else(|| errno(libc::EPROTO))?.info);
+                    visit(&parse_link(payload).ok_or_else(|| errno(libc::EPROTO))?.info);
                 }
                 Ok(())
             },
-        )?;
-        Ok(links)
+        )
     }
 
     // kernel: (K7, K29) net/core/rtnetlink.c rtnl_dump_all over
     // every registered address family
-    pub(super) fn dump_addrs(&mut self) -> io::Result<Vec<AddrInfo>> {
-        let mut addrs = Vec::new();
+    pub(super) fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
         self.0.run(
             RouteNetlinkMessage::GetAddress(AddressMessage::default()),
             true,
             Instant::now() + DEADLINE,
-            &mut |kind, payload| collect_addr(&mut addrs, kind, payload),
-        )?;
-        Ok(addrs)
+            &mut |kind, payload| visit_addr(visit, kind, payload),
+        )
     }
 }
 
@@ -347,12 +343,17 @@ mod tests {
             addr(libc::AF_PHONET as u8, &[42]),
             v6.clone(),
         ] {
-            collect_addr(&mut addrs, libc::RTM_NEWADDR, &payload).unwrap();
+            visit_addr(
+                &mut |addr| addrs.push(addr.clone()),
+                libc::RTM_NEWADDR,
+                &payload,
+            )
+            .unwrap();
         }
         assert_eq!(addrs.len(), 2);
         assert_eq!(addrs[0], parse_addr(&v4).unwrap());
         assert_eq!(addrs[1], parse_addr(&v6).unwrap());
-        collect_addr(&mut addrs, libc::RTM_DELADDR, &[]).unwrap();
+        visit_addr(&mut |addr| addrs.push(addr.clone()), libc::RTM_DELADDR, &[]).unwrap();
         assert_eq!(addrs.len(), 2);
         for payload in [
             vec![],
@@ -362,9 +363,13 @@ mod tests {
             addr(libc::AF_INET6 as u8, &[0; 15]),
         ] {
             assert_eq!(
-                collect_addr(&mut addrs, libc::RTM_NEWADDR, &payload)
-                    .unwrap_err()
-                    .raw_os_error(),
+                visit_addr(
+                    &mut |addr| addrs.push(addr.clone()),
+                    libc::RTM_NEWADDR,
+                    &payload
+                )
+                .unwrap_err()
+                .raw_os_error(),
                 Some(libc::EPROTO)
             );
             assert_eq!(addrs.len(), 2);

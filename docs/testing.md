@@ -41,7 +41,7 @@ Repository file `tests/process/README.md` gives the container and native
 systemd transport commands. The manager test covers the address-family
 filter and descriptor protocol. The complete root system-unit mount
 sandbox, including the bindv6only write, subsequently passed in QEMU; see
-repository file `audit/phase6/P6_ROOT_SANDBOX_2026-10-30.md`. The October 31
+repository file `audit/phase6/P6_ROOT_SANDBOX_2026-10-30.md`. The November 1
 required matrix passed its 26-scenario normal profile and separate clock
 profiles on all five resolved targets. Later changes still need final
 qualification. Repository file `audit/PHASE6_VERIFICATION_2026-11-01.md`
@@ -56,6 +56,14 @@ merged 100% coverage gate.
 | `properties/` | fake | included by the feature-gated `rules` target in `cargo test --all-features` | seeded reload invariants for G3, G5–G7 and G18 |
 | `kernel/` conformance | fake **and** real | `cargo test --all-features` for the fake; a privileged container and the QEMU matrix for the real one | K facts, `kernel::linux` |
 | `scenarios/` (partial, Phase 6) | real | privileged containers; QEMU for `ipv6.disable=1` and other boot options | H rules, P rules, the unit, G15–G23 end to end |
+
+Host-kernel scale workloads run serially, including coverage and musl
+variants. Network namespaces share the kernel's ARP neighbour budget;
+parallel H17 traffic can exhaust it despite container isolation. The host
+must provide capacity for the single 300-session fixture and its other
+workloads. Independent QEMU guests can run concurrently. The controlled
+reproduction and source evidence are in repository record
+`audit/phase6/neighbour-pressure-20261101/`.
 
 ### The conformance suite
 

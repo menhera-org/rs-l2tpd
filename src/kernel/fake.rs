@@ -413,7 +413,7 @@ impl FakeKernel {
 
     /// Makes the next call of the operation named `op` (the first word
     /// of its [`ops`](Self::ops) entry, or `scan`, `tunnel`, `session`,
-    /// `link`, `dump`) fail with `errno`.
+    /// `link`, `dump`, or `dump-end` after inventory records) fail with `errno`.
     pub fn fail_next(&mut self, op: &'static str, errno: Errno) {
         self.fail_after(op, 0, errno);
     }
@@ -1088,14 +1088,20 @@ impl Kernel for FakeKernel {
         }
     }
 
-    fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>> {
+    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
         self.injected("dump")?;
-        Ok(self.links.values().map(|l| l.info.clone()).collect())
+        for link in self.links.values() {
+            visit(&link.info);
+        }
+        self.injected("dump-end")
     }
 
-    fn dump_addrs(&mut self) -> io::Result<Vec<AddrInfo>> {
+    fn scan_addrs(&mut self, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
         self.injected("dump")?;
-        Ok(self.addrs.clone())
+        for addr in &self.addrs {
+            visit(addr);
+        }
+        self.injected("dump-end")
     }
 
     fn monitor(&mut self) -> io::Result<Box<dyn Subscription>> {

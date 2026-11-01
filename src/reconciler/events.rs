@@ -429,18 +429,56 @@ impl<K: Kernel> Reconciler<K> {
         self.report.begin("event monitor", "loss", || {
             "lost notifications; resynchronising (E20)".into()
         });
-        let Ok(links) = self.k.dump_links() else {
+        let mut links = BTreeMap::new();
+        if self
+            .k
+            .scan_links(&mut |link| {
+                if self.index.devices.contains_key(&link.index)
+                    || self.index.sessions.contains_key(&link.index)
+                {
+                    links.insert(link.index, link.clone());
+                }
+            })
+            .is_err()
+        {
             return;
-        };
+        }
+        let watched_vrfs: BTreeSet<_> = links
+            .values()
+            .filter(|link| link.vrf && self.index.devices.contains_key(&link.index))
+            .map(|link| link.index)
+            .collect();
+        let parents: BTreeSet<_> = links
+            .values()
+            .filter(|link| self.index.devices.contains_key(&link.index))
+            .filter_map(|link| link.master)
+            .collect();
+        // Members can precede their VRF, so discover dependencies before streaming them.
+        if (!watched_vrfs.is_empty() || !parents.is_empty())
+            && self
+                .k
+                .scan_links(&mut |link| {
+                    if parents.contains(&link.index)
+                        || link
+                            .master
+                            .is_some_and(|master| watched_vrfs.contains(&master))
+                    {
+                        links.insert(link.index, link.clone());
+                    }
+                })
+                .is_err()
+        {
+            return;
+        }
         self.changed_devices
             .extend(self.address_devices.iter().copied());
         self.vrfs = links
-            .iter()
+            .values()
             .filter(|link| link.vrf && self.index.devices.contains_key(&link.index))
             .map(|link| link.index)
             .collect();
         self.masters = links
-            .iter()
+            .values()
             .filter(|link| {
                 self.index.devices.contains_key(&link.index)
                     || link.master.is_some_and(|master| {
@@ -453,7 +491,7 @@ impl<K: Kernel> Reconciler<K> {
         for (member, master) in &self.masters {
             self.members.entry(*master).or_default().insert(*member);
         }
-        for link in &links {
+        for link in links.values() {
             if self.members.contains_key(&link.index) && link.vrf {
                 self.vrfs.insert(link.index);
             }
@@ -468,7 +506,7 @@ impl<K: Kernel> Reconciler<K> {
                 .copied(),
         );
         self.monitor_pending = false;
-        for link in &links {
+        for link in links.values() {
             if let Some(sid) = self.owned_session(link.index) {
                 self.session_device_changed(sid, link.name, link.up);
             }
@@ -543,13 +581,16 @@ impl<K: Kernel> Reconciler<K> {
 impl<K: Kernel> Reconciler<K> {
     pub(super) fn remember_device(&mut self, link: &LinkInfo) -> std::io::Result<()> {
         if link.vrf && !self.vrfs.contains(&link.index) {
-            let members = self.k.dump_links()?;
+            let mut members = Vec::new();
+            self.k.scan_links(&mut |member| {
+                if member.master == Some(link.index) && !self.masters.contains_key(&member.index) {
+                    members.push(member.index);
+                }
+            })?;
             self.vrfs.insert(link.index);
             self.changed_devices.insert(link.index);
             for member in members {
-                if member.master == Some(link.index) && !self.masters.contains_key(&member.index) {
-                    self.set_master(member.index, Some(link.index));
-                }
+                self.set_master(member, Some(link.index));
             }
         }
         if let Some(master) = link.master
@@ -620,15 +661,19 @@ impl<K: Kernel> Reconciler<K> {
         if seed.is_empty() {
             return;
         }
-        match self.k.dump_addrs() {
-            Ok(addresses) => {
-                for address in addresses {
-                    if seed.contains(&address.index) {
-                        self.addresses
-                            .entry(address.index)
-                            .or_default()
-                            .insert(address.addr.to_canonical());
-                    }
+        let mut addresses: BTreeMap<u32, BTreeSet<IpAddr>> = BTreeMap::new();
+        let scanned = self.k.scan_addrs(&mut |address| {
+            if seed.contains(&address.index) {
+                addresses
+                    .entry(address.index)
+                    .or_default()
+                    .insert(address.addr.to_canonical());
+            }
+        });
+        match scanned {
+            Ok(()) => {
+                for (index, values) in addresses {
+                    self.addresses.entry(index).or_default().extend(values);
                 }
                 self.address_devices.extend(seed);
             }
@@ -793,6 +838,119 @@ mod resource_tests {
             println!(
                 "RESOURCE_HISTORY epoch={epoch} removed={count} survivors=1 sizes={expected:?}"
             );
+        }
+    }
+    /// spec: G23, M16, E4, E20
+    #[test]
+    fn current_dependency_inventories_stream_and_release_their_final_reference() {
+        for count in [1, 100, 10_000] {
+            for vrf in [false, true] {
+                let mut kernel = FakeKernel::new(42);
+                let members: Vec<_> = (0..count)
+                    .map(|n| kernel.add_link(&format!("member{n}"), false))
+                    .collect();
+                let wanted = kernel.add_link("wanted", vrf);
+                let unrelated = kernel.add_link("unrelated", true);
+                for (n, member) in members.iter().copied().enumerate() {
+                    let addr = IpAddr::from([10, 0, (n >> 8) as u8, n as u8]);
+                    if vrf {
+                        kernel.set_master(member, Some(wanted));
+                        kernel.add_addr(member, addr);
+                    } else {
+                        kernel.add_addr(wanted, addr);
+                    }
+                    let noise = kernel.add_link(&format!("noise{n}"), false);
+                    kernel.set_master(noise, Some(unrelated));
+                    kernel.add_addr(noise, IpAddr::from([198, 19, (n >> 8) as u8, n as u8]));
+                }
+                kernel.take_monitor();
+                let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
+                let config = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wanted'\n";
+                assert!(r.reconcile(toml::from_str(config).unwrap()));
+                assert_eq!(r.tunnels.len(), 1);
+                assert_eq!(r.masters.len(), if vrf { count } else { 0 });
+                assert_eq!(
+                    r.addresses.values().map(BTreeSet::len).sum::<usize>(),
+                    count
+                );
+                assert!(!r.vrfs.contains(&unrelated));
+                let expected = sizes(&r);
+                r.handle(Source::Monitor, Notice::Loss);
+                assert!(!r.monitor_pending);
+                assert_eq!(sizes(&r), expected);
+                assert!(!r.addresses.contains_key(&unrelated));
+                assert!(r.reconcile(toml::from_str("[host]\nfix_bindv6only=false\n").unwrap()));
+                for _ in 0..3 {
+                    r.k.advance(std::time::Duration::from_secs(1));
+                    r.k.tick();
+                    r.tick();
+                }
+                assert_eq!(sizes(&r), [0; 32], "count={count}, vrf={vrf}");
+                assert_eq!(r.next_deadline(), None);
+            }
+        }
+    }
+
+    /// spec: G23, M3, E20, E22
+    #[test]
+    fn failed_inventory_completion_never_commits_visited_partial_state() {
+        for completed in [0, 1, 2] {
+            let mut kernel = FakeKernel::new(42);
+            let member = kernel.add_link("member", false);
+            let wanted = kernel.add_link("wanted", true);
+            kernel.set_master(member, Some(wanted));
+            kernel.add_addr(member, "192.0.2.1".parse().unwrap());
+            let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
+            let config = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='wanted'\n";
+            if completed == 0 {
+                r.k.fail_after("dump-end", 1, nix::errno::Errno::EIO);
+                assert!(!r.reconcile(toml::from_str(config).unwrap()));
+                assert!(r.masters.is_empty());
+                assert!(r.vrfs.is_empty());
+                assert!(r.addresses.is_empty());
+                r.k.advance(std::time::Duration::from_secs(1));
+                r.tick();
+            }
+            assert!(r.reconcile(toml::from_str(config).unwrap()));
+            r.k.take_monitor();
+            let old = (
+                r.masters.clone(),
+                r.members.clone(),
+                r.vrfs.clone(),
+                r.addresses.clone(),
+                r.address_devices.clone(),
+            );
+            let added = r.k.add_link("added", false);
+            r.k.set_master(added, Some(wanted));
+            let address = "192.0.2.2".parse().unwrap();
+            r.k.add_addr(added, address);
+            r.k.fail_after("dump-end", completed, nix::errno::Errno::EIO);
+            r.handle(Source::Monitor, Notice::Loss);
+            assert!(r.monitor_pending);
+            if completed < 2 {
+                assert_eq!(
+                    (
+                        r.masters.clone(),
+                        r.members.clone(),
+                        r.vrfs.clone(),
+                        r.addresses.clone(),
+                        r.address_devices.clone()
+                    ),
+                    old,
+                    "failed link pass {completed}",
+                );
+            } else {
+                assert_eq!(r.masters.get(&added), Some(&wanted));
+                assert!(r.addresses.is_empty());
+                assert!(r.address_devices.is_empty());
+            }
+            r.k.advance(std::time::Duration::from_secs(1));
+            r.tick();
+            assert!(!r.monitor_pending);
+            assert_eq!(r.masters.get(&added), Some(&wanted));
+            assert!(r.addresses[&added].contains(&address));
+            assert_eq!(r.addresses.values().map(BTreeSet::len).sum::<usize>(), 2);
+            assert_eq!(r.next_deadline(), None);
         }
     }
 }

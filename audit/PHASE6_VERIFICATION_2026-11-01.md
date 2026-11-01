@@ -1,8 +1,9 @@
 # Phase 6 verification, 2026-11-01
 
-Phase 6 is incomplete. The production implementation is
-`eeec2573ccccd3ee9d7ad84ff97165ffa2abe637`; the approved contract and fixture
-changes are in `c6f10e9`. The
+Phase 6 is incomplete. The current implementation is identified by the
+[streamed-inventory record](phase6/streamed-inventories-20261101/README.md),
+its `revision` and `source.patch`. It builds on production `eeec257`; the
+approved contract and fixture changes are in `c6f10e9`. The
 [tunnel-state record](phase6/tunnel-application-status-20261101/README.md)
 and [maintainer decisions](phase6/maintainer-decisions-20261101/README.md)
 identify exact sources, commands, features, results and retained failures.
@@ -14,14 +15,14 @@ preceding work and its original scope.
 | Requirement | Executed evidence | Still required |
 |---|---|---|
 | P1 rule/source maps | Current strict common checks pass. The [strict qualification](phase6/strict-gates-20261031/README.md) retains its ten seeded fake/live CI repetitions | Maintain enforcement; declaration citations do not establish complete clause proof |
-| P2 scenarios | Approved normal suite passes 26 cases three times in 162.34, 161.62 and 162.06 s, including H20 and H17 | Complete clause/resource/event-cost proof; investigate the retained earlier single-packet failure |
+| P2 scenarios | Approved normal suite passes 26 cases three times in 158.12, 162.29 and 157.99 s, including H20 and H17 | Complete clause/resource/event-cost proof; keep host-kernel scale runs serial under the documented shared budget |
 | P3 required kernels | [November 1 matrix](phase6/matrix-20261101T003757Z-933582/README.md): five normal and five clock profiles, two IPv6-absent profiles and missing-driver profile pass; publication checks agree | Qualify the final daemon/fixtures after the later socket fixes and streamed inventories |
-| P4 coverage | Fresh production collection: 95.46% lines, 86.11% branches; no production exclusions or saturated regions | Cover 387 lines and 252 branches; enforce the completed 100% gate in CI |
-| P5 Incus/LXD | Approved explicit-MAC-authority case passes in three fresh unprivileged Ubuntu 24.04 Incus containers: 14.57, 17.17 and 9.14 s | Repeat after relevant implementation changes; results remain scoped to the recorded userspace/kernel |
-| P6 root sandbox | Unmodified supplied unit passes the shared corrected manager case in 31.59 s on Ubuntu 6.8.0-147-generic, ROOT_SYSTEMD_RESULT=0 | Final-source qualification after relevant changes |
+| P4 coverage | Fresh production collection: 95.51% lines, 86.17% branches; no production exclusions or saturated regions | Cover 385 lines and 253 branches; enforce the completed 100% gate in CI |
+| P5 Incus/LXD | Current full unprivileged Incus case passes in 8.95 s with seven daemon profiles; the approved policy also retains its three earlier fresh-container passes | Repeat after relevant implementation changes; results remain scoped to the recorded userspace/kernel |
+| P6 root sandbox | Unmodified supplied unit passes the shared corrected manager case in 26.64 s on Ubuntu 6.8.0-147-generic, ROOT_SYSTEMD_RESULT=0 | Final-source qualification after relevant changes |
 | P7 docs/CI | Required-kernel distinctions and approved limits are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source record and complete proof/coverage enforcement |
 
-The production implementation passes both jobs in
+The preceding socket implementation passes both jobs in
 [CI run 41262268588](https://github.com/menhera-org/rs-l2tpd/actions/runs/41262268588),
 about fourteen minutes overall, without timeout. Its
 [job metadata](phase6/maintainer-decisions-20261101/ci-production-jobs.json)
@@ -58,8 +59,8 @@ ten seeded ordinary suites, three musl library/fake/rule suites, common
 checks, cross-target musl compile checks, full GNU live/process cases,
 a real user manager, Incus and the root sandbox.
 
-The [fresh summary](phase6/tunnel-application-status-20261101/coverage-summary.json)
-reports 8,142/8,529 lines and 1,562/1,814 branches covered. Only this
+The [fresh summary](phase6/streamed-inventories-20261101/coverage-summary.json)
+reports 8,193/8,578 lines and 1,577/1,830 branches covered. Only this
 production implementation's profiles contribute; superseded implementations
 remain separate. Test-only bodies/helpers are excluded under the approved
 production scope while their tests execute. No production exclusion,
@@ -77,9 +78,10 @@ PowerPC64LE results are compile checks only.
   address state needed by configured dependencies, with streamed temporary
   inventories and release after the final dependency. The
   [witnesses](phase6/resource-cache-bounds-20261031/README.md) remain retained.
-  The written contract is applied; implementation and resource proof are
-  still being completed in an isolated checkout. The shipped daemon still
-  uses full inventory vectors.
+  The written contract and streaming implementation are applied. Six
+  direct/VRF resource cases check 1–10,000 entries and final-reference
+  cleanup. Completion-failure cases reject staged data; their negative
+  control fails. Full byte/resource/event-cost proof remains a separate gate.
 - **H6 retry timing:** the maintainer approved the
   [deadline/completion distinction](phase6/route-retry-timing-20261101/README.md).
   Exact one-second deadlines remain checked with the fake clock. Live tests
@@ -95,7 +97,13 @@ PowerPC64LE results are compile checks only.
   retain both fixes. No daemon workaround or local dependency override is
   applied.
 
-The final matrix, 100% report, streamed-inventory implementation and complete
-clause/resource/event-cost proof remain unfinished. Earlier packet loss in
-the superseded instrumented GNU scale run remains unexplained despite
-passing subsequent runs; the assertion now retains command output.
+The [neighbour-pressure control](phase6/neighbour-pressure-20261101/README.md)
+reproduces packet loss with two simultaneous 300-session workloads in one
+isolated guest: both fail and the ARP overflow counter rises by two. The
+same traffic runs alone without overflow. Host-kernel qualification now
+runs serially; three unchanged normal suites pass. Earlier host transcripts
+lack counter deltas, so the control establishes the shared-budget mechanism
+rather than direct attribution of every historical packet drop.
+
+The final matrix, 100% report and complete clause/resource/event-cost proof
+remain unfinished.

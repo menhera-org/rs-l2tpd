@@ -112,7 +112,7 @@ impl Kernel for Host {
             count: self.2.clone(),
         }))
     }
-    fn dump_links(&mut self) -> io::Result<Vec<LinkInfo>> {
+    fn scan_links(&mut self, visit: &mut dyn FnMut(&LinkInfo)) -> io::Result<()> {
         self.callback_context();
         self.3.fetch_add(1, Ordering::SeqCst);
         let gate = self.1.lock().unwrap().take();
@@ -120,7 +120,7 @@ impl Kernel for Host {
             gate.entered.send(()).unwrap();
             gate.release.recv().unwrap();
         }
-        self.0.lock().unwrap().dump_links()
+        self.0.lock().unwrap().scan_links(visit)
     }
     fn now(&self) -> Instant {
         self.callback_context();
@@ -154,7 +154,7 @@ impl Kernel for Host {
         link_by_name(name: &L2tpIfName) -> io::Result<Option<LinkInfo>>;
         set_hwaddr(index: u32, addr: HwAddr) -> io::Result<()>;
         ether_addr(index: u32) -> io::Result<Option<HwAddr>>;
-        dump_addrs() -> io::Result<Vec<AddrInfo>>;
+        scan_addrs(visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()>;
         l2tp_events() -> io::Result<Box<dyn Subscription>>;
     }
 }
