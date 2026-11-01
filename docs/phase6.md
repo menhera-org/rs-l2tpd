@@ -30,8 +30,14 @@ the scenario suite below; read them before writing new scenarios.
 Phase 6 remains open. Production source `2051827` passes all thirteen required
 matrix profiles, including 27 normal scenarios on each of the five kernels.
 Strict maps, unprivileged Incus and the root sandbox have passing records.
-Later test-only additions have passing common checks and repeated
-GNU/musl qualification. Merged production coverage is **96.71% of lines and
+The current E27 correction fixes verification stopping while a session's
+announced deletion is still queued. A delayed-work model witness fails on
+the preceding implementation and passes with the correction. Repeated models,
+GNU/musl live suites and GNU Incus pass. The fresh required matrix,
+stable Incus, root sandbox and merged coverage remain pending.
+
+Earlier test-only additions have passing common checks and repeated
+GNU/musl qualification. Pre-correction coverage is **96.71% of lines and
 89.56% of branches**, leaving **285 lines and 193 branches**.
 
 Complete clause/history/resource/event-cost proof and the 100% coverage

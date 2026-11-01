@@ -1011,6 +1011,7 @@ fn event_recreation_uses_the_configured_creation_name_on_linux() {
                 _ => false,
             })
             .expect("session deletion notification");
+        let delayed_notice = notice.clone();
         r.handle(source, notice);
         let deadline = std::time::Instant::now() + Duration::from_secs(2);
         let recreated = loop {
@@ -1027,6 +1028,25 @@ fn event_recreation_uses_the_configured_creation_name_on_linux() {
             std::thread::yield_now();
         };
         assert_eq!(recreated.ifname(), Some(name("direct-live")), "{source:?}");
+        if source == Source::L2tp {
+            let current = index_of("direct-live");
+            f.set_up(current, true);
+            let mac = r.kernel_mut().ether_addr(current).unwrap();
+            for _ in 0..2 {
+                r.handle(Source::L2tp, delayed_notice.clone());
+                let due = r.next_deadline().expect("advisory deletion verification");
+                std::thread::sleep(due.saturating_duration_since(std::time::Instant::now()));
+                r.tick();
+                assert!(r.ready());
+                assert!(
+                    r.next_deadline().is_some(),
+                    "presence alone cannot dismiss a queued deletion"
+                );
+                assert_eq!(index_of("direct-live"), current);
+                assert_eq!(r.kernel_mut().ether_addr(current).unwrap(), mac);
+                assert!(r.kernel_mut().link_by_index(current).unwrap().unwrap().up());
+            }
+        }
         assert!(r.shutdown());
         let deadline = std::time::Instant::now() + Duration::from_secs(2);
         while r.kernel_mut().tunnel(9510).unwrap().is_some() {

@@ -501,8 +501,14 @@ recovery. Strict rule/source maps, unprivileged Incus and the root sandbox
 have passing records. The checked libc exception is applied; no nix
 contribution or release is required.
 
-Later test-only additions have passing common checks and repeated
-GNU/musl qualification. Merged coverage is **96.71% of lines and 89.56% of
+The current E27 correction fixes verification stopping while a session's
+announced deletion is still queued. A delayed-work model witness fails on
+the preceding implementation and passes with the correction. Repeated models,
+GNU/musl live suites and GNU Incus pass. The fresh required matrix,
+stable Incus, root sandbox and merged coverage remain pending.
+
+Earlier test-only additions have passing common checks and repeated
+GNU/musl qualification. Pre-correction coverage is **96.71% of lines and 89.56% of
 branches**, leaving **285 lines and 193 branches**. The 100% gate and complete
 clause/history/resource/event-cost proof remain open. Repository file
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.

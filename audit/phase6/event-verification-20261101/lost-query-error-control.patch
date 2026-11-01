@@ -1,0 +1,22 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index bee59a8..92ddcbe 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -555,7 +555,7 @@ impl<K: Kernel> Reconciler<K> {
+             match self.k.tunnel(tid) {
+                 Ok(None) => self.tunnel_announced(tid),
+                 Ok(Some(_)) => {}
+-                Err(_) => complete = false,
++                Err(_) => {},
+             }
+         }
+         let sids: Vec<u32> = self.sessions.keys().copied().collect();
+@@ -569,7 +569,7 @@ impl<K: Kernel> Reconciler<K> {
+                     self.verify_session(sid);
+                 }
+                 Ok(Some(_)) => {}
+-                Err(_) => complete = false,
++                Err(_) => {},
+             }
+         }
+         if complete {

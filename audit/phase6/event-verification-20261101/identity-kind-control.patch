@@ -1,0 +1,13 @@
+diff --git a/src/reconciler/mod.rs b/src/reconciler/mod.rs
+index 44ba31f..bf36fd0 100644
+--- a/src/reconciler/mod.rs
++++ b/src/reconciler/mod.rs
+@@ -290,7 +290,7 @@ impl<K: Kernel> Reconciler<K> {
+                 .collect();
+             self.verify_sessions.retain(|id| {
+                 self.sessions.get(id).is_some_and(|record| {
+-                    wanted.get(&(true, *id)) == Some(&ConflictIdentity::Session(record.identity))
++                    wanted.get(&(false, *id)) == Some(&ConflictIdentity::Session(record.identity))
+                 })
+             });
+             let obsolete: Vec<_> = self

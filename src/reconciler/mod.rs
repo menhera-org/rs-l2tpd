@@ -288,6 +288,11 @@ impl<K: Kernel> Reconciler<K> {
                     ))
                 }))
                 .collect();
+            self.verify_sessions.retain(|id| {
+                self.sessions.get(id).is_some_and(|record| {
+                    wanted.get(&(true, *id)) == Some(&ConflictIdentity::Session(record.identity))
+                })
+            });
             let obsolete: Vec<_> = self
                 .conflicts
                 .iter()

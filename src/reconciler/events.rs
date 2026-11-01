@@ -129,6 +129,7 @@ impl<K: Kernel> Reconciler<K> {
                     .sessions
                     .get(&session_id)
                     .is_some_and(|s| s.tunnel_id == tunnel_id)
+                    && self.session_wanted(session_id).is_some()
                 {
                     self.verify_sessions.insert(session_id);
                     self.verify_session(session_id);
@@ -387,12 +388,7 @@ impl<K: Kernel> Reconciler<K> {
                 self.recreate_session(sid, creation);
                 true
             }
-            Ok(Some(_)) => self.sessions[&sid]
-                .state
-                .registration()
-                .is_some_and(|registration| {
-                    self.k.prove(registration) == crate::kernel::Proof::Proved
-                }),
+            Ok(Some(_)) => false,
             Err(e) => {
                 log::debug!(
                     "verification of session_id={sid} failed: {}",

@@ -12,7 +12,9 @@ publication checks select the same versions. Repository record
 `audit/phase6/matrix-20261101T075850Z-1691154/README.md` identifies the frozen
 implementation with kernel-selected inventories, complete VRF member tracking,
 checked libc signal calls and approved fixtures. Later test-only additions
-have separate qualification.
+have separate qualification. The current E27 correction requires fresh
+matrix, coverage, Incus and root-sandbox runs; the completed matrix above
+qualifies the preceding implementation.
 The approved H11 configured-MAC policy now passes three fresh Incus runs
 and a root-systemd guest on Ubuntu 6.8.0-147; its userspace scope is below.
 
@@ -185,10 +187,31 @@ The new implementation passes the shared selectors, disabled-device IPv6,
 mid-inventory disappearance and request-reopening checks on Ubuntu
 `6.8.0-147-generic`. Its two model witnesses deliver one dependency record
 with 1, 100 or 10,000 unrelated records. The earlier implementation reads
-all those records. This follow-up changes production code after the matrix
-above; its full required-target qualification is still pending.
+all those records. The completed November 1 matrix above qualifies this
+filtering follow-up and the VRF inventory-completion correction.
 Repository record `audit/phase6/event-inventory-cost-20261101/` keeps the
 witnesses, source identities and deliberately broken controls.
+
+## Advisory session verification
+
+The current E27 correction keeps checking a suspected deletion while the
+original local session is present. Presence alone cannot establish whether
+the notice describes queued deletion, a late old notice or, before 7.3,
+another namespace. Removing/replacing the session record cancels its
+coalesced verification task. Configuration identity changes also cancel it
+when failed session cleanup leaves an obsolete record temporarily retained;
+late announcements cannot recreate that obsolete task.
+
+A model witness withholds queued deletion work for three daemon ticks;
+the preceding implementation drops verification after the first tick.
+The live fixture replays a genuine deletion notice after recreation and
+requires the active replacement's index, MAC and UP state to survive
+continued verification. The preceding implementation fails that live case
+on Ubuntu 6.8.0-147. Fresh required-target runs for the correction are pending.
+This live replay does not force kernel deletion work to remain queued.
+
+Repository record `audit/phase6/event-verification-20261101/` retains the
+initial model/live failures and the correction's qualification as it runs.
 
 ## Session deletion and dump traversal by target
 
@@ -443,7 +466,8 @@ proofs; `audit/phase6/deadline-index-20261031/README.md` records indexed
 deadlines, conflict cancellation and fresh host/mainline-clock checks.
 
 Current merged production coverage remains below the required 100%; exact
-totals are in repository file `audit/PHASE6_VERIFICATION_2026-10-31.md`.
+pre-correction totals are in repository file
+`audit/PHASE6_VERIFICATION_2026-11-01.md`; the E27 correction needs fresh profiles.
 The earlier 92.26% line report included inline
 test code. Both strict map flags are enabled after ten CI qualification
 passes, and the strict workflow and pinned-nightly coverage workflow pass.

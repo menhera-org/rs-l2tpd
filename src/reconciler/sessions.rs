@@ -28,7 +28,7 @@ impl<K: Kernel> Reconciler<K> {
     }
 
     /// The accepted entry of the same kernel identity as the record.
-    fn session_wanted(&self, sid: u32) -> Option<(String, SessionConfig)> {
+    pub(super) fn session_wanted(&self, sid: u32) -> Option<(String, SessionConfig)> {
         let record = self.sessions.get(&sid)?;
         let name = self.wanted_sessions.get(&sid)?;
         (self.accepted.session_identity(name) == Some(record.identity))

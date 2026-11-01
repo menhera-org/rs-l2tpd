@@ -1,0 +1,30 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+warning: variable does not need to be mutable
+   --> src/reconciler/events.rs:552:13
+    |
+552 |         let mut complete = true;
+    |             ----^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (lib test) generated 1 warning (run `cargo fix --lib -p rs-l2tpd --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-2992259725ba1531)
+
+running 1 test
+
+thread 'rule_tests::events::event_verification_l2tp_query_errors_remain_pending_until_a_complete_pass' (1992457) panicked at src/../tests/rules/events.rs:555:31:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test rule_tests::events::event_verification_l2tp_query_errors_remain_pending_until_a_complete_pass ... FAILED
+
+failures:
+
+failures:
+    rule_tests::events::event_verification_l2tp_query_errors_remain_pending_until_a_complete_pass
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 251 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

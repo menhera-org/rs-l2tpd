@@ -8,7 +8,9 @@ kernel distinction on 2026-10-31, and the correction is applied. The
 previously approved evidence-map and H11 MAC decisions remain in force.
 The maintainer-approved libc exception now replaces broken nix signal
 wrappers. GNU/musl refusals and all five required kernel targets pass;
-no nix contribution or release is required.
+no nix contribution or release is required. The current E27 correction
+requires fresh qualification; the November 1 record tracks that changed
+production source and preserves these earlier results' scope.
 
 | Gate/package | Current evidence | Remaining work |
 |---|---|---|
@@ -16,7 +18,7 @@ no nix contribution or release is required.
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
 | P2 scenarios | The original ten Ubuntu CI repetitions pass 26 cases; the November 1 production matrix passes all 27 normal cases on each of five kernels. H16 clock profiles and scoped table/index/queue history checks pass | Kernel-selected inventories fix the one-event namespace scan. Known VRF kind and complete member inventory are now separate; the new reload case passes. The initially overlapping scale run fails, controlled K41 interference explains its requests, and serialized GNU/three musl captures pass zero queries. Finish clause/history proof |
 | P3 matrix | Latest required driver returns MATRIX_RESULT=0: five normal and five clock profiles, both IPv6-absent boots and missing-Ethernet-driver recovery pass; published versions match before/after | Frozen 2051827 qualifies selected inventories, completed VRF-member tracking and checked libc calls; later test-only additions have separate records |
-| P4 coverage | Approved production scope: model-control profiles reach 96.71% lines / 89.56% branches, with no production exclusions, profile mismatches or saturated counts | 285 missing lines / 193 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Pre-correction approved scope: model-control profiles reach 96.71% lines / 89.56% branches, with no production exclusions, profile mismatches or saturated counts | 285 missing lines / 193 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Approved explicit MAC authority and later-manager limitation applied; three fresh unmodified musl Incus runs pass | Repeat after relevant production changes; other distribution userspaces remain untested |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |

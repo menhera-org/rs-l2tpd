@@ -1,0 +1,13 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index bee59a8..6d799ee 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -394,7 +394,7 @@ impl<K: Kernel> Reconciler<K> {
+                     "verification of session_id={sid} failed: {}",
+                     report::describe(&e)
+                 );
+-                false
++                true
+             }
+         }
+     }

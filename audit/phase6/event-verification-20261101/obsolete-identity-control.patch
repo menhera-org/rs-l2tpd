@@ -1,0 +1,28 @@
+diff --git a/src/reconciler/mod.rs b/src/reconciler/mod.rs
+index 44ba31f..3c742cb 100644
+--- a/src/reconciler/mod.rs
++++ b/src/reconciler/mod.rs
+@@ -288,11 +288,6 @@ impl<K: Kernel> Reconciler<K> {
+                     ))
+                 }))
+                 .collect();
+-            self.verify_sessions.retain(|id| {
+-                self.sessions.get(id).is_some_and(|record| {
+-                    wanted.get(&(true, *id)) == Some(&ConflictIdentity::Session(record.identity))
+-                })
+-            });
+             let obsolete: Vec<_> = self
+                 .conflicts
+                 .iter()
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index bee59a8..824e70f 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -129,7 +129,6 @@ impl<K: Kernel> Reconciler<K> {
+                     .sessions
+                     .get(&session_id)
+                     .is_some_and(|s| s.tunnel_id == tunnel_id)
+-                    && self.session_wanted(session_id).is_some()
+                 {
+                     self.verify_sessions.insert(session_id);
+                     self.verify_session(session_id);

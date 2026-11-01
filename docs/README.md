@@ -36,6 +36,12 @@ VRF reload regression. All five clock profiles, both IPv6-absent boots
 and missing-driver recovery pass. The matrix freezes production source
 `2051827`; later test-only additions have separate qualification records.
 
+The current E27 correction fixes verification stopping while a session's
+announced deletion is still queued. A delayed-work model witness fails on
+the preceding implementation and passes with the correction. Repeated models,
+GNU/musl live suites and GNU Incus pass. The fresh required matrix,
+stable Incus, root sandbox and merged coverage remain pending.
+
 Phase 6 remains open. Strict rule-map/source-link checks have passing CI
 records, including ten-repetition qualification. Unprivileged Incus and the
 root unit sandbox have passing local records. The approved MAC and
@@ -45,7 +51,7 @@ checked `libc` calls under the [documented exception](dependencies.md#upstream-n
 differences, source evidence, execution scope and limitations. Repository
 file `audit/PHASE6_VERIFICATION_2026-11-01.md` gives coverage and the remaining
 clause/resource/event-cost proof and identifies each test package's source.
-Merged production coverage is **96.71% of lines and 89.56% of branches**,
+Pre-correction production coverage is **96.71% of lines and 89.56% of branches**,
 leaving 285 lines and 193 branches. Repeated model and GNU/musl tests include
 failure controls for session ownership and descriptor handover. The global
 gates remain open.

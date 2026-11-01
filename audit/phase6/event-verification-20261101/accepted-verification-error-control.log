@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-2992259725ba1531)
+
+running 1 test
+
+thread 'rule_tests::events::event_verification_session_query_errors_preserve_identity_until_absence_is_confirmed' (1992819) panicked at src/../tests/rules/events.rs:605:9:
+assertion failed: r.next_deadline().is_some()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test rule_tests::events::event_verification_session_query_errors_preserve_identity_until_absence_is_confirmed ... FAILED
+
+failures:
+
+failures:
+    rule_tests::events::event_verification_session_query_errors_preserve_identity_until_absence_is_confirmed
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 251 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--lib`

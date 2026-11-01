@@ -25,7 +25,7 @@ mod completion {
 
     /// spec: E3, E12, S27, E27, G23
     #[test]
-    fn removal_query_retries_and_old_deletion_does_not_poll_a_new_incarnation() {
+    fn removal_queries_retry_and_late_announcements_stay_bounded_until_absence() {
         let mut r = reconciler();
         assert!(r.reconcile(toml::from_str(CONFIG).unwrap()));
         let old = r.k.session_index(10, 100).unwrap();
@@ -57,10 +57,84 @@ mod completion {
             },
         );
         assert!(!r.verify_sessions.is_empty());
+        let current = r.k.session_index(10, 100).unwrap();
+        r.k.clear_ops();
+        for _ in 0..3 {
+            for _ in 0..100 {
+                r.handle(
+                    Source::L2tp,
+                    Notice::SessionDeleted {
+                        tunnel_id: 10,
+                        session_id: 100,
+                    },
+                );
+            }
+            r.k.advance(RETRY);
+            r.tick();
+            assert_eq!(r.verify_sessions.len(), 1);
+            assert_eq!(r.next_deadline(), Some(r.k.now() + RETRY));
+            assert_eq!(r.k.session_index(10, 100), Some(current));
+            assert!(r.k.ops().is_empty());
+        }
+        r.k.operator_delete_session(10, 100);
+        r.k.tick();
         r.k.advance(RETRY);
         r.tick();
         assert!(r.verify_sessions.is_empty());
+        assert_ne!(r.k.session_index(10, 100), Some(current));
+        assert!(r.k.session_index(10, 100).is_some());
         assert_eq!(r.next_deadline(), None);
+    }
+
+    /// spec: E27, E18, C14, G23, M6
+    #[test]
+    fn verification_tasks_follow_configured_identity_even_when_cleanup_fails() {
+        for change in ["remove", "session"] {
+            let mut r = reconciler();
+            assert!(r.reconcile(toml::from_str(CONFIG).unwrap()));
+            r.handle(
+                Source::L2tp,
+                Notice::SessionDeleted {
+                    tunnel_id: 10,
+                    session_id: 100,
+                },
+            );
+            r.handle(Source::L2tp, Notice::TunnelDeleted { tunnel_id: 10 });
+            assert_eq!(r.verify_sessions.len(), 1);
+            assert_eq!(r.verify_tunnels.len(), 1);
+            let renamed = CONFIG.replace("[sessions.s]", "[sessions.renamed]");
+            assert!(r.reconcile(toml::from_str(&renamed).unwrap()));
+            assert_eq!(r.verify_sessions.len(), 1);
+            assert_eq!(r.verify_tunnels.len(), 1);
+            let next = match change {
+                "remove" => toml::from_str(CONFIG.split("[sessions.s]").next().unwrap()).unwrap(),
+                "session" => toml::from_str(&format!("{CONFIG}\npeer_session_id=101\n")).unwrap(),
+                _ => unreachable!(),
+            };
+            r.k.fail_next("delete", Errno::EIO);
+            assert!(!r.reconcile(next));
+            assert!(r.sessions.contains_key(&100));
+            assert!(r.tunnels.contains_key(&10));
+            assert!(
+                r.verify_sessions.is_empty(),
+                "{change}: obsolete session task"
+            );
+            assert_eq!(r.verify_tunnels.len(), 1);
+
+            r.k.fail_next("session", Errno::EIO);
+            r.handle(
+                Source::L2tp,
+                Notice::SessionDeleted {
+                    tunnel_id: 10,
+                    session_id: 100,
+                },
+            );
+            assert!(r.verify_sessions.is_empty());
+            assert_eq!(
+                r.k.session(10, 100).unwrap_err().raw_os_error(),
+                Some(nix::libc::EIO)
+            );
+        }
     }
 
     /// spec: S10, S8, O3, G13
