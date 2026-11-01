@@ -98,3 +98,74 @@ mod tests {
         assert!(super::effective().is_ok());
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod report_tests {
+    /// spec: R49, P23, O2, G1
+    #[test]
+    fn warnings_match_the_effective_capabilities_and_name_each_fallback_once() {
+        const CHILD: &str = "RS_L2TPD_TEST_CAPABILITIES_REPORT";
+        if std::env::var_os(CHILD).is_some() {
+            crate::logger::init(false);
+            let bits = super::effective().unwrap();
+            super::report();
+            println!("CAPABILITIES={bits}");
+            return;
+        }
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "caps::report_tests::warnings_match_the_effective_capabilities_and_name_each_fallback_once",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env(CHILD, "1")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        let stdout = String::from_utf8(output.stdout).unwrap();
+        let bits: u64 = stdout
+            .split_once("CAPABILITIES=")
+            .unwrap()
+            .1
+            .lines()
+            .next()
+            .unwrap()
+            .parse()
+            .unwrap();
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        if let Ok(expected) = std::env::var("RS_L2TPD_TEST_NETWORK_CAPABILITIES") {
+            let mask = (1 << 10) | (1 << 12) | (1 << 13);
+            assert_eq!(bits & mask, expected.parse::<u64>().unwrap());
+        }
+        for (bit, name, consequence) in [
+            (
+                10,
+                "CAP_NET_BIND_SERVICE",
+                "DHCPv6 port 546 may be unavailable",
+            ),
+            (
+                12,
+                "CAP_NET_ADMIN",
+                "tunnel, session and device operations may fail",
+            ),
+            (
+                13,
+                "CAP_NET_RAW",
+                "device binding and raw router discovery may fail",
+            ),
+        ] {
+            assert_eq!(
+                stderr
+                    .matches(&format!(
+                        "WARN rs_l2tpd::caps: missing {name}: {consequence}"
+                    ))
+                    .count(),
+                usize::from(bits & (1 << bit) == 0),
+                "{stderr}"
+            );
+        }
+        assert!(!stderr.contains("capget:"), "{stderr}");
+    }
+}

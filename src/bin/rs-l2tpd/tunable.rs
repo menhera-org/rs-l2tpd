@@ -43,7 +43,38 @@ mod tests {
         std::fs::write(&path, "1\n").unwrap();
         super::set(&path).unwrap();
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "0\n");
+        let stamp = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1);
+        std::fs::File::open(&path)
+            .unwrap()
+            .set_times(std::fs::FileTimes::new().set_modified(stamp))
+            .unwrap();
         super::set(&path).unwrap();
+        assert_eq!(std::fs::metadata(&path).unwrap().modified().unwrap(), stamp);
         assert!(super::set(&dir.path().join("absent")).is_err());
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod namespace_tests {
+    /// spec: P25, L12, K11, G10
+    #[test]
+    #[ignore = "isolated network namespace with CAP_NET_ADMIN and writable namespace sysctls"]
+    fn whitelisted_writes_apply_only_to_the_callers_network_namespace() {
+        let path = "/proc/sys/net/ipv6/bindv6only";
+        let original = std::fs::read_to_string(path).unwrap();
+        let namespace = std::fs::File::open("/proc/thread-self/ns/net").unwrap();
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        for initial in ["1\n", "0\n"] {
+            std::fs::write(path, initial).unwrap();
+            assert!(super::write(
+                "net.ipv6.bindv6only",
+                "0",
+                std::time::Instant::now() + std::time::Duration::from_secs(3),
+            ));
+            assert_eq!(std::fs::read_to_string(path).unwrap(), "0\n");
+        }
+        nix::sched::setns(namespace, nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        assert_eq!(std::fs::read_to_string(path).unwrap(), original);
     }
 }

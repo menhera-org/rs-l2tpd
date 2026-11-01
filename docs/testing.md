@@ -231,14 +231,14 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-merged report is 97.23% lines / 90.65% branches, with no production
-exclusions; 240 lines and 173 branches remain. Its fresh collector qualifies
+merged report is 97.27% lines / 90.76% branches, with no production
+exclusions; 237 lines and 171 branches remain. Its fresh collector qualifies
 iphost 0.4.4 and the standard-library boundary changes, including GNU live,
 Incus, manager and task-limit profiles. The anonymous Reply witness fails
 with 0.4.3 and passes with the registry release. Three musl scenario/Incus
 repetitions pass; the required matrix passes all thirteen profiles on frozen
 584062d with released iphost 0.4.4. Repository file
-`audit/phase6/generic-family-recovery-20261101/README.md` identifies the latest
+`audit/phase6/host-adapter-success-20261101/README.md` identifies the latest
 measurement and its qualified scope. The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public
 and private cases exercise one generic instantiation; both targets still run.

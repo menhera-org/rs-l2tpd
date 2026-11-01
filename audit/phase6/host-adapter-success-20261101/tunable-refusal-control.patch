@@ -1,0 +1,11 @@
+--- a/src/bin/rs-l2tpd/tunable.rs
++++ b/src/bin/rs-l2tpd/tunable.rs
+@@ -5,7 +5,7 @@
+         return false;
+     }
+     // The reconciler reports a failed handshake once (P25/O3).
+-    set(std::path::Path::new("/proc/sys/net/ipv6/bindv6only")).is_ok()
++    false
+ }
+ fn set(path: &std::path::Path) -> io::Result<()> {
+     let previous = std::fs::read_to_string(path)?;

@@ -1,0 +1,18 @@
+6.8.0-147-generic
+
+running 1 test
+
+thread 'tunable::namespace_tests::whitelisted_writes_apply_only_to_the_callers_network_namespace' (8) panicked at src/bin/rs-l2tpd/tunable.rs:78:9:
+assertion `left == right` failed
+  left: "0\n"
+ right: "1\n"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tunable::namespace_tests::whitelisted_writes_apply_only_to_the_callers_network_namespace ... FAILED
+
+failures:
+
+failures:
+    tunable::namespace_tests::whitelisted_writes_apply_only_to_the_callers_network_namespace
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.00s
+

@@ -1,0 +1,1 @@
+The initial combined GNU log contains three one-case result lines: an existing nested test and the two dedicated cases. Every actual test passes; the collection guard expected two and returned 1. Final collection writes a separate log for each dedicated case and checks its own result. Initial raw profiles are outside the accepted collector.

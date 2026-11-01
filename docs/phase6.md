@@ -47,8 +47,8 @@ thirteen profiles on frozen signed commit `584062d`. Later test-only
 additions retain their separate execution records.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.23% of
-lines and 90.65% of branches**, leaving **240 lines and 173 branches**.
+GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.27% of
+lines and 90.76% of branches**, leaving **237 lines and 171 branches**.
 
 A recent test-only package forces shutdown between service dequeue and
 dispatch and checks capacity acknowledgement. Ten native and instrumented
@@ -80,7 +80,14 @@ The later generic-family cases check missing groups, timeout cache retention
 and live ENOENT recovery. Ten native/instrumented seeds, three musl library
 runs, three GNU/musl live repetitions and common gates pass; three controls
 fail. Repository record `audit/phase6/generic-family-recovery-20261101/`
-gives the latest measurement and its scope.
+records that measurement and its scope.
+The later host-adapter cases verify effective-capability warnings, successful
+store-worker processing, and isolated tunable writes. Ten native/instrumented
+binary repetitions, three musl runs, three GNU/musl container repetitions
+and common gates pass. Seven production controls and a namespace-fixture
+control fail. Repository record `audit/phase6/host-adapter-success-20261101/`
+gives the latest measurement. A required matrix frozen at fb0620d is running
+separately; it excludes these later declarations.
 
 Complete clause/history/resource/event-cost proof and the 100% coverage
 gate remain required. The [testing page](testing.md) gives current gate

@@ -1,0 +1,39 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+warning: unused variable: `fd`
+   --> src/bin/rs-l2tpd/fdstore.rs:222:55
+    |
+222 |                     ControlEvent::StoreSocket { name, fd, .. } => {
+    |                                                       ^^ help: try ignoring the field: `fd: _`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `store`
+   --> src/bin/rs-l2tpd/fdstore.rs:223:37
+    |
+223 |                         if let Some(store) = &store
+    |                                     ^^^^^ help: if this is intentional, prefix it with an underscore: `_store`
+
+warning: `rs-l2tpd` (bin "rs-l2tpd" test) generated 2 warnings (run `cargo fix --bin "rs-l2tpd" -p rs-l2tpd --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
+
+running 1 test
+
+thread '<unnamed>' (2591593) panicked at src/bin/rs-l2tpd/fdstore.rs:898:21:
+assertion `left == right` failed
+  left: [70, 68, 83, 84, 79, 82, 69, 82, 69, 77, 79, 86, 69, 61, 49, 10, 70, 68, 78, 65, 77, 69, 61, 116, 49, 55]
+ right: [70, 68, 83, 84, 79, 82, 69, 61, 49, 10, 70, 68, 78, 65, 77, 69, 61, 116, 49, 55]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'fdstore::worker_tests::successful_host_store_and_withdrawal_preserve_rights_and_acknowledge_processing' (2591591) panicked at src/bin/rs-l2tpd/fdstore.rs:926:28:
+called `Result::unwrap()` on an `Err` value: Any { .. }
+test fdstore::worker_tests::successful_host_store_and_withdrawal_preserve_rights_and_acknowledge_processing ... FAILED
+
+failures:
+
+failures:
+    fdstore::worker_tests::successful_host_store_and_withdrawal_preserve_rights_and_acknowledge_processing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

@@ -1,0 +1,11 @@
+--- a/src/bin/rs-l2tpd/caps.rs
++++ b/src/bin/rs-l2tpd/caps.rs
+@@ -43,7 +43,7 @@
+                     "DHCPv6 port 546 may be unavailable",
+                 ),
+             ] {
+-                if bits & (1 << bit) == 0 {
++                if bits & (1 << bit) != 0 {
+                     log::warn!("missing {name}: {consequence}");
+                 }
+             }

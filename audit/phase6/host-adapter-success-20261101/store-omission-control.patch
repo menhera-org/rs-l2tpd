@@ -1,0 +1,11 @@
+--- a/src/bin/rs-l2tpd/fdstore.rs
++++ b/src/bin/rs-l2tpd/fdstore.rs
+@@ -221,7 +221,7 @@
+                     }
+                     ControlEvent::StoreSocket { name, fd, .. } => {
+                         if let Some(store) = &store
+-                            && let Err(error) = store.store(&name, &fd)
++                            && let Err(error) = Ok::<(), std::io::Error>(())
+                         {
+                             log::warn!("descriptor store {name}: {error}");
+                         }

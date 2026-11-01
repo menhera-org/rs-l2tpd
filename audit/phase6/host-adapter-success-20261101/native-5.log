@@ -1,0 +1,83 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
+
+running 70 tests
+
+running 1 test
+test args::completion_tests::legacy_aliases_share_validation ... ok
+test args::tests::byte_paths_and_option_like_values ... ok
+test args::tests::modes_and_errors ... ok
+test caps::tests::effective_set_without_proc ... ok
+test check::tests::output_preserves_render_and_write_errors ... ok
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ignored, run in a user systemd service with the template address-family restrictions
+test daemon::tests::broken_pipe_and_collector_shutdown_child ... ok
+test check::tests::fixed_order_corrected_values_and_omitted_defaults ... ok
+test fdstore::tests::abstract_stores_validate_names_before_sending ... ok
+test files::completion_tests::empty_paths_are_absent_without_configuration_errors ... ok
+test files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths ... ignored, root in an isolated container, drops child uid
+test files::filesystem_tests::permission_child ... ok
+test pidfile::edge_tests::pid_edge_child ... ok
+test pidfile::fault_tests::pid_syscall_fault_child ... ok
+test pidfile::permission_tests::precreated_permissions_links_and_owner ... ignored, root in an isolated container, drops child uid
+test caps::report_tests::warnings_match_the_effective_capabilities_and_name_each_fallback_once ... ok
+test pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes ... ignored, root in an isolated container, changes directory owner
+test fdstore::tests::barrier_timeout_is_a_failure ... ok
+test pidfile::permission_tests::precreated_child ... ok
+test files::filesystem_tests::followed_links_and_absence_on_reload ... ok
+test caps::tests::capget_refusal_preserves_the_errno_and_reports_the_failure ... ok
+test fdstore::tests::rights_and_ordered_processing_barrier ... ok
+test files::tests::failed_documents_are_omitted_and_diagnostics_redact_input ... ok
+test restart::completion_tests::absolute_executable_does_not_need_a_working_directory ... ok
+test restart::completion_tests::executable_search_child ... ok
+test restart::completion_tests::malformed_entry_child ... ok
+test restart::completion_tests::pid_inspection_error_child ... ok
+test daemon::tests::vanished_parent_is_logged_and_signal_threads_join ... ok
+test fdstore::worker_tests::successful_host_store_and_withdrawal_preserve_rights_and_acknowledge_processing ... ok
+test restart::signal_tests::exec_mask_child ... ok
+test fdstore::worker_tests::refused_host_operations_report_their_incarnation_and_release_duplicates ... ok
+test setup::completion_tests::directory_modes_child ... ok
+test logger::tests::direct_logging_filters_disabled_records_and_escapes_each_line ... ok
+test files::tests::discovery_merging_and_reload_refusal ... ok
+test setup::tests::parses_required_unit_keys_and_install_paths ... ok
+test signals::libc_tests::signal_errors_use_the_return_code_or_errno_as_required ... ok
+test stream_tests::closed_streams_child ... ok
+test tunable::namespace_tests::whitelisted_writes_apply_only_to_the_callers_network_namespace ... ignored, isolated network namespace with CAP_NET_ADMIN and writable namespace sysctls
+test tunable::tests::unsupported_or_expired_writes_are_refused ... ok
+test restart::completion_tests::restart_file_checks_precede_any_signal ... ok
+test tunable::tests::writes_only_when_needed ... ok
+test files::completion_tests::retained_entry_conflicts_refuse_reload_and_recovery_preserves_the_retained_value ... ok
+test signals::tests::pending_requests_coalesce_and_shutdown_bypasses_a_full_fake_queue ... ok
+test restart::completion_tests::executable_search_skips_missing_directories_and_nonexecutable_files ... ok
+test restart::signal_tests::exec_preserves_requests_and_rust_entry_ignores_sigpipe ... ok
+test pidfile::tests::invalid_paths_and_missing_files_leave_other_inodes_alone ... ok
+test pidfile::removal_tests::uninspectable_removal_is_not_a_shutdown_failure ... ok
+test pidfile::tests::symlink_refusal_and_directory_permissions_preserved ... ok
+test pidfile::tests::incorrect_inode_hints_and_nonregular_paths_never_authorize_removal ... ok
+test pidfile::tests::fresh_inode_and_conditional_removal ... ok
+test signals::libc_tests::blocked_signals_and_wait_failures_are_checked_in_subprocesses ... ok
+test restart::tests::incompatible_probe_never_executes_or_changes_descriptors ... ok
+test signals::forwarder_tests::forwarder_retries_a_full_queue_and_delivers_after_capacity_returns ... ok
+test restart::completion_tests::pid_metadata_mismatches_and_inspection_errors_discard_only_removal_authority ... ok
+test restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table ... ok
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.02s
+
+test setup::tests::atomic_idempotent_and_preserves_edits_and_configuration ... ok
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... ok
+test restart::completion_tests::malformed_entry_state_is_consumed_and_refused ... ok
+test pidfile::fault_tests::publication_and_removal_faults_preserve_existing_files_and_clear_temporary_names ... ok
+test pidfile::edge_tests::sticky_warning_and_unwritable_directory_fallbacks ... ok
+test setup::completion_tests::failed_install_steps_preserve_existing_files_and_attempt_the_remaining_steps ... ok
+test stream_tests::sockets_cannot_take_the_place_of_closed_standard_streams ... ok
+test setup::completion_tests::umask_does_not_weaken_installation_or_shadow_admin_units ... ok
+test files::completion_tests::file_io_faults_refuse_reload_and_keep_successfully_read_documents ... ok
+test stream_tests::failed_standard_stream_setup_returns_the_original_error ... ok
+test files::completion_tests::bounded_regular_files_and_special_files ... ok
+test fdstore::tests::a_barrier_requires_eof_and_rejects_data_or_an_unreleased_descriptor ... ok
+test fdstore::inheritance_tests::malformed_announcements_and_close_fallback_preserve_descriptor_ownership ... ok
+test fdstore::tests::failed_barrier_operations_preserve_errors_and_release_local_pipes ... ok
+test restart::completion_tests::adoption_probes_bound_output_and_time_before_any_exec ... ok
+
+test result: ok. 65 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 3.04s
+

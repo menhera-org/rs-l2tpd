@@ -1,0 +1,11 @@
+--- a/src/bin/rs-l2tpd/fdstore.rs
++++ b/src/bin/rs-l2tpd/fdstore.rs
+@@ -229,7 +229,7 @@
+                     ControlEvent::ForgetSocket { name, id, deadline } => {
+                         let processed = match &store {
+                             Some(store) => match store.forget(&name, deadline) {
+-                                Ok(()) => true,
++                                Ok(()) => false,
+                                 Err(error) => {
+                                     log::warn!("descriptor withdrawal {name}: {error}");
+                                     false

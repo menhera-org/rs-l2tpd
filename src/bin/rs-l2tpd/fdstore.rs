@@ -839,4 +839,111 @@ mod worker_tests {
             }
         });
     }
+
+    /// spec: P14, L13, G9, G14
+    #[test]
+    fn successful_host_store_and_withdrawal_preserve_rights_and_acknowledge_processing() {
+        use nix::sys::socket::{ControlMessageOwned, recvmsg};
+        use rs_l2tpd::kernel::fake::FakeKernel;
+        use std::io::{IoSliceMut, Write};
+        use std::os::unix::net::UnixStream;
+        let engine = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        engine.block_on(async {
+            let mut runtime = rs_l2tpd::Runtime::with_kernel(
+                FakeKernel::new(42),
+                Box::new(rs_l2tpd::reconciler::IphostResolve::default()),
+                vec![],
+            )
+            .map_err(|(error, _)| error)
+            .unwrap();
+            let dir = crate::testdir::Dir::new();
+            let path = dir.path().join("notify");
+            let listener = UnixDatagram::bind(&path).unwrap();
+            listener
+                .set_read_timeout(Some(Duration::from_secs(3)))
+                .unwrap();
+            let store = Store::new(path.as_os_str()).unwrap();
+            let manager = std::thread::spawn(move || {
+                for (index, expected) in [
+                    "FDSTORE=1\nFDNAME=t17",
+                    "FDSTOREREMOVE=1\nFDNAME=t17",
+                    "BARRIER=1",
+                ]
+                .into_iter()
+                .enumerate()
+                {
+                    let mut bytes = [0; 64];
+                    let mut iov = [IoSliceMut::new(&mut bytes)];
+                    let mut cmsg = nix::cmsg_space!([i32; 1]);
+                    let message = recvmsg::<()>(
+                        listener.as_raw_fd(),
+                        &mut iov,
+                        Some(&mut cmsg),
+                        MsgFlags::MSG_CMSG_CLOEXEC,
+                    )
+                    .unwrap();
+                    let count = message.bytes;
+                    let mut rights = vec![];
+                    for control in message.cmsgs().unwrap() {
+                        if let ControlMessageOwned::ScmRights(fds) = control {
+                            rights.extend(
+                                fds.into_iter()
+                                    .map(|fd| unsafe { OwnedFd::from_raw_fd(fd) }),
+                            );
+                        }
+                    }
+                    assert_eq!(&bytes[..count], expected.as_bytes());
+                    assert_eq!(rights.len(), usize::from(index != 1));
+                    if index == 0 {
+                        let mut stream = UnixStream::from(rights.pop().unwrap());
+                        stream.write_all(b"x").unwrap();
+                    }
+                }
+            });
+            let (requests, receive) = tokio::sync::mpsc::channel(4);
+            let (mut peer, duplicate) = UnixStream::pair().unwrap();
+            peer.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+            let host = worker(receive, runtime.control(), Some(store)).unwrap();
+            requests
+                .try_send(ControlEvent::StoreSocket {
+                    name: "t17".into(),
+                    tunnel_id: 17,
+                    fd: duplicate.into(),
+                })
+                .unwrap();
+            requests
+                .try_send(ControlEvent::ForgetSocket {
+                    name: "t17".into(),
+                    id: 73,
+                    deadline: Instant::now() + Duration::from_secs(3),
+                })
+                .unwrap();
+            drop(requests);
+            host.join().unwrap();
+            manager.join().unwrap();
+            let mut byte = [0];
+            peer.read_exact(&mut byte).unwrap();
+            assert_eq!(&byte, b"x");
+            assert_eq!(peer.read(&mut byte).unwrap(), 0);
+            tokio::time::timeout(Duration::from_secs(3), async {
+                loop {
+                    match runtime.next_event().await {
+                        ControlEvent::SocketForgotten { id, processed } => {
+                            assert_eq!(id, 73);
+                            assert!(processed);
+                            break;
+                        }
+                        ControlEvent::Tick => {}
+                        _ => panic!("unexpected host completion"),
+                    }
+                }
+            })
+            .await
+            .unwrap();
+            assert!(runtime.shutdown().unwrap());
+        });
+    }
 }

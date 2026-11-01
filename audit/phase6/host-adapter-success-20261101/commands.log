@@ -1,0 +1,41 @@
+features: all; GNU: x86_64-unknown-linux-gnu; musl: x86_64-unknown-linux-musl
+# The initial native and combined-container logs correspond to initial-source.patch.
+# Final source.patch adds an independently supplied capability-mask expectation.
+# The initial container count guard rejects three nested one-case result lines when it expects two; final logs separate each case.
+for seed in 1 2 3 4 5 6 7 8 9 10; do TEST_SEED=$seed cargo test --locked --all-features --bin rs-l2tpd; TEST_SEED=$seed cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --bin rs-l2tpd --branch --no-report; done
+for seed in 1 2 3; do TEST_SEED=$seed cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd; done
+cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --no-run
+# Final full-container collection:
+set -eu
+record=$PWD/audit/phase6/host-adapter-success-20261101
+coverage=$CARGO_LLVM_COV_TARGET_DIR
+profiles=$coverage/host-success-profiles
+mkdir -p "$profiles"
+chmod 777 "$profiles"
+for flavor in gnu musl; do
+  if test "$flavor" = gnu; then build=$record/native.log; label='Running unittests src/bin/rs-l2tpd/main.rs ('; else build=$record/musl-build.log; label='Executable unittests src/bin/rs-l2tpd/main.rs ('; fi
+  unit=$(awk -v label="$label" -v root="$PWD/" '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/\)$/, "",line);if(line!~/^\//)line=root line;print line}}' "$build")
+  test -f "$unit" && test -x "$unit"
+  for repeat in 1 2 3; do
+    for case in ordinary tunable missing-capabilities; do
+      if test "$case" = missing-capabilities; then set -- --cap-drop ALL --env RS_L2TPD_TEST_NETWORK_CAPABILITIES=0; else set -- --privileged --env RS_L2TPD_TEST_NETWORK_CAPABILITIES=13312; fi
+      if test "$flavor" = gnu; then set -- "$@" --mount "type=bind,source=$profiles,target=$profiles" --env "LLVM_PROFILE_FILE=$profiles/final-$flavor-$repeat-$case-%p-%m.profraw"; fi
+      {
+        printf 'features: all; target: x86_64-unknown-linux-%s; Docker network: none; case: %s; repetition: %s\n' "$flavor" "$case" "$repeat"
+        docker run --rm "$@" --network none --mount "type=bind,source=$PWD,target=$PWD,readonly" --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'uname -r; unit=$1; case=$2; if test "$case" = ordinary; then set -- --test-threads=1 --nocapture; elif test "$case" = tunable; then set -- --ignored --exact tunable::namespace_tests::whitelisted_writes_apply_only_to_the_callers_network_namespace --nocapture; else set -- --exact caps::report_tests::warnings_match_the_effective_capabilities_and_name_each_fallback_once --nocapture; fi; printf "command: %s" "$unit"; printf " %s" "$@"; printf "\n"; exec "$unit" "$@"' run "$unit" "$case"
+      } > "$record/live-$flavor-$repeat-$case.log" 2>&1
+      if test "$case" = ordinary; then expected=65; else expected=1; fi
+      grep -q "test result: ok. $expected passed; 0 failed" "$record/live-$flavor-$repeat-$case.log"
+    done
+  done
+done
+docker run --rm --network none --mount "type=bind,source=$profiles,target=/profiles" --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'chmod a+r /profiles/*.profraw'
+cp "$profiles/"*.profraw "$coverage/"
+printf 'HOST_ADAPTER_SUCCESS_FINAL_LIVE_RESULT=0\n'
+# Stronger namespace-isolation collection:
+undefined
+# Seven isolated uninstrumented production mutations run their exact case. Each must fail exactly one test. Patches/logs identify the mutation; the two live controls use --privileged --network none.
+./test-ci-gates.sh
+CARGO_LLVM_COV_TARGET_DIR=<same released-0.4.4 collector> cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path /tmp/phase6-host-success-coverage.json
+CARGO_LLVM_COV_TARGET_DIR=<same collector> cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines
+# Namespace fixture calibration: apply namespace-fixture-control.patch after source.patch, run its exact ignored namespace case in a disposable --privileged --network none container primed with bindv6only=1; require one failed test and the enclosing-value assertion 0 versus 1. Restore the source afterward.

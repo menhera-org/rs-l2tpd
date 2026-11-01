@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
+
+running 1 test
+
+thread 'fdstore::worker_tests::successful_host_store_and_withdrawal_preserve_rights_and_acknowledge_processing' (2591246) panicked at src/bin/rs-l2tpd/fdstore.rs:936:29:
+assertion failed: processed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test fdstore::worker_tests::successful_host_store_and_withdrawal_preserve_rights_and_acknowledge_processing ... FAILED
+
+failures:
+
+failures:
+    fdstore::worker_tests::successful_host_store_and_withdrawal_preserve_rights_and_acknowledge_processing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`
