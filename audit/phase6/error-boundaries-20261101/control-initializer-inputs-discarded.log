@@ -1,0 +1,21 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running tests/service.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/x86_64-unknown-linux-gnu/debug/deps/service-ac50b30ca6536511)
+
+running 1 test
+
+thread 'either_subscription_failure_returns_original_inputs_and_releases_partial_readers' (2987566) panicked at tests/service.rs:1805:9:
+assertion `left == right` failed
+  left: 0
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test either_subscription_failure_returns_original_inputs_and_releases_partial_readers ... FAILED
+
+failures:
+
+failures:
+    either_subscription_failure_returns_original_inputs_and_releases_partial_readers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test service`

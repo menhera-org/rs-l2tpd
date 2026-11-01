@@ -361,3 +361,66 @@ fn startup_resource_failures_return_errors_and_preserve_adopted_fds() {
         println!("STARTUP_FAILURE_VERIFIED={fault}");
     }
 }
+
+/// spec: L5, L7, L10, G14, G23
+#[test]
+#[cfg_attr(
+    coverage_nightly,
+    ignore = "serial coverage profile: child processes inherit concurrent fake descriptors"
+)]
+fn reload_thread_failure_returns_eagain_and_closes_the_service_queue() {
+    const CHILD: &str = "RS_L2TPD_TEST_RELOAD_THREAD_FAILURE";
+    if std::env::var_os(CHILD).is_some() {
+        let engine = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        engine.block_on(async {
+            let runtime = Runtime::with_kernel(
+                FakeKernel::new(42),
+                Box::new(IphostResolve::default()),
+                vec![],
+            )
+            .map_err(|(error, _)| error)
+            .unwrap();
+            let mut config = Config::new();
+            config.set_host(rs_l2tpd::config::HostConfig::new().with_fix_bindv6only(false));
+            let mut service = service::Service::with_runtime(config, runtime)
+                .map_err(|(error, _)| error)
+                .unwrap();
+            service.converge().await.unwrap();
+            let control = service.control();
+            refuse_startup_syscalls(&[libc::SYS_clone, libc::SYS_clone3], libc::EAGAIN);
+            control.reload().unwrap();
+            let result = service
+                .run(
+                    |_| panic!("failed spawn invoked the reload callback"),
+                    |_| panic!("unexpected restart callback"),
+                )
+                .await;
+            assert!(matches!(result, Err(Error::Io(error))
+                if error.raw_os_error() == Some(libc::EAGAIN)));
+            assert!(control.reload().is_err());
+            assert!(control.restart().is_err());
+        });
+        println!("RELOAD_THREAD_FAILURE_CHECKED=EAGAIN");
+        return;
+    }
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            &test_name("reload_thread_failure_returns_eagain_and_closes_the_service_queue"),
+            "--include-ignored",
+            "--nocapture",
+            "--test-threads=1",
+        ])
+        .env(CHILD, "1")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stdout).contains("RELOAD_THREAD_FAILURE_CHECKED=EAGAIN")
+    );
+    assert!(!String::from_utf8_lossy(&output.stderr).contains("LLVM Profile Error"));
+    println!("RELOAD_THREAD_FAILURE_VERIFIED=EAGAIN");
+}

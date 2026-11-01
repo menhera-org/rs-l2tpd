@@ -41,19 +41,23 @@ The checked-reply implementation also has passing local GNU/musl, Incus,
 manager, thread-limit and unmodified root-unit results on Ubuntu 6.8.0-147.
 
 Later test-only packages qualify request I/O errors and real buffer-force
-success, service queue ordering, and reconciler record/retirement guards.
+success, service queue ordering, reconciler record/retirement guards and
+runtime/socket error boundaries.
 Each passes ten native/instrumented model runs, three musl model runs,
 common gates, Rust 1.89 and additional musl architecture compile checks.
 Three force guests export seven profiles each. Request handling covers
-156/156 lines and 34/34 branches. The records identify each control and
+156/156 lines and 34/34 branches; socket handling covers 103/103 lines and
+12/12 branches. The records identify each control and
 the exact live or fake scope:
 `audit/phase6/netlink-io-faults-20261101/`,
-`audit/phase6/service-queue-guards-20261101/` and
-`audit/phase6/reconciler-record-guards-20261101/`.
+`audit/phase6/service-queue-guards-20261101/`,
+`audit/phase6/reconciler-record-guards-20261101/` and
+`audit/phase6/error-boundaries-20261101/`.
 
-The current collector reports **97.55% of production lines and 91.52% of
-branches**: 8,474/8,687 lines and 1,695/1,852 branches, leaving **213 lines
-and 157 branches**. All 4,319 mappings match the preceding service report.
+The current collector reports **97.64% of production lines and 91.58% of
+branches**: 8,482/8,687 lines and 1,696/1,852 branches, leaving **205 lines
+and 156 branches**. All preceding 4,319 mappings remain unchanged; eight service instantiations
+are added by the error-test callers, giving 4,327 mappings.
 Profiles from earlier production implementations are not merged. There
 are no production exclusions, profile mismatches or saturated regions.
 Complete clause/history/resource/event-cost proof and the 100% gate remain

@@ -29,6 +29,7 @@ struct Host(
     Arc<AtomicUsize>,
     Arc<AtomicUsize>,
     Arc<Mutex<Option<(usize, ProofAction)>>>,
+    Arc<AtomicUsize>,
 );
 struct Gate {
     entered: mpsc::SyncSender<()>,
@@ -61,6 +62,7 @@ impl Host {
             Arc::new(AtomicUsize::new(0)),
             Arc::new(AtomicUsize::new(0)),
             Arc::new(Mutex::new(None)),
+            Arc::new(AtomicUsize::new(0)),
         )
     }
     fn with<T>(&self, f: impl FnOnce(&mut FakeKernel) -> T) -> T {
@@ -144,10 +146,20 @@ impl Kernel for Host {
     }
     fn monitor(&mut self) -> io::Result<Box<dyn Subscription>> {
         self.callback_context();
+        if self.11.load(Ordering::Acquire) == 1 {
+            return Err(io::Error::from_raw_os_error(nix::libc::EIO));
+        }
         Ok(Box::new(Counted {
             feed: self.0.lock().unwrap().monitor()?,
             count: self.2.clone(),
         }))
+    }
+    fn l2tp_events(&mut self) -> io::Result<Box<dyn Subscription>> {
+        self.callback_context();
+        if self.11.load(Ordering::Acquire) == 2 {
+            return Err(io::Error::from_raw_os_error(nix::libc::EIO));
+        }
+        self.0.lock().unwrap().l2tp_events()
     }
     fn scan_addrs(&mut self, index: u32, visit: &mut dyn FnMut(&AddrInfo)) -> io::Result<()> {
         self.callback_context();
@@ -202,7 +214,6 @@ impl Kernel for Host {
         link_by_name(name: &L2tpIfName) -> io::Result<Option<LinkInfo>>;
         set_hwaddr(index: u32, addr: HwAddr) -> io::Result<()>;
         ether_addr(index: u32) -> io::Result<Option<HwAddr>>;
-        l2tp_events() -> io::Result<Box<dyn Subscription>>;
     }
 }
 struct NoDns;
@@ -1763,4 +1774,48 @@ fn late_proof_loss_on_a_published_session_skips_rename_and_later_mac_changes() {
         host.with(|kernel| kernel.tick());
     }
     assert!(runtime.shutdown().unwrap());
+}
+
+/// spec: L9, L13, A6, P14, G14, G23
+#[test]
+fn either_subscription_failure_returns_original_inputs_and_releases_partial_readers() {
+    use std::io::{Read, Write};
+    for phase in [1, 2] {
+        let host = Host::new();
+        host.11.store(phase, Ordering::Release);
+        let before = Arc::strong_count(&host.2);
+        let engine = engine();
+        let _entered = engine.enter();
+        let mut peers = std::collections::BTreeMap::new();
+        let mut adopted = Vec::new();
+        for name in ["t10", "malformed inherited name"] {
+            let (fd, peer) = std::os::unix::net::UnixStream::pair().unwrap();
+            peers.insert(name.to_owned(), (fd.as_raw_fd(), peer));
+            adopted.push(AdoptedSocket::new(name, fd.into()));
+        }
+        let (error, returned) = Runtime::with_kernel(host.clone(), Box::new(NoDns), adopted)
+            .err()
+            .unwrap();
+        assert!(matches!(error, Error::Io(error) if error.raw_os_error() == Some(nix::libc::EIO)));
+        assert_eq!(
+            Arc::strong_count(&host.2),
+            before,
+            "partial monitor survived failed initialization"
+        );
+        assert_eq!(returned.len(), peers.len());
+        for socket in returned {
+            let (name, fd) = socket.into_parts();
+            let (original, mut peer) = peers.remove(&name).unwrap();
+            assert_eq!(fd.as_raw_fd(), original);
+            peer.write_all(b"alive").unwrap();
+            let mut stream = std::os::unix::net::UnixStream::from(fd);
+            stream
+                .set_read_timeout(Some(Duration::from_secs(1)))
+                .unwrap();
+            let mut bytes = [0; 5];
+            stream.read_exact(&mut bytes).unwrap();
+            assert_eq!(&bytes, b"alive");
+        }
+        assert!(peers.is_empty());
+    }
 }

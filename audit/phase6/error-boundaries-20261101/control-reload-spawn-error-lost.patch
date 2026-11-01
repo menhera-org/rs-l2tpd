@@ -1,0 +1,11 @@
+--- a/src/service.rs
++++ b/src/service.rs
+@@ -347,7 +347,7 @@
+                         Ok(_) => in_flight = Some(generation),
+                         Err(error) => {
+                             control.request_processed();
+-                            failure = Some(error.into());
++                            let _ = error;
+                             control.shutdown();
+                         }
+                     }

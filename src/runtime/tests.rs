@@ -1032,3 +1032,27 @@ fn shutdown_discards_tunable_work_that_the_program_has_not_received() {
         finish(&mut runtime);
     });
 }
+
+/// spec: L6, L11, A6, G23
+#[test]
+fn a_closed_receiver_returns_the_queue_error_without_consuming_admission() {
+    engine().block_on(async {
+        let mut runtime = runtime();
+        let control = runtime.control();
+        runtime.rx.close();
+        assert!(!control.shared.requests.is_closed());
+        let expected = control.tx.reserve().await.err().unwrap().to_string();
+        let generation = control.shared.generation.load(Ordering::Acquire);
+        assert!(
+            matches!(control.reload_wait().await, Err(Error::Other(message)) if message == expected)
+        );
+        assert_eq!(
+            control.shared.generation.load(Ordering::Acquire),
+            generation
+        );
+        assert_eq!(control.shared.admitted.load(Ordering::Acquire), 0);
+        assert_eq!(control.shared.requests.available_permits(), QUEUE_CAPACITY);
+        assert!(runtime.rx.try_recv().is_err());
+        finish(&mut runtime);
+    });
+}

@@ -1,0 +1,11 @@
+--- a/src/kernel/linux/socket.rs
++++ b/src/kernel/linux/socket.rs
+@@ -25,7 +25,7 @@
+     if let Some(code) = error.raw_os_error() {
+         return errno(code);
+     }
+-    log::debug!("tunnel socket: {error}");
++    log::trace!("tunnel socket: {error}");
+     errno(match error {
+         l2tp::Error::AddressFamilyMismatch => libc::EAFNOSUPPORT,
+         _ => libc::EINVAL,

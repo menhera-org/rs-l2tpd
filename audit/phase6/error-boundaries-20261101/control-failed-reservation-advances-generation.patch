@@ -1,0 +1,10 @@
+--- a/src/runtime.rs
++++ b/src/runtime.rs
+@@ -226,6 +226,7 @@
+             .acquire()
+             .await
+             .map_err(|e| Error::Other(e.to_string()))?;
++        self.shared.generation.fetch_add(1, Ordering::AcqRel);
+         let permit = self
+             .tx
+             .reserve()

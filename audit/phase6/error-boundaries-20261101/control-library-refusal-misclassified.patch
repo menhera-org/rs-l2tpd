@@ -1,0 +1,11 @@
+--- a/src/kernel/linux/socket.rs
++++ b/src/kernel/linux/socket.rs
+@@ -28,7 +28,7 @@
+     log::debug!("tunnel socket: {error}");
+     errno(match error {
+         l2tp::Error::AddressFamilyMismatch => libc::EAFNOSUPPORT,
+-        _ => libc::EINVAL,
++        _ => libc::EIO,
+     })
+ }
+ 

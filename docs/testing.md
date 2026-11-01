@@ -232,8 +232,8 @@ uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
 merged report includes netlink I/O faults, real buffer-force success and
-service queue and reconciler record guards:
-97.55% lines / 91.52% branches, leaving 213 lines and 157 branches. Its fresh collector includes
+service queue, reconciler record and runtime/socket error guards:
+97.64% lines / 91.58% branches, leaving 205 lines and 156 branches. Its fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
 production exclusions, mismatches or saturated regions. The checked-reply
 implementation fixes the denominators at 8,687 lines and 1,852 branches.
@@ -254,7 +254,12 @@ and 34/34 branches. The initial rejected wrapper run is not merged. The later
 reload and background-dispatch assertions with three failing controls.
 `audit/phase6/reconciler-record-guards-20261101/README.md` adds four policy
 and defensive-helper cases with five failing controls; all 4,319 mappings
-remain unchanged.
+remain unchanged. The later error-boundary record
+(`audit/phase6/error-boundaries-20261101/README.md`) adds queue refusal,
+subscription cleanup, reload-spawn EAGAIN and typed socket-error mapping.
+Nine controls fail; the full GNU live run passes. Socket handling reaches
+103/103 lines and 12/12 branches. Eight service instantiations are added;
+all preceding mappings remain unchanged.
 
 The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public

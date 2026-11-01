@@ -210,4 +210,51 @@ mod tests {
         );
         assert!(socket.peer_addr().is_ok());
     }
+
+    // kernel: (K24, K26) net/l2tp/l2tp_ip.c and l2tp_ip6.c errno conventions; non-OS variants are synthetic l2tp validation refusals.
+    /// spec: T21, M13, E21, O6
+    #[test]
+    #[ignore = "serial isolated runner; child exec must not inherit concurrent fake socket references"]
+    fn library_error_mapping_preserves_errno_and_reports_synthetic_refusals() {
+        const CHILD: &str = "RS_L2TPD_TEST_SOCKET_ERRNO_MAPPING";
+        if std::env::var_os(CHILD).is_some() {
+            super::super::syscall_fault::log_warnings();
+            log::set_max_level(log::LevelFilter::Debug);
+            for (error, expected) in [
+                (
+                    l2tp::Error::Io(io::Error::from_raw_os_error(libc::EIO)),
+                    libc::EIO,
+                ),
+                (
+                    l2tp::Error::KernelError {
+                        code: libc::ENOTCONN,
+                        message: "controlled kernel status".into(),
+                    },
+                    libc::ENOTCONN,
+                ),
+                (l2tp::Error::AddressFamilyMismatch, libc::EAFNOSUPPORT),
+                (l2tp::Error::EncapsulationMismatch, libc::EINVAL),
+                (l2tp::Error::UnknownPeerConnId, libc::EINVAL),
+                (
+                    l2tp::Error::Io(io::Error::other("controlled library error")),
+                    libc::EINVAL,
+                ),
+            ] {
+                assert_eq!(os(error).raw_os_error(), Some(expected));
+            }
+            println!("SOCKET_ERRNO_MAPPING_CHECKED=6");
+            return;
+        }
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--ignored", "--exact",
+                "kernel::linux::socket::tests::library_error_mapping_preserves_errno_and_reports_synthetic_refusals",
+                "--nocapture", "--test-threads=1"])
+            .env(CHILD, "1").output().unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert!(String::from_utf8_lossy(&output.stdout).contains("SOCKET_ERRNO_MAPPING_CHECKED=6"));
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert_eq!(stderr.matches("tunnel socket:").count(), 4, "{stderr}");
+        assert!(!stderr.contains("LLVM Profile Error"), "{stderr}");
+        println!("SOCKET_ERRNO_MAPPING_VERIFIED=6");
+    }
 }

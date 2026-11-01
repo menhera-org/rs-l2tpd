@@ -1,0 +1,11 @@
+--- a/src/runtime.rs
++++ b/src/runtime.rs
+@@ -363,7 +363,7 @@
+         let (kernel, monitor, l2tp) = match opened {
+             Ok(thread) => match thread.join() {
+                 Ok(Ok(opened)) => opened,
+-                Ok(Err(error)) => return Err((error.into(), adopted)),
++                Ok(Err(error)) => return Err((error.into(), vec![])),
+                 Err(_) => {
+                     return Err((
+                         Error::Other("kernel subscription initializer panicked".into()),
