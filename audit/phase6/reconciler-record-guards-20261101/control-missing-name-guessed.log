@@ -1,0 +1,33 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/x86_64-unknown-linux-gnu/debug/deps/rs_l2tpd-7d7b0353a23499b8)
+
+running 12 tests
+test reconciler::sessions::wanted_tests::an_unwanted_adopted_parent_drops_its_unmatched_child_retry_and_report ... ok
+test reconciler::sessions::wanted_tests::a_pending_name_already_observed_as_the_target_needs_no_kernel_write ... ok
+test reconciler::sessions::wanted_tests::desired_indexes_follow_operator_names_and_release_on_shutdown ... ok
+test reconciler::sessions::wanted_tests::failed_child_deletion_still_retires_its_unwanted_parent_and_local_record ... ok
+test reconciler::sessions::wanted_tests::deletion_without_a_stored_creation_name_neither_scans_nor_guesses ... FAILED
+test reconciler::sessions::wanted_tests::duplicate_cached_names_remain_held_until_the_last_record_moves ... ok
+test reconciler::sessions::wanted_tests::overlapping_retained_targets_never_move_the_first_completed_holder ... ok
+test reconciler::sessions::wanted_tests::a_creation_refusal_without_a_name_collision_preserves_the_errno_and_retries_cleanly ... ok
+test reconciler::sessions::wanted_tests::staging_uses_a_free_eighth_name_and_refuses_after_eight_collisions ... ok
+test reconciler::sessions::wanted_tests::a_removed_middle_of_a_rename_chain_releases_only_its_own_cached_name ... ok
+test reconciler::sessions::wanted_tests::timed_out_creation_keeps_uncertainty_until_a_complete_fresh_scan ... ok
+test reconciler::sessions::wanted_tests::wanted_lookup_cost_and_identity_checks ... ok
+
+failures:
+
+---- reconciler::sessions::wanted_tests::deletion_without_a_stored_creation_name_neither_scans_nor_guesses stdout ----
+
+thread 'reconciler::sessions::wanted_tests::deletion_without_a_stored_creation_name_neither_scans_nor_guesses' (2882856) panicked at src/reconciler/wanted_tests.rs:491:5:
+assertion failed: r.delete_verified(100)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    reconciler::sessions::wanted_tests::deletion_without_a_stored_creation_name_neither_scans_nor_guesses
+
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 272 filtered out; finished in 1.05s
+
+error: test failed, to rerun pass `--lib`

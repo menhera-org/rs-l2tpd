@@ -27,50 +27,38 @@ the scenario suite below; read them before writing new scenarios.
 
 ## Execution status, 2026-11-01
 
-Phase 6 remains open. The current netlink reply correction rejects malformed
-signed completion statuses without panicking and preserves valid kernel
-errors, sequence checks, interruption and first-error precedence. Two
-synthetic witnesses fail on the extracted preceding arithmetic in three
-GNU and three musl debug runs. Eight corrected cases pass three runs per
-target; eight broken controls fail. Repository record
-`audit/phase6/netlink-reply-state-20261101/` identifies the source and limits.
+Phase 6 remains open. The production reply decoder rejects malformed signed
+statuses without panicking and preserves valid errors, sequence checks and
+first-error precedence. Eight synthetic cases and eight failure controls
+are qualified in `audit/phase6/netlink-reply-state-20261101/`.
 
-Ten native and instrumented model/rule/service/startup repetitions, three
-musl model runs, common gates, Rust 1.89 and three additional musl
-architecture compile checks pass. GNU live/Incus, user-manager, three
-thread-limit runs and the unmodified root sandbox pass. Three shipped-musl
-scenario/Incus pairs pass. These local live results apply to Ubuntu 6.8.0-147.
+Frozen signed source 3f503cd passes all thirteen required matrix profiles
+with released iphost 0.4.4. All five targets pass normal and clock profiles;
+both IPv6-absent boots and missing-driver recovery pass. Initial/final
+publication selections agree and source patches are empty. Repository
+record `audit/phase6/matrix-20261101T182115Z-2714445/` seals the result.
+The checked-reply implementation also has passing local GNU/musl, Incus,
+manager, thread-limit and unmodified root-unit results on Ubuntu 6.8.0-147.
 
-Frozen signed source 3f503cd passes all thirteen required matrix profiles,
-including the corrected reply decoder, absent-family recovery and released
-iphost 0.4.4 on all five kernels. Initial/final publication selections agree
-and tracked-source patches are empty. Repository record
-`audit/phase6/matrix-20261101T182115Z-2714445/` seals this qualification.
+Later test-only packages qualify request I/O errors and real buffer-force
+success, service queue ordering, and reconciler record/retirement guards.
+Each passes ten native/instrumented model runs, three musl model runs,
+common gates, Rust 1.89 and additional musl architecture compile checks.
+Three force guests export seven profiles each. Request handling covers
+156/156 lines and 34/34 branches. The records identify each control and
+the exact live or fake scope:
+`audit/phase6/netlink-io-faults-20261101/`,
+`audit/phase6/service-queue-guards-20261101/` and
+`audit/phase6/reconciler-record-guards-20261101/`.
 
-Additional test-only request I/O checks pass three GNU, musl and instrumented
-runs, ten native/instrumented model runs and three musl model runs. Common
-and cross-architecture compile checks pass. Three fresh guests prove real
-buffer-force success and export seven profiles each; the reduced-buffer
-control fails. Request handling covers 156/156 lines and 34/34 branches.
-All 4,311 production mappings remain identical. Repository record
-`audit/phase6/netlink-io-faults-20261101/` identifies the accepted runs and
-rejected attempts.
-
-Service queue guards also pass ten native/instrumented and three musl
-model runs, common checks and three failure controls. The final fixture
-uses real accepted reloads and proves stale-slot release, current callback
-execution and background-error ordering. Eight service instantiations are
-added; all preceding production mappings remain unchanged. Repository
-record `audit/phase6/service-queue-guards-20261101/` gives the scope.
-
-The merged collector reports **97.43% of production lines and 91.41% of
-branches**, leaving **223 lines and 159 branches**. Its
-denominators are 8,687 lines and 1,852 branches. Profiles from earlier production implementations are not
-merged; no production exclusions, profile mismatches or saturated regions
-are present. Complete clause/history/resource/event-cost proof and the
-100% gate remain required. Repository file
-`audit/PHASE6_VERIFICATION_2026-11-01.md` records current gates and preserves
-the earlier packages' execution scopes.
+The current collector reports **97.55% of production lines and 91.52% of
+branches**: 8,474/8,687 lines and 1,695/1,852 branches, leaving **213 lines
+and 157 branches**. All 4,319 mappings match the preceding service report.
+Profiles from earlier production implementations are not merged. There
+are no production exclusions, profile mismatches or saturated regions.
+Complete clause/history/resource/event-cost proof and the 100% gate remain
+required. Repository file `audit/PHASE6_VERIFICATION_2026-11-01.md` records
+current gates and preserves earlier packages' scopes.
 
 ## Rules that hold for the whole phase
 

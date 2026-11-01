@@ -464,3 +464,113 @@ fn a_creation_refusal_without_a_name_collision_preserves_the_errno_and_retries_c
         assert_eq!(r.k.link(index).unwrap().name().to_string_lossy(), "l2tp0");
     }
 }
+
+/// spec: S8, S10, S18, G4
+#[test]
+fn a_pending_name_already_observed_as_the_target_needs_no_kernel_write() {
+    let (mut r, config) = staging_fixture("");
+    assert!(r.reconcile(config));
+    let registration = *r.sessions[&100].state.registration().unwrap();
+    r.sessions.get_mut(&100).unwrap().name_state = Enforce::Pending;
+    r.k.clear_ops();
+    assert!(r.converge_session(100));
+    assert_eq!(r.sessions[&100].name_state, Enforce::Applied);
+    assert_eq!(r.sessions[&100].state, Identity::Proved(registration));
+    assert!(r.k.ops().is_empty(), "already satisfied name was rewritten");
+}
+
+/// spec: S9, S22, G2, G4
+#[test]
+fn deletion_without_a_stored_creation_name_neither_scans_nor_guesses() {
+    let (mut r, config) = staging_fixture("");
+    assert!(r.reconcile(config));
+    let index = r.k.session_index(10, 100).unwrap();
+    r.sessions.get_mut(&100).unwrap().created_as = None;
+    r.k.fail_next("scan", Errno::EIO);
+    r.k.clear_ops();
+    assert!(r.delete_verified(100));
+    assert_eq!(r.k.session_index(10, 100), Some(index));
+    assert!(r.k.ops().is_empty());
+    assert_eq!(
+        r.k.scan_sessions(None, &mut |_| {})
+            .unwrap_err()
+            .raw_os_error(),
+        Some(Errno::EIO as i32),
+        "missing name must not consume a dump"
+    );
+}
+
+/// spec: S25, S26, T8, K17, G9, G20
+#[test]
+fn failed_child_deletion_still_retires_its_unwanted_parent_and_local_record() {
+    let (mut r, config) = staging_fixture("");
+    assert!(r.reconcile(config));
+    r.k.fail_next("delete", Errno::EIO);
+    assert!(!r.reconcile(Config::new()));
+    assert!(r.sessions.is_empty());
+    assert!(r.tunnels.is_empty());
+    assert!(
+        r.k.ops()
+            .iter()
+            .any(|operation| operation.starts_with("close "))
+    );
+    r.k.tick();
+    r.k.advance(super::super::RETRY);
+    r.tick();
+    assert!(r.ready());
+    assert!(r.k.session(10, 100).unwrap().is_none());
+    assert!(r.k.tunnel(10).unwrap().is_none());
+    assert!(r.reserved.is_empty());
+}
+
+/// spec: S28, T8, K17, E12, G20, G23
+#[test]
+fn an_unwanted_adopted_parent_drops_its_unmatched_child_retry_and_report() {
+    let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+    let socket =
+        r.k.create_socket(crate::kernel::Family::V6, 10, 20)
+            .unwrap();
+    r.k.register_tunnel(socket, 10, 20).unwrap();
+    r.k.create_session(&crate::kernel::SessionCreate::new(
+        10,
+        101,
+        101,
+        None,
+        None,
+        L2tpIfName::new(b"unmatched").unwrap(),
+    ))
+    .unwrap();
+    let fd = r.k.clone_fd(socket).unwrap();
+    r.k.close(socket);
+    r.inherit("t10".into(), fd);
+    let mut config = Config::new();
+    config.set_host(crate::config::HostConfig::new().with_fix_bindv6only(false));
+    config
+        .insert_tunnel(
+            "a",
+            crate::config::TunnelConfig::builder(10)
+                .peer_tunnel_id(20)
+                .ip_version(crate::kernel::Family::V6)
+                .build()
+                .unwrap(),
+        )
+        .unwrap();
+    r.k.fail_next("delete", Errno::EPERM);
+    assert!(!r.reconcile(config));
+    assert_eq!(
+        r.unmatched_sessions.iter().copied().collect::<Vec<_>>(),
+        [(10, 101)]
+    );
+    let label = crate::reconciler::report::session("", 10, 101);
+    assert!(r.report.is_open(&label, "adoption-delete"));
+    r.k.fail_next("delete", Errno::EPERM);
+    assert!(!r.reconcile(Config::new()));
+    assert!(r.unmatched_sessions.is_empty());
+    assert!(!r.report.is_open(&label, "adoption-delete"));
+    assert!(r.tunnels.is_empty());
+    r.k.tick();
+    r.k.advance(super::super::RETRY);
+    r.tick();
+    assert!(r.ready());
+    assert!(r.k.session(10, 101).unwrap().is_none());
+}

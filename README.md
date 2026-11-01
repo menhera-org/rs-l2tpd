@@ -68,8 +68,8 @@ and dependency-state contracts are applied. Broken `nix` signal wrappers
 use checked `libc` calls under the documented exception. The
 [latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-01.md) gives coverage
 and the remaining clause/resource/event-cost proof. Fresh November 1
-coverage for iphost 0.4.4 and the boundary changes is **97.43% of lines and
-91.41% of branches**, leaving 223 lines and 159 branches. Recent test packages cover resolver validation
+coverage for iphost 0.4.4 and the boundary changes is **97.55% of lines and
+91.52% of branches**, leaving 213 lines and 157 branches. Recent test packages cover resolver validation
 and cleanup, public service constructors, staging bounds, ownership races,
 descriptor handover and socket-family fallback; their deliberately broken
 controls fail.

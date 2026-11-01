@@ -1,0 +1,10 @@
+--- a/src/reconciler/tunnels.rs
++++ b/src/reconciler/tunnels.rs
+@@ -162,7 +162,6 @@
+                 .collect();
+             for (tid, sid) in unmatched {
+                 self.unmatched_sessions.remove(&(tid, sid));
+-                self.report.forget(&report::session("", tid, sid));
+             }
+             let record = self.tunnels.remove(&id).unwrap();
+             self.retries.remove(&id);

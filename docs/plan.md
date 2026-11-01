@@ -501,15 +501,16 @@ instrumented and musl models, common gates, GNU live/Incus, manager, thread
 limits and the root sandbox pass. Three shipped-musl scenario/Incus pairs
 pass on Ubuntu 6.8.0-147. Frozen 3f503cd passes all thirteen required matrix
 profiles with the production reply correction; publication selections agree
-and source patches are empty. Later test-only request I/O assertions pass
-three GNU/musl/instrumented runs and three real buffer-force guests.
+and source patches are empty. Later test-only request I/O, service queue and reconciler record guards
+pass repeated GNU/musl/instrumented runs. Three real buffer-force guests
+also pass.
 
-Fresh corrected-source coverage is **97.43% of lines and 91.41% of branches**:
-8,464/8,687 lines and 1,693/1,852 branches, leaving **223 lines and 159
+Fresh corrected-source coverage is **97.55% of lines and 91.52% of branches**:
+8,474/8,687 lines and 1,695/1,852 branches, leaving **213 lines and 157
 branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files
-`audit/phase6/netlink-io-faults-20261101/README.md` and
+`audit/phase6/reconciler-record-guards-20261101/README.md` and
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identify the source, controls and
 scope. The following entries retain earlier measurements.
 
