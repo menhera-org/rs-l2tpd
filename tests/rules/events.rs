@@ -141,26 +141,64 @@ fn one_failed_creation_does_not_block_an_independent_entry() {
 /// spec: E20, E21, M18
 #[test]
 fn a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds() {
-    for source in [Source::Monitor, Source::L2tp] {
+    for (source, operation) in [
+        (Source::Monitor, "dump"),
+        (Source::L2tp, "tunnel"),
+        (Source::L2tp, "session"),
+    ] {
         let (mut r, _) = reconciler();
         let device = r.kernel_mut().add_link("wan", false);
         r.kernel_mut()
             .add_addr(device, "192.0.2.1".parse().unwrap());
-        r.reconcile(config(TUNNEL));
-        r.kernel_mut().fail_next(
-            if source == Source::Monitor {
-                "dump"
-            } else {
-                "tunnel"
-            },
-            nix::errno::Errno::EIO,
-        );
+        r.reconcile(config(&format!(
+            "{TUNNEL}\n[sessions.s]\ntunnel_name='a'\nsession_id=100\ninterface_name='l2tp0'"
+        )));
+        deliver(&mut r);
+        let socket = r.kernel().tunnel_socket(10).unwrap();
+        let session = r.kernel().session_index(10, 100).unwrap();
+        ops(&mut r);
+        r.kernel_mut().fail_next(operation, nix::errno::Errno::EIO);
         r.handle(source, Notice::Loss);
+        assert!(r.ready());
         assert!(r.next_deadline().is_some());
         super::run_for(&mut r, 1);
         assert!(r.ready());
+        assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
+        assert_eq!(r.kernel().session_index(10, 100), Some(session));
+        assert!(!ops(&mut r).iter().any(|op| op.starts_with("delete")
+            || op.starts_with("create")
+            || op.starts_with("close")));
         assert_eq!(r.next_deadline(), None);
     }
+}
+
+/// spec: E1, E4, E20, E21, T12, M18
+#[test]
+fn a_failed_new_vrf_inventory_keeps_monitor_recovery_pending() {
+    let (mut r, _) = reconciler();
+    r.reconcile(config(&(TUNNEL.to_owned() + "bind_interface='wan'")));
+    let socket = r.kernel().tunnel_socket(10).unwrap();
+    let vrf = r.kernel_mut().add_link("wan", true);
+    let member = r.kernel_mut().add_link("member", false);
+    r.kernel_mut().set_master(member, Some(vrf));
+    let source = "192.0.2.1".parse().unwrap();
+    r.kernel_mut().add_addr(member, source);
+    let link = r.kernel_mut().link_by_index(vrf).unwrap().unwrap();
+    r.kernel_mut().take_monitor();
+    ops(&mut r);
+    r.kernel_mut().fail_next("dump", nix::errno::Errno::EIO);
+    r.handle(Source::Monitor, Notice::LinkNew(link));
+    assert!(r.next_deadline().is_some());
+    super::run_for(&mut r, 1);
+    assert!(r.ready());
+    assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
+    assert_eq!(r.kernel().binding(socket), Some(vrf));
+    assert_eq!(
+        r.kernel().connection(socket).map(|(_, source)| source),
+        Some(source)
+    );
+    assert!(!ops(&mut r).iter().any(|op| op.starts_with("close")));
+    assert_eq!(r.next_deadline(), None);
 }
 
 /// spec: E6, E8, T18, T20, M14, M15

@@ -268,6 +268,61 @@ fn staged_loss_never_modifies_a_reused_index_and_name() {
     }
 }
 
+/// spec: S4, S8, S23, A14, G6
+#[test]
+fn a_timed_out_creation_does_not_block_a_sibling_or_publish_a_missing_session() {
+    for extra in ["", "interface_hwaddr='02:00:5e:00:53:01'"] {
+        let (mut r, _) = reconciler();
+        let text = with_session(extra)
+            + "\n[sessions.survivor]\ntunnel_name='a'\nsession_id=101\ninterface_name='survivor'\n";
+        r.kernel_mut()
+            .fail_next("create", nix::errno::Errno::ETIMEDOUT);
+        assert!(!r.reconcile(config(&text)));
+        assert!(r.kernel_mut().session(10, 100).unwrap().is_none());
+        let sibling = r.kernel().session_index(10, 101).unwrap();
+        let parent = r.kernel().tunnel_socket(10).unwrap();
+        assert!(r.next_deadline().is_some());
+        ops(&mut r);
+        run_for(&mut r, 1);
+        assert!(r.ready());
+        let index = r.kernel().session_index(10, 100).unwrap();
+        assert_eq!(
+            r.kernel().link(index).unwrap().name().to_string_lossy(),
+            "l2tp0"
+        );
+        assert_eq!(r.kernel().session_index(10, 101), Some(sibling));
+        assert_eq!(r.kernel().tunnel_socket(10), Some(parent));
+        let stored = r
+            .kernel_mut()
+            .session(10, 100)
+            .unwrap()
+            .unwrap()
+            .ifname()
+            .unwrap();
+        assert_eq!(stored.to_string_lossy() == "l2tp0", extra.is_empty());
+        if !extra.is_empty() {
+            assert_eq!(
+                r.kernel().hwaddr(index).unwrap().to_string(),
+                "02:00:5e:00:53:01"
+            );
+        }
+        let trace = ops(&mut r);
+        assert_eq!(
+            trace
+                .iter()
+                .filter(|op| op.starts_with("create 10 100 "))
+                .count(),
+            1
+        );
+        assert!(
+            !trace
+                .iter()
+                .any(|op| op.starts_with("delete") || op.starts_with("close"))
+        );
+        assert_eq!(r.next_deadline(), None);
+    }
+}
+
 /// spec: S23, S22
 #[test]
 fn failed_staged_verification_and_deletion_preserve_the_record() {

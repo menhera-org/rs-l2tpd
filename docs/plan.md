@@ -744,6 +744,14 @@ compiles and common checks pass. Repository record
 `audit/phase6/tracked-lifetime-20261101/` gives the fresh totals: 95.05% lines /
 85.07% branches, with the remaining global requirements open.
 
+Uncertain session creation now has eight result/publication/deletion cases.
+A failed fresh scan must retain the record and reservation; an isolated
+discard-without-verification control fails. Public sibling/publication and
+failed event-scan cases also pass. Ten seeded suites, three musl library/rules
+repetitions and common checks pass, with unchanged production mappings.
+Repository record `audit/phase6/uncertain-sessions-20261101/` gives the
+95.20% line / 85.56% branch report and its remaining proof limits.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

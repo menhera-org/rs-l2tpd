@@ -7,6 +7,82 @@ use std::collections::BTreeMap;
 use std::hint::black_box;
 use std::time::Instant;
 
+/// spec: S4, S8, S22, S23, A14
+#[test]
+fn timed_out_creation_keeps_uncertainty_until_a_complete_fresh_scan() {
+    use crate::kernel::SessionCreate;
+    for asynchronous in [false, true] {
+        for applied in [false, true] {
+            for extra in ["", "interface_hwaddr='02:00:5e:00:53:01'"] {
+                let mut r =
+                    Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+                r.k.set_async_session_delete(asynchronous);
+                let tunnel = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n";
+                assert!(r.reconcile(toml::from_str(tunnel).unwrap()));
+                let config: Config = toml::from_str(&format!("{tunnel}\n[sessions.s]\ntunnel_name='a'\nsession_id=100\ninterface_name='l2tp0'\n{extra}")).unwrap();
+                let session = &config.sessions()["s"];
+                let identity = config.session_identity("s").unwrap();
+                let parent = r.k.tunnel_socket(10).unwrap();
+                r.k.fail_next("create", Errno::ETIMEDOUT);
+                r.stage("s", session, identity, 10).unwrap();
+                assert!(matches!(
+                    r.sessions[&100].state,
+                    Identity::Lost { staged: true }
+                ));
+                let name = r.sessions[&100].created_as.unwrap();
+                // Complete the uncertain kernel operation before verification.
+                if applied {
+                    r.k.create_session(&SessionCreate::new(
+                        10,
+                        100,
+                        session.peer_session_id(),
+                        session.cookie(),
+                        session.peer_cookie(),
+                        name,
+                    ))
+                    .unwrap();
+                }
+                r.k.clear_ops();
+                r.k.fail_next("scan", Errno::EIO);
+                assert!(!r.converge_session(100));
+                assert!(r.sessions.contains_key(&100));
+                assert!(r.reserved.contains_key(&name));
+                assert_eq!(r.k.session(10, 100).unwrap().is_some(), applied);
+                assert!(r.k.ops().is_empty());
+                r.k.scan_sessions(None, &mut |_| {}).unwrap(); // the failed scan was attempted
+                assert!(!r.converge_session(100));
+                if applied {
+                    r.k.tick();
+                    if r.sessions.contains_key(&100) {
+                        assert!(!r.converge_session(100));
+                    }
+                }
+                assert!(!r.sessions.contains_key(&100));
+                assert!(r.k.session(10, 100).unwrap().is_none());
+                assert_eq!(
+                    r.k.ops()
+                        .iter()
+                        .filter(|op| op.starts_with("delete-name "))
+                        .count(),
+                    usize::from(applied)
+                );
+                r.release_departed();
+                assert!(!r.reserved.contains_key(&name));
+                r.stage("s", session, identity, 10).unwrap();
+                assert!(r.converge_session(100));
+                let recreated = r.k.session(10, 100).unwrap().unwrap();
+                assert_eq!(
+                    recreated.ifname().unwrap().to_string_lossy() == "l2tp0",
+                    extra.is_empty()
+                );
+                let index = r.k.session_index(10, 100).unwrap();
+                assert_eq!(r.k.link(index).unwrap().name().to_string_lossy(), "l2tp0");
+                assert_eq!(r.k.tunnel_socket(10), Some(parent));
+            }
+        }
+    }
+}
+
 /// spec: C14, M6, M16, G23
 #[test]
 fn wanted_lookup_cost_and_identity_checks() {

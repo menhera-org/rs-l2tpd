@@ -1,0 +1,10 @@
+     Running tests/rules/main.rs (target/debug/deps/rules-9173433df0983df3)
+
+running 4 tests
+test completion::a_failed_scoped_connect_can_change_its_kernel_binding ... ok
+test events::a_failed_new_vrf_inventory_keeps_monitor_recovery_pending ... ok
+test events::a_failed_monitor_or_l2tp_scan_stays_pending_until_it_succeeds ... ok
+test sessions::a_failed_temporary_rename_retries_the_swap_without_recreation ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 0.00s
+
