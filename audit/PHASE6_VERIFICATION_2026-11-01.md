@@ -12,8 +12,8 @@ Ten native and instrumented model/rule/service/startup repetitions, three
 musl model runs, common checks, Rust 1.89 and three additional musl
 architecture compile checks pass. GNU live/Incus, user manager, three thread-
 limit runs and the root sandbox pass. Three shipped-musl scenario/Incus
-pairs pass. Local live scope is Ubuntu 6.8.0-147. Fresh coverage is 97.41%
-lines / 91.36% branches, leaving 225 lines and 160 branches. Request handling
+pairs pass. Local live scope is Ubuntu 6.8.0-147. Fresh coverage is 97.43%
+lines / 91.41% branches, leaving 223 lines and 159 branches. Request handling
 now covers 156/156 lines and 34/34 branches.
 
 The [3f503cd matrix](phase6/matrix-20261101T182115Z-2714445/README.md)
@@ -31,7 +31,7 @@ retain their original source scope. The specification is unchanged.
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | Frozen 3f503cd passes 27 normal cases on every required kernel; the corrected reply source also passes three shipped-musl suites locally | Complete clause/history/resource/event-cost proof |
 | P3 required kernels | Frozen 3f503cd passes five normal, five clock, two IPv6-absent and one missing-driver profiles; selections agree and source patches are empty | Preserve exact source and later test-only execution scopes |
-| P4 coverage | Netlink I/O profiles: 8,462/8,687 lines (97.41%); 1,692/1,852 branches (91.36%). No production exclusions, profile mismatches or saturated regions | Cover 225 lines and 160 branches; enable the completed 100% gate in CI |
+| P4 coverage | Service queue profiles: 8,464/8,687 lines (97.43%); 1,693/1,852 branches (91.41%). No production exclusions, profile mismatches or saturated regions | Cover 223 lines and 159 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | Checked replies pass GNU in 17.10 s and three unprivileged musl cases in 18.46, 9.39 and 19.69 s; containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | Checked replies and the unmodified supplied unit pass in 29.41 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
@@ -78,7 +78,16 @@ Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 
 ## Current coverage evidence
 
-The [netlink I/O record](phase6/netlink-io-faults-20261101/README.md) adds
+The [service queue record](phase6/service-queue-guards-20261101/README.md)
+adds stale/current reload, returned admission-slot and background-error
+ordering assertions. Ten native/instrumented and three musl model runs,
+common gates and three failure controls qualify the final source. Both
+generation outcomes run in the same fake-worker instantiation. The report
+reaches 8,464/8,687 lines and 1,693/1,852 branches. All prior 4,311 mappings
+remain unchanged; eight service instantiations are added by the test callers.
+No production code changes or new live manager/kernel scopes are claimed.
+
+The preceding [netlink I/O record](phase6/netlink-io-faults-20261101/README.md) adds
 receive/poll failures, interruption, buffer fallback and three accepted real
 buffer-force guests. Seven profiles per accepted guest are merged; a reduced-
 buffer control fails. Three GNU/musl external Linux repetitions and their

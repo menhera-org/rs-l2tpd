@@ -231,12 +231,13 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-merged report includes netlink I/O faults and real buffer-force success:
-97.41% lines / 91.36% branches, leaving 225 lines and 160 branches. Its fresh collector includes
+merged report includes netlink I/O faults, real buffer-force success and
+service queue guards:
+97.43% lines / 91.41% branches, leaving 223 lines and 159 branches. Its fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
-production exclusions, mismatches or saturated regions. The production
-change alters the denominators to 8,687 lines and 1,852 branches; older
-profiles are not merged.
+production exclusions, mismatches or saturated regions. The checked-reply
+implementation fixes the denominators at 8,687 lines and 1,852 branches.
+Profiles from earlier production implementations are not merged.
 
 Three shipped-musl scenario/Incus pairs and the root sandbox pass locally
 on Ubuntu 6.8.0-147. Frozen 3f503cd passes all thirteen required matrix
@@ -248,7 +249,9 @@ commands and execution limits. Repository record
 `audit/phase6/netlink-io-faults-20261101/README.md` records three accepted GNU
 buffer-force guests, the reduced-buffer control, serial startup profiles
 and unchanged production mappings. Request handling covers 156/156 lines
-and 34/34 branches. The initial rejected wrapper run is not merged.
+and 34/34 branches. The initial rejected wrapper run is not merged. The later
+`audit/phase6/service-queue-guards-20261101/README.md` adds stale/current
+reload and background-dispatch assertions with three failing controls.
 
 The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public

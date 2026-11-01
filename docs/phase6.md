@@ -56,9 +56,16 @@ All 4,311 production mappings remain identical. Repository record
 `audit/phase6/netlink-io-faults-20261101/` identifies the accepted runs and
 rejected attempts.
 
-The merged collector reports **97.41% of production lines and 91.36% of
-branches**, leaving **225 lines and 160 branches**. Its
-denominators are 8,687 lines and 1,852 branches. Earlier profiles are not
+Service queue guards also pass ten native/instrumented and three musl
+model runs, common checks and three failure controls. The final fixture
+uses real accepted reloads and proves stale-slot release, current callback
+execution and background-error ordering. Eight service instantiations are
+added; all preceding production mappings remain unchanged. Repository
+record `audit/phase6/service-queue-guards-20261101/` gives the scope.
+
+The merged collector reports **97.43% of production lines and 91.41% of
+branches**, leaving **223 lines and 159 branches**. Its
+denominators are 8,687 lines and 1,852 branches. Profiles from earlier production implementations are not
 merged; no production exclusions, profile mismatches or saturated regions
 are present. Complete clause/history/resource/event-cost proof and the
 100% gate remain required. Repository file

@@ -1,0 +1,11 @@
+--- a/src/service.rs
++++ b/src/service.rs
+@@ -313,7 +313,7 @@
+         {
+             match request {
+                 OperatorRequest::Reload(generation) => {
+-                    if generation != control.shared.generation.load(Ordering::Acquire) {
++                    if false {
+                         control.request_processed();
+                         continue;
+                     }

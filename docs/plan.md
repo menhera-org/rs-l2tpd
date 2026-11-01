@@ -504,8 +504,8 @@ profiles with the production reply correction; publication selections agree
 and source patches are empty. Later test-only request I/O assertions pass
 three GNU/musl/instrumented runs and three real buffer-force guests.
 
-Fresh corrected-source coverage is **97.41% of lines and 91.36% of branches**:
-8,462/8,687 lines and 1,692/1,852 branches, leaving **225 lines and 160
+Fresh corrected-source coverage is **97.43% of lines and 91.41% of branches**:
+8,464/8,687 lines and 1,693/1,852 branches, leaving **223 lines and 159
 branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files

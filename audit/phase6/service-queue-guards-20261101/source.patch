@@ -1,0 +1,102 @@
+diff --git a/src/service.rs b/src/service.rs
+index 4280824..3ae87e3 100644
+--- a/src/service.rs
++++ b/src/service.rs
+@@ -824,4 +824,97 @@ mod tests {
+             service.shutdown_and_wait().await.unwrap();
+         });
+     }
++
++    /// spec: L7, L10, A15, E24, G23
++    #[test]
++    fn superseded_deferred_reload_returns_its_admission_slot() {
++        engine().block_on(async {
++            let mut wanted = Config::new();
++            wanted.set_host(crate::config::HostConfig::new().with_fix_bindv6only(false));
++            let mut service = Service::with_runtime(wanted, runtime(vec![]))
++                .map_err(|(error, _)| error)
++                .unwrap();
++            service.converge().await.unwrap();
++            let control = service.control();
++            control.restart().unwrap();
++            control.reload().unwrap();
++            control.restart().unwrap();
++            let requests = control.clone();
++            let called = Arc::new(std::sync::atomic::AtomicUsize::new(0));
++            let observed = called.clone();
++            let reloads = Arc::new(std::sync::atomic::AtomicUsize::new(0));
++            let reloaded = reloads.clone();
++            let stop = control.clone();
++            let running = service.run(
++                move |config| {
++                    assert_eq!(reloaded.fetch_add(1, Ordering::AcqRel), 0);
++                    assert!(!config.host().fix_bindv6only());
++                    stop.shutdown();
++                    Ok(config)
++                },
++                move |sockets| {
++                    assert!(sockets.is_empty());
++                    match observed.fetch_add(1, Ordering::AcqRel) {
++                        0 => {
++                            // One background event precedes the newer, accepted reload.
++                            assert!(requests.tx.try_send(ControlEvent::Tick).is_ok());
++                            requests.reload().unwrap();
++                        }
++                        1 => {
++                            // This restart and the newer reload still hold slots.
++                            for _ in 2..QUEUE_CAPACITY {
++                                requests.restart().unwrap();
++                            }
++                            assert!(requests.restart().is_err());
++                        }
++                        _ => panic!("restart after shutdown"),
++                    }
++                    Ok(())
++                },
++            );
++            tokio::time::timeout(std::time::Duration::from_secs(5), running)
++                .await
++                .unwrap()
++                .unwrap();
++            assert_eq!(called.load(Ordering::Acquire), 2);
++            assert_eq!(reloads.load(Ordering::Acquire), 1);
++        });
++    }
++
++    /// spec: L7, L10, A15, E24, G14
++    #[test]
++    fn ready_background_failure_precedes_the_next_deferred_restart() {
++        engine().block_on(async {
++            let mut wanted = Config::new();
++            wanted.set_host(crate::config::HostConfig::new().with_fix_bindv6only(false));
++            let mut service = Service::with_runtime(wanted, runtime(vec![]))
++                .map_err(|(error, _)| error)
++                .unwrap();
++            service.converge().await.unwrap();
++            let control = service.control();
++            control.restart().unwrap();
++            control.restart().unwrap();
++            let called = Arc::new(std::sync::atomic::AtomicUsize::new(0));
++            let observed = called.clone();
++            let running = service.run(Ok, move |sockets| {
++                assert!(sockets.is_empty());
++                assert_eq!(observed.fetch_add(1, Ordering::AcqRel), 0);
++                assert!(
++                    control
++                        .tx
++                        .try_send(ControlEvent::Failed(Error::Other(
++                            "background fixture failed".into()
++                        )))
++                        .is_ok()
++                );
++                Ok(())
++            });
++            let result = tokio::time::timeout(std::time::Duration::from_secs(5), running)
++                .await
++                .unwrap();
++            assert!(matches!(result, Err(Error::Other(message))
++                if message == "background fixture failed"));
++            assert_eq!(called.load(Ordering::Acquire), 1);
++        });
++    }
+ }
