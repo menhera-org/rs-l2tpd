@@ -727,6 +727,14 @@ coverage profiles. Repository record
 driver timeout. Production coverage reaches 95.03% lines / 85.03% branches;
 final qualification and the remaining Phase 6 requirements stay open.
 
+A closed host-request receiver now has a public-API regression: the tunable
+deadline permits family fallback and readiness, while an unacknowledged
+withdrawal still reports incomplete cleanup and releases local descriptors.
+Ten GNU and three musl service suites and common checks pass. Repository
+record `audit/phase6/closed-host-receiver-20261101/` gives compatible coverage
+mappings and the remaining scope. Production coverage reaches 95.05% lines /
+85.03% branches; the 100% gate remains open.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

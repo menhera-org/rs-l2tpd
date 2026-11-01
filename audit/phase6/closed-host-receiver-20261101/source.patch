@@ -1,0 +1,86 @@
+diff --git a/tests/service.rs b/tests/service.rs
+index 47de6e4..4b8d3ed 100644
+--- a/tests/service.rs
++++ b/tests/service.rs
+@@ -277,6 +277,81 @@ fn absent_host_integration_refuses_tunable_writes_and_keeps_local_socket_ownersh
+     }
+ }
+ 
++/// spec: L8, L13, T26, P16, G14
++#[test]
++fn a_closed_host_receiver_preserves_fallback_and_reports_unconfirmed_cleanup() {
++    use std::io::Read;
++    let host = Host::new();
++    host.with(|k| k.set_bindv6only(true));
++    let mut wanted = config(10);
++    wanted
++        .insert_tunnel(
++            "wan",
++            TunnelConfig::builder(10)
++                .ip_version(Family::V4)
++                .build()
++                .unwrap(),
++        )
++        .unwrap();
++    let (fd, mut peer) = std::os::unix::net::UnixStream::pair().unwrap();
++    peer.set_nonblocking(true).unwrap();
++    let mut service = blocking::Service::with_kernel(
++        wanted,
++        host.clone(),
++        Box::new(NoDns),
++        vec![AdoptedSocket::new("malformed", fd.into())],
++    )
++    .unwrap();
++    service.set_store_capacity(1).unwrap();
++    drop(service.take_requests().unwrap().unwrap());
++    let control = service.control();
++    let observer = control.clone();
++    let clock = host.clone();
++    let advance = std::thread::spawn(move || {
++        wait(|| !observer.config().tunnels().is_empty());
++        let mut byte = [0];
++        assert_eq!(
++            peer.read(&mut byte).unwrap_err().kind(),
++            io::ErrorKind::WouldBlock
++        );
++        clock.with(|k| k.advance(Duration::from_secs(5)));
++        observer.restart().unwrap();
++        peer
++    });
++    service.converge().unwrap();
++    let mut peer = advance.join().unwrap();
++    wait(|| matches!(peer.read(&mut [0]), Ok(0)));
++    host.with(|k| {
++        assert!(k.bindv6only());
++        let socket = k.tunnel_socket(10).unwrap();
++        assert_eq!(
++            k.only_v6(socket).unwrap_err().raw_os_error(),
++            Some(nix::libc::ENOPROTOOPT)
++        );
++        assert!(k.session_index(10, 110).is_some());
++    });
++    let observer = control.clone();
++    let clock = host.clone();
++    let advance = std::thread::spawn(move || {
++        wait(|| observer.config().tunnels().is_empty());
++        clock.with(|k| k.advance(Duration::from_secs(4)));
++        observer.shutdown();
++    });
++    control.shutdown();
++    let error = service.run(Ok, |_| Ok(())).unwrap_err();
++    advance.join().unwrap();
++    assert_eq!(
++        error.to_string(),
++        "kernel or descriptor-store cleanup incomplete"
++    );
++    host.with(|k| {
++        assert_eq!(k.open_sockets(), 0);
++        k.tick();
++        assert!(k.tunnel_socket(10).is_none());
++        assert!(k.session_index(10, 110).is_none());
++    });
++}
++
+ /// spec: L5, L8
+ #[test]
+ fn drop_before_run_retires_inherited_entries_and_works_inside_tokio() {

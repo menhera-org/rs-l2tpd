@@ -1040,3 +1040,15 @@ Production mappings match the broader preceding collection. Coverage is
 95.03% lines / 85.03% branches, leaving 424 lines and 271 branches, with
 zero saturated regions or production exclusions. Final five-target fixture
 qualification and the H11/G23/upstream-release requirements remain open.
+
+## Closed host receiver, November 1
+
+[The receiver record](phase6/closed-host-receiver-20261101/README.md) checks
+failed tunable and withdrawal delivery through the public blocking service.
+The tunable deadline permits family fallback and readiness; the missing
+withdrawal acknowledgement still returns incomplete cleanup, with local
+descriptors released. All 30 service cases pass ten GNU and three musl
+repetitions. Native coverage, compatible production mappings and common
+checks pass. Coverage reaches 95.05% lines / 85.03% branches, leaving 422
+lines and 271 branches, without production exclusions or saturated regions.
+The remaining Phase 6 proof and decision requirements stay open.
