@@ -92,7 +92,10 @@ the test-only serial startup harness, is retained in
 leaving 272 lines and 191 branches. No preceding implementation's profiles
 or failed-run profiles are merged.
 
-The required matrix is running from frozen production commit `11bef84`.
+The required matrix now passes all thirteen profiles on frozen production
+commit `11bef84`, recorded in
+`../matrix-20261101T115808Z-2050597/`. The later iphost correction needs
+separate released-dependency qualification.
 Complete clause/history/resource proof and 100% coverage remain open.
 
 ```sh

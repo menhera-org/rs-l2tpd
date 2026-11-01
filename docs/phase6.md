@@ -29,14 +29,15 @@ the scenario suite below; read them before writing new scenarios.
 
 Phase 6 remains open. A confirmed V12 upstream defect is under repair:
 an anonymous iphost client accepts a Reply carrying another client identifier.
-Three live witnesses fail; the specification remains unchanged. Production source `2051827` passes all thirteen required
+Three live witnesses fail; the specification remains unchanged. Production source `11bef84` passes all thirteen required
 matrix profiles, including 27 normal scenarios on each of the five kernels.
 Strict maps, unprivileged Incus and the root sandbox have passing records.
 The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,
 GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The fresh required matrix is running. Merged coverage remains below 100%.
+The E27 required matrix passes all thirteen profiles on `11bef84`.
+The iphost correction needs separate released-dependency qualification.
 
 Earlier test-only additions have passing common checks and repeated
 GNU/musl qualification. Fresh production coverage is **97.01% of lines and
@@ -174,7 +175,7 @@ establishes declaration traceability. The updated strict workflow also
 [passes in CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41211013318).
 Declaration traceability passes; complete clause proof and 100% coverage
 remain open. The November 1 required matrix passes on production source
-`2051827`, as recorded above.
+`11bef84`, as recorded above.
 
 ## P2. The scenario suite
 

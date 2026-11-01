@@ -42,14 +42,15 @@ The binary runs on musl and glibc. The November 1 matrix passes all 27
 normal scenarios on each of the five required kernels, including
 fragmentation, 300 tunnels and the VRF reload regression. All five clock
 profiles, both IPv6-absent boots and missing-driver recovery pass.
-The matrix freezes production source `2051827`; later test-only additions
+The matrix freezes production source `11bef84`; later test-only additions
 have separate qualification records.
 
 The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,
 GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The fresh required matrix is running. Merged coverage remains below 100%.
+The E27 required matrix passes all thirteen profiles on `11bef84`.
+The iphost correction needs separate released-dependency qualification.
 
 Phase 6 remains open. A confirmed V12 upstream defect is under repair:
 an anonymous iphost client accepts a Reply carrying another client identifier.

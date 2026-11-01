@@ -494,7 +494,7 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
 Exit: all five gates green on the running kernel and on every required
 kernel target; the Incus/LXD scenario run, not skipped.
 
-**Status: in progress on 2026-11-01.** Production source `2051827`
+**Status: in progress on 2026-11-01.** Production source `11bef84`
 passes all thirteen required matrix profiles: five normal suites of 27
 scenarios, five clock profiles, both IPv6-absent boots and missing-driver
 recovery. Strict rule/source maps, unprivileged Incus and the root sandbox
@@ -510,7 +510,8 @@ The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,
 GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The fresh required matrix is running. Merged coverage remains below 100%.
+The E27 required matrix passes all thirteen profiles on `11bef84`.
+The iphost correction needs separate released-dependency qualification.
 
 Earlier test-only additions have passing common checks and repeated
 GNU/musl qualification. Fresh production coverage is **97.01% of lines and
@@ -1097,6 +1098,14 @@ musl library suites and common checks pass. Repository record
 mappings and 97.01% line / 89.89% branch coverage: 259 lines and 187 branches
 remain. This new wire case has Ubuntu 6.8 scope; other targets remain unrun
 for that specific case.
+
+The E27 source `11bef84` now passes all thirteen required matrix profiles:
+five normal suites, five clock profiles, both IPv6-absent boots and
+missing-driver recovery. Initial/final publication selections agree and
+both tracked-source patches are empty. Repository record
+`audit/phase6/matrix-20261101T115808Z-2050597/` gives per-kernel timings and
+the live replay's scope. This matrix uses iphost 0.4.3; it does not close the
+subsequently discovered anonymous-Reply defect or qualify its correction.
 
 ### Phase 7 — release
 

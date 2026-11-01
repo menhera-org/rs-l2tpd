@@ -3,14 +3,14 @@
 Phase 6 is incomplete. A newly confirmed [anonymous Reply defect](phase6/anonymous-reply-20261101/README.md)
 violates V12 in released iphost 0.4.3. Three live witnesses accept the wrong
 DNS server; the upstream correction and released integration are required.
-The specification remains unchanged. Production source `2051827` has completed the
-[required matrix](phase6/matrix-20261101T075850Z-1691154/README.md).
+The specification remains unchanged. Production source `11bef84` has completed the
+[required matrix](phase6/matrix-20261101T115808Z-2050597/README.md).
 It includes kernel-selected inventories, VRF inventory-completion tracking
 and checked libc signal calls. Later commits add tests and measurement
 infrastructure. The current E27 correction changes session-verification
 behavior: a queued-deletion witness fails on the preceding code and passes
 with the correction. Repeated models, GNU/musl live suites, three musl Incus
-runs and the root sandbox pass. Its required matrix is running. Fresh merged
+runs and the root sandbox pass. Its required matrix passes all thirteen profiles. Fresh merged
 coverage is 97.01% lines / 89.89% branches; earlier results retain their scope.
 
 The current [E27 correction](phase6/event-verification-20261101/README.md)
@@ -38,7 +38,7 @@ original execution scope.
 |---|---|---|
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | All 27 normal cases pass on each of five required kernels, including H20, H17 and the new VRF reload regression. Three current musl host suites also pass | Complete clause, history and resource/event-cost proof |
-| P3 required kernels | Frozen `2051827` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Requalify the E27 correction; later test-only additions have separate records |
+| P3 required kernels | Frozen `11bef84` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Requalify after the required iphost correction; later test-only additions have separate records |
 | P4 coverage | Fresh E27 profiles: 8,404/8,663 lines (97.01%); 1,663/1,850 branches (89.89%). No production exclusions, profile mismatches or saturated regions | Cover 259 lines and 187 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | E27 source passes the full GNU case in 17.20 s and three unprivileged musl cases in 29.47, 24.78 and 24.53 s; all containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | E27 source and the unmodified supplied unit pass in 30.93 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
@@ -62,8 +62,8 @@ Initial and final publication checks select the same five stable targets:
 | Vanilla 7.0.14 | 7.0.14 | 27 pass | pass |
 | Mainline 7.3 | 7.3.0 | 27 pass | pass |
 
-Each frozen normal guest also passes 14 serial library, 23 Linux, five review,
-58 ordinary binary, three privileged binary and 28 process cases. All eight
+Each frozen normal guest also passes 17 serial library, 24 Linux, five review,
+59 ordinary binary, three privileged binary and 29 process cases. All eight
 daemon setup faults pass. Mainline passes both IPv6-absent boots; Ubuntu 7.0
 passes missing-Ethernet-driver degradation and recovery. All thirteen profiles
 have zero result markers, and both tracked-source patches are empty.
@@ -77,8 +77,7 @@ tunnel. The source and failure controls are retained in the
 
 [Per-target behavior](../docs/kernel-behavior.md) records precise errno,
 namespace-notification, lifetime, boot and manager differences. The first
-matrix attempt stopped during publication resolution because its curl
-wrapper failed TLS; the successful run uses the system curl.
+earlier matrix attempt's publication failure remains in its own record.
 Broader distributions and live non-x86 architectures remain unrun.
 Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 

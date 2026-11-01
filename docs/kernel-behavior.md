@@ -9,12 +9,13 @@ The latest required matrix passes all five normal and clock profiles,
 including H20 fragmentation and both 300-entry daemons. It also passes both
 IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
 publication checks select the same versions. Repository record
-`audit/phase6/matrix-20261101T075850Z-1691154/README.md` identifies the frozen
+`audit/phase6/matrix-20261101T115808Z-2050597/README.md` identifies the frozen
 implementation with kernel-selected inventories, complete VRF member tracking,
-checked libc signal calls and approved fixtures. Later test-only additions
-have separate qualification. The E27 correction passes fresh model,
-GNU/musl live, Incus and root-sandbox runs. Its required matrix is running;
-the completed matrix above qualifies the preceding implementation.
+checked libc signal calls, approved fixtures and the E27 correction.
+The matrix freezes production source 11bef84 with iphost 0.4.3. Later
+test-only additions have separate qualification. A newly confirmed V12
+anonymous-Reply defect in iphost requires an upstream correction and
+fresh released-dependency qualification.
 The approved H11 configured-MAC policy now passes three fresh Incus runs
 and a root-systemd guest on Ubuntu 6.8.0-147; its userspace scope is below.
 
@@ -131,7 +132,7 @@ signal-mask/wait refusals pass on all five required targets.
 | Mainline `7.3.0` | 27 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the
-latest matrix (`audit/phase6/matrix-20261101T075850Z-1691154/README.md`).
+latest matrix (`audit/phase6/matrix-20261101T115808Z-2050597/README.md`).
 The approved explicit-MAC-authority case passes three fresh unprivileged
 Incus runs and the unmodified root-systemd guest. Their source and logs are
 in `audit/phase6/maintainer-decisions-20261101/README.md`; the earlier failure
@@ -145,23 +146,23 @@ execution summaries.
 
 ### Latest matrix counts and ownership observations
 
-The frozen `2051827` guests run fourteen serial library cases, 23 Linux
-cases, five review cases, 58 ordinary binary cases and three privileged
-binary cases. Eight daemon fault paths include signal-mask and signal-wait
-refusals. All 28 process cases and 27 normal scenarios pass on each target.
-The selectors and the VRF-binding reload regression pass on all five.
-Later test-only additions, including the 17-case serial library profile and
-the 24th Linux case, have separate qualification. The real-manager and clock
-declarations are outside the normal scenario profile. The clock profile runs
-one case per target with controller-confirmed pause/resume.
+The frozen `11bef84` guests run 17 serial library cases, 24 Linux cases,
+five review cases, 59 ordinary binary cases and three privileged binary
+cases. Eight daemon fault paths include signal-mask and signal-wait refusals.
+All 29 process cases and 27 normal scenarios pass on each target. Selected
+inventories, VRF-binding reload and the E27 live replay pass on all five.
+Later test-only additions have separate qualification, including the new
+resolver wire case on Ubuntu 6.8. The real-manager and clock declarations
+are outside the normal scenario profile. The clock profile runs one case
+per target with controller-confirmed pause/resume.
 
 | Required target | Normal scenarios | H16 clock/pause | Closed and unregistered socket ownership |
 |---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 27 pass, 562.94 s | Pass, 64.69 s | Both families pass |
-| Vanilla `6.8.12` | 27 pass, 485.76 s | Pass, 64.59 s | Both families pass |
-| Ubuntu `7.0.0-42-generic` | 27 pass, 514.57 s | Pass, 64.55 s | Both families pass |
-| Vanilla `7.0.14` | 27 pass, 482.78 s | Pass, 64.43 s | Both families pass |
-| Mainline `7.3.0` | 27 pass, 447.25 s | Pass, 64.32 s | Both families pass |
+| Ubuntu `6.8.0-147-generic` | 27 pass, 559.54 s | Pass, 64.78 s | Both families pass |
+| Vanilla `6.8.12` | 27 pass, 484.36 s | Pass, 64.33 s | Both families pass |
+| Ubuntu `7.0.0-42-generic` | 27 pass, 540.15 s | Pass, 64.70 s | Both families pass |
+| Vanilla `7.0.14` | 27 pass, 464.66 s | Pass, 64.79 s | Both families pass |
+| Mainline `7.3.0` | 27 pass, 445.57 s | Pass, 64.43 s | Both families pass |
 
 After a local socket handle closes, its five socket operations return EBADF
 even while an external descriptor retains the tunnel. An unregistered
@@ -225,7 +226,7 @@ the preceding implementation drops verification after the first tick.
 The live fixture replays a genuine deletion notice after recreation and
 requires the active replacement's index, MAC and UP state to survive
 continued verification. The preceding implementation fails that live case
-on Ubuntu 6.8.0-147. Fresh required-target runs for the correction are pending.
+on Ubuntu 6.8.0-147. The corrected replay now passes on all five required targets.
 This live replay does not force kernel deletion work to remain queued.
 
 Repository record `audit/phase6/event-verification-20261101/` retains the

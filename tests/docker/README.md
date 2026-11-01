@@ -48,11 +48,12 @@ kernel objects, logs and bounded event waits.
 
 Phase 6 remains incomplete. A confirmed V12 defect in iphost 0.4.3 is under
 upstream repair: anonymous clients accept Replies carrying a Client Identifier.
-The three failing live witnesses are retained in the current verification record. Production source `2051827` passes all thirteen
+The three failing live witnesses are retained in the current verification record. Production source `11bef84` passes all thirteen
 required profiles, including 27 normal scenarios on each of five kernels,
 five clock profiles, both IPv6-absent boots and missing-driver recovery.
 The E27 correction passes repeated model and GNU/musl live tests, three
-musl Incus runs and the root sandbox. Its required matrix is running. The approved checked-libc signal
+musl Incus runs and the root sandbox. Its required matrix now passes all
+thirteen profiles on 11bef84; the iphost correction needs fresh qualification. The approved checked-libc signal
 exception is applied; no nix contribution or release is required.
 Later test-only additions have separate GNU/musl qualification.
 Fresh merged coverage is 97.01% of lines and 89.89% of branches;

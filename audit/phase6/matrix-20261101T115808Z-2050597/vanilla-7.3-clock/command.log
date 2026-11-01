@@ -1,0 +1,10 @@
+mode: clock
+kernel image git-blob: 74b65bd4571826f168f3c6b63a36d84265a2e41a
+baseline commit: 15529bab567862b6617c9c5b948a74271bc9c44c
+baseline binary git-blob: 108ea840782dfbdfd327e8637e6b5a7335fff294
+command: qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 -nodefaults -nographic -serial stdio -no-reboot -kernel IMAGE -initrd INITRAMFS -append 'console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs l2tp_builtin=1 rs_l2tpd_clock_guest=1'
+controller: tests/kernel/clock-control.rs; QMP stop/query-status/cont; three-second measured pause
+qmp argument: -qmp unix:QMP_SOCKET,server=on,wait=off
+host command: timeout 900 CLOCK_CONTROL QMP_SOCKET QEMU_COMMAND
+controller source git-blob: 0ec359655b809ab8fd229166011025ef8a0cabe0
+controller executable git-blob: 9d80332ed8f19045c751711be03a7a69cc965d23
