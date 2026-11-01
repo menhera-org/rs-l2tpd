@@ -1,0 +1,51 @@
+diff --git a/src/config/tests.rs b/src/config/tests.rs
+index cf199c4..e8834d6 100644
+--- a/src/config/tests.rs
++++ b/src/config/tests.rs
+@@ -661,6 +661,11 @@ fn resolver_addresses() {
+         "[]",
+         "[\"224.0.0.1\"]",
+         "[\"192.0.2.53:0\"]",
++        "[\"192.0.2.53:\"]",
++        "[\"192.0.2.53:65536\"]",
++        "[\"192.0.2.53:999999999999999999999999\"]",
++        "[\"[2001:db8::53]:\"]",
++        "[\"[2001:db8::53]:65536\"]",
+         "[\"192.0.2.53:+53\"]",
+         "[\"192.0.2.53:x\"]",
+         "[\"[2001:db8::53]x\"]",
+@@ -1556,3 +1561,34 @@ fn completion_empty_tables_do_not_remove_merged_values() {
+         "192.0.2.1"
+     );
+ }
++
++/// spec: C6, C10, C16, O4
++#[test]
++fn document_diagnostics_quote_nonbare_keys_and_explain_ignored_fields() {
++    for (key, rendered) in [
++        ("", "\"\""),
++        ("-", "-"),
++        ("_", "_"),
++        ("a.b", "\"a.b\""),
++        ("line\nbreak", "\"line\\nbreak\""),
++    ] {
++        let (config, problems) = lenient(&format!("{key:?} = 1\n"));
++        assert_eq!(config, Config::new());
++        assert_eq!(problems.len(), 1);
++        assert_eq!(
++            problems[0].to_string(),
++            format!("{rendered}: unknown key; ignored")
++        );
++    }
++    let (config, problems) =
++        lenient("[resolvers.r]\nmethod='ra'\nbind_interface='wan'\ndhcpv6_identity='anonymous'\n");
++    assert_eq!(
++        config.resolvers()["r"].dhcpv6_identity(),
++        &Dhcpv6Identity::LinkLayer
++    );
++    assert_eq!(problems.len(), 1);
++    assert_eq!(
++        problems[0].to_string(),
++        "resolver \"r\", dhcpv6_identity: used only with method dhcpv6 or ipv6; applied, the key ignored"
++    );
++}

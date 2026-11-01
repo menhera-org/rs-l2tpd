@@ -822,6 +822,13 @@ three musl rule suites and common checks pass. Repository record
 mappings and the current 95.59% line / 86.72% branch report: 378 lines and
 243 branches remain. Production and guest fixtures are unchanged.
 
+Configuration cases now reject empty/overflowing DNS ports and verify quoted,
+escaped key paths and ignored-field diagnostics. Ten seeded suites, three
+musl library suites and common checks pass. Repository record
+`audit/phase6/config-diagnostics-20261101/` gives unchanged production
+mappings and 100% line/branch coverage of the text parser. Overall coverage
+is 95.62% lines / 86.83% branches: 376 lines and 241 branches remain.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what
