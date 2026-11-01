@@ -1,0 +1,13 @@
+diff --git a/tmp/phase6-deletion-final-events.rs b/src/reconciler/events.rs
+index bee59a8..1544ec5 100644
+--- a/tmp/phase6-deletion-final-events.rs
++++ b/src/reconciler/events.rs
+@@ -368,7 +368,7 @@ impl<K: Kernel> Reconciler<K> {
+         if let Ok(None) = self.k.tunnel(tunnel_id) {
+             self.verify_tunnels.remove(&tunnel_id);
+             let label = self.tunnel_label(tunnel_id);
+-            self.report.begin_error(&label, "deleted", || {
++            self.report.begin(&label, "deleted", || {
+                 "was deleted in the kernel outside the daemon; this is unsupported (T9)".into()
+             });
+         }

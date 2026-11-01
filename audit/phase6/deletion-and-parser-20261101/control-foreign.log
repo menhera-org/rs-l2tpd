@@ -1,0 +1,23 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/x86_64-unknown-linux-gnu/debug/deps/rs_l2tpd-7d7b0353a23499b8)
+
+running 5 tests
+
+thread 'kernel::linux::rtnl::tests::address_dump_skips_foreign_families_and_rejects_malformed_inet_records' (3183565) panicked at src/kernel/linux/rtnl.rs:388:13:
+assertion failed: parse_addr(&addr(family, &[192, 0, 2, 1])).is_none()
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::rtnl::tests::malformed_dump_records_are_not_usable_entries ... ok
+test kernel::linux::rtnl::tests::ipv6_inventory_requires_the_devices_ipv6_family_attribute ... ok
+test kernel::linux::rtnl::tests::address_dump_skips_foreign_families_and_rejects_malformed_inet_records ... FAILED
+
+failures:
+
+failures:
+    kernel::linux::rtnl::tests::address_dump_skips_foreign_families_and_rejects_malformed_inet_records
+
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 283 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

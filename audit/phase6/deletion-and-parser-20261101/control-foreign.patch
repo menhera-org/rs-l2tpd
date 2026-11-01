@@ -1,0 +1,13 @@
+diff --git a/tmp/phase6-deletion-final-rtnl.rs b/src/kernel/linux/rtnl.rs
+index f0a1afd..a3e4f4b 100644
+--- a/tmp/phase6-deletion-final-rtnl.rs
++++ b/src/kernel/linux/rtnl.rs
+@@ -103,7 +103,7 @@ pub(super) fn parse_addr(payload: &[u8]) -> Option<AddrInfo> {
+         let addr = match header[0] as i32 {
+             libc::AF_INET => IpAddr::from(<[u8; 4]>::try_from(nla.value()).ok()?),
+             libc::AF_INET6 => IpAddr::from(<[u8; 16]>::try_from(nla.value()).ok()?),
+-            _ => return None,
++            _ => IpAddr::from(<[u8; 4]>::try_from(nla.value()).ok()?),
+         };
+         if kind == libc::IFA_LOCAL {
+             local = Some(addr);

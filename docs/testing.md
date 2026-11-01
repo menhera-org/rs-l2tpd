@@ -233,8 +233,9 @@ ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
 merged report includes netlink I/O faults, real buffer-force success and
 service queue, reconciler record, runtime/socket error guards and deferred
-MAC changes after device removal, plus lifetime input/state boundaries:
-97.70% lines / 91.74% branches, leaving 200 lines and 153 branches. Its fresh collector includes
+MAC changes after device removal, lifetime inputs, deletion recovery,
+stale completions and foreign-family parsing:
+97.85% lines / 91.90% branches, leaving 187 lines and 150 branches. Its fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
 production exclusions, mismatches or saturated regions. The checked-reply
 implementation fixes the denominators at 8,687 lines and 1,852 branches.

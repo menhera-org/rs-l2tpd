@@ -505,12 +505,12 @@ and source patches are empty. Later test-only request I/O, service queue, reconc
 boundary guards pass repeated GNU/musl/instrumented runs. Three real buffer-force guests
 also pass.
 
-Fresh corrected-source coverage is **97.70% of lines and 91.74% of branches**:
-8,487/8,687 lines and 1,699/1,852 branches, leaving **200 lines and 153
+Fresh corrected-source coverage is **97.85% of lines and 91.90% of branches**:
+8,500/8,687 lines and 1,702/1,852 branches, leaving **187 lines and 150
 branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files
-`audit/phase6/lifetime-completion-20261101/README.md` and
+`audit/phase6/deletion-and-parser-20261101/README.md` and
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identify the source, controls and
 scope. The following entries retain earlier measurements.
 

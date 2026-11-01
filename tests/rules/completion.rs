@@ -294,7 +294,7 @@ fn an_ipv4_label_notice_does_not_reconnect_a_second_time() {
     assert!(ops(&mut r).is_empty());
 }
 
-/// spec: G4, G13, O2, O3, O4, E20, S12, S19, S20, T21, T25, R9, V15, V6
+/// spec: G4, G13, O2, O3, O4, E20, S12, S19, S20, S27, T9, T21, T25, R9, V15, V6
 #[test]
 fn completion_report_counts() {
     // Forking here can temporarily inherit other tests' fake socket references.
@@ -331,6 +331,54 @@ fn completion_report_counts() {
             .filter(|(l, message)| *l == level && message.contains(text))
             .count()
     };
+    for loss in [false, true] {
+        capture.messages.lock().unwrap().clear();
+        let (mut r, _) = reconciler();
+        assert!(r.reconcile(config(TUNNEL)));
+        let socket = r.kernel().tunnel_socket(10).unwrap();
+        r.kernel_mut().close(socket);
+        r.kernel_mut().tick();
+        assert!(r.kernel_mut().tunnel(10).unwrap().is_none());
+        ops(&mut r);
+        for _ in 0..3 {
+            r.handle(
+                Source::L2tp,
+                if loss {
+                    Notice::Loss
+                } else {
+                    Notice::TunnelDeleted { tunnel_id: 10 }
+                },
+            );
+        }
+        assert_eq!(
+            count(
+                log::Level::Error,
+                "was deleted in the kernel outside the daemon; this is unsupported (T9)"
+            ),
+            1
+        );
+        assert_eq!(count(log::Level::Error, "tunnel a (tunnel_id=10)"), 1);
+        assert!(ops(&mut r).is_empty());
+    }
+    {
+        capture.messages.lock().unwrap().clear();
+        let (mut r, _) = reconciler();
+        assert!(r.reconcile(config(&session(""))));
+        let socket = r.kernel().tunnel_socket(10).unwrap();
+        let first = r.kernel().session_index(10, 100).unwrap();
+        r.kernel_mut().operator_delete_session(10, 100);
+        r.kernel_mut().tick();
+        assert!(r.kernel_mut().session(10, 100).unwrap().is_none());
+        ops(&mut r);
+        r.handle(Source::L2tp, Notice::Loss);
+        let replacement = r.kernel().session_index(10, 100).unwrap();
+        assert_ne!(replacement, first);
+        assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
+        assert_eq!(ops(&mut r), ["create 10 100 l2tp0"]);
+        r.handle(Source::L2tp, Notice::Loss);
+        assert_eq!(r.kernel().session_index(10, 100), Some(replacement));
+        assert!(ops(&mut r).is_empty());
+    }
     {
         let (mut r, _) = reconciler();
         let initial = config(&session("interface_hwaddr='02:00:5e:00:53:01'"));

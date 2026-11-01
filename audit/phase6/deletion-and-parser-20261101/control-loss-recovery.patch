@@ -1,0 +1,15 @@
+diff --git a/tmp/phase6-deletion-final-events.rs b/src/reconciler/events.rs
+index bee59a8..abef18a 100644
+--- a/tmp/phase6-deletion-final-events.rs
++++ b/src/reconciler/events.rs
+@@ -565,9 +565,7 @@ impl<K: Kernel> Reconciler<K> {
+             }
+             let tid = self.sessions[&sid].tunnel_id;
+             match self.k.session(tid, sid) {
+-                Ok(None) => {
+-                    self.verify_session(sid);
+-                }
++                Ok(None) => {}
+                 Ok(Some(_)) => {}
+                 Err(_) => complete = false,
+             }

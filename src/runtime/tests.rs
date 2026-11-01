@@ -507,6 +507,14 @@ fn tunable_handshake_is_observed_forwarded_and_answered_without_host_io() {
         };
         r.handle_event(event).unwrap();
         assert!(r.reconciler.kernel().tunnel_socket(10).is_none());
+        r.handle_event(ControlEvent::TunableWritten {
+            id: id + 1,
+            success: true,
+        })
+        .unwrap();
+        assert!(!r.ready());
+        assert!(r.reconciler.kernel().tunnel_socket(10).is_none());
+        assert!(r.outgoing.is_empty());
         r.reconciler.kernel_mut().bindv6only = false;
         r.control().tunable_written(id, true).await.unwrap();
         let event = r.next_event().await;
@@ -532,6 +540,10 @@ fn tunable_timeout_ignores_late_success_and_shutdown_cancels_pending() {
             r.control().reload().unwrap();
         }
         r.reconciler.kernel_mut().advance(Duration::from_secs(5));
+        r.handle_event(ControlEvent::TunableWritten { id, success: true })
+            .unwrap();
+        assert!(!r.ready());
+        assert!(r.reconciler.kernel().tunnel_socket(10).is_none());
         let event = r.next_event().await;
         assert!(matches!(event, ControlEvent::Tick));
         r.handle_event(event).unwrap();

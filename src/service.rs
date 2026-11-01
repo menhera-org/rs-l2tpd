@@ -917,4 +917,21 @@ mod tests {
             assert_eq!(called.load(Ordering::Acquire), 1);
         });
     }
+
+    /// spec: L13, P14, G20
+    #[test]
+    fn unforwarded_withdrawal_completes_the_manager_barrier() {
+        engine().block_on(async {
+            let (fd, _peer) = std::os::unix::net::UnixStream::pair().unwrap();
+            let mut runtime = runtime(vec![AdoptedSocket::new("invalid inherited name", fd.into())]);
+            runtime.set_store_capacity(1);
+            runtime.reconcile(Config::new());
+            let event = tokio::time::timeout(std::time::Duration::from_secs(1), runtime.next_event()).await.unwrap();
+            assert!(matches!(&event, ControlEvent::ForgetSocket { name, .. } if name == "invalid inherited name"));
+            let (host, mut receiver) = tokio::sync::mpsc::channel(1);
+            host_request(&mut runtime, event, &host, false);
+            assert!(matches!(receiver.try_recv(), Err(tokio::sync::mpsc::error::TryRecvError::Empty)));
+            assert!(runtime.shutdown().unwrap(), "the disabled host must complete its withdrawal barrier");
+        });
+    }
 }

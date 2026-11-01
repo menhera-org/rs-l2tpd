@@ -1,0 +1,13 @@
+diff --git a/tmp/phase6-deletion-final-mod.rs b/src/reconciler/mod.rs
+index 44ba31f..174e506 100644
+--- a/tmp/phase6-deletion-final-mod.rs
++++ b/src/reconciler/mod.rs
+@@ -232,7 +232,7 @@ impl<K: Kernel> Reconciler<K> {
+         let Some((pending, deadline)) = self.tunable_pending else {
+             return;
+         };
+-        if pending != id || self.k.now() >= deadline {
++        if self.k.now() >= deadline {
+             return;
+         }
+         self.tunable_pending = None;

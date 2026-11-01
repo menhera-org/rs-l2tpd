@@ -384,6 +384,9 @@ mod tests {
         };
         let v4 = addr(libc::AF_INET as u8, &[192, 0, 2, 1]);
         let v6 = addr(libc::AF_INET6 as u8, &[0x20; 16]);
+        for family in [libc::AF_UNSPEC as u8, libc::AF_PHONET as u8, 45] {
+            assert!(parse_addr(&addr(family, &[192, 0, 2, 1])).is_none());
+        }
         let mut addrs = Vec::new();
         for payload in [
             v4.clone(),
