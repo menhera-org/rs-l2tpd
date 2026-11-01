@@ -25,6 +25,11 @@ The later userspace-netlink peer/deadline tests run on Ubuntu 6.8.0-147
 with GNU and musl. Those ordinary library declarations are outside the matrix's serial
 ignored profile;
 `audit/phase6/netlink-peer-boundaries-20261101/` records their precise scope.
+The later checked reply decoder passes local GNU/musl, Incus and root-unit
+qualification on Ubuntu 6.8.0-147; its required matrix remains pending.
+Its malformed signed-status cases are synthetic decoder inputs, not live
+kernel observations. Repository record
+`audit/phase6/netlink-reply-state-20261101/README.md` gives the exact scope.
 
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.

@@ -27,79 +27,34 @@ the scenario suite below; read them before writing new scenarios.
 
 ## Execution status, 2026-11-01
 
-Phase 6 remains open. Released iphost 0.4.4 fixes V12's anonymous Reply
-validation defect. Three live witnesses fail with 0.4.3 and pass with the
-registry release. Local and required-kernel integration checks pass; the
-specification remains unchanged. Production source `584062d` passes all thirteen required
-matrix profiles, including 27 normal scenarios on each of the five kernels.
-Strict maps, unprivileged Incus and the root sandbox have passing records.
-The current E27 correction fixes verification stopping while a session's
-announced deletion is still queued. A delayed-work model witness fails on
-the preceding implementation and passes with the correction. Repeated models,
-GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The required matrix passes all thirteen profiles on `584062d`, including
-the E27 correction and released iphost 0.4.4.
-The iphost 0.4.4 integration and standard-library boundary changes pass
-common checks, ten native and instrumented seeds, three musl model runs,
-GNU live/Incus, manager, task limits and the root sandbox. Three musl
-scenario/Incus repetitions pass. The required matrix also passes all
-thirteen profiles on frozen signed commit `584062d`. Later test-only
-additions retain their separate execution records.
+Phase 6 remains open. The current netlink reply correction rejects malformed
+signed completion statuses without panicking and preserves valid kernel
+errors, sequence checks, interruption and first-error precedence. Two
+synthetic witnesses fail on the extracted preceding arithmetic in three
+GNU and three musl debug runs. Eight corrected cases pass three runs per
+target; eight broken controls fail. Repository record
+`audit/phase6/netlink-reply-state-20261101/` identifies the source and limits.
 
-Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.28% of
-lines and 90.81% of branches**, leaving **236 lines and 170 branches**.
+Ten native and instrumented model/rule/service/startup repetitions, three
+musl model runs, common gates, Rust 1.89 and three additional musl
+architecture compile checks pass. GNU live/Incus, user-manager, three
+thread-limit runs and the unmodified root sandbox pass. Three shipped-musl
+scenario/Incus pairs pass. These local live results apply to Ubuntu 6.8.0-147.
 
-A recent test-only package forces shutdown between service dequeue and
-dispatch and checks capacity acknowledgement. Ten native and instrumented
-seeds, three musl runs and common checks pass. Five controls fail; a retained
-single-guard control shows the independent reconciliation safeguard. The
-aggregate coverage is unchanged. Repository record
-`audit/phase6/service-dequeue-shutdown-20261101/` gives the exact scope.
-The later netlink peer package adds real userspace-socket deadline and
-sender-validation checks. Ten native/instrumented seeds, three musl runs
-and common gates pass; four controls fail. Its source mappings are
-unchanged, with 248 lines and 178 branches still uncovered. Its live scope
-is Ubuntu 6.8.0-147, separately from the frozen production matrix.
+The prior frozen source fb0620d passes all thirteen required matrix profiles,
+including the absent-family recovery case on all five kernels. Its shipping
+logic matches 584062d with released iphost 0.4.4. Initial/final selections
+agree and source patches are empty. That matrix predates the reply
+correction; the corrected source still needs its required matrix.
 
-The public startup fixture also checks direct Runtime and async Service
-socket failures without losing adopted inputs. Ten native and serial
-instrumented repetitions, three musl runs and common gates pass; four
-controls fail. The aggregate percentage is unchanged because constructor
-success and failure counters belong to different compiled instances.
-Repository record `audit/phase6/startup-open-errors-20261101/` retains the
-counter evidence and all eight startup faults.
-
-The instrumented library now also shares all 24 existing Linux declarations
-with the external target. Three serial library repetitions and the full GNU
-live collection pass, as do ten instrumented seeds, three musl library runs
-and common gates. Constructor success and refusal now execute in the same
-library instance. Repository record
-`audit/phase6/shared-live-harness-20261101/` records that measurement.
-The later generic-family cases check missing groups, timeout cache retention
-and live ENOENT recovery. Ten native/instrumented seeds, three musl library
-runs, three GNU/musl live repetitions and common gates pass; three controls
-fail. Repository record `audit/phase6/generic-family-recovery-20261101/`
-records that measurement and its scope.
-The later host-adapter cases verify effective-capability warnings, successful
-store-worker processing, and isolated tunable writes. Ten native/instrumented
-binary repetitions, three musl runs, three GNU/musl container repetitions
-and common gates pass. Seven production controls and a namespace-fixture
-control fail. Repository record `audit/phase6/host-adapter-success-20261101/`
-gives the latest measurement. A required matrix frozen at fb0620d is running
-separately; it excludes these later declarations.
-A later fixture extension adds transient WouldBlock reads and a single-
-warning assertion for tunable correction. Repeated native/instrumented,
-GNU/musl container and common gates pass; both controls reject the broken
-behavior. caps.rs, fdstore.rs and tunable.rs now each reach complete line
-and branch coverage. Repository record
-`audit/phase6/host-adapter-completion-20261101/` gives the latest measurement.
-
-Complete clause/history/resource/event-cost proof and the 100% coverage
-gate remain required. The [testing page](testing.md) gives current gate
-commands; repository file `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies
-the source, commands, failures, controls and limitations of each result.
-The entry-state reports describe earlier trees.
+The fresh corrected-source collector reports **97.34% of production lines
+and 91.09% of branches**, leaving **231 lines and 165 branches**. Its
+denominators are 8,687 lines and 1,852 branches. Earlier profiles are not
+merged; no production exclusions, profile mismatches or saturated regions
+are present. Complete clause/history/resource/event-cost proof and the
+100% gate remain required. Repository file
+`audit/PHASE6_VERIFICATION_2026-11-01.md` records current gates and preserves
+the earlier packages' execution scopes.
 
 ## Rules that hold for the whole phase
 

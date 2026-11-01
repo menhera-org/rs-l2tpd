@@ -1,0 +1,16 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-gnu/debug/deps/rs_l2tpd-7d7b0353a23499b8)
+
+running 8 tests
+test kernel::linux::request::reply_tests::an_abandoned_sequence_is_ignored_before_status_or_interruption ... ok
+test kernel::linux::request::reply_tests::minimum_status_in_a_done_is_refused_without_panicking ... ok
+test kernel::linux::request::reply_tests::an_interrupted_dump_never_visits_more_data_or_reports_success ... ok
+test kernel::linux::request::reply_tests::data_is_visited_noops_are_ignored_and_overrun_is_transport_loss ... ok
+test kernel::linux::request::reply_tests::completion_statuses_preserve_success_and_exact_kernel_errors ... ok
+test kernel::linux::request::reply_tests::minimum_status_in_an_ack_is_refused_without_panicking ... ok
+test kernel::linux::request::reply_tests::positive_statuses_and_truncated_acknowledgements_are_protocol_errors ... ok
+test kernel::linux::request::reply_tests::the_first_visitor_error_survives_drain_interruption_and_completion ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 269 filtered out; finished in 0.00s
+

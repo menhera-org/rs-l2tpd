@@ -1,0 +1,11 @@
+--- a/src/kernel/linux/request.rs
++++ b/src/kernel/linux/request.rs
+@@ -237,7 +237,7 @@
+     if msg.seq != seq {
+         return Ok(ControlFlow::Continue(()));
+     }
+-    if msg.flags & NLM_F_DUMP_INTR != 0 && answer.is_ok() {
++    if false {
+         *answer = Err(errno(libc::EINTR));
+     }
+     let code = match msg.kind {

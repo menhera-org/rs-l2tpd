@@ -61,10 +61,11 @@ checked `libc` calls under the [documented exception](dependencies.md#upstream-n
 differences, source evidence, execution scope and limitations. Repository
 file `audit/PHASE6_VERIFICATION_2026-11-01.md` gives coverage and the remaining
 clause/resource/event-cost proof and identifies each test package's source.
-Fresh coverage for iphost 0.4.4 and the boundary changes is **97.28% of lines
-and 90.81% of branches**, leaving 236 lines and 170 branches. Repeated model and GNU/musl tests include
-failure controls for session ownership and descriptor handover. The global
-gates remain open.
+Fresh coverage for iphost 0.4.4 and the boundary changes is **97.34% of lines
+and 91.09% of branches**, leaving 231 lines and 165 branches. Repeated model and GNU/musl tests include
+failure controls for session ownership and descriptor handover. The checked
+reply decoder passes local qualification and still needs its required-kernel
+matrix. The global gates remain open.
 The specification's
 [known gaps](spec/README.md#known-gaps) describe historical commit
 `741117b`, removed in Phase 0. The interface page describes the target.

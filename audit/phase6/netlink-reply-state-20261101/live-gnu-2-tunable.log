@@ -1,0 +1,10 @@
+features: all; target: x86_64-unknown-linux-gnu; Docker network: none; case: tunable; repetition: 2
+6.8.0-147-generic
+command: /home/dev/rs-l2tpd/target/phase6-coverage-netlink-reply-state-20261101/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/3f25c5043db337d3/out/rs_l2tpd-3f25c5043db337d3 --ignored --exact tunable::namespace_tests::whitelisted_writes_apply_only_to_the_callers_network_namespace --nocapture
+
+running 1 test
+WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+test tunable::namespace_tests::whitelisted_writes_apply_only_to_the_callers_network_namespace ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.00s
+

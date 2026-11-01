@@ -494,36 +494,22 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
 Exit: all five gates green on the running kernel and on every required
 kernel target; the Incus/LXD scenario run, not skipped.
 
-**Status: in progress on 2026-11-01.** Production source `584062d`
-passes all thirteen required matrix profiles: five normal suites of 27
-scenarios, five clock profiles, both IPv6-absent boots and missing-driver
-recovery. Strict rule/source maps, unprivileged Incus and the root sandbox
-have passing records. The checked libc exception is applied; no nix
-contribution or release is required.
+**Status: in progress on 2026-11-01.** The current reply decoder rejects
+malformed signed statuses without panic while preserving valid kernel
+errors, sequence checks and first-error precedence. Repeated native,
+instrumented and musl models, common gates, GNU live/Incus, manager, thread
+limits and the root sandbox pass. Three shipped-musl scenario/Incus pairs
+pass on Ubuntu 6.8.0-147. The prior fb0620d matrix passes all thirteen
+profiles; the corrected production source still needs its required matrix.
 
-Released iphost 0.4.4 fixes V12's anonymous Reply validation defect. Three
-live witnesses fail with 0.4.3 and pass with the registry release. Local
-and required-kernel integration checks pass; the specification remains unchanged.
-
-The current E27 correction fixes verification stopping while a session's
-announced deletion is still queued. A delayed-work model witness fails on
-the preceding implementation and passes with the correction. Repeated models,
-GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The required matrix passes all thirteen profiles on `584062d`, including
-the E27 correction and released iphost 0.4.4.
-The iphost 0.4.4 integration and standard-library boundary changes pass
-common checks, ten native and instrumented seeds, three musl model runs,
-GNU live/Incus, manager, task limits and the root sandbox. Three musl
-scenario/Incus repetitions pass. The required matrix also passes all
-thirteen profiles on frozen signed commit `584062d`. Later test-only
-additions retain their separate execution records.
-
-Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.28% of
-lines and 90.81% of branches**, leaving **236 lines and 170 branches**. The 100% gate and complete
-clause/history/resource/event-cost proof remain open. Repository file
-`audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.
-The following entries retain the history of earlier measurements.
+Fresh corrected-source coverage is **97.34% of lines and 91.09% of branches**:
+8,456/8,687 lines and 1,687/1,852 branches, leaving **231 lines and 165
+branches**. There are no production exclusions, profile mismatches or
+saturated regions. Complete clause/history/resource/event-cost proof and
+the 100% gate remain open. Repository files
+`audit/phase6/netlink-reply-state-20261101/README.md` and
+`audit/PHASE6_VERIFICATION_2026-11-01.md` identify the source, controls and
+scope. The following entries retain earlier measurements.
 
 **Initial status, 2026-10-31.** The strict source-link check
 passes locally. The partial host scenarios, unprivileged Incus case and

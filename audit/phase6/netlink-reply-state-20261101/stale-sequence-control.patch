@@ -1,0 +1,11 @@
+--- a/src/kernel/linux/request.rs
++++ b/src/kernel/linux/request.rs
+@@ -234,7 +234,7 @@
+     answer: &mut io::Result<()>,
+     visit: &mut dyn FnMut(u16, &[u8]) -> io::Result<()>,
+ ) -> io::Result<ControlFlow<io::Result<()>>> {
+-    if msg.seq != seq {
++    if false {
+         return Ok(ControlFlow::Continue(()));
+     }
+     if msg.flags & NLM_F_DUMP_INTR != 0 && answer.is_ok() {

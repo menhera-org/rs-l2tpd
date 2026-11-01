@@ -231,15 +231,21 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-merged report is 97.28% lines / 90.81% branches, with no production
-exclusions; 236 lines and 170 branches remain. Its fresh collector qualifies
-iphost 0.4.4 and the standard-library boundary changes, including GNU live,
-Incus, manager and task-limit profiles. The anonymous Reply witness fails
-with 0.4.3 and passes with the registry release. Three musl scenario/Incus
-repetitions pass; the required matrix passes all thirteen profiles on frozen
-584062d with released iphost 0.4.4. Repository file
-`audit/phase6/host-adapter-completion-20261101/README.md` identifies the latest
-measurement and its qualified scope. The library test harness also compiles
+merged report covers the checked reply decoder: 97.34% lines / 91.09%
+branches, leaving 231 lines and 165 branches. Its fresh collector includes
+native models, GNU live/Incus, manager and thread-limit profiles, with no
+production exclusions, mismatches or saturated regions. The production
+change alters the denominators to 8,687 lines and 1,852 branches; older
+profiles are not merged.
+
+Three shipped-musl scenario/Incus pairs and the root sandbox pass locally
+on Ubuntu 6.8.0-147. The prior fb0620d source passes all thirteen required
+matrix profiles; the checked reply correction still needs its matrix.
+Repository record `audit/phase6/netlink-reply-state-20261101/README.md`
+identifies the source, malformed-status witnesses, eight controls, complete
+commands and execution limits.
+
+The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public
 and private cases exercise one generic instantiation; both targets still run.
 The shared live-harness record contains three passing 46-case serial

@@ -1,0 +1,101 @@
+features: all; coverage: nightly-2026-10-28, cargo-llvm-cov 0.9.1, x86_64-unknown-linux-gnu
+# Unfixed extraction witnesses (three repetitions per GNU/musl target): require both minimum_status cases to fail with unchecked-negation overflow.
+cargo test --locked --all-features --target TARGET --lib reply_tests::minimum_status -- --nocapture
+# Corrected focused cases (three repetitions per GNU/musl target):
+cargo test --locked --all-features --target TARGET --lib reply_tests:: -- --nocapture
+# Fresh collector and repeated full model/rule/service/startup qualification:
+set -eu
+record=$PWD/audit/phase6/netlink-reply-state-20261101
+test ! -e "$CARGO_LLVM_COV_TARGET_DIR"
+cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report > /tmp/phase6-reply-fresh-native.log 2>&1
+sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/; s/; merged doctests compilation took .*$/; merged doctests compilation took <build duration>/' /tmp/phase6-reply-fresh-native.log > "$record/native.log"
+for seed in 1 2 3 4 5 6 7 8 9 10; do
+  TEST_SEED=$seed cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --test kernel-fake --test rules --test service --test startup > "/tmp/phase6-reply-native-model-$seed.log" 2>&1
+  sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/' "/tmp/phase6-reply-native-model-$seed.log" > "$record/native-model-$seed.log"
+  TEST_SEED=$seed cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --lib --test kernel-fake --test rules --test service --test startup --branch --no-report > "/tmp/phase6-reply-coverage-model-$seed.log" 2>&1
+  sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/' "/tmp/phase6-reply-coverage-model-$seed.log" > "$record/coverage-model-$seed.log"
+done
+for seed in 1 2 3; do
+  TEST_SEED=$seed cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --test kernel-fake --test rules --test service --test startup > "/tmp/phase6-reply-musl-model-$seed.log" 2>&1
+  sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/' "/tmp/phase6-reply-musl-model-$seed.log" > "$record/musl-model-$seed.log"
+done
+cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --no-run > /tmp/phase6-reply-musl-bin-build.log 2>&1
+sed '/Finished .*target(s) in /s/ in .*$/ in <build duration>/' /tmp/phase6-reply-musl-bin-build.log > "$record/musl-build.log"
+printf 'REPLY_FRESH_NATIVE_MODELS_RESULT=0\n'
+./test-ci-gates.sh
+cargo +1.89.0 check --locked --all-features --all-targets
+for target in aarch64-unknown-linux-musl riscv64gc-unknown-linux-musl powerpc64le-unknown-linux-musl; do cargo check --locked --all-features --all-targets --target "$target"; done
+# Eight isolated, uninstrumented controls run their exact reply_tests case; require exactly one failed test. Patches/logs name the behavior. Restore each mutation before the next.
+PHASE6_COVERAGE_RECORD=<this record> CARGO_LLVM_COV_TARGET_DIR=<fresh collector> sh audit/phase6/process-errors-20261031/run-live.sh
+# Three GNU/musl binary, namespace and warning/marker profiles:
+set -eu
+record=$PWD/audit/phase6/netlink-reply-state-20261101
+coverage=$CARGO_LLVM_COV_TARGET_DIR
+profiles=$coverage/reply-host-profiles
+mkdir -p "$profiles"
+chmod 777 "$profiles"
+for flavor in gnu musl; do
+  if test "$flavor" = gnu; then build=$record/native.log; label='Running unittests src/bin/rs-l2tpd/main.rs ('; else build=$record/musl-build.log; label='Executable unittests src/bin/rs-l2tpd/main.rs ('; fi
+  unit=$(awk -v label="$label" -v root="$PWD/" '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/\)$/, "",line);if(line!~/^\//)line=root line;print line}}' "$build")
+  test -f "$unit" && test -x "$unit"
+  for repeat in 1 2 3; do
+    for case in ordinary tunable missing-capabilities; do
+      if test "$case" = missing-capabilities; then set -- --cap-drop ALL --env RS_L2TPD_TEST_NETWORK_CAPABILITIES=0; else set -- --privileged --env RS_L2TPD_TEST_NETWORK_CAPABILITIES=13312; fi
+      if test "$flavor" = gnu; then set -- "$@" --mount "type=bind,source=$profiles,target=$profiles" --env "LLVM_PROFILE_FILE=$profiles/final-$flavor-$repeat-$case-%p-%m.profraw"; fi
+      {
+        printf 'features: all; target: x86_64-unknown-linux-%s; Docker network: none; case: %s; repetition: %s\n' "$flavor" "$case" "$repeat"
+        docker run --rm "$@" --network none --mount "type=bind,source=$PWD,target=$PWD,readonly" --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'uname -r; unit=$1; case=$2; if test "$case" = ordinary; then set -- --test-threads=1 --nocapture; elif test "$case" = tunable; then set -- --ignored --exact tunable::namespace_tests::whitelisted_writes_apply_only_to_the_callers_network_namespace --nocapture; else set -- --exact caps::report_tests::warnings_match_the_effective_capabilities_and_name_each_fallback_once --nocapture; fi; printf "command: %s" "$unit"; printf " %s" "$@"; printf "\n"; exec "$unit" "$@"' run "$unit" "$case"
+      } > "$record/live-$flavor-$repeat-$case.log" 2>&1
+      if test "$case" = ordinary; then expected=65; else expected=1; fi
+      grep -q "test result: ok. $expected passed; 0 failed" "$record/live-$flavor-$repeat-$case.log"
+    done
+  done
+done
+docker run --rm --network none --mount "type=bind,source=$profiles,target=/profiles" --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'chmod a+r /profiles/*.profraw'
+cp "$profiles/"*.profraw "$coverage/"
+printf 'REPLY_HOST_FINAL_LIVE_RESULT=0\n'
+set -eu
+record=$PWD/audit/phase6/netlink-reply-state-20261101
+coverage=$CARGO_LLVM_COV_TARGET_DIR
+profiles=$coverage/reply-host-profiles
+for flavor in gnu musl; do
+  if test "$flavor" = gnu; then build=$record/native.log; label='Running unittests src/bin/rs-l2tpd/main.rs ('; else build=$record/musl-build.log; label='Executable unittests src/bin/rs-l2tpd/main.rs ('; fi
+  unit=$(awk -v label="$label" -v root="$PWD/" '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/\)$/, "",line);if(line!~/^\//)line=root line;print line}}' "$build")
+  test -f "$unit" && test -x "$unit"
+  for repeat in 1 2 3; do
+    set --
+    if test "$flavor" = gnu; then set -- --mount "type=bind,source=$profiles,target=$profiles" --env "LLVM_PROFILE_FILE=$profiles/isolation-$flavor-$repeat-%p-%m.profraw"; fi
+    {
+      printf 'features: all; target: x86_64-unknown-linux-%s; command: isolated Docker --privileged --network none; exact tunable namespace case; enclosing namespace starts at 1\n' "$flavor"
+      docker run --rm --privileged --network none "$@" --mount "type=bind,source=$PWD,target=$PWD,readonly" --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'uname -r; printf "1\n" > /proc/sys/net/ipv6/bindv6only; printf "enclosing namespace before: "; cat /proc/sys/net/ipv6/bindv6only; "$1" --ignored --exact tunable::namespace_tests::whitelisted_writes_apply_only_to_the_callers_network_namespace --nocapture; test "$(cat /proc/sys/net/ipv6/bindv6only)" = 1; printf "enclosing namespace after: "; cat /proc/sys/net/ipv6/bindv6only' run "$unit"
+    } > "$record/namespace-$flavor-$repeat.log" 2>&1
+    grep -q 'test result: ok. 1 passed; 0 failed' "$record/namespace-$flavor-$repeat.log"
+    grep -q 'enclosing namespace after: 1' "$record/namespace-$flavor-$repeat.log"
+  done
+done
+docker run --rm --network none --mount "type=bind,source=$profiles,target=/profiles" --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'chmod a+r /profiles/*.profraw'
+cp "$profiles/"*.profraw "$coverage/"
+printf 'REPLY_HOST_NAMESPACE_ISOLATION_RESULT=0\n'
+set -eu
+record=$PWD/audit/phase6/netlink-reply-state-20261101
+for flavor in gnu musl; do
+  for repeat in 1 2 3; do
+    for fault in pipe send poll poll-interrupted read read-interrupted read-would-block; do
+      count=$(grep -c "BARRIER_FAULT_VERIFIED=$fault\$" "$record/live-$flavor-$repeat-ordinary.log" || test "$?" -eq 1)
+      test "$count" -eq 1
+    done
+    count=$(grep -Fc 'WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)' "$record/namespace-$flavor-$repeat.log" || test "$?" -eq 1)
+    test "$count" -eq 1
+    printf 'WARNING_COUNT=%s\n' "$count" >> "$record/namespace-$flavor-$repeat.log"
+  done
+done
+printf 'SEVEN_BARRIER_FAULTS_AND_SINGLE_WARNING_RESULT=0\n'
+PHASE6_COVERAGE_RECORD=<this record> CARGO_LLVM_COV_TARGET_DIR=<fresh collector> sh audit/phase6/coverage-simplify-20261031/run-incus-normal.sh
+# Real user manager: systemd-run --user --no-pager --pipe --wait --collect --unit=UNIQUE --property=Type=notify --property=NotifyAccess=all --property=FileDescriptorStoreMax=1 --property=NoNewPrivileges=yes --property=TimeoutStartSec=15s --property=TimeoutStopSec=5s --property=RuntimeMaxSec=15s '--property=RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6' env PHASE5_NOTIFY_UNIT=UNIQUE.service LLVM_PROFILE_FILE=<collector>/manager-%p-%m.profraw INSTRUMENTED_BINARY_UNIT --ignored --exact fdstore::manager_tests::actual_manager_processing_and_address_family_filter --nocapture
+# Keep only the test section; omit manager resource accounting.
+for repeat in 1 2 3; do tests/docker/thread-limits.sh rs-l2tpd-coverage:phase6 INSTRUMENTED_DAEMON THIS_RECORD/thread-limits-$repeat FRESH_COLLECTOR; done
+kernel_root=target/phase6-kernels/ubuntu-noble-6.8.0-147.147/root
+tests/kernel/run-guest.sh "$kernel_root/boot/vmlinuz-6.8.0-147-generic" "$kernel_root/lib/modules/6.8.0-147-generic" "$kernel_root/boot/config-6.8.0-147-generic" systemd audit/phase6/netlink-reply-state-20261101/root-systemd
+for repeat in 1 2 3; do tests/docker/run.sh scenarios; incus list --format csv -c n; tests/docker/run.sh incus; done
+CARGO_LLVM_COV_TARGET_DIR=<fresh collector> cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path /tmp/phase6-reply-coverage.json
+CARGO_LLVM_COV_TARGET_DIR=<fresh collector> cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines

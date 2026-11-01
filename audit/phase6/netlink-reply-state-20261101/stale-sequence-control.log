@@ -1,0 +1,28 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+warning: unused variable: `seq`
+   --> src/kernel/linux/request.rs:233:5
+    |
+233 |     seq: u32,
+    |     ^^^ help: if this is intentional, prefix it with an underscore: `_seq`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (lib test) generated 1 warning (run `cargo fix --lib -p rs-l2tpd --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/debug/deps/rs_l2tpd-dc5105cc1b329540)
+
+running 1 test
+
+thread 'kernel::linux::request::reply_tests::an_abandoned_sequence_is_ignored_before_status_or_interruption' (2662905) panicked at src/kernel/linux/request.rs:728:14:
+called `Result::unwrap()` on an `Err` value: Os { code: 71, kind: Uncategorized, message: "Protocol error" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test kernel::linux::request::reply_tests::an_abandoned_sequence_is_ignored_before_status_or_interruption ... FAILED
+
+failures:
+
+failures:
+    kernel::linux::request::reply_tests::an_abandoned_sequence_is_ignored_before_status_or_interruption
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 276 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

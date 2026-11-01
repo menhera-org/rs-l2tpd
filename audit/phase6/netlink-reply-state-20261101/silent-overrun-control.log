@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-boundary-controls.FSahAz9b)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/debug/deps/rs_l2tpd-dc5105cc1b329540)
+
+running 1 test
+
+thread 'kernel::linux::request::reply_tests::data_is_visited_noops_are_ignored_and_overrun_is_transport_loss' (2664293) panicked at src/kernel/linux/request.rs:844:18:
+called `Result::unwrap_err()` on an `Ok` value: Continue(())
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test kernel::linux::request::reply_tests::data_is_visited_noops_are_ignored_and_overrun_is_transport_loss ... FAILED
+
+failures:
+
+failures:
+    kernel::linux::request::reply_tests::data_is_visited_noops_are_ignored_and_overrun_is_transport_loss
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 276 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

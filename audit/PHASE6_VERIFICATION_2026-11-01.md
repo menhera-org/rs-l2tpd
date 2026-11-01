@@ -1,63 +1,50 @@
 # Phase 6 verification, 2026-11-01
 
-Phase 6 is incomplete. Released iphost 0.4.4 fixes the
-[anonymous Reply defect](phase6/anonymous-reply-20261101/README.md).
-Three live witnesses fail with 0.4.3 and pass with the downloaded registry
-release. Upstream, local integration and required-kernel qualification pass.
-The specification remains unchanged. Production source `584062d` has completed
-the [required matrix](phase6/matrix-20261101T141907Z-2368484/README.md).
-It includes kernel-selected inventories, VRF inventory-completion tracking
-and checked libc signal calls. Later commits add tests and measurement
-infrastructure. The current E27 correction changes session-verification
-behavior: a queued-deletion witness fails on the preceding code and passes
-with the correction. Repeated models, GNU/musl live suites, three musl Incus
-runs and the root sandbox pass. Its required matrix passes all thirteen profiles. Fresh coverage for
-0.4.4, the standard-library boundaries and host-adapter cases is 97.28% lines / 90.81%
-branches. Common checks, ten native and instrumented seeds, three musl
-model runs, GNU live/Incus, manager, task limits and root-systemd pass.
-Three musl scenario/Incus repetitions pass. The required matrix passes all
-thirteen profiles on frozen signed commit `584062d`.
+Phase 6 is incomplete. The current [reply correction](phase6/netlink-reply-state-20261101/README.md)
+rejects malformed signed completion statuses without overflow, preserving
+valid errno, sequence filtering, interruption and first-error precedence.
+Two synthetic debug witnesses fail three GNU and three musl repetitions;
+eight corrected cases pass three repetitions per target. Eight isolated
+broken controls fail. These synthetic cases establish no live malformed
+kernel reply or release-mode daemon panic.
 
-The current [E27 correction](phase6/event-verification-20261101/README.md)
-is committed as `11bef84`, based on `4881c32` plus its retained source patch.
-The [serial startup harness](phase6/shared-startup-harness-20261101/README.md)
-adds test-only qualification. The [worker-pressure case](phase6/worker-pressure-reporting-20261101/README.md)
-adds complete warning/recovery episodes. The [input boundaries](phase6/input-boundaries-20261101/README.md)
-add tunable and empty-path cases. The [blocking transport cases](phase6/blocking-transport-20261101/README.md)
-add queue/reply failure checks. The [resolver wire case](phase6/resolver-wire-identity-20261101/README.md)
-adds live identity/binding checks and the latest merged coverage. The preceding
-[model controls](phase6/model-controls-20261101/README.md) preserve their
-original test-only scope. The preceding
-[fallback case](phase6/family-fallback-20261101/README.md) preserves sessions
-through peer-family changes. The
-[descriptor record](phase6/descriptor-inheritance-20261101/README.md), the
-[session races](phase6/session-races-20261101/README.md) and the
-[shared harness](phase6/shared-rule-harness-20261101/README.md) identify
-the source, commands, failures, controls and current coverage. Earlier packages
-and the [October 31 record](PHASE6_VERIFICATION_2026-10-31.md) retain their
-original execution scope.
+Ten native and instrumented model/rule/service/startup repetitions, three
+musl model runs, common checks, Rust 1.89 and three additional musl
+architecture compile checks pass. GNU live/Incus, user manager, three thread-
+limit runs and the root sandbox pass. Three shipped-musl scenario/Incus
+pairs pass. Local live scope is Ubuntu 6.8.0-147. Fresh coverage is 97.34%
+lines / 91.09% branches, leaving 231 lines and 165 branches.
+
+The prior [fb0620d matrix](phase6/matrix-20261101T162452Z-2573413/README.md)
+passes all thirteen profiles with released iphost 0.4.4, matching publication
+selections and empty source patches. It predates the reply correction.
+The corrected production source still needs a required matrix. Earlier
+[anonymous Reply](phase6/anonymous-reply-20261101/README.md),
+[E27](phase6/event-verification-20261101/README.md) and other packages below
+retain their original source scope. The specification is unchanged.
 
 ## Gate status
 
 | Requirement | Executed evidence | Still required |
 |---|---|---|
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
-| P2 scenarios | All 27 normal cases pass on each of five required kernels, including H20, H17 and the new VRF reload regression. Three current musl host suites also pass | Complete clause, history and resource/event-cost proof |
-| P3 required kernels | Frozen `584062d` with released iphost 0.4.4 passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree and source patches are empty | Preserve the per-target scope; later test-only additions have separate records |
-| P4 coverage | Fresh 0.4.4/boundary profiles plus host-adapter cases: 8,435/8,671 lines (97.28%); 1,680/1,850 branches (90.81%). No production exclusions, profile mismatches or saturated regions | Cover 236 lines and 170 branches; enable the completed 100% gate in CI |
-| P5 Incus/LXD | The 0.4.4/boundary source passes GNU in 17.79 s and three unprivileged musl cases in 10.71, 19.44 and 20.06 s; all containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
-| P6 root sandbox | The 0.4.4/boundary source and the unmodified supplied unit pass in 30.97 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
+| P2 scenarios | Prior fb0620d passes 27 normal cases on each required kernel; the corrected reply source passes three shipped-musl suites locally | Complete clause/history/resource/event-cost proof; requalify corrected source across required kernels |
+| P3 required kernels | Prior frozen fb0620d passes five normal, five clock, two IPv6-absent and one missing-driver profiles; selections agree and source patches are empty | Run the corrected reply source on the required set; the prior matrix does not qualify this production change |
+| P4 coverage | Fresh checked-reply source: 8,456/8,687 lines (97.34%); 1,687/1,852 branches (91.09%). No production exclusions, profile mismatches or saturated regions | Cover 231 lines and 165 branches; enable the completed 100% gate in CI |
+| P5 Incus/LXD | Checked replies pass GNU in 17.10 s and three unprivileged musl cases in 18.46, 9.39 and 19.69 s; containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
+| P6 root sandbox | Checked replies and the unmodified supplied unit pass in 29.41 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
 
-The [E27 record](phase6/event-verification-20261101/README.md) contains the
-current local results above. Its three normal musl suites pass in 162.11,
+The earlier [E27 record](phase6/event-verification-20261101/README.md) retains
+its original local results. Its three normal musl suites pass in 162.11,
 166.26 and 163.51 s; GNU passes in 158.14 s. The real user-manager case and
 three GNU task-limit runs pass. Earlier cache results retain their original
 source scope in the [VRF record](phase6/vrf-inventory-state-20261101/README.md).
 
 ## Required-kernel snapshot
 
-Initial and final publication checks select the same five stable targets:
+The completed fb0620d matrix's initial and final publication checks select
+the same five stable targets. This snapshot predates the reply correction:
 
 | Package/version | Guest release | Normal scenarios | H16 clock/pause |
 |---|---|---|---|
@@ -67,8 +54,8 @@ Initial and final publication checks select the same five stable targets:
 | Vanilla 7.0.14 | 7.0.14 | 27 pass | pass |
 | Mainline 7.3 | 7.3.0 | 27 pass | pass |
 
-Each frozen 584062d normal guest also passes 19 serial library, 24 Linux,
-five review, 62 ordinary binary, three privileged binary and 29 process cases.
+Each frozen fb0620d normal guest also passes 20 serial library, 24 Linux,
+five review, 63 ordinary binary, three privileged binary and 29 process cases.
 The positive client-ID/binding and anonymous Reply cases pass on all five
 required kernels with released iphost 0.4.4. All eight
 daemon setup faults pass. Mainline passes both IPv6-absent boots; Ubuntu 7.0
@@ -89,6 +76,16 @@ Broader distributions and live non-x86 architectures remain unrun.
 Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 
 ## Current coverage evidence
+
+The [reply correction](phase6/netlink-reply-state-20261101/README.md) records
+the malformed-status witnesses, eight passing cases, eight rejected controls
+and all local GNU/musl qualifications. Its fresh collector reports
+8,456/8,687 lines and 1,687/1,852 branches. No older profiles are merged.
+Production changes alter the denominators: 4,243 mappings remain identical,
+56 change, 21 disappear and 12 are added, all within request.rs. No production
+exclusion, mismatch or saturated region is present. Before/after source
+patches agree. The earlier packages below retain their original measurements
+and execution scopes.
 
 The [adapter completion](phase6/host-adapter-completion-20261101/README.md)
 adds a WouldBlock read fault and requires one tunable-correction warning.
