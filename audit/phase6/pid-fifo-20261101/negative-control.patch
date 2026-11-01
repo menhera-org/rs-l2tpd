@@ -1,0 +1,12 @@
+diff --git a/src/bin/rs-l2tpd/pidfile.rs b/src/bin/rs-l2tpd/pidfile.rs
+index 4ab738f..2ee0390 100644
+--- a/src/bin/rs-l2tpd/pidfile.rs
++++ b/src/bin/rs-l2tpd/pidfile.rs
+@@ -171,7 +171,6 @@ impl PidFile {
+                 let m = file.metadata()?;
+                 if m.dev() != before.st_dev
+                     || m.ino() != before.st_ino
+-                    || !m.is_file()
+                     || m.uid() != unsafe { libc::geteuid() }
+                     || m.nlink() != 1
+                     || m.mode() & 0o022 != 0

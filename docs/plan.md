@@ -843,6 +843,13 @@ checks pass, with identical production coverage mappings. Repository record
 `audit/phase6/pid-faults-20261101/` gives the current 95.72% line / 87.38%
 branch report: 367 lines and 231 branches remain.
 
+The pre-created PID fixture now rejects a FIFO before truncation or writing,
+preserving its inode and type. An omitted-validation control fails. Ten
+seeded suites, three musl binary suites and common checks pass, with identical
+production mappings. Repository record `audit/phase6/pid-fifo-20261101/`
+gives the current 95.73% line / 87.49% branch report: 366 lines and
+229 branches remain. Profiling helpers remain unchanged.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

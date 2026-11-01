@@ -539,7 +539,7 @@ mod removal_tests {
 mod edge_tests {
     use super::*;
     use crate::testdir::Dir;
-    use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::fs::{FileTypeExt, PermissionsExt};
     /// spec: P10 P11
     #[test]
     fn pid_edge_child() {
@@ -549,12 +549,27 @@ mod edge_tests {
         crate::logger::init(false);
         let dir = Dir::new();
         let path = dir.path().join("pid");
-        std::fs::write(&path, "old").unwrap();
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let reader = if case == "fifo" {
+            let name = cstr(path.as_os_str().as_bytes()).unwrap();
+            assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+            Some(
+                cvt(unsafe {
+                    libc::open(
+                        name.as_ptr(),
+                        libc::O_RDONLY | libc::O_NONBLOCK | libc::O_CLOEXEC,
+                    )
+                })
+                .unwrap(),
+            )
+        } else {
+            std::fs::write(&path, "old").unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+            None
+        };
         let inode = std::fs::metadata(&path).unwrap().ino();
         std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o755)).unwrap();
         let errno = match case.to_str().unwrap() {
-            "eperm" => Some(libc::EPERM),
+            "eperm" | "fifo" => Some(libc::EPERM),
             "erofs" => Some(libc::EROFS),
             "eacces" => Some(libc::EACCES),
             _ => None,
@@ -604,7 +619,19 @@ mod edge_tests {
             let mode = if case == "sticky" { 0o1777 } else { 0o777 };
             std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(mode)).unwrap();
         }
-        let pid = PidFile::publish(&path).unwrap();
+        let result = PidFile::publish(&path);
+        if case == "fifo" {
+            assert_eq!(
+                result.err().unwrap().to_string(),
+                "unsafe pre-created PID file"
+            );
+            let metadata = std::fs::symlink_metadata(&path).unwrap();
+            assert!(metadata.file_type().is_fifo());
+            assert_eq!(metadata.ino(), inode);
+            drop(reader);
+            return;
+        }
+        let pid = result.unwrap();
         assert_eq!(pid.ino == inode, errno.is_some());
         assert_eq!(
             std::fs::read_to_string(&path).unwrap(),
@@ -617,7 +644,7 @@ mod edge_tests {
     #[test]
     fn sticky_warning_and_unwritable_directory_fallbacks() {
         let mut ancestor_warnings = None;
-        for case in ["sticky", "writable", "eperm", "erofs", "eacces"] {
+        for case in ["sticky", "writable", "eperm", "erofs", "eacces", "fifo"] {
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args([
                     "--exact",

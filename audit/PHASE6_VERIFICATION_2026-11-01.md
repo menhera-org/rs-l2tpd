@@ -17,7 +17,7 @@ preceding work and its original scope.
 | P1 rule/source maps | Current strict common checks pass. The [strict qualification](phase6/strict-gates-20261031/README.md) retains its ten seeded fake/live CI repetitions | Maintain enforcement; declaration citations do not establish complete clause proof |
 | P2 scenarios | Approved normal suite passes 26 cases three times in 158.12, 162.29 and 157.99 s, including H20 and H17 | Complete clause/resource/event-cost proof; keep host-kernel scale runs serial under the documented shared budget |
 | P3 required kernels | [November 1 matrix](phase6/matrix-20261101T003757Z-933582/README.md): five normal and five clock profiles, two IPv6-absent profiles and missing-driver profile pass; publication checks agree | Qualify the final daemon/fixtures after the later socket fixes and streamed inventories |
-| P4 coverage | Compatible production collection: 95.72% lines, 87.38% branches; no production exclusions or saturated regions | Cover 367 lines and 231 branches; enforce the completed 100% gate in CI |
+| P4 coverage | Compatible production collection: 95.73% lines, 87.49% branches; no production exclusions or saturated regions | Cover 366 lines and 229 branches; enforce the completed 100% gate in CI |
 | P5 Incus/LXD | Current full unprivileged Incus case passes in 8.95 s with seven daemon profiles; the approved policy also retains its three earlier fresh-container passes | Repeat after relevant implementation changes; results remain scoped to the recorded userspace/kernel |
 | P6 root sandbox | Unmodified supplied unit passes the shared corrected manager case in 26.64 s on Ubuntu 6.8.0-147-generic, ROOT_SYSTEMD_RESULT=0 | Final-source qualification after relevant changes |
 | P7 docs/CI | Required-kernel distinctions and approved limits are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source record and complete proof/coverage enforcement |
@@ -59,8 +59,8 @@ ten seeded ordinary suites, three musl library/fake/rule suites, common
 checks, cross-target musl compile checks, full GNU live/process cases,
 a real user manager, Incus and the root sandbox.
 
-The [current summary](phase6/pid-faults-20261101/coverage-summary.json)
-reports 8,211/8,578 lines and 1,599/1,830 branches covered. Test-only
+The [current summary](phase6/pid-fifo-20261101/coverage-summary.json)
+reports 8,212/8,578 lines and 1,601/1,830 branches covered. Test-only
 [member recovery](phase6/member-inventory-resync-20261101/README.md) and
 [discovery retry](phase6/discovery-retries-20261101/README.md) cases add
 nine lines and twelve branch outcomes. The
@@ -70,7 +70,9 @@ parser reaches 100% lines and branches. The
 [PID authority cases](phase6/pid-authority-20261101/README.md) add one
 line and four branch outcomes while preserving all production mappings.
 [PID syscall faults](phase6/pid-faults-20261101/README.md) add another
-eight lines and six outcomes, with original errors and cleanup asserted. Retained production coverage mappings
+eight lines and six outcomes, with original errors and cleanup asserted.
+The [FIFO case](phase6/pid-fifo-20261101/README.md) adds one line and two
+outcomes, requiring non-regular-file refusal before writing. Retained production coverage mappings
 match; the rule adapter now overrides its default retry-discovery method. Only this
 production implementation's profiles contribute; superseded implementations
 remain separate. Test-only bodies/helpers are excluded under the approved
