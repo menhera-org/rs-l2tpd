@@ -237,7 +237,7 @@ iphost 0.4.4 and the standard-library boundary changes, including GNU live,
 Incus, manager and task-limit profiles. The anonymous Reply witness fails
 with 0.4.3 and passes with the registry release. Three musl scenario/Incus
 repetitions pass; the required matrix is running on frozen 584062d. Repository file
-`audit/phase6/runtime-boundaries-20261101/README.md` identifies the latest
+`audit/phase6/service-dequeue-shutdown-20261101/README.md` identifies the latest
 measurement and its qualified scope. The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public
 and private cases exercise one generic instantiation; both targets still run.

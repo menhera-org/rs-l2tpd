@@ -1,0 +1,12 @@
+diff --git a/src/service.rs b/src/service.rs
+--- a/src/service.rs
++++ b/src/service.rs
+@@ -433,7 +433,7 @@ fn worker<K: Kernel + 'static>(
+                 let _ = tx.send(result);
+             }
+             ControlEvent::Service(Operation(Action::Converge(tx)))
+-                if !control.shared.shutdown.load(Ordering::Acquire) =>
++                if true =>
+             {
+                 if converged {
+                     let _ = tx.send(Ok(runtime.left_out()));

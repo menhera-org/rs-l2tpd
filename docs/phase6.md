@@ -48,6 +48,13 @@ Earlier test-only additions have passing common checks and repeated
 GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.12% of
 lines and 90.27% of branches**, leaving **250 lines and 180 branches**.
 
+The latest test-only package forces shutdown between service dequeue and
+dispatch and checks capacity acknowledgement. Ten native and instrumented
+seeds, three musl runs and common checks pass. Five controls fail; a retained
+single-guard control shows the independent reconciliation safeguard. The
+aggregate coverage is unchanged. Repository record
+`audit/phase6/service-dequeue-shutdown-20261101/` gives the exact scope.
+
 Complete clause/history/resource/event-cost proof and the 100% coverage
 gate remain required. The [testing page](testing.md) gives current gate
 commands; repository file `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies

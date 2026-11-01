@@ -88,6 +88,16 @@ Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 
 ## Current coverage evidence
 
+The [service dequeue case](phase6/service-dequeue-shutdown-20261101/README.md)
+forces shutdown between dequeue and dispatch using a blocked sender's waker.
+A public API case checks store-capacity acknowledgement before convergence
+and refusal afterward. Ten native and instrumented seeds, three musl runs
+and common gates pass. Five controls fail; the run guard alone can be
+bypassed because reconciliation independently refuses shutdown work. The
+combined control fails. The library now has 244 ordinary passing cases.
+Coverage remains 97.12% / 90.27%; per-instance counters and the unchanged
+aggregate are recorded explicitly.
+
 The [runtime boundaries](phase6/runtime-boundaries-20261101/README.md)
 add canonical adopted-name, descriptor ownership, shutdown admission and
 queued-tunable checks. Ten native and instrumented seeds, three musl
