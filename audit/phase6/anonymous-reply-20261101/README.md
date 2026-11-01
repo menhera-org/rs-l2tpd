@@ -1,34 +1,62 @@
-# Anonymous DHCPv6 Reply validation: upstream correction required
+# Anonymous DHCPv6 Reply validation: released correction
 
-Released iphost 0.4.3 accepts a Reply containing a Client Identifier when
-the request was anonymous. Its parser checks a supplied Reply identifier
-only when the local client has a DUID. After accepting the invalid Reply,
-the client closes that exchange and ignores the valid Reply that follows.
+iphost **0.4.4 is published** from signed upstream commit
+[e064cc0](https://github.com/metastable-void/iphost/commit/e064cc07db13e813ead92dca07f98c8d44ae0bc9).
+The downloaded package's checksum matches Cargo.lock; its VCS metadata names
+that commit and its DHCPv6 source matches the tested correction.
+Publication, signature, package and VCS records are retained here.
 
-The live witness sends two same-transaction Replies from one controlled
-server: first a Client Identifier and DNS server 2001:db8::53, then the
-correct anonymous Reply with no Client Identifier and server 2001:db8::54.
-Both include a Server Identifier. Three musl container runs select ::53
-and fail the expected ::54 assertion in 0.25 s each. The test uses the
-existing namespace fixture; no host networking is changed.
+Released 0.4.3 accepts a Reply containing a Client Identifier when its
+request was anonymous. After accepting that Reply, it closes the exchange
+and ignores the valid Reply that follows. The live witness sends two
+same-transaction Replies from one controlled server: first a Client
+Identifier and DNS server 2001:db8::53, then no Client Identifier and server
+2001:db8::54. Both include a Server Identifier. Three baseline musl runs
+select ::53 and fail the expected ::54 assertion in 0.25 s each.
 
-`revision` identifies downstream 0bc668b; `witness.patch` adds the failing
-ignored regression. The witness is restored out of shipping source after
-the baseline runs. Its failed profiles are not part of coverage.
-
-This contradicts V12's matching-or-absent Client Identifier condition and
+This contradicts V12 and
 [RFC 8415 §16.10](https://www.rfc-editor.org/rfc/rfc8415.html#section-16.10):
 a Reply to a request without a Client Identifier must omit that option.
-The spec is not being relaxed to accept the observed result.
+The specification is unchanged.
 
-Fresh upstream main is 91fd9f881a76c7700583ce8720587c0060f6a61b, the same
-revision as the released crate. The upstream correction, regression,
-compatibility checks, release and downstream integration remain required
-under `docs/upstream-iphost.md` and `CONTRIBUTING.md`.
-The existing identified-client tolerance for an absent Reply identifier
-is separate documented behavior and must be preserved.
+## Correction and qualification
 
-The required matrix continues on frozen production source 11bef84.
-Its positive profiles do not prove this previously missing validation case.
-Current passing-source coverage remains 97.01% lines / 89.89% branches;
-that percentage does not establish V12 conformance.
+The parser now accepts a supplied Reply identifier only when the local
+client has the same DUID. Anonymous clients reject any Client Identifier,
+including an empty one. Matching identifiers remain accepted. The existing
+documented tolerance for an identified client's Reply without an identifier
+is preserved. Public signatures, dependencies and other DNS policies are unchanged.
+
+The focused upstream regression fails on 91fd9f8 and passes with the fix.
+Ten all-feature unit runs, three musl unit runs, no-default/custom/RA/DHCPv6/
+combined-feature suites, Clippy, warning-denied docs, Rust 1.89 and package
+verification pass. Nine all-target compile checks pass: three additional
+Linux musl architectures, Windows MSVC, Intel/ARM macOS, FreeBSD, NetBSD and
+illumos. Those other operating systems are not executed.
+
+Three live upstream repetitions each pass nine listener/queue probes,
+eighteen privileged binding/discovery cases and two unprivileged fallback
+cases. The existing fixture uses the recorded pre-provisioned image with
+its apk-installation line omitted; every container has network none.
+
+An isolated candidate checkout passes the downstream witness three times.
+It uses a temporary local path only to test the proposal before publication;
+that is not released-dependency acceptance. Three subsequent runs against
+the downloaded 0.4.4 registry release also pass in 0.25 s each. The shipping
+manifest and lockfile use the registry release, with no path override.
+
+## Sources and remaining integration
+
+`revision` identifies downstream 0bc668b; `witness.patch` adds the regression.
+`upstream-regression.patch` and `upstream-fix.patch` identify the upstream
+counterexample and correction. `candidate-source.patch` records the isolated
+proposal's source. Failed witnesses never enter production coverage.
+
+The completed required matrix is frozen at production source 11bef84 with
+iphost 0.4.3. Its positive profiles do not close the missing validation case.
+Full downstream qualification now uses a fresh collector and the final
+source described in `../iphost044-integration-20261101/`, including the
+standard-library boundary changes. Native/common, live, Incus, root-systemd,
+coverage and required-kernel results must qualify that source before exit.
+The preceding 97.01% line / 89.89% branch report remains historical;
+complete clause/history/resource proof and 100% coverage remain open.

@@ -501,21 +501,23 @@ recovery. Strict rule/source maps, unprivileged Incus and the root sandbox
 have passing records. The checked libc exception is applied; no nix
 contribution or release is required.
 
-A confirmed V12 upstream defect is under repair: an anonymous iphost client
-accepts a Reply carrying another client identifier. Three live witnesses
-fail. The specification remains unchanged; the upstream fix and released
-dependency integration are required.
+Released iphost 0.4.4 fixes V12's anonymous Reply validation defect. Three
+live witnesses fail with 0.4.3 and pass with the registry release. Full
+downstream qualification is in progress; the specification remains unchanged.
 
 The current E27 correction fixes verification stopping while a session's
 announced deletion is still queued. A delayed-work model witness fails on
 the preceding implementation and passes with the correction. Repeated models,
 GNU/musl live suites, three musl Incus runs and the root sandbox pass.
 The E27 required matrix passes all thirteen profiles on `11bef84`.
-The iphost correction needs separate released-dependency qualification.
+The iphost 0.4.4 integration and standard-library boundary changes pass
+common checks, ten native and instrumented seeds, three musl model runs,
+GNU live/Incus, manager, task limits and the root sandbox. Three musl
+scenario/Incus repetitions are running; required-kernel qualification follows.
 
 Earlier test-only additions have passing common checks and repeated
-GNU/musl qualification. Fresh production coverage is **97.01% of lines and
-89.89% of branches**, leaving **259 lines and 187 branches**. The 100% gate and complete
+GNU/musl qualification. Fresh coverage for iphost 0.4.4 and the boundary changes is **97.06% of
+lines and 90.05% of branches**, leaving **255 lines and 184 branches**. The 100% gate and complete
 clause/history/resource/event-cost proof remain open. Repository file
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.
 The following entries retain the history of earlier measurements.

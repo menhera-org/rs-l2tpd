@@ -1,0 +1,39 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling libc v0.2.191
+   Compiling serde_core v1.0.229
+   Compiling pin-project-lite v0.2.17
+   Compiling serde v1.0.229
+   Compiling once_cell v1.21.4
+   Compiling punycode v0.4.1
+   Compiling tokio v1.54.1
+   Compiling fqdn v0.5.2
+   Compiling tracing-core v0.1.36
+   Compiling syn v2.0.119
+   Compiling syn v3.0.9
+   Compiling socket2 v0.6.5
+   Compiling serde_derive v1.0.229
+   Compiling tracing-attributes v0.1.31
+   Compiling tracing v0.1.44
+   Compiling iphost v0.4.3 (<upstream-checkout>)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-iphost-anonymous/debug/deps/iphost-f7aa0b73c50c858a)
+
+running 1 test
+
+thread 'dhcpv6::tests::checks_reply_client_id' (2219192) panicked at src/dhcpv6.rs:922:9:
+assertion `left == right` failed
+  left: Some(Reply { servers: [], refresh: 86400 })
+ right: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test dhcpv6::tests::checks_reply_client_id ... FAILED
+
+failures:
+
+failures:
+    dhcpv6::tests::checks_reply_client_id
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

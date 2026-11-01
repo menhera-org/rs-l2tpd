@@ -46,9 +46,9 @@ capture loss. Guards kill daemons and delete namespaces on panic. Frame
 delivery and drop counters are asserted, along with interface identity,
 kernel objects, logs and bounded event waits.
 
-Phase 6 remains incomplete. A confirmed V12 defect in iphost 0.4.3 is under
-upstream repair: anonymous clients accept Replies carrying a Client Identifier.
-The three failing live witnesses are retained in the current verification record. Production source `11bef84` passes all thirteen
+Phase 6 remains incomplete. Released iphost 0.4.4 fixes V12's anonymous
+Reply validation defect. Three live witnesses fail with 0.4.3 and pass with
+the registry release; full downstream qualification is in progress. Production source `11bef84` passes all thirteen
 required profiles, including 27 normal scenarios on each of five kernels,
 five clock profiles, both IPv6-absent boots and missing-driver recovery.
 The E27 correction passes repeated model and GNU/musl live tests, three
@@ -56,7 +56,8 @@ musl Incus runs and the root sandbox. Its required matrix now passes all
 thirteen profiles on 11bef84; the iphost correction needs fresh qualification. The approved checked-libc signal
 exception is applied; no nix contribution or release is required.
 Later test-only additions have separate GNU/musl qualification.
-Fresh merged coverage is 97.01% of lines and 89.89% of branches;
+Fresh merged coverage for 0.4.4 and the boundary changes is 97.06% of lines
+and 90.05% of branches; 255 lines and 184 branches remain.
 100% coverage and complete clause/history/resource/event-cost proof remain
 open. See the [current verification record](../../audit/PHASE6_VERIFICATION_2026-11-01.md).
 The normal suite includes the 300-tunnel/session case. H20 now covers full-MTU frames and 1 MiB transfers over both families,

@@ -1,0 +1,12 @@
+diff --git a/src/bin/rs-l2tpd/fdstore.rs b/src/bin/rs-l2tpd/fdstore.rs
+--- a/src/bin/rs-l2tpd/fdstore.rs
++++ b/src/bin/rs-l2tpd/fdstore.rs
+@@ -87,7 +87,7 @@ impl Store {
+             }
+             match read.read(&mut [0]) {
+                 Ok(0) => return Ok(()),
+-                Ok(_) => return Err(io::Error::other("invalid barrier response")),
++                Ok(_) => return Ok(()),
+                 Err(e)
+                     if e.kind() == io::ErrorKind::WouldBlock
+                         || e.kind() == io::ErrorKind::Interrupted => {}

@@ -1,17 +1,22 @@
 # Phase 6 verification, 2026-11-01
 
-Phase 6 is incomplete. A newly confirmed [anonymous Reply defect](phase6/anonymous-reply-20261101/README.md)
-violates V12 in released iphost 0.4.3. Three live witnesses accept the wrong
-DNS server; the upstream correction and released integration are required.
-The specification remains unchanged. Production source `11bef84` has completed the
+Phase 6 is incomplete. Released iphost 0.4.4 fixes the
+[anonymous Reply defect](phase6/anonymous-reply-20261101/README.md).
+Three live witnesses fail with 0.4.3 and pass with the downloaded registry
+release. Upstream qualification and publication pass; full downstream
+qualification is in progress. The specification remains unchanged. Production source `11bef84` has completed the
 [required matrix](phase6/matrix-20261101T115808Z-2050597/README.md).
 It includes kernel-selected inventories, VRF inventory-completion tracking
 and checked libc signal calls. Later commits add tests and measurement
 infrastructure. The current E27 correction changes session-verification
 behavior: a queued-deletion witness fails on the preceding code and passes
 with the correction. Repeated models, GNU/musl live suites, three musl Incus
-runs and the root sandbox pass. Its required matrix passes all thirteen profiles. Fresh merged
-coverage is 97.01% lines / 89.89% branches; earlier results retain their scope.
+runs and the root sandbox pass. Its required matrix passes all thirteen profiles. Fresh coverage for
+0.4.4 and the standard-library boundary changes is 97.06% lines / 90.05%
+branches. Common checks, ten native and instrumented seeds, three musl
+model runs, GNU live/Incus, manager, task limits and root-systemd pass.
+Three musl scenario/Incus repetitions are running; the new required matrix
+remains open.
 
 The current [E27 correction](phase6/event-verification-20261101/README.md)
 is committed as `11bef84`, based on `4881c32` plus its retained source patch.
@@ -38,8 +43,8 @@ original execution scope.
 |---|---|---|
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | All 27 normal cases pass on each of five required kernels, including H20, H17 and the new VRF reload regression. Three current musl host suites also pass | Complete clause, history and resource/event-cost proof |
-| P3 required kernels | Frozen `11bef84` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Requalify after the required iphost correction; later test-only additions have separate records |
-| P4 coverage | Fresh E27 profiles: 8,404/8,663 lines (97.01%); 1,663/1,850 branches (89.89%). No production exclusions, profile mismatches or saturated regions | Cover 259 lines and 187 branches; enable the completed 100% gate in CI |
+| P3 required kernels | Frozen `11bef84` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Requalify the released iphost 0.4.4 integration and boundary changes; later test-only additions have separate records |
+| P4 coverage | Fresh 0.4.4/boundary profiles: 8,416/8,671 lines (97.06%); 1,666/1,850 branches (90.05%). No production exclusions, profile mismatches or saturated regions | Cover 255 lines and 184 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | E27 source passes the full GNU case in 17.20 s and three unprivileged musl cases in 29.47, 24.78 and 24.53 s; all containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | E27 source and the unmodified supplied unit pass in 30.93 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
@@ -82,6 +87,17 @@ Broader distributions and live non-x86 architectures remain unrun.
 Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 
 ## Current coverage evidence
+
+The [0.4.4 integration](phase6/iphost044-integration-20261101/README.md)
+uses a fresh collector after the production boundary changes. It includes
+all native tests, ten distinct instrumented seeds, GNU live/Incus, the
+actual user manager and three task-limit runs. It reports 8,416/8,671 lines
+and 1,666/1,850 branches. A test-only barrier budget correction preserves
+all 4,302 production coverage mappings. Four boundary controls and the
+invalid-barrier-data control fail as intended. The Rust 1.89 and three
+additional musl architecture compile checks pass.
+
+The following earlier packages retain their original source scope.
 
 The [startup harness](phase6/shared-startup-harness-20261101/README.md)
 reuses three subprocess declarations in the instrumented serial library

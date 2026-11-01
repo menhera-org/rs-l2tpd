@@ -457,9 +457,13 @@ mod tests {
                 }
             });
             let store = Store::new(path.as_os_str()).unwrap();
-            let error = store
-                .barrier(Instant::now() + Duration::from_millis(200))
-                .unwrap_err();
+            // The data case tests validation, independently of helper scheduling.
+            let budget = if hold {
+                Duration::from_millis(200)
+            } else {
+                Duration::from_secs(3)
+            };
+            let error = store.barrier(Instant::now() + budget).unwrap_err();
             if hold {
                 assert_eq!(error.kind(), io::ErrorKind::TimedOut);
                 release.send(()).unwrap();

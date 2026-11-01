@@ -1,0 +1,21 @@
+   Compiling rs-l2tpd v0.2.0 (<control-checkout>
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
+
+running 1 test
+
+thread 'check::tests::output_preserves_render_and_write_errors' (2316887) panicked at src/bin/rs-l2tpd/check.rs:54:9:
+assertion `left == right` failed
+  left: Ok(())
+ right: Err("check rendering: unsupported array type")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test check::tests::output_preserves_render_and_write_errors ... FAILED
+
+failures:
+
+failures:
+    check::tests::output_preserves_render_and_write_errors
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 65 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

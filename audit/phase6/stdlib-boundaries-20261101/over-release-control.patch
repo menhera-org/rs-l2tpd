@@ -1,0 +1,13 @@
+diff --git a/src/runtime.rs b/src/runtime.rs
+index 9d0edba..a884ff3 100644
+--- a/src/runtime.rs
++++ b/src/runtime.rs
+@@ -295,7 +295,7 @@ impl Control {
+             .shared
+             .admitted
+             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |count| {
+-                count.checked_sub(1)
++                Some(count.saturating_sub(1))
+             })
+             .is_ok()
+         {

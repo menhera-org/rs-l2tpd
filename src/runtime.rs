@@ -289,22 +289,18 @@ impl Control {
             .blocking_send(event)
             .map_err(|e| Error::Other(e.to_string()))
     }
+    #[allow(deprecated, reason = "try_update is unavailable on the Rust 1.89 MSRV")]
     pub(crate) fn request_processed(&self) {
         // Direct Runtime users can also forward manually constructed events.
-        let mut count = self.shared.admitted.load(Ordering::Acquire);
-        while count != 0 {
-            match self.shared.admitted.compare_exchange_weak(
-                count,
-                count - 1,
-                Ordering::AcqRel,
-                Ordering::Acquire,
-            ) {
-                Ok(_) => {
-                    self.shared.requests.add_permits(1);
-                    break;
-                }
-                Err(current) => count = current,
-            }
+        if self
+            .shared
+            .admitted
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |count| {
+                count.checked_sub(1)
+            })
+            .is_ok()
+        {
+            self.shared.requests.add_permits(1);
         }
     }
     pub(crate) async fn send(&self, event: ControlEvent) -> Result<()> {

@@ -1,0 +1,1 @@
+Fixture: tests/linux-bind.sh --inside; omit its apk installation line; packages are preinstalled in the recorded networkless image.

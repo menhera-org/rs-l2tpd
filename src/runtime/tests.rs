@@ -883,3 +883,44 @@ fn cancelling_unaccepted_reload_wait_does_not_inflate_admission_capacity() {
         control.reload().unwrap();
     });
 }
+
+/// spec: L6, L9, A13, G23
+#[test]
+fn concurrent_completions_return_each_admission_slot_once() {
+    engine().block_on(async {
+        let mut runtime = runtime();
+        let control = runtime.control();
+        for _ in 0..QUEUE_CAPACITY {
+            control.reload().unwrap();
+        }
+        assert_eq!(
+            control.shared.admitted.load(Ordering::Acquire),
+            QUEUE_CAPACITY
+        );
+        assert_eq!(control.shared.requests.available_permits(), 0);
+        let barrier = Arc::new(std::sync::Barrier::new(4));
+        let workers: Vec<_> = (0..4)
+            .map(|worker| {
+                let control = control.clone();
+                let barrier = barrier.clone();
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    for _ in (worker..QUEUE_CAPACITY).step_by(4) {
+                        control.request_processed();
+                    }
+                })
+            })
+            .collect();
+        for worker in workers {
+            worker.join().unwrap();
+        }
+        assert_eq!(control.shared.admitted.load(Ordering::Acquire), 0);
+        assert_eq!(control.shared.requests.available_permits(), QUEUE_CAPACITY);
+        for _ in 0..1000 {
+            control.request_processed();
+        }
+        assert_eq!(control.shared.admitted.load(Ordering::Acquire), 0);
+        assert_eq!(control.shared.requests.available_permits(), QUEUE_CAPACITY);
+        finish(&mut runtime);
+    });
+}

@@ -5,21 +5,25 @@ pub fn run(main: &Path, directory: &Path) -> u8 {
     let (config, problems) = loaded.partial.into_config_lenient();
     super::files::report(&problems, false);
     super::files::report_errors(&loaded.errors);
-    match toml::to_string_pretty(&config) {
-        Ok(text) => {
-            use std::io::Write;
-            if let Err(error) = std::io::stdout().lock().write_all(text.as_bytes()) {
-                log::error!("check output: {error}");
-                return 1;
-            }
-        }
-        Err(error) => {
-            log::error!("check rendering: {error}");
-            return 1;
-        }
+    if let Err(error) = output(
+        toml::to_string_pretty(&config),
+        &mut std::io::stdout().lock(),
+    ) {
+        log::error!("{error}");
+        return 1;
     }
     u8::from(!problems.is_empty() || !loaded.errors.is_empty())
 }
+fn output(
+    rendered: Result<String, toml::ser::Error>,
+    writer: &mut dyn std::io::Write,
+) -> Result<(), String> {
+    let text = rendered.map_err(|error| format!("check rendering: {error}"))?;
+    writer
+        .write_all(text.as_bytes())
+        .map_err(|error| format!("check output: {error}"))
+}
+
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
@@ -39,5 +43,24 @@ mod tests {
         assert!(!rendered.contains("remote_addr"));
         assert!(!rendered.contains("interface_hwaddr"));
         assert!(rendered.contains("00112233"));
+    }
+
+    /// spec: P3, O8, G1
+    #[test]
+    fn output_preserves_render_and_write_errors() {
+        let mut bytes = b"untouched".to_vec();
+        let rendered = toml::to_string_pretty(&[1u8]);
+        let expected = format!("check rendering: {}", rendered.as_ref().unwrap_err());
+        assert_eq!(super::output(rendered, &mut bytes), Err(expected));
+        assert_eq!(bytes, b"untouched");
+        bytes.clear();
+        super::output(Ok("exact output\n".into()), &mut bytes).unwrap();
+        assert_eq!(bytes, b"exact output\n");
+        let mut full: &mut [u8] = &mut [];
+        let expected = std::io::Write::write_all(&mut full, b"x").unwrap_err();
+        assert_eq!(
+            super::output(Ok("x".into()), &mut full),
+            Err(format!("check output: {expected}"))
+        );
     }
 }

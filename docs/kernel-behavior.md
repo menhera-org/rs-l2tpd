@@ -13,9 +13,10 @@ publication checks select the same versions. Repository record
 implementation with kernel-selected inventories, complete VRF member tracking,
 checked libc signal calls, approved fixtures and the E27 correction.
 The matrix freezes production source 11bef84 with iphost 0.4.3. Later
-test-only additions have separate qualification. A newly confirmed V12
-anonymous-Reply defect in iphost requires an upstream correction and
-fresh released-dependency qualification.
+test-only additions have separate qualification. Released iphost 0.4.4 fixes
+V12's anonymous Reply validation: three witnesses fail with 0.4.3 and pass
+with the registry release. Full downstream and required-kernel qualification
+are in progress for that integration and the standard-library boundaries.
 The approved H11 configured-MAC policy now passes three fresh Incus runs
 and a root-systemd guest on Ubuntu 6.8.0-147; its userspace scope is below.
 

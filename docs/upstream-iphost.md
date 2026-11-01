@@ -26,6 +26,17 @@ blocking other clients; retransmission and validation are unchanged.
 Repository record `audit/phase6/upstream-dhcp-queues-20261031/` retains the
 counterexamples, nine live probes repeated three times and integration scope.
 
+The anonymous Reply check later exposed a protocol defect: a client that
+omitted its identifier accepted a Reply containing one. Released iphost
+0.4.4 (2026-11-01) rejects that Reply, including an empty identifier. Matching
+identifiers remain accepted; the documented tolerance for an identified
+client's Reply without an identifier is preserved. Three downstream live
+witnesses fail with 0.4.3 and pass with the registry release.
+Repository record `audit/phase6/anonymous-reply-20261101/` retains upstream
+qualification, publication and package verification. Full downstream and
+required-kernel qualification are in progress in
+`audit/phase6/iphost044-integration-20261101/`.
+
 This is an implementation instruction for the general-purpose `iphost`
 crate, based on its published 0.4.0 behavior and the source inspected on
 2026-10-29. Recheck the current upstream tree before editing: a correction

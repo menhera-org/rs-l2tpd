@@ -1,0 +1,13 @@
+diff --git a/src/bin/rs-l2tpd/check.rs b/src/bin/rs-l2tpd/check.rs
+index cf53f7e..2b13015 100644
+--- a/src/bin/rs-l2tpd/check.rs
++++ b/src/bin/rs-l2tpd/check.rs
+@@ -21,7 +21,7 @@ fn output(
+     let text = rendered.map_err(|error| format!("check rendering: {error}"))?;
+     writer
+         .write_all(text.as_bytes())
+-        .map_err(|error| format!("check output: {error}"))
++        .or(Ok(()))
+ }
+ 
+ #[cfg(test)]

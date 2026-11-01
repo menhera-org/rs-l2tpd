@@ -1,0 +1,3 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+  Executable unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-iphost-anonymous/x86_64-unknown-linux-musl/debug/deps/iphost-0221ff16fdb0fad6)
+  Executable tests/linux_bind.rs (/home/dev/rs-l2tpd/target/phase6-iphost-anonymous/x86_64-unknown-linux-musl/debug/deps/linux_bind-75782a52c904f119)

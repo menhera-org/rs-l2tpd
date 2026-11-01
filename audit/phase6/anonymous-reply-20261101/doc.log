@@ -1,0 +1,5 @@
+    Blocking waiting for file lock on build directory
+    Checking tokio v1.54.1
+ Documenting iphost v0.4.4 (<upstream-checkout>)
+    Finished `dev` profile [unoptimized + debuginfo] target(s)
+   Generated /home/dev/rs-l2tpd/target/phase6-iphost-anonymous/doc/iphost/index.html

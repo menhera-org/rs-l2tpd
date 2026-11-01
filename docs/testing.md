@@ -231,16 +231,17 @@ as approved on 2026-10-31. Every required test still runs. The coverage step
 uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
 ordinary checks and shipped musl binaries stay on stable. The native CI
 badge report is distinct from the merged live-profile P4 gate. The latest
-merged report is 97.01% lines / 89.89% branches, with no production
-exclusions; 259 lines and 187 branches remain. The E27 correction has fresh
-profiles. A separate three-run live witness fails V12's anonymous Reply
-validation in iphost 0.4.3; its upstream correction and released integration
-remain required. Repository file
-`audit/phase6/resolver-wire-identity-20261101/README.md` identifies the latest
+merged report is 97.06% lines / 90.05% branches, with no production
+exclusions; 255 lines and 184 branches remain. Its fresh collector qualifies
+iphost 0.4.4 and the standard-library boundary changes, including GNU live,
+Incus, manager and task-limit profiles. The anonymous Reply witness fails
+with 0.4.3 and passes with the registry release. Three musl scenario/Incus
+repetitions are running; required-kernel qualification remains open. Repository file
+`audit/phase6/iphost044-integration-20261101/README.md` identifies the latest
 measurement and its qualified scope. The library test harness also compiles
 the same 94 public rule cases as the external rules target. This lets public
 and private cases exercise one generic instantiation; both targets still run.
-Child-launching cases use the serial live profile: 18 ordinary library
+Child-launching cases use the serial live profile: 19 ordinary library
 cases and three additional startup cases in the instrumented library.
 Those startup declarations remain ordinary tests in the external target;
 its instrumented copies are ignored in favor of the serial library run. Repository file

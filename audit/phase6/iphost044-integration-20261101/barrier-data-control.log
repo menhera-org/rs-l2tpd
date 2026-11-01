@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (<control-checkout>
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
+
+running 1 test
+
+thread 'fdstore::tests::a_barrier_requires_eof_and_rejects_data_or_an_unreleased_descriptor' (2329837) panicked at src/bin/rs-l2tpd/fdstore.rs:466:64:
+called `Result::unwrap_err()` on an `Ok` value: ()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test fdstore::tests::a_barrier_requires_eof_and_rejects_data_or_an_unreleased_descriptor ... FAILED
+
+failures:
+
+failures:
+    fdstore::tests::a_barrier_requires_eof_and_rejects_data_or_an_unreleased_descriptor
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 65 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`
