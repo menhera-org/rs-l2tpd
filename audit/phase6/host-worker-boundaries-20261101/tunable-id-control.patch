@@ -1,0 +1,12 @@
+diff --git a/src/bin/rs-l2tpd/fdstore.rs b/src/bin/rs-l2tpd/fdstore.rs
+--- a/src/bin/rs-l2tpd/fdstore.rs
++++ b/src/bin/rs-l2tpd/fdstore.rs
+@@ -217,7 +217,7 @@ pub fn worker(
+                         deadline,
+                     } => {
+                         let success = super::tunable::write(name, value, deadline);
+-                        let _ = control.tunable_written_blocking(id, success);
++                        let _ = control.tunable_written_blocking(id + 1, success);
+                     }
+                     ControlEvent::StoreSocket { name, fd, .. } => {
+                         if let Some(store) = &store

@@ -54,6 +54,11 @@ count as distinct seeds. One musl invocation named the nonexistent fake
 target; its failure is retained separately. Corrected commands use
 kernel-fake and TEST_SEED.
 
-Three musl scenario/Incus repetitions are running. The required-kernel
-matrix remains open for this source. Complete clause/history/resource
+Three musl scenario runs pass in 161.71, 162.55 and 160.21 s. Their paired
+Incus runs pass in 10.71, 19.44 and 20.06 s; every container is deleted.
+The logs and original per-run directories are listed in local-records.log.
+The required-kernel
+matrix is running from frozen signed downstream commit `584062d`.
+Results from that run will be recorded separately; the earlier `11bef84`
+matrix does not qualify this source. Complete clause/history/resource
 proof and 100% coverage remain open.

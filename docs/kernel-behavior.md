@@ -17,8 +17,11 @@ test-only additions have separate qualification. Released iphost 0.4.4 fixes
 V12's anonymous Reply validation: three witnesses fail with 0.4.3 and pass
 with the registry release. Full downstream and required-kernel qualification
 are in progress for that integration and the standard-library boundaries.
-The approved H11 configured-MAC policy now passes three fresh Incus runs
-and a root-systemd guest on Ubuntu 6.8.0-147; its userspace scope is below.
+With iphost 0.4.4 and the boundary changes, the approved H11 configured-MAC
+policy passes three musl Incus runs (10.71, 19.44 and 20.06 s), GNU Incus
+(17.79 s) and the root-systemd guest (30.97 s) on Ubuntu 6.8.0-147.
+Repository record `audit/phase6/iphost044-integration-20261101/` retains
+those results; their userspace scope is below.
 
 An Ubuntu ABI/package version identifies a patched distribution kernel;
 its behavior cannot be inferred from the corresponding vanilla version.

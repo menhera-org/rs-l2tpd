@@ -44,7 +44,8 @@ The E27 required matrix passes all thirteen profiles on `11bef84`.
 The iphost 0.4.4 integration and standard-library boundary changes pass
 common checks, ten native and instrumented seeds, three musl model runs,
 GNU live/Incus, manager, task limits and the root sandbox. Three musl
-scenario/Incus repetitions are running; required-kernel qualification follows.
+scenario/Incus repetitions pass. The required matrix is running on
+frozen signed commit `584062d`; its results remain separate from `11bef84`.
 
 Phase 6 remains open. Released iphost 0.4.4 fixes V12's anonymous Reply
 validation defect. Three live witnesses fail with 0.4.3 and pass with the
@@ -58,8 +59,8 @@ checked `libc` calls under the [documented exception](dependencies.md#upstream-n
 differences, source evidence, execution scope and limitations. Repository
 file `audit/PHASE6_VERIFICATION_2026-11-01.md` gives coverage and the remaining
 clause/resource/event-cost proof and identifies each test package's source.
-Fresh coverage for iphost 0.4.4 and the boundary changes is **97.06% of lines
-and 90.05% of branches**, leaving 255 lines and 184 branches. Repeated model and GNU/musl tests include
+Fresh coverage for iphost 0.4.4 and the boundary changes is **97.11% of lines
+and 90.11% of branches**, leaving 251 lines and 183 branches. Repeated model and GNU/musl tests include
 failure controls for session ownership and descriptor handover. The global
 gates remain open.
 The specification's

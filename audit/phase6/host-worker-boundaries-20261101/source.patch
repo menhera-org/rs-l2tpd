@@ -1,0 +1,99 @@
+diff --git a/src/bin/rs-l2tpd/fdstore.rs b/src/bin/rs-l2tpd/fdstore.rs
+index 8fcc912..b29cfd1 100644
+--- a/src/bin/rs-l2tpd/fdstore.rs
++++ b/src/bin/rs-l2tpd/fdstore.rs
+@@ -749,3 +749,94 @@ mod inheritance_tests {
+         }
+     }
+ }
++
++#[cfg(all(test, feature = "fake-kernel"))]
++#[cfg_attr(coverage_nightly, coverage(off))]
++mod worker_tests {
++    use super::*;
++
++    /// spec: P14, P17, L8, G14
++    #[test]
++    fn refused_host_operations_report_their_incarnation_and_release_duplicates() {
++        use rs_l2tpd::kernel::fake::FakeKernel;
++        use std::os::unix::net::UnixStream;
++        let engine = tokio::runtime::Builder::new_current_thread()
++            .enable_all()
++            .build()
++            .unwrap();
++        engine.block_on(async {
++            for has_store in [false, true] {
++                let mut runtime = rs_l2tpd::Runtime::with_kernel(
++                    FakeKernel::new(42),
++                    Box::new(rs_l2tpd::reconciler::IphostResolve::default()),
++                    vec![],
++                )
++                .map_err(|(error, _)| error)
++                .unwrap();
++                let dir = crate::testdir::Dir::new();
++                let path = dir.path().join("notify");
++                let listener = UnixDatagram::bind(&path).unwrap();
++                let store = has_store.then(|| Store::new(path.as_os_str()).unwrap());
++                let (requests, receive) = tokio::sync::mpsc::channel(4);
++                let (mut peer, duplicate) = UnixStream::pair().unwrap();
++                peer.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
++                let worker = worker(receive, runtime.control(), store).unwrap();
++                requests
++                    .try_send(ControlEvent::StoreSocket {
++                        name: "bad\nname".into(),
++                        tunnel_id: 1,
++                        fd: duplicate.into(),
++                    })
++                    .unwrap();
++                requests
++                    .try_send(ControlEvent::WriteTunable {
++                        name: "unsupported",
++                        value: "0",
++                        id: 71,
++                        deadline: Instant::now() + Duration::from_secs(3),
++                    })
++                    .unwrap();
++                requests
++                    .try_send(ControlEvent::ForgetSocket {
++                        name: "bad\nname".into(),
++                        id: 72,
++                        deadline: Instant::now() + Duration::from_secs(3),
++                    })
++                    .unwrap();
++                requests.try_send(ControlEvent::Restart).unwrap();
++                drop(requests);
++                worker.join().unwrap();
++                assert_eq!(peer.read(&mut [0]).unwrap(), 0);
++                tokio::time::timeout(Duration::from_secs(3), async {
++                    let mut completions = (false, false);
++                    while completions != (true, true) {
++                        match runtime.next_event().await {
++                            ControlEvent::TunableWritten { id, success } => {
++                                assert_eq!(id, 71);
++                                assert!(!success);
++                                assert!(!completions.0, "duplicate tunable completion");
++                                completions.0 = true;
++                            }
++                            ControlEvent::SocketForgotten { id, processed } => {
++                                assert_eq!(id, 72);
++                                assert_eq!(processed, !has_store);
++                                assert!(!completions.1, "duplicate withdrawal completion");
++                                completions.1 = true;
++                            }
++                            ControlEvent::Tick => {}
++                            _ => panic!("unexpected host completion"),
++                        }
++                    }
++                })
++                .await
++                .unwrap();
++                listener.set_nonblocking(true).unwrap();
++                assert_eq!(
++                    listener.recv(&mut [0; 32]).unwrap_err().kind(),
++                    io::ErrorKind::WouldBlock
++                );
++                assert!(runtime.shutdown().unwrap());
++            }
++        });
++    }
++}
