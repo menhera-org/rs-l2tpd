@@ -882,6 +882,15 @@ initial container-creation timeout, its cleanup and the corrected driver.
 Compatible profiles bring coverage to 95.95% lines / 87.81% branches,
 leaving 348 lines and 223 branches. Production mappings are unchanged.
 
+The file callback now has a semantic reload-conflict and recovery case,
+including ERROR/WARN diagnostics and complete retained-entry values. The
+false-success control fails. Ten seeded suites, three musl binary suites
+and common checks pass, with identical production mappings. Repository
+record `audit/phase6/file-reload-conflict-20261101/` gives the current
+96.00% line / 87.81% branch report: 344 lines and 223 branches remain.
+The separate event-cost witness finds a namespace-wide address scan for one
+ordinary VRF-member event; targeted inventory work is under investigation.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what

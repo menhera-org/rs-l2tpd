@@ -18,7 +18,7 @@ preceding work and its original scope.
 | P1 rule/source maps | Current strict common checks pass. The [strict qualification](phase6/strict-gates-20261031/README.md) retains its ten seeded fake/live CI repetitions | Maintain enforcement; declaration citations do not establish complete clause proof |
 | P2 scenarios | Current normal suite passes 26 cases three times in 160.88, 160.96 and 161.00 s, including H20 and H17 | Complete clause/resource/event-cost proof; keep host-kernel scale runs serial under the documented shared budget |
 | P3 required kernels | [Streamed-inventory matrix](phase6/matrix-20261101T025846Z-1217029/README.md): five normal and five clock profiles, two IPv6-absent profiles and missing-driver profile pass; publication checks agree | Qualify the later checked libc signal calls and test additions |
-| P4 coverage | Compatible production collection: 95.95% lines, 87.81% branches; no production exclusions or saturated regions | Cover 348 lines and 223 branches; enforce the completed 100% gate in CI |
+| P4 coverage | Compatible production collection: 96.00% lines, 87.81% branches; no production exclusions or saturated regions | Cover 344 lines and 223 branches; enforce the completed 100% gate in CI |
 | P5 Incus/LXD | Current full unprivileged GNU Incus case passes in 23.63 s with seven daemon profiles; three fresh musl cases also pass | Repeat after relevant implementation changes; results remain scoped to the recorded userspace/kernel |
 | P6 root sandbox | Unmodified supplied unit passes the shared corrected manager case in 27.99 s on Ubuntu 6.8.0-147-generic, ROOT_SYSTEMD_RESULT=0 | Final-source qualification after relevant changes |
 | P7 docs/CI | Required-kernel distinctions and approved limits are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source record and complete proof/coverage enforcement |
@@ -67,8 +67,8 @@ ten seeded ordinary suites, three musl library/fake/rule suites, common
 checks, cross-target musl compile checks, full GNU live/process cases,
 a real user manager, Incus and the root sandbox.
 
-The [current summary](phase6/signal-thread-limits-20261101/coverage-summary.json)
-reports 8,243/8,591 lines and 1,607/1,830 branches covered. Test-only
+The [current summary](phase6/file-reload-conflict-20261101/coverage-summary.json)
+reports 8,247/8,591 lines and 1,607/1,830 branches covered. Test-only
 [member recovery](phase6/member-inventory-resync-20261101/README.md) and
 [discovery retry](phase6/discovery-retries-20261101/README.md) cases add
 nine lines and twelve branch outcomes. The
@@ -91,7 +91,10 @@ false-success control fails. The
 [signal-thread resource check](phase6/signal-thread-limits-20261101/README.md)
 adds five cleanup lines with unchanged production mappings. Its omitted-wakeup
 control fails; ten GNU and three musl final-driver runs pass. A bounded CI
-step now runs both refusals and retains their logs. Only
+step now runs both refusals and retains their logs. The
+[file reload case](phase6/file-reload-conflict-20261101/README.md) adds four
+lines, checking semantic refusal, diagnostics and recovery; its false-success
+control fails. Only
 this implementation's profiles contribute; superseded implementations
 remain separate. Test-only bodies/helpers are excluded under the approved
 production scope while their tests execute. No production exclusion,
