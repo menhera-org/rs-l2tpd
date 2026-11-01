@@ -48,6 +48,17 @@ The upstream source boundary is
 and [v7.3 `l2tp_netlink.c`](https://raw.githubusercontent.com/torvalds/linux/v7.3/net/l2tp/l2tp_netlink.c);
 distribution backports require the live check.
 
+On all-namespace K41 kernels, concurrent tests with matching identifiers can
+trigger legitimate local identity queries during an unrelated-link capture.
+A controlled daemon test on Ubuntu 6.8.0-147 records eight requests for two
+matching foreign session deletions and sixteen for four; different
+identifiers produce zero. Local sessions and frames survive. Request-count
+tests therefore serialize workloads sharing that kernel, or use independent
+QEMU kernels. The counts describe the tested daemon; the per-target K41
+probe establishes notification scope. Repository record
+`audit/phase6/vrf-inventory-state-20261101/` retains the controls and the
+original overlapping-run failure.
+
 All five normal profiles enable IPv6 and network namespaces. The stock
 Ubuntu kernels supply L2TP/VRF as modules; the three vanilla builds
 include them in the image. Repository file

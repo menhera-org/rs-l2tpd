@@ -108,10 +108,15 @@ lines and 223 branches**. The report has no profile mismatches or saturated
 regions, and no production exclusions. Test-only code remains excluded from
 instrumentation while its tests execute.
 
-A separate follow-up witness finds a stale master association when a member
-moves into a newly appearing VRF before its member event is handled. The
-inventory skips that already cached member. This remains a cache-correctness
-fix to complete; the filtered-record counts do not establish that clause.
+Correction from the follow-up event-order review: the earlier assertion
+expected a member's cached master to change before its ordered link event
+arrived. Keeping the previous master is necessary to reconnect the old VRF
+when that event is handled. The ordered regression passes on this source;
+the original assertion did not establish a bug. The confirmed follow-up is
+different: adding a direct binding to a VRF already known as a member's
+parent skips its other members, so their address additions are ignored.
+Repository record `audit/phase6/vrf-inventory-state-20261101/` separates that
+reload defect from the required ordering behavior.
 
 The full required-kernel refresh, complete clause/cache/history proof and
 100% gate remain open. The earlier passing matrix uses ce6a70a and does not

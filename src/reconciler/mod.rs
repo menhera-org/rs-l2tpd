@@ -114,7 +114,8 @@ pub struct Reconciler<K: Kernel> {
     monitor_pending: bool,
     /// The devices seen as VRFs and the controllers of enslaved devices,
     /// from link notices (E4, E6).
-    vrfs: BTreeSet<u32>,
+    // A known VRF; true after its complete member inventory was captured.
+    vrfs: BTreeMap<u32, bool>,
     masters: BTreeMap<u32, u32>,
     members: BTreeMap<u32, BTreeSet<u32>>,
     changed_devices: BTreeSet<u32>,
@@ -158,7 +159,7 @@ impl<K: Kernel> Reconciler<K> {
             tick_at: None,
             l2tp_pending: false,
             monitor_pending: false,
-            vrfs: BTreeSet::new(),
+            vrfs: BTreeMap::new(),
             masters: BTreeMap::new(),
             members: BTreeMap::new(),
             changed_devices: BTreeSet::new(),

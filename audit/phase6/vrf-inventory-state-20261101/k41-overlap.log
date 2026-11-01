@@ -1,0 +1,257 @@
+6.8.0-147-generic
+
+running 1 test
+test scale::colliding_foreign_deletions_explain_shared_kernel_request_counts ... daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=32, session_id=132): created as l2tp3
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=31, session_id=131): created as l2tp3
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=22
+daemon: INFO rs_l2tpd: ready pid=20
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=10001): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=10011): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=10001, session_id=10101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=10011, session_id=10111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=10001): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=10011): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=81
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=10001, session_id=10101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=10011, session_id=10111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=10001): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=10011): removed
+daemon: INFO rs_l2tpd: shutdown complete
+K41_CROSS_TEST foreign_sessions=2 collide=false Counts { requests: 0, route_queries: 0, generic_requests: 0, packets: 2 }
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=31, session_id=131): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=32, session_id=132): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=32, session_id=132): created as l2tp3
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=31, session_id=131): created as l2tp3
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=123
+daemon: INFO rs_l2tpd: ready pid=121
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=182
+NLMON_FIRST_REQUEST protocol=16 packet_type=4 header=[36, 0, 0, 0, 45, 0, 5, 0, 18, 0, 0, 0, 0, 0, 0, 0, 8, 1, 0, 0]
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+K41_CROSS_TEST foreign_sessions=2 collide=true Counts { requests: 8, route_queries: 0, generic_requests: 4, packets: 22 }
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=31, session_id=131): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=32, session_id=132): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=31, session_id=131): created as l2tp3
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=32, session_id=132): created as l2tp3
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=222
+daemon: INFO rs_l2tpd: ready pid=224
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=10001): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=10011): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=10021): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=10031): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=10001, session_id=10101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=10011, session_id=10111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=10021, session_id=10121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=10031, session_id=10131): created as l2tp3
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=10001): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=10011): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=10021): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=10031): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=283
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=10001, session_id=10101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=10011, session_id=10111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=10021, session_id=10121): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=10031, session_id=10131): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=10001): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=10011): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=10021): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=10031): removed
+daemon: INFO rs_l2tpd: shutdown complete
+K41_CROSS_TEST foreign_sessions=4 collide=false Counts { requests: 0, route_queries: 0, generic_requests: 0, packets: 4 }
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=31, session_id=131): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=32, session_id=132): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=31, session_id=131): created as l2tp3
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=32, session_id=132): created as l2tp3
+daemon: INFO rs_l2tpd: ready pid=323
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=325
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): created as l2tp2
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=31, session_id=131): created as l2tp3
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): connected to 192.0.2.2 from 192.0.2.1
+daemon: INFO rs_l2tpd: ready pid=384
+NLMON_FIRST_REQUEST protocol=16 packet_type=4 header=[36, 0, 0, 0, 45, 0, 5, 0, 18, 0, 0, 0, 0, 0, 0, 0, 8, 1, 0, 0]
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=31, session_id=131): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): removed
+daemon: INFO rs_l2tpd: shutdown complete
+K41_CROSS_TEST foreign_sessions=4 collide=true Counts { requests: 16, route_queries: 0, generic_requests: 8, packets: 44 }
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=21, session_id=121): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=31, session_id=131): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=21): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=31): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s2 (tunnel_id=22, session_id=122): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s3 (tunnel_id=32, session_id=132): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t2 (tunnel_id=22): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t3 (tunnel_id=32): removed
+daemon: INFO rs_l2tpd: shutdown complete
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 29 filtered out; finished in 12.40s
+

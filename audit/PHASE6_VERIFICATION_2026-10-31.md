@@ -14,9 +14,9 @@ no nix contribution or release is required.
 |---|---|---|
 | P1 source link | Strict local and CI passes: 43 facts, 37 production-cited and six classified; no uncited functions. Ten CI repetitions passed | Maintain strict enforcement as sources change |
 | P1 rule map | Strict local and CI passes: 343 total / 333 active / 333 cited / zero missing | Declaration traceability does not establish clause coverage |
-| P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and fresh profiles; H16 has passing required-kernel records; table/index/queue history checks pass | Kernel-selected inventories fix the one-event namespace scan. A further new-VRF witness retains a member under its old master; fix this cache case and finish clause/history proof |
+| P2 scenarios | All 26 normal scenarios pass in each of ten Ubuntu CI guests and fresh profiles; H16 has passing required-kernel records; table/index/queue history checks pass | Kernel-selected inventories fix the one-event namespace scan. Known VRF kind and complete member inventory are now separate; the new reload case passes. The initially overlapping scale run fails, controlled K41 interference explains its requests, and serialized GNU/three musl captures pass zero queries. Finish clause/history proof |
 | P3 matrix | Latest required driver returns MATRIX_RESULT=0: five normal and five clock profiles, both IPv6-absent boots and missing-Ethernet-driver recovery pass; published versions match before/after | Frozen ce6a70a includes checked libc signal calls; filtered inventories now need a fresh matrix after the cache follow-up |
-| P4 coverage | Approved production scope: fresh filtered-inventory collection reaches 96.01% lines / 87.89% branches, with no production exclusions, profile mismatches or saturated counts | 345 missing lines / 223 branches; add meaningful cases and remaining profiles to reach 100% |
+| P4 coverage | Approved production scope: fresh VRF-inventory-state collection reaches 96.05% lines / 88.04% branches, with no production exclusions, profile mismatches or saturated counts | 342 missing lines / 221 branches; add meaningful cases and remaining profiles to reach 100% |
 | P5 Incus | Approved explicit MAC authority and later-manager limitation applied; three fresh unmodified musl Incus runs pass | Repeat after relevant production changes; other distribution userspaces remain untested |
 | P6 root sandbox | Current unmodified musl full root-systemd case passes on Ubuntu 6.8.0-147, without drop-ins | Repeat after relevant source changes; other distribution userspaces remain untested |
 | P7 docs/CI | Ten seeded CI repetitions and the updated strict workflow pass on their first attempts; regular CI retains one full live guest | Complete verification and coverage enforcement remain open |
@@ -1087,5 +1087,22 @@ refused-option tests pass, with four failing controls. Ten seeded suites,
 three GNU/musl live kernel repetitions, three musl normal and Incus runs,
 both IPv6-absent boots, real manager and root-systemd checks pass. Fresh
 coverage is 96.01% lines / 87.89% branches, leaving 345 lines and 223 branches.
-A further witness finds a stale old-master association during a new-VRF
-inventory; the cache follow-up and final matrix remain required.
+The earlier previous-master assertion was premature: ordered member events
+need that history. A separate reload case misses a known parent VRF's other
+members; the inventory-completeness follow-up and final matrix remain required.
+
+## VRF inventory state and isolated captures, November 1
+
+[The cache record](phase6/vrf-inventory-state-20261101/README.md) fixes
+missing siblings after a new direct binding to a known parent VRF. The
+preceding daemon fails the live address-change regression; the fixed
+daemon preserves both session identities and frames. The earlier proposed
+stale-master assertion was premature; the ordered test protects that history.
+The full GNU collection and three serialized musl normal suites pass all
+27 cases. Three musl Incus cases, root systemd, ten seeds and common checks
+pass. Controlled matching-ID deletions produce eight/sixteen legitimate
+queries on this K41 kernel; different IDs produce zero. The initial failing
+scale run is retained, and serialized captures keep the zero-query gate.
+Fresh coverage is 96.05% lines / 88.04% branches: 342 lines and 221 branches
+remain. The required matrix and remaining coverage/collector/clause work
+keep Phase 6 open.

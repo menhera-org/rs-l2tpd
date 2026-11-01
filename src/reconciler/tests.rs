@@ -318,7 +318,7 @@ mod cache_cost {
         assert!(r.address_devices.contains(&old) && r.address_devices.contains(&b));
         assert!(r.reconcile(toml::from_str(one).unwrap()));
         assert_eq!(r.members[&old], [a].into_iter().collect());
-        assert!(r.vrfs.contains(&old));
+        assert!(r.vrfs.contains_key(&old));
         assert_eq!(r.address_devices, [a].into_iter().collect());
         assert!(!r.addresses.contains_key(&b));
         r.k.set_master(a, Some(new));
@@ -328,8 +328,8 @@ mod cache_cost {
         );
         assert_eq!(r.masters.get(&a), Some(&new));
         assert_eq!(r.members[&new], [a].into_iter().collect());
-        assert!(!r.members.contains_key(&old) && !r.vrfs.contains(&old));
-        assert!(r.vrfs.contains(&new));
+        assert!(!r.members.contains_key(&old) && !r.vrfs.contains_key(&old));
+        assert!(r.vrfs.contains_key(&new));
         r.reconcile(Config::new());
         assert!(r.masters.is_empty() && r.members.is_empty() && r.vrfs.is_empty());
         assert!(

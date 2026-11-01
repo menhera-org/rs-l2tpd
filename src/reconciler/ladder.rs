@@ -54,7 +54,7 @@ impl<K: Kernel> Reconciler<K> {
         let bind = match bind_name {
             Some(name) => match self.k.link_by_name(&name)? {
                 Some(link) => {
-                    self.remember_device(&link)?;
+                    self.remember_device(&link, true)?;
                     Some(link)
                 }
                 None => {

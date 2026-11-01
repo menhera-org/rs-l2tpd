@@ -138,6 +138,13 @@ impl RouteTrace {
                 let protocol = u16::from_be(address.sll_protocol);
                 let (requests, routes) = requests(protocol, &bytes[..received])?;
                 let mut state = captured.lock().unwrap();
+                if requests != 0 && state.requests == 0 {
+                    eprintln!(
+                        "NLMON_FIRST_REQUEST protocol={protocol} packet_type={} header={:?}",
+                        address.sll_pkttype,
+                        &bytes[..received.min(20)]
+                    );
+                }
                 state.packets += 1;
                 state.requests += requests;
                 state.route_queries += routes;

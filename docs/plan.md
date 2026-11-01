@@ -907,9 +907,23 @@ repetitions, three musl normal/Incus runs, both IPv6-absent boots, root
 systemd and common checks pass. Repository record
 `audit/phase6/event-inventory-cost-20261101/` gives exact source and fresh
 96.01% line / 87.89% branch coverage: 345 lines and 223 branches remain.
-A further witness finds a stale master when a member joins a newly appearing
-VRF before its member event arrives. That cache fix, the new production
-matrix and complete clause/history/coverage proof remain open.
+The event-order review confirms that a cached previous master must survive
+until its ordered member event arrives. A separate reload witness finds
+missing siblings when a direct VRF binding is added after only its member
+was bound. That inventory-completeness fix, the new production matrix and
+complete clause/history/coverage proof remain open.
+
+The confirmed reload defect now distinguishes a VRF's known kind from its
+completed member inventory. Both model and live regressions fail on the
+preceding code and pass with the fix. The corrected event-order test also
+protects prior-master history. Ten seeds, the GNU live collection, three
+musl normal and Incus runs, root systemd and common checks pass. A controlled
+K41 witness explains the initial eight-request scale failure; serialized
+captures retain the strict zero-query assertion and pass. Repository record
+`audit/phase6/vrf-inventory-state-20261101/` gives exact source, controls
+and fresh 96.05% line / 88.04% branch coverage: 342 lines and 221 branches
+remain. The all-fcntl fault's profile-write limitation, new required matrix
+and complete clause/history/coverage proof remain open.
 
 ### Phase 7 — release
 

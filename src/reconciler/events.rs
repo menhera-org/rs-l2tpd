@@ -160,9 +160,11 @@ impl<K: Kernel> Reconciler<K> {
         let previous = self.masters.get(&link.index).copied();
         let relevant = self.index.devices.contains_key(&link.index)
             || self.index.names.contains_key(&link.name)
-            || self.vrfs.contains(&link.index);
+            || self.vrfs.contains_key(&link.index);
         if relevant {
-            if self.remember_device(&link).is_err() {
+            let inventory = self.index.devices.contains_key(&link.index)
+                || self.index.names.contains_key(&link.name);
+            if self.remember_device(&link, inventory).is_err() {
                 self.monitor_pending = true;
             }
             if !link.vrf {
@@ -171,7 +173,7 @@ impl<K: Kernel> Reconciler<K> {
         }
         if relevant
             || link.master.is_some_and(|master| {
-                self.vrfs.contains(&master) && self.index.devices.contains_key(&master)
+                self.vrfs.contains_key(&master) && self.index.devices.contains_key(&master)
             })
         {
             self.set_master(link.index, link.master);
@@ -215,9 +217,10 @@ impl<K: Kernel> Reconciler<K> {
                     && [previous, link.master]
                         .iter()
                         .flatten()
-                        .any(|m| self.vrfs.contains(m)))
+                        .any(|m| self.vrfs.contains_key(m)))
                     || record.bind_index.is_some_and(|b| {
-                        self.vrfs.contains(&b) && (previous == Some(b) || link.master == Some(b))
+                        self.vrfs.contains_key(&b)
+                            && (previous == Some(b) || link.master == Some(b))
                     }));
             if domain && record.connection.is_connected() {
                 self.tunnels.get_mut(&id).unwrap().stale = true;
@@ -342,7 +345,7 @@ impl<K: Kernel> Reconciler<K> {
                     peer_family == family
                         && (device == addr.index
                             || record.bind_index.is_some_and(|b| {
-                                vrf_of_device == Some(b) && self.vrfs.contains(&b)
+                                vrf_of_device == Some(b) && self.vrfs.contains_key(&b)
                             }))
                 }
                 None => removed && self.source_of(id) == Some(addr.addr.to_canonical()),
@@ -475,14 +478,14 @@ impl<K: Kernel> Reconciler<K> {
         self.vrfs = links
             .values()
             .filter(|link| link.vrf && self.index.devices.contains_key(&link.index))
-            .map(|link| link.index)
+            .map(|link| (link.index, true))
             .collect();
         self.masters = links
             .values()
             .filter(|link| {
                 self.index.devices.contains_key(&link.index)
                     || link.master.is_some_and(|master| {
-                        self.vrfs.contains(&master) && self.index.devices.contains_key(&master)
+                        self.vrfs.contains_key(&master) && self.index.devices.contains_key(&master)
                     })
             })
             .filter_map(|link| Some((link.index, link.master?)))
@@ -493,7 +496,8 @@ impl<K: Kernel> Reconciler<K> {
         }
         for link in links.values() {
             if self.members.contains_key(&link.index) && link.vrf {
-                self.vrfs.insert(link.index);
+                self.vrfs
+                    .insert(link.index, self.index.devices.contains_key(&link.index));
             }
         }
         self.addresses.clear();
@@ -579,15 +583,20 @@ impl<K: Kernel> Reconciler<K> {
 }
 
 impl<K: Kernel> Reconciler<K> {
-    pub(super) fn remember_device(&mut self, link: &LinkInfo) -> std::io::Result<()> {
-        if link.vrf && !self.vrfs.contains(&link.index) {
+    pub(super) fn remember_device(
+        &mut self,
+        link: &LinkInfo,
+        inventory: bool,
+    ) -> std::io::Result<()> {
+        if link.vrf && inventory && self.vrfs.get(&link.index) != Some(&true) {
             let mut members = Vec::new();
             self.k.scan_links(link.index, &mut |member| {
+                // Preserve the prior master until its ordered link event arrives.
                 if !self.masters.contains_key(&member.index) {
                     members.push(member.index);
                 }
             })?;
-            self.vrfs.insert(link.index);
+            self.vrfs.insert(link.index, true);
             self.changed_devices.insert(link.index);
             for member in members {
                 self.set_master(member, Some(link.index));
@@ -599,7 +608,7 @@ impl<K: Kernel> Reconciler<K> {
             let parent = self.k.link_by_index(master)?;
             self.set_master(link.index, Some(master));
             if parent.is_some_and(|parent| parent.vrf) {
-                self.vrfs.insert(master);
+                self.vrfs.entry(master).or_insert(false);
             }
         }
         Ok(())
@@ -626,6 +635,9 @@ impl<K: Kernel> Reconciler<K> {
         while let Some(index) = self.changed_devices.pop_first() {
             let binding_changed = self.changed_bindings.remove(&index);
             if binding_changed && !self.index.devices.contains_key(&index) {
+                if let Some(complete) = self.vrfs.get_mut(&index) {
+                    *complete = false;
+                }
                 let children: Vec<_> = self
                     .members
                     .get(&index)
@@ -873,7 +885,7 @@ mod resource_tests {
                     r.addresses.values().map(BTreeSet::len).sum::<usize>(),
                     count
                 );
-                assert!(!r.vrfs.contains(&unrelated));
+                assert!(!r.vrfs.contains_key(&unrelated));
                 let expected = sizes(&r);
                 r.handle(Source::Monitor, Notice::Loss);
                 assert!(!r.monitor_pending);
@@ -925,9 +937,9 @@ mod resource_tests {
                     assert_eq!(
                         r.vrfs,
                         if vrf {
-                            BTreeSet::from([parent])
+                            BTreeMap::from([(parent, false)])
                         } else {
-                            BTreeSet::new()
+                            BTreeMap::new()
                         }
                     );
                     assert_eq!(r.address_devices, BTreeSet::from([member]));
@@ -1015,5 +1027,117 @@ mod resource_tests {
             assert_eq!(r.addresses.values().map(BTreeSet::len).sum::<usize>(), 2);
             assert_eq!(r.next_deadline(), None);
         }
+    }
+
+    /// spec: E4, M16, G23, T21
+    #[test]
+    fn a_new_vrf_inventory_preserves_the_previous_master_until_its_ordered_change() {
+        let mut kernel = FakeKernel::new(42);
+        let blue = kernel.add_link("blue", true);
+        let member = kernel.add_link("member", false);
+        kernel.set_up(blue, true);
+        kernel.set_up(member, true);
+        kernel.set_master(member, Some(blue));
+        let source = "2001:db8:1::1".parse().unwrap();
+        kernel.add_addr(member, source);
+        let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
+        let config = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='2001:db8:1::2'\nbind_interface='blue'\n[tunnels.b]\ntunnel_id=20\nremote_addr='2001:db8:1::2'\nbind_interface='red'\n";
+        r.reconcile(toml::from_str(config).unwrap());
+        r.k.take_monitor();
+        assert_eq!(r.masters.get(&member), Some(&blue));
+        let red = r.k.add_link("red", true);
+        r.k.set_up(red, true);
+        r.k.set_master(member, Some(red));
+        let link = r.k.link_by_index(red).unwrap().unwrap();
+        assert!(!r.vrfs.contains_key(&red));
+        r.handle(Source::Monitor, Notice::LinkNew(link));
+        assert_eq!(r.masters.get(&member), Some(&blue));
+        let member_event = r.k.link_by_index(member).unwrap().unwrap();
+        r.handle(Source::Monitor, Notice::LinkNew(member_event));
+        assert_eq!(r.masters.get(&member), Some(&red));
+        assert!(!r.members.contains_key(&blue));
+        assert_eq!(r.members.get(&red), Some(&BTreeSet::from([member])));
+        assert!(r.addresses[&member].contains(&source));
+        assert!(r.k.connection(r.tunnels[&10].socket).is_none());
+        assert_eq!(
+            r.k.connection(r.tunnels[&20].socket)
+                .map(|(_, source)| source),
+            Some(source)
+        );
+    }
+
+    /// spec: E4, M16, G23, T21
+    #[test]
+    fn binding_a_known_parent_vrf_inventories_its_previously_unwatched_members() {
+        let mut kernel = FakeKernel::new(42);
+        let vrf = kernel.add_link("blue", true);
+        let first = kernel.add_link("member", false);
+        let sibling = kernel.add_link("sibling", false);
+        for index in [vrf, first, sibling] {
+            kernel.set_up(index, true);
+        }
+        kernel.set_master(first, Some(vrf));
+        kernel.set_master(sibling, Some(vrf));
+        kernel.add_addr(first, "2001:db8:1::1".parse().unwrap());
+        let address = "2001:db8:1::3".parse().unwrap();
+        kernel.add_addr(sibling, address);
+        let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
+        let one = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='2001:db8:1::2'\nbind_interface='member'\n";
+        r.reconcile(toml::from_str(one).unwrap());
+        assert!(r.vrfs.contains_key(&vrf));
+        assert_eq!(r.members.get(&vrf), Some(&BTreeSet::from([first])));
+        let both = format!(
+            "{one}[tunnels.b]\ntunnel_id=20\nremote_addr='2001:db8:1::2'\nbind_interface='blue'\n"
+        );
+        r.reconcile(toml::from_str(&both).unwrap());
+        assert_eq!(r.members.get(&vrf), Some(&BTreeSet::from([first, sibling])));
+        assert!(r.addresses[&sibling].contains(&address));
+        assert_eq!(r.vrfs.get(&vrf), Some(&true));
+        assert!(r.reconcile(toml::from_str(one).unwrap()));
+        assert_eq!(r.vrfs.get(&vrf), Some(&false));
+        assert_eq!(r.members.get(&vrf), Some(&BTreeSet::from([first])));
+        assert!(!r.addresses.contains_key(&sibling));
+        r.k.fail_next("dump", nix::errno::Errno::EIO);
+        let parent_event = r.k.link_by_index(vrf).unwrap().unwrap();
+        r.handle(Source::Monitor, Notice::LinkNew(parent_event));
+        assert!(
+            !r.monitor_pending,
+            "an unbound parent must not inventory siblings"
+        );
+        let parent = r.k.link_by_index(vrf).unwrap().unwrap();
+        assert_eq!(
+            r.remember_device(&parent, true).unwrap_err().raw_os_error(),
+            Some(nix::libc::EIO)
+        );
+        assert_eq!(r.vrfs.get(&vrf), Some(&false));
+        assert_eq!(r.members.get(&vrf), Some(&BTreeSet::from([first])));
+        let rebound = both.replace("tunnel_id=20", "tunnel_id=30");
+        assert!(r.reconcile(toml::from_str(&rebound).unwrap()));
+        assert_eq!(r.vrfs.get(&vrf), Some(&true));
+        assert_eq!(r.members.get(&vrf), Some(&BTreeSet::from([first, sibling])));
+        assert!(r.addresses[&sibling].contains(&address));
+        assert!(r.k.connection(r.tunnels[&30].socket).is_some());
+        r.k.take_monitor();
+        r.k.clear_ops();
+        r.k.add_addr(sibling, "2001:db8:1::4".parse().unwrap());
+        let notices = r.k.take_monitor();
+        assert_eq!(notices.len(), 1);
+        for notice in notices {
+            r.handle(Source::Monitor, notice);
+        }
+        assert_eq!(
+            r.k.ops()
+                .iter()
+                .filter(|op| op.starts_with("disconnect "))
+                .count(),
+            1
+        );
+        assert_eq!(
+            r.k.ops()
+                .iter()
+                .filter(|op| op.starts_with("connect "))
+                .count(),
+            1
+        );
     }
 }

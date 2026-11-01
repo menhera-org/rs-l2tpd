@@ -1,0 +1,73 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index 2a9265e..6ae86ef 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -1016,4 +1016,68 @@ mod resource_tests {
+             assert_eq!(r.next_deadline(), None);
+         }
+     }
++    /// spec: E4, M16, G23, T21
++    #[test]
++    fn a_new_vrf_inventory_preserves_the_previous_master_until_its_ordered_change() {
++        let mut kernel = FakeKernel::new(42);
++        let blue = kernel.add_link("blue", true);
++        let member = kernel.add_link("member", false);
++        kernel.set_up(blue, true);
++        kernel.set_up(member, true);
++        kernel.set_master(member, Some(blue));
++        let source = "2001:db8:1::1".parse().unwrap();
++        kernel.add_addr(member, source);
++        let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++        let config = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='2001:db8:1::2'\nbind_interface='blue'\n[tunnels.b]\ntunnel_id=20\nremote_addr='2001:db8:1::2'\nbind_interface='red'\n";
++        r.reconcile(toml::from_str(config).unwrap());
++        r.k.take_monitor();
++        assert_eq!(r.masters.get(&member), Some(&blue));
++        let red = r.k.add_link("red", true);
++        r.k.set_up(red, true);
++        r.k.set_master(member, Some(red));
++        let link = r.k.link_by_index(red).unwrap().unwrap();
++        assert!(!r.vrfs.contains(&red));
++        r.handle(Source::Monitor, Notice::LinkNew(link));
++        assert_eq!(r.masters.get(&member), Some(&blue));
++        let member_event = r.k.link_by_index(member).unwrap().unwrap();
++        r.handle(Source::Monitor, Notice::LinkNew(member_event));
++        assert_eq!(r.masters.get(&member), Some(&red));
++        assert!(!r.members.contains_key(&blue));
++        assert_eq!(r.members.get(&red), Some(&BTreeSet::from([member])));
++        assert!(r.addresses[&member].contains(&source));
++        assert!(r.k.connection(r.tunnels[&10].socket).is_none());
++        assert_eq!(
++            r.k.connection(r.tunnels[&20].socket)
++                .map(|(_, source)| source),
++            Some(source)
++        );
++    }
++
++    /// spec: E4, M16, G23, T21
++    #[test]
++    fn binding_a_known_parent_vrf_inventories_its_previously_unwatched_members() {
++        let mut kernel = FakeKernel::new(42);
++        let vrf = kernel.add_link("blue", true);
++        let first = kernel.add_link("member", false);
++        let sibling = kernel.add_link("sibling", false);
++        for index in [vrf, first, sibling] {
++            kernel.set_up(index, true);
++        }
++        kernel.set_master(first, Some(vrf));
++        kernel.set_master(sibling, Some(vrf));
++        kernel.add_addr(first, "2001:db8:1::1".parse().unwrap());
++        let address = "2001:db8:1::3".parse().unwrap();
++        kernel.add_addr(sibling, address);
++        let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++        let one = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='2001:db8:1::2'\nbind_interface='member'\n";
++        r.reconcile(toml::from_str(one).unwrap());
++        assert!(r.vrfs.contains(&vrf));
++        assert_eq!(r.members.get(&vrf), Some(&BTreeSet::from([first])));
++        let both = format!(
++            "{one}[tunnels.b]\ntunnel_id=20\nremote_addr='2001:db8:1::2'\nbind_interface='blue'\n"
++        );
++        r.reconcile(toml::from_str(&both).unwrap());
++        assert_eq!(r.members.get(&vrf), Some(&BTreeSet::from([first, sibling])));
++        assert!(r.addresses[&sibling].contains(&address));
++    }
+ }

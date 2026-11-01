@@ -186,10 +186,10 @@ fn three_hundred_tunnels_release_resources_and_ignore_unrelated_events() {
             }
             let until = Instant::now() + Duration::from_millis(2200);
             while Instant::now() < until {
+                let counts = trace.snapshot();
                 assert_eq!(
-                    trace.snapshot().requests,
-                    0,
-                    "unrelated events issued requests"
+                    counts.requests, 0,
+                    "unrelated events issued requests: {counts:?}"
                 );
                 std::thread::sleep(Duration::from_millis(100));
             }

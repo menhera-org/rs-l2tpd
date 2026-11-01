@@ -1,0 +1,20 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (/home/dev/rs-l2tpd/target/phase6-stream-inventories/debug/deps/rs_l2tpd-2992259725ba1531)
+
+running 1 test
+
+thread 'reconciler::events::resource_tests::binding_a_known_parent_vrf_inventories_its_previously_unwatched_members' (1605332) panicked at src/reconciler/events.rs:1080:9:
+assertion `left == right` failed
+  left: Some({2})
+ right: Some({2, 3})
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reconciler::events::resource_tests::binding_a_known_parent_vrf_inventories_its_previously_unwatched_members ... FAILED
+
+failures:
+
+failures:
+    reconciler::events::resource_tests::binding_a_known_parent_vrf_inventories_its_previously_unwatched_members
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 150 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

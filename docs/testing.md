@@ -65,6 +65,14 @@ workloads. Independent QEMU guests can run concurrently. The controlled
 reproduction and source evidence are in repository record
 `audit/phase6/neighbour-pressure-20261101/`.
 
+Live tests that reuse L2TP identifiers also run serially during request-count
+windows. On kernels with K41 all-namespace announcements, a matching session
+deletion in another container requires local identity queries. Namespace
+isolation alone cannot keep those queries out of an unrelated-link capture.
+Use an independent QEMU kernel when other live workloads cannot be isolated.
+Repository record `audit/phase6/vrf-inventory-state-20261101/` reproduces this
+interference with matching and different identifiers.
+
 The signal-thread resource check runs the actual daemon in disposable
 networkless Docker containers with task limits of one and two. Both must
 return EAGAIN and exit one before kernel startup, without panic. This needs

@@ -140,6 +140,13 @@ inventory; monitor resync streams its link passes instead. Custom kernel
 backends must implement both selector arguments and the same completion
 contract.
 
+A bound member can reveal its parent's VRF kind before the daemon needs the
+parent's full member inventory. A direct VRF binding captures that inventory;
+removing its last direct dependency clears the completion marker and releases
+unwatched siblings. An inventory preserves known members' previous masters
+until their ordered link events arrive, so those events can reconnect the
+tunnels affected by the old and new domains.
+
 A `Subscription` exposes loss separately from its bounded event queue,
 so a full queue cannot drop the loss marker (E20). Loss is handled as
 state, never an error that unwinds the reconciler (A13).
