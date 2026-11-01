@@ -1,0 +1,13 @@
+diff --git a/src/reconciler/workers.rs b/src/reconciler/workers.rs
+index ce29e36..4963fca 100644
+--- a/src/reconciler/workers.rs
++++ b/src/reconciler/workers.rs
+@@ -144,6 +144,8 @@ impl Drop for Owner {
+         for id in state.owners.remove(&self.id).unwrap_or_default() {
+             state.remove(id);
+         }
++        state.jobs.clear();
++        state.order.clear();
+         self.shared.changed.notify_all();
+         drop(state);
+         // Only the dispatcher joins: it never runs a blocking lookup.

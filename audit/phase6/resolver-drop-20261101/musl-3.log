@@ -1,0 +1,162 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-d41d6576a49c6f1d)
+
+running 155 tests
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::completion_empty_tables_do_not_remove_merged_values ... ok
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::completion_new_collision_keeps_an_accepted_name ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::completion_hard_endpoint_mistake_precedes_tolerated_family ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::host_settings ... ok
+test config::tests::completion_corrected_host_retains_resolver ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::malformed_cookies_preserve_the_exact_redacted_diagnostic ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::configuration_names ... ok
+test config::tests::document_diagnostics_quote_nonbare_keys_and_explain_ignored_fields ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::merging ... ok
+test config::tests::every_explicit_document_field_replaces_its_previous_value ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::resolver_methods ... ok
+test error::tests::non_io_failures_preserve_their_diagnostic_without_an_io_source ... ok
+test error::tests::propagated_io_errors_keep_their_errno_name_and_original_source ... ok
+test config::tests::completion_host_names_and_mapped_family ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test config::tests::strict_conversion ... ok
+test kernel::linux::l2tp::tests::incomplete_or_oversized_session_records_cannot_prove_an_identity ... ok
+test config::tests::retained_resolver_and_document_diagnostics_keep_their_context ... ok
+test kernel::linux::lifetime::tests::reader_io_errors_end_old_proofs_and_failed_reopen_remains_stoppable ... ignored, serial isolated live runner; child forks must not inherit concurrent fake descriptors
+test kernel::linux::lifetime::tests::a_refused_lookup_send_ends_the_generation_without_leaking_a_pending_answer ... ok
+test config::tests::tunnel_resolver_name ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test kernel::linux::lifetime::tests::only_the_requested_kernel_reply_can_resolve_a_lookup ... ok
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::monitor::tests::registration_and_receive_failures_preserve_loss_and_retry_bounds ... ignored, serial isolated live runner; child forks must not inherit concurrent fake descriptors
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... ignored, live kernel; Incus runner additionally requires the EPERM branch
+test kernel::linux::lifetime::tests::deletion_and_release_are_scoped_by_index_and_incarnation ... ok
+test kernel::linux::request::completion_tests::payload_debug_is_redacted_without_changing_serialization ... ok
+test kernel::linux::lifetime::tests::unavailable_duplicate_and_expired_captures_never_create_proofs ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::resources_tests::socket_storage_follows_survivors_after_a_large_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::monitor::tests::reactor_shutdown_reports_loss_before_reopening_on_the_next_runtime ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test config::tests::tunnel_identifiers ... ok
+test kernel::linux::rtnl::tests::address_dump_skips_foreign_families_and_rejects_malformed_inet_records ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test kernel::linux::rtnl::tests::malformed_dump_records_are_not_usable_entries ... ok
+test kernel::linux::rtnl::tests::ipv6_inventory_requires_the_devices_ipv6_family_attribute ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test kernel::linux::socket::tests::ipv4_fragmentation_refusal_preserves_io_error_and_socket ... ok
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test kernel::linux::lifetime::tests::ordered_lookup_completion_keeps_removal_and_generation_authority ... ok
+test kernel::linux::lifetime::tests::retired_registrations_leave_only_survivors_and_generation_loss_clears_them ... ok
+test config::tests::interface_names ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::session_hardware_addresses ... ok
+test reconciler::events::resource_tests::confirmed_absence_releases_only_the_matching_creation_reservation ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::session_cookies ... ok
+test config::tests::session_fields ... ok
+test kernel::linux::request::strict_option_tests::a_refused_strict_option_returns_the_original_error_without_leaking_sockets ... ok
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test config::tests::tunnel_host_names ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::events::resource_tests::a_new_vrf_inventory_preserves_the_previous_master_until_its_ordered_change ... ok
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test config::tests::tunnel_literals ... ok
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::shared_partial_discovery_retries_replace_the_actual_lookup_snapshot ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test reconciler::resolvers::tests::aliases_share_only_their_current_host_and_resolver_job ... ok
+test reconciler::events::resource_tests::binding_a_known_parent_vrf_inventories_its_previously_unwatched_members ... ok
+test reconciler::resolvers::tests::validation::dependency_and_spec_checks_refuse_missing_vrf_and_failed_link_queries ... ok
+test config::tests::identities_and_all_discovery_choices_survive_document_round_trips ... ok
+test reconciler::resolvers::tests::validation::discovery_identities_preserve_explicit_values_and_handle_missing_or_refused_mac ... ok
+test reconciler::resolvers::tests::validation::link_local_servers_use_only_the_matching_live_link_as_their_scope ... ok
+test reconciler::store::cost_tests::a_processing_barrier_queries_only_its_own_retiring_tunnel ... ok
+test reconciler::sessions::wanted_tests::overlapping_retained_targets_never_move_the_first_completed_holder ... ok
+test reconciler::sessions::wanted_tests::desired_indexes_follow_operator_names_and_release_on_shutdown ... ok
+test reconciler::store::cost_tests::expired_and_refused_acknowledgements_keep_only_the_current_incarnation ... ok
+test reconciler::sessions::wanted_tests::duplicate_cached_names_remain_held_until_the_last_record_moves ... ok
+test reconciler::tests::cache_cost::failed_address_seed_is_retried_by_monitor_resync ... ok
+test reconciler::tests::cache_cost::monitor_resync_discards_addresses_missing_from_the_complete_snapshot ... ok
+test reconciler::events::resource_tests::failed_inventory_completion_never_commits_visited_partial_state ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::tests::cache_cost::vrf_cache_references_follow_binding_removal_and_member_moves ... ok
+test reconciler::tests::completion::obsolete_creation_names_are_not_recorded_as_overrides_and_create_episode_ends ... ok
+test reconciler::tests::completion::removal_query_retries_and_old_deletion_does_not_poll_a_new_incarnation ... ok
+test reconciler::tests::deadline_cost::reconnect_deadlines_keep_their_time_and_cancel_on_success_and_removal ... ok
+test reconciler::workers::tests::new_jobs_follow_the_existing_rotation_and_owners_keep_separate_turns ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test reconciler::tests::deadline_cost::removing_a_left_out_entry_cancels_its_conflict_and_retry ... ok
+test runtime::tests::blocking_completions_work_inside_spawn_blocking ... ok
+test runtime::tests::a_dropped_source_removal_stays_stale_until_resync_is_forwarded ... ok
+test runtime::tests::dropping_runtime_stops_both_subscription_tasks_and_closes_the_queue ... ok
+test reconciler::sessions::wanted_tests::a_removed_middle_of_a_rename_chain_releases_only_its_own_cached_name ... ok
+test runtime::tests::absent_log_sink_does_not_change_kernel_refusal_or_recovery ... ok
+test runtime::tests::event_wait_without_tokio_reports_an_error_and_channels_remain_usable ... ok
+test runtime::tests::cleanup_verifies_kernel_absence_and_reports_a_remaining_reference ... ok
+test reconciler::workers::cost_tests::dropping_an_adapter_cancels_only_its_jobs_and_preserves_other_answers ... ok
+test runtime::tests::library_boundary_and_extensible_api ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+test runtime::tests::dropping_the_owner_releases_a_waiter_and_rejects_later_completions ... ok
+test runtime::tests::shutdown_keeps_withdrawal_and_kernel_deletion_windows_separate ... ok
+test runtime::tests::tunable_handshake_is_observed_forwarded_and_answered_without_host_io ... ok
+test runtime::tests::queue_full_waiter_and_shutdown_precedence ... ok
+test runtime::tests::l2tp_queue_loss_uses_its_own_resync_flag ... ok
+test runtime::tests::subscription_loss_survives_a_full_queue_and_a_second_loss ... ok
+test runtime::tests::lifetime_proofs_do_not_use_the_full_event_queue ... ok
+test reconciler::sessions::wanted_tests::timed_out_creation_keeps_uncertainty_until_a_complete_fresh_scan ... ok
+test runtime::tests::tunable_timeout_ignores_late_success_and_shutdown_cancels_pending ... ok
+test runtime::tests::cancelling_unaccepted_reload_wait_does_not_inflate_admission_capacity ... ok
+test reconciler::store::cost_tests::named_host_requests_coalesce_without_history_and_preserve_delivery_order ... ok
+test runtime::tests::store_submission_and_withdrawal_acknowledgements_keep_the_incarnation ... ok
+test service::tests::run_without_a_convergence_waiter_reaches_readiness_before_restart ... ok
+test runtime::tests::adopted_names_are_verified_or_retired_and_store_wait_is_bounded ... ok
+test service::tests::panic_completion_during_shutdown_is_reported_after_cleanup ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test service::tests::abandoned_replies_report_stopped_service_and_shutdown_releases_waiters ... ok
+test reconciler::tests::completion::unrelated_interfaces_do_not_accumulate_in_the_device_caches ... ok
+test reconciler::tests::cache_cost::unbound_siblings_of_a_bound_vrf_member_never_enter_the_cache ... ok
+test service::tests::refused_host_delivery_releases_capacity_and_needs_no_withdrawal ... ok
+test runtime::tests::unapplied_socket_operations_are_reported_without_gating_peer_availability ... ok
+test reconciler::report::tests::removed_entries_release_every_condition_across_reloads ... ok
+test reconciler::tests::deadline_cost::deadline_selection_preserves_the_earliest_deletion_under_large_workloads ... ok
+test reconciler::workers::tests::cancelled_jobs_and_dropped_owners_release_snapshots_and_queue_storage ... ok
+test reconciler::events::resource_tests::bound_member_resync_retains_its_parent_without_sibling_state ... ok
+test reconciler::store::cost_tests::completed_retirement_history_releases_acknowledgement_and_identifier_indexes ... ok
+test reconciler::workers::cost_tests::cancellation_cost_with_unrelated_jobs ... ok
+test reconciler::deadlines::tests::replacement_cancellation_and_ties_keep_one_deadline_per_owner ... ok
+test kernel::linux::lifetime::tests::foreign_deletion_workload_preserves_current_registrations ... ok
+test reconciler::store::cost_tests::stale_acknowledgement_cost_with_unrelated_retirements ... ok
+test reconciler::events::resource_tests::completed_configuration_history_releases_records_indexes_and_watches ... ok
+test reconciler::resolvers::tests::resolver_dependency_indexes_release_removed_configurations ... ok
+test kernel::linux::monitor::tests::broken_datagrams_and_reopen_failure_keep_loss_observable ... ok
+test reconciler::sessions::wanted_tests::wanted_lookup_cost_and_identity_checks ... ok
+test reconciler::tests::cache_cost::unchanged_bound_link_workload_preserves_other_dependencies ... ok
+test runtime::tests::completed_store_retirements_release_outgoing_queue_storage ... ok
+test reconciler::events::resource_tests::current_dependency_inventories_stream_and_release_their_final_reference ... ok
+test kernel::linux::lifetime::tests::an_unanswered_lookup_times_out_and_discards_every_old_proof ... ok
+
+test result: ok. 141 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 5.01s
+

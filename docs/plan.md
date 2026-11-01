@@ -941,6 +941,14 @@ Repository record `audit/phase6/resolver-validation-20261101/` gives unchanged
 production mappings and 96.25% line / 88.20% branch coverage: 325 lines and
 218 branches remain. Shipping logic and live-kernel fixtures are unchanged.
 
+A resolver-adapter drop case now checks per-owner job/index cleanup, continued
+answers for a surviving adapter, and eventual permit release. A control that
+clears foreign jobs fails. Ten seeded suites, ten instrumented repetitions,
+three musl library runs and common checks pass. Repository record
+`audit/phase6/resolver-drop-20261101/` gives unchanged production mappings
+and 96.28% line / 88.26% branch coverage: 322 lines and 217 branches remain.
+Production code is unchanged.
+
 ### Phase 7 — release
 
 Update the changelog, the top-level README and these pages for what
