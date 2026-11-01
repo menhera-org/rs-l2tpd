@@ -30,9 +30,9 @@ the scenario suite below; read them before writing new scenarios.
 Phase 6 remains open. Production source `2051827` passes all thirteen required
 matrix profiles, including 27 normal scenarios on each of the five kernels.
 Strict maps, unprivileged Incus and the root sandbox have passing records.
-Later test-only source `2cfe6e8` has passing common checks and repeated
-GNU/musl qualification. Merged production coverage is **96.67% of lines and
-89.29% of branches**, leaving **288 lines and 198 branches**.
+Later test-only additions have passing common checks and repeated
+GNU/musl qualification. Merged production coverage is **96.71% of lines and
+89.34% of branches**, leaving **285 lines and 197 branches**.
 
 Complete clause/history/resource/event-cost proof and the 100% coverage
 gate remain required. The [testing page](testing.md) gives current gate

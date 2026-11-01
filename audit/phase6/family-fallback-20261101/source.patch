@@ -1,0 +1,83 @@
+diff --git a/tests/rules/tunnels.rs b/tests/rules/tunnels.rs
+index bc30bd7..dee41b1 100644
+--- a/tests/rules/tunnels.rs
++++ b/tests/rules/tunnels.rs
+@@ -609,3 +609,78 @@ fn delayed_tunnel_cleanup_withholds_replacement_until_release() {
+     assert!(r.ready());
+     assert_ne!(r.kernel().tunnel_socket(10), Some(old));
+ }
++
++/// spec: T2, T3, T4, T6, T14, T22, M3, M17, G2, G5
++#[test]
++fn an_ipv4_fallback_socket_keeps_its_session_across_peer_family_moves() {
++    use rs_l2tpd::config::Config;
++    for refusal in [
++        nix::errno::Errno::EAFNOSUPPORT,
++        nix::errno::Errno::EPROTONOSUPPORT,
++    ] {
++        let (mut r, _) = reconciler();
++        let device = r.kernel_mut().add_link("wan", false);
++        for address in ["192.0.2.1", "2001:db8::1"] {
++            r.kernel_mut().add_addr(device, address.parse().unwrap());
++        }
++        let v6 = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='2001:db8::2'\n[sessions.a]\ntunnel_name='a'\nsession_id=100\ninterface_name='l2tp0'\n";
++        let v4 = v6.replace("2001:db8::2", "192.0.2.2");
++        r.kernel_mut().fail_next("socket", refusal);
++        assert!(r.reconcile(config(v6)));
++        let socket = r.kernel().tunnel_socket(10).unwrap();
++        let session = r.kernel().session_index(10, 100).unwrap();
++        assert!(r.kernel().only_v6(socket).is_err());
++        assert_eq!(r.kernel().connection(socket), None);
++        assert!(ops(&mut r).iter().all(|op| !op.starts_with("connect ")));
++        assert_eq!(
++            r.next_deadline().unwrap().duration_since(r.kernel().now()),
++            std::time::Duration::from_secs(1)
++        );
++
++        assert!(r.reconcile(config(&v4)));
++        assert_eq!(
++            r.kernel().connection(socket).unwrap().0,
++            "192.0.2.2".parse::<IpAddr>().unwrap()
++        );
++        assert_eq!(r.next_deadline(), None);
++        r.kernel_mut().set_up(session, true);
++        let original = r.kernel().link(session).unwrap().clone();
++        let mac = r.kernel_mut().ether_addr(session).unwrap();
++        ops(&mut r);
++
++        let next = format!("{v6}\n[tunnels.b]\ntunnel_id=11\nremote_addr='2001:db8::3'\n");
++        assert!(r.reconcile(config(&next)));
++        let sibling = r.kernel().tunnel_socket(11).unwrap();
++        assert_eq!(r.kernel().connection(socket), None);
++        assert_eq!(
++            r.kernel().connection(sibling).unwrap().0,
++            "2001:db8::3".parse::<IpAddr>().unwrap()
++        );
++        let trace = ops(&mut r);
++        assert!(
++            !trace
++                .iter()
++                .any(|op| op.starts_with(&format!("connect {} ", socket.get())))
++        );
++        assert!(
++            !trace
++                .iter()
++                .any(|op| op.starts_with("close ") || op.starts_with("delete"))
++        );
++
++        super::run_for(&mut r, 3);
++        assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
++        assert_eq!(r.kernel().tunnel_socket(11), Some(sibling));
++        assert_eq!(r.kernel().session_index(10, 100), Some(session));
++        assert_eq!(r.kernel().link(session), Some(&original));
++        assert_eq!(r.kernel_mut().ether_addr(session).unwrap(), mac);
++        assert!(ops(&mut r).is_empty());
++        assert!(r.reconcile(config(&v4)));
++        assert_eq!(r.kernel().session_index(10, 100), Some(session));
++        assert!(r.kernel().connection(socket).is_some());
++        r.reconcile(Config::new());
++        super::run_for(&mut r, 2);
++        assert_eq!(r.kernel().open_sockets(), 0);
++        assert!(r.kernel().session_index(10, 100).is_none());
++    }
++}

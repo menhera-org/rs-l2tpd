@@ -501,9 +501,9 @@ recovery. Strict rule/source maps, unprivileged Incus and the root sandbox
 have passing records. The checked libc exception is applied; no nix
 contribution or release is required.
 
-Later test-only source `2cfe6e8` has passing common checks and repeated
-GNU/musl qualification. Merged coverage is **96.67% of lines and 89.29% of
-branches**, leaving **288 lines and 198 branches**. The 100% gate and complete
+Later test-only additions have passing common checks and repeated
+GNU/musl qualification. Merged coverage is **96.71% of lines and 89.34% of
+branches**, leaving **285 lines and 197 branches**. The 100% gate and complete
 clause/history/resource/event-cost proof remain open. Repository file
 `audit/PHASE6_VERIFICATION_2026-11-01.md` identifies each result's exact scope.
 The following entries retain the history of earlier measurements.
@@ -1017,6 +1017,15 @@ three musl binary suites, three cross-target checks and common checks pass.
 Repository record `audit/phase6/descriptor-inheritance-20261101/` gives
 unchanged source regions and 96.67% line / 89.29% branch coverage: 288 lines
 and 198 branches remain. Shipping code is unchanged.
+
+The fallback rule case now keeps an AF_INET socket and its published session
+through IPv6/IPv4 peer moves, checks a fresh dual-stack sibling independently,
+and preserves UP/MAC/index state. The disabled compatibility-guard control
+fails. Ten ordinary and ten instrumented repetitions, three full musl
+library/rule suites and common checks pass. Both shared rule catalogs have
+89 cases. Repository record `audit/phase6/family-fallback-20261101/` gives
+identical production mappings and 96.71% line / 89.34% branch coverage:
+285 lines and 197 branches remain. Shipping code is unchanged.
 
 ### Phase 7 — release
 

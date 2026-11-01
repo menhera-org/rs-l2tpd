@@ -6,7 +6,8 @@ It includes kernel-selected inventories, VRF inventory-completion tracking
 and checked libc signal calls. Later commits add tests and measurement
 infrastructure; they do not change shipping behavior.
 
-The latest test source is `2cfe6e8`. Its
+The latest [fallback case](phase6/family-fallback-20261101/README.md) is based
+on `d70c167` plus its retained test patch. The
 [descriptor record](phase6/descriptor-inheritance-20261101/README.md), the
 [session races](phase6/session-races-20261101/README.md) and the
 [shared harness](phase6/shared-rule-harness-20261101/README.md) identify
@@ -21,7 +22,7 @@ original execution scope.
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | All 27 normal cases pass on each of five required kernels, including H20, H17 and the new VRF reload regression. Three current musl host suites also pass | Complete clause, history and resource/event-cost proof |
 | P3 required kernels | Frozen `2051827` passes five normal, five clock, two IPv6-absent and one missing-driver profiles; publication selections agree | Later test-only additions have separate qualification; repeat after relevant production changes |
-| P4 coverage | 8,372/8,660 lines (96.67%); 1,650/1,848 branches (89.29%). No production exclusions, profile mismatches or saturated regions | Cover 288 lines and 198 branches; enable the completed 100% gate in CI |
+| P4 coverage | 8,375/8,660 lines (96.71%); 1,651/1,848 branches (89.34%). No production exclusions, profile mismatches or saturated regions | Cover 285 lines and 197 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | Cache-fix source passes the full GNU case in 19.85 s and three unprivileged musl cases in 18.82, 9.43 and 20.28 s | Preserve the recorded userspace/kernel scope; repeat after relevant production changes |
 | P6 root sandbox | The unmodified supplied unit passes in 29.97 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
 | P7 docs/CI | Per-target behavior and approved limitations are documented. Strict flags and bounded workflow budgets remain active | Final consistent-source proof and complete coverage enforcement |
@@ -65,12 +66,12 @@ Bare-kernel guests establish no per-distribution udev/networkd or Incus result.
 
 ## Current coverage evidence
 
-The shared harness compiles the same 88 public rule declarations into both
+The shared harness compiles the same 89 public rule declarations into both
 the library and external target. Private cases and public behavior therefore
 exercise the same library instantiations. The declaration lists compare
 exactly; line and branch denominators are unchanged.
 
-The ordinary library passes 228 cases after the
+The ordinary library passes 229 cases after the fallback addition and the
 [staging-bound cases](phase6/staging-bounds-20261101/README.md), which preserve
 original refusals and test the seventh/eighth-name boundary. Three child-launching cases join the
 existing isolated profile to avoid global logger and fake lifetime
@@ -103,7 +104,9 @@ service runs and common checks pass. The
 subprocess checks for malformed announcements and descriptor cleanup fallback.
 Three faulty controls fail; repeated GNU/musl runs and common checks pass.
 Previously unexecuted binary-test instances now expose branch records with
-unchanged source regions. No counter mismatch or saturation is hidden. ARM64, RISC-V64 and PowerPC64LE
+unchanged source regions. The fallback case preserves both shared catalogs
+at 89 entries and adds no production mapping change. No counter mismatch
+or saturation is hidden. ARM64, RISC-V64 and PowerPC64LE
 results remain compile checks only.
 
 ## Decisions, interference and remaining work
