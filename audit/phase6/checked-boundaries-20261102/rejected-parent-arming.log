@@ -1,0 +1,28 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+warning: unused import: `std::os::unix::fs::OpenOptionsExt`
+   --> src/bin/rs-l2tpd/daemon.rs:192:9
+    |
+192 |     use std::os::unix::fs::OpenOptionsExt;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (bin "rs-l2tpd" test) generated 1 warning (run `cargo fix --bin "rs-l2tpd" -p rs-l2tpd --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-b10c87c66eae2ca6)
+
+running 1 test
+
+thread 'daemon::parent_boundary_tests::parent_wait_and_readiness_failures_are_bounded_and_preserve_shutdown' (3983216) panicked at src/bin/rs-l2tpd/daemon.rs:346:15:
+called `Result::unwrap()` on an `Err` value: Custom { kind: Other, error: "unexpected trace stop: Stopped(Pid(3983218), SIGCHLD)" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test daemon::parent_boundary_tests::parent_wait_and_readiness_failures_are_bounded_and_preserve_shutdown ... FAILED
+
+failures:
+
+failures:
+    daemon::parent_boundary_tests::parent_wait_and_readiness_failures_are_bounded_and_preserve_shutdown
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-33c7dac59ac6b88b)
+
+running 1 test
+
+thread 'kernel::linux::l2tp::boundary_tests::family_records_require_an_id_and_find_only_the_named_multicast_group' (4086198) panicked at src/kernel/linux/l2tp.rs:730:39:
+called `Result::unwrap_err()` on an `Ok` value: (42, None)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test kernel::linux::l2tp::boundary_tests::family_records_require_an_id_and_find_only_the_named_multicast_group ... FAILED
+
+failures:
+
+failures:
+    kernel::linux::l2tp::boundary_tests::family_records_require_an_id_and_find_only_the_named_multicast_group
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 324 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

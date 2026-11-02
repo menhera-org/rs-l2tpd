@@ -1,0 +1,20 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
+   Compiling nix v0.30.1
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-b10c87c66eae2ca6)
+
+running 1 test
+
+thread 'pidfile::validation_tests::a_precreated_file_must_match_both_observed_identity_fields' (4084819) panicked at src/bin/rs-l2tpd/pidfile.rs:978:36:
+called `Result::unwrap_err()` on an `Ok` value: File { fd: 3, path: "/tmp/rs-l2tpd-test-50f43dd9af2ffe84/pid", read: false, write: true }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test pidfile::validation_tests::a_precreated_file_must_match_both_observed_identity_fields ... FAILED
+
+failures:
+
+failures:
+    pidfile::validation_tests::a_precreated_file_must_match_both_observed_identity_fields
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 87 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

@@ -560,9 +560,7 @@ impl<K: Kernel> Reconciler<K> {
         }
         let sids: Vec<u32> = self.sessions.keys().copied().collect();
         for sid in sids {
-            if !self.sessions.contains_key(&sid) {
-                continue;
-            }
+            // Verification can replace only this session's record.
             let tid = self.sessions[&sid].tunnel_id;
             match self.k.session(tid, sid) {
                 Ok(None) => {

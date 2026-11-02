@@ -1654,3 +1654,48 @@ fn stream_probe_fault_preserves_other_descriptor_operations() {
     assert_eq!(unsafe { libc::fcntl(-1, libc::F_GETFD) }, -1);
     assert_eq!(io::Error::last_os_error().raw_os_error(), Some(libc::EBADF));
 }
+
+/// spec: L9, P1, P4, G8, O1
+#[test]
+#[ignore = "isolated privileged container; restores only its owned child's descriptor limit"]
+fn kernel_startup_recovers_after_its_descriptor_limit_is_restored() {
+    use nix::sys::resource::{Resource, getrlimit, setrlimit};
+    namespace();
+    let dir = Dir::new();
+    let main = dir.path().join("main");
+    fs::write(&main, "[host]\nfix_bindv6only=false\n").unwrap();
+    let (soft, hard) = getrlimit(Resource::RLIMIT_NOFILE).unwrap();
+    assert!(soft > 4);
+    let mut launch = start(&main, true, &dir.path().join("pid"));
+    unsafe {
+        launch
+            .pre_exec(move || setrlimit(Resource::RLIMIT_NOFILE, 4, hard).map_err(io::Error::from));
+    }
+    let mut process = Process::spawn(launch);
+    let error = process.event("opening kernel interfaces:");
+    assert!(
+        error.contains(&io::Error::from_raw_os_error(libc::EMFILE).to_string()),
+        "{error}"
+    );
+    let restored = libc::rlimit {
+        rlim_cur: soft,
+        rlim_max: hard,
+    };
+    // nix 0.30.1 has no prlimit wrapper; restore only this owned child's soft limit.
+    assert_eq!(
+        unsafe {
+            libc::prlimit(
+                process.pid,
+                libc::RLIMIT_NOFILE as _,
+                &restored,
+                std::ptr::null_mut(),
+            )
+        },
+        0,
+        "{}",
+        io::Error::last_os_error()
+    );
+    process.event("kernel interfaces available");
+    process.event("ready");
+    process.stop();
+}

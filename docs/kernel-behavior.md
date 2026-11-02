@@ -2,6 +2,16 @@
 
 [Documentation index](README.md) · [Required targets](testing.md#kernel-targets) · [Kernel specification](spec/kernel.md) · [Evidence map](kernel-evidence.md)
 
+The checked-boundary batch after signed 241bd51 passes all thirteen
+required profiles with fresh production qualification. This includes all
+27 scenarios and 35 process cases on each required kernel, both IPv6-absent
+boots, missing-driver recovery and all five clock/pause profiles. GNU Incus
+and the unmodified root systemd sandbox also pass on Ubuntu 6.8.0-147.
+Repository record `audit/phase6/checked-boundaries-20261102/README.md`
+retains its source changes and scope. The per-kernel distinctions below
+remain observed; ACK-only exchanges now explicitly reject unexpected data
+as an uncertain transport outcome.
+
 The 2026-11-02 publication recheck still selects **mainline 7.4-rc1**.
 Its source comparison, both builds and all thirteen required profiles pass
 on frozen Rust/test source 455eef7. Initial/final publication selections

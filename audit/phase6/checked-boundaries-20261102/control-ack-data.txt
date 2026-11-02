@@ -1,0 +1,3 @@
+None => return Err(errno(libc::EPROTO)),
+===REPLACE===
+None => Ok(()),

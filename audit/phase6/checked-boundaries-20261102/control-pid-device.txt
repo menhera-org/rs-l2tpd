@@ -1,0 +1,3 @@
+m.dev() != before.st_dev
+===REPLACE===
+false

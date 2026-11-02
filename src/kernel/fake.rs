@@ -1201,6 +1201,7 @@ mod ownership_tests {
             None,
         );
         k.remove_session((10, 100));
+        k.remove_session((10, 100));
         assert!(!k.sessions.contains_key(&(10, 100)));
         assert_eq!(k.links[&index].session, Some((20, 200)));
         assert_eq!(

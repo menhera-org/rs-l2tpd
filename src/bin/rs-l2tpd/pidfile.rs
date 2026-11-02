@@ -23,6 +23,23 @@ fn cvt(fd: i32) -> io::Result<OwnedFd> {
         Ok(unsafe { OwnedFd::from_raw_fd(fd) })
     }
 }
+fn safe_precreated(file: File, before: &libc::stat) -> io::Result<File> {
+    let m = file.metadata()?;
+    if m.dev() != before.st_dev
+        || m.ino() != before.st_ino
+        || !m.is_file()
+        || m.uid() != unsafe { libc::geteuid() }
+        || m.nlink() != 1
+        || m.mode() & 0o022 != 0
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "unsafe pre-created PID file",
+        ));
+    }
+    Ok(file)
+}
+
 fn directory(path: &Path, create: bool) -> io::Result<(OwnedFd, CString)> {
     let path = if path.is_absolute() {
         path.to_owned()
@@ -167,21 +184,7 @@ impl PidFile {
                         libc::O_WRONLY | libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK,
                     )
                 })?;
-                let file = File::from(fd);
-                let m = file.metadata()?;
-                if m.dev() != before.st_dev
-                    || m.ino() != before.st_ino
-                    || !m.is_file()
-                    || m.uid() != unsafe { libc::geteuid() }
-                    || m.nlink() != 1
-                    || m.mode() & 0o022 != 0
-                {
-                    return Err(io::Error::new(
-                        io::ErrorKind::PermissionDenied,
-                        "unsafe pre-created PID file",
-                    ));
-                }
-                (file, false)
+                (safe_precreated(File::from(fd), &before)?, false)
             }
             Err(error) => return Err(error),
         };
@@ -943,6 +946,40 @@ mod fault_tests {
                     "{case}: temporary PID file remains"
                 );
             }
+        }
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod validation_tests {
+    use super::*;
+
+    /// spec: P10, P11
+    #[test]
+    fn a_precreated_file_must_match_both_observed_identity_fields() {
+        let dir = crate::testdir::Dir::new();
+        let path = dir.path().join("pid");
+        std::fs::write(&path, "operator data").unwrap();
+        std::fs::set_permissions(&path, std::os::unix::fs::PermissionsExt::from_mode(0o600))
+            .unwrap();
+        for changed in ["none", "device", "inode"] {
+            let file = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
+            let mut before = nix::sys::stat::fstat(&file).unwrap();
+            match changed {
+                "device" => before.st_dev ^= 1,
+                "inode" => before.st_ino ^= 1,
+                _ => (),
+            }
+            let result = safe_precreated(file, &before);
+            if changed == "none" {
+                assert_eq!(result.unwrap().metadata().unwrap().ino(), before.st_ino);
+            } else {
+                let error = result.unwrap_err();
+                assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+                assert_eq!(error.to_string(), "unsafe pre-created PID file");
+            }
+            assert_eq!(std::fs::read_to_string(&path).unwrap(), "operator data");
         }
     }
 }

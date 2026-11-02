@@ -1,0 +1,3 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+  Executable unittests src/bin/rs-l2tpd/main.rs (target/x86_64-unknown-linux-gnu/debug/deps/rs_l2tpd-787a086b0bfc8561)
+  Executable tests/process.rs (target/x86_64-unknown-linux-gnu/debug/deps/process-2fd239d1fe3c9f17)

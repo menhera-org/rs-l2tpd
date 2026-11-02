@@ -1,0 +1,60 @@
+set -eu
+root=/home/dev/rs-l2tpd
+record=$root/audit/phase6/checked-boundaries-20261102
+candidate=$(cat /tmp/phase6-resolver-validation-path)
+cd "$candidate"
+
+cp "$root/src/bin/rs-l2tpd/pidfile.rs" "src/bin/rs-l2tpd/pidfile.rs"
+/tmp/phase6-replace "src/bin/rs-l2tpd/pidfile.rs" < "$record/control-pid-device.txt"
+git --no-pager diff -- "src/bin/rs-l2tpd/pidfile.rs" > "$record/control-pid-device.patch"
+result=0
+cargo test --locked --all-features --bin rs-l2tpd a_precreated_file_must_match_both_observed_identity_fields -- --nocapture > "$record/control-pid-device.log" 2>&1 || result=$?
+cp "$root/src/bin/rs-l2tpd/pidfile.rs" "src/bin/rs-l2tpd/pidfile.rs"
+[ "$result" = 101 ]
+grep -q 'test result: FAILED' "$record/control-pid-device.log"
+grep -q 'a_precreated_file_must_match_both_observed_identity_fields.*FAILED' "$record/control-pid-device.log"
+printf 'CHECKED_NEGATIVE_CONTROL=pid-device\n'
+
+cp "$root/src/bin/rs-l2tpd/pidfile.rs" "src/bin/rs-l2tpd/pidfile.rs"
+/tmp/phase6-replace "src/bin/rs-l2tpd/pidfile.rs" < "$record/control-pid-inode.txt"
+git --no-pager diff -- "src/bin/rs-l2tpd/pidfile.rs" > "$record/control-pid-inode.patch"
+result=0
+cargo test --locked --all-features --bin rs-l2tpd a_precreated_file_must_match_both_observed_identity_fields -- --nocapture > "$record/control-pid-inode.log" 2>&1 || result=$?
+cp "$root/src/bin/rs-l2tpd/pidfile.rs" "src/bin/rs-l2tpd/pidfile.rs"
+[ "$result" = 101 ]
+grep -q 'test result: FAILED' "$record/control-pid-inode.log"
+grep -q 'a_precreated_file_must_match_both_observed_identity_fields.*FAILED' "$record/control-pid-inode.log"
+printf 'CHECKED_NEGATIVE_CONTROL=pid-inode\n'
+
+cp "$root/src/kernel/linux/request.rs" "src/kernel/linux/request.rs"
+/tmp/phase6-replace "src/kernel/linux/request.rs" < "$record/control-ack-data.txt"
+git --no-pager diff -- "src/kernel/linux/request.rs" > "$record/control-ack-data.patch"
+result=0
+cargo test --locked --all-features --lib acknowledgement_only_requests_break_on_data_and_preserve_known_errors -- --nocapture > "$record/control-ack-data.log" 2>&1 || result=$?
+cp "$root/src/kernel/linux/request.rs" "src/kernel/linux/request.rs"
+[ "$result" = 101 ]
+grep -q 'test result: FAILED' "$record/control-ack-data.log"
+grep -q 'acknowledgement_only_requests_break_on_data_and_preserve_known_errors.*FAILED' "$record/control-ack-data.log"
+printf 'CHECKED_NEGATIVE_CONTROL=ack-data\n'
+
+cp "$root/src/kernel/linux/l2tp.rs" "src/kernel/linux/l2tp.rs"
+/tmp/phase6-replace "src/kernel/linux/l2tp.rs" < "$record/control-family-id.txt"
+git --no-pager diff -- "src/kernel/linux/l2tp.rs" > "$record/control-family-id.patch"
+result=0
+cargo test --locked --all-features --lib family_records_require_an_id_and_find_only_the_named_multicast_group -- --nocapture > "$record/control-family-id.log" 2>&1 || result=$?
+cp "$root/src/kernel/linux/l2tp.rs" "src/kernel/linux/l2tp.rs"
+[ "$result" = 101 ]
+grep -q 'test result: FAILED' "$record/control-family-id.log"
+grep -q 'family_records_require_an_id_and_find_only_the_named_multicast_group.*FAILED' "$record/control-family-id.log"
+printf 'CHECKED_NEGATIVE_CONTROL=family-id\n'
+
+cp "$root/src/bin/rs-l2tpd/signals.rs" "src/bin/rs-l2tpd/signals.rs"
+/tmp/phase6-replace "src/bin/rs-l2tpd/signals.rs" < "$record/control-sigpipe-error.txt"
+git --no-pager diff -- "src/bin/rs-l2tpd/signals.rs" > "$record/control-sigpipe-error.patch"
+result=0
+cargo test --locked --all-features --bin rs-l2tpd sigpipe_disposition_errors_are_returned_before_startup_or_exec -- --nocapture > "$record/control-sigpipe-error.log" 2>&1 || result=$?
+cp "$root/src/bin/rs-l2tpd/signals.rs" "src/bin/rs-l2tpd/signals.rs"
+[ "$result" = 101 ]
+grep -q 'test result: FAILED' "$record/control-sigpipe-error.log"
+grep -q 'sigpipe_disposition_errors_are_returned_before_startup_or_exec.*FAILED' "$record/control-sigpipe-error.log"
+printf 'CHECKED_NEGATIVE_CONTROL=sigpipe-error\n'

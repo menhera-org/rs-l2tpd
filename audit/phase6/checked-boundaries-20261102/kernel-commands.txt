@@ -1,0 +1,29 @@
+set -eu
+record=$PWD/audit/phase6/checked-boundaries-20261102
+mkdir -p "$record/kernels"
+run_stock() {
+ suite=$1; version=$2; release=$3
+ root=$PWD/target/phase6-kernels/ubuntu-$suite-$version/root
+ result=0
+ sh tests/kernel/run-guest.sh "$root/boot/vmlinuz-$release" "$root/usr/lib/modules/$release" "$root/boot/config-$release" normal "$record/kernels/$suite" > "/tmp/phase6-checked-$suite.log" 2>&1 || result=$?
+ printf '%s\n' "$result" > "$record/kernels/$suite.exit"
+}
+run_vanilla() {
+ version=$1
+ root=$PWD/target/phase6-kernels/linux-$version-ipv6
+ result=0
+ sh tests/kernel/run-guest.sh "$root/arch/x86/boot/bzImage" - "$root/.config" normal "$record/kernels/vanilla-$version" > "/tmp/phase6-checked-vanilla-$version.log" 2>&1 || result=$?
+ printf '%s\n' "$result" > "$record/kernels/vanilla-$version.exit"
+}
+run_stock noble 6.8.0-147.147 6.8.0-147-generic &
+a=$!
+run_stock resolute 7.0.0-42.42 7.0.0-42-generic &
+b=$!
+run_vanilla 6.8.12 &
+c=$!
+run_vanilla 7.0.14 &
+d=$!
+run_vanilla 7.4-rc1 &
+e=$!
+wait "$a"; wait "$b"; wait "$c"; wait "$d"; wait "$e"
+cat "$record"/kernels/*.exit

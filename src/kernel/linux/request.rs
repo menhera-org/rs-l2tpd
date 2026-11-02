@@ -25,6 +25,8 @@ use nix::poll::{PollFd, PollFlags, PollTimeout, poll};
 use nix::sys::socket::{setsockopt, sockopt::RcvBufForce};
 use socket2::SockRef;
 
+type Visitor<'a> = dyn FnMut(u16, &[u8]) -> io::Result<()> + 'a;
+
 /// The total deadline of one request, family resolution included (A14).
 pub(super) const DEADLINE: Duration = Duration::from_secs(5);
 
@@ -153,13 +155,14 @@ impl Request {
     /// the dump. The kernel's error is returned as its errno, and so is the
     /// first error of `visit`, after the replies are drained. Any failure of
     /// the transport within `deadline` drops the socket and returns
-    /// `ETIMEDOUT` (A14, E21).
+    /// `ETIMEDOUT` (A14, E21). A missing visitor requires an ACK-only reply;
+    /// unexpected data breaks the exchange, so a mutation remains uncertain.
     pub(super) fn run<I: NetlinkSerializable>(
         &mut self,
         payload: I,
         dump: bool,
         deadline: Instant,
-        visit: &mut dyn FnMut(u16, &[u8]) -> io::Result<()>,
+        visit: Option<&mut Visitor<'_>>,
     ) -> io::Result<()> {
         let socket = match self.socket.take() {
             Some(socket) => socket,
@@ -189,7 +192,7 @@ fn exchange<I: NetlinkSerializable>(
     payload: I,
     dump: bool,
     deadline: Instant,
-    visit: &mut dyn FnMut(u16, &[u8]) -> io::Result<()>,
+    mut visit: Option<&mut Visitor<'_>>,
 ) -> io::Result<io::Result<()>> {
     if Instant::now() >= deadline {
         return Err(errno(libc::ETIMEDOUT));
@@ -219,7 +222,7 @@ fn exchange<I: NetlinkSerializable>(
             continue; // E22
         }
         for msg in messages(&datagram)? {
-            if let ControlFlow::Break(result) = reply(msg, seq, &mut answer, visit)? {
+            if let ControlFlow::Break(result) = reply(msg, seq, &mut answer, &mut visit)? {
                 return Ok(result);
             }
         }
@@ -232,7 +235,7 @@ fn reply(
     msg: Msg<'_>,
     seq: u32,
     answer: &mut io::Result<()>,
-    visit: &mut dyn FnMut(u16, &[u8]) -> io::Result<()>,
+    visit: &mut Option<&mut Visitor<'_>>,
 ) -> io::Result<ControlFlow<io::Result<()>>> {
     if msg.seq != seq {
         return Ok(ControlFlow::Continue(()));
@@ -247,7 +250,10 @@ fn reply(
             .map_or(0, |code| code.get()),
         NLMSG_DONE => DoneBuffer::new_checked(msg.payload).map_or(0, |done| done.code()),
         kind if kind >= NLMSG_MIN_TYPE && answer.is_ok() => {
-            *answer = visit(kind, msg.payload);
+            *answer = match visit.as_mut() {
+                Some(visit) => visit(kind, msg.payload),
+                None => return Err(errno(libc::EPROTO)),
+            };
             return Ok(ControlFlow::Continue(()));
         }
         netlink_packet_core::NLMSG_OVERRUN => return Err(errno(libc::ENOBUFS)),
@@ -335,12 +341,7 @@ mod tests {
         link.header.index = 1;
         link.attributes.push(LinkAttribute::Mtu(64000));
         let deadline = Instant::now() + Duration::from_millis(50);
-        let result = request.run(
-            RouteNetlinkMessage::NewLink(link),
-            false,
-            deadline,
-            &mut |_, _| Ok(()),
-        );
+        let result = request.run(RouteNetlinkMessage::NewLink(link), false, deadline, None);
         assert_eq!(result.unwrap_err().raw_os_error(), Some(libc::ETIMEDOUT));
         assert!(Instant::now() >= deadline);
         assert!(request.socket.is_none());
@@ -352,12 +353,12 @@ mod tests {
                 RouteNetlinkMessage::GetLink(query),
                 false,
                 Instant::now() + DEADLINE,
-                &mut |_, bytes| {
+                Some(&mut |_, bytes| {
                     use netlink_packet_core::Parseable;
                     let link = LinkMessage::parse(bytes).unwrap();
                     applied |= link.attributes.contains(&LinkAttribute::Mtu(64000));
                     Ok(())
-                },
+                }),
             )
             .unwrap();
         assert!(
@@ -374,7 +375,7 @@ mod tests {
                 netlink_packet_route::RouteNetlinkMessage::GetAddress(query),
                 true,
                 Instant::now() + DEADLINE,
-                &mut |_, _| Ok(()),
+                Some(&mut |_, _| Ok(())),
             )
             .unwrap_err();
         assert_eq!(error.raw_os_error(), Some(libc::ENODEV));
@@ -483,9 +484,14 @@ mod completion_tests {
         let payload = netlink_packet_route::RouteNetlinkMessage::GetLink(
             netlink_packet_route::link::LinkMessage::default(),
         );
-        let error = exchange(&client, 7, payload, false, Instant::now(), &mut |_, _| {
-            panic!("expired request visited a reply")
-        })
+        let error = exchange(
+            &client,
+            7,
+            payload,
+            false,
+            Instant::now(),
+            Some(&mut |_, _| panic!("expired request visited a reply")),
+        )
         .unwrap_err();
         assert_eq!(error.raw_os_error(), Some(libc::ETIMEDOUT));
         assert_eq!(
@@ -505,9 +511,14 @@ mod completion_tests {
                 netlink_packet_route::link::LinkMessage::default(),
             );
             let deadline = Instant::now() + Duration::from_secs(1);
-            let error = exchange(&client, 7, payload, false, deadline, &mut |_, _| {
-                panic!("userspace reply reached the visitor")
-            })
+            let error = exchange(
+                &client,
+                7,
+                payload,
+                false,
+                deadline,
+                Some(&mut |_, _| panic!("userspace reply reached the visitor")),
+            )
             .unwrap_err();
             assert_eq!(error.raw_os_error(), Some(libc::ETIMEDOUT));
             assert!(Instant::now() >= deadline);
@@ -581,7 +592,7 @@ mod strict_option_tests {
                     ),
                     false,
                     Instant::now() + DEADLINE,
-                    &mut |_, _| Ok(()),
+                    Some(&mut |_, _| Ok(())),
                 )
                 .unwrap_err();
             assert_eq!(error.raw_os_error(), Some(libc::EIO));
@@ -606,6 +617,56 @@ mod strict_option_tests {
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod reply_tests {
     use super::*;
+
+    // kernel: (K1, K29) adapt the data visitor for reply framing fixtures.
+    fn reply(
+        msg: Msg<'_>,
+        seq: u32,
+        answer: &mut io::Result<()>,
+        visit: &mut Visitor<'_>,
+    ) -> io::Result<ControlFlow<io::Result<()>>> {
+        super::reply(msg, seq, answer, &mut Some(visit))
+    }
+
+    // kernel: (K1, K7, K29) net/netlink/af_netlink.c netlink_ack; mutations have no data reply.
+    /// spec: A14, E21, G1
+    #[test]
+    fn acknowledgement_only_requests_break_on_data_and_preserve_known_errors() {
+        let wire = super::tests::message(NLMSG_MIN_TYPE, 7, &[0xff]);
+        let msg = messages(&wire).unwrap().pop().unwrap();
+        assert_eq!(
+            super::reply(msg, 7, &mut Ok(()), &mut None)
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::EPROTO)
+        );
+        for (code, expected) in [(0, None), (-libc::EACCES, Some(libc::EACCES))] {
+            let wire = status(NLMSG_ERROR, code);
+            let msg = messages(&wire).unwrap().pop().unwrap();
+            let ControlFlow::Break(result) = super::reply(msg, 7, &mut Ok(()), &mut None).unwrap()
+            else {
+                panic!("ACK did not complete")
+            };
+            assert_eq!(
+                result.err().and_then(|error| error.raw_os_error()),
+                expected
+            );
+        }
+        let mut answer = Err(errno(libc::EBUSY));
+        let wire = super::tests::message(NLMSG_MIN_TYPE, 7, &[0xff]);
+        let msg = messages(&wire).unwrap().pop().unwrap();
+        assert!(matches!(
+            super::reply(msg, 7, &mut answer, &mut None).unwrap(),
+            ControlFlow::Continue(())
+        ));
+        let wire = status(NLMSG_ERROR, 0);
+        let msg = messages(&wire).unwrap().pop().unwrap();
+        let ControlFlow::Break(result) = super::reply(msg, 7, &mut answer, &mut None).unwrap()
+        else {
+            panic!("known error did not finish draining")
+        };
+        assert_eq!(result.unwrap_err().raw_os_error(), Some(libc::EBUSY));
+    }
 
     // kernel: (K29) include/uapi/linux/netlink.h nlmsgerr and NLMSG_DONE status.
     fn status(kind: u16, code: i32) -> Vec<u8> {
@@ -903,9 +964,14 @@ mod io_fault_tests {
                         netlink_packet_route::link::LinkMessage::default(),
                     );
                     assert_eq!(
-                        exchange(&client, 7, payload, false, future, &mut |_, _| panic!(
-                            "failed receive visited data"
-                        ))
+                        exchange(
+                            &client,
+                            7,
+                            payload,
+                            false,
+                            future,
+                            Some(&mut |_, _| panic!("failed receive visited data"))
+                        )
                         .unwrap_err()
                         .raw_os_error(),
                         Some(libc::EIO)

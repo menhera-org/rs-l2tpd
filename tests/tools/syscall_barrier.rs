@@ -33,11 +33,29 @@ fn trace(request: i64, tid: i32, address: usize, data: usize) -> io::Result<libc
 pub(crate) fn stop() -> io::Result<()> {
     let path =
         std::env::var_os(READY).ok_or_else(|| io::Error::other("missing syscall barrier path"))?;
-    trace(i64::from(libc::PTRACE_TRACEME), 0, 0, 0)?;
-    let tid = unsafe { libc::syscall(libc::SYS_gettid) };
-    std::fs::write(path, tid.to_string())?;
-    if unsafe { libc::raise(libc::SIGSTOP) } != 0 {
-        return Err(io::Error::last_os_error());
+    // Defer signal-delivery stops until the TID is published and SIGSTOP has armed the tracer.
+    let blocked = nix::sys::signal::SigSet::all();
+    let mut previous = unsafe { std::mem::zeroed::<libc::sigset_t>() };
+    // nix 0.30.1 misreads positive pthread errors; these calls return the error number.
+    let status =
+        unsafe { libc::pthread_sigmask(libc::SIG_SETMASK, blocked.as_ref(), &mut previous) };
+    if status != 0 {
+        return Err(io::Error::from_raw_os_error(status));
+    }
+    let result = (|| {
+        trace(i64::from(libc::PTRACE_TRACEME), 0, 0, 0)?;
+        let tid = unsafe { libc::syscall(libc::SYS_gettid) };
+        std::fs::write(path, tid.to_string())?;
+        if unsafe { libc::raise(libc::SIGSTOP) } != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(())
+    })();
+    let restored =
+        unsafe { libc::pthread_sigmask(libc::SIG_SETMASK, &previous, std::ptr::null_mut()) };
+    result?;
+    if restored != 0 {
+        return Err(io::Error::from_raw_os_error(restored));
     }
     Ok(())
 }
@@ -233,7 +251,14 @@ fn query_sizes_peek_errors_and_callback_cleanup_are_checked() {
                 libc::SIG_ERR
             );
         }
+        let mut expected = nix::sys::signal::SigSet::thread_get_mask().unwrap();
+        expected.add(nix::sys::signal::Signal::SIGWINCH);
+        expected.thread_set_mask().unwrap();
         stop().unwrap();
+        let restored = nix::sys::signal::SigSet::thread_get_mask().unwrap();
+        for signal in nix::sys::signal::Signal::iterator() {
+            assert_eq!(restored.contains(signal), expected.contains(signal));
+        }
         for signal in [libc::SIGUSR1, libc::SIGCHLD] {
             assert_eq!(unsafe { libc::raise(signal) }, 0);
         }
@@ -330,4 +355,35 @@ fn query_sizes_peek_errors_and_callback_cleanup_are_checked() {
             );
         }
     }
+}
+
+/// spec: P4, P12
+#[test]
+fn a_refused_arming_mask_returns_the_pthread_error_before_tracing() {
+    const CHILD: &str = "PHASE6_BARRIER_MASK_REFUSAL";
+    if std::env::var_os(CHILD).is_some() {
+        #[cfg(coverage_nightly)]
+        crate::syscall_fault::keep_profile_output();
+        crate::syscall_fault::refuse(&[libc::SYS_rt_sigprocmask], libc::EIO);
+        assert_eq!(stop().unwrap_err().raw_os_error(), Some(libc::EIO));
+        println!("TRACER_ARMING_MASK_REFUSAL_CHECKED=1");
+        return;
+    }
+    let dir = crate::testdir::Dir::new();
+    let ready = dir.path().join("ready");
+    let output = Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "syscall_barrier::a_refused_arming_mask_returns_the_pthread_error_before_tracing",
+            "--nocapture",
+        ])
+        .env(CHILD, "1")
+        .env(READY, &ready)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    assert!(!ready.exists());
+    assert!(
+        String::from_utf8_lossy(&output.stdout).contains("TRACER_ARMING_MASK_REFUSAL_CHECKED=1")
+    );
 }

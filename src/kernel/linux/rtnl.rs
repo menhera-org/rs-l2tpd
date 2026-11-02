@@ -138,6 +138,14 @@ fn visit_addr(visit: &mut dyn FnMut(&AddrInfo), kind: u16, payload: &[u8]) -> io
     Ok(())
 }
 
+// kernel: (K7, K32) net/core/rtnetlink.c rtnl_fill_ifinfo replies with RTM_NEWLINK.
+fn visit_link(kind: u16, payload: &[u8], visit: &mut dyn FnMut(Link)) -> io::Result<()> {
+    if kind == libc::RTM_NEWLINK {
+        visit(parse_link(payload).ok_or_else(|| errno(libc::EPROTO))?);
+    }
+    Ok(())
+}
+
 /// The rtnetlink request socket (A5).
 pub(super) struct Rtnl(Request);
 
@@ -156,18 +164,9 @@ impl Rtnl {
             RouteNetlinkMessage::GetLink(message),
             false,
             Instant::now() + DEADLINE,
-            &mut |kind, payload| {
-                if kind == libc::RTM_NEWLINK {
-                    link = Some(parse_link(payload).ok_or_else(|| errno(libc::EPROTO))?);
-                }
-                Ok(())
-            },
+            Some(&mut |kind, payload| visit_link(kind, payload, &mut |found| link = Some(found))),
         );
-        match result {
-            Ok(()) => Ok(link),
-            Err(error) if error.raw_os_error() == Some(libc::ENODEV) => Ok(None),
-            Err(error) => Err(error),
-        }
+        super::l2tp::absent(result.map(|()| link))
     }
 
     // kernel: net/core/rtnetlink.c rtnl_getlink, rtnl_dev_get (K9, K32)
@@ -207,7 +206,7 @@ impl Rtnl {
             RouteNetlinkMessage::SetLink(message),
             false,
             Instant::now() + DEADLINE,
-            &mut |_, _| Ok(()),
+            None,
         )
     }
 
@@ -235,12 +234,7 @@ impl Rtnl {
             RouteNetlinkMessage::GetLink(message),
             true,
             Instant::now() + DEADLINE,
-            &mut |kind, payload| {
-                if kind == libc::RTM_NEWLINK {
-                    visit(&parse_link(payload).ok_or_else(|| errno(libc::EPROTO))?.info);
-                }
-                Ok(())
-            },
+            Some(&mut |kind, payload| visit_link(kind, payload, &mut |link| visit(&link.info))),
         )
     }
 
@@ -281,7 +275,7 @@ impl Rtnl {
             RouteNetlinkMessage::GetAddress(message),
             true,
             Instant::now() + DEADLINE,
-            &mut |kind, payload| visit_addr(visit, kind, payload),
+            Some(&mut |kind, payload| visit_addr(visit, kind, payload)),
         )
     }
 }
@@ -309,6 +303,30 @@ mod tests {
         out.extend_from_slice(&0u32.to_ne_bytes());
         attrs.iter().for_each(|a| out.extend_from_slice(a));
         out
+    }
+
+    // kernel: (K7, K32) net/core/rtnetlink.c rtnl_fill_ifinfo emits RTM_NEWLINK.
+    /// spec: A5, E21, E5, A22
+    #[test]
+    fn link_visitors_ignore_other_types_and_refuse_malformed_entries() {
+        let mut found = vec![];
+        visit_link(libc::RTM_DELLINK, &[], &mut |link| found.push(link.info)).unwrap();
+        assert!(found.is_empty());
+        assert_eq!(
+            visit_link(libc::RTM_NEWLINK, &[], &mut |link| found.push(link.info))
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::EPROTO)
+        );
+        assert!(found.is_empty());
+        let payload = link(0, 7, 0, &[nla(libc::IFLA_IFNAME, b"wan\0")]);
+        visit_link(libc::RTM_NEWLINK, &payload, &mut |link| {
+            found.push(link.info)
+        })
+        .unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].index(), 7);
+        assert_eq!(found[0].name().as_bytes(), b"wan");
     }
 
     // kernel: net/core/rtnetlink.c rtnl_fill_ifinfo (K9, K32)

@@ -827,7 +827,7 @@ mod tests {
                     RouteNetlinkMessage::NewLink(link),
                     false,
                     Instant::now() + DEADLINE,
-                    &mut |_, _| Ok(()),
+                    None,
                 )
                 .unwrap();
         }

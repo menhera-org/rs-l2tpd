@@ -515,11 +515,18 @@ archive, both builds, source comparison and required live profiles now pass.
 The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
-Fresh corrected-source coverage is **98.96% of lines and 96.27% of branches**:
-8,597/8,687 lines and 1,783/1,852 branches, leaving **90 lines and 69
-branches**. There are no production exclusions, profile mismatches or
-saturated regions. Complete clause/history/resource/event-cost proof and
-the 100% gate remain open. The competing-state/input batch adds eight
+The checked-boundary refactor has fresh coverage of **99.18% of lines and
+96.68% of branches**: 8,634/8,705 lines and 1,779/1,840 outcomes, leaving
+**71 lines and 61 outcomes**. It merges no profiles from the preceding
+implementation and excludes no production code. Shared checks, all thirteen
+required kernel profiles, repeated GNU/musl process suites, GNU Incus,
+manager/task-limit checks and the unmodified root sandbox pass. Five
+negative controls detect their mutations. Repository record
+`audit/phase6/checked-boundaries-20261102/README.md` retains the exact scope
+and deferred fork-limit fixture. Complete clause/history/resource/event-cost
+proof and the 100% gate remain open.
+
+The preceding competing-state/input batch reached 98.96%/96.27%, adding eight
 covered lines and eighteen outcomes. Its ten instrumented repetitions,
 three stable runs per libc, five focused kernel profiles and ten failure
 controls pass. The record retains the rejected full normal rerun and

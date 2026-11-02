@@ -865,3 +865,18 @@ fn a_replaced_zone_reconnects_the_existing_socket_even_when_its_peer_is_unchange
             .any(|op| op.starts_with("socket ") || op.starts_with("close "))
     );
 }
+
+/// spec: P16, S26, G20, G9
+#[test]
+fn shutdown_with_a_failed_session_delete_retires_its_tunnel_and_reports_the_failure() {
+    let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+    assert!(r.reconcile(toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.t]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.s]\ntunnel_name='t'\nsession_id=100\ninterface_name='owned'\n").unwrap()));
+    r.k.fail_next("delete", Errno::EIO);
+    assert!(!r.shutdown());
+    assert!(r.tunnels.is_empty());
+    assert!(r.sessions.is_empty());
+    assert_eq!(r.k.open_sockets(), 0);
+    r.k.tick();
+    assert!(r.shutdown());
+    assert!(r.k.session_index(10, 100).is_none());
+}

@@ -221,12 +221,7 @@ pub fn exec(
         .env("RS_L2TPD_PIDFILE", state(pid));
     // Command::exec resets SIGPIPE even on failure; restore P12 before execve.
     unsafe {
-        command.pre_exec(|| {
-            if libc::signal(libc::SIGPIPE, libc::SIG_IGN) == libc::SIG_ERR {
-                return Err(io::Error::last_os_error());
-            }
-            Ok(())
-        });
+        command.pre_exec(super::signals::ignore_pipe);
     }
     let raw: Vec<_> = sockets.iter().map(|s| s.fd().as_raw_fd()).collect();
     // A private fd table prevents dup2 from clobbering live subscription fds.
@@ -815,6 +810,7 @@ mod completion_tests {
         let contents = format!("{}\n", child.id());
         for text in [
             contents.trim_end().to_owned(),
+            "\n".into(),
             format!("+{}", contents),
             "0\n".into(),
             "1\n".into(),

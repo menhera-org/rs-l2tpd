@@ -101,9 +101,8 @@ impl Service {
                             return;
                         }
                     };
-                    if startup_tx.send(Ok(service.control())).is_err() {
-                        return;
-                    }
+                    // Abandoning startup also closes commands; drive normal cleanup below.
+                    let _ = startup_tx.send(Ok(service.control()));
                     while let Some(command) = rx.recv().await {
                         match command {
                             Command::Converge(tx) => {
@@ -128,7 +127,7 @@ impl Service {
             Ok(thread) => thread,
             Err(error) => return Err((error.into(), slot.lock().unwrap().take().unwrap())),
         };
-        match startup_rx.recv() {
+        match crate::service::startup(startup_rx) {
             Ok(Ok(control)) => Ok(Self {
                 control,
                 commands: Some(commands),
@@ -140,7 +139,7 @@ impl Service {
             }
             Err(error) => {
                 let _ = thread.join();
-                Err((Error::Other(error.to_string()), vec![]))
+                Err((error, vec![]))
             }
         }
     }

@@ -19,6 +19,35 @@ use args::{Args, Mode};
 use rs_l2tpd::blocking::Service;
 use std::io;
 
+fn host_requests(
+    service: &mut Service,
+) -> io::Result<tokio::sync::mpsc::Receiver<rs_l2tpd::ControlEvent>> {
+    service
+        .take_requests()
+        .map_err(io::Error::other)?
+        .ok_or_else(|| io::Error::other("host receiver unavailable"))
+}
+
+fn service_status(result: rs_l2tpd::Result<()>) -> u8 {
+    match result {
+        Ok(()) => 0,
+        Err(rs_l2tpd::Error::ReloadPanicked | rs_l2tpd::Error::RestartPanicked) => 2,
+        Err(error) => {
+            log::error!("service: {error}");
+            1
+        }
+    }
+}
+
+fn host_status(code: u8, joined: std::thread::Result<()>) -> u8 {
+    if joined.is_err() {
+        log::error!("host integration thread panicked");
+        1
+    } else {
+        code
+    }
+}
+
 fn main() -> std::process::ExitCode {
     std::process::ExitCode::from(run())
 }
@@ -145,10 +174,7 @@ fn run() -> u8 {
         service
             .set_store_capacity(capacity)
             .map_err(io::Error::other)?;
-        let requests = service
-            .take_requests()
-            .map_err(io::Error::other)?
-            .ok_or_else(|| io::Error::other("host receiver unavailable"))?;
+        let requests = host_requests(&mut service)?;
         let host = fdstore::worker(requests, service.control(), store)?;
         let convergence = service.converge();
         if convergence.is_ok() && !signals.stopping() {
@@ -184,19 +210,9 @@ fn run() -> u8 {
                     .map_err(Into::into)
             },
         );
-        let mut code = match convergence.and(result) {
-            Ok(()) => 0,
-            Err(rs_l2tpd::Error::ReloadPanicked | rs_l2tpd::Error::RestartPanicked) => 2,
-            Err(error) => {
-                log::error!("service: {error}");
-                1
-            }
-        };
+        let code = service_status(convergence.and(result));
         drop(service);
-        if host.join().is_err() {
-            log::error!("host integration thread panicked");
-            code = 1;
-        }
+        let code = host_status(code, host.join());
         completed = true;
         Ok(code)
     })();
@@ -384,3 +400,7 @@ mod stream_tests {
 #[cfg_attr(coverage_nightly, coverage(off))]
 #[path = "../../../tests/tools/syscall_barrier.rs"]
 mod syscall_barrier;
+
+#[cfg(all(test, feature = "fake-kernel"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod boundary_tests;

@@ -92,11 +92,7 @@ impl Loaded {
                 Err(e) => return Err(e.to_string()),
             };
             // TOML diagnostics include source excerpts, which could expose cookies.
-            let mut partial: PartialConfig =
-                toml::from_str(&text).map_err(|e: toml::de::Error| match e.span() {
-                    Some(span) => format!("invalid TOML document at byte {}", span.start),
-                    None => "invalid TOML document".into(),
-                })?;
+            let mut partial: PartialConfig = toml::from_str(&text).map_err(document_error)?;
             partial.set_source(path);
             Ok(Some(partial))
         })();
@@ -614,4 +610,29 @@ mod completion_tests {
         assert!(problems.is_empty());
         assert_eq!(config, Config::new());
     }
+}
+
+fn document_error(error: toml::de::Error) -> String {
+    // Source excerpts can contain cookies.
+    match error.span() {
+        Some(span) => format!("invalid TOML document at byte {}", span.start),
+        None => "invalid TOML document".into(),
+    }
+}
+
+/// spec: O5, C3, C6
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[test]
+fn document_diagnostics_without_a_span_do_not_include_source_text() {
+    let error: toml::de::Error = serde::de::Error::custom("cookie = 'secret value'");
+    assert!(error.span().is_none());
+    assert_eq!(document_error(error), "invalid TOML document");
+    let error = toml::from_str::<PartialConfig>("cookie = 'secret value'\nbroken = [")
+        .err()
+        .unwrap();
+    assert!(error.span().is_some());
+    let reported = document_error(error);
+    assert!(reported.starts_with("invalid TOML document at byte "));
+    assert!(!reported.contains("secret"));
 }

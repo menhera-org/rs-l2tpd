@@ -1,0 +1,3 @@
+m.ino() != before.st_ino
+===REPLACE===
+false

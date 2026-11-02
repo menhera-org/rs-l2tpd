@@ -200,10 +200,18 @@ pub fn prepare() -> io::Result<()> {
                 libc::signal(signal, libc::SIG_DFL);
             }
         }
-        libc::signal(libc::SIGPIPE, libc::SIG_IGN);
     }
-    Ok(())
+    ignore_pipe()
 }
+
+pub(super) fn ignore_pipe() -> io::Result<()> {
+    if unsafe { libc::signal(libc::SIGPIPE, libc::SIG_IGN) } == libc::SIG_ERR {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
+    }
+}
+
 impl Drop for Signals {
     fn drop(&mut self) {
         self.shared.pending.lock().unwrap().stopped = true;
@@ -555,6 +563,51 @@ mod libc_tests {
                 assert!(String::from_utf8_lossy(&output.stderr).contains("sigwait:"));
             }
             println!("LIBC_SIGNAL_CHECKED={case}");
+        }
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod pipe_error_tests {
+    use super::*;
+
+    /// spec: P4, P12, P26
+    #[test]
+    fn sigpipe_disposition_errors_are_returned_before_startup_or_exec() {
+        const CHILD: &str = "PHASE6_CHECKED_SIGPIPE";
+        if let Some(case) = std::env::var_os(CHILD) {
+            #[cfg(coverage_nightly)]
+            crate::syscall_fault::keep_profile_output();
+            crate::syscall_fault::on_exec_argument(
+                libc::SYS_rt_sigaction,
+                0,
+                libc::SIGPIPE as u32,
+                libc::EIO,
+            )()
+            .unwrap();
+            let error = if case == "direct" {
+                ignore_pipe()
+            } else {
+                prepare()
+            }
+            .unwrap_err();
+            assert_eq!(error.raw_os_error(), Some(libc::EIO));
+            println!(
+                "SIGPIPE_DISPOSITION_REFUSAL_CHECKED={}",
+                case.to_string_lossy()
+            );
+            return;
+        }
+        for case in ["direct", "prepare"] {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "signals::pipe_error_tests::sigpipe_disposition_errors_are_returned_before_startup_or_exec", "--nocapture"])
+                .env(CHILD, case).output().unwrap();
+            assert!(output.status.success(), "{output:?}");
+            assert!(
+                String::from_utf8_lossy(&output.stdout)
+                    .contains("SIGPIPE_DISPOSITION_REFUSAL_CHECKED=")
+            );
         }
     }
 }

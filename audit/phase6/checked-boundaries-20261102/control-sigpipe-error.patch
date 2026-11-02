@@ -1,0 +1,357 @@
+diff --git a/src/bin/rs-l2tpd/signals.rs b/src/bin/rs-l2tpd/signals.rs
+index c249cc6..bf2b879 100644
+--- a/src/bin/rs-l2tpd/signals.rs
++++ b/src/bin/rs-l2tpd/signals.rs
+@@ -200,10 +200,18 @@ pub fn prepare() -> io::Result<()> {
+                 libc::signal(signal, libc::SIG_DFL);
+             }
+         }
+-        libc::signal(libc::SIGPIPE, libc::SIG_IGN);
+     }
+-    Ok(())
++    ignore_pipe()
+ }
++
++pub(super) fn ignore_pipe() -> io::Result<()> {
++    if { let _ = unsafe { libc::signal(libc::SIGPIPE, libc::SIG_IGN) }; false } {
++        Err(io::Error::last_os_error())
++    } else {
++        Ok(())
++    }
++}
++
+ impl Drop for Signals {
+     fn drop(&mut self) {
+         self.shared.pending.lock().unwrap().stopped = true;
+@@ -279,6 +287,27 @@ mod tests {
+         shared.observe(Signal::SIGUSR2);
+         assert!(!shared.pending.lock().unwrap().reload);
+         assert!(!shared.pending.lock().unwrap().restart);
++        shared.pending.lock().unwrap().control = None;
++        let signals = Signals {
++            shared: Arc::new(shared),
++            collector: None,
++            forwarder: None,
++        };
++        let mut next = Runtime::with_kernel(
++            FakeKernel::new(2),
++            Box::new(IphostResolve::default()),
++            vec![],
++        )
++        .unwrap();
++        signals.attach(next.control());
++        assert!(matches!(
++            engine.block_on(async {
++                tokio::time::timeout(Duration::from_secs(5), next.next_event())
++                    .await
++                    .unwrap()
++            }),
++            ControlEvent::Shutdown
++        ));
+     }
+ }
+ 
+@@ -292,60 +321,74 @@ mod forwarder_tests {
+     /// spec: P12
+     #[test]
+     fn forwarder_retries_a_full_queue_and_delivers_after_capacity_returns() {
+-        let engine = tokio::runtime::Builder::new_current_thread()
+-            .enable_all()
+-            .build()
++        for signal in [Signal::SIGHUP, Signal::SIGUSR2] {
++            let engine = tokio::runtime::Builder::new_current_thread()
++                .enable_all()
++                .build()
++                .unwrap();
++            let _entered = engine.enter();
++            let mut runtime = Runtime::with_kernel(
++                FakeKernel::new(1),
++                Box::new(IphostResolve::default()),
++                vec![],
++            )
+             .unwrap();
+-        let _entered = engine.enter();
+-        let mut runtime = Runtime::with_kernel(
+-            FakeKernel::new(1),
+-            Box::new(IphostResolve::default()),
+-            vec![],
+-        )
+-        .unwrap();
+-        let control = runtime.control();
+-        for _ in 0..rs_l2tpd::runtime::QUEUE_CAPACITY {
+-            control.reload().unwrap();
+-        }
+-        let shared = Arc::new(Shared {
+-            pending: Mutex::new(Pending {
+-                control: Some(control),
+-                ready: true,
+-                ..Pending::default()
+-            }),
+-            wake: Condvar::new(),
+-            shutdown: AtomicBool::new(false),
+-            full_retries: Default::default(),
+-        });
+-        shared.observe(Signal::SIGUSR2);
+-        let forward = shared.clone();
+-        let thread = std::thread::spawn(move || forward.forward());
+-        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+-        while shared.full_retries.load(Ordering::Acquire) == 0 {
+-            assert!(
+-                std::time::Instant::now() < deadline,
+-                "forwarder did not retry the full queue"
+-            );
+-            std::thread::yield_now();
++            let control = runtime.control();
++            for _ in 0..rs_l2tpd::runtime::QUEUE_CAPACITY {
++                control.reload().unwrap();
++            }
++            let shared = Arc::new(Shared {
++                pending: Mutex::new(Pending {
++                    control: Some(control),
++                    ready: true,
++                    ..Pending::default()
++                }),
++                wake: Condvar::new(),
++                shutdown: AtomicBool::new(false),
++                full_retries: Default::default(),
++            });
++            shared.observe(signal);
++            let forward = shared.clone();
++            let thread = std::thread::spawn(move || forward.forward());
++            let deadline = std::time::Instant::now() + Duration::from_secs(5);
++            while shared.full_retries.load(Ordering::Acquire) == 0 {
++                assert!(
++                    std::time::Instant::now() < deadline,
++                    "forwarder did not retry the full queue"
++                );
++                std::thread::yield_now();
++            }
++            {
++                let pending = shared.pending.lock().unwrap();
++                assert_eq!(pending.reload, signal == Signal::SIGHUP);
++                assert_eq!(pending.restart, signal == Signal::SIGUSR2);
++            }
++            engine.block_on(async {
++                tokio::time::timeout(Duration::from_secs(5), async {
++                    for _ in 0..rs_l2tpd::runtime::QUEUE_CAPACITY {
++                        let event = runtime.next_event().await;
++                        assert!(matches!(event, ControlEvent::Reload { .. }));
++                        runtime.handle_event(event).unwrap();
++                    }
++                    let delivered = runtime.next_event().await;
++                    match signal {
++                        Signal::SIGHUP => assert!(matches!(delivered, ControlEvent::Reload { .. })),
++                        Signal::SIGUSR2 => assert!(matches!(delivered, ControlEvent::Restart)),
++                        _ => unreachable!(),
++                    }
++                })
++                .await
++                .unwrap();
++            });
++            {
++                let pending = shared.pending.lock().unwrap();
++                assert!(!pending.reload && !pending.restart);
++            }
++            shared.pending.lock().unwrap().stopped = true;
++            shared.wake.notify_all();
++            thread.join().unwrap();
++            assert!(!shared.observe(Signal::SIGTERM));
+         }
+-        assert!(shared.pending.lock().unwrap().restart);
+-        engine.block_on(async {
+-            tokio::time::timeout(Duration::from_secs(5), async {
+-                for _ in 0..rs_l2tpd::runtime::QUEUE_CAPACITY {
+-                    let event = runtime.next_event().await;
+-                    assert!(matches!(event, ControlEvent::Reload { .. }));
+-                    runtime.handle_event(event).unwrap();
+-                }
+-                assert!(matches!(runtime.next_event().await, ControlEvent::Restart));
+-            })
+-            .await
+-            .unwrap();
+-        });
+-        assert!(!shared.pending.lock().unwrap().restart);
+-        shared.pending.lock().unwrap().stopped = true;
+-        shared.wake.notify_all();
+-        thread.join().unwrap();
+-        assert!(!shared.observe(Signal::SIGTERM));
+     }
+ }
+ 
+@@ -354,6 +397,85 @@ mod forwarder_tests {
+ mod libc_tests {
+     use super::*;
+ 
++    /// spec: P12, P16
++    #[test]
++    fn drop_joins_present_workers_and_tolerates_absent_workers() {
++        for collector in [false, true] {
++            for forwarder in [false, true] {
++                let shared = Arc::new(Shared {
++                    pending: Mutex::new(Pending::default()),
++                    wake: Condvar::new(),
++                    shutdown: AtomicBool::new(false),
++                    full_retries: Default::default(),
++                });
++                let collector = collector.then(|| {
++                    let (ready, started) = std::sync::mpsc::sync_channel(1);
++                    let thread = std::thread::spawn(move || {
++                        let mask = set();
++                        mask.thread_block().unwrap();
++                        ready.send(()).unwrap();
++                        assert_eq!(wait(&mask).unwrap(), Signal::SIGTERM);
++                    });
++                    started.recv_timeout(Duration::from_secs(5)).unwrap();
++                    thread
++                });
++                let forwarder = forwarder.then(|| {
++                    let shared = shared.clone();
++                    std::thread::spawn(move || shared.forward())
++                });
++                drop(Signals {
++                    shared: shared.clone(),
++                    collector,
++                    forwarder,
++                });
++                assert!(shared.pending.lock().unwrap().stopped);
++            }
++        }
++    }
++
++    /// spec: P4, P12, P16, G14
++    #[test]
++    #[ignore = "exact cgroup pids.max of 2 or 3; run only this test in a disposable container or guest"]
++    fn thread_spawn_failures_leave_no_signal_threads() {
++        let expected = std::env::var("RS_L2TPD_SIGNAL_TASK_LIMIT")
++            .unwrap()
++            .parse::<usize>()
++            .unwrap();
++        assert!([2, 3].contains(&expected));
++        let group = std::env::var_os("RS_L2TPD_SIGNAL_TASK_CGROUP")
++            .map(std::path::PathBuf::from)
++            .unwrap_or_else(|| "/sys/fs/cgroup".into());
++        assert_eq!(
++            std::fs::read_to_string(group.join("pids.max"))
++                .unwrap()
++                .trim(),
++            expected.to_string()
++        );
++        let tasks = || std::fs::read_dir("/proc/self/task").unwrap().count();
++        assert_eq!(
++            tasks(),
++            2,
++            "fixture requires only libtest's main and worker threads"
++        );
++        let error = Signals::install()
++            .err()
++            .expect("task limit allowed both signal threads");
++        assert_eq!(error.raw_os_error(), Some(libc::EAGAIN));
++        assert_eq!(
++            tasks(),
++            2,
++            "failed installation left a signal thread behind"
++        );
++        assert_eq!(
++            std::fs::read_to_string(group.join("pids.peak"))
++                .unwrap()
++                .trim(),
++            expected.to_string(),
++            "fixture did not reach the selected failure stage"
++        );
++        println!("SIGNAL_TASK_LIMIT_CHECKED={expected} tasks=2");
++    }
++
+     /// spec: P4 P12 P16
+     #[test]
+     fn signal_errors_use_the_return_code_or_errno_as_required() {
+@@ -397,13 +519,28 @@ mod libc_tests {
+                 }
+             }
+             assert!(!current.contains(Signal::SIGUSR1));
+-            if case == "wait-error" {
++            if case == "wait-error" || case == "collector-error" {
+                 crate::syscall_fault::refuse(&[libc::SYS_rt_sigtimedwait], libc::EIO);
+-                assert_eq!(wait(&set()).unwrap_err().raw_os_error(), Some(libc::EIO));
++                if case == "wait-error" {
++                    assert_eq!(wait(&set()).unwrap_err().raw_os_error(), Some(libc::EIO));
++                } else {
++                    crate::logger::init(true);
++                    let signals = Signals::install().unwrap();
++                    let deadline = std::time::Instant::now() + Duration::from_secs(5);
++                    while !signals.stopping() {
++                        assert!(
++                            std::time::Instant::now() < deadline,
++                            "collector did not request shutdown"
++                        );
++                        std::thread::yield_now();
++                    }
++                    drop(signals);
++                    println!("COLLECTOR_ERROR_SHUTDOWN=1");
++                }
+             }
+             return;
+         }
+-        for case in ["delivery", "mask-error", "wait-error"] {
++        for case in ["delivery", "mask-error", "wait-error", "collector-error"] {
+             let output = std::process::Command::new(std::env::current_exe().unwrap())
+                 .args([
+                     "--exact",
+@@ -419,7 +556,58 @@ mod libc_tests {
+                 String::from_utf8_lossy(&output.stdout),
+                 String::from_utf8_lossy(&output.stderr)
+             );
++            if case == "collector-error" {
++                assert!(
++                    String::from_utf8_lossy(&output.stdout).contains("COLLECTOR_ERROR_SHUTDOWN=1")
++                );
++                assert!(String::from_utf8_lossy(&output.stderr).contains("sigwait:"));
++            }
+             println!("LIBC_SIGNAL_CHECKED={case}");
+         }
+     }
+ }
++
++#[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
++mod pipe_error_tests {
++    use super::*;
++
++    /// spec: P4, P12, P26
++    #[test]
++    fn sigpipe_disposition_errors_are_returned_before_startup_or_exec() {
++        const CHILD: &str = "PHASE6_CHECKED_SIGPIPE";
++        if let Some(case) = std::env::var_os(CHILD) {
++            #[cfg(coverage_nightly)]
++            crate::syscall_fault::keep_profile_output();
++            crate::syscall_fault::on_exec_argument(
++                libc::SYS_rt_sigaction,
++                0,
++                libc::SIGPIPE as u32,
++                libc::EIO,
++            )()
++            .unwrap();
++            let error = if case == "direct" {
++                ignore_pipe()
++            } else {
++                prepare()
++            }
++            .unwrap_err();
++            assert_eq!(error.raw_os_error(), Some(libc::EIO));
++            println!(
++                "SIGPIPE_DISPOSITION_REFUSAL_CHECKED={}",
++                case.to_string_lossy()
++            );
++            return;
++        }
++        for case in ["direct", "prepare"] {
++            let output = std::process::Command::new(std::env::current_exe().unwrap())
++                .args(["--exact", "signals::pipe_error_tests::sigpipe_disposition_errors_are_returned_before_startup_or_exec", "--nocapture"])
++                .env(CHILD, case).output().unwrap();
++            assert!(output.status.success(), "{output:?}");
++            assert!(
++                String::from_utf8_lossy(&output.stdout)
++                    .contains("SIGPIPE_DISPOSITION_REFUSAL_CHECKED=")
++            );
++        }
++    }
++}

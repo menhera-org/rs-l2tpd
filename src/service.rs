@@ -103,10 +103,7 @@ impl Service {
                 ));
             }
         };
-        if let Err(error) = startup_rx
-            .recv()
-            .unwrap_or_else(|error| Err(Error::Other(error.to_string())))
-        {
+        if let Err(error) = startup(startup_rx).and_then(std::convert::identity) {
             let _ = thread.join();
             let adopted = slot
                 .lock()
@@ -247,6 +244,12 @@ fn host_request<K: Kernel + 'static>(
         };
         let _ = runtime.handle_event(answer);
     }
+}
+
+pub(crate) fn startup<T>(receiver: std::sync::mpsc::Receiver<T>) -> Result<T> {
+    receiver
+        .recv()
+        .map_err(|error| Error::Other(error.to_string()))
 }
 
 enum OperatorRequest {
@@ -535,6 +538,15 @@ mod tests {
         )
         .map_err(|(error, _)| error)
         .unwrap()
+    }
+
+    /// spec: L8, L9, G14
+    #[test]
+    fn a_closed_startup_channel_returns_the_receive_error() {
+        let (sender, receiver) = std::sync::mpsc::sync_channel::<()>(1);
+        drop(sender);
+        assert!(matches!(startup(receiver), Err(Error::Other(message))
+            if message == std::sync::mpsc::RecvError.to_string()));
     }
 
     /// spec: L5, L7, L9, G14

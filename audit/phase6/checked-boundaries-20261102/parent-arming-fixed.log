@@ -1,0 +1,9 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-b10c87c66eae2ca6)
+
+running 1 test
+test daemon::parent_boundary_tests::parent_wait_and_readiness_failures_are_bounded_and_preserve_shutdown ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.54s
+

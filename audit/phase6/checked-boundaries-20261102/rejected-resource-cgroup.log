@@ -1,0 +1,26 @@
+6.8.0-147-generic
+
+running 1 test
+daemon: ERROR rs_l2tpd: opening kernel interfaces: EMFILE: Too many open files (os error 24); retrying
+daemon: INFO rs_l2tpd: kernel interfaces available
+daemon: INFO rs_l2tpd: ready pid=10
+daemon: INFO rs_l2tpd: shutdown complete
+test kernel_startup_recovers_after_its_descriptor_limit_is_restored ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 35 filtered out; finished in 1.01s
+
+
+running 1 test
+
+thread 'both_daemon_forks_report_task_limit_failures_without_starting_service_threads' (21) panicked at tests/process.rs:1775:9:
+limit=1: Output { status: ExitStatus(unix_wait_status(256)), stdout: "", stderr: "sh: 1: printf: printf: I/O error\n" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test both_daemon_forks_report_task_limit_failures_without_starting_service_threads ... FAILED
+
+failures:
+
+failures:
+    both_daemon_forks_report_task_limit_failures_without_starting_service_threads
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.02s
+

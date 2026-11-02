@@ -253,11 +253,16 @@ MAC changes after device removal, lifetime inputs, deletion recovery,
 stale completions, foreign-family parsing, PID-file inspection errors,
 resolver/host boundaries, installer/descriptor/reconciler failures,
 file races, probe I/O, competing names and late event/input boundaries:
-98.96% lines / 96.27% branches, leaving 90 lines and 69 branches. Its fresh collector includes
+the preceding report reached 98.96% lines / 96.27% branches. The new
+checked-boundary refactor reaches **99.18% lines / 96.68% branches**, leaving
+**71 lines and 61 outcomes**. Its separate fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
-production exclusions, mismatches or saturated regions. The checked-reply
-implementation fixes the denominators at 8,687 lines and 1,852 branches.
-Profiles from earlier production implementations are not merged.
+production exclusions, mismatches or saturated regions. The checked-boundary
+implementation has 8,705 lines and 1,840 outcomes. Profiles from earlier
+production implementations are not merged. Repository record
+`audit/phase6/checked-boundaries-20261102/README.md` records all thirteen
+required profiles and the new boundary tests; the fork-limit fixture is
+deferred after its setup failed.
 
 Signed code 1b3d876 passes fresh GNU live/Incus and three shipped-musl
 scenario/Incus pairs locally on Ubuntu 6.8.0-147. Profile exports use unique

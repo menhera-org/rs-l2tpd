@@ -345,7 +345,8 @@ impl<K: Kernel> Reconciler<K> {
         self.clear_swaps();
         let sids: Vec<u32> = self.sessions.keys().copied().collect();
         for sid in sids {
-            if self.sessions.contains_key(&sid) && !self.converge_session(sid) {
+            // Convergence can remove its own record, never a later snapshot entry.
+            if !self.converge_session(sid) {
                 self.incomplete = true;
             }
         }
@@ -373,7 +374,8 @@ impl<K: Kernel> Reconciler<K> {
         self.reindex();
         self.retire_sockets();
         self.resolvers.reload(&self.accepted, &self.wanted_tunnels);
-        !self.incomplete && self.tunnels.is_empty() && self.store.retiring.is_empty()
+        // Every local tunnel was removed above, including failed session deletions.
+        !self.incomplete && self.store.retiring.is_empty()
     }
 
     pub(crate) fn shutdown_deletions(&mut self) -> crate::Result<bool> {
