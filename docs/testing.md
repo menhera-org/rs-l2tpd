@@ -117,8 +117,8 @@ Resolved again on 2026-11-02 from the published Ubuntu updates/security
 `linux-image-generic` candidates and kernel.org releases and source
 indexes. The selection matches the preceding 23:11 UTC check. Mainline
 has advanced from the previously tested 7.3 to 7.4-rc1; its source comparison
-and both kernel builds are recorded; a fresh full matrix is in progress. P3
-remains open. Proposed packages do not
+and both kernel builds are recorded; the fresh full matrix passes on signed
+455eef7, with matching publication checks and empty source patches. Proposed packages do not
 replace the published targets:
 
 | Kernel | Rule | How it runs |
@@ -127,7 +127,7 @@ replace the published targets:
 | Ubuntu 26.04 `7.0.0-42-generic` (also 24.04's HWE kernel) | newer of the two latest LTS kernels | QEMU, the `vmlinuz` and modules unpacked from the `linux-image` package of the `ubuntu:26.04` image |
 | vanilla `6.8.12` (the last 6.8.y) | vanilla equivalent of the 24.04 kernel | QEMU, built from the kernel.org tarball with `x86_64_defconfig` plus L2TP |
 | vanilla `7.0.14` | vanilla equivalent of the 26.04 kernel | QEMU, built the same way |
-| mainline `v7.4-rc1` | newest mainline tag, retained by the November 2 recheck | Source compared; both builds pass; full matrix in progress |
+| mainline `v7.4-rc1` | newest mainline tag, retained by the November 2 recheck | Source compared; both builds and normal/clock/IPv6-absent profiles pass |
 
 [Per-target behavior and limitations](kernel-behavior.md) records the
 observed errnos, notification scope, fragmentation, container/manager

@@ -66,7 +66,7 @@ records, including ten-repetition qualification. Unprivileged Incus and
 the root system-unit sandbox have passing local records. The approved MAC
 and dependency-state contracts are applied. Broken `nix` signal wrappers
 use checked `libc` calls under the documented exception. The
-[latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-01.md) gives coverage
+[latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-02.md) gives coverage
 and the remaining clause/resource/event-cost proof. Fresh November 1
 coverage for iphost 0.4.4 and the boundary changes is **98.01% of lines and
 92.01% of branches**, leaving 173 lines and 148 branches. Recent test packages
@@ -76,11 +76,11 @@ descriptor handover and socket-family fallback; their deliberately broken
 controls fail.
 [Required-kernel behavior](docs/kernel-behavior.md) records each target's
 differences, source evidence and limitations. The checked reply decoder passes
-all thirteen profiles of the former 7.3 target snapshot. Request handling also has
+all thirteen profiles of the current required set, including 7.4-rc1. Request handling also has
 complete line/branch coverage after real buffer-force and I/O-fault checks.
 The global gates remain open. The November 2 publication recheck retains
-mainline 7.4-rc1. Its source comparison and both kernel builds are recorded;
-a fresh complete required-kernel matrix is running.
+mainline 7.4-rc1. Its source comparison, both builds and all required profiles
+pass; initial/final publication selections agree and source patches are empty.
 The known-gap tables describe historical commit `741117b`.
 
 ## Quick start

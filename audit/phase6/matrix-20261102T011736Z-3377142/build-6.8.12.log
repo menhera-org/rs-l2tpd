@@ -1,0 +1,16 @@
+#
+# configuration written to .config
+#
+#
+# configuration written to .config
+#
+  SYNC    include/config/auto.conf
+mkdir -p /build/tools/objtool && make O=/build subdir=tools/objtool --no-print-directory -C objtool 
+  INSTALL libsubcmd_headers
+  CALL    scripts/checksyscalls.sh
+Kernel: arch/x86/boot/bzImage is ready  (#1)
+source: linux-6.8.12.tar.xz; git-blob: 067ce98129c41dd71aebbab265d4268d4896d971
+config git-blob: 3049e795aab032629c19b070dbf08cdb25ec31a8
+image git-blob: 64200959b40087f4078479e9f6e035e34573c11b
+KERNEL_IMAGE=/home/dev/rs-l2tpd/target/phase6-kernels/linux-6.8.12-ipv6/arch/x86/boot/bzImage
+KERNEL_CONFIG=/home/dev/rs-l2tpd/target/phase6-kernels/linux-6.8.12-ipv6/.config

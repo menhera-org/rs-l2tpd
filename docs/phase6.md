@@ -28,17 +28,17 @@ the scenario suite below; read them before writing new scenarios.
 ## Execution status, 2026-11-02
 
 Work resumed from signed 455eef7 with a clean tree; both pending CI runs
-passed. A fresh publication check retains the five targets below. The RC
-source comparison is recorded across 43 relevant files; both RC variants
-have built and a complete required-kernel matrix is running. P3 remains
-open until those runs and their final publication check pass. Repository
-record `audit/phase6/mainline-rc-qualification-20261102/README.md` tracks
-the new scope. Local common CI gates pass; coverage is unchanged.
+passed. That frozen Rust/test source now passes all thirteen profiles of
+the current required set, including 7.4-rc1. Initial/final publication
+selections agree and both tracked-source patches are empty. Repository
+record `audit/phase6/matrix-20261102T011736Z-3377142/README.md` seals P3.
+The RC source comparison covers 43 relevant files, verified against both
+archives; both builds pass. Common CI gates pass; coverage is unchanged.
 
 Phase 6 remains open. The 23:11 UTC publication recheck selects mainline
 7.4-rc1, while the four Ubuntu/vanilla targets remain unchanged. The RC
-archive, both builds and source comparison are now verified; its live
-profiles remain pending. P3 is open again. The completed 2d5ae45 matrix retains its
+archive, both builds, source comparison and required live profiles now pass.
+The completed 2d5ae45 matrix retains its
 previous 7.3 snapshot; superseded results do not qualify the new target. The production reply decoder rejects malformed signed
 statuses without panicking and preserves valid errors, sequence checks and
 first-error precedence. Eight synthetic cases and eight failure controls
@@ -91,7 +91,7 @@ preceding custom-resolver report.
 Profiles from earlier production implementations are not merged. There
 are no production exclusions, profile mismatches or saturated regions.
 Complete clause/history/resource/event-cost proof and the 100% gate remain
-required. Repository file `audit/PHASE6_VERIFICATION_2026-11-01.md` records
+required. Repository file `audit/PHASE6_VERIFICATION_2026-11-02.md` records
 current gates and preserves earlier packages' scopes.
 
 ## Rules that hold for the whole phase

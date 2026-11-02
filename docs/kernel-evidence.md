@@ -3,6 +3,11 @@
 [Per-required-kernel behavior and execution scope](kernel-behavior.md)
 records the version-dependent observations and remaining proof.
 
+The current required set includes 7.4-rc1. Its full matrix passes on signed
+455eef7; repository record `audit/phase6/mainline-rc-qualification-20261102/`
+also retains exact archive/file identities and the 43-file source comparison.
+The evidence kinds below retain their distinct execution and source scope.
+
 [Documentation index](README.md) · Verification results (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`)
 
 `shared` means the same operation body runs on fake and real kernels in

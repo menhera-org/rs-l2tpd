@@ -3,24 +3,25 @@
 [Documentation index](README.md) · [Required targets](testing.md#kernel-targets) · [Kernel specification](spec/kernel.md) · [Evidence map](kernel-evidence.md)
 
 The 2026-11-02 publication recheck still selects **mainline 7.4-rc1**.
-Its source comparison and both variant builds are recorded, and a fresh
-complete required-kernel matrix is running. No RC boot result is claimed
-yet. P3 remains open. The
+Its source comparison, both builds and all thirteen required profiles pass
+on frozen Rust/test source 455eef7. Initial/final publication selections
+agree and both tracked-source patches are empty. The
 four Ubuntu/vanilla targets remain unchanged; the 7.3 results below are
 historical evidence. Repository record
-`audit/phase6/mainline-rc-20261101/README.md` identifies the change.
+`audit/phase6/matrix-20261102T011736Z-3377142/README.md` identifies the current result;
+`audit/phase6/mainline-rc-qualification-20261102/README.md` retains source/build evidence.
 
 This page records the behavior relevant to rs-l2tpd for **each required
 kernel**, resolved again on 2026-11-02. The specification defines the contract;
 this page distinguishes observations, source evidence and remaining tests.
-The completed 2d5ae45 matrix passed all five normal and clock profiles of its 7.3 snapshot,
+The completed 455eef7 matrix passes all five current normal and clock profiles,
 including H20 fragmentation and both 300-entry daemons. It also passes both
 IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
 publication checks select the same versions. Repository record
-`audit/phase6/matrix-20261101T205406Z-3041229/README.md` identifies the frozen
+`audit/phase6/matrix-20261102T011736Z-3377142/README.md` identifies the frozen
 implementation with kernel-selected inventories, complete VRF member tracking,
 checked libc signal calls, approved fixtures and the E27 correction.
-The matrix freezes signed source 2d5ae45, including the corrected netlink
+The matrix freezes signed source 455eef7, including the corrected netlink
 reply decoder, released iphost 0.4.4 and the standard-library boundaries. The positive resolver wire case and
 anonymous Reply validation pass on all five targets. Later test-only
 additions have separate qualification; no broader execution is inferred.
@@ -69,7 +70,7 @@ additional boots retain their separate scope from the complete matrix.
 | Ubuntu 26.04, package `7.0.0-42.42`, release `7.0.0-42-generic` | `EADDRNOTAVAIL` (99) | Delivered despite being from another namespace; local objects remain intact | Stock image/modules, `kho=off` for the cold-boot test; explanation below |
 | Vanilla `7.0.14` | `EADDRNOTAVAIL` (99) | Delivered despite being from another namespace; local objects remain intact | Built-in L2TP/VRF; no KHO override |
 | Historical mainline `v7.3`, release `7.3.0` | `EADDRNOTAVAIL` (99) | Confined to the object's namespace; foreign deletion produces no matching local event | Built-in L2TP/VRF; extra IPv6-absent boots below |
-| Mainline `v7.4-rc1` | Not run | Not run | Both builds pass; boot profiles pending |
+| Mainline `v7.4-rc1`, release `7.4.0-rc1` | `EADDRNOTAVAIL` (99) | No matching foreign deletion event in the five-second probe; local objects remain intact, consistent with namespace-scoped source | Built-in L2TP/VRF; normal, clock and both IPv6-absent profiles pass |
 
 The errno distinction was approved by the maintainer on 2026-10-31.
 Both precise refusals receive the existing transient policy: keep the
@@ -143,7 +144,7 @@ not mean that every possible failure mode was exercised on that target.
   profile passes all 27 scenarios with the H8 fixture correction, including
   capability and scale cases. The separate current clock profile also passes.
   No system-container profile has run on this target.
-- **Mainline `7.3.0`:** the empty VRF refuses with `EADDRNOTAVAIL`;
+- **Historical mainline `7.3.0`:** the empty VRF refuses with `EADDRNOTAVAIL`;
   commanded deletion events stay within the object's namespace. Session
   deletion is queued and dump traversal is identifier-based. L2TP/VRF are
   built in. In addition to the normal and clock profiles, the expanded
@@ -151,6 +152,13 @@ not mean that every possible failure mode was exercised on that target.
   cases and both scoped IPv6-absent boots pass.
   These bare-kernel guests provide no udev/networkd or unprivileged
   system-container result.
+- **Mainline `7.4.0-rc1`:** the empty VRF refuses with `EADDRNOTAVAIL`;
+  commanded deletion notifications remain confined to the object's namespace.
+  Session deletion is queued and dumps traverse identifiers. The full normal
+  and clock profiles, H20 fragmentation, H17 scale and both IPv6-absent boots
+  pass. L2TP/VRF are built in. Source changes to sequence snapshots, dump
+  queue accounting and neighbor tables retain the documented contracts.
+  No new udev/networkd or system-container result is inferred.
 
 ### Per-target execution coverage
 
@@ -168,10 +176,10 @@ signal-mask/wait refusals pass on all five required targets.
 | Vanilla `6.8.12` | 27 pass / pass | Pass | Pass | Pass | Not run |
 | Ubuntu `7.0.0-42-generic` | 27 pass / pass; cold-boot KHO override | Pass; missing-driver recovery also passes | Pass | Pass | Not run |
 | Vanilla `7.0.14` | 27 pass / pass | Pass | Pass | Pass | Not run |
-| Mainline `7.3.0` | 27 pass / pass | Pass | Pass | Pass | Not run |
+| Mainline `7.4.0-rc1` | 27 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the
-latest matrix (`audit/phase6/matrix-20261101T205406Z-3041229/README.md`).
+latest matrix (`audit/phase6/matrix-20261102T011736Z-3377142/README.md`).
 The approved explicit-MAC-authority case passes three fresh unprivileged
 Incus runs and the unmodified root-systemd guest. Their source and logs are
 in `audit/phase6/maintainer-decisions-20261101/README.md`; the earlier failure
@@ -185,7 +193,7 @@ execution summaries.
 
 ### Latest matrix counts and ownership observations
 
-The frozen `2d5ae45` guests run 22 serial library cases, 24 Linux cases,
+The frozen `455eef7` guests run 22 serial library cases, 24 Linux cases,
 five review cases, 65 ordinary binary cases and three privileged binary
 cases. Eight daemon fault paths include signal-mask and signal-wait refusals.
 All 29 process cases and 27 normal scenarios pass on each target. Selected
@@ -201,11 +209,11 @@ per target with controller-confirmed pause/resume.
 
 | Required target | Normal scenarios | H16 clock/pause | Closed and unregistered socket ownership |
 |---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 27 pass, 534.71 s | Pass, 65.05 s | Both families pass |
-| Vanilla `6.8.12` | 27 pass, 485.42 s | Pass, 64.35 s | Both families pass |
-| Ubuntu `7.0.0-42-generic` | 27 pass, 539.49 s | Pass, 64.49 s | Both families pass |
-| Vanilla `7.0.14` | 27 pass, 455.71 s | Pass, 64.17 s | Both families pass |
-| Mainline `7.3.0` | 27 pass, 442.03 s | Pass, 64.32 s | Both families pass |
+| Ubuntu `6.8.0-147-generic` | 27 pass, 591.13 s | Pass, 64.73 s | Both families pass |
+| Vanilla `6.8.12` | 27 pass, 518.87 s | Pass, 64.51 s | Both families pass |
+| Ubuntu `7.0.0-42-generic` | 27 pass, 509.01 s | Pass, 64.58 s | Both families pass |
+| Vanilla `7.0.14` | 27 pass, 470.51 s | Pass, 64.68 s | Both families pass |
+| Mainline `7.4.0-rc1` | 27 pass, 447.91 s | Pass, 64.48 s | Both families pass |
 
 After a local socket handle closes, its five socket operations return EBADF
 even while an external descriptor retains the tunnel. An unregistered

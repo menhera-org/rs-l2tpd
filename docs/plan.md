@@ -496,8 +496,9 @@ kernel target; the Incus/LXD scenario run, not skipped.
 
 **Status: in progress on 2026-11-02.** Work resumed from signed 455eef7;
 both pending CI runs passed and the publication selection is unchanged.
-The 7.4-rc1 source comparison and both variant builds are recorded, and a
-fresh complete required-kernel matrix is running. P3 remains open.
+The 7.4-rc1 source comparison, both variant builds and the fresh complete
+required-kernel matrix pass. Frozen 455eef7 passes all thirteen profiles;
+initial/final publication selections agree and source patches are empty.
 The current reply decoder rejects
 malformed signed statuses without panic while preserving valid kernel
 errors, sequence checks and first-error precedence. Repeated native,
@@ -510,8 +511,8 @@ boundary guards pass repeated GNU/musl/instrumented runs. Three real buffer-forc
 also pass.
 
 Mainline advanced to 7.4-rc1 at the pre-pause publication recheck. Its
-archive, both builds and source comparison are verified; live qualification
-remains pending, keeping P3 open. The completed 2d5ae45 run retains the previous
+archive, both builds, source comparison and required live profiles now pass.
+The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
 Fresh corrected-source coverage is **98.01% of lines and 92.01% of branches**:
@@ -520,7 +521,7 @@ branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files
 `audit/phase6/pidfile-inspection-errors-20261101/README.md` and
-`audit/PHASE6_VERIFICATION_2026-11-01.md` identify the source, controls and
+`audit/PHASE6_VERIFICATION_2026-11-02.md` identify the source, controls and
 scope. The following entries retain earlier measurements.
 
 **Initial status, 2026-10-31.** The strict source-link check

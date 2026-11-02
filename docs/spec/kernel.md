@@ -8,8 +8,8 @@ says what it is needed for and whether it is unconditional or conditional
 on a feature the configuration uses. Each fact names the source that
 establishes it. Line references are to the Ubuntu `6.8.0-147` tree (Linux
 6.8.12 plus Ubuntu backports); the facts were also checked in v7.0 and in
-the mainline tree after v7.3, and K5 in every release tag from v6.8 to
-v7.3. The verified range is the range this specification claims, not a
+v7.4-rc1, and K5 in every release tag from v6.8 to v7.3 and in v7.4-rc1.
+The verified range is the range this specification claims, not a
 statement about older kernels.
 
 ## Requirements

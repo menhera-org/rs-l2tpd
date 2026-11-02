@@ -65,10 +65,11 @@ Fresh coverage for iphost 0.4.4 and the boundary changes is **98.01% of lines
 and 92.01% of branches**, leaving 173 lines and 148 branches. Repeated model
 and GNU/musl tests include
 failure controls for session ownership and descriptor handover. The checked
-reply decoder passed all thirteen profiles of the former 7.3 snapshot. Request handling
+reply decoder passes all thirteen profiles of the current set, including 7.4-rc1. Request handling
 has complete line/branch coverage, including real buffer-force success. The global gates remain open. Mainline advanced to 7.4-rc1 during the
 pre-pause check. The November 2 recheck retains that selection; its source
-comparison and both kernel builds are recorded; a fresh full matrix is running.
+comparison, both builds and the fresh full matrix pass. The current record is
+repository file `audit/PHASE6_VERIFICATION_2026-11-02.md`.
 The specification's
 [known gaps](spec/README.md#known-gaps) describe historical commit
 `741117b`, removed in Phase 0. The interface page describes the target.

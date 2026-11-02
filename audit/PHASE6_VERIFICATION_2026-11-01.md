@@ -1,5 +1,9 @@
 # Phase 6 verification, 2026-11-01
 
+The [November 2 record](PHASE6_VERIFICATION_2026-11-02.md) supersedes the gate
+status below, including the completed 7.4-rc1 matrix. This file retains
+the earlier scope and detailed history.
+
 Work resumed on 2026-11-02 from signed `455eef7`. Both pending CI runs
 passed; a fresh publication check retains the same required selection.
 The [resumed RC record](phase6/mainline-rc-qualification-20261102/README.md)

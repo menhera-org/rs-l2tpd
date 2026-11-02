@@ -17,10 +17,10 @@ resolving. That failed wrapper produced no kernel result.
 
 Both RC kernel variants built successfully in disposable networkless
 containers. `build-ipv6.log` and `build-no-ipv6.log` retain their configuration
-and image digests. A fresh `tests/docker/run.sh matrix required` run is in
-progress. Its Ubuntu 6.8 normal and clock profiles passed; no pending RC
-guest result is counted as passed. P3 remains open until the complete
-required set passes and the final publication check agrees.
+and image digests. The fresh `tests/docker/run.sh matrix required` run
+[passes all thirteen profiles](../matrix-20261102T011736Z-3377142/README.md).
+Its final publication check agrees and tracked-source patches are empty.
+The earlier mainline 7.3 snapshot is now historical.
 
 The [source review](source-review.md) identifies the selected source
 contracts, complete file differences and exact identities. It preserves
