@@ -77,7 +77,12 @@ fn failed_tunnel_setup_closes_partial_sockets_and_keeps_sibling_progress() {
             1
         );
         super::run_for(&mut r, 1);
-        assert!(r.ready());
+        assert!(
+            r.ready(),
+            "operation={operation}, operations={:?}, next={:?}",
+            r.kernel().ops(),
+            r.next_deadline()
+        );
         let socket = r.kernel().tunnel_socket(10).unwrap();
         assert_eq!(r.kernel().binding(socket), Some(wan));
         assert!(r.kernel().connection(socket).is_some());

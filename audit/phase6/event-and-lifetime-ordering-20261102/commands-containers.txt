@@ -1,0 +1,18 @@
+set -eu
+record=$PWD/audit/phase6/event-and-lifetime-ordering-20261102
+for target in x86_64-unknown-linux-gnu x86_64-unknown-linux-musl; do
+ cargo test --locked --all-features --target "$target" --lib --bin rs-l2tpd --no-run > "$record/build-$target.log" 2>&1
+ unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label); if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/build-$target.log")
+ binary=$(awk -v label='Executable unittests src/bin/rs-l2tpd/main.rs (' '{at=index($0,label); if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/build-$target.log")
+ [ -x "$unit" ] && [ -x "$binary" ]
+ for repeat in 1 2 3; do
+  docker run --rm --privileged --network none -v "$PWD:$PWD:ro" --entrypoint /bin/sh nd-test:u2404 -c '
+   set -eu
+   uname -r
+   "$1" --test-threads=1 --nocapture
+   "$1" --ignored --exact kernel::linux::lifetime::tests::reader_and_failed_send_ordering_preserve_the_current_generation --test-threads=1 --nocapture
+   "$2" --test-threads=1 --nocapture
+  ' sh "$PWD/$unit" "$PWD/$binary" > "$record/container-$target-$repeat.log" 2>&1
+ done
+done
+printf 'ORDERING_THREE_GNU_AND_MUSL_LIBRARY_BINARY_AND_LIFETIME_REPETITIONS_RESULT=0\n'

@@ -720,39 +720,46 @@ mod tests {
         });
     }
 
-    /// spec: L7
+    /// spec: L7, L10, M4, G20
     #[test]
-    fn panic_completion_during_shutdown_is_reported_after_cleanup() {
+    fn reload_completions_during_shutdown_preserve_cleanup_and_configuration() {
         engine().block_on(async {
-            let (fd, _) = std::os::unix::net::UnixStream::pair().unwrap();
-            let mut runtime = runtime(vec![AdoptedSocket::new("malformed", fd.into())]);
-            runtime.set_store_capacity(1);
-            let mut service = Service::with_runtime(Config::new(), runtime)
-                .map_err(|(error, _)| error)
-                .unwrap();
-            let mut requests = service.take_requests().unwrap();
-            service.converge().await.unwrap();
-            let ControlEvent::ForgetSocket { id, .. } = requests.recv().await.unwrap() else {
-                panic!("expected withdrawal")
-            };
-            let control = service.control();
-            control.shutdown();
-            // The callback result arrives after shutdown began, while cleanup
-            // waits for a processing acknowledgement. It must not be discarded.
-            control
-                .send(ControlEvent::Service(Operation(Action::Reloaded {
-                    generation: 1,
-                    reload: Box::new(Ok),
-                    result: Err(Error::ReloadPanicked),
-                })))
-                .await
-                .unwrap();
-            control.socket_forgotten(id, true).await.unwrap();
-            assert!(matches!(
-                service.run(Ok, |_| Ok(())).await,
-                Err(Error::ReloadPanicked)
-            ));
-            assert_eq!(control.config(), Config::new());
+            for result in [
+                Err(Error::ReloadPanicked),
+                Ok(Err(Error::Other("controlled reload refusal".into()))),
+                Ok(Ok(config())),
+            ] {
+                let panicked = result.is_err();
+                let (fd, _) = std::os::unix::net::UnixStream::pair().unwrap();
+                let mut runtime = runtime(vec![AdoptedSocket::new("malformed", fd.into())]);
+                runtime.set_store_capacity(1);
+                let mut service = Service::with_runtime(Config::new(), runtime)
+                    .map_err(|(error, _)| error)
+                    .unwrap();
+                let mut requests = service.take_requests().unwrap();
+                service.converge().await.unwrap();
+                let ControlEvent::ForgetSocket { id, .. } = requests.recv().await.unwrap() else {
+                    panic!("expected withdrawal")
+                };
+                let control = service.control();
+                control.shutdown();
+                control
+                    .send(ControlEvent::Service(Operation(Action::Reloaded {
+                        generation: 1,
+                        reload: Box::new(Ok),
+                        result,
+                    })))
+                    .await
+                    .unwrap();
+                control.socket_forgotten(id, true).await.unwrap();
+                let result = service.run(Ok, |_| Ok(())).await;
+                if panicked {
+                    assert!(matches!(result, Err(Error::ReloadPanicked)));
+                } else {
+                    result.unwrap();
+                }
+                assert_eq!(control.config(), Config::new());
+            }
         });
     }
 

@@ -111,7 +111,7 @@ jobs:
           cargo test --locked --all-features --target x86_64-unknown-linux-musl --no-run
           tests/docker/baseline.sh "$RECORD"
 
-      - name: Check signal thread resource failures
+      - name: Check task resource failures
         timeout-minutes: 3
         run: |
           tests/docker/thread-limits.sh rs-l2tpd-audit-vm:local \

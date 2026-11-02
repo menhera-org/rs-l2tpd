@@ -1,21 +1,39 @@
 # Phase 6 verification, 2026-11-02
 
-Phase 6 remains incomplete. The required-kernel matrix now passes with
-mainline 7.4-rc1. The fresh checked-boundary collector reaches **99.18%
-lines / 96.74% branch outcomes**. It contains no preceding implementation's
-profiles and excludes no production code. The
-[November 1 record](PHASE6_VERIFICATION_2026-11-01.md) retains the detailed
-history, earlier scope and maintainer decisions.
+Phase 6 remains incomplete. The fresh event/lifetime collector reaches
+**99.28% lines / 97.12% branch outcomes**. It contains no preceding batch's
+profiles and excludes no production code. The required normal/boot
+profiles and a serial clock replay pass, with failed parallel clocks and
+QEMU experiments retained. The
+[November 1 record](PHASE6_VERIFICATION_2026-11-01.md) preserves earlier
+scope and maintainer decisions.
 
 | Requirement | Executed evidence | Still required |
 |---|---|---|
-| P1 rule/source maps | Common checks pass with 333 active rules cited and 43 kernel facts classified/cited; prior ten-run CI qualification is retained | Complete clause proof remains distinct from declaration traceability |
-| P2 scenarios | The checked-boundary source passes all 27 normal scenarios on each required kernel, including H20 fragmentation and H17 scale | Complete clause/history/resource/event-cost proof |
-| P3 required kernels | All thirteen fresh profiles pass; publication recheck selects the same five kernels; the batch records its production changes | Recheck whenever the published target set changes |
-| P4 coverage | 8,634/8,705 lines (99.18%); 1,780/1,840 outcomes (96.74%); no production exclusions | Cover the remaining 71 lines and 60 outcomes, then enforce the completed gate in CI |
-| P5 Incus/LXD | Fresh checked-boundary GNU and shipped-musl unprivileged system-container runs pass on Ubuntu 24.04 / 6.8.0-147 | Preserve that kernel/userspace scope |
-| P6 root sandbox | Fresh checked-boundary code passes the unmodified supplied unit on Ubuntu 24.04 / 6.8.0-147; three GNU manager/task-limit runs also pass | Other distribution userspaces remain untested |
-| P7 docs/CI | Current kernel selection, source/build comparison and scoped behavior are documented; strict maps and workflow timeouts remain active; the parser self-test is now in common CI | Final complete proof and 100% coverage enforcement |
+| P1 rule/source maps | Common checks cover 333 active rules and 43 kernel facts; prior ten-run CI qualification is retained | Complete clause proof remains distinct from declaration traceability |
+| P2 scenarios | All 27 normal cases pass on each required kernel, including H20 fragmentation and H17 scale | Complete clause/history/resource/event-cost proof |
+| P3 required kernels | Five normal profiles, three absence/recovery boots and five serial clock profiles pass; publication selection is unchanged | Resolve or bound the retained parallel clock/emulator failures; recheck published targets |
+| P4 coverage | 8,642/8,705 lines (99.28%); 1,787/1,840 outcomes (97.12%); no production exclusions | Cover the remaining 63 lines and 53 outcomes, then enforce 100% in CI |
+| P5 Incus/LXD | Fresh GNU unprivileged system-container run passes on Ubuntu 24.04 / 6.8.0-147; preceding shipped-musl scope is retained | Preserve that kernel/userspace scope |
+| P6 root sandbox | The unmodified supplied unit and three manager/task-limit runs pass; direct fork-limit cases pass three stable runs per libc | Other distribution userspaces remain untested |
+| P7 docs/CI | Kernel selection, behavior and limits are documented; strict maps and workflow timeouts remain active | Final complete proof and 100% coverage enforcement |
+
+The [event/lifetime record](phase6/event-and-lifetime-ordering-20261102/README.md)
+identifies signed base `0bb8100`, the test/helper changes and a fresh collector.
+It adds eight covered lines and seven outcomes. Ten instrumented ordinary
+suites, repeated GNU/musl models, final focused lifetime runs, GNU live/Incus,
+manager/task-limit and root-unit profiles pass. Three fresh buffer-force
+guests each export seven profiles. Seven negative controls reject their
+intended faults, including panics in either fork-error arm. All mutations
+are restored.
+
+The required normal guests ran the first lifetime fixture. Its later
+quiet-reader revision removes an incidental elapsed-time assertion and
+passes three GNU, three musl and three instrumented focused runs. No shipping
+timing assertion changed. All five serial clock replays pass with the
+shipping runner unchanged; the initial parallel failures and all rejected
+QEMU configurations remain failures. Passing replay does not prove ten-run
+determinism or establish the cause of the pre-userspace INT3 panic.
 
 The [checked-boundary record](phase6/checked-boundaries-20261102/README.md)
 records changed production code against signed `241bd51`, a separate

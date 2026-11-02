@@ -515,16 +515,18 @@ archive, both builds, source comparison and required live profiles now pass.
 The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
-The checked-boundary refactor has fresh coverage of **99.18% of lines and
-96.74% of branches**: 8,634/8,705 lines and 1,780/1,840 outcomes, leaving
-**71 lines and 60 outcomes**. It merges no profiles from the preceding
-implementation and excludes no production code. Shared checks, all thirteen
-required kernel profiles, repeated GNU/musl process suites, GNU Incus,
-manager/task-limit checks and the unmodified root sandbox pass. Five
-negative controls detect their mutations. Repository record
-`audit/phase6/checked-boundaries-20261102/README.md` retains the exact scope
-and deferred fork-limit fixture. Complete clause/history/resource/event-cost
-proof and the 100% gate remain open.
+The fresh event/lifetime collector covers **99.28% of lines and 97.12% of
+branch outcomes**: 8,642/8,705 lines and 1,787/1,840 outcomes, leaving
+**63 lines and 53 outcomes**. It merges no preceding profiles and excludes
+no production code. Shared checks, repeated GNU/musl models and task-limit
+cases, GNU Incus, manager checks and the unmodified root sandbox pass.
+Direct container limits now exercise both fork failures. Required normal
+and boot profiles pass, as does a serial clock replay; failed parallel
+clocks and rejected QEMU experiments remain evidence of unresolved execution
+sensitivity. Seven negative controls detect their mutations. Repository
+record `audit/phase6/event-and-lifetime-ordering-20261102/README.md` retains
+the exact scope. Complete clause/history/resource/event-cost proof and the
+100% gate remain open.
 
 The preceding competing-state/input batch reached 98.96%/96.27%, adding eight
 covered lines and eighteen outcomes. Its ten instrumented repetitions,

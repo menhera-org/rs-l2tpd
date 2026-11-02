@@ -1,0 +1,3 @@
+                match self.k.rename(registration.index, &temp) {
+===REPLACE===
+                match self.k.rename(self.sessions[sid].state.registration().unwrap().index, &temp) {

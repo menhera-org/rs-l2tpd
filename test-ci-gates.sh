@@ -16,7 +16,10 @@ cargo build --locked --lib --no-default-features
 cargo build --locked --lib --no-default-features --features serde
 cargo build --locked
 cargo test --locked --all-features
+# Child launches must not inherit concurrent fake-kernel descriptor owners.
+cargo test --locked --all-features --bin rs-l2tpd syscall_barrier:: -- --ignored --test-threads=1
 cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process --test startup
+cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd syscall_barrier:: -- --ignored --test-threads=1
 
 RULEMAP_STRICT=1 SRCLINK_STRICT=1 \
     cargo test --locked --all-features --test rulemap --test srclink -- --nocapture

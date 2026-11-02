@@ -59,3 +59,11 @@ mod startup_tests;
 #[allow(unsafe_code)]
 #[path = "../tests/kernel/linux.rs"]
 mod live_kernel_tests;
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[path = "../tests/tools/testdir.rs"]
+mod testdir;
+
+#[cfg(test)]
+use crate::kernel::linux::syscall_fault;

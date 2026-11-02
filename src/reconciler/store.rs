@@ -366,6 +366,7 @@ mod cost_tests {
     use super::*;
     use crate::kernel::fake::FakeKernel;
     use crate::reconciler::IphostResolve;
+    #[cfg(feature = "serde")]
     use nix::libc;
 
     /// spec: P14, L13, A10, G20

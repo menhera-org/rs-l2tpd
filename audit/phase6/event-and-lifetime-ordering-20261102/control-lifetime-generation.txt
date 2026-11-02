@@ -1,0 +1,7 @@
+            if state.generation == registration.generation {
+                state.end_generation();
+            }
+            return Proof::Lost;
+===REPLACE===
+            state.end_generation();
+            return Proof::Lost;

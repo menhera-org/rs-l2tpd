@@ -1,0 +1,24 @@
+features: all; target: x86_64-unknown-linux-musl
+command: cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on shared package cache
+    Blocking waiting for file lock on build directory
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+  Executable unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-9083d5af9e6a9ce9)
+  Executable unittests src/bin/rs-l2tpd/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-c20cc32e81f4ebb8)
+  Executable tests/scenarios/boot.rs (target/x86_64-unknown-linux-musl/debug/deps/boot_scenarios-376640c5139ca5c3)
+  Executable tests/kernel/fake.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_fake-077fa5dad28d0edd)
+  Executable tests/kernel/linux.rs (target/x86_64-unknown-linux-musl/debug/deps/kernel_linux-45b4f4ad998d7fb2)
+  Executable tests/process.rs (target/x86_64-unknown-linux-musl/debug/deps/process-a491d94669cc0da7)
+  Executable tests/kernel/review.rs (target/x86_64-unknown-linux-musl/debug/deps/review_kernel-f5f6e370b66ef02f)
+  Executable tests/tools/rulemap.rs (target/x86_64-unknown-linux-musl/debug/deps/rulemap-3191d92f25b95bcb)
+  Executable tests/rules/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rules-6bac0a8aabc1ed31)
+  Executable tests/scenarios/main.rs (target/x86_64-unknown-linux-musl/debug/deps/scenarios-2e14070240a31c16)
+  Executable tests/service.rs (target/x86_64-unknown-linux-musl/debug/deps/service-13360371db1f6796)
+  Executable tests/tools/srclink.rs (target/x86_64-unknown-linux-musl/debug/deps/srclink-127a0cb94f31b733)
+  Executable tests/startup.rs (target/x86_64-unknown-linux-musl/debug/deps/startup-771db3f9c1fe481a)
+  Executable tests/kernel/store.rs (target/x86_64-unknown-linux-musl/debug/deps/store_kernel-6959fd5ad0be8b55)
+  Executable tests/scenarios/systemd.rs (target/x86_64-unknown-linux-musl/debug/deps/systemd_scenarios-4e715c38935cc6cd)

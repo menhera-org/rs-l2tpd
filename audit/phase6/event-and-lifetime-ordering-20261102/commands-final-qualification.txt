@@ -1,0 +1,26 @@
+Final shared check:
+./test-ci-gates.sh
+
+Optional library features:
+cargo test --locked --no-default-features --lib
+cargo test --locked --no-default-features --features serde --lib
+
+Final GNU/musl model and calibration repetitions, three per target:
+cargo test --locked --all-features --target TARGET --lib --bin rs-l2tpd
+cargo test --locked --all-features --target TARGET --lib --bin rs-l2tpd syscall_barrier:: -- --ignored --test-threads=1
+
+Fresh collector: target/phase6-coverage-event-ordering-20261102
+Toolchain: nightly-2026-10-28; cargo-llvm-cov 0.9.1
+Final instrumented ordinary suites: TEST_SEED=1 through 10
+cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report
+
+Serial calibrations, separately for --lib and --bin rs-l2tpd:
+cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --lib --branch --no-report -- syscall_barrier:: --ignored --test-threads=1
+
+Reports:
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path EXPORT
+
+Standalone inheritance witness, GNU and musl:
+rustc --edition 2024 -D warnings --target TARGET --crate-name descriptor_inheritance_witness descriptor-inheritance-witness.rs.txt -o WITNESS
+WITNESS

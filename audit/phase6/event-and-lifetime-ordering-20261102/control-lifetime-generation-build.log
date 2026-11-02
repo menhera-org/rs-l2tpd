@@ -1,0 +1,3 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+  Executable unittests src/lib.rs (target/debug/deps/rs_l2tpd-33c7dac59ac6b88b)

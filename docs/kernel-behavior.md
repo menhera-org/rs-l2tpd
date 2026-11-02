@@ -12,6 +12,17 @@ retains its source changes and scope. The per-kernel distinctions below
 remain observed; ACK-only exchanges now explicitly reject unexpected data
 as an uncertain transport outcome.
 
+The subsequent event/lifetime batch retains passing normal/boot profiles
+on each required target. All five clock profiles pass a serial replay
+with the shipping runner unchanged. Its earlier parallel launch fails
+two clocks: Ubuntu 7.0 panics before userspace, and vanilla 6.8 exceeds
+the existing retry-interval assertion. Single-thread and one-CPU QEMU
+experiments fail scale and are rejected. No timing threshold changed.
+Repository record `audit/phase6/event-and-lifetime-ordering-20261102/README.md`
+retains all attempts; the replay does not establish determinism or resolve
+the suspected emulator fault. Final focused lifetime tests pass repeated
+GNU/musl runs; normal guests retain their earlier fixture revision.
+
 The 2026-11-02 publication recheck still selects **mainline 7.4-rc1**.
 Its source comparison, both builds and all thirteen required profiles pass
 on frozen Rust/test source 455eef7. Initial/final publication selections

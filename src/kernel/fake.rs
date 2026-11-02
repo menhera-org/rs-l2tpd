@@ -1221,4 +1221,60 @@ mod ownership_tests {
             "replacement"
         );
     }
+
+    /// spec: S20, S28, P14, K16, K35
+    #[cfg(feature = "serde")]
+    #[test]
+    fn adoption_without_a_reported_creation_name_never_invents_an_owned_name() {
+        for matched in [false, true] {
+            let mut k = FakeKernel::new(42);
+            let socket = k.create_socket(Family::V6, 10, 10).unwrap();
+            k.register_tunnel(socket, 10, 10).unwrap();
+            let index = k.foreign_session(SessionInfo::new(
+                10,
+                100,
+                if matched { 100 } else { 101 },
+                Default::default(),
+                Default::default(),
+                Some(L2tpIfName::new("foreign").unwrap()),
+            ));
+            // Defensive input fixture: the report lacks its stored creation name.
+            k.sessions.get_mut(&(10, 100)).unwrap().info.ifname = None;
+            let fd = k.clone_fd(socket).unwrap();
+            let mut r = crate::reconciler::Reconciler::new(
+                k,
+                Box::new(crate::reconciler::IphostResolve::default()),
+            );
+            r.adopt(10, fd).unwrap();
+            let config = toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nip_version='V6'\nremote_addr='2001:db8::2'\n[sessions.s]\ntunnel_name='a'\nsession_id=100\ninterface_name='wanted'\n").unwrap();
+            let applied = r.reconcile(config);
+            assert_eq!(
+                applied,
+                matched,
+                "matched={matched}: {:?}",
+                r.kernel().ops()
+            );
+            assert!(!r.kernel().ops().iter().any(|op| op.starts_with("rename ")));
+            assert!(
+                !r.kernel()
+                    .ops()
+                    .iter()
+                    .any(|op| op.starts_with("delete-name "))
+            );
+            if matched {
+                assert_eq!(
+                    r.kernel_mut().session(10, 100).unwrap().unwrap().ifname(),
+                    None
+                );
+                assert_eq!(
+                    r.kernel().link(index).unwrap().name().to_string_lossy(),
+                    "foreign"
+                );
+            } else {
+                assert!(r.kernel().ops().iter().any(|op| op == "delete 10 100"));
+                r.kernel_mut().tick();
+                assert!(r.kernel_mut().session(10, 100).unwrap().is_none());
+            }
+        }
+    }
 }

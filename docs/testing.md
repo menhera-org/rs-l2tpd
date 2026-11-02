@@ -253,16 +253,20 @@ MAC changes after device removal, lifetime inputs, deletion recovery,
 stale completions, foreign-family parsing, PID-file inspection errors,
 resolver/host boundaries, installer/descriptor/reconciler failures,
 file races, probe I/O, competing names and late event/input boundaries:
-the preceding report reached 98.96% lines / 96.27% branches. The new
-checked-boundary refactor reaches **99.18% lines / 96.74% branches**, leaving
-**71 lines and 60 outcomes**. Its separate fresh collector includes
-native models, GNU live/Incus, manager and thread-limit profiles, with no
-production exclusions, mismatches or saturated regions. The checked-boundary
-implementation has 8,705 lines and 1,840 outcomes. Profiles from earlier
-production implementations are not merged. Repository record
-`audit/phase6/checked-boundaries-20261102/README.md` records all thirteen
-required profiles and the new boundary tests; the fork-limit fixture is
-deferred after its setup failed.
+the checked-boundary report reached 99.18% lines / 96.74% branch outcomes.
+The fresh event/lifetime collector reaches **99.28% lines / 97.12% outcomes**:
+8,642/8,705 lines and 1,787/1,840 outcomes, leaving **63 lines and 53 outcomes**.
+It includes native models, GNU live/Incus, manager/task-limit profiles and
+three buffer-force guests, with no production exclusions, mismatches or
+saturated regions. Moving shared test helpers changes source locations;
+profiles from preceding collectors are not merged. Repository record
+`audit/phase6/event-and-lifetime-ordering-20261102/README.md` records normal
+and boot results on the required targets, a passing serial clock replay,
+and the retained failed parallel clock and QEMU experiments. Direct
+container limits now exercise both fork failures; three stable GNU and
+three stable musl repetitions pass. The common CI script runs tracer
+calibrations explicitly and serially: a child before exec can otherwise
+retain descriptors belonging to concurrent fake-kernel cases.
 
 Signed code 1b3d876 passes fresh GNU live/Incus and three shipped-musl
 scenario/Incus pairs locally on Ubuntu 6.8.0-147. Profile exports use unique

@@ -56,6 +56,7 @@ fn config() -> Config {
 }
 
 /// spec: L9, T1, T21, M3, G8
+#[cfg(feature = "serde")]
 #[test]
 fn unapplied_socket_operations_are_reported_without_gating_peer_availability() {
     let engine = engine();
@@ -1096,6 +1097,41 @@ fn shutdown_ignores_an_outstanding_tunable_acknowledgement() {
             assert!(r.reconciler.kernel().ops().is_empty());
             assert!(r.outgoing.is_empty());
             finish(&mut r);
+        }
+    });
+}
+
+/// spec: A6, E20, E21, L5, G20
+#[test]
+fn both_subscription_forwarders_stop_when_the_event_receiver_is_closed() {
+    engine().block_on(async {
+        for loss in [false, true] {
+            let mut runtime = runtime();
+            runtime.rx.close();
+            let kernel = runtime.reconciler.kernel_mut();
+            if loss {
+                kernel.set_monitor_capacity(0);
+                kernel.set_l2tp_capacity(0);
+            }
+            kernel.add_link("closed-queue", false);
+            let socket = kernel.operator_replace_tunnel(10, 99);
+            for task in runtime.tasks.drain(..) {
+                tokio::time::timeout(Duration::from_secs(5), task)
+                    .await
+                    .unwrap()
+                    .unwrap();
+            }
+            assert!(
+                runtime
+                    .control
+                    .shared
+                    .loss
+                    .iter()
+                    .all(|lost| !lost.load(Ordering::Acquire))
+            );
+            assert!(runtime.rx.try_recv().is_err());
+            runtime.reconciler.kernel_mut().close(socket);
+            finish(&mut runtime);
         }
     });
 }

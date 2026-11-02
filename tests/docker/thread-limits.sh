@@ -1,5 +1,5 @@
 #!/bin/sh
-# Refuse each signal-thread creation with a real container task limit.
+# Refuse signal-thread creation and both daemon forks with container task limits.
 set -eu
 [ "$#" = 4 ] || { echo "usage: $0 IMAGE BINARY RECORD PROFILES" >&2; exit 2; }
 image=$1; binary=$2; record=$3; profiles=$4
@@ -24,25 +24,33 @@ cleanup() {
 trap cleanup 0
 trap 'exit 130' INT
 trap 'exit 143' TERM
-for limit in 1 2; do
-    name=rs-l2tpd-thread-limit-$$-$limit
-    pattern=thread-$$-$limit-%p-%m.profraw
-    printf 'command: timeout 60 docker create --network none --init=false --pids-limit %s IMAGE DAEMON; timeout 20 docker start --attach NAME\n' "$limit" > "$record/limit-$limit.log"
+for mode in thread fork; do
+    if [ "$mode" = thread ]; then set -- --foreground; else set --; fi
+    for limit in 1 2; do
+    name=rs-l2tpd-$mode-limit-$-$limit
+    pattern=$mode-$-$limit-%p-%m.profraw
+    if [ "$mode" = thread ]; then log=$record/limit-$limit.log; else log=$record/fork-limit-$limit.log; fi
+    printf 'command: timeout 60 docker create --network none --init=false --pids-limit %s IMAGE DAEMON; timeout 20 docker start --attach NAME\n' "$limit" > "$log"
     timeout 60 docker create --name "$name" --network none --init=false --pids-limit "$limit" \
         --mount "type=bind,source=$binary,target=/daemon,readonly" \
         --mount "type=bind,source=$record/config.toml,target=/config.toml,readonly" \
         --mount "type=bind,source=$profiles,target=/profiles" \
         --env "LLVM_PROFILE_FILE=/profiles/$pattern" --entrypoint /daemon "$image" \
-        --foreground --config /config.toml --config-dir /absent --pid-file /probe.pid \
-        >> "$record/limit-$limit.log" 2>&1
+        "$@" --config /config.toml --config-dir /absent --pid-file /probe.pid \
+        >> "$log" 2>&1
     result=0
-    timeout 20 docker start --attach "$name" >> "$record/limit-$limit.log" 2>&1 || result=$?
-    cat "$record/limit-$limit.log"
+    timeout 20 docker start --attach "$name" >> "$log" 2>&1 || result=$?
+    cat "$log"
     [ "$result" = 1 ] || { echo "unexpected exit: $result" >&2; exit 1; }
-    grep -q 'os error 11' "$record/limit-$limit.log"
-    if grep -q 'opening kernel interfaces\|ready pid=\|panicked' "$record/limit-$limit.log"; then exit 1; fi
-    printf 'THREAD_LIMIT_CHECKED=%s\n' "$limit"
+    grep -q 'os error 11' "$log"
+    if grep -Eq 'opening kernel interfaces|ready pid=|panicked' "$log"; then exit 1; fi
+    if [ "$mode" = thread ]; then
+        printf 'THREAD_LIMIT_CHECKED=%s\n' "$limit"
+    else
+        printf 'FORK_LIMIT_CHECKED=%s\n' "$limit"
+    fi
     docker rm "$name" >> "$record/cleanup.log" 2>&1
     name=
+    done
 done
-printf 'THREAD_LIMIT_RESULT=0\n' | tee "$record/result.log"
+printf 'THREAD_LIMIT_RESULT=0\nFORK_LIMIT_RESULT=0\n' | tee "$record/result.log"

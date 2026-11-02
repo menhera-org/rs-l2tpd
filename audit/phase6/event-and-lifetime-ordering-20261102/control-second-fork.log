@@ -1,0 +1,18 @@
+command: timeout 60 docker create --network none --init=false --pids-limit 1 IMAGE DAEMON; timeout 20 docker start --attach NAME
+2b614f08915df1a03a34cec15fcea22c81346e2c36750dac37e2039f93c2bed4
+ERROR rs_l2tpd: Resource temporarily unavailable (os error 11)
+THREAD_LIMIT_CHECKED=1
+command: timeout 60 docker create --network none --init=false --pids-limit 2 IMAGE DAEMON; timeout 20 docker start --attach NAME
+447552b5cc49537dd2bc5b13f78dedb7aaea249c3795dfa696cee1d2d872d41f
+ERROR rs_l2tpd: Resource temporarily unavailable (os error 11)
+THREAD_LIMIT_CHECKED=2
+command: timeout 60 docker create --network none --init=false --pids-limit 1 IMAGE DAEMON; timeout 20 docker start --attach NAME
+d90e104e59dff2d94c4d15ca05ce5daba9557f519776e9b8794b55f3cf09fdcc
+ERROR rs_l2tpd: Resource temporarily unavailable (os error 11)
+FORK_LIMIT_CHECKED=1
+command: timeout 60 docker create --network none --init=false --pids-limit 2 IMAGE DAEMON; timeout 20 docker start --attach NAME
+2d650939f6a2fdb5db8c9c70edc23a6e2402ea8710aa8b44b3148444b0a8aac9
+
+thread 'main' (7) panicked at src/bin/rs-l2tpd/daemon.rs:43:23:
+controlled second-fork failure
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

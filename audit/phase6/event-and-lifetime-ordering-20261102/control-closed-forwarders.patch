@@ -1,0 +1,13 @@
+diff --git a/src/runtime.rs b/src/runtime.rs
+index 9e521ba..fdfad0a 100644
+--- a/src/runtime.rs
++++ b/src/runtime.rs
+@@ -408,7 +408,7 @@ impl<K: Kernel + 'static> Runtime<K> {
+                             .try_send(ControlEvent::Kernel { source, notice })
+                             .is_err()
+                     {
+-                        if control.tx.is_closed() {
++                        if false {
+                             break;
+                         }
+                         control.shared.loss[i].store(true, Ordering::Release);

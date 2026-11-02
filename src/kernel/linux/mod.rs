@@ -17,6 +17,12 @@ mod socket;
 #[path = "../../../tests/tools/syscall_fault.rs"]
 pub(crate) mod syscall_fault;
 
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[allow(unsafe_code)]
+#[path = "../../../tests/tools/syscall_barrier.rs"]
+pub(crate) mod syscall_barrier;
+
 use std::collections::HashMap;
 use std::io;
 use std::net::IpAddr;

@@ -27,133 +27,37 @@ the scenario suite below; read them before writing new scenarios.
 
 ## Execution status, 2026-11-02
 
-The checked-boundary batch after signed 241bd51 uses a fresh collector:
-**8,634/8,705 lines (99.18%)** and **1,780/1,840 outcomes (96.74%)**.
-Its shared gates, ten instrumented repetitions, repeated GNU/musl process
-suites, all thirteen required kernel profiles, GNU Incus, manager/task-limit
-runs and unmodified root systemd sandbox pass. Five restored negative
-controls fail as intended. **71 lines and 60 outcomes remain uncovered.**
-Repository record `audit/phase6/checked-boundaries-20261102/README.md`
-separates those results from earlier implementation profiles and retains
-the rejected fork-limit fixture. Phase 6 remains open.
+Phase 6 remains open. Signed `0bb8100` passes both CI jobs and CodeQL.
+The subsequent event/lifetime collector covers **8,642/8,705 lines (99.28%)**
+and **1,787/1,840 outcomes (97.12%)**, leaving **63 lines and 53 outcomes**.
+It excludes no production code and merges no preceding profiles. The
+required set remains Ubuntu 6.8.0-147.147 and 7.0.0-42.42, vanilla 6.8.12
+and 7.0.14, and mainline 7.4-rc1.
 
-The following records describe earlier qualified snapshots.
+The batch adds controlled reader/reopen/generation races, closed queues,
+shutdown reload completions, repeated conflicts and defensive adoption/
+rename cases. Ten instrumented suites, repeated GNU/musl models, GNU live
+and Incus, manager/task-limit checks, the unmodified root systemd unit and
+three GNU buffer-force guests pass. Direct container limits exercise both
+fork failures; three stable repetitions per libc pass. Seven mutation
+controls reject their intended faults. Sharing test helpers changes source
+locations, so these figures come from a fresh collector.
 
-Work resumed from signed 455eef7 with a clean tree; both pending CI runs
-passed. That frozen Rust/test source now passes all thirteen profiles of
-the current required set, including 7.4-rc1. Initial/final publication
-selections agree and both tracked-source patches are empty. Repository
-record `audit/phase6/matrix-20261102T011736Z-3377142/README.md` seals P3.
-The RC source comparison covers 43 relevant files, verified against both
-archives; both builds pass. The integrated resolver/event/host tests raise
-coverage, together with the installer/descriptor/reconciler batch and
-file-race/inheritance/shutdown, probe/event, ownership and competing-state/input
-cases, to 98.96% lines and 96.27% branches.
-K41's strengthened listener
-control passes all five required kernels and rejects a broken listener.
+Required normal/boot profiles and a serial replay of all five clock
+profiles pass. The earlier parallel launch fails two clocks, and QEMU
+single-thread/one-CPU experiments fail scale. Those attempts remain in
+the record; the shipping runner and timing assertions are unchanged.
+The passing replay does not establish determinism or resolve the suspected
+emulator fault. Final focused lifetime repetitions qualify the later
+quiet-reader fixture; normal guests retain its earlier revision.
 
-Phase 6 remains open. The 23:11 UTC publication recheck selects mainline
-7.4-rc1, while the four Ubuntu/vanilla targets remain unchanged. The RC
-archive, both builds, source comparison and required live profiles now pass.
-The completed 2d5ae45 matrix retains its
-previous 7.3 snapshot; superseded results do not qualify the new target. The production reply decoder rejects malformed signed
-statuses without panicking and preserves valid errors, sequence checks and
-first-error precedence. Eight synthetic cases and eight failure controls
-are qualified in `audit/phase6/netlink-reply-state-20261101/`.
-
-Frozen signed source 2d5ae45 passed all thirteen profiles of the earlier target snapshot
-with released iphost 0.4.4. All five targets pass normal and clock profiles;
-both IPv6-absent boots and missing-driver recovery pass. Its 22 serial
-library cases include controlled I/O and synthetic socket-error guards. Initial/final
-publication selections agree and source patches are empty. Repository
-record `audit/phase6/matrix-20261101T205406Z-3041229/` seals the result.
-The checked-reply implementation also has passing local GNU/musl, Incus,
-manager, thread-limit and unmodified root-unit results on Ubuntu 6.8.0-147.
-Later signed code 1b3d876 passes fresh GNU live/Incus and three stable-musl
-scenario/Incus pairs. Independent profile transport preserves earlier
-exports; `audit/phase6/current-head-qualification-20261101/` records the fix,
-rejected attempt and successful collections. Signed 419c9b1 also passes
-three GNU manager/task-limit repetitions and the unmodified root-unit
-sandbox; `audit/phase6/final-sandbox-20261101/` records the exact scope.
-
-Test packages qualify request I/O errors and real buffer-force
-success, service queue ordering, reconciler record/retirement guards and
-runtime/socket error boundaries, deferred MAC changes after device removal
-and lifetime input/state boundaries. The latest tests add missing-session
-recovery, unsupported tunnel-deletion reporting, stale completions and
-foreign-family parsing. The custom resolver's default capacity hook also
-passes active-watch and cleanup-history assertions. PID-file refusals pass
-repeated GNU/musl runs and CLI-only boots on all five matrix kernels; that
-profile records 65 ordinary tests and five ignored cases per target.
-Each passes ten native/instrumented model runs, three musl model runs,
-common gates, Rust 1.89 and additional musl architecture compile checks.
-Three force guests export seven profiles each. Request handling covers
-156/156 lines and 34/34 branches; socket handling covers 103/103 lines and
-12/12 branches. The records identify each control and
-the exact live or fake scope:
-`audit/phase6/netlink-io-faults-20261101/`,
-`audit/phase6/service-queue-guards-20261101/`,
-`audit/phase6/reconciler-record-guards-20261101/`,
-`audit/phase6/error-boundaries-20261101/`,
-`audit/phase6/removed-device-mac-20261101/`,
-`audit/phase6/lifetime-completion-20261101/`,
-`audit/phase6/deletion-and-parser-20261101/`,
-`audit/phase6/resolver-default-capacity-20261101/` and
-`audit/phase6/pidfile-inspection-errors-20261101/`.
-
-The current collector reports **98.96% of production lines and 96.27% of
-branches**: 8,597/8,687 lines and 1,783/1,852 branches, leaving **90 lines
-and 69 branches**. Production bodies and previous mappings remain unchanged.
-One additional deserializer instantiation brings the mapping count to 4,332.
-Repository records
-`audit/phase6/resolver-boundaries-20261102/` and
-`audit/phase6/coverage-batch-20261102/` and
-`audit/phase6/file-races-and-shutdown-20261102/` retain the exact scopes and controls.
-Profiles from earlier production implementations are not merged. There
-are no production exclusions, profile mismatches or saturated regions.
-Complete clause/history/resource/event-cost proof and the 100% gate remain
-required. Repository file `audit/PHASE6_VERIFICATION_2026-11-02.md` records
-current gates and preserves earlier packages' scopes.
-
-The larger follow-on batch passes its final five-kernel profiles, ten
-instrumented fake repetitions, three musl model repetitions, GNU/musl
-container repetitions and three failure controls. It covers deterministic
-file growth/removal and PID symlink races, metadata refusals, descriptor
-duplication/inheritance and daemon startup/shutdown errors. Its test-only
-syscall barrier uses the approved libc exception for a broken `nix`
-syscall-info wrapper. Fork-based library fixtures execute separately in the
-serial live profile. The full 100% gate and complete clause proof remain open.
-
-The probe/event batch adds seven controlled I/O failures, a deterministic
-probe-exit race, collector-error shutdown, staging-name observations and
-repeated address/member-removal checks. Its five required-kernel binary
-profiles, three GNU and three musl container repetitions, ten instrumented
-fake runs and three failure controls pass. It adds 18 covered lines and 11
-branch outcomes without changing production mappings or exclusions.
-Repository record `audit/phase6/probe-and-event-boundaries-20261102/`
-also records passing push CI and CodeQL for signed 449c751.
-
-The signal/ownership batch adds eight covered lines and seventeen outcomes.
-Its signal and tracer fixtures pass all five required binary profiles;
-final model/daemon and process suites pass ten instrumented repetitions,
-with GNU/musl container checks and eight failure controls. Later model and
-IPC fixture changes retain their separate scope. Signed 958671c passes
-live CI and CodeQL, but coverage CI exposes a SIGCHLD stop in the test
-tracer. The corrected helper forwards signal-delivery stops and verifies
-both SIGUSR1 and SIGCHLD handlers. Repository record
-`audit/phase6/signal-and-ownership-guards-20261102/` retains the failure,
-correction and qualification. Signed 2eaa987 passes both CI jobs and CodeQL.
-
-The competing-state/input batch adds eight covered lines and eighteen
-outcomes. Ten instrumented repetitions, three musl repetitions, three
-stable container runs per libc, three instrumented live runs and ten
-failure controls pass. All five focused guest profiles pass the expanded
-CLI/process fixtures. A full normal rerun exceeded an inherited outer
-wrapper and is retained as rejected; the sealed full matrix still qualifies
-unchanged production bodies. Repository record
-`audit/phase6/competing-state-and-input-20261102/` gives the exact scopes,
-private guest fixture, rejected attempts and publication recheck.
-Phase 6 remains open.
+Strict maps cover declarations for 333 active rules and classify/cite
+43 kernel facts. They establish traceability. Complete
+clause/history/resource/event-cost proof and the 100% coverage gate still
+require evidence. Current and historical scopes are retained in repository
+files `audit/PHASE6_VERIFICATION_2026-11-02.md`,
+`audit/phase6/checked-boundaries-20261102/README.md` and
+`audit/phase6/event-and-lifetime-ordering-20261102/README.md`.
 
 ## Rules that hold for the whole phase
 

@@ -880,3 +880,86 @@ fn shutdown_with_a_failed_session_delete_retires_its_tunnel_and_reports_the_fail
     assert!(r.shutdown());
     assert!(r.k.session_index(10, 100).is_none());
 }
+
+/// spec: S11, S17, M6, G2, G4
+#[test]
+fn a_failed_chain_rename_stages_only_the_owned_blocking_holder() {
+    let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+    let text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.a]\ntunnel_name='a'\nsession_id=100\ninterface_name='first'\n[sessions.b]\ntunnel_name='a'\nsession_id=101\ninterface_name='second'\n";
+    assert!(r.reconcile(toml::from_str(text).unwrap()));
+    let first = r.k.session_index(10, 100).unwrap();
+    let second = r.k.session_index(10, 101).unwrap();
+    for (sid, name) in [(100, "second"), (101, "free")] {
+        let record = r.sessions.get_mut(&sid).unwrap();
+        record.config = SessionConfig::builder("a", sid, name.parse().unwrap())
+            .build()
+            .unwrap();
+        record.name_state = Enforce::Pending;
+    }
+    r.k.fail_next("rename", Errno::EIO);
+    r.k.clear_ops();
+    r.clear_swaps();
+    assert_eq!(r.k.link(first).unwrap().name().to_string_lossy(), "first");
+    let temporary = r.k.link(second).unwrap().name();
+    assert!(temporary.to_string_lossy().starts_with("rsl2tp-r"));
+    assert_eq!(
+        r.k.ops(),
+        &[format!("rename {second} {}", temporary.to_string_lossy())]
+    );
+    assert_eq!(r.sessions[&101].name_state, Enforce::Pending);
+    assert!(
+        r.converge_session(101),
+        "the injected rename refusal was not consumed"
+    );
+    r.clear_swaps();
+    assert_eq!(r.k.link(first).unwrap().name().to_string_lossy(), "second");
+    assert_eq!(r.k.link(second).unwrap().name().to_string_lossy(), "free");
+    assert_eq!(r.k.session_index(10, 100), Some(first));
+    assert_eq!(r.k.session_index(10, 101), Some(second));
+}
+
+/// spec: T25, E14, M13
+#[test]
+fn repeated_left_out_refusals_keep_the_slow_deadline_and_release_on_identity_change() {
+    use crate::reconciler::records::ConflictIdentity;
+    for session in [false, true] {
+        let (mut r, config) = staging_fixture("");
+        let identity = if session {
+            ConflictIdentity::Session(config.session_identity("s").unwrap())
+        } else {
+            ConflictIdentity::Tunnel(config.tunnels()["a"].identity())
+        };
+        let id = if session { 100 } else { 10 };
+        let error = std::io::Error::from_raw_os_error(Errno::EEXIST as i32);
+        for attempt in 1..=super::super::CONFLICT_ATTEMPTS + 2 {
+            r.incomplete = false;
+            r.conflict(session, id, identity, "controlled conflict", &error);
+            let record = &r.conflicts[&(session, id)];
+            assert_eq!(record.attempts, attempt);
+            if attempt >= super::super::CONFLICT_ATTEMPTS {
+                assert!(record.left_out);
+                assert!(!r.incomplete);
+                assert_eq!(record.next, r.k.now() + super::super::LEFT_OUT_RETRY);
+                assert_eq!(r.conflict_times[&(session, id)], record.next);
+                assert!(!r.may_try(session, id, identity));
+            }
+            r.k.advance(RETRY);
+        }
+        r.k.advance(super::super::LEFT_OUT_RETRY);
+        assert!(r.may_try(session, id, identity));
+        let replacement = if session {
+            ConflictIdentity::Session(crate::config::SessionIdentity::new(
+                config.tunnels()["a"].identity(),
+                100,
+                101,
+                None,
+                None,
+            ))
+        } else {
+            ConflictIdentity::Tunnel(crate::config::TunnelIdentity::new(10, 11))
+        };
+        assert!(r.may_try(session, id, replacement));
+        assert!(!r.conflicts.contains_key(&(session, id)));
+        assert!(!r.conflict_times.contains_key(&(session, id)));
+    }
+}
