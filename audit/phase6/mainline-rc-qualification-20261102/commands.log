@@ -1,0 +1,9 @@
+source revision: 455eef71cd75dedcb0696824fef5b5d0d45575e4
+sh tests/kernel/matrix.sh self-test
+sh -n test-ci-gates.sh
+shellcheck --shell=sh test-ci-gates.sh
+tests/kernel/build-vanilla.sh 7.4-rc1
+tests/kernel/build-vanilla.sh 7.4-rc1 no-ipv6
+./test-ci-gates.sh
+source identity: extract the 43 paths in source-files from each archive, cmp each to its build tree; all 86 comparisons passed
+in progress, retained separately: tests/docker/run.sh matrix required

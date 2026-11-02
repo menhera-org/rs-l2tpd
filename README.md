@@ -78,8 +78,9 @@ controls fail.
 differences, source evidence and limitations. The checked reply decoder passes
 all thirteen profiles of the former 7.3 target snapshot. Request handling also has
 complete line/branch coverage after real buffer-force and I/O-fault checks.
-The global gates remain open. The pre-pause publication check selects
-mainline 7.4-rc1; its build and live qualification are pending.
+The global gates remain open. The November 2 publication recheck retains
+mainline 7.4-rc1. Its source comparison and both kernel builds are recorded;
+a fresh complete required-kernel matrix is running.
 The known-gap tables describe historical commit `741117b`.
 
 ## Quick start

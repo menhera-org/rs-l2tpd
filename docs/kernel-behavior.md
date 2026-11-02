@@ -2,14 +2,16 @@
 
 [Documentation index](README.md) · [Required targets](testing.md#kernel-targets) · [Kernel specification](spec/kernel.md) · [Evidence map](kernel-evidence.md)
 
-The 23:11 UTC publication check selects **mainline 7.4-rc1**. Its archive is
-verified, but it has not been built or boot-tested. P3 is open again. The
+The 2026-11-02 publication recheck still selects **mainline 7.4-rc1**.
+Its source comparison and both variant builds are recorded, and a fresh
+complete required-kernel matrix is running. No RC boot result is claimed
+yet. P3 remains open. The
 four Ubuntu/vanilla targets remain unchanged; the 7.3 results below are
 historical evidence. Repository record
 `audit/phase6/mainline-rc-20261101/README.md` identifies the change.
 
 This page records the behavior relevant to rs-l2tpd for **each required
-kernel**, resolved on 2026-11-01. The specification defines the contract;
+kernel**, resolved again on 2026-11-02. The specification defines the contract;
 this page distinguishes observations, source evidence and remaining tests.
 The completed 2d5ae45 matrix passed all five normal and clock profiles of its 7.3 snapshot,
 including H20 fragmentation and both 300-entry daemons. It also passes both
@@ -67,7 +69,7 @@ additional boots retain their separate scope from the complete matrix.
 | Ubuntu 26.04, package `7.0.0-42.42`, release `7.0.0-42-generic` | `EADDRNOTAVAIL` (99) | Delivered despite being from another namespace; local objects remain intact | Stock image/modules, `kho=off` for the cold-boot test; explanation below |
 | Vanilla `7.0.14` | `EADDRNOTAVAIL` (99) | Delivered despite being from another namespace; local objects remain intact | Built-in L2TP/VRF; no KHO override |
 | Historical mainline `v7.3`, release `7.3.0` | `EADDRNOTAVAIL` (99) | Confined to the object's namespace; foreign deletion produces no matching local event | Built-in L2TP/VRF; extra IPv6-absent boots below |
-| Mainline `v7.4-rc1` | Not run | Not run | Build and boot profiles pending |
+| Mainline `v7.4-rc1` | Not run | Not run | Both builds pass; boot profiles pending |
 
 The errno distinction was approved by the maintainer on 2026-10-31.
 Both precise refusals receive the existing transient policy: keep the

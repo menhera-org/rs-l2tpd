@@ -25,12 +25,20 @@ into P7's packaging page, F7 into P1's service tests). The live reconnection sce
 udev experiment (`audit/phase5-completion/networkd/`) are the seeds of
 the scenario suite below; read them before writing new scenarios.
 
-## Execution status, 2026-11-01
+## Execution status, 2026-11-02
+
+Work resumed from signed 455eef7 with a clean tree; both pending CI runs
+passed. A fresh publication check retains the five targets below. The RC
+source comparison is recorded across 43 relevant files; both RC variants
+have built and a complete required-kernel matrix is running. P3 remains
+open until those runs and their final publication check pass. Repository
+record `audit/phase6/mainline-rc-qualification-20261102/README.md` tracks
+the new scope. Local common CI gates pass; coverage is unchanged.
 
 Phase 6 remains open. The 23:11 UTC publication recheck selects mainline
 7.4-rc1, while the four Ubuntu/vanilla targets remain unchanged. The RC
-archive is cached and verified; its build, source review and live profiles
-are pending. P3 is open again. The completed 2d5ae45 matrix retains its
+archive, both builds and source comparison are now verified; its live
+profiles remain pending. P3 is open again. The completed 2d5ae45 matrix retains its
 previous 7.3 snapshot; superseded results do not qualify the new target. The production reply decoder rejects malformed signed
 statuses without panicking and preserves valid errors, sequence checks and
 first-error precedence. Eight synthetic cases and eight failure controls

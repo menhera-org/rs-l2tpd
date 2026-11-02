@@ -9,6 +9,7 @@ trap 'exit 1' HUP INT TERM
 
 git --no-pager ls-files -z --cached --others --exclude-standard '*.sh' > "$files"
 xargs -0 shellcheck --shell=sh < "$files"
+sh tests/kernel/matrix.sh self-test
 cargo fmt --all --check
 cargo clippy --locked --all-targets --all-features -- -D warnings
 cargo build --locked --lib --no-default-features

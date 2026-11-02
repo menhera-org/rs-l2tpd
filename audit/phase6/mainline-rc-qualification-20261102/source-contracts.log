@@ -1,0 +1,530 @@
+Source: linux-7.4-rc1.tar.gz, exact built tree; line-numbered contract anchors.
+
+net/l2tp/Makefile
+6:obj-$(CONFIG_L2TP) += l2tp_core.o
+11:obj-$(subst y,$(CONFIG_L2TP),$(CONFIG_PPPOL2TP)) += l2tp_ppp.o
+12:obj-$(subst y,$(CONFIG_L2TP),$(CONFIG_L2TP_IP)) += l2tp_ip.o
+13:obj-$(subst y,$(CONFIG_L2TP),$(CONFIG_L2TP_V3)) += l2tp_netlink.o
+14:obj-$(subst y,$(CONFIG_L2TP),$(CONFIG_L2TP_ETH)) += l2tp_eth.o
+15:obj-$(subst y,$(CONFIG_L2TP),$(CONFIG_L2TP_DEBUGFS)) += l2tp_debugfs.o
+17:obj-$(subst y,$(CONFIG_L2TP),$(CONFIG_L2TP_IP)) += l2tp_ip6.o
+
+net/l2tp/l2tp_core.c
+277:			 * l2tp_session_register and has added an item to
+419:struct l2tp_session *l2tp_session_get_next(const struct net *net, struct sock *sk, int pver,
+427:EXPORT_SYMBOL_GPL(l2tp_session_get_next);
+432:struct l2tp_session *l2tp_session_get_by_ifname(const struct net *net,
+458:EXPORT_SYMBOL_GPL(l2tp_session_get_by_ifname);
+553:int l2tp_session_register(struct l2tp_session *session,
+624:EXPORT_SYMBOL_GPL(l2tp_session_register);
+1207:static int l2tp_xmit_queue(struct l2tp_tunnel *tunnel, struct sk_buff *skb, struct flowi *fl)
+1211:	skb->ignore_df = 1;
+1223:static int l2tp_xmit_core(struct l2tp_session *session, struct sk_buff *skb, unsigned int *len)
+1276:	if (tunnel->fd >= 0 && sk->sk_state != TCP_ESTABLISHED) {
+1320:	ret = l2tp_xmit_queue(tunnel, skb, &inet->cork.fl);
+1336:	ret = l2tp_xmit_core(session, skb, &len);
+1398:		l2tp_session_delete(session);
+1616:static int l2tp_validate_socket(const struct sock *sk, const struct net *net,
+1646:int l2tp_tunnel_register(struct l2tp_tunnel *tunnel, struct net *net,
+1677:	ret = l2tp_validate_socket(sk, net, tunnel->encap);
+1723:EXPORT_SYMBOL_GPL(l2tp_tunnel_register);
+1737:void l2tp_session_delete(struct l2tp_session *session)
+1745:EXPORT_SYMBOL_GPL(l2tp_session_delete);
+
+net/l2tp/l2tp_ip.c
+70:		bound_dev_if = READ_ONCE(sk->sk_bound_dev_if);
+240:	inet_sk(sk)->inet_num = IPPROTO_L2TP;
+246:static void l2tp_ip_close(struct sock *sk, long timeout)
+310:				  sk->sk_bound_dev_if, addr->l2tp_conn_id)) {
+332:static int l2tp_ip_connect(struct sock *sk, struct sockaddr_unsized *uaddr,
+375:	return __udp_disconnect(sk, flags);
+456:		if (sk->sk_state != TCP_ESTABLISHED)
+612:	.close		   = l2tp_ip_close,
+614:	.connect	   = l2tp_ip_connect,
+
+net/l2tp/l2tp_ip6.c
+79:		bound_dev_if = READ_ONCE(sk->sk_bound_dev_if);
+250:	inet_sk(sk)->inet_num = IPPROTO_L2TP;
+256:static void l2tp_ip6_close(struct sock *sk, long timeout)
+322:	bound_dev_if = sk->sk_bound_dev_if;
+365:	sk->sk_bound_dev_if = bound_dev_if;
+387:static int l2tp_ip6_connect(struct sock *sk, struct sockaddr_unsized *uaddr,
+444:	return __udp_disconnect(sk, flags);
+475:		lsa->l2tp_scope_id = READ_ONCE(sk->sk_bound_dev_if);
+573:		if (sk->sk_state == TCP_ESTABLISHED &&
+582:		if (sk->sk_state != TCP_ESTABLISHED)
+590:		fl6.flowi6_oif = READ_ONCE(sk->sk_bound_dev_if);
+740:	.close		   = l2tp_ip6_close,
+742:	.connect	   = l2tp_ip6_connect,
+
+net/l2tp/l2tp_eth.c
+51:	eth_hw_addr_random(dev);
+89:	.ndo_set_mac_address	= eth_mac_addr,
+226:static int l2tp_eth_create(struct net *net, struct l2tp_tunnel *tunnel,
+270:	if (IS_ENABLED(CONFIG_L2TP_DEBUGFS))
+283:	rc = l2tp_session_register(session, tunnel);
+292:		l2tp_session_delete(session);
+320:	.session_create	= l2tp_eth_create,
+321:	.session_delete	= l2tp_session_delete,
+
+net/l2tp/l2tp_netlink.c
+55:	if (info->attrs[L2TP_ATTR_IFNAME]) {
+56:		ifname = nla_data(info->attrs[L2TP_ATTR_IFNAME]);
+57:		session = l2tp_session_get_by_ifname(net, ifname);
+119:		ret = genlmsg_multicast_netns(family, tunnel->l2tp_net, msg,
+148:		ret = genlmsg_multicast_netns(family,
+162:static int l2tp_nl_cmd_tunnel_create_get_addr(struct nlattr **attrs, struct l2tp_tunnel_cfg *cfg)
+188:static int l2tp_nl_cmd_tunnel_create(struct sk_buff *skb, struct genl_info *info)
+231:		ret = l2tp_nl_cmd_tunnel_create_get_addr(attrs, &cfg);
+249:	ret = l2tp_tunnel_register(tunnel, net, &cfg);
+262:static int l2tp_nl_cmd_tunnel_delete(struct sk_buff *skb, struct genl_info *info)
+292:static int l2tp_nl_cmd_tunnel_modify(struct sk_buff *skb, struct genl_info *info)
+453:static int l2tp_nl_cmd_tunnel_get(struct sk_buff *skb, struct genl_info *info)
+502:static int l2tp_nl_cmd_tunnel_dump(struct sk_buff *skb, struct netlink_callback *cb)
+531:static int l2tp_nl_cmd_session_create(struct sk_buff *skb, struct genl_info *info)
+594:		if (info->attrs[L2TP_ATTR_COOKIE]) {
+595:			u16 len = nla_len(info->attrs[L2TP_ATTR_COOKIE]);
+602:			memcpy(&cfg.cookie[0], nla_data(info->attrs[L2TP_ATTR_COOKIE]), len);
+604:		if (info->attrs[L2TP_ATTR_PEER_COOKIE]) {
+605:			u16 len = nla_len(info->attrs[L2TP_ATTR_PEER_COOKIE]);
+612:			memcpy(&cfg.peer_cookie[0], nla_data(info->attrs[L2TP_ATTR_PEER_COOKIE]), len);
+614:		if (info->attrs[L2TP_ATTR_IFNAME])
+615:			cfg.ifname = nla_data(info->attrs[L2TP_ATTR_IFNAME]);
+663:static int l2tp_nl_cmd_session_delete(struct sk_buff *skb, struct genl_info *info)
+689:static int l2tp_nl_cmd_session_modify(struct sk_buff *skb, struct genl_info *info)
+742:	     nla_put_string(skb, L2TP_ATTR_IFNAME, session->ifname)) ||
+744:	     nla_put(skb, L2TP_ATTR_COOKIE, session->cookie_len, session->cookie)) ||
+746:	     nla_put(skb, L2TP_ATTR_PEER_COOKIE, session->peer_cookie_len, session->peer_cookie)) ||
+802:static int l2tp_nl_cmd_session_get(struct sk_buff *skb, struct genl_info *info)
+839:static int l2tp_nl_cmd_session_dump(struct sk_buff *skb, struct netlink_callback *cb)
+855:		session = l2tp_session_get_next(net, tunnel->sock, tunnel->version,
+921:	[L2TP_ATTR_IFNAME] = {
+925:	[L2TP_ATTR_COOKIE] = {
+929:	[L2TP_ATTR_PEER_COOKIE] = {
+945:		.doit = l2tp_nl_cmd_tunnel_create,
+951:		.doit = l2tp_nl_cmd_tunnel_delete,
+957:		.doit = l2tp_nl_cmd_tunnel_modify,
+963:		.doit = l2tp_nl_cmd_tunnel_get,
+964:		.dumpit = l2tp_nl_cmd_tunnel_dump,
+970:		.doit = l2tp_nl_cmd_session_create,
+976:		.doit = l2tp_nl_cmd_session_delete,
+982:		.doit = l2tp_nl_cmd_session_modify,
+988:		.doit = l2tp_nl_cmd_session_get,
+989:		.dumpit = l2tp_nl_cmd_session_dump,
+
+net/core/dev.c
+890: *	The device must be in %NETREG_REGISTERED state for lookup to succeed.
+903:	if (!napi || READ_ONCE(napi->dev->reg_state) != NETREG_REGISTERED) {
+1128:	if (dev->reg_state > NETREG_REGISTERED ||
+1142:	if (dev->reg_state > NETREG_REGISTERED ||
+1378: *	dev_valid_name - check if name is okay for network device
+1385:bool dev_valid_name(const char *name)
+1401:EXPORT_SYMBOL(dev_valid_name);
+1404: *	__dev_alloc_name - allocate a name for a device
+1418:static int __dev_alloc_name(struct net *net, const char *name, char *res)
+1475:/* Returns negative errno or allocated unit id (see __dev_alloc_name()) */
+1480:	if (!dev_valid_name(want_name))
+1484:		return __dev_alloc_name(net, want_name, out_name);
+1494: *	dev_alloc_name - allocate a name for a device
+1507:int dev_alloc_name(struct net_device *dev, const char *name)
+1511:EXPORT_SYMBOL(dev_alloc_name);
+1573:		/* err >= 0 after dev_alloc_name() or stores the first errno */
+3292:	if (dev->reg_state == NETREG_REGISTERED ||
+3342:	if (dev->reg_state == NETREG_REGISTERED) {
+11032: * dev_index_reserve() - allocate an ifindex in a namespace
+11042:static int dev_index_reserve(struct net *net, u32 ifindex)
+11646:	ret = dev_index_reserve(net, dev->ifindex);
+11704:	WRITE_ONCE(dev->reg_state, ret ? NETREG_UNREGISTERED : NETREG_REGISTERED);
+12275:	WARN_ON(dev->reg_state == NETREG_REGISTERED);
+12682:		BUG_ON(dev->reg_state != NETREG_REGISTERED);
+12909:int __dev_change_net_namespace(struct net_device *dev, struct net *net,
+12928:	if (dev->reg_state != NETREG_REGISTERED) {
+12976:		err = dev_index_reserve(net, new_ifindex);
+12985:		err = dev_index_reserve(net, dev->ifindex);
+12987:			err = dev_index_reserve(net, 0);
+13021:	 * Note that dev->reg_state stays at NETREG_REGISTERED.
+
+net/core/rtnetlink.c
+1962:static int rtnl_fill_link_af(struct sk_buff *skb,
+2270:	if (rtnl_fill_link_af(skb, dev, ext_filter_mask))
+2501:	/* For now, the caller is required to have CAP_NET_ADMIN in
+2504:	if (!sk_ns_capable(sk, net->user_ns, CAP_NET_ADMIN)) {
+2516:	       ns_capable(link_net->user_ns, CAP_NET_ADMIN);
+2520:static int rtnl_valid_dump_ifinfo_req(const struct nlmsghdr *nlh,
+2551:	 * The correct header is ifinfomsg. It is consistent with rtnl_getlink.
+2564:static int rtnl_dump_ifinfo(struct sk_buff *skb, struct netlink_callback *cb)
+2584:	err = rtnl_valid_dump_ifinfo_req(nlh, cb->strict_check, tb, extack);
+3196:		err = __dev_change_net_namespace(dev, tgt_net, pat,
+3613:	tgt_net = rtnl_link_get_net_capable(skb, net, tb, CAP_NET_ADMIN);
+4069:	if (!netlink_ns_capable(skb, net->user_ns, CAP_NET_ADMIN)) {
+4223:	tgt_net = rtnl_link_get_net_capable(skb, sock_net(skb->sk), tb, CAP_NET_ADMIN);
+4243:		if (!netlink_ns_capable(skb, link_net->user_ns, CAP_NET_ADMIN)) {
+4313:static int rtnl_getlink(struct sk_buff *skb, struct nlmsghdr *nlh,
+4529:	/* Same kernel<->userspace interface hack as in rtnl_dump_ifinfo. */
+4656:	if (dev->reg_state != NETREG_REGISTERED)
+7056:static int rtnetlink_dump_start(struct sock *ssk, struct sk_buff *skb,
+7058:				struct netlink_dump_control *control)
+7067:	return netlink_dump_start(ssk, skb, nlh, control);
+7096:	if (kind != RTNL_KIND_GET && !netlink_net_capable(skb, CAP_NET_ADMIN))
+7128:			struct netlink_dump_control c = {
+7134:			err = rtnetlink_dump_start(rtnl, skb, nlh, &c);
+7135:			/* netlink_dump_start() will keep a reference on
+7204:		if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
+7276:	{.msgtype = RTM_GETLINK, .doit = rtnl_getlink,
+7277:	 .dumpit = rtnl_dump_ifinfo,
+
+net/core/filter.c
+17: * Kris Katterjohn - Added many additional checks in bpf_check_classic()
+1066: *	bpf_check_classic - verify socket filter code
+1079:static int bpf_check_classic(const struct sock_filter *filter,
+1344:	err = bpf_check_classic(fp->insns, fp->len);
+1543: *	sk_attach_filter - attach a socket filter
+1552:int sk_attach_filter(struct sock_fprog *fprog, struct sock *sk)
+1568:EXPORT_SYMBOL_GPL(sk_attach_filter);
+5510:	case SO_RCVBUF:
+5517:	case SO_BINDTOIFINDEX:
+5523:	case SO_BINDTODEVICE:
+5533:		if (optname == SO_BINDTODEVICE)
+6659:			err = ipv6_dev_get_saddr(net, dev, &fl6.daddr, 0, src);
+10460:		BUILD_BUG_ON(sizeof_field(struct sock, sk_bound_dev_if) != 4);
+10464:						 offsetof(struct sock, sk_bound_dev_if));
+10467:				      offsetof(struct sock, sk_bound_dev_if));
+
+net/core/sock.c
+464:		sockopt_ns_capable(sock_net(sk)->user_ns, CAP_NET_RAW) ||
+465:		sockopt_ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN));
+644:	if (sk->sk_bound_dev_if && !ns_capable(net->user_ns, CAP_NET_RAW))
+652:	WRITE_ONCE(sk->sk_bound_dev_if, ifindex);
+733:	int bound_dev_if = READ_ONCE(sk->sk_bound_dev_if);
+865:	if (sk->sk_bound_dev_if)
+866:		dev = dev_get_by_index(net, sk->sk_bound_dev_if);
+980:	 * overhead.   Applications assume that the SO_RCVBUF setting they make
+1174:bool sockopt_capable(int cap)
+1178:EXPORT_SYMBOL(sockopt_capable);
+1211:	if (optname == SO_BINDTODEVICE)
+1242:		if (valbool && !sockopt_capable(CAP_NET_ADMIN))
+1248:		    !sockopt_capable(CAP_NET_ADMIN))
+1317:		if (val && !sockopt_capable(CAP_NET_ADMIN))
+1358:		if (!sockopt_capable(CAP_NET_ADMIN)) {
+1370:	case SO_RCVBUF:
+1379:	case SO_RCVBUFFORCE:
+1380:		if (!sockopt_capable(CAP_NET_ADMIN)) {
+1470:		    !sockopt_ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN)) {
+1476:			ret = sk_attach_filter(&fprog, sk);
+1529:		if (!sockopt_ns_capable(sock_net(sk)->user_ns, CAP_NET_RAW) &&
+1530:		    !sockopt_ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN)) {
+1638:		    !sockopt_ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN)) {
+1655:	case SO_BINDTOIFINDEX:
+1828:	case SO_RCVBUF:
+2074:	case SO_BINDTODEVICE:
+2165:	case SO_BINDTOIFINDEX:
+2166:		v.val = READ_ONCE(sk->sk_bound_dev_if);
+3116:		if (!ns_capable(sock_net(sk)->user_ns, CAP_NET_RAW) &&
+3117:		    !ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN))
+
+net/core/datagram.c
+115:	    !(sk->sk_state == TCP_ESTABLISHED || sk->sk_state == TCP_LISTEN))
+
+net/netlink/af_netlink.c
+134:static int netlink_dump(struct sock *sk, bool lock_taken);
+348:static void netlink_overrun(struct sock *sk)
+905:		ns_capable(sock_net(sock->sk)->user_ns, CAP_NET_ADMIN);
+1226:int netlink_attachskb(struct sock *sk, struct sk_buff *skb,
+1246:			netlink_overrun(sk);
+1372:	err = netlink_attachskb(sk, skb, &timeo, ssk);
+1467:		netlink_overrun(sk);
+1485:		netlink_overrun(sk);
+1516:		netlink_overrun(sk);
+1733:	case NETLINK_GET_STRICT_CHK:
+1800:	case NETLINK_GET_STRICT_CHK:
+1927:static int netlink_recvmsg(struct socket *sock, struct msghdr *msg, size_t len,
+2002:		ret = netlink_dump(sk, false);
+2255:static int netlink_dump_done(struct netlink_sock *nlk, struct sk_buff *skb,
+2283:static int netlink_dump(struct sock *sk, bool lock_taken)
+2325:	/* Check the limit before charging the skb: netlink_recvmsg() continues
+2338:	 * netlink_recvmsg())). dump will pack as many smaller messages as
+2384:	if (netlink_dump_done(nlk, skb, cb, &extack))
+2390:	 * See netlink_recvmsg().
+2393:		if (netlink_dump_done(nlk, skb_shinfo(skb)->frag_list, cb, &extack))
+2420:int __netlink_dump_start(struct sock *ssk, struct sk_buff *skb,
+2422:			 struct netlink_dump_control *control)
+2474:	ret = netlink_dump(sk, true);
+2495:EXPORT_SYMBOL(__netlink_dump_start);
+2858:	.recvmsg =	netlink_recvmsg,
+
+net/netlink/genetlink.c
+1058:	struct netlink_dump_control c = {
+1075:	err = __netlink_dump_start(net->genl_sock, skb, nlh, &c);
+1183:	    !netlink_capable(skb, CAP_NET_ADMIN))
+1187:	    !netlink_ns_capable(skb, net->user_ns, CAP_NET_ADMIN))
+1504:		genlmsg_multicast_netns(&genl_ctrl, &init_net, msg, 0,
+1844:		if ((grp->flags & GENL_MCAST_CAP_NET_ADMIN) &&
+1845:		    !ns_capable(net->user_ns, CAP_NET_ADMIN))
+
+net/ipv4/af_inet.c
+187:	if (!inet->inet_num) {
+192:		inet->inet_sport = htons(inet->inet_num);
+323:	    !ns_capable(net->user_ns, CAP_NET_RAW))
+351:		inet->inet_num = protocol;
+357:		inet->pmtudisc = IP_PMTUDISC_DONT;
+378:	if (inet->inet_num) {
+384:		inet->inet_sport = htons(inet->inet_num);
+500:	tb_id = l3mdev_fib_table_by_index(net, sk->sk_bound_dev_if) ? : tb_id;
+517:	if (!(flags & BIND_NO_CAP_NET_BIND_SERVICE) &&
+519:	    !ns_capable(net->user_ns, CAP_NET_BIND_SERVICE))
+534:	if (sk->sk_state != TCP_CLOSE || inet->inet_num)
+564:	inet->inet_sport = htons(inet->inet_num);
+597:	if (data_race(!inet_sk(sk)->inet_num) && inet_autobind(sk))
+848:	if (data_race(!inet_sk(sk)->inet_num) && !sk->sk_prot->no_autobind &&
+1278:	rt = ip_route_connect(fl4, daddr, 0, sk->sk_bound_dev_if,
+
+net/ipv4/datagram.c
+38:	oif = sk->sk_bound_dev_if;
+76:	sk->sk_state = TCP_ESTABLISHED;
+
+net/ipv4/devinet.c
+1091:		if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
+1099:		if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
+1774:static int inet_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+1918:static int inet_dump_addr(struct sk_buff *skb, struct netlink_callback *cb,
+1941:		err = inet_valid_dump_ifaddr_req(nlh, &fillargs, &tgt_net,
+1979:static int inet_dump_ifaddr(struct sk_buff *skb, struct netlink_callback *cb)
+1981:	return inet_dump_addr(skb, cb, RTM_NEWADDR);
+1986:	return inet_dump_addr(skb, cb, RTM_GETMULTICAST);
+2032:static int inet_fill_link_af(struct sk_buff *skb, const struct net_device *dev,
+2605:	if (write && !ns_capable(net->user_ns, CAP_NET_ADMIN))
+2935:	.fill_link_af	  = inet_fill_link_af,
+2946:	{.protocol = PF_INET, .msgtype = RTM_GETADDR, .dumpit = inet_dump_ifaddr,
+
+net/ipv4/fib_semantics.c
+
+net/ipv4/fib_trie.c
+
+net/ipv4/fib_rules.c
+
+net/ipv4/ip_output.c
+172:	if (skb->len <= IPV4_MIN_MTU || ip_dont_fragment(sk, &rt->dst)) {
+511:	if (ip_dont_fragment(sk, &rt->dst) && !skb->ignore_df)
+584:	if (unlikely(!skb->ignore_df ||
+995:	maxnonfragsize = ip_sk_ignore_df(sk) ? IP_MAX_MTU : mtu;
+1442:	skb->ignore_df = ip_sk_ignore_df(sk);
+1445:	 * If ignore_df is set too, we still allow to fragment this frame
+1451:	     ip_dont_fragment(sk, &rt->dst)))
+1673:	sk->sk_bound_dev_if = arg->bound_dev_if;
+
+net/ipv4/ip_sockglue.c
+350:	if (sk->sk_type != SOCK_RAW || inet_sk(sk)->inet_num == IPPROTO_RAW)
+623:	if (val < IP_PMTUDISC_DONT || val > IP_PMTUDISC_OMIT)
+1011:		if (!!val && !sockopt_ns_capable(sock_net(sk)->user_ns, CAP_NET_RAW) &&
+1012:		    !sockopt_ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN))
+1152:		if (sk->sk_bound_dev_if && midx != sk->sk_bound_dev_if)
+1214:		if (sk->sk_bound_dev_if &&
+1215:		    mreq.imr_ifindex != sk->sk_bound_dev_if &&
+1216:		    midx != sk->sk_bound_dev_if)
+1345:		if (!sockopt_ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN))
+1737:		val = inet_sk(sk)->inet_num;
+
+net/ipv4/route.c
+518:		oif = sk->sk_bound_dev_if;
+554:	flowi4_init_output(fl4, sk->sk_bound_dev_if, READ_ONCE(sk->sk_mark),
+
+net/ipv4/udp.c
+68: *	YOSHIFUJI Hideaki @USAGI and:	Support IPV6_V6ONLY socket option, which
+151:		    (!sk2->sk_bound_dev_if || !sk->sk_bound_dev_if ||
+152:		     sk2->sk_bound_dev_if == sk->sk_bound_dev_if) &&
+185:		    (!sk2->sk_bound_dev_if || !sk->sk_bound_dev_if ||
+186:		     sk2->sk_bound_dev_if == sk->sk_bound_dev_if) &&
+214:		    (sk2->sk_bound_dev_if == sk->sk_bound_dev_if) &&
+313:	inet_sk(sk)->inet_num = snum;
+319:			inet_sk(sk)->inet_num = 0;
+395:	dev_match = udp_sk_bound_dev_eq(net, sk->sk_bound_dev_if,
+399:	if (sk->sk_bound_dev_if)
+484:			if (sk->sk_state == TCP_ESTABLISHED) {
+702:	if (!IS_ERR_OR_NULL(result) && result->sk_state == TCP_ESTABLISHED)
+800:	    !udp_sk_bound_dev_eq(net, sk->sk_bound_dev_if, dif, sdif))
+987:			if (READ_ONCE(inet->pmtudisc) != IP_PMTUDISC_DONT) {
+1017:		if (!harderr || sk->sk_state != TCP_ESTABLISHED)
+1320:		if (sk->sk_state != TCP_ESTABLISHED)
+1405:		 * by sk_bound_dev_if. If uc_index != oif check if the
+2182:int __udp_disconnect(struct sock *sk, int flags)
+2193:	WRITE_ONCE(sk->sk_bound_dev_if, 0);
+2208:EXPORT_SYMBOL(__udp_disconnect);
+2210:/* __udp_disconnect() takes a socket out of the 4-tuple hash table only via
+2235:	__udp_disconnect(sk, flags);
+2257:			inet_sk(sk)->inet_num = 0;
+2344:					  inet_sk(sk)->inet_num);
+2944:		if (optname == SO_RCVBUF || optname == SO_RCVBUFFORCE) {
+3167:	__udp_disconnect(sk, 0);
+
+net/ipv6/af_inet6.c
+167:	    !ns_capable(net->user_ns, CAP_NET_RAW))
+195:		inet->inet_num = protocol;
+214:	sk->sk_ipv6only	= READ_ONCE(net->ipv6.sysctl.bindv6only);
+229:		inet->pmtudisc = IP_PMTUDISC_DONT;
+233:	if (inet->inet_num) {
+238:		inet->inet_sport = htons(inet->inet_num);
+286:	if (!(flags & BIND_NO_CAP_NET_BIND_SERVICE) &&
+288:	    !ns_capable(net->user_ns, CAP_NET_BIND_SERVICE))
+295:	if (sk->sk_state != TCP_CLOSE || inet->inet_num) {
+314:		if (sk->sk_bound_dev_if) {
+315:			dev = dev_get_by_index_rcu(net, sk->sk_bound_dev_if);
+343:					sk->sk_bound_dev_if = addr->sin6_scope_id;
+347:				if (!sk->sk_bound_dev_if) {
+353:			if (sk->sk_bound_dev_if) {
+354:				dev = dev_get_by_index_rcu(net, sk->sk_bound_dev_if);
+414:	inet->inet_sport = htons(inet->inet_num);
+540:						 sk->sk_bound_dev_if);
+814:	fl6->flowi6_oif = sk->sk_bound_dev_if;
+922:	net->ipv6.sysctl.bindv6only = 0;
+
+net/ipv6/addrconf.c
+228:	.keep_addr_on_down	= 0,
+293:	.keep_addr_on_down	= 0,
+1741:static int __ipv6_dev_get_saddr(struct net *net,
+1824:		hiscore_idx = __ipv6_dev_get_saddr(net, dst, idev,
+1829:		hiscore_idx = __ipv6_dev_get_saddr(net, dst, idev,
+1835:int ipv6_dev_get_saddr(struct net *net, const struct net_device *dst_dev,
+1887:			hiscore_idx = __ipv6_dev_get_saddr(net, &dst, idev, scores, hiscore_idx);
+1918:			hiscore_idx = __ipv6_dev_get_saddr(net, &dst, idev, scores, hiscore_idx);
+1932:EXPORT_SYMBOL(ipv6_dev_get_saddr);
+3188:	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
+3215:	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
+3934:		int _keep_addr = READ_ONCE(net->ipv6.devconf_all->keep_addr_on_down);
+3937:			_keep_addr = READ_ONCE(idev->cnf.keep_addr_on_down);
+4086:	if (!ipv6_accept_ra(idev))
+4390:		  ipv6_accept_ra(ifp->idev) &&
+5400:static int inet6_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
+5456:static int inet6_dump_addr(struct sk_buff *skb, struct netlink_callback *cb,
+5479:		err = inet6_valid_dump_ifaddr_req(nlh, &fillargs, &tgt_net,
+5518:static int inet6_dump_ifaddr(struct sk_buff *skb, struct netlink_callback *cb)
+5522:	return inet6_dump_addr(skb, cb, type);
+5529:	return inet6_dump_addr(skb, cb, type);
+5537:	return inet6_dump_addr(skb, cb, type);
+5762:	array[DEVCONF_KEEP_ADDR_ON_DOWN] = READ_ONCE(cnf->keep_addr_on_down);
+5935:static int inet6_fill_link_af(struct sk_buff *skb, const struct net_device *dev,
+5973:	if (!ipv6_accept_ra(idev)) {
+7237:		.procname	= "keep_addr_on_down",
+7238:		.data		= &ipv6_devconf.keep_addr_on_down,
+7555:	.fill_link_af	  = inet6_fill_link_af,
+7569:	 .doit = inet6_rtm_getaddr, .dumpit = inet6_dump_ifaddr,
+
+net/ipv6/datagram.c
+46:	int oif = sk->sk_bound_dev_if;
+229:			WRITE_ONCE(sk->sk_bound_dev_if, usin->sin6_scope_id);
+232:		if (!sk->sk_bound_dev_if && (addr_type & IPV6_ADDR_MULTICAST))
+233:			WRITE_ONCE(sk->sk_bound_dev_if, READ_ONCE(np->mcast_oif));
+236:		if (!sk->sk_bound_dev_if) {
+268:	sk->sk_state = TCP_ESTABLISHED;
+846:				    (READ_ONCE(sk->sk_bound_dev_if) != fl6->flowi6_oif ||
+915:			if (!ns_capable(net->user_ns, CAP_NET_RAW)) {
+935:			if (!ns_capable(net->user_ns, CAP_NET_RAW)) {
+960:			if (!ns_capable(net->user_ns, CAP_NET_RAW)) {
+1066:		case IPV6_DONTFRAG:
+
+net/ipv6/ip6_output.c
+366:	if (likely((skb->len <= mtu) || skb->ignore_df || skb_is_gso(skb))) {
+411:		    (!sk->sk_bound_dev_if ||
+412:		     sk->sk_bound_dev_if == skb->dev->ifindex)) {
+508:	/* ipv6 conntrack defrag sets max_frag_size + ignore_df */
+512:	if (skb->ignore_df)
+919:	if (unlikely(!skb->ignore_df && skb->len > mtu))
+1148:	 * ip6_route_get_saddr, and then ip6_route_output; however,
+1150:	 * ip6_route_output call _before_ ip6_route_get_saddr.
+1165:		err = ip6_route_get_saddr(net, from, &fl6->daddr,
+1524:	if (ip6_sk_ignore_df(sk))
+1960:	skb->ignore_df = ip6_sk_ignore_df(sk);
+
+net/ipv6/ipv6_sockglue.c
+65:	if (sk->sk_type != SOCK_RAW || inet_sk(sk)->inet_num != IPPROTO_RAW)
+312:	if (optname != IPV6_RTHDR && !sockopt_ns_capable(net->user_ns, CAP_NET_RAW))
+408:		if (valbool && !sockopt_ns_capable(net->user_ns, CAP_NET_RAW) &&
+409:		    !sockopt_ns_capable(net->user_ns, CAP_NET_ADMIN))
+477:	case IPV6_DONTFRAG:
+492:	case IPV6_MTU_DISCOVER:
+528:			bound_dev_if = READ_ONCE(sk->sk_bound_dev_if);
+555:		if (READ_ONCE(sk->sk_bound_dev_if))
+566:	case IPV6_V6ONLY:
+568:		    inet_sk(sk)->inet_num)
+729:		fl6.flowi6_oif = sk->sk_bound_dev_if;
+848:		if (!sockopt_ns_capable(net->user_ns, CAP_NET_ADMIN))
+1092:	case IPV6_V6ONLY:
+1248:	case IPV6_MTU_DISCOVER:
+1315:	case IPV6_DONTFRAG:
+
+net/ipv6/ndisc.c
+545:		if (ipv6_dev_get_saddr(dev_net(dev), dev, daddr,
+1295:	if (!ipv6_accept_ra(in6_dev)) {
+1513:	if (!ipv6_accept_ra(in6_dev)) {
+
+net/ipv6/route.c
+2679:	if ((sk && sk->sk_bound_dev_if) || rt6_need_strict(&fl6->daddr) ||
+3010:	int oif = sk->sk_bound_dev_if;
+4581:	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
+5862:		if (ip6_route_get_saddr(net, rt, dest, 0, 0, &saddr_buf) == 0 &&
+
+net/ipv6/udp.c
+13: *	YOSHIFUJI Hideaki @USAGI and:	Support IPV6_V6ONLY socket option, which
+114:					  inet_sk(sk)->inet_num);
+163:	bound_dev_if = READ_ONCE(sk->sk_bound_dev_if);
+243:			if (sk->sk_state == TCP_ESTABLISHED) {
+370:	if (!IS_ERR_OR_NULL(result) && result->sk_state == TCP_ESTABLISHED)
+767:		if (!harderr || sk->sk_state != TCP_ESTABLISHED)
+921:	    !udp_sk_bound_dev_eq(net, READ_ONCE(sk->sk_bound_dev_if), dif, sdif) ||
+1212:		if (sk->sk_state == TCP_ESTABLISHED &&
+1517:		if (sk->sk_state != TCP_ESTABLISHED)
+1588:		if (sk->sk_state == TCP_ESTABLISHED &&
+1597:		if (sk->sk_state != TCP_ESTABLISHED)
+1607:		fl6->flowi6_oif = READ_ONCE(sk->sk_bound_dev_if);
+
+net/ipv6/inet6_connection_sock.c
+78:	fl6->flowi6_oif = sk->sk_bound_dev_if;
+
+net/l3mdev/l3mdev.c
+
+net/core/fib_rules.c
+
+include/net/ip.h
+109:	ipcm->oif = READ_ONCE(inet->sk.sk_bound_dev_if);
+111:	ipcm->protocol = READ_ONCE(inet->inet_num);
+445:int ip_dont_fragment(const struct sock *sk, const struct dst_entry *dst)
+467:static inline bool ip_sk_ignore_df(const struct sock *sk)
+570:	 * DF packets without ignore_df can not be fragmented.
+572:	if ((iph->frag_off & htons(IP_DF)) && !skb->ignore_df) {
+
+include/net/ip6_route.h
+145:static inline int ip6_route_get_saddr(struct net *net, struct fib6_info *f6i,
+164:		err = ipv6_dev_get_saddr(net, same_vrf ? dev : l3mdev, daddr, prefs, saddr);
+341:static inline bool ip6_sk_ignore_df(const struct sock *sk)
+
+include/net/sock.h
+118: *	@skc_num: placeholder for inet_num/tw_num
+248:  *	@sk_userlocks: %SO_SNDBUF and %SO_RCVBUF settings
+396:#define sk_bound_dev_if		__sk_common.skc_bound_dev_if
+1784:bool sockopt_capable(int cap);
+3136:	int bound_dev_if = READ_ONCE(sk->sk_bound_dev_if);
+
+include/uapi/linux/l2tp.h
+100:	L2TP_ATTR_IFNAME,		/* string */
+107:	L2TP_ATTR_COOKIE,		/* 0, 4 or 8 bytes */
+108:	L2TP_ATTR_PEER_COOKIE,		/* 0, 4 or 8 bytes */
+
+include/uapi/linux/netlink.h
+176:#define NETLINK_GET_STRICT_CHK		12
+
+include/uapi/linux/rtnetlink.h
+
+drivers/net/Kconfig
+
+include/linux/netdevice.h
+1828:	NETREG_REGISTERED,	/* completed register_netdevice */
+3466:int dev_alloc_name(struct net_device *dev, const char *name);
+4390:bool dev_valid_name(const char *name);
+4418:int __dev_change_net_namespace(struct net_device *dev, struct net *net,
+4430:int dev_set_mac_address(struct net_device *dev, struct sockaddr_storage *ss,
+4432:int dev_set_mac_address_user(struct net_device *dev, struct sockaddr_storage *ss,
+5633:	return IS_ENABLED(CONFIG_NET_VRF) && (dev->priv_flags & IFF_L3MDEV_MASTER);
+5638:	return IS_ENABLED(CONFIG_NET_VRF) && (dev->priv_flags & IFF_L3MDEV_SLAVE);
+5741:	return READ_ONCE(dev->reg_state) <= NETREG_REGISTERED;
+5750:	case NETREG_REGISTERED: return "";
+
+net/core/dev.h

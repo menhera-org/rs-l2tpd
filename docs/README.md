@@ -67,7 +67,8 @@ and GNU/musl tests include
 failure controls for session ownership and descriptor handover. The checked
 reply decoder passed all thirteen profiles of the former 7.3 snapshot. Request handling
 has complete line/branch coverage, including real buffer-force success. The global gates remain open. Mainline advanced to 7.4-rc1 during the
-pre-pause check; its build and live qualification are pending.
+pre-pause check. The November 2 recheck retains that selection; its source
+comparison and both kernel builds are recorded; a fresh full matrix is running.
 The specification's
 [known gaps](spec/README.md#known-gaps) describe historical commit
 `741117b`, removed in Phase 0. The interface page describes the target.

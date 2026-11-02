@@ -1,0 +1,172 @@
+net/l2tp/Makefile
+v7.3 git-blob: cf8f27071d3f758af0bc1fbd1c0a055722650dea
+v7.4-rc1 git-blob: cf8f27071d3f758af0bc1fbd1c0a055722650dea
+unchanged
+net/l2tp/l2tp_core.c
+v7.3 git-blob: 4712cc41881a30eda97b3459fd0ee1e88c0716aa
+v7.4-rc1 git-blob: 7e042a3e648ce061df2e011345dcf363afcffa89
+changed
+net/l2tp/l2tp_ip.c
+v7.3 git-blob: acb2570c11f6aa924478ee3562d409bb5fd081e7
+v7.4-rc1 git-blob: acb2570c11f6aa924478ee3562d409bb5fd081e7
+unchanged
+net/l2tp/l2tp_ip6.c
+v7.3 git-blob: bdaae1b64d25a0513e468e184db72e6336fbdcfd
+v7.4-rc1 git-blob: bdaae1b64d25a0513e468e184db72e6336fbdcfd
+unchanged
+net/l2tp/l2tp_eth.c
+v7.3 git-blob: a4956ef9574ccd879c7ed1705804dabe1630f7c8
+v7.4-rc1 git-blob: a4956ef9574ccd879c7ed1705804dabe1630f7c8
+unchanged
+net/l2tp/l2tp_netlink.c
+v7.3 git-blob: 38aac59d052c41490e82534e26ffaaa33c95d1f8
+v7.4-rc1 git-blob: 89ef04c78787df5684fc72e21a8b92c0a1848ff0
+changed
+net/core/dev.c
+v7.3 git-blob: e76762e29360ea87ade0846e4a4f9016dca587d6
+v7.4-rc1 git-blob: 3ac700d37e596fa904988bfd753f60835d0b5454
+changed
+net/core/rtnetlink.c
+v7.3 git-blob: be9d1625bac310ee3c6d7e4a98bb31a8a44b07e2
+v7.4-rc1 git-blob: e141340172ce39ee954c7913d2b869b4fa41ad43
+changed
+net/core/filter.c
+v7.3 git-blob: 70dc621672f2e9fccd9cf54808e002ff0f82da62
+v7.4-rc1 git-blob: 09c60a58c82abe8fc188c8f68059691cdcb52fb4
+changed
+net/core/sock.c
+v7.3 git-blob: e8551df8330ff4b1d662b0d0133e20d1f74eb728
+v7.4-rc1 git-blob: e7405be8941f9895cde49549f96218aff10db5de
+changed
+net/core/datagram.c
+v7.3 git-blob: 173b5d97bd409aaa84b49324ab6d6b14ae66d701
+v7.4-rc1 git-blob: ecc30a6f8302361e1ac1afefc52343d444c45f81
+changed
+net/netlink/af_netlink.c
+v7.3 git-blob: 3029894edad11c74a7bff78184c9eafbb985251b
+v7.4-rc1 git-blob: 1281c42a3456ae043aab9ee2b85879e87e7b85d2
+changed
+net/netlink/genetlink.c
+v7.3 git-blob: 5cc1037d4917e0353c08595097034072253cc3f3
+v7.4-rc1 git-blob: 5cc1037d4917e0353c08595097034072253cc3f3
+unchanged
+net/ipv4/af_inet.c
+v7.3 git-blob: 14ce01092fda65dbcf835662c03d78f4de0301f2
+v7.4-rc1 git-blob: 7677b0343abd4ce6c2b4c1f93f6d7dd93c8e75d0
+changed
+net/ipv4/datagram.c
+v7.3 git-blob: 7d25519a6cdd3ff7e3cc476e3c0b8314972cbd19
+v7.4-rc1 git-blob: 7d25519a6cdd3ff7e3cc476e3c0b8314972cbd19
+unchanged
+net/ipv4/devinet.c
+v7.3 git-blob: 5b6b11c943e453742b4893f1c9bd9e70d3d37a6f
+v7.4-rc1 git-blob: 1e9d988849c9ec48967b0c4c937ab1f7dd285fa2
+changed
+net/ipv4/fib_semantics.c
+v7.3 git-blob: 47469b775808257885e0099e425b8db3f7fb15a4
+v7.4-rc1 git-blob: db030bc26b6dd18d06143936f157498a39559f34
+changed
+net/ipv4/fib_trie.c
+v7.3 git-blob: 248514dce0cdd5b278c55e049550b022056286de
+v7.4-rc1 git-blob: be1e40780ad7d42f26188fd887e50700fc583bf7
+changed
+net/ipv4/fib_rules.c
+v7.3 git-blob: 060501b376a85d761b57e71c393eed0ecd7963e2
+v7.4-rc1 git-blob: 060501b376a85d761b57e71c393eed0ecd7963e2
+unchanged
+net/ipv4/ip_output.c
+v7.3 git-blob: eaa6fabda347e9181ffb687d3a7e6f37fb70cba6
+v7.4-rc1 git-blob: 3396f177a18d09e20ca5f57331b8ed3faeda183d
+changed
+net/ipv4/ip_sockglue.c
+v7.3 git-blob: a55ef327ec932c6c9cabc268514472c2c98e19ee
+v7.4-rc1 git-blob: e06c1f48ecad6ebf91e195cb97b0e9cdf4787319
+changed
+net/ipv4/route.c
+v7.3 git-blob: 268d8821f7e09229566e5badc85c3d314245c0bb
+v7.4-rc1 git-blob: 93b9f418952574cf0d142782299063753b0f8778
+changed
+net/ipv4/udp.c
+v7.3 git-blob: b090bd1f59e86cd22edd9622b17b5679346ea24d
+v7.4-rc1 git-blob: 303d0102519ac1aeac0b04d53e70f846c3a43779
+changed
+net/ipv6/af_inet6.c
+v7.3 git-blob: 282912a1199992794be5f298e9aba8878a876602
+v7.4-rc1 git-blob: a9b8b4b42a1af72f09fb9544b0e13aade00a1e3d
+changed
+net/ipv6/addrconf.c
+v7.3 git-blob: c90ee6dd7446cd10064c9fb95484b538b3ffc18c
+v7.4-rc1 git-blob: c8c0dd04982d9b62380ae264a1dd8a409c035da0
+changed
+net/ipv6/datagram.c
+v7.3 git-blob: 38d7b48452817439094c8257e44ddb9e3e9e374a
+v7.4-rc1 git-blob: 191c9733ff9fa156103a7d30122d25b3aff79d57
+changed
+net/ipv6/ip6_output.c
+v7.3 git-blob: 5509650589915cac54ea7767f0cb237c6c1d71e5
+v7.4-rc1 git-blob: 25fe0ba98b1a6aac2f64704f2c6ddce8fb5b43cf
+changed
+net/ipv6/ipv6_sockglue.c
+v7.3 git-blob: b4c977434c2e0a5bd8d04df59f9ba7155e1748d2
+v7.4-rc1 git-blob: 4b3536571c98048e5f4c797bdfe0701fc08a65c5
+changed
+net/ipv6/ndisc.c
+v7.3 git-blob: 75515fd99383b669b456c95ca445d126bec83073
+v7.4-rc1 git-blob: 0ed1a619372bf53d40f24c27b53de4194fe814a6
+changed
+net/ipv6/route.c
+v7.3 git-blob: a5e955e56e794facd53cf1e06dd047265db2e10b
+v7.4-rc1 git-blob: 616b86f89f637559745baa80393fc286975db338
+changed
+net/ipv6/udp.c
+v7.3 git-blob: 93478d1ad5769c6058567ff4deb433b0656b8129
+v7.4-rc1 git-blob: 59f9872c355211704ba0899b1953d97d4ffb4617
+changed
+net/ipv6/inet6_connection_sock.c
+v7.3 git-blob: 3e4ce8cb478e18273f72772e7c89f45975f303e2
+v7.4-rc1 git-blob: 3e4ce8cb478e18273f72772e7c89f45975f303e2
+unchanged
+net/l3mdev/l3mdev.c
+v7.3 git-blob: 5432a5f2dfc8a03eb4b3d155b2066d0f7db0503c
+v7.4-rc1 git-blob: 5432a5f2dfc8a03eb4b3d155b2066d0f7db0503c
+unchanged
+net/core/fib_rules.c
+v7.3 git-blob: 7df216c17c67adddb5ffc4671d93058efbb25368
+v7.4-rc1 git-blob: 7df216c17c67adddb5ffc4671d93058efbb25368
+unchanged
+include/net/ip.h
+v7.3 git-blob: d07c2c5730240b80a2361c0a73694d22b22de8d8
+v7.4-rc1 git-blob: 0acc4ba5e5b340886ac2ec726ebab31c795b9af9
+changed
+include/net/ip6_route.h
+v7.3 git-blob: 0f9b7a260d2537ebe66552646b7f50972c5fe3a6
+v7.4-rc1 git-blob: 95f936be32c6ccdf3b845b5a431f3cd545d983dd
+changed
+include/net/sock.h
+v7.3 git-blob: 60ea55dc18854a9759f5df618cc8c904d2323e95
+v7.4-rc1 git-blob: 173b37b2b8bb09852fc2a83468eaf1577484f2f7
+changed
+include/uapi/linux/l2tp.h
+v7.3 git-blob: 7d81c3e1ec29aabd374e94f70ec1161e9f5f78ad
+v7.4-rc1 git-blob: 7d81c3e1ec29aabd374e94f70ec1161e9f5f78ad
+unchanged
+include/uapi/linux/netlink.h
+v7.3 git-blob: f87aaf28a6491d3367aed72b02b5f610d71bb2de
+v7.4-rc1 git-blob: 82c41aeb43574bade88677eb05b2a17a0745bbe5
+changed
+include/uapi/linux/rtnetlink.h
+v7.3 git-blob: 3988b51db539fe4fe8b9b46009b48793c2904a9e
+v7.4-rc1 git-blob: 3988b51db539fe4fe8b9b46009b48793c2904a9e
+unchanged
+drivers/net/Kconfig
+v7.3 git-blob: ff79c466712df78a5f4b0a2c1a9b388e2e7edc14
+v7.4-rc1 git-blob: ff79c466712df78a5f4b0a2c1a9b388e2e7edc14
+unchanged
+include/linux/netdevice.h
+v7.3 git-blob: 3cff2174dc03a309e805954fae36e190b7c09115
+v7.4-rc1 git-blob: c0ae442c4344b6b6a472abdd5d94a2bd3707c1f1
+changed
+net/core/dev.h
+v7.3 git-blob: 04fb0e9a571e03f41cac110a0d1dd864d110b339
+v7.4-rc1 git-blob: 4e9e8cd156977c0af638401686a32fdbe8ab8ca4
+changed

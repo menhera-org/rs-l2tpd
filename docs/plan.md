@@ -494,7 +494,11 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
 Exit: all five gates green on the running kernel and on every required
 kernel target; the Incus/LXD scenario run, not skipped.
 
-**Status: in progress on 2026-11-01.** The current reply decoder rejects
+**Status: in progress on 2026-11-02.** Work resumed from signed 455eef7;
+both pending CI runs passed and the publication selection is unchanged.
+The 7.4-rc1 source comparison and both variant builds are recorded, and a
+fresh complete required-kernel matrix is running. P3 remains open.
+The current reply decoder rejects
 malformed signed statuses without panic while preserving valid kernel
 errors, sequence checks and first-error precedence. Repeated native,
 instrumented and musl models, common gates, GNU live/Incus, manager, thread
@@ -506,12 +510,12 @@ boundary guards pass repeated GNU/musl/instrumented runs. Three real buffer-forc
 also pass.
 
 Mainline advanced to 7.4-rc1 at the pre-pause publication recheck. Its
-archive is cached and verified; build, source review and live qualification
-remain pending, reopening P3. The completed 2d5ae45 run retains the previous
+archive, both builds and source comparison are verified; live qualification
+remains pending, keeping P3 open. The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
 Fresh corrected-source coverage is **98.01% of lines and 92.01% of branches**:
-8,514/8,687 lines and 1,704/1,852 branches, leaving **173 lines and 150
+8,514/8,687 lines and 1,704/1,852 branches, leaving **173 lines and 148
 branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files

@@ -1,5 +1,12 @@
 # Phase 6 verification, 2026-11-01
 
+Work resumed on 2026-11-02 from signed `455eef7`. Both pending CI runs
+passed; a fresh publication check retains the same required selection.
+The [resumed RC record](phase6/mainline-rc-qualification-20261102/README.md)
+retains the 43-file source comparison, both RC build passes and the common
+CI gate pass. A fresh full required-kernel matrix is in progress. P3 and P4 remain
+open; no pending build or profile is counted as passed.
+
 Phase 6 is incomplete. The current [reply correction](phase6/netlink-reply-state-20261101/README.md)
 rejects malformed signed completion statuses without overflow, preserving
 valid errno, sequence filtering, interruption and first-error precedence.
@@ -39,8 +46,8 @@ pass; the unmodified root system unit passes in 26.72 s on Ubuntu
 24.04 / 6.8.0-147. All transient units and containers are gone.
 
 **Publication changed before pause:** mainline is now 7.4-rc1. Its source
-archive is verified and cached, but build/source review/live qualification
-are pending. P3 is open again. The [RC record](phase6/mainline-rc-20261101/README.md)
+archive, both builds and source comparison are now verified; live qualification
+is pending. P3 is open again. The [RC record](phase6/mainline-rc-20261101/README.md)
 retains parser tests and actual publication documents; earlier 7.3 results
 do not qualify the new target.
 
@@ -50,7 +57,7 @@ do not qualify the new target.
 |---|---|---|
 | P1 rule/source maps | Current strict common checks pass: 333 active rules cited, 43 kernel facts classified/cited. The ten-run CI qualification remains retained | Maintain enforcement; declarations do not establish complete clause proof |
 | P2 scenarios | Frozen 2d5ae45 passes 27 normal cases on every required kernel; the corrected reply source also passes three shipped-musl suites locally | Complete clause/history/resource/event-cost proof |
-| P3 required kernels | Frozen 2d5ae45 passed thirteen profiles for the former 7.3 snapshot. The 23:11 publication recheck selects untested 7.4-rc1; the four other targets are unchanged | Build/review 7.4-rc1 and run its normal, clock and IPv6-absent profiles; refresh the full required set |
+| P3 required kernels | Frozen 2d5ae45 passed thirteen profiles for the former 7.3 snapshot. Both 7.4-rc1 builds and its source comparison pass; the fresh required matrix is running. The four other targets are unchanged | Complete the fresh required set, including the RC normal, clock and IPv6-absent profiles, with agreeing publication checks |
 | P4 coverage | PID-directory ownership profiles: 8,514/8,687 lines (98.01%); 1,704/1,852 branches (92.01%). No production exclusions, profile mismatches or saturated regions | Cover 173 lines and 148 branches; enable the completed 100% gate in CI |
 | P5 Incus/LXD | Signed 1b3d876 passes GNU in 17.19 s and three unprivileged musl cases in 24.81, 17.88 and 16.02 s; containers deleted | Preserve the recorded Ubuntu 24.04 / 6.8.0-147 scope |
 | P6 root sandbox | Signed 419c9b1 and the unmodified supplied unit pass in 26.72 s on Ubuntu 24.04 / 6.8.0-147-generic; ROOT_SYSTEMD_RESULT=0 | Other distribution userspaces remain untested |
