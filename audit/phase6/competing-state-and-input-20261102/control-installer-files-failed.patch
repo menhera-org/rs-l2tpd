@@ -1,0 +1,11 @@
+--- /tmp/phase6-competing-setup.NJ1WA6q9	2026-11-02 08:17:28.272925216 +0000
++++ src/bin/rs-l2tpd/setup.rs	2026-11-02 08:17:28.274925232 +0000
+@@ -119,7 +119,7 @@
+     if !reload {
+         log::error!("daemon-reload failed");
+     }
+-    let start = if !enabled && success && reload {
++    let start = if !enabled && reload {
+         systemctl(&["--now", "enable", "rs-l2tpd.service"]).unwrap_or_else(|error| {
+             log::error!("enable --now: {error}");
+             false

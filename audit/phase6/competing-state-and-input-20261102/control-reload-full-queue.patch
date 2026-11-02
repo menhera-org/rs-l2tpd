@@ -1,0 +1,11 @@
+--- /tmp/phase6-competing-controls.piPURx9J/original	2026-11-02 08:09:50.419571709 +0000
++++ src/bin/rs-l2tpd/signals.rs	2026-11-02 08:09:50.421571711 +0000
+@@ -33,7 +33,7 @@
+                     control.shutdown();
+                 }
+             } else if let Some(control) = pending.control.clone() {
+-                if pending.reload && control.reload().is_ok() {
++                if pending.reload && control.reload().is_err() {
+                     pending.reload = false;
+                 }
+                 if pending.restart && control.restart().is_ok() {

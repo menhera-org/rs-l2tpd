@@ -1,0 +1,11 @@
+--- /tmp/phase6-competing-controls.pJ6Aj74t/original	2026-11-02 08:06:21.333834708 +0000
++++ src/reconciler/sessions.rs	2026-11-02 08:06:21.335834700 +0000
+@@ -365,7 +365,7 @@
+             .collect();
+         while let Some(sid) = ready.pop_first() {
+             let target = *self.sessions[&sid].config.interface_name();
+-            if holders.contains_key(&target) {
++            if false {
+                 continue;
+             }
+             let before = self.sessions[&sid].current_name;

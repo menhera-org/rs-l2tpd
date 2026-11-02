@@ -252,8 +252,8 @@ service queue, reconciler record, runtime/socket error guards and deferred
 MAC changes after device removal, lifetime inputs, deletion recovery,
 stale completions, foreign-family parsing, PID-file inspection errors,
 resolver/host boundaries, installer/descriptor/reconciler failures,
-file races, probe I/O and event boundaries:
-98.87% lines / 95.30% branches, leaving 98 lines and 87 branches. Its fresh collector includes
+file races, probe I/O, competing names and late event/input boundaries:
+98.96% lines / 96.27% branches, leaving 90 lines and 69 branches. Its fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
 production exclusions, mismatches or saturated regions. The checked-reply
 implementation fixes the denominators at 8,687 lines and 1,852 branches.

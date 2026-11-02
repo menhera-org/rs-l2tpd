@@ -1,0 +1,11 @@
+--- /tmp/phase6-competing-controls.piPURx9J/original	2026-11-02 08:10:06.403596240 +0000
++++ src/reconciler/timers.rs	2026-11-02 08:10:06.404596242 +0000
+@@ -84,7 +84,7 @@
+             self.monitor_resync();
+         }
+         let verify: Vec<_> = self.verify_tunnels.iter().copied().collect();
+-        for id in verify {
++        for id in verify.into_iter().take(0) {
+             self.tunnel_announced(id);
+         }
+         self.arm_tick();

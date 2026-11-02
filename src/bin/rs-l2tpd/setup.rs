@@ -380,3 +380,16 @@ mod completion_tests {
         }
     }
 }
+
+/// spec: P27
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[test]
+fn a_regular_file_cannot_be_used_as_an_install_directory() {
+    let dir = crate::testdir::Dir::new();
+    let path = dir.path().join("file");
+    fs::write(&path, b"operator data").unwrap();
+    let error = directories(&path).unwrap_err();
+    assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+    assert_eq!(fs::read(&path).unwrap(), b"operator data");
+}

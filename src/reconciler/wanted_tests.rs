@@ -1,8 +1,8 @@
 use super::*;
 use crate::config::Config;
 use crate::kernel::fake::FakeKernel;
-use crate::reconciler::IphostResolve;
 use crate::reconciler::records::{Connection, TunnelRecord};
+use crate::reconciler::{IphostResolve, RETRY};
 use std::collections::BTreeMap;
 use std::hint::black_box;
 use std::time::Instant;
@@ -698,4 +698,170 @@ fn an_unwanted_adopted_parent_drops_its_unmatched_child_retry_and_report() {
     r.tick();
     assert!(r.ready());
     assert!(r.k.session(10, 101).unwrap().is_none());
+}
+
+/// spec: S11, S25, G2, G12, C14
+#[test]
+fn competing_pending_names_preserve_the_first_owner_during_failed_removal() {
+    use crate::kernel::Notice;
+    use crate::reconciler::Source;
+
+    for already_named in [false, true] {
+        let document = |first: &str, second: Option<&str>| {
+            let mut text = format!(
+                "[host]\nfix_bindv6only=false\n[tunnels.t]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.a]\ntunnel_name='t'\nsession_id=100\ninterface_name='{first}'\n"
+            );
+            if let Some(second) = second {
+                text += &format!(
+                    "[sessions.b]\ntunnel_name='t'\nsession_id=101\ninterface_name='{second}'\n"
+                );
+            }
+            toml::from_str::<Config>(&text).unwrap()
+        };
+        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+        assert!(r.reconcile(document("first", Some("second"))));
+        let first = r.k.session_index(10, 100).unwrap();
+        let second = r.k.session_index(10, 101).unwrap();
+        let foreign = r.k.add_link("target", false);
+        assert!(!r.reconcile(document("first", Some("target"))));
+        assert_eq!(r.sessions[&101].name_state, Enforce::Pending);
+        assert_eq!(r.k.link(second).unwrap().name().to_string_lossy(), "second");
+        r.k.remove_link(foreign);
+        if already_named {
+            r.k.rename_link(first, "target");
+            r.handle(
+                Source::Monitor,
+                Notice::LinkNew(r.k.link(first).unwrap().clone()),
+            );
+        }
+        r.k.clear_ops();
+        r.k.fail_next("delete", Errno::EIO);
+        if !already_named {
+            r.k.fail_after("rename", 2, Errno::EIO);
+        }
+        assert!(!r.reconcile(document("target", None)));
+        assert_eq!(r.k.session_index(10, 100), Some(first));
+        assert_eq!(r.k.session_index(10, 101), Some(second));
+        assert_eq!(r.k.link(first).unwrap().name().to_string_lossy(), "target");
+        assert_eq!(r.k.link(second).unwrap().name().to_string_lossy(), "second");
+        let renames =
+            r.k.ops()
+                .iter()
+                .filter(|op| op.starts_with("rename "))
+                .count();
+        assert_eq!(renames, usize::from(!already_named));
+        if !already_named {
+            // Two attempts suffice: the winner and the unwanted loser's ordinary convergence.
+            assert_eq!(
+                r.k.rename(first, &L2tpIfName::new("target").unwrap())
+                    .unwrap_err()
+                    .raw_os_error(),
+                Some(Errno::EIO as i32)
+            );
+        }
+    }
+}
+
+/// spec: E27, T9, E18, M14, G2
+#[test]
+fn an_unverified_tunnel_deletion_is_retried_by_the_tick_without_recreating_it() {
+    use crate::kernel::Notice;
+    use crate::reconciler::Source;
+    let mut k = FakeKernel::new(42);
+    let wan = k.add_link("wan", false);
+    k.add_addr(wan, "192.0.2.1".parse().unwrap());
+    let mut r = Reconciler::new(k, Box::new(IphostResolve::default()));
+    let config: Config = toml::from_str(
+        "[host]\nfix_bindv6only=false\n[tunnels.t]\ntunnel_id=10\nremote_addr='192.0.2.2'\n",
+    )
+    .unwrap();
+    assert!(r.reconcile(config));
+    let socket = r.k.tunnel_socket(10).unwrap();
+    r.k.fail_next("tunnel", Errno::EIO);
+    r.handle(Source::L2tp, Notice::TunnelDeleted { tunnel_id: 10 });
+    assert!(r.verify_tunnels.contains(&10));
+    r.k.clear_ops();
+    r.k.fail_next("tunnel", Errno::EIO);
+    r.k.advance(RETRY);
+    r.tick();
+    // The tick must consume the failed lookup, rather than merely retain its task.
+    assert_eq!(r.k.tunnel(10).unwrap().unwrap().tunnel_id(), 10);
+    assert!(r.verify_tunnels.contains(&10));
+    assert_eq!(r.k.tunnel_socket(10), Some(socket));
+    assert!(r.k.ops().is_empty());
+    r.reconcile(Config::new());
+    assert!(r.verify_tunnels.is_empty());
+    r.k.tick();
+    assert!(r.k.tunnel_socket(10).is_none());
+    assert!(!r.k.ops().iter().any(|op| op.starts_with("socket ")));
+}
+
+/// spec: T22, C14, G2
+#[test]
+fn an_unwanted_record_has_no_in_place_configuration_update() {
+    let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+    assert!(
+        r.reconcile(
+            toml::from_str(
+                "[host]\nfix_bindv6only=false\n[tunnels.t]\ntunnel_id=10\nremote_addr='192.0.2.2'\n"
+            )
+            .unwrap()
+        )
+    );
+    let socket = r.tunnels[&10].socket;
+    let config = r.tunnels[&10].config.clone();
+    // Isolate the update guard for a record whose removal has not yet run.
+    r.accepted = Config::new();
+    r.wanted_tunnels.clear();
+    r.k.clear_ops();
+    r.update_tunnels_in_place();
+    assert_eq!(r.tunnels[&10].socket, socket);
+    assert_eq!(r.tunnels[&10].config, config);
+    assert_eq!(r.tunnels[&10].name, "t");
+    assert!(r.k.ops().is_empty());
+}
+
+/// spec: T22, T27, E3, E6, M17
+#[test]
+fn a_replaced_zone_reconnects_the_existing_socket_even_when_its_peer_is_unchanged() {
+    use crate::kernel::Notice;
+    use crate::reconciler::Source;
+    let mut k = FakeKernel::new(42);
+    let old = k.add_link("zone", false);
+    k.add_addr(old, "fe80::1".parse().unwrap());
+    let mut r = Reconciler::new(k, Box::new(IphostResolve::default()));
+    assert!(r.reconcile(toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.t]\ntunnel_id=10\nip_version='V6'\nremote_addr='fe80::2%zone'\n").unwrap()));
+    let socket = r.tunnels[&10].socket;
+    assert_eq!(r.tunnels[&10].zone_index, Some(old));
+    r.k.remove_link(old);
+    let new = r.k.add_link("zone", false);
+    r.k.add_addr(new, "fe80::1".parse().unwrap());
+    r.k.clear_ops();
+    r.handle(
+        Source::Monitor,
+        Notice::LinkNew(r.k.link(new).unwrap().clone()),
+    );
+    assert_ne!(old, new);
+    assert_eq!(r.tunnels[&10].zone_index, Some(new));
+    assert_eq!(r.tunnels[&10].socket, socket);
+    assert!(r.k.connection(socket).is_some());
+    assert_eq!(
+        r.k.ops()
+            .iter()
+            .filter(|op| op.starts_with("disconnect "))
+            .count(),
+        1
+    );
+    assert_eq!(
+        r.k.ops()
+            .iter()
+            .filter(|op| op.starts_with("connect "))
+            .count(),
+        1
+    );
+    assert!(
+        !r.k.ops()
+            .iter()
+            .any(|op| op.starts_with("socket ") || op.starts_with("close "))
+    );
 }

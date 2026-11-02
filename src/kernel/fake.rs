@@ -1174,3 +1174,50 @@ impl FakeKernel {
         self.tunnel_delete_delay = value;
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod ownership_tests {
+    use super::*;
+
+    /// spec: K17, K18, G2
+    #[test]
+    fn stale_session_cleanup_preserves_a_reused_link_and_socketless_tunnel() {
+        let mut k = FakeKernel::new(42);
+        let index = k.foreign_session(SessionInfo::new(
+            10,
+            100,
+            100,
+            Default::default(),
+            Default::default(),
+            Some(L2tpIfName::new("old").unwrap()),
+        ));
+        k.links.get_mut(&index).unwrap().session = Some((20, 200));
+        k.links.get_mut(&index).unwrap().info = LinkInfo::new(
+            index,
+            L2tpIfName::new("replacement").unwrap(),
+            false,
+            false,
+            None,
+        );
+        k.remove_session((10, 100));
+        assert!(!k.sessions.contains_key(&(10, 100)));
+        assert_eq!(k.links[&index].session, Some((20, 200)));
+        assert_eq!(
+            k.link(index).unwrap().name().to_string_lossy(),
+            "replacement"
+        );
+        assert!(
+            k.take_monitor()
+                .iter()
+                .all(|notice| !matches!(notice, Notice::LinkDel(_)))
+        );
+        k.tunnels.insert(20, None);
+        k.tick();
+        assert!(k.tunnels.contains_key(&20));
+        assert_eq!(
+            k.link(index).unwrap().name().to_string_lossy(),
+            "replacement"
+        );
+    }
+}

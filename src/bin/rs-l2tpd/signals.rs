@@ -313,60 +313,74 @@ mod forwarder_tests {
     /// spec: P12
     #[test]
     fn forwarder_retries_a_full_queue_and_delivers_after_capacity_returns() {
-        let engine = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
+        for signal in [Signal::SIGHUP, Signal::SIGUSR2] {
+            let engine = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            let _entered = engine.enter();
+            let mut runtime = Runtime::with_kernel(
+                FakeKernel::new(1),
+                Box::new(IphostResolve::default()),
+                vec![],
+            )
             .unwrap();
-        let _entered = engine.enter();
-        let mut runtime = Runtime::with_kernel(
-            FakeKernel::new(1),
-            Box::new(IphostResolve::default()),
-            vec![],
-        )
-        .unwrap();
-        let control = runtime.control();
-        for _ in 0..rs_l2tpd::runtime::QUEUE_CAPACITY {
-            control.reload().unwrap();
+            let control = runtime.control();
+            for _ in 0..rs_l2tpd::runtime::QUEUE_CAPACITY {
+                control.reload().unwrap();
+            }
+            let shared = Arc::new(Shared {
+                pending: Mutex::new(Pending {
+                    control: Some(control),
+                    ready: true,
+                    ..Pending::default()
+                }),
+                wake: Condvar::new(),
+                shutdown: AtomicBool::new(false),
+                full_retries: Default::default(),
+            });
+            shared.observe(signal);
+            let forward = shared.clone();
+            let thread = std::thread::spawn(move || forward.forward());
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            while shared.full_retries.load(Ordering::Acquire) == 0 {
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "forwarder did not retry the full queue"
+                );
+                std::thread::yield_now();
+            }
+            {
+                let pending = shared.pending.lock().unwrap();
+                assert_eq!(pending.reload, signal == Signal::SIGHUP);
+                assert_eq!(pending.restart, signal == Signal::SIGUSR2);
+            }
+            engine.block_on(async {
+                tokio::time::timeout(Duration::from_secs(5), async {
+                    for _ in 0..rs_l2tpd::runtime::QUEUE_CAPACITY {
+                        let event = runtime.next_event().await;
+                        assert!(matches!(event, ControlEvent::Reload { .. }));
+                        runtime.handle_event(event).unwrap();
+                    }
+                    let delivered = runtime.next_event().await;
+                    match signal {
+                        Signal::SIGHUP => assert!(matches!(delivered, ControlEvent::Reload { .. })),
+                        Signal::SIGUSR2 => assert!(matches!(delivered, ControlEvent::Restart)),
+                        _ => unreachable!(),
+                    }
+                })
+                .await
+                .unwrap();
+            });
+            {
+                let pending = shared.pending.lock().unwrap();
+                assert!(!pending.reload && !pending.restart);
+            }
+            shared.pending.lock().unwrap().stopped = true;
+            shared.wake.notify_all();
+            thread.join().unwrap();
+            assert!(!shared.observe(Signal::SIGTERM));
         }
-        let shared = Arc::new(Shared {
-            pending: Mutex::new(Pending {
-                control: Some(control),
-                ready: true,
-                ..Pending::default()
-            }),
-            wake: Condvar::new(),
-            shutdown: AtomicBool::new(false),
-            full_retries: Default::default(),
-        });
-        shared.observe(Signal::SIGUSR2);
-        let forward = shared.clone();
-        let thread = std::thread::spawn(move || forward.forward());
-        let deadline = std::time::Instant::now() + Duration::from_secs(5);
-        while shared.full_retries.load(Ordering::Acquire) == 0 {
-            assert!(
-                std::time::Instant::now() < deadline,
-                "forwarder did not retry the full queue"
-            );
-            std::thread::yield_now();
-        }
-        assert!(shared.pending.lock().unwrap().restart);
-        engine.block_on(async {
-            tokio::time::timeout(Duration::from_secs(5), async {
-                for _ in 0..rs_l2tpd::runtime::QUEUE_CAPACITY {
-                    let event = runtime.next_event().await;
-                    assert!(matches!(event, ControlEvent::Reload { .. }));
-                    runtime.handle_event(event).unwrap();
-                }
-                assert!(matches!(runtime.next_event().await, ControlEvent::Restart));
-            })
-            .await
-            .unwrap();
-        });
-        assert!(!shared.pending.lock().unwrap().restart);
-        shared.pending.lock().unwrap().stopped = true;
-        shared.wake.notify_all();
-        thread.join().unwrap();
-        assert!(!shared.observe(Signal::SIGTERM));
     }
 }
 

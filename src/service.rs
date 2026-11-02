@@ -539,6 +539,37 @@ mod tests {
 
     /// spec: L5, L7, L9, G14
     #[test]
+    fn a_closed_command_queue_reports_failure_until_shutdown_is_requested() {
+        engine().block_on(async {
+            for shutdown in [false, true] {
+                let runtime = runtime(vec![]);
+                let mut control = runtime.control();
+                let (tx, rx) = tokio::sync::mpsc::channel(1);
+                drop(rx);
+                control.tx = tx;
+                if shutdown {
+                    control.shutdown();
+                }
+                let mut service = Service {
+                    control,
+                    requests: None,
+                    forward: Arc::new(AtomicBool::new(false)),
+                    completion: None,
+                };
+                let result = service.converge().await;
+                if shutdown {
+                    assert!(result.unwrap().is_empty());
+                } else {
+                    assert!(
+                        matches!(result, Err(Error::Other(message)) if message == "service stopped")
+                    );
+                }
+            }
+        });
+    }
+
+    /// spec: L5, L7, L9, G14
+    #[test]
     fn abandoned_replies_report_stopped_service_and_shutdown_releases_waiters() {
         engine().block_on(async {
             for shutdown in [false, true] {

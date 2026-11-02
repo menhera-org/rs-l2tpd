@@ -35,7 +35,8 @@ record `audit/phase6/matrix-20261102T011736Z-3377142/README.md` seals P3.
 The RC source comparison covers 43 relevant files, verified against both
 archives; both builds pass. The integrated resolver/event/host tests raise
 coverage, together with the installer/descriptor/reconciler batch and
-file-race/inheritance/shutdown, probe/event and ownership cases, to 98.87% lines and 95.30% branches.
+file-race/inheritance/shutdown, probe/event, ownership and competing-state/input
+cases, to 98.96% lines and 96.27% branches.
 K41's strengthened listener
 control passes all five required kernels and rejects a broken listener.
 
@@ -88,10 +89,10 @@ the exact live or fake scope:
 `audit/phase6/resolver-default-capacity-20261101/` and
 `audit/phase6/pidfile-inspection-errors-20261101/`.
 
-The current collector reports **98.87% of production lines and 95.30% of
-branches**: 8,589/8,687 lines and 1,765/1,852 branches, leaving **98 lines
-and 87 branches**. Production source and region locations remain unchanged;
-one previously empty function branch list now reports its existing guard.
+The current collector reports **98.96% of production lines and 96.27% of
+branches**: 8,597/8,687 lines and 1,783/1,852 branches, leaving **90 lines
+and 69 branches**. Production bodies and previous mappings remain unchanged.
+One additional deserializer instantiation brings the mapping count to 4,332.
 Repository records
 `audit/phase6/resolver-boundaries-20261102/` and
 `audit/phase6/coverage-batch-20261102/` and
@@ -129,7 +130,18 @@ live CI and CodeQL, but coverage CI exposes a SIGCHLD stop in the test
 tracer. The corrected helper forwards signal-delivery stops and verifies
 both SIGUSR1 and SIGCHLD handlers. Repository record
 `audit/phase6/signal-and-ownership-guards-20261102/` retains the failure,
-correction and qualification. Phase 6 remains open.
+correction and qualification. Signed 2eaa987 passes both CI jobs and CodeQL.
+
+The competing-state/input batch adds eight covered lines and eighteen
+outcomes. Ten instrumented repetitions, three musl repetitions, three
+stable container runs per libc, three instrumented live runs and ten
+failure controls pass. All five focused guest profiles pass the expanded
+CLI/process fixtures. A full normal rerun exceeded an inherited outer
+wrapper and is retained as rejected; the sealed full matrix still qualifies
+unchanged production bodies. Repository record
+`audit/phase6/competing-state-and-input-20261102/` gives the exact scopes,
+private guest fixture, rejected attempts and publication recheck.
+Phase 6 remains open.
 
 ## Rules that hold for the whole phase
 

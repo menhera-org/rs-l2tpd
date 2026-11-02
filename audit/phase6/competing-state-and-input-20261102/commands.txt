@@ -1,0 +1,47 @@
+Final common/compatibility qualification:
+set -eu
+record=$PWD/audit/phase6/competing-state-and-input-20261102
+./test-ci-gates.sh > "$record/common.log" 2>&1
+for seed in 1 2 3; do
+ TEST_SEED=$seed cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --bin rs-l2tpd --test kernel-fake --test rules --test service --test startup --test process > "$record/final-musl-$seed.log" 2>&1
+done
+cargo +1.89.0 check --locked --all-features --all-targets > "$record/final-msrv.log" 2>&1
+for target in aarch64-unknown-linux-musl riscv64gc-unknown-linux-musl powerpc64le-unknown-linux-musl; do
+ cargo check --locked --all-features --all-targets --target "$target" > "$record/final-cross-$target.log" 2>&1
+done
+printf 'COMPETING_COMMON_AND_COMPATIBILITY_RESULT=0\n'
+
+Final ten instrumented repetitions:
+set -eu
+record=$PWD/audit/phase6/competing-state-and-input-20261102
+export CARGO_LLVM_COV_TARGET_DIR=$PWD/target/phase6-coverage-netlink-reply-state-20261101
+for seed in 1 2 3 4 5 6 7 8 9 10; do
+ TEST_SEED=$seed cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --lib --bin rs-l2tpd --test kernel-fake --test rules --test service --test startup --test process --branch --no-report > "$record/instrumented-$seed.log" 2>&1
+done
+printf 'COMPETING_TEN_INSTRUMENTED_SUITE_RESULT=0\n'
+
+The first qualification preceded one stronger timer assertion. Its logs
+are retained as before-timer-strengthening-*; final repetitions above
+cover the stronger source. No production implementation changed.
+
+Stable GNU/musl container commands:
+set -eu
+record=$PWD/audit/phase6/competing-state-and-input-20261102
+for target in x86_64-unknown-linux-gnu x86_64-unknown-linux-musl; do
+ cargo test --locked --all-features --target "$target" --bin rs-l2tpd --test process --no-run > "$record/build-$target.log" 2>&1
+ binary=$(awk '/Executable unittests src\/bin\/rs-l2tpd\/main.rs/ {line=$0; sub(/^.*\(/,"",line); sub(/\)$/,"",line); print line}' "$record/build-$target.log")
+ process=$(awk '/Executable tests\/process.rs/ {line=$0; sub(/^.*\(/,"",line); sub(/\)$/,"",line); print line}' "$record/build-$target.log")
+ [ -x "$binary" ] && [ -x "$process" ]
+ for repeat in 1 2 3; do
+  docker run --rm --privileged --network none -v "$PWD:$PWD:ro" --entrypoint /bin/sh nd-test:u2404 -c '
+   set -eu
+   uname -r
+   "$1" --test-threads=1 --nocapture
+   "$1" --ignored --exact pidfile::permission_tests::precreated_permissions_links_and_owner --nocapture
+   "$1" --ignored --exact pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes --nocapture
+   "$1" --ignored --exact files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths --nocapture
+   "$2" --include-ignored --test-threads=1 --nocapture
+  ' sh "$PWD/$binary" "$PWD/$process" > "$record/container-$target-$repeat.log" 2>&1
+ done
+done
+printf 'COMPETING_THREE_GNU_AND_MUSL_CLI_AND_PROCESS_PROFILES_RESULT=0\n'

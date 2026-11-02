@@ -1,0 +1,17 @@
+set -eu
+record=$PWD/audit/phase6/competing-state-and-input-20261102
+scratch=$(mktemp -d /tmp/phase6-competing-production.XXXXXXXX)
+trap 'rm -rf "$scratch"' 0
+: > "$record/production-source-comparison.log"
+for path in src/bin/rs-l2tpd/restart.rs src/bin/rs-l2tpd/signals.rs src/config/partial.rs src/kernel/fake.rs src/service.rs src/bin/rs-l2tpd/setup.rs; do
+ git --no-pager show "HEAD:$path" > "$scratch/old"
+ if [ "$path" = src/bin/rs-l2tpd/setup.rs ]; then
+  count=$(wc -l < "$scratch/old")
+ else
+  count=$(awk '/^#\[cfg\(.*test/ {print NR-1; found=1; exit} END {if(!found)print NR}' "$scratch/old")
+ fi
+ head -n "$count" "$scratch/old" > "$scratch/old-prefix"
+ head -n "$count" "$path" > "$scratch/current-prefix"
+ cmp "$scratch/old-prefix" "$scratch/current-prefix"
+ printf 'PRODUCTION_PREFIX_IDENTICAL=%s lines=%s\n' "$path" "$count" >> "$record/production-source-comparison.log"
+done

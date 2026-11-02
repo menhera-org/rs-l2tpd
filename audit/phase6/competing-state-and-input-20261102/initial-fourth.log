@@ -1,0 +1,26 @@
+    Blocking waiting for file lock on build directory
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+error[E0425]: cannot find value `RETRY` in this scope
+   --> src/reconciler/wanted_tests.rs:781:17
+    |
+781 |     r.k.advance(RETRY);
+    |                 ^^^^^ not found in this scope
+    |
+help: consider importing this constant
+    |
+  1 + use crate::reconciler::RETRY;
+    |
+
+error[E0425]: cannot find value `RETRY` in this scope
+   --> src/reconciler/wanted_tests.rs:788:17
+    |
+788 |     r.k.advance(RETRY);
+    |                 ^^^^^ not found in this scope
+    |
+help: consider importing this constant
+    |
+  1 + use crate::reconciler::RETRY;
+    |
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `rs-l2tpd` (lib test) due to 2 previous errors

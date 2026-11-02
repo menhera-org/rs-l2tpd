@@ -1,0 +1,11 @@
+--- /tmp/phase6-competing-controls.piPURx9J/original	2026-11-02 08:10:01.223587691 +0000
++++ src/reconciler/tunnels.rs	2026-11-02 08:10:01.225587694 +0000
+@@ -295,7 +295,7 @@
+                 (socket, Family::V6)
+             }
+             Err(e) if is(&e, &[Errno::EAFNOSUPPORT, Errno::EPROTONOSUPPORT]) => {
+-                if !self.inet6_refused {
++                if true {
+                     self.inet6_refused = true;
+                     log::warn!(
+                         "AF_INET6 L2TP/IP sockets are refused ({}); tunnels use AF_INET sockets (T4)",

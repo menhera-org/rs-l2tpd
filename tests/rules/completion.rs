@@ -331,6 +331,34 @@ fn completion_report_counts() {
             .filter(|(l, message)| *l == level && message.contains(text))
             .count()
     };
+    for errno in [Errno::EAFNOSUPPORT, Errno::EPROTONOSUPPORT] {
+        capture.messages.lock().unwrap().clear();
+        let (mut r, _) = reconciler();
+        // No IPv6 socket can be opened, including for the second tunnel.
+        r.kernel_mut().set_inet6(false);
+        let mut text = TUNNEL.to_owned();
+        text += "\n[tunnels.b]\ntunnel_id=20\nremote_addr='192.0.2.3'\n";
+        assert!(r.reconcile(config(&text)));
+        assert_eq!(r.kernel().open_sockets(), 2);
+        assert_eq!(
+            count(log::Level::Warn, "AF_INET6 L2TP/IP sockets are refused"),
+            1
+        );
+        run_for(&mut r, 5);
+        assert_eq!(
+            count(log::Level::Warn, "AF_INET6 L2TP/IP sockets are refused"),
+            1
+        );
+        // The initial errno selector is independently exercised before fallback.
+        let (mut r, _) = reconciler();
+        r.kernel_mut().fail_next("socket", errno);
+        assert!(r.reconcile(config(TUNNEL)));
+        assert_eq!(r.kernel().open_sockets(), 1);
+        assert_eq!(
+            count(log::Level::Warn, "AF_INET6 L2TP/IP sockets are refused"),
+            2
+        );
+    }
     for errno in [Errno::EAFNOSUPPORT, Errno::EPERM] {
         capture.messages.lock().unwrap().clear();
         let (mut r, _) = reconciler();

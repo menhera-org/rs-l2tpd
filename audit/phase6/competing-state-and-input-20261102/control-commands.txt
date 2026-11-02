@@ -1,0 +1,49 @@
+set -eu
+root=$PWD
+record=$root/audit/phase6/competing-state-and-input-20261102
+candidate=$(cat /tmp/phase6-resolver-validation-path)
+git --no-pager ls-files src tests Cargo.toml Cargo.lock build.rs | while IFS= read -r path; do
+ mkdir -p "$candidate/$(dirname "$path")"
+ cp "$root/$path" "$candidate/$path"
+done
+cp tests/tools/syscall_barrier.rs "$candidate/tests/tools/syscall_barrier.rs"
+cd "$candidate"
+git --no-pager rev-parse HEAD > "$record/control-base-revision"
+git --no-pager diff HEAD -- src tests > "$record/control-source.patch"
+git --no-pager diff --no-index -- /dev/null tests/tools/syscall_barrier.rs >> "$record/control-source.patch" || [ "$?" = 1 ]
+backup=$(mktemp -d /tmp/phase6-competing-controls.XXXXXXXX)
+changed=
+restore() {
+ if [ -n "$changed" ]; then cp "$backup/original" "$changed"; fi
+}
+trap restore 0
+run_control() {
+ name=$1; changed=$2; old=$3; new=$4; selector=$5; filter=$6; diagnostic=$7
+ cp "$changed" "$backup/original"
+ printf '%s\n===REPLACE===\n%s' "$old" "$new" | /tmp/phase6-replace "$changed"
+ diff -u "$backup/original" "$changed" > "$record/control-$name.patch" || [ "$?" = 1 ]
+ # selector is a fixed, locally supplied Cargo selector, split into its two words.
+ # shellcheck disable=SC2086
+ if cargo test --locked --all-features $selector "$filter" -- --nocapture > "$record/control-$name.log" 2>&1; then
+  printf 'control unexpectedly passed: %s\n' "$name"; exit 1
+ fi
+ grep -q 'test result: FAILED' "$record/control-$name.log"
+ grep -q "$diagnostic" "$record/control-$name.log"
+ restore
+ changed=
+ printf 'EXPECTED_RUNTIME_FAILURE=%s\n' "$name"
+}
+run_control 'name-winner' 'src/reconciler/sessions.rs' 'if holders.contains_key(&target) {' 'if false {' '--lib' 'competing_pending_names' 'unwrap_err'
+run_control 'name-already-satisfied' 'src/reconciler/sessions.rs' 'if Some(*wanted) == self.sessions[&holder].current_name {' 'if false {' '--lib' 'competing_pending_names' 'left:'
+run_control 'reload-full-queue' 'src/bin/rs-l2tpd/signals.rs' 'if pending.reload && control.reload().is_ok() {' 'if pending.reload && control.reload().is_err() {' '--bin rs-l2tpd' 'forwarder_retries_a_full_queue' 'forwarder did not retry'
+run_control 'pid-growth' 'src/bin/rs-l2tpd/restart.rs' '&& text.len() <= 32' '' '--bin rs-l2tpd' 'a_pid_file_growing_after_metadata' 'unwrap_err'
+run_control 'fake-link-owner' 'src/kernel/fake.rs' '.is_some_and(|l| l.session == Some(key))' '.is_some()' '--lib' 'stale_session_cleanup_preserves' 'no entry found for key'
+run_control 'ipv6-report-once' 'src/reconciler/tunnels.rs' 'if !self.inet6_refused {' 'if true {' '--lib' 'completion_report_counts' 'left:'
+run_control 'zone-index' 'src/reconciler/tunnels.rs' '&& record.zone_index == zone' '' '--lib' 'a_replaced_zone_reconnects' 'left:'
+run_control 'tunnel-verification-tick' 'src/reconciler/timers.rs' 'for id in verify {
+            self.tunnel_announced(id);' 'for id in verify.into_iter().take(0) {
+            self.tunnel_announced(id);' '--lib' 'an_unverified_tunnel_deletion' 'unwrap'
+run_control 'closed-service-queue' 'src/service.rs' '&& self.control.shared.shutdown.load(Ordering::Acquire)
+        {' '&& true
+        {' '--lib' 'a_closed_command_queue_reports' 'assertion'
+printf 'COMPETING_NINE_FAILURE_CONTROLS_RESULT=0\n'

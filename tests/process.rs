@@ -1348,19 +1348,23 @@ fn installer_failures_preserve_the_failed_stage_and_never_restart() {
         ("reload-status", "daemon-reload failed", 2),
         ("enable-spawn", "enable --now:", 2),
         ("enable-status", "", 3),
+        ("binary", "binary:", 2),
     ] {
         let _ = fs::remove_file(&calls);
         if case != "missing" {
             fs::write(&script, "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$SETUP_CALLS\"\ncase \"$*\" in\n '--no-pager --quiet is-enabled rs-l2tpd.service')\n  if test \"$SETUP_FAILURE\" = reload-spawn; then /bin/rm \"$0\"; fi\n  exit 1 ;;\n '--no-pager daemon-reload')\n  if test \"$SETUP_FAILURE\" = enable-spawn; then /bin/rm \"$0\"; fi\n  test \"$SETUP_FAILURE\" != reload-status ;;\n '--no-pager --now enable rs-l2tpd.service') exit 1 ;;\n *) exit 2 ;;\nesac\n").unwrap();
             fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
         }
-        let output = command()
+        let mut setup = command();
+        setup
             .arg("--setup-systemd")
             .env("PATH", dir.path())
             .env("SETUP_CALLS", &calls)
-            .env("SETUP_FAILURE", case)
-            .output()
-            .unwrap();
+            .env("SETUP_FAILURE", case);
+        if case == "binary" {
+            setup.arg0(dir.path().join("absent-binary"));
+        }
+        let output = setup.output().unwrap();
         assert_eq!(output.status.code(), Some(1), "{case}: {output:?}");
         assert!(
             String::from_utf8_lossy(&output.stderr).contains(diagnostic),
@@ -1369,11 +1373,27 @@ fn installer_failures_preserve_the_failed_stage_and_never_restart() {
         let recorded = fs::read_to_string(&calls).unwrap_or_default();
         assert_eq!(recorded.lines().count(), expected, "{case}: {recorded}");
         assert!(!recorded.contains("restart"));
-        if case.starts_with("reload") {
+        if case.starts_with("reload") || case == "binary" {
             assert!(!recorded.contains("enable rs-l2tpd.service"));
         }
         println!("INSTALLER_FAILURE_CHECKED={case}");
     }
+    let pid = dir.path().join("foreign.pid");
+    fs::write(&pid, "2\n").unwrap();
+    std::os::unix::fs::chown(&pid, Some(65534), None).unwrap();
+    let output = command()
+        .arg("--restart")
+        .arg("--pid-file")
+        .arg(&pid)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("unsafe PID file"),
+        "{output:?}"
+    );
+    assert_eq!(fs::read_to_string(&pid).unwrap(), "2\n");
+    println!("RESTART_FOREIGN_OWNER_REFUSAL_CHECKED=1");
 }
 
 /// spec: O8 C3

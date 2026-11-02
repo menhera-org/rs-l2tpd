@@ -1073,3 +1073,29 @@ fn a_closed_receiver_returns_the_queue_error_without_consuming_admission() {
         finish(&mut runtime);
     });
 }
+
+/// spec: L12, L13, G20
+#[test]
+fn shutdown_ignores_an_outstanding_tunable_acknowledgement() {
+    engine().block_on(async {
+        for success in [false, true] {
+            let mut r = runtime();
+            r.reconciler.kernel_mut().bindv6only = true;
+            r.reconcile(config());
+            let event = r.next_event().await;
+            let ControlEvent::WriteTunable { id, .. } = event else {
+                panic!("expected tunable request")
+            };
+            r.handle_event(event).unwrap();
+            r.handle_event(ControlEvent::Shutdown).unwrap();
+            assert!(r.stopping.is_some());
+            r.reconciler.kernel_mut().clear_ops();
+            r.handle_event(ControlEvent::TunableWritten { id, success })
+                .unwrap();
+            assert!(r.reconciler.kernel().tunnel_socket(10).is_none());
+            assert!(r.reconciler.kernel().ops().is_empty());
+            assert!(r.outgoing.is_empty());
+            finish(&mut r);
+        }
+    });
+}

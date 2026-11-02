@@ -1,0 +1,133 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+error[E0433]: cannot find `de` in `serde`
+    --> src/config/tests.rs:1633:24
+     |
+1633 |     let value = serde::de::value::StrDeserializer::<serde::de::value::...
+     |                        ^^ could not find `de` in `serde`
+
+error[E0433]: cannot find `de` in `serde`
+    --> src/config/tests.rs:1633:60
+     |
+1633 | ...ializer::<serde::de::value::Error>::new("not a table");
+     |                     ^^ could not find `de` in `serde`
+
+error[E0433]: cannot find type `Source` in this scope
+   --> src/reconciler/wanted_tests.rs:730:17
+    |
+730 |                 Source::Monitor,
+    |                 ^^^^^^ use of undeclared type `Source`
+    |
+help: consider importing this enum through its public re-export
+    |
+  1 + use crate::runtime::Source;
+    |
+
+error[E0433]: cannot find type `Notice` in this scope
+   --> src/reconciler/wanted_tests.rs:731:17
+    |
+731 |                 Notice::LinkNew(r.k.link(first).unwrap().clone()),
+    |                 ^^^^^^ use of undeclared type `Notice`
+    |
+help: consider importing this enum through its public re-export
+    |
+  1 + use crate::runtime::Notice;
+    |
+
+error[E0659]: `serde` is ambiguous
+    --> src/config/tests.rs:1632:9
+     |
+1632 |     use serde::Deserialize;
+     |         ^^^^^ ambiguous name
+     |
+     = note: ambiguous because of a conflict between a name from a glob import and an outer scope during import or macro resolution
+     = note: `serde` could refer to a crate passed with `--extern`
+     = help: use `::serde` to refer to this crate unambiguously
+note: `serde` could also refer to the module imported here
+    --> src/config/tests.rs:8:5
+     |
+   8 | use super::*;
+     |     ^^^^^^^^
+     = help: consider adding an explicit import of `serde` to disambiguate
+     = help: or use `self::serde` to refer to this module unambiguously
+
+error[E0603]: trait import `Deserialize` is private
+    --> src/config/tests.rs:1632:16
+     |
+1632 |     use serde::Deserialize;
+     |                ^^^^^^^^^^^ private trait import
+     |
+note: the trait import `Deserialize` is defined here...
+    --> src/config/serde.rs:8:13
+     |
+   8 | use serde::{Deserialize, Deserializer, Serialize, Serializer};
+     |             ^^^^^^^^^^^
+note: ...and refers to the trait `Deserialize` which is defined here
+    --> /home/dev/.cargo/registry/src/index.crates.menhera.org-f259c46fe2d9c39b/serde-1.0.229/src/lib.rs:253:50
+     |
+ 253 |             de, forward_to_deserialize_any, ser, Deserialize, Deserial...
+     |                                                  ^^^^^^^^^^^ you could import this directly
+...
+ 264 | crate_root!();
+     | ------------- in this macro invocation
+     = note: this error originates in the macro `crate_root` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0616]: field `labeled` of struct `config::partial::PartialConfig` is private
+    --> src/config/tests.rs:1617:10
+     |
+1617 |     next.labeled.push((
+     |          ^^^^^^^ private field
+
+error[E0599]: no method named `tunnel_id` found for struct `config::partial::Problem` in the current scope
+    --> src/config/tests.rs:1624:28
+     |
+1624 |     assert_eq!(problems[0].tunnel_id(), None);
+     |                            ^^^^^^^^^ private field, not a method
+     |
+    ::: src/config/partial.rs:690:1
+     |
+ 690 | pub struct Problem {
+     | ------------------ method `tunnel_id` not found for this struct
+     |
+help: there is a method `type_id` with a similar name
+     |
+1624 -     assert_eq!(problems[0].tunnel_id(), None);
+1624 +     assert_eq!(problems[0].type_id(), None);
+     |
+
+error[E0599]: no method named `session_id` found for struct `config::partial::Problem` in the current scope
+    --> src/config/tests.rs:1625:28
+     |
+1625 |     assert_eq!(problems[0].session_id(), None);
+     |                            ^^^^^^^^^^ private field, not a method
+     |
+    ::: src/config/partial.rs:690:1
+     |
+ 690 | pub struct Problem {
+     | ------------------ method `session_id` not found for this struct
+
+error[E0599]: no associated function or constant named `deserialize` found for struct `UnknownKeys` in the current scope
+    --> src/config/tests.rs:1634:39
+     |
+1634 |     let error = partial::UnknownKeys::deserialize(value).err().unwrap();
+     |                                       ^^^^^^^^^^^ associated function or constant not found in `UnknownKeys`
+     |
+    ::: src/config/partial.rs:18:1
+     |
+  18 | pub(crate) struct UnknownKeys(pub(crate) Vec<String>);
+     | ----------------------------- associated function or constant `deserialize` not found for this struct
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Deserialize` which provides `deserialize` is implemented but not in scope; perhaps you want to import it
+     |
+   6 + use crate::config::partial::_::_serde::Deserialize;
+     |
+help: there is a method `serialize` with a similar name
+     |
+1634 -     let error = partial::UnknownKeys::deserialize(value).err().unwrap();
+1634 +     let error = partial::UnknownKeys::serialize(value).err().unwrap();
+     |
+
+Some errors have detailed explanations: E0433, E0599, E0603, E0616, E0659.
+For more information about an error, try `rustc --explain E0433`.
+error: could not compile `rs-l2tpd` (lib test) due to 10 previous errors
+warning: build failed, waiting for other jobs to finish...

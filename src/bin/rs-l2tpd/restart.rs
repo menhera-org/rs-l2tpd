@@ -726,6 +726,14 @@ mod completion_tests {
                 "invalid re-exec state encoding",
             ),
             "version" => (Some("2:none".into()), "invalid re-exec PID-file state"),
+            "four-fields-version" => (
+                Some("2:1:2:2f706964".into()),
+                "invalid re-exec PID-file state",
+            ),
+            "wrong-pid" | "missing-pid" | "missing-fds" => (
+                Some("1:none".into()),
+                "invalid re-exec descriptor announcement",
+            ),
             "fields" => (Some("1:1:2".into()), "invalid re-exec PID-file state"),
             "odd-hex" => (Some("1:1:2:2f0".into()), "invalid re-exec pathname"),
             "bad-hex" => (Some("1:1:2:zz".into()), "invalid re-exec pathname"),
@@ -747,6 +755,15 @@ mod completion_tests {
                 "LISTEN_FDS",
                 if case == "announcement" { "bad" } else { "0" },
             );
+            if case == "wrong-pid" {
+                std::env::set_var("LISTEN_PID", "0");
+            }
+            if case == "missing-pid" {
+                std::env::remove_var("LISTEN_PID");
+            }
+            if case == "missing-fds" {
+                std::env::remove_var("LISTEN_FDS");
+            }
             std::env::remove_var("RS_L2TPD_PIDFILE");
             if let Some(state) = state {
                 std::env::set_var("RS_L2TPD_PIDFILE", state);
@@ -763,6 +780,10 @@ mod completion_tests {
             "missing",
             "encoding",
             "version",
+            "four-fields-version",
+            "wrong-pid",
+            "missing-pid",
+            "missing-fds",
             "fields",
             "odd-hex",
             "bad-hex",
@@ -991,5 +1012,57 @@ mod completion_tests {
             }
             assert!(started.elapsed() < Duration::from_secs(10));
         }
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod pid_growth_tests {
+    use super::*;
+    use std::os::unix::process::ExitStatusExt;
+
+    /// spec: P27, G1
+    #[test]
+    fn a_pid_file_growing_after_metadata_is_refused_before_signalling() {
+        const CHILD: &str = "PHASE6_RESTART_PID_GROWTH";
+        if let Some(root) = std::env::var_os(CHILD) {
+            let root = PathBuf::from(root);
+            let mut target = Command::new("/bin/sleep").arg("30").spawn().unwrap();
+            let pid = target.id().to_string();
+            std::fs::write(root.join("grown"), format!("{pid:0>32}\n")).unwrap();
+            #[cfg(coverage_nightly)]
+            crate::syscall_fault::keep_profile_output();
+            crate::syscall_barrier::stop().unwrap();
+            let result = signal(&root.join("pid"));
+            let _ = target.kill();
+            let status = target.wait().unwrap();
+            assert_eq!(result.unwrap_err().to_string(), "invalid PID file");
+            assert_eq!(status.signal(), Some(libc::SIGKILL));
+            println!("PID_GROWTH_REFUSAL_CHECKED=1");
+            return;
+        }
+        let dir = crate::testdir::Dir::new();
+        let path = dir.path().join("pid");
+        std::fs::write(&path, "2\n").unwrap();
+        std::fs::set_permissions(&path, std::os::unix::fs::PermissionsExt::from_mode(0o600))
+            .unwrap();
+        let mut grew = false;
+        let output = crate::syscall_barrier::run(
+            Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "restart::pid_growth_tests::a_pid_file_growing_after_metadata_is_refused_before_signalling", "--nocapture"])
+                .env(CHILD, dir.path()),
+            dir.path(),
+            |tid, number, arguments| {
+                if !grew && number == libc::SYS_read as u64
+                    && std::fs::read_link(format!("/proc/{tid}/fd/{}", arguments[0])).ok().as_ref() == Some(&path)
+                {
+                    std::fs::write(&path, std::fs::read(dir.path().join("grown"))?)?;
+                    grew = true;
+                }
+                Ok(())
+            },
+        ).unwrap();
+        assert!(grew && output.status.success(), "{output:?}");
+        assert!(String::from_utf8_lossy(&output.stdout).contains("PID_GROWTH_REFUSAL_CHECKED=1"));
     }
 }

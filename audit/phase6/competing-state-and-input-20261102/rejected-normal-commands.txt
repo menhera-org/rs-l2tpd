@@ -1,0 +1,30 @@
+ubuntu:
+set -eu
+root=/home/dev/rs-l2tpd
+candidate=$(cat /tmp/phase6-race-validation-path)
+record=$root/audit/phase6/competing-state-and-input-20261102
+snapshot=$root/audit/phase6/matrix-20261102T011736Z-3377142
+cd "$candidate"
+for suite in noble resolute; do
+ version=$(sed -n 's/^UBUNTU_META_VERSION=//p' "$snapshot/initial/$suite.log")
+ release=$(sed -n 's/^KERNEL_RELEASE=//p' "$snapshot/initial/$suite.log")
+ kernel_root=$root/target/phase6-kernels/ubuntu-$suite-$version/root
+ original_root=$(sed -n 's/^KERNEL_ROOT=//p' "$snapshot/$suite-packages.log")
+ original_modules=$(sed -n 's/^KERNEL_MODULES=//p' "$snapshot/$suite-packages.log")
+ module_suffix=${original_modules#"$original_root"/}
+ timeout 600 tests/kernel/run-guest.sh "$kernel_root/boot/vmlinuz-$release" "$kernel_root/$module_suffix" "$kernel_root/boot/config-$release" normal "$record/guest-$suite" > "$record/guest-$suite.log" 2>&1
+ grep -q 'SCENARIO_RESULT=0' "$record/guest-$suite/run.log"
+done
+printf 'COMPETING_NORMAL_BATCH_BOTH_UBUNTU_GUESTS_RESULT=0\n'
+vanilla:
+set -eu
+root=/home/dev/rs-l2tpd
+candidate=$(cat /tmp/phase6-race-validation-path)
+record=$root/audit/phase6/competing-state-and-input-20261102
+cd "$candidate"
+for version in 6.8.12 7.0.14 7.4-rc1; do
+ kernel_root=$root/target/phase6-kernels/linux-$version-ipv6
+ timeout 600 tests/kernel/run-guest.sh "$kernel_root/arch/x86/boot/bzImage" - "$kernel_root/.config" normal "$record/guest-$version" > "$record/guest-$version.log" 2>&1
+ grep -q 'SCENARIO_RESULT=0' "$record/guest-$version/run.log"
+done
+printf 'COMPETING_NORMAL_BATCH_THREE_VANILLA_GUESTS_RESULT=0\n'

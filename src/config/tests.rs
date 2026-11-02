@@ -1592,3 +1592,34 @@ fn document_diagnostics_quote_nonbare_keys_and_explain_ignored_fields() {
         "resolver \"r\", dhcpv6_identity: used only with method dhcpv6 or ipv6; applied, the key ignored"
     );
 }
+
+/// spec: C5, C6, C12, O5
+#[test]
+fn defensive_conversion_refuses_an_invalid_retained_resolver() {
+    let (mut previous, problems) = lenient(RESOLVER);
+    assert!(problems.is_empty());
+    let resolver = previous.resolvers.remove("r").unwrap();
+    // Only private corruption can bypass the public name validation.
+    previous.resolvers.insert(String::new(), resolver);
+    let mut next = PartialConfig::default();
+    next.resolvers
+        .insert(String::new(), partial::PartialResolver::default());
+    let problems = next.into_config_with_previous(&previous).unwrap_err();
+    assert_eq!(
+        summary(&problems),
+        [
+            (String::new(), Some("addresses"), Effect::KeptPrevious),
+            (String::new(), None, Effect::Refused),
+        ]
+    );
+}
+
+/// spec: C6, C15
+#[test]
+fn unknown_key_collection_rejects_a_non_map_deserializer() {
+    use ::serde::Deserialize;
+    let value =
+        ::serde::de::value::StrDeserializer::<::serde::de::value::Error>::new("not a table");
+    let error = partial::UnknownKeys::deserialize(value).err().unwrap();
+    assert!(error.to_string().contains("expected a map"));
+}

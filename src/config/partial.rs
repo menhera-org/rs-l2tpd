@@ -789,3 +789,26 @@ fn key_path(path: &[String]) -> String {
         .collect::<Vec<_>>()
         .join(".")
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod diagnostic_tests {
+    use super::*;
+
+    /// spec: C6, O5
+    #[test]
+    fn a_diagnostic_without_its_session_has_no_invented_identifiers() {
+        let mut next = PartialConfig::default();
+        // A previously labeled document need not still have the corresponding entry.
+        next.labeled.push((
+            Some("synthetic.toml".into()),
+            vec!["sessions".into(), "absent".into(), "unknown".into()],
+        ));
+        let (config, problems) = next.into_config_lenient();
+        assert!(config.sessions().is_empty());
+        assert_eq!(problems.len(), 1);
+        assert_eq!(problems[0].tunnel_id, None);
+        assert_eq!(problems[0].session_id, None);
+        assert_eq!(problems[0].effect(), Effect::Ignored);
+    }
+}
