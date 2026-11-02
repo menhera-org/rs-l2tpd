@@ -328,13 +328,88 @@ mod completion_tests {
     use super::*;
     use std::os::unix::ffi::OsStrExt;
 
+    /// spec: C3, C4, P13
+    #[test]
+    fn file_growth_and_disappearance_are_checked_after_metadata() {
+        const CHILD: &str = "RS_L2TPD_FILE_RACE";
+        if let Ok(case) = std::env::var(CHILD) {
+            let root =
+                std::path::PathBuf::from(std::env::var_os("RS_L2TPD_FILE_RACE_ROOT").unwrap());
+            let main = root.join("main.toml");
+            crate::syscall_barrier::stop().unwrap();
+            if case == "grow" {
+                assert!(
+                    read_file(&main).is_err_and(|error| error.to_string().contains("16 MiB")),
+                    "a growing document must be refused"
+                );
+            } else {
+                let loaded = load(&main, &root.join("absent"));
+                assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
+                assert!(loaded.partial.into_config_lenient().0.tunnels().is_empty());
+            }
+            println!("FILE_RACE_CHECKED={case}");
+            return;
+        }
+        for case in ["grow", "disappear"] {
+            let dir = crate::testdir::Dir::new();
+            let main = dir.path().join("main.toml");
+            fs::write(
+                &main,
+                "[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.1'\n",
+            )
+            .unwrap();
+            let mut changed = false;
+            let mut command = std::process::Command::new(std::env::current_exe().unwrap());
+            command.args(["--exact", "files::completion_tests::file_growth_and_disappearance_are_checked_after_metadata", "--nocapture"])
+                .env(CHILD, case).env("RS_L2TPD_FILE_RACE_ROOT", dir.path());
+            let output =
+                crate::syscall_barrier::run(&mut command, dir.path(), |tid, number, arguments| {
+                    if changed {
+                        return Ok(());
+                    }
+                    if case == "grow"
+                        && number == libc::SYS_read as u64
+                        && fs::read_link(format!("/proc/{tid}/fd/{}", arguments[0]))
+                            .ok()
+                            .as_ref()
+                            == Some(&main)
+                    {
+                        fs::OpenOptions::new()
+                            .write(true)
+                            .open(&main)?
+                            .set_len(16 * 1024 * 1024 + 1)?;
+                        changed = true;
+                    } else if case == "disappear"
+                        && crate::syscall_fault::OPEN_SYSCALLS.contains(&(number as libc::c_long))
+                    {
+                        let argument = usize::from(number == libc::SYS_openat as u64);
+                        if crate::syscall_barrier::path(tid, arguments[argument])?
+                            == main.as_os_str().as_bytes()
+                        {
+                            fs::remove_file(&main)?;
+                            changed = true;
+                        }
+                    }
+                    Ok(())
+                })
+                .unwrap();
+            assert!(changed, "{case}: the intended syscall must be observed");
+            assert!(output.status.success(), "{case}: {output:?}");
+            assert!(String::from_utf8_lossy(&output.stdout).contains("FILE_RACE_CHECKED="));
+        }
+    }
+
     /// spec: C1 C3 C4 P13
     #[test]
     fn file_io_faults_refuse_reload_and_keep_successfully_read_documents() {
         const CHILD: &str = "PHASE6_FILE_FAULT";
         if let Ok(case) = std::env::var(CHILD) {
             let root = std::path::PathBuf::from(std::env::var_os("PHASE6_FILE_ROOT").unwrap());
-            let main = root.join("main.toml");
+            let main = root.join(if case == "ancestor" {
+                "missing.toml"
+            } else {
+                "main.toml"
+            });
             let dropins = root.join("dropins");
             let previous: Config =
                 toml::from_str("[tunnels.previous]\ntunnel_id=11\nremote_addr='192.0.2.1'")
@@ -344,6 +419,39 @@ mod completion_tests {
                 "enumeration" => crate::syscall_fault::refuse(&[libc::SYS_getdents64], libc::EIO),
                 "read" => crate::syscall_fault::refuse(&[libc::SYS_read], libc::EIO),
                 "open" => crate::syscall_fault::refuse_open(libc::ENOENT),
+                "ancestor" => {
+                    #[cfg(coverage_nightly)]
+                    crate::syscall_fault::keep_profile_output();
+                    #[cfg(target_pointer_width = "64")]
+                    for flags in [
+                        libc::AT_SYMLINK_NOFOLLOW,
+                        libc::AT_SYMLINK_NOFOLLOW | libc::AT_NO_AUTOMOUNT,
+                    ] {
+                        crate::syscall_fault::on_exec_argument(
+                            libc::SYS_newfstatat,
+                            3,
+                            flags as u32,
+                            libc::EIO,
+                        )()
+                        .unwrap();
+                        crate::syscall_fault::on_exec_argument(
+                            libc::SYS_statx,
+                            2,
+                            flags as u32,
+                            libc::EIO,
+                        )()
+                        .unwrap();
+                    }
+                    #[cfg(any(
+                        target_arch = "x86_64",
+                        target_arch = "powerpc64",
+                        target_arch = "s390x",
+                        target_arch = "sparc64",
+                        target_arch = "mips64",
+                        target_arch = "mips64r6"
+                    ))]
+                    crate::syscall_fault::on_exec(&[libc::SYS_lstat], libc::EIO)().unwrap();
+                }
                 "metadata" => {
                     crate::syscall_fault::refuse(&[libc::SYS_fstat, libc::SYS_statx], libc::EIO);
                     assert_eq!(
@@ -376,7 +484,14 @@ mod completion_tests {
         )
         .unwrap();
         fs::create_dir(dir.path().join("dropins")).unwrap();
-        for case in ["enumeration", "read", "open", "metadata"] {
+        for case in [
+            "enumeration",
+            "read",
+            "open",
+            "metadata",
+            #[cfg(target_pointer_width = "64")]
+            "ancestor",
+        ] {
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args(["--exact", "files::completion_tests::file_io_faults_refuse_reload_and_keep_successfully_read_documents", "--nocapture", "--test-threads=1"])
                 .env(CHILD, case)

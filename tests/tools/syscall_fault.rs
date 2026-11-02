@@ -45,27 +45,28 @@ pub(crate) const DUP_SYSCALLS: &[libc::c_long] = &[
     reason = "shared helper; not every test binary denies file opens"
 )]
 pub(crate) fn refuse_open(errno: i32) {
-    let syscalls = &[
-        #[cfg(any(
-            target_arch = "arm",
-            target_arch = "x86",
-            target_arch = "x86_64",
-            target_arch = "powerpc",
-            target_arch = "powerpc64",
-            target_arch = "s390x",
-            target_arch = "sparc",
-            target_arch = "sparc64",
-            target_arch = "mips",
-            target_arch = "mips64",
-            target_arch = "mips32r6",
-            target_arch = "mips64r6",
-            target_arch = "m68k"
-        ))]
-        libc::SYS_open,
-        libc::SYS_openat,
-    ];
-    refuse(syscalls, errno);
+    refuse(OPEN_SYSCALLS, errno);
 }
+
+pub(crate) const OPEN_SYSCALLS: &[libc::c_long] = &[
+    #[cfg(any(
+        target_arch = "arm",
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "powerpc",
+        target_arch = "powerpc64",
+        target_arch = "s390x",
+        target_arch = "sparc",
+        target_arch = "sparc64",
+        target_arch = "mips",
+        target_arch = "mips64",
+        target_arch = "mips32r6",
+        target_arch = "mips64r6",
+        target_arch = "m68k"
+    ))]
+    libc::SYS_open,
+    libc::SYS_openat,
+];
 
 // Test-only fault injection: include/uapi/linux/seccomp.h and filter.h.
 // Syscall numbers use this target's ABI; exec hooks retain only prepared data.
@@ -168,24 +169,25 @@ fn install(
     }
 }
 
-/// Refuses one socket option while preserving unrelated socket setup and sends.
+/// Matches syscall arguments 1 and 2, preserving unrelated operations.
 #[allow(
     dead_code,
-    reason = "shared helper; only resolver fixtures deny RA filters"
+    reason = "shared helper; resolver and exec fixtures match two arguments"
 )]
-pub(crate) fn on_exec_socket_option(
-    level: i32,
-    option: i32,
+pub(crate) fn on_exec_arguments(
+    syscall: libc::c_long,
+    first: i32,
+    second: i32,
     errno: i32,
 ) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
     let low_word = if cfg!(target_endian = "little") { 0 } else { 4 };
     let filter = [
         (0x20, 0, 0, 0),
-        (0x15, 0, 5, libc::SYS_setsockopt.try_into().unwrap()),
+        (0x15, 0, 5, syscall.try_into().unwrap()),
         (0x20, 0, 0, 24 + low_word),
-        (0x15, 0, 3, level.try_into().unwrap()),
+        (0x15, 0, 3, first.try_into().unwrap()),
         (0x20, 0, 0, 32 + low_word),
-        (0x15, 0, 1, option.try_into().unwrap()),
+        (0x15, 0, 1, second.try_into().unwrap()),
         (0x06, 0, 0, 0x00050000 | u32::try_from(errno).unwrap()),
         (0x06, 0, 0, 0x7fff0000),
     ]
@@ -223,7 +225,7 @@ pub(crate) fn on_exec_argument(
 }
 
 #[cfg(coverage_nightly)]
-fn keep_profile_output() {
+pub(crate) fn keep_profile_output() {
     unsafe extern "C" {
         fn __llvm_profile_get_filename() -> *const libc::c_char;
         fn __llvm_profile_set_filename(path: *const libc::c_char);

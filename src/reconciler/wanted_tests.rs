@@ -530,6 +530,7 @@ fn deletion_races_accept_enodev_after_both_proof_and_complete_dump() {
 fn failed_child_deletion_still_retires_its_unwanted_parent_and_local_record() {
     let (mut r, config) = staging_fixture("");
     assert!(r.reconcile(config));
+    let held = r.k.clone_fd(r.tunnels[&10].socket).unwrap();
     r.k.fail_next("delete", Errno::EIO);
     assert!(!r.reconcile(Config::new()));
     assert!(r.sessions.is_empty());
@@ -540,10 +541,23 @@ fn failed_child_deletion_still_retires_its_unwanted_parent_and_local_record() {
             .any(|operation| operation.starts_with("close "))
     );
     r.k.tick();
+    assert!(r.k.session(10, 100).unwrap().is_some());
+    drop(held);
+    // A concurrently forked fixture can retain CLOEXEC descriptors until exec.
+    let deadline = Instant::now() + std::time::Duration::from_secs(5);
+    let fake_now = r.k.now();
+    while r.k.session(10, 100).unwrap().is_some() {
+        assert!(
+            Instant::now() < deadline,
+            "last socket reference remained open"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        r.k.tick();
+    }
+    assert_eq!(r.k.now(), fake_now);
     r.k.advance(super::super::RETRY);
     r.tick();
     assert!(r.ready());
-    assert!(r.k.session(10, 100).unwrap().is_none());
     assert!(r.k.tunnel(10).unwrap().is_none());
     assert!(r.reserved.is_empty());
 }

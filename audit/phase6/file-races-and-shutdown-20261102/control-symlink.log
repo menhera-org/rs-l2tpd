@@ -1,0 +1,28 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
+warning: unused variable: `stat`
+   --> src/bin/rs-l2tpd/pidfile.rs:197:27
+    |
+197 |                 if let Ok(stat) = inspect(&dir, &name)
+    |                           ^^^^ help: if this is intentional, prefix it with an underscore: `_stat`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rs-l2tpd` (bin "rs-l2tpd" test) generated 1 warning (run `cargo fix --bin "rs-l2tpd" -p rs-l2tpd --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
+
+running 1 test
+
+thread 'pidfile::fault_tests::a_symlink_inserted_during_publication_never_receives_pid_contents' (3692506) panicked at src/bin/rs-l2tpd/pidfile.rs:753:9:
+Output { status: ExitStatus(unix_wait_status(25856)), stdout: "\nrunning 1 test\n\nthread 'pidfile::fault_tests::a_symlink_inserted_during_publication_never_receives_pid_contents' (3692508) panicked at src/bin/rs-l2tpd/pidfile.rs:707:74:\ncalled `Option::unwrap()` on a `None` value\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\ntest pidfile::fault_tests::a_symlink_inserted_during_publication_never_receives_pid_contents ... FAILED\n\nfailures:\n\nfailures:\n    pidfile::fault_tests::a_symlink_inserted_during_publication_never_receives_pid_contents\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 74 filtered out; finished in 1.90s\n\n", stderr: "" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test pidfile::fault_tests::a_symlink_inserted_during_publication_never_receives_pid_contents ... FAILED
+
+failures:
+
+failures:
+    pidfile::fault_tests::a_symlink_inserted_during_publication_never_receives_pid_contents
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 74 filtered out; finished in 1.91s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

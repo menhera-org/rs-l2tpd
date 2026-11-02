@@ -34,8 +34,9 @@ selections agree and both tracked-source patches are empty. Repository
 record `audit/phase6/matrix-20261102T011736Z-3377142/README.md` seals P3.
 The RC source comparison covers 43 relevant files, verified against both
 archives; both builds pass. The integrated resolver/event/host tests raise
-coverage, together with the larger installer/descriptor/reconciler batch,
-to 98.34% lines and 93.14% branches. K41's strengthened listener
+coverage, together with the installer/descriptor/reconciler batch and
+file-race/inheritance/shutdown cases, to 98.57% lines and 93.79% branches.
+K41's strengthened listener
 control passes all five required kernels and rejects a broken listener.
 
 Phase 6 remains open. The 23:11 UTC publication recheck selects mainline
@@ -87,17 +88,27 @@ the exact live or fake scope:
 `audit/phase6/resolver-default-capacity-20261101/` and
 `audit/phase6/pidfile-inspection-errors-20261101/`.
 
-The current collector reports **98.34% of production lines and 93.14% of
-branches**: 8,543/8,687 lines and 1,725/1,852 branches, leaving **144 lines
-and 127 branches**. All 4,327 preceding production mappings remain unchanged;
-four test-induced instantiations were added. Repository record
+The current collector reports **98.57% of production lines and 93.79% of
+branches**: 8,563/8,687 lines and 1,737/1,852 branches, leaving **124 lines
+and 115 branches**. All 4,331 mappings remain unchanged from the previous
+report. Repository records
 `audit/phase6/resolver-boundaries-20261102/` and
-`audit/phase6/coverage-batch-20261102/` retain the exact scopes and controls.
+`audit/phase6/coverage-batch-20261102/` and
+`audit/phase6/file-races-and-shutdown-20261102/` retain the exact scopes and controls.
 Profiles from earlier production implementations are not merged. There
 are no production exclusions, profile mismatches or saturated regions.
 Complete clause/history/resource/event-cost proof and the 100% gate remain
 required. Repository file `audit/PHASE6_VERIFICATION_2026-11-02.md` records
 current gates and preserves earlier packages' scopes.
+
+The larger follow-on batch passes its final five-kernel profiles, ten
+instrumented fake repetitions, three musl model repetitions, GNU/musl
+container repetitions and three failure controls. It covers deterministic
+file growth/removal and PID symlink races, metadata refusals, descriptor
+duplication/inheritance and daemon startup/shutdown errors. Its test-only
+syscall barrier uses the approved libc exception for a broken `nix`
+syscall-info wrapper. Fork-based library fixtures execute separately in the
+serial live profile. The full 100% gate and complete clause proof remain open.
 
 ## Rules that hold for the whole phase
 

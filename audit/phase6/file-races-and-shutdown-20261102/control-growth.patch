@@ -1,0 +1,11 @@
+--- /home/dev/rs-l2tpd/src/bin/rs-l2tpd/files.rs	2026-11-02 04:08:30.348703975 +0000
++++ /tmp/phase6-resolver-validation.TnD6EwZN/src/bin/rs-l2tpd/files.rs	2026-11-02 04:26:21.304702356 +0000
+@@ -316,7 +316,7 @@
+     check(file.metadata()?)?;
+     let mut text = String::new();
+     file.take(LIMIT + 1).read_to_string(&mut text)?;
+-    if text.len() as u64 > LIMIT {
++    if false {
+         return Err(io::Error::other("configuration exceeds 16 MiB"));
+     }
+     Ok(text)

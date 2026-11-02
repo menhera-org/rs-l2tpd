@@ -306,6 +306,7 @@ mod tests {
     /// spec: P11, P26, G2
     #[test]
     fn incorrect_inode_hints_and_nonregular_paths_never_authorize_removal() {
+        crate::logger::init(true);
         let dir = Dir::new();
         let pid = PidFile::publish(&dir.path().join("daemon.pid")).unwrap();
         let contents = std::fs::read(&pid.path).unwrap();
@@ -695,6 +696,63 @@ mod edge_tests {
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod fault_tests {
     use super::*;
+
+    /// spec: P10, P11, G2
+    #[test]
+    fn a_symlink_inserted_during_publication_never_receives_pid_contents() {
+        const CHILD: &str = "RS_L2TPD_PID_SYMLINK_RACE";
+        if let Some(root) = std::env::var_os(CHILD) {
+            let root = std::path::PathBuf::from(root);
+            crate::syscall_barrier::stop().unwrap();
+            let error = PidFile::publish(&root.join("daemon.pid")).err().unwrap();
+            assert!(error.to_string().contains("became a symbolic link"));
+            assert_eq!(
+                std::fs::read(root.join("target")).unwrap(),
+                b"operator data"
+            );
+            assert_eq!(
+                std::fs::read_link(root.join("daemon.pid")).unwrap(),
+                root.join("target")
+            );
+            assert!(std::fs::read_dir(&root).unwrap().all(|entry| {
+                !entry
+                    .unwrap()
+                    .file_name()
+                    .as_bytes()
+                    .starts_with(b".rs-l2tpd-")
+            }));
+            println!("PID_SYMLINK_RACE_CHECKED=1");
+            return;
+        }
+        let dir = crate::testdir::Dir::new();
+        let target = dir.path().join("target");
+        std::fs::write(&target, b"operator data").unwrap();
+        let mut changed = false;
+        let mut command = std::process::Command::new(std::env::current_exe().unwrap());
+        command.args(["--exact", "pidfile::fault_tests::a_symlink_inserted_during_publication_never_receives_pid_contents", "--nocapture"])
+            .env(CHILD, dir.path());
+        let output =
+            crate::syscall_barrier::run(&mut command, dir.path(), |tid, number, arguments| {
+                if !changed && number == libc::SYS_fsync as u64 {
+                    let path = std::fs::read_link(format!("/proc/{tid}/fd/{}", arguments[0]))?;
+                    if path.parent() == Some(dir.path())
+                        && path
+                            .file_name()
+                            .unwrap()
+                            .as_bytes()
+                            .starts_with(b".rs-l2tpd-")
+                    {
+                        std::os::unix::fs::symlink(&target, dir.path().join("daemon.pid"))?;
+                        changed = true;
+                    }
+                }
+                Ok(())
+            })
+            .unwrap();
+        assert!(changed, "the PID temporary file must reach fsync");
+        assert!(output.status.success(), "{output:?}");
+        assert!(String::from_utf8_lossy(&output.stdout).contains("PID_SYMLINK_RACE_CHECKED=1"));
+    }
     use crate::testdir::Dir;
 
     /// spec: P10, P11, P17
@@ -733,6 +791,8 @@ mod fault_tests {
             "random" => &[libc::SYS_getrandom],
             "remove-open" => &[],
             #[cfg(target_pointer_width = "64")]
+            "publish-inspect" => &[],
+            #[cfg(target_pointer_width = "64")]
             "remove-inspect" | "matches" => &[
                 libc::SYS_newfstatat,
                 libc::SYS_statx,
@@ -764,7 +824,34 @@ mod fault_tests {
                 ino: metadata.ino(),
             }
         });
-        if case == "remove-open" {
+        if case == "publish-inspect" {
+            #[cfg(coverage_nightly)]
+            crate::syscall_fault::keep_profile_output();
+            #[cfg(target_pointer_width = "64")]
+            for flags in [
+                libc::AT_SYMLINK_NOFOLLOW,
+                libc::AT_SYMLINK_NOFOLLOW | libc::AT_NO_AUTOMOUNT,
+            ] {
+                crate::syscall_fault::on_exec_argument(
+                    libc::SYS_newfstatat,
+                    3,
+                    flags as u32,
+                    errno,
+                )()
+                .unwrap();
+                crate::syscall_fault::on_exec_argument(libc::SYS_statx, 2, flags as u32, errno)()
+                    .unwrap();
+            }
+            #[cfg(any(
+                target_arch = "x86_64",
+                target_arch = "powerpc64",
+                target_arch = "s390x",
+                target_arch = "sparc64",
+                target_arch = "mips64",
+                target_arch = "mips64r6"
+            ))]
+            crate::syscall_fault::on_exec(&[libc::SYS_lstat], errno)().unwrap();
+        } else if case == "remove-open" {
             crate::syscall_fault::refuse_open(errno);
         } else {
             crate::syscall_fault::refuse(syscalls, errno);
@@ -814,6 +901,8 @@ mod fault_tests {
             "unlink",
             "random",
             "remove-open",
+            #[cfg(target_pointer_width = "64")]
+            "publish-inspect",
             #[cfg(target_pointer_width = "64")]
             "remove-inspect",
             #[cfg(target_pointer_width = "64")]

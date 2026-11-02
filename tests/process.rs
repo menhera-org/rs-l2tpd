@@ -231,6 +231,32 @@ fn check_cli_and_no_process_side_effects() {
     );
 }
 
+/// spec: P19, P26, P27, O1
+#[test]
+#[cfg(feature = "setup-systemd")]
+fn restart_and_installer_path_errors_return_one_without_starting_services() {
+    let dir = Dir::new();
+    let absent = dir.path().join("absent.pid");
+    let output = command()
+        .args(["--restart", "--pid-file"])
+        .arg(&absent)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("restart request:"));
+    assert!(!absent.exists());
+    let mut setup = command();
+    setup.arg0("relative/rs-l2tpd").arg("--setup-systemd");
+    let fault = syscall_fault::on_exec(&[libc::SYS_getcwd], libc::ENOENT);
+    unsafe {
+        setup.pre_exec(fault);
+    }
+    let output = setup.output().unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("running executable:"));
+    assert!(!String::from_utf8_lossy(&output.stderr).contains("panicked"));
+}
+
 /// spec: O4, O5, O8
 #[test]
 fn configuration_diagnostics_keep_known_identifiers_for_omitted_entries() {
@@ -676,6 +702,11 @@ fn handover_launcher() {
     if let Some(pid) = std::env::var_os("PROCESS_LAUNCH_PIDFILE") {
         command.arg("--pid-file").arg(pid);
     }
+    if let Some(state) = std::env::var_os("PROCESS_LAUNCH_REEXEC_STATE") {
+        command
+            .env("RS_L2TPD_REEXEC", format!("1:{}", std::process::id()))
+            .env("RS_L2TPD_PIDFILE", state);
+    }
     let error = command
         .arg("--config")
         .arg(std::env::var_os("PROCESS_LAUNCH_CONFIG").unwrap())
@@ -902,6 +933,122 @@ fn malformed_and_closed_announcements_are_errors_without_panics() {
         assert!(error.contains("cleanup cannot be confirmed"), "{error}");
         assert!(!error.contains("panicked"));
     }
+}
+
+/// spec: P4, P14, P16, P19, O1
+#[test]
+fn startup_failure_keeps_unverified_handover_and_reports_failed_withdrawal() {
+    let dir = Dir::new();
+    let main = config(&dir);
+    let file = fs::File::open("/dev/null").unwrap();
+    let raw = file.as_raw_fd();
+    for connected in [false, true] {
+        let notify = dir
+            .path()
+            .join(if connected { "manager" } else { "absent" });
+        let manager = connected.then(|| UnixDatagram::bind(&notify).unwrap());
+        let mut command = launcher(&main);
+        command.env("PROCESS_LAUNCH_NOTIFY", &notify);
+        unsafe {
+            command.pre_exec(move || {
+                if libc::dup2(raw, 3) < 0 || libc::fcntl(3, libc::F_SETFD, 0) < 0 {
+                    return Err(io::Error::last_os_error());
+                }
+                deny_netlink()
+            });
+        }
+        let mut process = Process::spawn(command);
+        if !connected {
+            process.event("descriptor store unavailable:");
+        }
+        process.event("opening kernel interfaces:");
+        drop(manager);
+        process.signal(Signal::SIGTERM);
+        if connected {
+            process.event("startup withdrawal t10:");
+        }
+        process.event("cannot confirm inherited tunnel absence");
+        assert_eq!(process.child.wait().unwrap().code(), Some(1));
+        process.done = true;
+        assert!(!dir.path().join("pid").exists());
+    }
+}
+
+/// spec: P14, P16, P17, G20, O1
+#[test]
+#[ignore = "isolated privileged container with L2TP modules"]
+fn lost_store_manager_makes_shutdown_fail_after_closing_local_sockets() {
+    namespace();
+    let dir = Dir::new();
+    let main = config(&dir);
+    let manager = Manager::new(&dir);
+    let mut command = start(&main, true, &dir.path().join("pid"));
+    command
+        .env("NOTIFY_SOCKET", &manager.path)
+        .env("FDSTORE", "16");
+    let mut process = Process::spawn(command);
+    process.event("ready");
+    manager.event("FDSTORE=1\nFDNAME=t10");
+    assert_eq!(manager.stored.lock().unwrap()["t10"].len(), 1);
+    drop(manager);
+    process.signal(Signal::SIGTERM);
+    process.event("descriptor store cleanup incomplete for t10");
+    process.event("service:");
+    process.event("shutdown complete");
+    assert_eq!(process.child.wait().unwrap().code(), Some(1));
+    process.done = true;
+    let mut kernel = LinuxKernel::new().unwrap();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while kernel.tunnel(10).unwrap().is_some() {
+        assert!(
+            Instant::now() < deadline,
+            "local tunnel survived failed store cleanup"
+        );
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    assert!(kernel.session(10, 100).unwrap().is_none());
+}
+
+/// spec: P11, P16, P17, P26, O1
+#[test]
+#[ignore = "isolated privileged container with L2TP modules"]
+fn reexec_pid_cleanup_failure_preserves_the_inode_and_returns_one() {
+    use std::os::unix::fs::MetadataExt;
+    namespace();
+    let dir = Dir::new();
+    let main = dir.path().join("empty.toml");
+    fs::write(&main, "[host]\nfix_bindv6only=false\n").unwrap();
+    let pid = dir.path().join("pid");
+    fs::write(&pid, "saved inode").unwrap();
+    let metadata = fs::metadata(&pid).unwrap();
+    let encoded: String = std::os::unix::ffi::OsStrExt::as_bytes(pid.as_os_str())
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    let state = format!("1:{}:{}:{encoded}", metadata.dev(), metadata.ino());
+    let file = fs::File::open("/dev/null").unwrap();
+    let raw = file.as_raw_fd();
+    let mut command = launcher(&main);
+    command.env("PROCESS_LAUNCH_REEXEC_STATE", state);
+    let mut fault = syscall_fault::on_exec(&[libc::SYS_unlinkat], libc::EIO);
+    unsafe {
+        command.pre_exec(move || {
+            if libc::dup2(raw, 3) < 0 || libc::fcntl(3, libc::F_SETFD, 0) < 0 {
+                return Err(io::Error::last_os_error());
+            }
+            fault()
+        });
+    }
+    let mut process = Process::spawn(command);
+    process.event("re-exec resumed");
+    process.signal(Signal::SIGTERM);
+    let error = process.event("PID file cleanup:");
+    assert!(error.contains("os error 5"), "{error}");
+    process.event("shutdown complete");
+    assert_eq!(process.child.wait().unwrap().code(), Some(1));
+    process.done = true;
+    assert_eq!(fs::metadata(&pid).unwrap().ino(), metadata.ino());
+    assert_eq!(fs::read(&pid).unwrap(), b"saved inode");
 }
 
 /// spec: P4 P14

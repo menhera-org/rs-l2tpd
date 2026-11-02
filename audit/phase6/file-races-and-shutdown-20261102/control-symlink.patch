@@ -1,0 +1,11 @@
+--- /home/dev/rs-l2tpd/src/bin/rs-l2tpd/pidfile.rs	2026-11-02 03:51:03.228064718 +0000
++++ /tmp/phase6-resolver-validation.TnD6EwZN/src/bin/rs-l2tpd/pidfile.rs	2026-11-02 04:26:25.343759383 +0000
+@@ -195,7 +195,7 @@
+             let metadata = file.metadata()?;
+             if fresh {
+                 if let Ok(stat) = inspect(&dir, &name)
+-                    && stat.st_mode & libc::S_IFMT == libc::S_IFLNK
++                    && false
+                 {
+                     return Err(io::Error::new(
+                         io::ErrorKind::InvalidInput,

@@ -366,6 +366,134 @@ mod cost_tests {
     use super::*;
     use crate::kernel::fake::FakeKernel;
     use crate::reconciler::IphostResolve;
+    use nix::libc;
+
+    /// spec: P14, L13, G20, E12
+    #[cfg(feature = "serde")]
+    #[test]
+    #[ignore = "serial syscall-fault profile: children inherit concurrent fake descriptors"]
+    fn descriptor_duplication_failures_keep_local_or_inherited_ownership() {
+        const CHILD: &str = "RS_L2TPD_STORE_DUPLICATION_FAULT";
+        let Ok(case) = std::env::var(CHILD) else {
+            for case in ["store", "inherit"] {
+                let output = std::process::Command::new(std::env::current_exe().unwrap())
+                    .args(["--ignored", "--exact", "reconciler::store::cost_tests::descriptor_duplication_failures_keep_local_or_inherited_ownership", "--nocapture"])
+                    .env(CHILD, case).output().unwrap();
+                assert!(output.status.success(), "{case}: {output:?}");
+                assert!(
+                    String::from_utf8_lossy(&output.stdout)
+                        .contains("STORE_DUPLICATION_FAILURE_CHECKED=")
+                );
+                assert!(!String::from_utf8_lossy(&output.stderr).contains("LLVM Profile Error"));
+                if case == "store" {
+                    assert!(
+                        String::from_utf8_lossy(&output.stderr)
+                            .contains("cannot duplicate socket for storage")
+                    );
+                }
+            }
+            return;
+        };
+        let mut kernel = FakeKernel::new(42);
+        let inherited = if case == "inherit" {
+            let socket = kernel
+                .create_socket(crate::config::Family::V6, 10, 10)
+                .unwrap();
+            kernel.register_tunnel(socket, 10, 10).unwrap();
+            let fd = kernel.clone_fd(socket).unwrap();
+            kernel.close(socket);
+            Some(fd)
+        } else {
+            None
+        };
+        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
+        let config: crate::config::Config = toml::from_str(
+            "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n",
+        )
+        .unwrap();
+        if let Some(fd) = inherited {
+            r.inherit("t10".into(), fd);
+        } else {
+            assert!(r.reconcile(config.clone()));
+            r.set_store_capacity(1);
+        }
+        crate::kernel::linux::syscall_fault::log_warnings();
+        crate::kernel::linux::syscall_fault::on_exec_argument(
+            libc::SYS_fcntl,
+            1,
+            libc::F_DUPFD_CLOEXEC as u32,
+            libc::EMFILE,
+        )()
+        .unwrap();
+        if case == "inherit" {
+            assert!(!r.reconcile(config));
+            assert_eq!(r.store.inherited["t10"].len(), 1);
+            assert!(r.store.names.contains("t10"));
+            assert!(r.tunnels.is_empty());
+            assert!(r.k.tunnel(10).unwrap().is_some());
+        } else {
+            let socket = r.tunnels[&10].socket;
+            r.store_socket(10, socket);
+            assert!(r.store.names.is_empty());
+            assert!(r.ready());
+            assert_eq!(r.k.open_sockets(), 1);
+            assert!(r.k.tunnel(10).unwrap().is_some());
+        }
+        assert!(r.take_requests().is_empty());
+        println!("STORE_DUPLICATION_FAILURE_CHECKED={case}");
+    }
+
+    /// spec: P14, S28, L13, G20
+    #[cfg(feature = "serde")]
+    #[test]
+    fn duplicate_unwanted_and_mismatched_inheritance_is_retired_before_creation() {
+        for case in ["duplicate", "unwanted", "peer"] {
+            let mut kernel = FakeKernel::new(42);
+            let socket = kernel
+                .create_socket(crate::config::Family::V6, 10, 20)
+                .unwrap();
+            kernel.register_tunnel(socket, 10, 20).unwrap();
+            let fd = kernel.clone_fd(socket).unwrap();
+            let duplicate = (case == "duplicate").then(|| kernel.clone_fd(socket).unwrap());
+            kernel.close(socket);
+            let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
+            r.set_store_capacity(1);
+            r.inherit("t10".into(), fd);
+            if let Some(fd) = duplicate {
+                r.inherit("t10".into(), fd);
+            }
+            let config = if case == "unwanted" {
+                crate::config::Config::new()
+            } else {
+                toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n").unwrap()
+            };
+            // An ambiguous or unwanted announcement must not be inspected.
+            if case != "peer" {
+                r.k.fail_next("adopt", nix::errno::Errno::EIO);
+            }
+            r.reconcile(config);
+            assert!(r.tunnels.is_empty(), "{case}");
+            assert!(r.store.inherited.is_empty());
+            assert_eq!(r.store.retiring.len(), 1);
+            assert!(r.store.blocks(10));
+            let requests = r.take_requests();
+            assert!(
+                matches!(requests.as_slice(), [Request::ForgetSocket { name, .. }] if name == "t10")
+            );
+            if case != "peer" {
+                assert_eq!(
+                    r.k.adopt(std::fs::File::open("/dev/null").unwrap().into())
+                        .unwrap_err()
+                        .raw_os_error(),
+                    Some(libc::EIO)
+                );
+            }
+            assert!(
+                r.k.tunnel(10).unwrap().is_some(),
+                "{case}: ownership must survive until withdrawal"
+            );
+        }
+    }
 
     /// spec: P14, L13, G20
     #[test]

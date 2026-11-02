@@ -52,10 +52,22 @@ merged 100% coverage gate.
 
 | Suite | Kernel | Runs where | Guards |
 |---|---|---|---|
-| Unit and `rules/` | fake | `cargo test --all-features`, no privilege | C, M, T, S, V, E, O, L rules |
+| Unit and `rules/` | fake and local syscalls | `cargo test --all-features`, no privilege | C, M, T, S, V, E, O, L rules |
 | `properties/` | fake | included by the feature-gated `rules` target in `cargo test --all-features` | seeded reload invariants for G3, G5–G7 and G18 |
 | `kernel/` conformance | fake **and** real | `cargo test --all-features` for the fake; a privileged container and the QEMU matrix for the real one | K facts, `kernel::linux` |
 | `scenarios/` (partial, Phase 6) | real | privileged containers; QEMU for `ipv6.disable=1` and other boot options | H rules, P rules, the unit, G15–G23 end to end |
+
+Syscall-fault tests require seccomp filtering of their own child
+processes. File-race tests also require tracing an owned child worker and
+[`PTRACE_GET_SYSCALL_INFO`](https://man7.org/linux/man-pages/man2/ptrace.2.html)
+(Linux 5.3 or later). Their parent stops the worker
+at the relevant syscall instead of relying on a scheduling race. These
+are test requirements; the daemon does not trace processes. The test-only
+`nix` exception is documented in [dependencies](dependencies.md#upstream-needs).
+Fork-based library fixtures execute in the serial live profile: a fork can
+briefly inherit descriptors owned by parallel fake cases until exec closes
+them. They remain required and are invoked explicitly; an ignored declaration
+does not count as execution.
 
 Host-kernel scale workloads run serially, including coverage and musl
 variants. Network namespaces share the kernel's ARP neighbour budget;
@@ -240,7 +252,7 @@ service queue, reconciler record, runtime/socket error guards and deferred
 MAC changes after device removal, lifetime inputs, deletion recovery,
 stale completions, foreign-family parsing, PID-file inspection errors,
 resolver/host boundaries and installer/descriptor/reconciler failures:
-98.34% lines / 93.14% branches, leaving 144 lines and 127 branches. Its fresh collector includes
+98.57% lines / 93.79% branches, leaving 124 lines and 115 branches. Its fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
 production exclusions, mismatches or saturated regions. The checked-reply
 implementation fixes the denominators at 8,687 lines and 1,852 branches.

@@ -379,3 +379,8 @@ mod stream_tests {
         assert!(output.status.success(), "{output:?}");
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[path = "../../../tests/tools/syscall_barrier.rs"]
+mod syscall_barrier;

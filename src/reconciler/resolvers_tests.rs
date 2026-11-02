@@ -32,7 +32,13 @@ fn dhcp_only_discovery_remains_partial_when_ra_setup_fails() {
     let (_sender, _destination, _primary, _fallback, dhcp) = fixture();
     let mut request = [0; 1500];
     // ICMP6_FILTER is option 1; DHCPv6's IPv6 socket options remain available.
-    socket_fault::on_exec_socket_option(nix::libc::IPPROTO_ICMPV6, 1, nix::libc::EIO)().unwrap();
+    socket_fault::on_exec_arguments(
+        nix::libc::SYS_setsockopt,
+        nix::libc::IPPROTO_ICMPV6,
+        1,
+        nix::libc::EIO,
+    )()
+    .unwrap();
     let resolver = IphostResolve::default()
         .resolver(&ResolverSpec::Ipv6 {
             interface: "dns-host".into(),

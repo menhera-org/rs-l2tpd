@@ -1,0 +1,15 @@
+
+running 1 test
+PTRACE_FD_ARGUMENT raw=4294967295 value=-1
+PTRACE_FD_ARGUMENT raw=4294967294 value=-2
+PTRACE_FD_ARGUMENT raw=4294967295 value=-1
+test syscall_barrier::query_sizes_peek_errors_and_callback_cleanup_are_checked ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.03s
+
+
+running 1 test
+test restart::exec_tests::descriptor_preparation_failures_leave_the_callers_table_unchanged ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.04s
+

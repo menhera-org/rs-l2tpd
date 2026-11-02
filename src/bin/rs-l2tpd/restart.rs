@@ -343,10 +343,10 @@ mod exec_tests {
         let socket = AdoptedSocket::new("t1", held.try_clone().unwrap().into());
         match case.as_str() {
             "unshare" => crate::syscall_fault::refuse(&[libc::SYS_unshare], libc::EIO),
-            "copy" => crate::syscall_fault::on_exec_argument(
+            "copy" => crate::syscall_fault::on_exec_arguments(
                 libc::SYS_fcntl,
-                1,
-                libc::F_DUPFD_CLOEXEC as u32,
+                libc::F_DUPFD_CLOEXEC,
+                4,
                 libc::EIO,
             )()
             .unwrap(),

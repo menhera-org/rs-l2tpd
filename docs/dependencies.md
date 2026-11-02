@@ -71,14 +71,16 @@ stops the dependent implementation until it ships upstream
 The maintainer permits a narrow exception when a `nix` wrapper is broken:
 use the existing `libc` dependency, document the defect and return conventions,
 and test success and failure on GNU and musl. Contributing to `nix` or waiting
-for its release is not required. Current uses are confined to the binary's
-signal calls below; L2's library unsafe-code boundary is unchanged.
+for its release is not required. Production uses are confined to the binary's
+signal calls below. The test-only syscall barrier also uses this exception;
+L2's library unsafe-code boundary is unchanged.
 
 The [iphost instruction](upstream-iphost.md) records the distinction,
 regressions, compatibility requirements and integration gate.
 
 | Need | Crate | Status |
 |---|---|---|
+| Sized syscall information for deterministic file-race tests | `nix` 0.30.1 | **Test-only libc exception:** `syscall_info` uses `ptrace_get_data`, which passes a null address where `PTRACE_GET_SYSCALL_INFO` requires the output-buffer size. The kernel returns the required size but copies zero bytes; the wrapper then assumes its uninitialized output is initialized. Its API is also GNU-only. The fixture never calls that wrapper. It passes the actual size of a zero-initialized UAPI structure, checks errno before reading output and requires a complete entry payload. GNU and musl tests exercise successful queries, zero-size queries with an unchanged sentinel buffer, PEEKDATA success with a valid all-ones word, invalid pointers/requests, bounded pathname reads and callback-failure cleanup. The source is `nix`'s `src/sys/ptrace/linux.rs:501–512,573–576` and Linux's `kernel/ptrace.c:ptrace_get_syscall_info`; this adds no production code, crate or Cargo feature |
 | Original errors from signal-mask changes and signal waits (P4, P12, P16) | `nix` 0.30.1; reproduced upstream revision `89339c6` (0.31.3) | **Local libc exception approved 2026-11-01:** positive pthread errors are treated as success by `nix`, and failed wait/get-mask outputs can be read before initialization. The binary uses checked `libc::pthread_sigmask` and `libc::sigwait` calls instead. It handles positive error numbers and musl's -1/errno convention before reading the initialized wait output; invalid signals return an error. Safe signal-set construction and unrelated wrappers remain in `nix`; no dependency override is needed. [PR #2852](https://github.com/nix-rust/nix/pull/2852) and independent overflow-fixture [PR #2853](https://github.com/nix-rust/nix/pull/2853) retain upstream proposals; their integration is not a daemon prerequisite. Repository records `audit/phase6/libc-signals-20261101/`, `audit/phase6/upstream-signal-errors-20261031/` and `audit/phase6/upstream-overflow-fixture-20261031/` retain the local tests and upstream evidence |
 | `TunnelSocket::disconnect`, `from_fd`, `into_fd`, `local_addr_ip` | `l2tp` | in 0.4.0 |
 | `delete_session_by_ifname`, `get_session_by_ifname` (S22, name-only primitive; not an atomic identity check) | `l2tp` | in 0.4.0 |

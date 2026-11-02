@@ -1,0 +1,995 @@
+diff --git a/src/bin/rs-l2tpd/files.rs b/src/bin/rs-l2tpd/files.rs
+index 7a1eb31..ac272fa 100644
+--- a/src/bin/rs-l2tpd/files.rs
++++ b/src/bin/rs-l2tpd/files.rs
+@@ -328,13 +328,88 @@ mod completion_tests {
+     use super::*;
+     use std::os::unix::ffi::OsStrExt;
+ 
++    /// spec: C3, C4, P13
++    #[test]
++    fn file_growth_and_disappearance_are_checked_after_metadata() {
++        const CHILD: &str = "RS_L2TPD_FILE_RACE";
++        if let Ok(case) = std::env::var(CHILD) {
++            let root =
++                std::path::PathBuf::from(std::env::var_os("RS_L2TPD_FILE_RACE_ROOT").unwrap());
++            let main = root.join("main.toml");
++            crate::syscall_barrier::stop().unwrap();
++            if case == "grow" {
++                let error = read_file(&main)
++                    .err()
++                    .expect("a growing document must be refused");
++                assert!(error.to_string().contains("16 MiB"));
++            } else {
++                let loaded = load(&main, &root.join("absent"));
++                assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
++                assert!(loaded.partial.into_config_lenient().0.tunnels().is_empty());
++            }
++            println!("FILE_RACE_CHECKED={case}");
++            return;
++        }
++        for case in ["grow", "disappear"] {
++            let dir = crate::testdir::Dir::new();
++            let main = dir.path().join("main.toml");
++            fs::write(
++                &main,
++                "[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.1'\n",
++            )
++            .unwrap();
++            let mut changed = false;
++            let mut command = std::process::Command::new(std::env::current_exe().unwrap());
++            command.args(["--exact", "files::completion_tests::file_growth_and_disappearance_are_checked_after_metadata", "--nocapture"])
++                .env(CHILD, case).env("RS_L2TPD_FILE_RACE_ROOT", dir.path());
++            let output =
++                crate::syscall_barrier::run(&mut command, dir.path(), |tid, number, arguments| {
++                    if changed {
++                        return Ok(());
++                    }
++                    if case == "grow"
++                        && number == libc::SYS_read as u64
++                        && fs::read_link(format!("/proc/{tid}/fd/{}", arguments[0]))
++                            .ok()
++                            .as_ref()
++                            == Some(&main)
++                    {
++                        fs::OpenOptions::new()
++                            .write(true)
++                            .open(&main)?
++                            .set_len(16 * 1024 * 1024 + 1)?;
++                        changed = true;
++                    } else if case == "disappear"
++                        && crate::syscall_fault::OPEN_SYSCALLS.contains(&(number as libc::c_long))
++                    {
++                        let argument = usize::from(number == libc::SYS_openat as u64);
++                        if crate::syscall_barrier::path(tid, arguments[argument])?
++                            == main.as_os_str().as_bytes()
++                        {
++                            fs::remove_file(&main)?;
++                            changed = true;
++                        }
++                    }
++                    Ok(())
++                })
++                .unwrap();
++            assert!(changed, "{case}: the intended syscall must be observed");
++            assert!(output.status.success(), "{case}: {output:?}");
++            assert!(String::from_utf8_lossy(&output.stdout).contains("FILE_RACE_CHECKED="));
++        }
++    }
++
+     /// spec: C1 C3 C4 P13
+     #[test]
+     fn file_io_faults_refuse_reload_and_keep_successfully_read_documents() {
+         const CHILD: &str = "PHASE6_FILE_FAULT";
+         if let Ok(case) = std::env::var(CHILD) {
+             let root = std::path::PathBuf::from(std::env::var_os("PHASE6_FILE_ROOT").unwrap());
+-            let main = root.join("main.toml");
++            let main = root.join(if case == "ancestor" {
++                "missing.toml"
++            } else {
++                "main.toml"
++            });
+             let dropins = root.join("dropins");
+             let previous: Config =
+                 toml::from_str("[tunnels.previous]\ntunnel_id=11\nremote_addr='192.0.2.1'")
+@@ -344,6 +419,39 @@ mod completion_tests {
+                 "enumeration" => crate::syscall_fault::refuse(&[libc::SYS_getdents64], libc::EIO),
+                 "read" => crate::syscall_fault::refuse(&[libc::SYS_read], libc::EIO),
+                 "open" => crate::syscall_fault::refuse_open(libc::ENOENT),
++                "ancestor" => {
++                    #[cfg(coverage_nightly)]
++                    crate::syscall_fault::keep_profile_output();
++                    #[cfg(target_pointer_width = "64")]
++                    for flags in [
++                        libc::AT_SYMLINK_NOFOLLOW,
++                        libc::AT_SYMLINK_NOFOLLOW | libc::AT_NO_AUTOMOUNT,
++                    ] {
++                        crate::syscall_fault::on_exec_argument(
++                            libc::SYS_newfstatat,
++                            3,
++                            flags as u32,
++                            libc::EIO,
++                        )()
++                        .unwrap();
++                        crate::syscall_fault::on_exec_argument(
++                            libc::SYS_statx,
++                            2,
++                            flags as u32,
++                            libc::EIO,
++                        )()
++                        .unwrap();
++                    }
++                    #[cfg(any(
++                        target_arch = "x86_64",
++                        target_arch = "powerpc64",
++                        target_arch = "s390x",
++                        target_arch = "sparc64",
++                        target_arch = "mips64",
++                        target_arch = "mips64r6"
++                    ))]
++                    crate::syscall_fault::on_exec(&[libc::SYS_lstat], libc::EIO)().unwrap();
++                }
+                 "metadata" => {
+                     crate::syscall_fault::refuse(&[libc::SYS_fstat, libc::SYS_statx], libc::EIO);
+                     assert_eq!(
+@@ -376,7 +484,14 @@ mod completion_tests {
+         )
+         .unwrap();
+         fs::create_dir(dir.path().join("dropins")).unwrap();
+-        for case in ["enumeration", "read", "open", "metadata"] {
++        for case in [
++            "enumeration",
++            "read",
++            "open",
++            "metadata",
++            #[cfg(target_pointer_width = "64")]
++            "ancestor",
++        ] {
+             let output = std::process::Command::new(std::env::current_exe().unwrap())
+                 .args(["--exact", "files::completion_tests::file_io_faults_refuse_reload_and_keep_successfully_read_documents", "--nocapture", "--test-threads=1"])
+                 .env(CHILD, case)
+diff --git a/src/bin/rs-l2tpd/main.rs b/src/bin/rs-l2tpd/main.rs
+index e41a023..b7c302c 100644
+--- a/src/bin/rs-l2tpd/main.rs
++++ b/src/bin/rs-l2tpd/main.rs
+@@ -379,3 +379,8 @@ mod stream_tests {
+         assert!(output.status.success(), "{output:?}");
+     }
+ }
++
++#[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
++#[path = "../../../tests/tools/syscall_barrier.rs"]
++mod syscall_barrier;
+diff --git a/src/bin/rs-l2tpd/pidfile.rs b/src/bin/rs-l2tpd/pidfile.rs
+index b727bf6..1273827 100644
+--- a/src/bin/rs-l2tpd/pidfile.rs
++++ b/src/bin/rs-l2tpd/pidfile.rs
+@@ -306,6 +306,7 @@ mod tests {
+     /// spec: P11, P26, G2
+     #[test]
+     fn incorrect_inode_hints_and_nonregular_paths_never_authorize_removal() {
++        crate::logger::init(true);
+         let dir = Dir::new();
+         let pid = PidFile::publish(&dir.path().join("daemon.pid")).unwrap();
+         let contents = std::fs::read(&pid.path).unwrap();
+@@ -695,6 +696,63 @@ mod edge_tests {
+ #[cfg_attr(coverage_nightly, coverage(off))]
+ mod fault_tests {
+     use super::*;
++
++    /// spec: P10, P11, G2
++    #[test]
++    fn a_symlink_inserted_during_publication_never_receives_pid_contents() {
++        const CHILD: &str = "RS_L2TPD_PID_SYMLINK_RACE";
++        if let Some(root) = std::env::var_os(CHILD) {
++            let root = std::path::PathBuf::from(root);
++            crate::syscall_barrier::stop().unwrap();
++            let error = PidFile::publish(&root.join("daemon.pid")).err().unwrap();
++            assert!(error.to_string().contains("became a symbolic link"));
++            assert_eq!(
++                std::fs::read(root.join("target")).unwrap(),
++                b"operator data"
++            );
++            assert_eq!(
++                std::fs::read_link(root.join("daemon.pid")).unwrap(),
++                root.join("target")
++            );
++            assert!(std::fs::read_dir(&root).unwrap().all(|entry| {
++                !entry
++                    .unwrap()
++                    .file_name()
++                    .as_bytes()
++                    .starts_with(b".rs-l2tpd-")
++            }));
++            println!("PID_SYMLINK_RACE_CHECKED=1");
++            return;
++        }
++        let dir = crate::testdir::Dir::new();
++        let target = dir.path().join("target");
++        std::fs::write(&target, b"operator data").unwrap();
++        let mut changed = false;
++        let mut command = std::process::Command::new(std::env::current_exe().unwrap());
++        command.args(["--exact", "pidfile::fault_tests::a_symlink_inserted_during_publication_never_receives_pid_contents", "--nocapture"])
++            .env(CHILD, dir.path());
++        let output =
++            crate::syscall_barrier::run(&mut command, dir.path(), |tid, number, arguments| {
++                if !changed && number == libc::SYS_fsync as u64 {
++                    let path = std::fs::read_link(format!("/proc/{tid}/fd/{}", arguments[0]))?;
++                    if path.parent() == Some(dir.path())
++                        && path
++                            .file_name()
++                            .unwrap()
++                            .as_bytes()
++                            .starts_with(b".rs-l2tpd-")
++                    {
++                        std::os::unix::fs::symlink(&target, dir.path().join("daemon.pid"))?;
++                        changed = true;
++                    }
++                }
++                Ok(())
++            })
++            .unwrap();
++        assert!(changed, "the PID temporary file must reach fsync");
++        assert!(output.status.success(), "{output:?}");
++        assert!(String::from_utf8_lossy(&output.stdout).contains("PID_SYMLINK_RACE_CHECKED=1"));
++    }
+     use crate::testdir::Dir;
+ 
+     /// spec: P10, P11, P17
+@@ -733,6 +791,8 @@ mod fault_tests {
+             "random" => &[libc::SYS_getrandom],
+             "remove-open" => &[],
+             #[cfg(target_pointer_width = "64")]
++            "publish-inspect" => &[],
++            #[cfg(target_pointer_width = "64")]
+             "remove-inspect" | "matches" => &[
+                 libc::SYS_newfstatat,
+                 libc::SYS_statx,
+@@ -764,7 +824,34 @@ mod fault_tests {
+                 ino: metadata.ino(),
+             }
+         });
+-        if case == "remove-open" {
++        if case == "publish-inspect" {
++            #[cfg(coverage_nightly)]
++            crate::syscall_fault::keep_profile_output();
++            #[cfg(target_pointer_width = "64")]
++            for flags in [
++                libc::AT_SYMLINK_NOFOLLOW,
++                libc::AT_SYMLINK_NOFOLLOW | libc::AT_NO_AUTOMOUNT,
++            ] {
++                crate::syscall_fault::on_exec_argument(
++                    libc::SYS_newfstatat,
++                    3,
++                    flags as u32,
++                    errno,
++                )()
++                .unwrap();
++                crate::syscall_fault::on_exec_argument(libc::SYS_statx, 2, flags as u32, errno)()
++                    .unwrap();
++            }
++            #[cfg(any(
++                target_arch = "x86_64",
++                target_arch = "powerpc64",
++                target_arch = "s390x",
++                target_arch = "sparc64",
++                target_arch = "mips64",
++                target_arch = "mips64r6"
++            ))]
++            crate::syscall_fault::on_exec(&[libc::SYS_lstat], errno)().unwrap();
++        } else if case == "remove-open" {
+             crate::syscall_fault::refuse_open(errno);
+         } else {
+             crate::syscall_fault::refuse(syscalls, errno);
+@@ -815,6 +902,8 @@ mod fault_tests {
+             "random",
+             "remove-open",
+             #[cfg(target_pointer_width = "64")]
++            "publish-inspect",
++            #[cfg(target_pointer_width = "64")]
+             "remove-inspect",
+             #[cfg(target_pointer_width = "64")]
+             "matches",
+diff --git a/src/reconciler/store.rs b/src/reconciler/store.rs
+index 02a6c45..18b5eb3 100644
+--- a/src/reconciler/store.rs
++++ b/src/reconciler/store.rs
+@@ -366,6 +366,133 @@ mod cost_tests {
+     use super::*;
+     use crate::kernel::fake::FakeKernel;
+     use crate::reconciler::IphostResolve;
++    use nix::libc;
++
++    /// spec: P14, L13, G20, E12
++    #[cfg(feature = "serde")]
++    #[test]
++    fn descriptor_duplication_failures_keep_local_or_inherited_ownership() {
++        const CHILD: &str = "RS_L2TPD_STORE_DUPLICATION_FAULT";
++        let Ok(case) = std::env::var(CHILD) else {
++            for case in ["store", "inherit"] {
++                let output = std::process::Command::new(std::env::current_exe().unwrap())
++                    .args(["--exact", "reconciler::store::cost_tests::descriptor_duplication_failures_keep_local_or_inherited_ownership", "--nocapture"])
++                    .env(CHILD, case).output().unwrap();
++                assert!(output.status.success(), "{case}: {output:?}");
++                assert!(
++                    String::from_utf8_lossy(&output.stdout)
++                        .contains("STORE_DUPLICATION_FAILURE_CHECKED=")
++                );
++                assert!(!String::from_utf8_lossy(&output.stderr).contains("LLVM Profile Error"));
++                if case == "store" {
++                    assert!(
++                        String::from_utf8_lossy(&output.stderr)
++                            .contains("cannot duplicate socket for storage")
++                    );
++                }
++            }
++            return;
++        };
++        let mut kernel = FakeKernel::new(42);
++        let inherited = if case == "inherit" {
++            let socket = kernel
++                .create_socket(crate::config::Family::V6, 10, 10)
++                .unwrap();
++            kernel.register_tunnel(socket, 10, 10).unwrap();
++            let fd = kernel.clone_fd(socket).unwrap();
++            kernel.close(socket);
++            Some(fd)
++        } else {
++            None
++        };
++        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
++        let config: crate::config::Config = toml::from_str(
++            "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n",
++        )
++        .unwrap();
++        if let Some(fd) = inherited {
++            r.inherit("t10".into(), fd);
++        } else {
++            assert!(r.reconcile(config.clone()));
++            r.set_store_capacity(1);
++        }
++        crate::kernel::linux::syscall_fault::log_warnings();
++        crate::kernel::linux::syscall_fault::on_exec_argument(
++            libc::SYS_fcntl,
++            1,
++            libc::F_DUPFD_CLOEXEC as u32,
++            libc::EMFILE,
++        )()
++        .unwrap();
++        if case == "inherit" {
++            assert!(!r.reconcile(config));
++            assert_eq!(r.store.inherited["t10"].len(), 1);
++            assert!(r.store.names.contains("t10"));
++            assert!(r.tunnels.is_empty());
++            assert!(r.k.tunnel(10).unwrap().is_some());
++        } else {
++            let socket = r.tunnels[&10].socket;
++            r.store_socket(10, socket);
++            assert!(r.store.names.is_empty());
++            assert!(r.ready());
++            assert_eq!(r.k.open_sockets(), 1);
++            assert!(r.k.tunnel(10).unwrap().is_some());
++        }
++        assert!(r.take_requests().is_empty());
++        println!("STORE_DUPLICATION_FAILURE_CHECKED={case}");
++    }
++
++    /// spec: P14, S28, L13, G20
++    #[cfg(feature = "serde")]
++    #[test]
++    fn duplicate_unwanted_and_mismatched_inheritance_is_retired_before_creation() {
++        for case in ["duplicate", "unwanted", "peer"] {
++            let mut kernel = FakeKernel::new(42);
++            let socket = kernel
++                .create_socket(crate::config::Family::V6, 10, 20)
++                .unwrap();
++            kernel.register_tunnel(socket, 10, 20).unwrap();
++            let fd = kernel.clone_fd(socket).unwrap();
++            let duplicate = (case == "duplicate").then(|| kernel.clone_fd(socket).unwrap());
++            kernel.close(socket);
++            let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
++            r.set_store_capacity(1);
++            r.inherit("t10".into(), fd);
++            if let Some(fd) = duplicate {
++                r.inherit("t10".into(), fd);
++            }
++            let config = if case == "unwanted" {
++                crate::config::Config::new()
++            } else {
++                toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n").unwrap()
++            };
++            // An ambiguous or unwanted announcement must not be inspected.
++            if case != "peer" {
++                r.k.fail_next("adopt", nix::errno::Errno::EIO);
++            }
++            r.reconcile(config);
++            assert!(r.tunnels.is_empty(), "{case}");
++            assert!(r.store.inherited.is_empty());
++            assert_eq!(r.store.retiring.len(), 1);
++            assert!(r.store.blocks(10));
++            let requests = r.take_requests();
++            assert!(
++                matches!(requests.as_slice(), [Request::ForgetSocket { name, .. }] if name == "t10")
++            );
++            if case != "peer" {
++                assert_eq!(
++                    r.k.adopt(std::fs::File::open("/dev/null").unwrap().into())
++                        .unwrap_err()
++                        .raw_os_error(),
++                    Some(libc::EIO)
++                );
++            }
++            assert!(
++                r.k.tunnel(10).unwrap().is_some(),
++                "{case}: ownership must survive until withdrawal"
++            );
++        }
++    }
+ 
+     /// spec: P14, L13, G20
+     #[test]
+diff --git a/tests/kernel/matrix-init.sh b/tests/kernel/matrix-init.sh
+index b5954dc..f3e1202 100755
+--- a/tests/kernel/matrix-init.sh
++++ b/tests/kernel/matrix-init.sh
+@@ -66,8 +66,17 @@ if [ "$mode" = clock ]; then
+     exit 0
+ fi
+ if [ "$mode" = binary ]; then
+-    echo 'scope: ordinary CLI units and selected filesystem-permission cases'
++    echo 'scope: CLI, file races, ownership, shutdown and K41 controls'
+     run_binary
++    run_suite /library --exact reconciler::store::cost_tests::descriptor_duplication_failures_keep_local_or_inherited_ownership --nocapture
++    run_suite /library --exact reconciler::store::cost_tests::duplicate_unwanted_and_mismatched_inheritance_is_retired_before_creation --nocapture
++    run_suite /process --test-threads=1 --nocapture
++    run_suite /process --ignored --exact lost_store_manager_makes_shutdown_fail_after_closing_local_sockets --nocapture
++    run_suite /process --ignored --exact reexec_pid_cleanup_failure_preserves_the_inode_and_returns_one --nocapture
++    run_suite /process --ignored --exact daemon_setup_failures_return_the_original_error_before_kernel_startup --nocapture
++    run_suite /process --ignored --exact installer_failures_preserve_the_failed_stage_and_never_restart --nocapture
++    run_suite /review-kernel --ignored --exact foreign_namespace_deletion_does_not_delete_local_session --nocapture
++    echo RACE_AND_SHUTDOWN_RESULT=0
+     echo BINARY_UNIT_RESULT=0
+     exit 0
+ fi
+diff --git a/tests/process.rs b/tests/process.rs
+index e445600..f90d2f6 100644
+--- a/tests/process.rs
++++ b/tests/process.rs
+@@ -231,6 +231,32 @@ fn check_cli_and_no_process_side_effects() {
+     );
+ }
+ 
++/// spec: P19, P26, P27, O1
++#[test]
++#[cfg(feature = "setup-systemd")]
++fn restart_and_installer_path_errors_return_one_without_starting_services() {
++    let dir = Dir::new();
++    let absent = dir.path().join("absent.pid");
++    let output = command()
++        .args(["--restart", "--pid-file"])
++        .arg(&absent)
++        .output()
++        .unwrap();
++    assert_eq!(output.status.code(), Some(1));
++    assert!(String::from_utf8_lossy(&output.stderr).contains("restart request:"));
++    assert!(!absent.exists());
++    let mut setup = command();
++    setup.arg0("relative/rs-l2tpd").arg("--setup-systemd");
++    let fault = syscall_fault::on_exec(&[libc::SYS_getcwd], libc::ENOENT);
++    unsafe {
++        setup.pre_exec(fault);
++    }
++    let output = setup.output().unwrap();
++    assert_eq!(output.status.code(), Some(1));
++    assert!(String::from_utf8_lossy(&output.stderr).contains("running executable:"));
++    assert!(!String::from_utf8_lossy(&output.stderr).contains("panicked"));
++}
++
+ /// spec: O4, O5, O8
+ #[test]
+ fn configuration_diagnostics_keep_known_identifiers_for_omitted_entries() {
+@@ -676,6 +702,11 @@ fn handover_launcher() {
+     if let Some(pid) = std::env::var_os("PROCESS_LAUNCH_PIDFILE") {
+         command.arg("--pid-file").arg(pid);
+     }
++    if let Some(state) = std::env::var_os("PROCESS_LAUNCH_REEXEC_STATE") {
++        command
++            .env("RS_L2TPD_REEXEC", format!("1:{}", std::process::id()))
++            .env("RS_L2TPD_PIDFILE", state);
++    }
+     let error = command
+         .arg("--config")
+         .arg(std::env::var_os("PROCESS_LAUNCH_CONFIG").unwrap())
+@@ -904,6 +935,122 @@ fn malformed_and_closed_announcements_are_errors_without_panics() {
+     }
+ }
+ 
++/// spec: P4, P14, P16, P19, O1
++#[test]
++fn startup_failure_keeps_unverified_handover_and_reports_failed_withdrawal() {
++    let dir = Dir::new();
++    let main = config(&dir);
++    let file = fs::File::open("/dev/null").unwrap();
++    let raw = file.as_raw_fd();
++    for connected in [false, true] {
++        let notify = dir
++            .path()
++            .join(if connected { "manager" } else { "absent" });
++        let manager = connected.then(|| UnixDatagram::bind(&notify).unwrap());
++        let mut command = launcher(&main);
++        command.env("PROCESS_LAUNCH_NOTIFY", &notify);
++        unsafe {
++            command.pre_exec(move || {
++                if libc::dup2(raw, 3) < 0 || libc::fcntl(3, libc::F_SETFD, 0) < 0 {
++                    return Err(io::Error::last_os_error());
++                }
++                deny_netlink()
++            });
++        }
++        let mut process = Process::spawn(command);
++        if !connected {
++            process.event("descriptor store unavailable:");
++        }
++        process.event("opening kernel interfaces:");
++        drop(manager);
++        process.signal(Signal::SIGTERM);
++        if connected {
++            process.event("startup withdrawal t10:");
++        }
++        process.event("cannot confirm inherited tunnel absence");
++        assert_eq!(process.child.wait().unwrap().code(), Some(1));
++        process.done = true;
++        assert!(!dir.path().join("pid").exists());
++    }
++}
++
++/// spec: P14, P16, P17, G20, O1
++#[test]
++#[ignore = "isolated privileged container with L2TP modules"]
++fn lost_store_manager_makes_shutdown_fail_after_closing_local_sockets() {
++    namespace();
++    let dir = Dir::new();
++    let main = config(&dir);
++    let manager = Manager::new(&dir);
++    let mut command = start(&main, true, &dir.path().join("pid"));
++    command
++        .env("NOTIFY_SOCKET", &manager.path)
++        .env("FDSTORE", "16");
++    let mut process = Process::spawn(command);
++    process.event("ready");
++    manager.event("FDSTORE=1\nFDNAME=t10");
++    assert_eq!(manager.stored.lock().unwrap()["t10"].len(), 1);
++    drop(manager);
++    process.signal(Signal::SIGTERM);
++    process.event("descriptor store cleanup incomplete for t10");
++    process.event("service:");
++    process.event("shutdown complete");
++    assert_eq!(process.child.wait().unwrap().code(), Some(1));
++    process.done = true;
++    let mut kernel = LinuxKernel::new().unwrap();
++    let deadline = Instant::now() + Duration::from_secs(5);
++    while kernel.tunnel(10).unwrap().is_some() {
++        assert!(
++            Instant::now() < deadline,
++            "local tunnel survived failed store cleanup"
++        );
++        std::thread::sleep(Duration::from_millis(5));
++    }
++    assert!(kernel.session(10, 100).unwrap().is_none());
++}
++
++/// spec: P11, P16, P17, P26, O1
++#[test]
++#[ignore = "isolated privileged container with L2TP modules"]
++fn reexec_pid_cleanup_failure_preserves_the_inode_and_returns_one() {
++    use std::os::unix::fs::MetadataExt;
++    namespace();
++    let dir = Dir::new();
++    let main = dir.path().join("empty.toml");
++    fs::write(&main, "[host]\nfix_bindv6only=false\n").unwrap();
++    let pid = dir.path().join("pid");
++    fs::write(&pid, "saved inode").unwrap();
++    let metadata = fs::metadata(&pid).unwrap();
++    let encoded: String = std::os::unix::ffi::OsStrExt::as_bytes(pid.as_os_str())
++        .iter()
++        .map(|byte| format!("{byte:02x}"))
++        .collect();
++    let state = format!("1:{}:{}:{encoded}", metadata.dev(), metadata.ino());
++    let file = fs::File::open("/dev/null").unwrap();
++    let raw = file.as_raw_fd();
++    let mut command = launcher(&main);
++    command.env("PROCESS_LAUNCH_REEXEC_STATE", state);
++    let mut fault = syscall_fault::on_exec(&[libc::SYS_unlinkat], libc::EIO);
++    unsafe {
++        command.pre_exec(move || {
++            if libc::dup2(raw, 3) < 0 || libc::fcntl(3, libc::F_SETFD, 0) < 0 {
++                return Err(io::Error::last_os_error());
++            }
++            fault()
++        });
++    }
++    let mut process = Process::spawn(command);
++    process.event("re-exec resumed");
++    process.signal(Signal::SIGTERM);
++    let error = process.event("PID file cleanup:");
++    assert!(error.contains("os error 5"), "{error}");
++    process.event("shutdown complete");
++    assert_eq!(process.child.wait().unwrap().code(), Some(1));
++    process.done = true;
++    assert_eq!(fs::metadata(&pid).unwrap().ino(), metadata.ino());
++    assert_eq!(fs::read(&pid).unwrap(), b"saved inode");
++}
++
+ /// spec: P4 P14
+ #[test]
+ #[ignore = "isolated privileged container"]
+diff --git a/tests/tools/syscall_fault.rs b/tests/tools/syscall_fault.rs
+index 4b51a64..e630955 100644
+--- a/tests/tools/syscall_fault.rs
++++ b/tests/tools/syscall_fault.rs
+@@ -45,28 +45,29 @@ pub(crate) const DUP_SYSCALLS: &[libc::c_long] = &[
+     reason = "shared helper; not every test binary denies file opens"
+ )]
+ pub(crate) fn refuse_open(errno: i32) {
+-    let syscalls = &[
+-        #[cfg(any(
+-            target_arch = "arm",
+-            target_arch = "x86",
+-            target_arch = "x86_64",
+-            target_arch = "powerpc",
+-            target_arch = "powerpc64",
+-            target_arch = "s390x",
+-            target_arch = "sparc",
+-            target_arch = "sparc64",
+-            target_arch = "mips",
+-            target_arch = "mips64",
+-            target_arch = "mips32r6",
+-            target_arch = "mips64r6",
+-            target_arch = "m68k"
+-        ))]
+-        libc::SYS_open,
+-        libc::SYS_openat,
+-    ];
+-    refuse(syscalls, errno);
++    refuse(OPEN_SYSCALLS, errno);
+ }
+ 
++pub(crate) const OPEN_SYSCALLS: &[libc::c_long] = &[
++    #[cfg(any(
++        target_arch = "arm",
++        target_arch = "x86",
++        target_arch = "x86_64",
++        target_arch = "powerpc",
++        target_arch = "powerpc64",
++        target_arch = "s390x",
++        target_arch = "sparc",
++        target_arch = "sparc64",
++        target_arch = "mips",
++        target_arch = "mips64",
++        target_arch = "mips32r6",
++        target_arch = "mips64r6",
++        target_arch = "m68k"
++    ))]
++    libc::SYS_open,
++    libc::SYS_openat,
++];
++
+ // Test-only fault injection: include/uapi/linux/seccomp.h and filter.h.
+ // Syscall numbers use this target's ABI; exec hooks retain only prepared data.
+ pub(crate) fn refuse(syscalls: &[libc::c_long], errno: i32) {
+@@ -223,7 +224,7 @@ pub(crate) fn on_exec_argument(
+ }
+ 
+ #[cfg(coverage_nightly)]
+-fn keep_profile_output() {
++pub(crate) fn keep_profile_output() {
+     unsafe extern "C" {
+         fn __llvm_profile_get_filename() -> *const libc::c_char;
+         fn __llvm_profile_set_filename(path: *const libc::c_char);
+diff --git a/tests/tools/syscall_barrier.rs b/tests/tools/syscall_barrier.rs
+new file mode 100644
+index 0000000..2004569
+--- /dev/null
++++ b/tests/tools/syscall_barrier.rs
+@@ -0,0 +1,300 @@
++//! Stops only a disposable test worker at syscall entry; no daemon hook is added.
++use nix::errno::Errno;
++use nix::sys::wait::{WaitPidFlag, WaitStatus, waitpid};
++use nix::unistd::Pid;
++use std::fs::OpenOptions;
++use std::io::{self, Read, Seek};
++use std::path::Path;
++use std::process::{Child, Command, Output, Stdio};
++use std::time::{Duration, Instant};
++
++const READY: &str = "RS_L2TPD_SYSCALL_BARRIER_TID";
++
++// kernel: include/uapi/linux/ptrace.h; kernel/ptrace.c ptrace_request.
++fn trace(request: i64, tid: i32, address: usize, data: usize) -> io::Result<libc::c_long> {
++    Errno::clear();
++    let value = unsafe {
++        libc::ptrace(
++            request as _,
++            tid,
++            address as *mut libc::c_void,
++            data as *mut libc::c_void,
++        )
++    };
++    let error = Errno::last();
++    if value == -1 && error != Errno::UnknownErrno {
++        Err(error.into())
++    } else {
++        Ok(value)
++    }
++}
++
++/// Called in the fresh child's test worker, before the operation under test.
++pub(crate) fn stop() -> io::Result<()> {
++    let path =
++        std::env::var_os(READY).ok_or_else(|| io::Error::other("missing syscall barrier path"))?;
++    trace(i64::from(libc::PTRACE_TRACEME), 0, 0, 0)?;
++    let tid = unsafe { libc::syscall(libc::SYS_gettid) };
++    std::fs::write(path, tid.to_string())?;
++    if unsafe { libc::raise(libc::SIGSTOP) } != 0 {
++        return Err(io::Error::last_os_error());
++    }
++    Ok(())
++}
++
++// kernel: include/uapi/linux/ptrace.h struct ptrace_syscall_info (all required kernels).
++// nix 0.30.1 passes a zero buffer size and assumes initialization; musl lacks its API.
++#[derive(Default)]
++#[repr(C)]
++struct Info {
++    op: u8,
++    reserved: [u8; 3],
++    arch: u32,
++    instruction: u64,
++    stack: u64,
++    data: [u64; 8],
++}
++
++fn entry(tid: i32) -> io::Result<Option<(u64, [u64; 6])>> {
++    let mut info = Info::default();
++    // kernel: kernel/ptrace.c ptrace_get_syscall_info copies min(user_size, actual_size).
++    let copied = trace(
++        0x420e,
++        tid,
++        size_of::<Info>(),
++        &mut info as *mut Info as usize,
++    )?;
++    if info.op != 1 {
++        return Ok(None);
++    }
++    if copied < 80 {
++        return Err(io::Error::other("incomplete syscall-entry information"));
++    }
++    Ok(Some((
++        info.data[0],
++        std::array::from_fn(|index| info.data[index + 1]),
++    )))
++}
++
++/// Reads a bounded pathname from the stopped worker, checking errno on PEEKDATA.
++pub(crate) fn path(tid: i32, address: u64) -> io::Result<Vec<u8>> {
++    let address =
++        usize::try_from(address).map_err(|_| io::Error::other("invalid traced pointer"))?;
++    let mut bytes = Vec::new();
++    for offset in (0..4096).step_by(size_of::<libc::c_long>()) {
++        let pointer = address
++            .checked_add(offset)
++            .ok_or_else(|| io::Error::other("invalid traced pointer"))?;
++        let word = trace(i64::from(libc::PTRACE_PEEKDATA), tid, pointer, 0)?;
++        for byte in word.to_ne_bytes() {
++            if byte == 0 {
++                return Ok(bytes);
++            }
++            bytes.push(byte);
++        }
++    }
++    Err(io::Error::other("unterminated traced pathname"))
++}
++
++struct Running {
++    child: Child,
++    tid: Option<i32>,
++}
++impl Drop for Running {
++    fn drop(&mut self) {
++        let _ = self.child.kill();
++        if let Some(tid) = self.tid {
++            let _ = waitpid(Pid::from_raw(tid), Some(WaitPidFlag::__WALL));
++        }
++        let _ = self.child.wait();
++    }
++}
++
++/// Drives the child's explicitly traced worker; other children/threads are untouched.
++pub(crate) fn run(
++    command: &mut Command,
++    directory: &Path,
++    mut at_entry: impl FnMut(i32, u64, [u64; 6]) -> io::Result<()>,
++) -> io::Result<Output> {
++    let ready = directory.join("trace-tid");
++    let mut output = OpenOptions::new()
++        .read(true)
++        .write(true)
++        .create(true)
++        .truncate(true)
++        .open(directory.join("trace-output"))?;
++    let mut child = Running {
++        child: command
++            .env(READY, &ready)
++            .stdout(Stdio::from(output.try_clone()?))
++            .stderr(Stdio::from(output.try_clone()?))
++            .spawn()?,
++        tid: None,
++    };
++    let deadline = Instant::now() + Duration::from_secs(10);
++    let tid = loop {
++        if let Ok(text) = std::fs::read_to_string(&ready)
++            && let Ok(tid) = text.parse::<i32>()
++        {
++            break tid;
++        }
++        if child.child.try_wait()?.is_some() || Instant::now() >= deadline {
++            return Err(io::Error::other(
++                "test worker did not reach its syscall barrier",
++            ));
++        }
++        std::thread::sleep(Duration::from_millis(1));
++    };
++    child.tid = Some(tid);
++    let mut started = false;
++    loop {
++        if Instant::now() >= deadline {
++            return Err(io::Error::new(
++                io::ErrorKind::TimedOut,
++                "traced test worker",
++            ));
++        }
++        match waitpid(
++            Pid::from_raw(tid),
++            Some(WaitPidFlag::__WALL | WaitPidFlag::WNOHANG),
++        )? {
++            WaitStatus::Stopped(_, nix::sys::signal::Signal::SIGSTOP) if !started => {
++                trace(
++                    i64::from(libc::PTRACE_SETOPTIONS),
++                    tid,
++                    0,
++                    libc::PTRACE_O_TRACESYSGOOD as usize,
++                )?;
++                started = true;
++                trace(i64::from(libc::PTRACE_SYSCALL), tid, 0, 0)?;
++            }
++            WaitStatus::PtraceSyscall(_) => {
++                if let Some((number, arguments)) = entry(tid)? {
++                    at_entry(tid, number, arguments)?;
++                }
++                trace(i64::from(libc::PTRACE_SYSCALL), tid, 0, 0)?;
++            }
++            WaitStatus::Exited(_, _) | WaitStatus::Signaled(_, _, _) => {
++                child.tid = None;
++                break;
++            }
++            WaitStatus::StillAlive => std::thread::sleep(Duration::from_millis(1)),
++            status => {
++                return Err(io::Error::other(format!(
++                    "unexpected trace stop: {status:?}"
++                )));
++            }
++        }
++    }
++    let status = loop {
++        if let Some(status) = child.child.try_wait()? {
++            break status;
++        }
++        if Instant::now() >= deadline {
++            return Err(io::Error::new(
++                io::ErrorKind::TimedOut,
++                "traced test process",
++            ));
++        }
++        std::thread::sleep(Duration::from_millis(1));
++    };
++    output.rewind()?;
++    let mut bytes = Vec::new();
++    output.read_to_end(&mut bytes)?;
++    Ok(Output {
++        status,
++        stdout: bytes,
++        stderr: Vec::new(),
++    })
++}
++
++/// spec: P10, P11, C3, C4
++#[test]
++fn query_sizes_peek_errors_and_callback_cleanup_are_checked() {
++    const CHILD: &str = "RS_L2TPD_BARRIER_CONTRACT_CHILD";
++    if std::env::var_os(CHILD).is_some() {
++        stop().unwrap();
++        let mut bytes = [0xff_u8; 4096];
++        bytes[size_of::<libc::c_long>()] = 0;
++        assert_eq!(
++            unsafe { libc::write(-1, bytes.as_ptr().cast(), bytes.len()) },
++            -1
++        );
++        bytes.fill(0xff);
++        assert_eq!(
++            unsafe { libc::write(-2, bytes.as_ptr().cast(), bytes.len()) },
++            -1
++        );
++        return;
++    }
++    #[cfg(target_env = "gnu")]
++    assert_eq!(size_of::<Info>(), size_of::<libc::ptrace_syscall_info>());
++    for fail_callback in [false, true] {
++        let dir = crate::testdir::Dir::new();
++        let mut command = Command::new(std::env::current_exe().unwrap());
++        command
++            .args([
++                "--exact",
++                "syscall_barrier::query_sizes_peek_errors_and_callback_cleanup_are_checked",
++                "--nocapture",
++            ])
++            .env(CHILD, "1");
++        let mut checked = 0;
++        let result = run(&mut command, dir.path(), |tid, number, arguments| {
++            if number != libc::SYS_write as u64 || ![-1_i64, -2].contains(&(arguments[0] as i64)) {
++                return Ok(());
++            }
++            checked += 1;
++            if fail_callback {
++                return Err(io::Error::from_raw_os_error(libc::EIO));
++            }
++            if arguments[0] as i64 == -1 {
++                let mut untouched = [0xa5_u8; size_of::<Info>()];
++                let required = trace(0x420e, tid, 0, untouched.as_mut_ptr() as usize)?;
++                assert!(required >= 80);
++                assert!(
++                    untouched.iter().all(|byte| *byte == 0xa5),
++                    "zero size must copy no output"
++                );
++                assert_eq!(
++                    path(tid, arguments[1])?,
++                    vec![0xff; size_of::<libc::c_long>()]
++                );
++                assert_eq!(path(tid, 0).unwrap_err().raw_os_error(), Some(libc::EIO));
++                assert_eq!(
++                    trace(i64::from(u32::MAX), tid, 0, 0)
++                        .unwrap_err()
++                        .raw_os_error(),
++                    Some(libc::EIO)
++                );
++            } else {
++                assert!(
++                    path(tid, arguments[1])
++                        .unwrap_err()
++                        .to_string()
++                        .contains("unterminated")
++                );
++            }
++            Ok(())
++        });
++        if fail_callback {
++            assert_eq!(result.unwrap_err().raw_os_error(), Some(libc::EIO));
++            let tid = std::fs::read_to_string(dir.path().join("trace-tid"))
++                .unwrap()
++                .parse::<i32>()
++                .unwrap();
++            assert_eq!(
++                waitpid(
++                    Pid::from_raw(tid),
++                    Some(WaitPidFlag::__WALL | WaitPidFlag::WNOHANG)
++                ),
++                Err(Errno::ECHILD)
++            );
++            assert_eq!(checked, 1);
++        } else {
++            let output = result.unwrap();
++            assert!(output.status.success(), "{output:?}");
++            assert_eq!(checked, 2);
++        }
++    }
++}

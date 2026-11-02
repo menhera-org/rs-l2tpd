@@ -1,0 +1,784 @@
+c[?7l[2J[0mSeaBIOS (version 1.17.0-debian-1.17.0-1ubuntu1)
+Booting from ROM...
+c[?7l[2J[    0.000000] Linux version 6.8.0-147-generic (buildd@lcy02-amd64-081) (x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 (Ubuntu 6.8.0-147.147-generic 6.8.12)
+[    0.000000] Command line: console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs
+[    0.000000] KERNEL supported cpus:
+[    0.000000]   Intel GenuineIntel
+[    0.000000]   AMD AuthenticAMD
+[    0.000000]   Hygon HygonGenuine
+[    0.000000]   Centaur CentaurHauls
+[    0.000000]   zhaoxin   Shanghai  
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff] usable
+[    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff] reserved
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x000000007ffdffff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007ffe0000-0x000000007fffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000b0000000-0x00000000bfffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000fed1c000-0x00000000fed1ffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x000000fd00000000-0x000000ffffffffff] reserved
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] APIC: Static calls initialized
+[    0.000000] SMBIOS 2.8 present.
+[    0.000000] DMI: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.17.0-debian-1.17.0-1ubuntu1 04/01/2014
+[    0.000000] tsc: Fast TSC calibration using PIT
+[    0.000000] tsc: Detected 1995.271 MHz processor
+[    0.011463] last_pfn = 0x7ffe0 max_arch_pfn = 0x10000000000
+[    0.013126] MTRR map: 4 entries (3 fixed + 1 variable; max 19), built from 8 variable MTRRs
+[    0.013805] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT  
+[    0.059458] found SMP MP-table at [mem 0x000f5460-0x000f546f]
+[    0.062394] Using GB pages for direct mapping
+[    0.070305] RAMDISK: [mem 0x6e46e000-0x7ffdffff]
+[    0.114496] ACPI: Early table checksum verification disabled
+[    0.115548] ACPI: RSDP 0x00000000000F5290 000014 (v00 BOCHS )
+[    0.116133] ACPI: RSDT 0x000000007FFE233B 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.117463] ACPI: FACP 0x000000007FFE212B 0000F4 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.118742] ACPI: DSDT 0x000000007FFE0040 0020EB (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.118941] ACPI: FACS 0x000000007FFE0000 000040
+[    0.119060] ACPI: APIC 0x000000007FFE221F 000080 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.119122] ACPI: HPET 0x000000007FFE229F 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.119180] ACPI: MCFG 0x000000007FFE22D7 00003C (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.119237] ACPI: WAET 0x000000007FFE2313 000028 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.119448] ACPI: Reserving FACP table memory at [mem 0x7ffe212b-0x7ffe221e]
+[    0.119493] ACPI: Reserving DSDT table memory at [mem 0x7ffe0040-0x7ffe212a]
+[    0.119513] ACPI: Reserving FACS table memory at [mem 0x7ffe0000-0x7ffe003f]
+[    0.119530] ACPI: Reserving APIC table memory at [mem 0x7ffe221f-0x7ffe229e]
+[    0.119547] ACPI: Reserving HPET table memory at [mem 0x7ffe229f-0x7ffe22d6]
+[    0.119571] ACPI: Reserving MCFG table memory at [mem 0x7ffe22d7-0x7ffe2312]
+[    0.119597] ACPI: Reserving WAET table memory at [mem 0x7ffe2313-0x7ffe233a]
+[    0.124384] No NUMA configuration found
+[    0.124427] Faking a node at [mem 0x0000000000000000-0x000000007ffdffff]
+[    0.125604] NODE_DATA(0) allocated [mem 0x6e443000-0x6e46dfff]
+[    0.133781] Zone ranges:
+[    0.133830]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    0.133979]   DMA32    [mem 0x0000000001000000-0x000000007ffdffff]
+[    0.134005]   Normal   empty
+[    0.134042]   Device   empty
+[    0.134071] Movable zone start for each node
+[    0.134123] Early memory node ranges
+[    0.134169]   node   0: [mem 0x0000000000001000-0x000000000009efff]
+[    0.134418]   node   0: [mem 0x0000000000100000-0x000000007ffdffff]
+[    0.134820] Initmem setup node 0 [mem 0x0000000000001000-0x000000007ffdffff]
+[    0.138240] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.138645] On node 0, zone DMA: 97 pages in unavailable ranges
+[    0.180023] On node 0, zone DMA32: 32 pages in unavailable ranges
+[    0.181187] ACPI: PM-Timer IO Port: 0x608
+[    0.182085] ACPI: LAPIC_NMI (acpi_id[0xff] dfl dfl lint[0x1])
+[    0.182987] IOAPIC[0]: apic_id 0, version 32, address 0xfec00000, GSI 0-23
+[    0.183189] ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)
+[    0.183755] ACPI: INT_SRC_OVR (bus 0 bus_irq 5 global_irq 5 high level)
+[    0.183863] ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)
+[    0.184091] ACPI: INT_SRC_OVR (bus 0 bus_irq 10 global_irq 10 high level)
+[    0.184118] ACPI: INT_SRC_OVR (bus 0 bus_irq 11 global_irq 11 high level)
+[    0.184512] ACPI: Using ACPI (MADT) for SMP configuration information
+[    0.184602] ACPI: HPET id: 0x8086a201 base: 0xfed00000
+[    0.185172] smpboot: Allowing 2 CPUs, 0 hotplug CPUs
+[    0.188226] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    0.188300] PM: hibernation: Registered nosave memory: [mem 0x0009f000-0x000fffff]
+[    0.188514] [mem 0xc0000000-0xfed1bfff] available for PCI devices
+[    0.188657] Booting paravirtualized kernel on bare hardware
+[    0.189180] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns
+[    0.190221] setup_percpu: NR_CPUS:8192 nr_cpumask_bits:2 nr_cpu_ids:2 nr_node_ids:1
+[    0.194068] percpu: Embedded 86 pages/cpu s229376 r8192 d114688 u1048576
+[    0.196636] Kernel command line: console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs
+[    0.199619] random: crng init done
+[    0.202373] Dentry cache hash table entries: 262144 (order: 9, 2097152 bytes, linear)
+[    0.202894] Inode-cache hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    0.208206] Fallback order for Node 0: 0 
+[    0.208949] Built 1 zonelists, mobility grouping on.  Total pages: 515808
+[    0.209000] Policy zone: DMA32
+[    0.209871] mem auto-init: stack:all(zero), heap alloc:on, heap free:off
+[    0.241808] Memory: 1714452K/2096632K available (22528K kernel code, 4441K rwdata, 14440K rodata, 4936K init, 4772K bss, 381976K reserved, 0K cma-reserved)
+[    0.261387] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+[    0.346011] ftrace: allocating 57776 entries in 228 pages
+[    0.346720] ftrace: allocated 228 pages with 4 groups
+[    0.366528] Dynamic Preempt: voluntary
+[    0.374888] rcu: Preemptible hierarchical RCU implementation.
+[    0.374965] rcu: 	RCU restricting CPUs from NR_CPUS=8192 to nr_cpu_ids=2.
+[    0.375150] 	Trampoline variant of Tasks RCU enabled.
+[    0.375166] 	Rude variant of Tasks RCU enabled.
+[    0.375180] 	Tracing variant of Tasks RCU enabled.
+[    0.375379] rcu: RCU calculated value of scheduler-enlistment delay is 100 jiffies.
+[    0.375430] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2
+[    0.377835] RCU Tasks: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.377896] RCU Tasks Rude: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.377921] RCU Tasks Trace: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.418159] NR_IRQS: 524544, nr_irqs: 440, preallocated irqs: 16
+[    0.434921] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.447473] Console: colour *CGA 80x25
+[    0.450399] printk: legacy console [ttyS0] enabled
+[    0.535725] ACPI: Core revision 20230628
+[    0.546471] clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604467 ns
+[    0.556856] APIC: Switch to symmetric I/O mode setup
+[    0.559543] x2apic: IRQ remapping doesn't support X2APIC mode
+[    0.572630] ..TIMER: vector=0x30 apic1=0 pin1=2 apic2=-1 pin2=-1
+[    0.579727] tsc: Marking TSC unstable due to TSCs unsynchronized
+[    0.581037] Calibrating delay loop (skipped), value calculated using timer frequency.. 3990.54 BogoMIPS (lpj=1995271)
+[    0.588095] x86/cpu: User Mode Instruction Prevention (UMIP) activated
+[    0.603183] Last level iTLB entries: 4KB 0, 2MB 0, 4MB 0
+[    0.603689] Last level dTLB entries: 4KB 0, 2MB 0, 4MB 0, 1GB 0
+[    0.606846] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    0.608132] Spectre V2 : Mitigation: Retpolines
+[    0.608692] Spectre V2 : Spectre v2 / SpectreRSB: Filling RSB on context switch and VMEXIT
+[    0.610785] Speculative Store Bypass: Vulnerable
+[    0.618855] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.623673] x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    0.624365] x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    0.624676] x86/fpu: Supporting XSAVE feature 0x008: 'MPX bounds registers'
+[    0.625682] x86/fpu: Supporting XSAVE feature 0x010: 'MPX CSR'
+[    0.626683] x86/fpu: Supporting XSAVE feature 0x200: 'Protection Keys User registers'
+[    0.627864] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.628692] x86/fpu: xstate_offset[3]:  960, xstate_sizes[3]:   64
+[    0.629354] x86/fpu: xstate_offset[4]: 1024, xstate_sizes[4]:   64
+[    0.629663] x86/fpu: xstate_offset[9]: 2688, xstate_sizes[9]:    8
+[    0.630688] x86/fpu: Enabled xstate features 0x21f, context size is 2696 bytes, using 'standard' format.
+[    0.930318] Freeing SMP alternatives memory: 48K
+[    0.932072] pid_max: default: 32768 minimum: 301
+[    0.944935] LSM: initializing lsm=lockdown,capability,landlock,yama,apparmor,integrity
+[    0.947565] landlock: Up and running.
+[    0.947693] Yama: becoming mindful.
+[    0.955197] AppArmor: AppArmor initialized
+[    0.963199] Mount-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    0.963825] Mountpoint-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    1.101638] smpboot: CPU0: AMD QEMU TCG CPU version 2.5+ (family: 0x6, model: 0x6, stepping: 0x3)
+[    1.123854] Performance Events: PMU not available due to virtualization, using software events only.
+[    1.127505] signal: max sigframe size: 3632
+[    1.131820] rcu: Hierarchical SRCU implementation.
+[    1.132459] rcu: 	Max phase no-delay instances is 400.
+[    1.150443] NMI watchdog: Perf NMI watchdog permanently disabled
+[    1.158723] smp: Bringing up secondary CPUs ...
+[    1.171974] smpboot: x86: Booting SMP configuration:
+[    1.172662] .... node  #0, CPUs:      #1
+[    1.277057] smp: Brought up 1 node, 2 CPUs
+[    1.277778] smpboot: Max logical packages: 1
+[    1.278840] smpboot: Total of 2 processors activated (7991.44 BogoMIPS)
+[    1.312732] devtmpfs: initialized
+[    1.321956] x86/mm: Memory block size: 128MB
+[    1.342161] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+[    1.344142] futex hash table entries: 512 (order: 3, 32768 bytes, linear)
+[    1.350216] pinctrl core: initialized pinctrl subsystem
+[    1.363387] PM: RTC time: 04:43:55, date: 2026-11-02
+[    1.395397] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    1.403852] DMA: preallocated 256 KiB GFP_KERNEL pool for atomic allocations
+[    1.406323] DMA: preallocated 256 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    1.407972] DMA: preallocated 256 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+[    1.409041] audit: initializing netlink subsys (disabled)
+[    1.413199] audit: type=2000 audit(1793594635.854:1): state=initialized audit_enabled=0 res=1
+[    1.425266] thermal_sys: Registered thermal governor 'fair_share'
+[    1.425360] thermal_sys: Registered thermal governor 'bang_bang'
+[    1.425676] thermal_sys: Registered thermal governor 'step_wise'
+[    1.426662] thermal_sys: Registered thermal governor 'user_space'
+[    1.427654] thermal_sys: Registered thermal governor 'power_allocator'
+[    1.433119] cpuidle: using governor ladder
+[    1.434890] cpuidle: using governor menu
+[    1.440988] acpiphp: ACPI Hot Plug PCI Controller Driver version: 0.5
+[    1.448421] PCI: ECAM [mem 0xb0000000-0xbfffffff] (base 0xb0000000) for domain 0000 [bus 00-ff]
+[    1.450792] PCI: ECAM [mem 0xb0000000-0xbfffffff] reserved as E820 entry
+[    1.454251] PCI: Using configuration type 1 for base access
+[    1.455872] mtrr: your CPUs had inconsistent fixed MTRR settings
+[    1.456684] mtrr: your CPUs had inconsistent variable MTRR settings
+[    1.457520] mtrr: your CPUs had inconsistent MTRRdefType settings
+[    1.457678] mtrr: probably your BIOS does not setup all CPUs.
+[    1.458667] mtrr: corrected configuration.
+[    1.464325] kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.
+[    1.525381] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    1.526672] HugeTLB: 16380 KiB vmemmap can be freed for a 1.00 GiB page
+[    1.527579] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    1.527653] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    1.555137] ACPI: Added _OSI(Module Device)
+[    1.555694] ACPI: Added _OSI(Processor Device)
+[    1.556211] ACPI: Added _OSI(Processor Aggregator Device)
+[    1.602748] ACPI: 1 ACPI AML tables successfully acquired and loaded
+[    1.638817] ACPI: _OSC evaluation for CPUs failed, trying _PDC
+[    1.644037] ACPI: Interpreter enabled
+[    1.647162] ACPI: PM: (supports S0 S3 S4 S5)
+[    1.647728] ACPI: Using IOAPIC for interrupt routing
+[    1.652233] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    1.652710] PCI: Using E820 reservations for host bridge windows
+[    1.657218] ACPI: Enabled 2 GPEs in block 00 to 3F
+[    1.714988] ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])
+[    1.716472] acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI EDR HPX-Type3]
+[    1.720427] acpi PNP0A08:00: _OSC: platform does not support [PCIeHotplug LTR DPC]
+[    1.723447] acpi PNP0A08:00: _OSC: OS now controls [SHPCHotplug PME AER PCIeCapability]
+[    1.733531] PCI host bridge to bus 0000:00
+[    1.733893] pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]
+[    1.734696] pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]
+[    1.735679] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]
+[    1.736666] pci_bus 0000:00: root bus resource [mem 0x80000000-0xafffffff window]
+[    1.737704] pci_bus 0000:00: root bus resource [mem 0xc0000000-0xfebfffff window]
+[    1.738674] pci_bus 0000:00: root bus resource [mem 0x100000000-0x8ffffffff window]
+[    1.739915] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    1.743555] pci 0000:00:00.0: [8086:29c0] type 00 class 0x060000 conventional PCI endpoint
+[    1.754473] pci 0000:00:1f.0: [8086:2918] type 00 class 0x060100 conventional PCI endpoint
+[    1.756453] pci 0000:00:1f.0: quirk: [io  0x0600-0x067f] claimed by ICH6 ACPI/GPIO/TCO
+[    1.759002] pci 0000:00:1f.2: [8086:2922] type 00 class 0x010601 conventional PCI endpoint
+[    1.761692] pci 0000:00:1f.2: BAR 4 [io  0xc040-0xc05f]
+[    1.762504] pci 0000:00:1f.2: BAR 5 [mem 0xfebff000-0xfebfffff]
+[    1.764603] pci 0000:00:1f.3: [8086:2930] type 00 class 0x0c0500 conventional PCI endpoint
+[    1.766845] pci 0000:00:1f.3: BAR 4 [io  0x0700-0x073f]
+[    1.776885] ACPI: PCI: Interrupt link LNKA configured for IRQ 10
+[    1.779002] ACPI: PCI: Interrupt link LNKB configured for IRQ 10
+[    1.780759] ACPI: PCI: Interrupt link LNKC configured for IRQ 11
+[    1.782834] ACPI: PCI: Interrupt link LNKD configured for IRQ 11
+[    1.784477] ACPI: PCI: Interrupt link LNKE configured for IRQ 10
+[    1.786365] ACPI: PCI: Interrupt link LNKF configured for IRQ 10
+[    1.788292] ACPI: PCI: Interrupt link LNKG configured for IRQ 11
+[    1.790128] ACPI: PCI: Interrupt link LNKH configured for IRQ 11
+[    1.790947] ACPI: PCI: Interrupt link GSIA configured for IRQ 16
+[    1.791823] ACPI: PCI: Interrupt link GSIB configured for IRQ 17
+[    1.792928] ACPI: PCI: Interrupt link GSIC configured for IRQ 18
+[    1.793814] ACPI: PCI: Interrupt link GSID configured for IRQ 19
+[    1.794816] ACPI: PCI: Interrupt link GSIE configured for IRQ 20
+[    1.795586] ACPI: PCI: Interrupt link GSIF configured for IRQ 21
+[    1.795813] ACPI: PCI: Interrupt link GSIG configured for IRQ 22
+[    1.796812] ACPI: PCI: Interrupt link GSIH configured for IRQ 23
+[    1.806932] iommu: Default domain type: Translated
+[    1.807718] iommu: DMA domain TLB invalidation policy: lazy mode
+[    1.815288] SCSI subsystem initialized
+[    1.819578] ACPI: bus type USB registered
+[    1.820888] usbcore: registered new interface driver usbfs
+[    1.821991] usbcore: registered new interface driver hub
+[    1.822848] usbcore: registered new device driver usb
+[    1.824191] pps_core: LinuxPPS API ver. 1 registered
+[    1.824675] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    1.825783] PTP clock support registered
+[    1.828797] EDAC MC: Ver: 3.0.0
+[    1.852585] NetLabel: Initializing
+[    1.852694] NetLabel:  domain hash size = 128
+[    1.853152] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    1.856054] NetLabel:  unlabeled traffic allowed by default
+[    1.864528] mctp: management component transport protocol core
+[    1.864684] NET: Registered PF_MCTP protocol family
+[    1.866814] PCI: Using ACPI for IRQ routing
+[    1.882188] vgaarb: loaded
+[    1.884928] hpet0: at MMIO 0xfed00000, IRQs 2, 8, 0
+[    1.885680] hpet0: 3 comparators, 64-bit 100.000000 MHz counter
+[    1.891324] clocksource: Switched to clocksource hpet
+[    1.903368] VFS: Disk quotas dquot_6.6.0
+[    1.904149] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    1.913465] AppArmor: AppArmor Filesystem Enabled
+[    1.914701] pnp: PnP ACPI init
+[    1.921373] system 00:04: [mem 0xb0000000-0xbfffffff window] has been reserved
+[    1.926917] pnp: PnP ACPI: found 5 devices
+[    1.978616] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    1.981271] NET: Registered PF_INET protocol family
+[    1.984317] IP idents hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    2.133767] tcp_listen_portaddr_hash hash table entries: 1024 (order: 2, 16384 bytes, linear)
+[    2.135607] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    2.136989] TCP established hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    2.139461] TCP bind hash table entries: 16384 (order: 7, 524288 bytes, linear)
+[    2.140745] TCP: Hash tables configured (established 16384 bind 16384)
+[    2.145285] MPTCP token hash table entries: 2048 (order: 4, 49152 bytes, linear)
+[    2.146572] UDP hash table entries: 1024 (order: 3, 32768 bytes, linear)
+[    2.147844] UDP-Lite hash table entries: 1024 (order: 3, 32768 bytes, linear)
+[    2.151459] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    2.152866] NET: Registered PF_XDP protocol family
+[    2.155094] pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]
+[    2.155689] pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]
+[    2.156431] pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000bffff window]
+[    2.157171] pci_bus 0000:00: resource 7 [mem 0x80000000-0xafffffff window]
+[    2.157800] pci_bus 0000:00: resource 8 [mem 0xc0000000-0xfebfffff window]
+[    2.158570] pci_bus 0000:00: resource 9 [mem 0x100000000-0x8ffffffff window]
+[    2.160131] PCI: CLS 0 bytes, default 64
+[    2.169473] Trying to unpack rootfs image as initramfs...
+[    2.172294] Initialise system trusted keyrings
+[    2.176084] Key type blacklist registered
+[    2.178597] workingset: timestamp_bits=36 max_order=19 bucket_order=0
+[    2.179740] zbud: loaded
+[    2.185450] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    2.188622] fuse: init (API version 7.39)
+[    2.196299] integrity: Platform Keyring initialized
+[    2.197410] integrity: Machine keyring initialized
+[    2.337686] Key type asymmetric registered
+[    2.338427] Asymmetric key parser 'x509' registered
+[    2.339649] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 243)
+[    2.342389] io scheduler mq-deadline registered
+[    2.347275] shpchp: Standard Hot Plug PCI Controller Driver version: 0.4
+[    2.355449] input: Power Button as /devices/LNXSYSTM:00/LNXPWRBN:00/input/input0
+[    2.363266] ACPI: button: Power Button [PWRF]
+[    2.373887] Serial: 8250/16550 driver, 32 ports, IRQ sharing enabled
+[    2.403133] 00:02: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    2.451092] Linux agpgart interface v0.103
+[    2.494480] loop: module loaded
+[    2.500394] ACPI: bus type drm_connector registered
+[    2.507074] tun: Universal TUN/TAP device driver, 1.6
+[    2.508556] PPP generic driver version 2.4.2
+[    2.514096] i8042: PNP: PS/2 Controller [PNP0303:KBD,PNP0f13:MOU] at 0x60,0x64 irq 1,12
+[    2.521018] serio: i8042 KBD port at 0x60,0x64 irq 1
+[    2.521850] serio: i8042 AUX port at 0x60,0x64 irq 12
+[    2.525403] mousedev: PS/2 mouse device common for all mice
+[    2.531728] input: AT Translated Set 2 keyboard as /devices/platform/i8042/serio0/input/input1
+[    2.533426] rtc_cmos 00:03: RTC can wake from S4
+[    2.541490] rtc_cmos 00:03: registered as rtc0
+[    2.543134] rtc_cmos 00:03: setting system clock to 2026-11-02T04:43:57 UTC (1793594637)
+[    2.546269] rtc_cmos 00:03: alarms up to one day, y3k, 242 bytes nvram, hpet irqs
+[    2.547262] i2c_dev: i2c /dev entries driver
+[    2.548426] device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is disabled. Duplicate IMA measurements will not be recorded in the IMA log.
+[    2.549924] device-mapper: uevent: version 1.0.3
+[    2.551897] device-mapper: ioctl: 4.48.0-ioctl (2023-03-01) initialised: dm-devel@redhat.com
+[    2.553543] amd_pstate: the _CPC object is not present in SBIOS or ACPI disabled
+[    2.555273] ledtrig-cpu: registered to indicate activity on CPUs
+[    2.557381] drop_monitor: Initializing network drop monitor service
+[    2.560236] NET: Registered PF_INET6 protocol family
+[    7.004314] Freeing initrd memory: 290248K
+[    7.250623] Segment Routing with IPv6
+[    7.251668] In-situ OAM (IOAM) with IPv6
+[    7.253512] NET: Registered PF_PACKET protocol family
+[    7.255203] Key type dns_resolver registered
+[    7.261218] IPI shorthand broadcast: enabled
+[    7.293547] registered taskstats version 1
+[    7.299437] Loading compiled-in X.509 certificates
+[    7.321406] Loaded X.509 cert 'Build time autogenerated kernel key: 67dae3bf0284ce2ad34b9632cb7c8734f4f57c6c'
+[    7.325567] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing 2025 Kmod: d541cef61dc7e793b7eb7e899970a2eef0b5dc8c'
+[    7.329416] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing: 14df34d1a87cf37625abec039ef2bf521249b969'
+[    7.332886] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing 2025 Kmod: 4627603d2357a2a3f81006370894c221175893e9'
+[    7.336723] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing: 88f752e560a1e0737e31163a466ad7b70a850c19'
+[    7.338068] blacklist: Loading compiled-in revocation X.509 certificates
+[    7.341042] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing: 61482aa2830d0ab2ad5af10b7250da9033ddcef0'
+[    7.342467] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2017): 242ade75ac4a15e50d50c84b0d45ff3eae707a03'
+[    7.343790] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (ESM 2018): 365188c1d374d6b07c3c8f240f8ef722433d6a8b'
+[    7.345227] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2019): c0746fd6c5da3ae827864651ad66ae47fe24b3e8'
+[    7.346542] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v1): a8d54bbb3825cfb94fa13c9f8a594a195c107b8d'
+[    7.347906] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v2): 4cf046892d6fd3c9a5b03f98d845f90851dc6a8c'
+[    7.349156] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v3): 100437bb6de6e469b581e61cd66bce3ef4ed53af'
+[    7.350419] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (Ubuntu Core 2019): c1d57b8f6b743f23ee41f4f7ee292f06eecadfb9'
+[    7.400864] Key type .fscrypt registered
+[    7.401469] Key type fscrypt-provisioning registered
+[    7.604876] Key type encrypted registered
+[    7.605694] AppArmor: AppArmor sha256 policy hashing enabled
+[    7.607546] ima: No TPM chip found, activating TPM-bypass!
+[    7.608595] Loading compiled-in module X.509 certificates
+[    7.612192] Loaded X.509 cert 'Build time autogenerated kernel key: 67dae3bf0284ce2ad34b9632cb7c8734f4f57c6c'
+[    7.613421] ima: Allocated hash algorithm: sha256
+[    7.618063] ima: No architecture policies found
+[    7.619372] evm: Initialising EVM extended attributes:
+[    7.620205] evm: security.selinux
+[    7.620560] evm: security.SMACK64
+[    7.621011] evm: security.SMACK64EXEC
+[    7.621380] evm: security.SMACK64TRANSMUTE
+[    7.621752] evm: security.SMACK64MMAP
+[    7.622271] evm: security.apparmor
+[    7.622593] evm: security.ima
+[    7.622894] evm: security.capability
+[    7.623357] evm: HMAC attrs: 0x1
+[    7.628616] PM:   Magic number: 2:287:716
+[    7.735486] RAS: Correctable Errors collector initialized.
+[    7.739118] Unstable clock detected, switching default tracing clock to "global"
+[    7.739118] If you want to keep using the local clock, then add:
+[    7.739118]   "trace_clock=local"
+[    7.739118] on the kernel command line
+[    7.742754] clk: Disabling unused clocks
+[    7.859211] Freeing unused decrypted memory: 2028K
+[    7.995179] Freeing unused kernel image (initmem) memory: 4936K
+[    7.996082] Write protecting the kernel read-only data: 38912k
+[    8.001407] Freeing unused kernel image (rodata/data gap) memory: 1944K
+[    8.348226] x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    8.350190] Run /init as init process
+Linux (none) 6.8.0-147-generic #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 x86_64 Linux
+GUEST_KERNEL_RELEASE=6.8.0-147-generic
+[   38.060530] l2tp_core: L2TP core driver, V2.0
+[   38.100176] l2tp_netlink: L2TP netlink interface
+[   38.142760] l2tp_ip: L2TP IP encapsulation support (L2TPv3)
+[   38.275124] l2tp_eth: L2TP ethernet pseudowire support (L2TPv3)
+[   38.318927] l2tp_ip6: L2TP IP encapsulation support for IPv6 (L2TPv3)
+[   38.531397] bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+[   38.599512] 8021q: 802.1Q VLAN Support v1.8
+scope: CLI, file races, ownership, shutdown and K41 controls
+
+running 75 tests
+test args::completion_tests::legacy_aliases_share_validation ... ok
+test args::tests::byte_paths_and_option_like_values ... ok
+test args::tests::modes_and_errors ... ok
+test caps::report_tests::warnings_match_the_effective_capabilities_and_name_each_fallback_once ... ok
+test caps::tests::capget_refusal_preserves_the_errno_and_reports_the_failure ... ok
+test caps::tests::effective_set_without_proc ... ok
+test check::tests::fixed_order_corrected_values_and_omitted_defaults ... ok
+test check::tests::output_preserves_render_and_write_errors ... ok
+test daemon::tests::broken_pipe_and_collector_shutdown_child ... ok
+test daemon::tests::vanished_parent_is_logged_and_signal_threads_join ... ok
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... 
+running 1 test
+test fdstore::completion_tests::fallback_closing_is_bounded_without_trusting_the_soft_limit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.02s
+
+ok
+test fdstore::inheritance_tests::malformed_announcements_and_close_fallback_preserve_descriptor_ownership ... INHERITANCE_CASE_VERIFIED=valid
+INHERITANCE_CASE_VERIFIED=invalid-count
+INHERITANCE_CASE_VERIFIED=negative-count
+INHERITANCE_CASE_VERIFIED=excess-count
+INHERITANCE_CASE_VERIFIED=missing-name
+INHERITANCE_CASE_VERIFIED=extra-name
+INHERITANCE_CASE_VERIFIED=control-name
+INHERITANCE_CASE_VERIFIED=missing-fd
+INHERITANCE_CASE_VERIFIED=foreign-pid
+INHERITANCE_CASE_VERIFIED=fallback
+INHERITANCE_CASE_VERIFIED=fallback-limit-error
+ok
+test fdstore::manager_tests::actual_manager_processing_and_address_family_filter ... ignored, run in a user systemd service with the template address-family restrictions
+test fdstore::tests::a_barrier_requires_eof_and_rejects_data_or_an_unreleased_descriptor ... ok
+test fdstore::tests::abstract_stores_validate_names_before_sending ... ok
+test fdstore::tests::barrier_timeout_is_a_failure ... ok
+test fdstore::tests::failed_barrier_operations_preserve_errors_and_release_local_pipes ... BARRIER_FAULT_VERIFIED=pipe
+BARRIER_FAULT_VERIFIED=send
+BARRIER_FAULT_VERIFIED=poll
+BARRIER_FAULT_VERIFIED=poll-interrupted
+BARRIER_FAULT_VERIFIED=read
+BARRIER_FAULT_VERIFIED=read-interrupted
+BARRIER_FAULT_VERIFIED=read-would-block
+ok
+test fdstore::tests::rights_and_ordered_processing_barrier ... ok
+test fdstore::worker_tests::refused_host_operations_report_their_incarnation_and_release_duplicates ... ok
+test fdstore::worker_tests::successful_host_store_and_withdrawal_preserve_rights_and_acknowledge_processing ... ok
+test files::completion_tests::bounded_regular_files_and_special_files ... ok
+test files::completion_tests::empty_paths_are_absent_without_configuration_errors ... ok
+test files::completion_tests::file_growth_and_disappearance_are_checked_after_metadata ... ok
+test files::completion_tests::file_io_faults_refuse_reload_and_keep_successfully_read_documents ... FILE_FAULT_VERIFIED=enumeration
+FILE_FAULT_VERIFIED=read
+FILE_FAULT_VERIFIED=open
+FILE_FAULT_VERIFIED=metadata
+FILE_FAULT_VERIFIED=ancestor
+ok
+test files::completion_tests::retained_entry_conflicts_refuse_reload_and_recovery_preserves_the_retained_value ... ok
+test files::filesystem_tests::followed_links_and_absence_on_reload ... ok
+test files::filesystem_tests::permission_child ... ok
+test files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths ... ignored, root in an isolated container, drops child uid
+test files::tests::discovery_merging_and_reload_refusal ... ok
+test files::tests::failed_documents_are_omitted_and_diagnostics_redact_input ... ok
+test logger::tests::direct_logging_filters_disabled_records_and_escapes_each_line ... ok
+test pidfile::edge_tests::pid_edge_child ... ok
+test pidfile::edge_tests::sticky_warning_and_unwritable_directory_fallbacks ... ok
+test pidfile::fault_tests::a_symlink_inserted_during_publication_never_receives_pid_contents ... ok
+test pidfile::fault_tests::pid_syscall_fault_child ... ok
+test pidfile::fault_tests::publication_and_removal_faults_preserve_existing_files_and_clear_temporary_names ... ok
+test pidfile::permission_tests::precreated_child ... ok
+test pidfile::permission_tests::precreated_permissions_links_and_owner ... ignored, root in an isolated container, drops child uid
+test pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes ... ignored, root in an isolated container, changes directory owner
+test pidfile::removal_tests::uninspectable_removal_is_not_a_shutdown_failure ... ok
+test pidfile::tests::fresh_inode_and_conditional_removal ... ok
+test pidfile::tests::incorrect_inode_hints_and_nonregular_paths_never_authorize_removal ... WARN rs_l2tpd::pidfile: PID file was replaced; leaving /tmp/rs-l2tpd-test-d84d504c35d1ca61/daemon.pid alone
+WARN rs_l2tpd::pidfile: PID file was replaced; leaving /tmp/rs-l2tpd-test-d84d504c35d1ca61/daemon.pid alone
+WARN rs_l2tpd::pidfile: PID file was replaced; leaving /tmp/rs-l2tpd-test-d84d504c35d1ca61 alone
+WARN rs_l2tpd::pidfile: PID file was replaced; leaving /tmp/rs-l2tpd-test-d84d504c35d1ca61/alias alone
+ok
+test pidfile::tests::invalid_paths_and_missing_files_leave_other_inodes_alone ... WARN rs_l2tpd::pidfile: PID file cleanup could not inspect /tmp/rs-l2tpd-test-0f8131087ad8e318/victim/pid: Not a directory (os error 20); leaving it alone
+ok
+test pidfile::tests::symlink_refusal_and_directory_permissions_preserved ... WARN rs_l2tpd::pidfile: PID file was replaced; leaving /tmp/rs-l2tpd-test-97528c29473a97a1/link/daemon.pid alone
+ok
+test restart::completion_tests::absolute_executable_does_not_need_a_working_directory ... ok
+test restart::completion_tests::adoption_probes_bound_output_and_time_before_any_exec ... ok
+test restart::completion_tests::executable_search_child ... ok
+test restart::completion_tests::executable_search_skips_missing_directories_and_nonexecutable_files ... ok
+test restart::completion_tests::malformed_entry_child ... ok
+test restart::completion_tests::malformed_entry_state_is_consumed_and_refused ... ok
+test restart::completion_tests::pid_inspection_error_child ... ok
+test restart::completion_tests::pid_metadata_mismatches_and_inspection_errors_discard_only_removal_authority ... ok
+test restart::completion_tests::restart_file_checks_precede_any_signal ... ok
+test restart::exec_tests::descriptor_preparation_failures_leave_the_callers_table_unchanged ... ok
+test restart::exec_tests::failed_exec_after_a_compatible_probe_keeps_the_shared_table ... ok
+test restart::signal_tests::exec_mask_child ... ok
+test restart::signal_tests::exec_preserves_requests_and_rust_entry_ignores_sigpipe ... ok
+test restart::tests::incompatible_probe_never_executes_or_changes_descriptors ... ok
+test setup::completion_tests::directory_modes_child ... ok
+test setup::completion_tests::failed_install_steps_preserve_existing_files_and_attempt_the_remaining_steps ... binary: No such file or directory (os error 2)
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: Is a directory (os error 21)
+configuration directory: done
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: done
+configuration directory: Not a directory (os error 20)
+configuration: Not a directory (os error 20)
+binary: done
+unit: done
+configuration directory: done
+configuration: done
+ok
+test setup::completion_tests::umask_does_not_weaken_installation_or_shadow_admin_units ... ok
+test setup::empty_parent_directory_needs_no_creation ... ok
+test setup::tests::atomic_idempotent_and_preserves_edits_and_configuration ... binary: done
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+ok
+test setup::tests::parses_required_unit_keys_and_install_paths ... ok
+test signals::forwarder_tests::forwarder_retries_a_full_queue_and_delivers_after_capacity_returns ... ok
+test signals::libc_tests::blocked_signals_and_wait_failures_are_checked_in_subprocesses ... LIBC_SIGNAL_CHECKED=delivery
+LIBC_SIGNAL_CHECKED=mask-error
+LIBC_SIGNAL_CHECKED=wait-error
+ok
+test signals::libc_tests::signal_errors_use_the_return_code_or_errno_as_required ... ok
+test signals::tests::pending_requests_coalesce_and_shutdown_bypasses_a_full_fake_queue ... WARN rs_l2tpd::signals: restart ignored before readiness
+WARN rs_l2tpd::signals: restart ignored during shutdown
+ok
+test stream_tests::closed_streams_child ... ok
+test stream_tests::failed_standard_stream_setup_returns_the_original_error ... STREAM_FAULT_VERIFIED=fcntl
+STREAM_FAULT_VERIFIED=open
+STREAM_FAULT_VERIFIED=dup-failure
+STREAM_FAULT_VERIFIED=dup-success
+ok
+test stream_tests::sockets_cannot_take_the_place_of_closed_standard_streams ... ok
+test syscall_barrier::query_sizes_peek_errors_and_callback_cleanup_are_checked ... PTRACE_FD_ARGUMENT raw=18446744073709551615 value=-1
+PTRACE_FD_ARGUMENT raw=18446744073709551614 value=-2
+PTRACE_FD_ARGUMENT raw=18446744073709551615 value=-1
+ok
+test tunable::namespace_tests::whitelisted_writes_apply_only_to_the_callers_network_namespace ... ignored, isolated network namespace with CAP_NET_ADMIN and writable namespace sysctls
+test tunable::tests::unsupported_or_expired_writes_are_refused ... ok
+test tunable::tests::writes_only_when_needed ... WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+ok
+
+test result: ok. 70 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 8.64s
+
+
+running 1 test
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.01s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.01s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.01s
+
+
+running 1 test
+test pidfile::permission_tests::precreated_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.01s
+
+test pidfile::permission_tests::precreated_permissions_links_and_owner ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.13s
+
+
+running 1 test
+test pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.01s
+
+
+running 1 test
+
+running 1 test
+test files::filesystem_tests::permission_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.01s
+
+test files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.04s
+
+
+running 1 test
+test reconciler::store::cost_tests::descriptor_duplication_failures_keep_local_or_inherited_ownership ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 300 filtered out; finished in 0.31s
+
+
+running 1 test
+test reconciler::store::cost_tests::duplicate_unwanted_and_mismatched_inheritance_is_retired_before_creation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 300 filtered out; finished in 0.07s
+
+
+running 1 test
+test reconciler::sessions::wanted_tests::failed_child_deletion_still_retires_its_unwanted_parent_and_local_record ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 300 filtered out; finished in 0.19s
+
+
+running 1 test
+
+running 1 test
+DHCP_ONLY_PARTIAL=1 dhcp_exchange=1 ra_started=0
+test reconciler::resolvers::tests::dhcp_only_discovery_remains_partial_when_ra_setup_fails ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 300 filtered out; finished in 0.50s
+
+test reconciler::resolvers::tests::dhcp_only_discovery_remains_partial_when_ra_setup_fails ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 300 filtered out; finished in 0.54s
+
+
+running 34 tests
+test an_absolute_executable_starts_from_a_deleted_working_directory ... daemon: ERROR rs_l2tpd: opening kernel interfaces: EPERM: Operation not permitted (os error 1); retrying
+ok
+test an_unusable_notify_store_does_not_abort_startup ... ignored, isolated privileged container
+test binary_tunable_handshake_and_opt_out ... ignored, isolated privileged container with namespace-local writable network sysctls
+test check_and_startup_report_file_errors_in_the_same_words ... daemon: ERROR rs_l2tpd::files: /tmp/rs-l2tpd-process-7ebec715cdd7a163/bad.toml: invalid TOML document at byte 8; file left out
+daemon: ERROR rs_l2tpd: opening kernel interfaces: EPERM: Operation not permitted (os error 1); retrying
+ok
+test check_cli_and_no_process_side_effects ... ok
+test configuration_diagnostics_keep_known_identifiers_for_omitted_entries ... ok
+test crash_store_adoption_and_ordered_withdrawal ... ignored, isolated privileged container
+test crash_without_store_closes_tunnel ... ignored, isolated privileged container
+test daemon_readiness_pid_inode_and_reexec ... ignored, isolated privileged container
+test daemon_setup_failures_return_the_original_error_before_kernel_startup ... ignored, isolated process suite; container/guest cleanup also owns daemon descendants
+test failed_kernel_open_withholds_readiness_and_parent_shutdown_returns_one ... ignored, isolated privileged container
+test failed_store_cleanup_is_reported_and_shutdown_is_bounded ... ignored, isolated privileged container
+test foreground_reload_and_clean_shutdown_without_network ... ignored, isolated privileged container
+test handover_launcher ... ok
+test incompatible_replacement_keeps_running_interfaces ... ignored, isolated privileged container
+test installer_enables_once_and_never_restarts ... ignored, root in disposable container, records systemctl without contacting a manager
+test installer_failures_preserve_the_failed_stage_and_never_restart ... ignored, root in disposable container; installs files and substitutes systemctl
+test invalid_reexec_state_fails_without_forking ... ok
+test lost_store_manager_makes_shutdown_fail_after_closing_local_sockets ... ignored, isolated privileged container with L2TP modules
+test malformed_and_closed_announcements_are_errors_without_panics ... ok
+test missing_capabilities_are_reported_once_and_empty_configuration_runs ... ignored, isolated privileged container, drops child uid
+test overlapping_instance_becomes_ready_without_deleting_foreign_objects ... ignored, isolated privileged container; exercises the ten-second conflict budget
+test pid_publication_failure_does_not_revoke_kernel_readiness ... ignored, isolated privileged container
+test reexec_pid_cleanup_failure_preserves_the_inode_and_returns_one ... ignored, isolated privileged container with L2TP modules
+test rejected_store_name_is_withdrawn_before_replacement ... ignored, isolated privileged container
+test restart_and_installer_path_errors_return_one_without_starting_services ... ok
+test setup_prefix_preserves_configuration ... binary: done
+unit: done
+configuration directory: done
+configuration: done
+binary: done
+unit: preserved operator-edited or unknown unit
+unit: done
+configuration directory: done
+configuration: preserved existing file
+configuration: done
+ok
+test sigusr1_retains_its_default_action ... ignored, isolated privileged container
+test startup_changes_directory_before_loading_and_logs_problems ... ok
+test startup_failure_keeps_unverified_handover_and_reports_failed_withdrawal ... daemon: ERROR rs_l2tpd: descriptor store unavailable: No such file or directory (os error 2); continuing without a store
+daemon: ERROR rs_l2tpd: opening kernel interfaces: EPERM: Operation not permitted (os error 1); retrying
+daemon: ERROR rs_l2tpd: kernel unavailable; cannot confirm inherited tunnel absence
+daemon: ERROR rs_l2tpd: opening kernel interfaces: EPERM: Operation not permitted (os error 1); retrying
+daemon: ERROR rs_l2tpd: startup withdrawal t10: Connection refused (os error 111)
+daemon: ERROR rs_l2tpd: kernel unavailable; cannot confirm inherited tunnel absence
+ok
+test stored_descriptors_survive_double_fork ... ignored, isolated privileged container
+test stream_probe_fault_preserves_other_descriptor_operations ... ok
+test unannounced_descriptors_close_before_service_start ... ignored, isolated privileged container
+test zero_tunnel_reexec_stays_foreground_and_preserves_pid ... ignored, isolated privileged container
+
+test result: ok. 12 passed; 0 failed; 22 ignored; 0 measured; 0 filtered out; finished in 2.59s
+
+
+running 1 test
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): created as testl2tp
+daemon: WARN rs_l2tpd::reconciler::report: tunnel a (tunnel_id=10): disconnected, peer 192.0.2.1 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=554
+daemon: INFO rs_l2tpd::reconciler::sessions: session a (tunnel_id=10, session_id=100): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel a (tunnel_id=10): removed
+daemon: WARN rs_l2tpd::fdstore: descriptor withdrawal t10: Connection refused (os error 111)
+daemon: WARN rs_l2tpd::fdstore: descriptor withdrawal t10: Connection refused (os error 111)
+daemon: ERROR rs_l2tpd::reconciler::store: descriptor store cleanup incomplete for t10
+daemon: ERROR rs_l2tpd: service: kernel or descriptor-store cleanup incomplete
+daemon: INFO rs_l2tpd: shutdown complete
+test lost_store_manager_makes_shutdown_fail_after_closing_local_sockets ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 4.44s
+
+
+running 1 test
+daemon: ERROR rs_l2tpd: descriptor store unavailable: No such file or directory (os error 2); continuing without a store
+daemon: INFO rs_l2tpd: re-exec resumed
+daemon: ERROR rs_l2tpd: PID file cleanup: I/O error (os error 5)
+daemon: INFO rs_l2tpd: shutdown complete
+test reexec_pid_cleanup_failure_preserves_the_inode_and_returns_one ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.12s
+
+
+running 1 test
+daemon: standard streams: I/O error (os error 5)
+DAEMON_FAULT_CHECKED=streams
+daemon: ERROR rs_l2tpd: chdir /: Permission denied (os error 13)
+DAEMON_FAULT_CHECKED=directory
+daemon: ERROR rs_l2tpd: No such file or directory (os error 2)
+DAEMON_FAULT_CHECKED=executable
+daemon: ERROR rs_l2tpd: No file descriptors available (os error 24)
+DAEMON_FAULT_CHECKED=pipe
+daemon: ERROR rs_l2tpd: Resource temporarily unavailable (os error 11)
+DAEMON_FAULT_CHECKED=fork
+daemon: ERROR rs_l2tpd: Operation not permitted (os error 1)
+DAEMON_FAULT_CHECKED=session
+daemon: ERROR rs_l2tpd: I/O error (os error 5)
+DAEMON_FAULT_CHECKED=stdin-redirect
+daemon: ERROR rs_l2tpd: I/O error (os error 5)
+DAEMON_FAULT_CHECKED=signal-mask
+daemon: ERROR rs_l2tpd::signals: sigwait: I/O error (os error 5); shutting down
+daemon: ERROR rs_l2tpd: opening kernel interfaces: EACCES: Permission denied (os error 13); retrying
+DAEMON_FAULT_CHECKED=signal-wait
+test daemon_setup_failures_return_the_original_error_before_kernel_startup ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.32s
+
+
+running 1 test
+INSTALLER_FAILURE_CHECKED=missing
+INSTALLER_FAILURE_CHECKED=reload-spawn
+INSTALLER_FAILURE_CHECKED=reload-status
+INSTALLER_FAILURE_CHECKED=enable-spawn
+INSTALLER_FAILURE_CHECKED=enable-status
+test installer_failures_preserve_the_failed_stage_and_never_restart ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 1.73s
+
+
+running 1 test
+K41_SCOPE foreign_announced=true local_control=1
+test foreign_namespace_deletion_does_not_delete_local_session ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.63s
+
+RACE_AND_SHUTDOWN_RESULT=0
+BINARY_UNIT_RESULT=0
+MATRIX_GUEST_RESULT=0
+[   59.334893] ACPI: PM: Preparing to enter system sleep state S5
+[   59.337402] reboot: Power down
