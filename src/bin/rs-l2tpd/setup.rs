@@ -250,6 +250,14 @@ fn directories(path: &Path) -> io::Result<()> {
     }
 }
 
+/// spec: P27
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[test]
+fn empty_parent_directory_needs_no_creation() {
+    assert!(directories(Path::new("")).is_ok());
+}
+
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod completion_tests {

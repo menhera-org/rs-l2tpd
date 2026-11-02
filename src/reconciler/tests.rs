@@ -23,6 +23,57 @@ mod completion {
         Reconciler::new(kernel, Box::new(IphostResolve::default()))
     }
 
+    /// spec: L12, E25, T26, M14
+    #[test]
+    fn tunable_completions_reject_wrong_expired_and_finished_requests() {
+        let mut r = reconciler();
+        r.k.set_bindv6only(true);
+        assert!(!r.reconcile(toml::from_str(CONFIG).unwrap()));
+        let pending = r.tunable_pending.unwrap();
+        r.take_requests();
+        r.tunable_written(pending.0 + 1, true);
+        assert_eq!(r.tunable_pending, Some(pending));
+        assert!(!r.ready());
+        r.k.advance(Duration::from_secs(5));
+        r.tunable_written(pending.0, true);
+        assert_eq!(r.tunable_pending, Some(pending));
+        assert!(!r.ready());
+        r.tick();
+        assert_eq!(r.tunable, Some(false));
+        assert!(r.ready());
+        r.tunable_written(pending.0, true);
+        assert_eq!(r.tunable, Some(false));
+        assert!(r.take_requests().is_empty());
+    }
+
+    /// spec: T25, E12, E14, C14
+    #[test]
+    fn explicit_reload_retries_an_active_conflict_without_leaving_it_out() {
+        let mut r = reconciler();
+        r.k.fail_next("register", Errno::EEXIST);
+        let config: Config = toml::from_str(CONFIG).unwrap();
+        assert!(!r.reconcile(config.clone()));
+        assert!(!r.conflicts[&(false, 10)].left_out);
+        assert!(r.left_out().is_empty());
+        assert!(r.reconcile(config));
+        assert!(r.conflicts.is_empty());
+        assert!(r.conflict_times.is_empty());
+        assert!(r.ready());
+    }
+
+    /// spec: S28, E12, G20, G23
+    #[test]
+    fn an_already_absent_unmatched_session_cancels_its_retry() {
+        let mut r = reconciler();
+        r.unmatched_sessions.insert((10, 100));
+        r.k.clear_ops();
+        r.retry_unmatched_sessions();
+        assert!(r.unmatched_sessions.is_empty());
+        assert!(r.deleting_sessions.is_empty());
+        assert!(r.k.ops().is_empty());
+        assert!(!r.incomplete);
+    }
+
     /// spec: E3, E12, S27, E27, G23
     #[test]
     fn removal_queries_retry_and_late_announcements_stay_bounded_until_absence() {

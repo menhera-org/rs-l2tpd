@@ -138,7 +138,12 @@ fn unapplied_socket_operations_are_reported_without_gating_peer_availability() {
             .reconciler
             .kernel_mut()
             .advance(Duration::from_secs(1));
-        runtime.handle_event(ControlEvent::Tick).unwrap();
+        let event = if fault == "bind" {
+            ControlEvent::ResolverAnswers
+        } else {
+            ControlEvent::Tick
+        };
+        runtime.handle_event(event).unwrap();
         assert!(runtime.applied());
         assert!(runtime.ready());
         assert_eq!(runtime.reconciler.kernel().tunnel_socket(10), Some(socket));

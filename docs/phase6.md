@@ -33,7 +33,10 @@ the current required set, including 7.4-rc1. Initial/final publication
 selections agree and both tracked-source patches are empty. Repository
 record `audit/phase6/matrix-20261102T011736Z-3377142/README.md` seals P3.
 The RC source comparison covers 43 relevant files, verified against both
-archives; both builds pass. Common CI gates pass; coverage is unchanged.
+archives; both builds pass. The integrated resolver/event/host tests raise
+coverage, together with the larger installer/descriptor/reconciler batch,
+to 98.34% lines and 93.14% branches. K41's strengthened listener
+control passes all five required kernels and rejects a broken listener.
 
 Phase 6 remains open. The 23:11 UTC publication recheck selects mainline
 7.4-rc1, while the four Ubuntu/vanilla targets remain unchanged. The RC
@@ -84,10 +87,12 @@ the exact live or fake scope:
 `audit/phase6/resolver-default-capacity-20261101/` and
 `audit/phase6/pidfile-inspection-errors-20261101/`.
 
-The current collector reports **98.01% of production lines and 92.01% of
-branches**: 8,514/8,687 lines and 1,704/1,852 branches, leaving **173 lines
-and 148 branches**. All 4,327 production mappings remain unchanged from the
-preceding custom-resolver report.
+The current collector reports **98.34% of production lines and 93.14% of
+branches**: 8,543/8,687 lines and 1,725/1,852 branches, leaving **144 lines
+and 127 branches**. All 4,327 preceding production mappings remain unchanged;
+four test-induced instantiations were added. Repository record
+`audit/phase6/resolver-boundaries-20261102/` and
+`audit/phase6/coverage-batch-20261102/` retain the exact scopes and controls.
 Profiles from earlier production implementations are not merged. There
 are no production exclusions, profile mismatches or saturated regions.
 Complete clause/history/resource/event-cost proof and the 100% gate remain

@@ -500,6 +500,31 @@ fn deletion_without_a_stored_creation_name_neither_scans_nor_guesses() {
     );
 }
 
+/// spec: S9, S22, E12, G2
+#[test]
+fn deletion_races_accept_enodev_after_both_proof_and_complete_dump() {
+    for lost in [false, true] {
+        let (mut r, config) = staging_fixture("");
+        assert!(r.reconcile(config));
+        let index = r.k.session_index(10, 100).unwrap();
+        r.k.fail_next("delete", Errno::ENODEV);
+        r.k.clear_ops();
+        let removed = if lost {
+            r.delete_verified(100)
+        } else {
+            r.delete_session(100)
+        };
+        assert!(removed);
+        assert_eq!(r.k.session_index(10, 100), Some(index));
+        assert!(r.deleting_sessions.is_empty());
+        assert!(r.k.ops().is_empty());
+        assert!(
+            r.k.delete_session(10, 100).is_ok(),
+            "the injected race was consumed"
+        );
+    }
+}
+
 /// spec: S25, S26, T8, K17, G9, G20
 #[test]
 fn failed_child_deletion_still_retires_its_unwanted_parent_and_local_record() {

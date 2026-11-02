@@ -314,6 +314,58 @@ mod tests {
 mod exec_tests {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
+    /// spec: P26, G12
+    #[test]
+    fn descriptor_preparation_failures_leave_the_callers_table_unchanged() {
+        const CHILD: &str = "RS_L2TPD_EXEC_PREPARATION_FAULT";
+        let Ok(case) = std::env::var(CHILD) else {
+            for case in ["unshare", "copy", "move"] {
+                let output = Command::new(std::env::current_exe().unwrap())
+                    .args(["--exact", "restart::exec_tests::descriptor_preparation_failures_leave_the_callers_table_unchanged", "--nocapture"])
+                    .env(CHILD, case)
+                    .output()
+                    .unwrap();
+                assert!(output.status.success(), "{case}: {output:?}");
+                assert!(
+                    String::from_utf8_lossy(&output.stdout)
+                        .contains("EXEC_PREPARATION_FAILURE_CHECKED="),
+                    "{case}: {output:?}"
+                );
+            }
+            return;
+        };
+        let dir = crate::testdir::Dir::new();
+        let target = dir.path().join("compatible-probe");
+        std::fs::write(&target, "#!/bin/sh\nprintf 'rs-l2tpd-adopt 1\\n'\n").unwrap();
+        std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let held = std::fs::File::open("/dev/null").unwrap();
+        let flags = unsafe { libc::fcntl(held.as_raw_fd(), libc::F_GETFD) };
+        let socket = AdoptedSocket::new("t1", held.try_clone().unwrap().into());
+        match case.as_str() {
+            "unshare" => crate::syscall_fault::refuse(&[libc::SYS_unshare], libc::EIO),
+            "copy" => crate::syscall_fault::on_exec_argument(
+                libc::SYS_fcntl,
+                1,
+                libc::F_DUPFD_CLOEXEC as u32,
+                libc::EIO,
+            )()
+            .unwrap(),
+            "move" => {
+                for &syscall in crate::syscall_fault::DUP_SYSCALLS {
+                    crate::syscall_fault::on_exec_argument(syscall, 1, 3, libc::EIO)().unwrap();
+                }
+            }
+            _ => panic!("unknown exec failure"),
+        }
+        let error = exec(&target, &[], vec![socket], None).unwrap_err();
+        assert_eq!(error.raw_os_error(), Some(libc::EIO), "{case}");
+        assert!(held.metadata().is_ok());
+        assert_eq!(
+            unsafe { libc::fcntl(held.as_raw_fd(), libc::F_GETFD) },
+            flags
+        );
+        println!("EXEC_PREPARATION_FAILURE_CHECKED={case}");
+    }
     /// spec: P26
     #[test]
     fn failed_exec_after_a_compatible_probe_keeps_the_shared_table() {

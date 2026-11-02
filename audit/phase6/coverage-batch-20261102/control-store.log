@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-dc5105cc1b329540)
+
+running 1 test
+
+thread 'reconciler::store::cost_tests::storing_the_same_socket_twice_keeps_one_submission' (3608606) panicked at src/reconciler/store.rs:402:9:
+assertion failed: r.take_requests().is_empty()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reconciler::store::cost_tests::storing_the_same_socket_twice_keeps_one_submission ... FAILED
+
+failures:
+
+failures:
+    reconciler::store::cost_tests::storing_the_same_socket_twice_keeps_one_submission
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 298 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

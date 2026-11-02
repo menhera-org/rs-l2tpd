@@ -515,14 +515,18 @@ archive, both builds, source comparison and required live profiles now pass.
 The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
-Fresh corrected-source coverage is **98.01% of lines and 92.01% of branches**:
-8,514/8,687 lines and 1,704/1,852 branches, leaving **173 lines and 148
+Fresh corrected-source coverage is **98.34% of lines and 93.14% of branches**:
+8,543/8,687 lines and 1,725/1,852 branches, leaving **144 lines and 127
 branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files
 `audit/phase6/pidfile-inspection-errors-20261101/README.md` and
 `audit/PHASE6_VERIFICATION_2026-11-02.md` identify the source, controls and
-scope. The following entries retain earlier measurements.
+scope. The combined November 2 batch adds 29 covered lines and 21 branch
+outcomes through resolver, service, installer, descriptor and reconciler
+failure cases. Ten instrumented native model runs, three musl model runs,
+three GNU/musl process repetitions pass; nine deliberate failure controls
+reject broken variants. The following entries retain earlier measurements.
 
 **Initial status, 2026-10-31.** The strict source-link check
 passes locally. The partial host scenarios, unprivileged Incus case and

@@ -934,4 +934,50 @@ mod tests {
             assert!(runtime.shutdown().unwrap(), "the disabled host must complete its withdrawal barrier");
         });
     }
+
+    /// spec: L12, G14, T26
+    #[test]
+    fn lost_host_delivery_waits_for_the_original_tunable_completion() {
+        engine().block_on(async {
+            for closed in [false, true] {
+                let mut kernel = FakeKernel::new(42);
+                kernel.bindv6only = true;
+                let began = kernel.now();
+                let mut runtime = Runtime::with_kernel(
+                    kernel,
+                    Box::new(IphostResolve::default()),
+                    vec![],
+                )
+                .map_err(|(error, _)| error)
+                .unwrap();
+                let wanted = config();
+                assert!(!runtime.reconcile(wanted.clone()));
+                let event = runtime.next_event().await;
+                let ControlEvent::WriteTunable { id, deadline, .. } = &event else {
+                    panic!("expected the original tunable handshake");
+                };
+                let id = *id;
+                assert_eq!(*deadline - began, std::time::Duration::from_secs(5));
+                let (host, mut receiver) = tokio::sync::mpsc::channel(1);
+                if closed {
+                    receiver.close();
+                } else {
+                    assert!(host.try_send(ControlEvent::Tick).is_ok());
+                }
+                host_request(&mut runtime, event, &host, true);
+                assert!(!runtime.ready(), "lost delivery must not complete the handshake");
+                {
+                    let mut next = pin!(runtime.next_event());
+                    assert!(next.as_mut().poll(&mut Context::from_waker(Waker::noop())).is_pending());
+                }
+                host_request(&mut runtime, ControlEvent::Shutdown, &host, false);
+                assert_eq!(runtime.control().config(), wanted, "an unrelated host event must be ignored");
+                runtime.control().tunable_written(id, false).await.unwrap();
+                let event = runtime.next_event().await;
+                assert!(matches!(event, ControlEvent::TunableWritten { id: received, success: false } if received == id));
+                runtime.handle_event(event).unwrap();
+                assert!(runtime.ready(), "the original completion must still enable fallback");
+            }
+        });
+    }
 }

@@ -1,0 +1,16 @@
+diff --git a/tests/kernel/matrix-init.sh b/tests/kernel/matrix-init.sh
+index b5954dc..5291cbf 100755
+--- a/tests/kernel/matrix-init.sh
++++ b/tests/kernel/matrix-init.sh
+@@ -66,8 +66,10 @@ if [ "$mode" = clock ]; then
+     exit 0
+ fi
+ if [ "$mode" = binary ]; then
+-    echo 'scope: ordinary CLI units and selected filesystem-permission cases'
++    echo 'scope: ordinary CLI units, selected filesystem cases and K41 listener control'
+     run_binary
++    run_suite /review-kernel --ignored --exact foreign_namespace_deletion_does_not_delete_local_session --nocapture
++    echo K41_LISTENER_RESULT=0
+     echo BINARY_UNIT_RESULT=0
+     exit 0
+ fi

@@ -1,0 +1,15 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-dc5105cc1b329540)
+
+running 7 tests
+test reconciler::tests::completion::an_already_absent_unmatched_session_cancels_its_retry ... ok
+test reconciler::tests::completion::explicit_reload_retries_an_active_conflict_without_leaving_it_out ... ok
+test reconciler::tests::completion::obsolete_creation_names_are_not_recorded_as_overrides_and_create_episode_ends ... ok
+test reconciler::tests::completion::tunable_completions_reject_wrong_expired_and_finished_requests ... ok
+test reconciler::tests::completion::removal_queries_retry_and_late_announcements_stay_bounded_until_absence ... ok
+test reconciler::tests::completion::verification_tasks_follow_configured_identity_even_when_cleanup_fails ... ok
+test reconciler::tests::completion::unrelated_interfaces_do_not_accumulate_in_the_device_caches ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 292 filtered out; finished in 0.01s
+

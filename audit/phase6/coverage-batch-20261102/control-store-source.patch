@@ -1,0 +1,58 @@
+diff --git a/src/reconciler/store.rs b/src/reconciler/store.rs
+index fc64aa5..a1ca6e8 100644
+--- a/src/reconciler/store.rs
++++ b/src/reconciler/store.rs
+@@ -105,7 +105,7 @@ impl<K: Kernel> Reconciler<K> {
+ 
+     pub(super) fn store_socket(&mut self, id: u32, socket: SocketId) {
+         let name = format!("t{id}");
+-        if self.store.capacity == 0 || self.store.names.contains(&name) {
++        if self.store.capacity == 0 {
+             return;
+         }
+         if self.store.names.len() >= self.store.capacity {
+@@ -367,6 +367,44 @@ mod cost_tests {
+     use crate::kernel::fake::FakeKernel;
+     use crate::reconciler::IphostResolve;
+ 
++    /// spec: P14, L13, G20
++    #[test]
++    fn submission_refusals_preserve_inherited_and_retiring_authority() {
++        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
++        let fd = std::fs::File::open("/dev/null").unwrap().into();
++        r.inherit("t10".into(), fd);
++        r.retirement("t20".into(), Vec::new(), Vec::new(), Some(20));
++        r.store.names.insert("t20".into());
++        r.store.names.insert("t30".into());
++        for name in ["t10", "t20", "t30", "absent"] {
++            r.store_refused(name);
++        }
++        assert_eq!(r.store.names, BTreeSet::from(["t10".into(), "t20".into()]));
++        assert_eq!(r.store.inherited["t10"].len(), 1);
++        assert!(r.store.retiring.contains_key("t20"));
++        assert!(r.store.blocks(10));
++        assert!(r.store.blocks(20));
++        assert!(!r.store.blocks(30));
++        assert!(r.take_requests().is_empty());
++    }
++
++    /// spec: P14, G20, L13
++    #[test]
++    fn storing_the_same_socket_twice_keeps_one_submission() {
++        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
++        let socket =
++            r.k.create_socket(crate::config::Family::V6, 10, 10)
++                .unwrap();
++        r.set_store_capacity(2);
++        r.store_socket(10, socket);
++        assert_eq!(r.take_requests().len(), 1);
++        r.store_socket(10, socket);
++        assert!(r.take_requests().is_empty());
++        assert_eq!(r.store.names, BTreeSet::from(["t10".into()]));
++        assert_eq!(r.k.open_sockets(), 1);
++        r.k.close(socket);
++    }
++
+     fn assert_indexes(r: &Reconciler<FakeKernel>) {
+         let expected: BTreeMap<_, _> = r
+             .store

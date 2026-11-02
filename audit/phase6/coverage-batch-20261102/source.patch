@@ -1,0 +1,754 @@
+diff --git a/src/bin/rs-l2tpd/restart.rs b/src/bin/rs-l2tpd/restart.rs
+index 742f19d..5f18be2 100644
+--- a/src/bin/rs-l2tpd/restart.rs
++++ b/src/bin/rs-l2tpd/restart.rs
+@@ -314,6 +314,58 @@ mod tests {
+ mod exec_tests {
+     use super::*;
+     use std::os::unix::fs::PermissionsExt;
++    /// spec: P26, G12
++    #[test]
++    fn descriptor_preparation_failures_leave_the_callers_table_unchanged() {
++        const CHILD: &str = "RS_L2TPD_EXEC_PREPARATION_FAULT";
++        let Ok(case) = std::env::var(CHILD) else {
++            for case in ["unshare", "copy", "move"] {
++                let output = Command::new(std::env::current_exe().unwrap())
++                    .args(["--exact", "restart::exec_tests::descriptor_preparation_failures_leave_the_callers_table_unchanged", "--nocapture"])
++                    .env(CHILD, case)
++                    .output()
++                    .unwrap();
++                assert!(output.status.success(), "{case}: {output:?}");
++                assert!(
++                    String::from_utf8_lossy(&output.stdout)
++                        .contains("EXEC_PREPARATION_FAILURE_CHECKED="),
++                    "{case}: {output:?}"
++                );
++            }
++            return;
++        };
++        let dir = crate::testdir::Dir::new();
++        let target = dir.path().join("compatible-probe");
++        std::fs::write(&target, "#!/bin/sh\nprintf 'rs-l2tpd-adopt 1\\n'\n").unwrap();
++        std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o755)).unwrap();
++        let held = std::fs::File::open("/dev/null").unwrap();
++        let flags = unsafe { libc::fcntl(held.as_raw_fd(), libc::F_GETFD) };
++        let socket = AdoptedSocket::new("t1", held.try_clone().unwrap().into());
++        match case.as_str() {
++            "unshare" => crate::syscall_fault::refuse(&[libc::SYS_unshare], libc::EIO),
++            "copy" => crate::syscall_fault::on_exec_argument(
++                libc::SYS_fcntl,
++                1,
++                libc::F_DUPFD_CLOEXEC as u32,
++                libc::EIO,
++            )()
++            .unwrap(),
++            "move" => {
++                for &syscall in crate::syscall_fault::DUP_SYSCALLS {
++                    crate::syscall_fault::on_exec_argument(syscall, 1, 3, libc::EIO)().unwrap();
++                }
++            }
++            _ => panic!("unknown exec failure"),
++        }
++        let error = exec(&target, &[], vec![socket], None).unwrap_err();
++        assert_eq!(error.raw_os_error(), Some(libc::EIO), "{case}");
++        assert!(held.metadata().is_ok());
++        assert_eq!(
++            unsafe { libc::fcntl(held.as_raw_fd(), libc::F_GETFD) },
++            flags
++        );
++        println!("EXEC_PREPARATION_FAILURE_CHECKED={case}");
++    }
+     /// spec: P26
+     #[test]
+     fn failed_exec_after_a_compatible_probe_keeps_the_shared_table() {
+diff --git a/src/bin/rs-l2tpd/setup.rs b/src/bin/rs-l2tpd/setup.rs
+index 07b91fd..08877b4 100644
+--- a/src/bin/rs-l2tpd/setup.rs
++++ b/src/bin/rs-l2tpd/setup.rs
+@@ -250,6 +250,14 @@ fn directories(path: &Path) -> io::Result<()> {
+     }
+ }
+ 
++/// spec: P27
++#[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
++#[test]
++fn empty_parent_directory_needs_no_creation() {
++    assert!(directories(Path::new("")).is_ok());
++}
++
+ #[cfg(test)]
+ #[cfg_attr(coverage_nightly, coverage(off))]
+ mod completion_tests {
+diff --git a/src/blocking.rs b/src/blocking.rs
+index fd1677e..4a537b9 100644
+--- a/src/blocking.rs
++++ b/src/blocking.rs
+@@ -199,6 +199,21 @@ mod tests {
+     use super::*;
+     use crate::kernel::fake::FakeKernel;
+ 
++    /// spec: L8, L9, G14
++    #[test]
++    fn a_panicked_startup_returns_the_closed_channel_error() {
++        use std::sync::atomic::{AtomicBool, Ordering};
++        let entered = Arc::new(AtomicBool::new(false));
++        let observed = entered.clone();
++        let result = Service::open::<FakeKernel>(Config::new(), vec![], move || {
++            observed.store(true, Ordering::Release);
++            panic!("controlled backend startup panic");
++        });
++        assert!(entered.load(Ordering::Acquire));
++        assert!(matches!(result, Err((Error::Other(message), adopted))
++            if message == mpsc::RecvError.to_string() && adopted.is_empty()));
++    }
++
+     /// spec: L5, L7, L9, G14
+     #[test]
+     fn unavailable_command_queues_return_the_original_error() {
+diff --git a/src/kernel/linux/mod.rs b/src/kernel/linux/mod.rs
+index acef4bc..2f30a0a 100644
+--- a/src/kernel/linux/mod.rs
++++ b/src/kernel/linux/mod.rs
+@@ -15,7 +15,7 @@ mod socket;
+ #[cfg_attr(coverage_nightly, coverage(off))]
+ #[allow(unsafe_code)]
+ #[path = "../../../tests/tools/syscall_fault.rs"]
+-mod syscall_fault;
++pub(crate) mod syscall_fault;
+ 
+ use std::collections::HashMap;
+ use std::io;
+diff --git a/src/reconciler/resolvers_tests.rs b/src/reconciler/resolvers_tests.rs
+index 0e1fcf2..5965702 100644
+--- a/src/reconciler/resolvers_tests.rs
++++ b/src/reconciler/resolvers_tests.rs
+@@ -5,8 +5,56 @@ use std::net::{Ipv6Addr, UdpSocket};
+ use std::sync::atomic::Ordering;
+ #[path = "../../tests/support/discovery.rs"]
+ mod discovery;
++use crate::kernel::linux::syscall_fault as socket_fault;
+ use discovery::{Dns, advertise};
+ 
++/// spec: V12, V14
++#[test]
++#[ignore = "disposable namespace with NET_ADMIN, NET_RAW and seccomp"]
++fn dhcp_only_discovery_remains_partial_when_ra_setup_fails() {
++    const CHILD: &str = "RS_L2TPD_DHCP_ONLY_CHILD";
++    if std::env::var_os(CHILD).is_none() {
++        let output = std::process::Command::new(std::env::current_exe().unwrap())
++            .args([
++                "--ignored",
++                "--exact",
++                "reconciler::resolvers::tests::dhcp_only_discovery_remains_partial_when_ra_setup_fails",
++                "--nocapture",
++            ])
++            .env(CHILD, "1")
++            .output()
++            .unwrap();
++        assert!(output.status.success(), "{output:?}");
++        assert!(String::from_utf8_lossy(&output.stdout).contains("DHCP_ONLY_PARTIAL=1"));
++        print!("{}", String::from_utf8_lossy(&output.stdout));
++        return;
++    }
++    let (_sender, _destination, _primary, _fallback, dhcp) = fixture();
++    let mut request = [0; 1500];
++    // ICMP6_FILTER is option 1; DHCPv6's IPv6 socket options remain available.
++    socket_fault::on_exec_socket_option(nix::libc::IPPROTO_ICMPV6, 1, nix::libc::EIO)().unwrap();
++    let resolver = IphostResolve::default()
++        .resolver(&ResolverSpec::Ipv6 {
++            interface: "dns-host".into(),
++            client_id: ClientId::None,
++        })
++        .unwrap();
++    let iphost::Resolver::Ipv6(config) = &resolver else {
++        panic!("the unified resolver must keep its working DHCPv6 source");
++    };
++    assert!(config.dhcpv6().is_some() && config.ra().is_none());
++    assert!(IphostResolve::partial(&resolver));
++    assert_eq!(resolver.max_lookup_time(), Some(Duration::from_secs(33)));
++    let (len, peer) = dhcp.recv_from(&mut request).unwrap();
++    assert!(len >= 4 && request[0] == 11);
++    let mut reply = vec![7, request[1], request[2], request[3], 0, 23, 0, 16];
++    let address = "2001:db8::53".parse::<Ipv6Addr>().unwrap();
++    reply.extend(address.octets());
++    dhcp.send_to(&reply, peer).unwrap();
++    until(|| config.dhcpv6().unwrap().nameservers() == [address]);
++    println!("DHCP_ONLY_PARTIAL=1 dhcp_exchange=1 ra_started=0");
++}
++
+ /// spec: G23, M16, V7, V9, V15
+ #[cfg(all(feature = "fake-kernel", feature = "serde"))]
+ #[test]
+@@ -608,6 +656,43 @@ mod validation {
+         );
+     }
+ 
++    /// spec: V9, C16
++    #[test]
++    fn global_static_servers_preserve_order_ports_and_zero_ipv6_scope() {
++        let mut k = FakeKernel::new(42);
++        let index = k.add_link("dns", false);
++        let link = L2tpIfName::new(b"dns").unwrap();
++        let mut r = Reconciler::new(k, Box::new(IphostResolve::default()));
++        for bind in [None, Some(link)] {
++            let servers = [
++                ("2001:db8::53".parse().unwrap(), 5353),
++                ("192.0.2.53".parse().unwrap(), 53),
++            ];
++            let config = ResolverConfig::with_addresses(
++                servers
++                    .iter()
++                    .map(|&(addr, port)| NameServer::new(addr, None, port).unwrap())
++                    .collect(),
++                bind,
++            )
++            .unwrap();
++            assert_eq!(
++                r.resolver_dependencies(&config).unwrap(),
++                bind.map(|name| vec![(name, index)]).unwrap_or_default()
++            );
++            assert_eq!(
++                r.resolver_spec(&config).unwrap(),
++                ResolverSpec::Static {
++                    servers: servers
++                        .into_iter()
++                        .map(|(addr, port)| SocketAddr::new(addr, port))
++                        .collect(),
++                    bind: bind.map(|name| name.to_str().unwrap().to_owned()),
++                }
++            );
++        }
++    }
++
+     /// spec: V10, V12, V14, C16
+     #[test]
+     fn discovery_identities_preserve_explicit_values_and_handle_missing_or_refused_mac() {
+diff --git a/src/reconciler/store.rs b/src/reconciler/store.rs
+index fc64aa5..02a6c45 100644
+--- a/src/reconciler/store.rs
++++ b/src/reconciler/store.rs
+@@ -367,6 +367,44 @@ mod cost_tests {
+     use crate::kernel::fake::FakeKernel;
+     use crate::reconciler::IphostResolve;
+ 
++    /// spec: P14, L13, G20
++    #[test]
++    fn submission_refusals_preserve_inherited_and_retiring_authority() {
++        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
++        let fd = std::fs::File::open("/dev/null").unwrap().into();
++        r.inherit("t10".into(), fd);
++        r.retirement("t20".into(), Vec::new(), Vec::new(), Some(20));
++        r.store.names.insert("t20".into());
++        r.store.names.insert("t30".into());
++        for name in ["t10", "t20", "t30", "absent"] {
++            r.store_refused(name);
++        }
++        assert_eq!(r.store.names, BTreeSet::from(["t10".into(), "t20".into()]));
++        assert_eq!(r.store.inherited["t10"].len(), 1);
++        assert!(r.store.retiring.contains_key("t20"));
++        assert!(r.store.blocks(10));
++        assert!(r.store.blocks(20));
++        assert!(!r.store.blocks(30));
++        assert!(r.take_requests().is_empty());
++    }
++
++    /// spec: P14, G20, L13
++    #[test]
++    fn storing_the_same_socket_twice_keeps_one_submission() {
++        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
++        let socket =
++            r.k.create_socket(crate::config::Family::V6, 10, 10)
++                .unwrap();
++        r.set_store_capacity(2);
++        r.store_socket(10, socket);
++        assert_eq!(r.take_requests().len(), 1);
++        r.store_socket(10, socket);
++        assert!(r.take_requests().is_empty());
++        assert_eq!(r.store.names, BTreeSet::from(["t10".into()]));
++        assert_eq!(r.k.open_sockets(), 1);
++        r.k.close(socket);
++    }
++
+     fn assert_indexes(r: &Reconciler<FakeKernel>) {
+         let expected: BTreeMap<_, _> = r
+             .store
+diff --git a/src/reconciler/tests.rs b/src/reconciler/tests.rs
+index 19071e1..3a0903b 100644
+--- a/src/reconciler/tests.rs
++++ b/src/reconciler/tests.rs
+@@ -23,6 +23,57 @@ mod completion {
+         Reconciler::new(kernel, Box::new(IphostResolve::default()))
+     }
+ 
++    /// spec: L12, E25, T26, M14
++    #[test]
++    fn tunable_completions_reject_wrong_expired_and_finished_requests() {
++        let mut r = reconciler();
++        r.k.set_bindv6only(true);
++        assert!(!r.reconcile(toml::from_str(CONFIG).unwrap()));
++        let pending = r.tunable_pending.unwrap();
++        r.take_requests();
++        r.tunable_written(pending.0 + 1, true);
++        assert_eq!(r.tunable_pending, Some(pending));
++        assert!(!r.ready());
++        r.k.advance(Duration::from_secs(5));
++        r.tunable_written(pending.0, true);
++        assert_eq!(r.tunable_pending, Some(pending));
++        assert!(!r.ready());
++        r.tick();
++        assert_eq!(r.tunable, Some(false));
++        assert!(r.ready());
++        r.tunable_written(pending.0, true);
++        assert_eq!(r.tunable, Some(false));
++        assert!(r.take_requests().is_empty());
++    }
++
++    /// spec: T25, E12, E14, C14
++    #[test]
++    fn explicit_reload_retries_an_active_conflict_without_leaving_it_out() {
++        let mut r = reconciler();
++        r.k.fail_next("register", Errno::EEXIST);
++        let config: Config = toml::from_str(CONFIG).unwrap();
++        assert!(!r.reconcile(config.clone()));
++        assert!(!r.conflicts[&(false, 10)].left_out);
++        assert!(r.left_out().is_empty());
++        assert!(r.reconcile(config));
++        assert!(r.conflicts.is_empty());
++        assert!(r.conflict_times.is_empty());
++        assert!(r.ready());
++    }
++
++    /// spec: S28, E12, G20, G23
++    #[test]
++    fn an_already_absent_unmatched_session_cancels_its_retry() {
++        let mut r = reconciler();
++        r.unmatched_sessions.insert((10, 100));
++        r.k.clear_ops();
++        r.retry_unmatched_sessions();
++        assert!(r.unmatched_sessions.is_empty());
++        assert!(r.deleting_sessions.is_empty());
++        assert!(r.k.ops().is_empty());
++        assert!(!r.incomplete);
++    }
++
+     /// spec: E3, E12, S27, E27, G23
+     #[test]
+     fn removal_queries_retry_and_late_announcements_stay_bounded_until_absence() {
+diff --git a/src/reconciler/tunnels.rs b/src/reconciler/tunnels.rs
+index b5931d7..9696e3d 100644
+--- a/src/reconciler/tunnels.rs
++++ b/src/reconciler/tunnels.rs
+@@ -563,3 +563,55 @@ impl<K: Kernel> Reconciler<K> {
+         }
+     }
+ }
++
++#[cfg(all(test, feature = "fake-kernel", feature = "serde"))]
++#[cfg_attr(coverage_nightly, coverage(off))]
++mod boundary_tests {
++    use super::*;
++    use crate::kernel::fake::FakeKernel;
++    use crate::reconciler::{IphostResolve, Request};
++
++    /// spec: T26, T7, E12, E25, G20
++    #[test]
++    fn provisional_socket_failures_and_a_tunable_race_release_ownership_before_retry() {
++        for case in ["only-v6", "link", "tunable-race"] {
++            let mut kernel = FakeKernel::new(42);
++            let link = kernel.add_link("eth", false);
++            kernel.add_addr(link, "192.0.2.1".parse().unwrap());
++            let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
++            let config: crate::config::Config = toml::from_str(
++                "[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='eth'\n",
++            )
++            .unwrap();
++            match case {
++                "only-v6" => r.k.set_only_v6_error(Some(Errno::EIO)),
++                "link" => r.k.fail_next("link", Errno::EIO),
++                // The host can change bindv6only after the scratch check.
++                "tunable-race" => r.k.set_bindv6only(true),
++                _ => unreachable!(),
++            }
++            let error = r.create_tunnel("a", &config.tunnels()["a"]).unwrap_err();
++            assert_eq!(r.k.open_sockets(), 0, "{case}");
++            assert!(r.tunnels.is_empty());
++            assert!(r.k.tunnel(10).unwrap().is_none());
++            let requests = r.take_requests();
++            if case == "tunable-race" {
++                assert_eq!(error.kind(), io::ErrorKind::WouldBlock);
++                let [Request::WriteBindv6only { id, .. }] = requests.as_slice() else {
++                    panic!("a newly observed IPv6-only socket needs one host request");
++                };
++                r.k.set_bindv6only(false);
++                r.tunable_written(*id, true);
++            } else {
++                assert_eq!(error.raw_os_error(), Some(Errno::EIO as i32));
++                assert!(requests.is_empty());
++                r.k.set_only_v6_error(None);
++            }
++            assert!(r.reconcile(config));
++            assert!(r.ready());
++            assert_eq!(r.k.open_sockets(), 1);
++            assert!(r.shutdown());
++            assert_eq!(r.k.open_sockets(), 0);
++        }
++    }
++}
+diff --git a/src/reconciler/wanted_tests.rs b/src/reconciler/wanted_tests.rs
+index f1ca530..5842f99 100644
+--- a/src/reconciler/wanted_tests.rs
++++ b/src/reconciler/wanted_tests.rs
+@@ -500,6 +500,31 @@ fn deletion_without_a_stored_creation_name_neither_scans_nor_guesses() {
+     );
+ }
+ 
++/// spec: S9, S22, E12, G2
++#[test]
++fn deletion_races_accept_enodev_after_both_proof_and_complete_dump() {
++    for lost in [false, true] {
++        let (mut r, config) = staging_fixture("");
++        assert!(r.reconcile(config));
++        let index = r.k.session_index(10, 100).unwrap();
++        r.k.fail_next("delete", Errno::ENODEV);
++        r.k.clear_ops();
++        let removed = if lost {
++            r.delete_verified(100)
++        } else {
++            r.delete_session(100)
++        };
++        assert!(removed);
++        assert_eq!(r.k.session_index(10, 100), Some(index));
++        assert!(r.deleting_sessions.is_empty());
++        assert!(r.k.ops().is_empty());
++        assert!(
++            r.k.delete_session(10, 100).is_ok(),
++            "the injected race was consumed"
++        );
++    }
++}
++
+ /// spec: S25, S26, T8, K17, G9, G20
+ #[test]
+ fn failed_child_deletion_still_retires_its_unwanted_parent_and_local_record() {
+diff --git a/src/runtime/tests.rs b/src/runtime/tests.rs
+index 42ca9a5..da12baf 100644
+--- a/src/runtime/tests.rs
++++ b/src/runtime/tests.rs
+@@ -138,7 +138,12 @@ fn unapplied_socket_operations_are_reported_without_gating_peer_availability() {
+             .reconciler
+             .kernel_mut()
+             .advance(Duration::from_secs(1));
+-        runtime.handle_event(ControlEvent::Tick).unwrap();
++        let event = if fault == "bind" {
++            ControlEvent::ResolverAnswers
++        } else {
++            ControlEvent::Tick
++        };
++        runtime.handle_event(event).unwrap();
+         assert!(runtime.applied());
+         assert!(runtime.ready());
+         assert_eq!(runtime.reconciler.kernel().tunnel_socket(10), Some(socket));
+diff --git a/src/service.rs b/src/service.rs
+index 30509bb..c15e6bd 100644
+--- a/src/service.rs
++++ b/src/service.rs
+@@ -934,4 +934,50 @@ mod tests {
+             assert!(runtime.shutdown().unwrap(), "the disabled host must complete its withdrawal barrier");
+         });
+     }
++
++    /// spec: L12, G14, T26
++    #[test]
++    fn lost_host_delivery_waits_for_the_original_tunable_completion() {
++        engine().block_on(async {
++            for closed in [false, true] {
++                let mut kernel = FakeKernel::new(42);
++                kernel.bindv6only = true;
++                let began = kernel.now();
++                let mut runtime = Runtime::with_kernel(
++                    kernel,
++                    Box::new(IphostResolve::default()),
++                    vec![],
++                )
++                .map_err(|(error, _)| error)
++                .unwrap();
++                let wanted = config();
++                assert!(!runtime.reconcile(wanted.clone()));
++                let event = runtime.next_event().await;
++                let ControlEvent::WriteTunable { id, deadline, .. } = &event else {
++                    panic!("expected the original tunable handshake");
++                };
++                let id = *id;
++                assert_eq!(*deadline - began, std::time::Duration::from_secs(5));
++                let (host, mut receiver) = tokio::sync::mpsc::channel(1);
++                if closed {
++                    receiver.close();
++                } else {
++                    assert!(host.try_send(ControlEvent::Tick).is_ok());
++                }
++                host_request(&mut runtime, event, &host, true);
++                assert!(!runtime.ready(), "lost delivery must not complete the handshake");
++                {
++                    let mut next = pin!(runtime.next_event());
++                    assert!(next.as_mut().poll(&mut Context::from_waker(Waker::noop())).is_pending());
++                }
++                host_request(&mut runtime, ControlEvent::Shutdown, &host, false);
++                assert_eq!(runtime.control().config(), wanted, "an unrelated host event must be ignored");
++                runtime.control().tunable_written(id, false).await.unwrap();
++                let event = runtime.next_event().await;
++                assert!(matches!(event, ControlEvent::TunableWritten { id: received, success: false } if received == id));
++                runtime.handle_event(event).unwrap();
++                assert!(runtime.ready(), "the original completion must still enable fallback");
++            }
++        });
++    }
+ }
+diff --git a/tests/kernel/review.rs b/tests/kernel/review.rs
+index f4440e6..66f78fd 100644
+--- a/tests/kernel/review.rs
++++ b/tests/kernel/review.rs
+@@ -164,8 +164,8 @@ fn foreign_namespace_deletion_does_not_delete_local_session() {
+             if let l2tp::L2tpEvent::SessionDeleted(info) = event.unwrap()
+                 && info.tunnel_id == TunnelId(8103)
+                 && info.session_id == SessionId(81031)
++                && send.send(()).is_err()
+             {
+-                let _ = send.send(());
+                 return;
+             }
+         }
+@@ -195,6 +195,19 @@ ip l2tp del tunnel tunnel_id 8103",
+     );
+     assert!(handle.get_tunnel(TunnelId(8103)).is_ok());
+     assert!(handle.get_session(TunnelId(8103), SessionId(81031)).is_ok());
++    ip(&[
++        "l2tp",
++        "del",
++        "session",
++        "tunnel_id",
++        "8103",
++        "session_id",
++        "81031",
++    ]);
++    receive
++        .recv_timeout(Duration::from_secs(5))
++        .expect("the local deletion control must reach the same listener");
++    println!("K41_SCOPE foreign_announced={announced} local_control=1");
+ }
+ 
+ /// kernel: net/l2tp/l2tp_core.c (l2tp_xmit_core).
+diff --git a/tests/process.rs b/tests/process.rs
+index 06a9bb8..e445600 100644
+--- a/tests/process.rs
++++ b/tests/process.rs
+@@ -1156,6 +1156,57 @@ fn installer_enables_once_and_never_restarts() {
+     );
+ }
+ 
++/// spec: P27, P23, O1
++#[test]
++#[cfg(feature = "setup-systemd")]
++#[ignore = "root in disposable container; installs files and substitutes systemctl"]
++fn installer_failures_preserve_the_failed_stage_and_never_restart() {
++    use std::os::unix::fs::PermissionsExt;
++    let dir = Dir::new();
++    let script = dir.path().join("systemctl");
++    let calls = dir.path().join("calls");
++    let output = command()
++        .arg("--setup-systemd")
++        .uid(65534)
++        .gid(65534)
++        .output()
++        .unwrap();
++    assert_eq!(output.status.code(), Some(1));
++    assert!(String::from_utf8_lossy(&output.stderr).contains("requires root"));
++    for (case, diagnostic, expected) in [
++        ("missing", "systemctl is-enabled:", 0),
++        ("reload-spawn", "daemon-reload:", 1),
++        ("reload-status", "daemon-reload failed", 2),
++        ("enable-spawn", "enable --now:", 2),
++        ("enable-status", "", 3),
++    ] {
++        let _ = fs::remove_file(&calls);
++        if case != "missing" {
++            fs::write(&script, "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$SETUP_CALLS\"\ncase \"$*\" in\n '--no-pager --quiet is-enabled rs-l2tpd.service')\n  if test \"$SETUP_FAILURE\" = reload-spawn; then /bin/rm \"$0\"; fi\n  exit 1 ;;\n '--no-pager daemon-reload')\n  if test \"$SETUP_FAILURE\" = enable-spawn; then /bin/rm \"$0\"; fi\n  test \"$SETUP_FAILURE\" != reload-status ;;\n '--no-pager --now enable rs-l2tpd.service') exit 1 ;;\n *) exit 2 ;;\nesac\n").unwrap();
++            fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
++        }
++        let output = command()
++            .arg("--setup-systemd")
++            .env("PATH", dir.path())
++            .env("SETUP_CALLS", &calls)
++            .env("SETUP_FAILURE", case)
++            .output()
++            .unwrap();
++        assert_eq!(output.status.code(), Some(1), "{case}: {output:?}");
++        assert!(
++            String::from_utf8_lossy(&output.stderr).contains(diagnostic),
++            "{case}: {output:?}"
++        );
++        let recorded = fs::read_to_string(&calls).unwrap_or_default();
++        assert_eq!(recorded.lines().count(), expected, "{case}: {recorded}");
++        assert!(!recorded.contains("restart"));
++        if case.starts_with("reload") {
++            assert!(!recorded.contains("enable rs-l2tpd.service"));
++        }
++        println!("INSTALLER_FAILURE_CHECKED={case}");
++    }
++}
++
+ /// spec: O8 C3
+ #[test]
+ fn check_and_startup_report_file_errors_in_the_same_words() {
+@@ -1298,6 +1349,7 @@ fn daemon_setup_failures_return_the_original_error_before_kernel_startup() {
+         ("pipe", &[libc::SYS_pipe2][..], libc::EMFILE, None),
+         ("fork", fork_syscalls, libc::EAGAIN, None),
+         ("session", &[libc::SYS_setsid][..], libc::EPERM, None),
++        ("stdin-redirect", &[][..], libc::EIO, None),
+         (
+             "signal-mask",
+             &[libc::SYS_rt_sigprocmask][..],
+@@ -1321,6 +1373,7 @@ fn daemon_setup_failures_return_the_original_error_before_kernel_startup() {
+         }
+         let mut fault = syscall_fault::on_exec(syscalls, error);
+         let mut streams = (case == "streams").then(|| syscall_fault::on_exec_stdin_probe(error));
++        let mut redirect = (case == "stdin-redirect").then(|| syscall_fault::on_exec_dup2(error));
+         let mut sockets = syscall_fault::on_exec(&[libc::SYS_socket], libc::EACCES);
+         let mut next_stage =
+             (case == "fork").then(|| syscall_fault::on_exec(&[libc::SYS_setsid], libc::EACCES));
+@@ -1333,6 +1386,8 @@ fn daemon_setup_failures_return_the_original_error_before_kernel_startup() {
+                 }
+                 if let Some(probe) = &mut streams {
+                     probe()
++                } else if let Some(redirect) = &mut redirect {
++                    redirect()
+                 } else {
+                     fault()
+                 }
+diff --git a/tests/tools/syscall_fault.rs b/tests/tools/syscall_fault.rs
+index 235b78f..4b51a64 100644
+--- a/tests/tools/syscall_fault.rs
++++ b/tests/tools/syscall_fault.rs
+@@ -5,28 +5,41 @@ use nix::libc;
+     reason = "shared helper; not every test binary denies duplication"
+ )]
+ pub(crate) fn refuse_dup2(errno: i32) {
+-    let syscalls = &[
+-        #[cfg(any(
+-            target_arch = "arm",
+-            target_arch = "x86",
+-            target_arch = "x86_64",
+-            target_arch = "powerpc",
+-            target_arch = "powerpc64",
+-            target_arch = "s390x",
+-            target_arch = "sparc",
+-            target_arch = "sparc64",
+-            target_arch = "mips",
+-            target_arch = "mips64",
+-            target_arch = "mips32r6",
+-            target_arch = "mips64r6",
+-            target_arch = "m68k"
+-        ))]
+-        libc::SYS_dup2,
+-        libc::SYS_dup3,
+-    ];
+-    refuse(syscalls, errno);
++    #[cfg(coverage_nightly)]
++    keep_profile_output();
++    on_exec_dup2(errno)().unwrap();
++}
++
++#[allow(
++    dead_code,
++    reason = "shared helper; only process fixtures deny dup2 on exec"
++)]
++pub(crate) fn on_exec_dup2(
++    errno: i32,
++) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
++    on_exec(DUP_SYSCALLS, errno)
+ }
+ 
++pub(crate) const DUP_SYSCALLS: &[libc::c_long] = &[
++    #[cfg(any(
++        target_arch = "arm",
++        target_arch = "x86",
++        target_arch = "x86_64",
++        target_arch = "powerpc",
++        target_arch = "powerpc64",
++        target_arch = "s390x",
++        target_arch = "sparc",
++        target_arch = "sparc64",
++        target_arch = "mips",
++        target_arch = "mips64",
++        target_arch = "mips32r6",
++        target_arch = "mips64r6",
++        target_arch = "m68k"
++    ))]
++    libc::SYS_dup2,
++    libc::SYS_dup3,
++];
++
+ #[allow(
+     dead_code,
+     reason = "shared helper; not every test binary denies file opens"
+@@ -155,6 +168,60 @@ fn install(
+     }
+ }
+ 
++/// Refuses one socket option while preserving unrelated socket setup and sends.
++#[allow(
++    dead_code,
++    reason = "shared helper; only resolver fixtures deny RA filters"
++)]
++pub(crate) fn on_exec_socket_option(
++    level: i32,
++    option: i32,
++    errno: i32,
++) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
++    let low_word = if cfg!(target_endian = "little") { 0 } else { 4 };
++    let filter = [
++        (0x20, 0, 0, 0),
++        (0x15, 0, 5, libc::SYS_setsockopt.try_into().unwrap()),
++        (0x20, 0, 0, 24 + low_word),
++        (0x15, 0, 3, level.try_into().unwrap()),
++        (0x20, 0, 0, 32 + low_word),
++        (0x15, 0, 1, option.try_into().unwrap()),
++        (0x06, 0, 0, 0x00050000 | u32::try_from(errno).unwrap()),
++        (0x06, 0, 0, 0x7fff0000),
++    ]
++    .into_iter()
++    .map(|(code, jt, jf, k)| libc::sock_filter { code, jt, jf, k })
++    .collect();
++    install(filter)
++}
++
++/// Matches one integer syscall argument without interfering with unrelated calls.
++#[allow(
++    dead_code,
++    reason = "shared helper; only restart fixtures match one argument"
++)]
++pub(crate) fn on_exec_argument(
++    syscall: libc::c_long,
++    argument: u32,
++    value: u32,
++    errno: i32,
++) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
++    assert!(argument < 6);
++    let low_word = if cfg!(target_endian = "little") { 0 } else { 4 };
++    let filter = [
++        (0x20, 0, 0, 0),
++        (0x15, 0, 3, syscall.try_into().unwrap()),
++        (0x20, 0, 0, 16 + argument * 8 + low_word),
++        (0x15, 0, 1, value),
++        (0x06, 0, 0, 0x00050000 | u32::try_from(errno).unwrap()),
++        (0x06, 0, 0, 0x7fff0000),
++    ]
++    .into_iter()
++    .map(|(code, jt, jf, k)| libc::sock_filter { code, jt, jf, k })
++    .collect();
++    install(filter)
++}
++
+ #[cfg(coverage_nightly)]
+ fn keep_profile_output() {
+     unsafe extern "C" {

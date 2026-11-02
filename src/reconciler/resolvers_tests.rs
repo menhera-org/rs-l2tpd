@@ -5,7 +5,55 @@ use std::net::{Ipv6Addr, UdpSocket};
 use std::sync::atomic::Ordering;
 #[path = "../../tests/support/discovery.rs"]
 mod discovery;
+use crate::kernel::linux::syscall_fault as socket_fault;
 use discovery::{Dns, advertise};
+
+/// spec: V12, V14
+#[test]
+#[ignore = "disposable namespace with NET_ADMIN, NET_RAW and seccomp"]
+fn dhcp_only_discovery_remains_partial_when_ra_setup_fails() {
+    const CHILD: &str = "RS_L2TPD_DHCP_ONLY_CHILD";
+    if std::env::var_os(CHILD).is_none() {
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--ignored",
+                "--exact",
+                "reconciler::resolvers::tests::dhcp_only_discovery_remains_partial_when_ra_setup_fails",
+                "--nocapture",
+            ])
+            .env(CHILD, "1")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert!(String::from_utf8_lossy(&output.stdout).contains("DHCP_ONLY_PARTIAL=1"));
+        print!("{}", String::from_utf8_lossy(&output.stdout));
+        return;
+    }
+    let (_sender, _destination, _primary, _fallback, dhcp) = fixture();
+    let mut request = [0; 1500];
+    // ICMP6_FILTER is option 1; DHCPv6's IPv6 socket options remain available.
+    socket_fault::on_exec_socket_option(nix::libc::IPPROTO_ICMPV6, 1, nix::libc::EIO)().unwrap();
+    let resolver = IphostResolve::default()
+        .resolver(&ResolverSpec::Ipv6 {
+            interface: "dns-host".into(),
+            client_id: ClientId::None,
+        })
+        .unwrap();
+    let iphost::Resolver::Ipv6(config) = &resolver else {
+        panic!("the unified resolver must keep its working DHCPv6 source");
+    };
+    assert!(config.dhcpv6().is_some() && config.ra().is_none());
+    assert!(IphostResolve::partial(&resolver));
+    assert_eq!(resolver.max_lookup_time(), Some(Duration::from_secs(33)));
+    let (len, peer) = dhcp.recv_from(&mut request).unwrap();
+    assert!(len >= 4 && request[0] == 11);
+    let mut reply = vec![7, request[1], request[2], request[3], 0, 23, 0, 16];
+    let address = "2001:db8::53".parse::<Ipv6Addr>().unwrap();
+    reply.extend(address.octets());
+    dhcp.send_to(&reply, peer).unwrap();
+    until(|| config.dhcpv6().unwrap().nameservers() == [address]);
+    println!("DHCP_ONLY_PARTIAL=1 dhcp_exchange=1 ra_started=0");
+}
 
 /// spec: G23, M16, V7, V9, V15
 #[cfg(all(feature = "fake-kernel", feature = "serde"))]
@@ -606,6 +654,43 @@ mod validation {
             r.resolver_spec(&config).unwrap_err(),
             "red is a VRF, not a link"
         );
+    }
+
+    /// spec: V9, C16
+    #[test]
+    fn global_static_servers_preserve_order_ports_and_zero_ipv6_scope() {
+        let mut k = FakeKernel::new(42);
+        let index = k.add_link("dns", false);
+        let link = L2tpIfName::new(b"dns").unwrap();
+        let mut r = Reconciler::new(k, Box::new(IphostResolve::default()));
+        for bind in [None, Some(link)] {
+            let servers = [
+                ("2001:db8::53".parse().unwrap(), 5353),
+                ("192.0.2.53".parse().unwrap(), 53),
+            ];
+            let config = ResolverConfig::with_addresses(
+                servers
+                    .iter()
+                    .map(|&(addr, port)| NameServer::new(addr, None, port).unwrap())
+                    .collect(),
+                bind,
+            )
+            .unwrap();
+            assert_eq!(
+                r.resolver_dependencies(&config).unwrap(),
+                bind.map(|name| vec![(name, index)]).unwrap_or_default()
+            );
+            assert_eq!(
+                r.resolver_spec(&config).unwrap(),
+                ResolverSpec::Static {
+                    servers: servers
+                        .into_iter()
+                        .map(|(addr, port)| SocketAddr::new(addr, port))
+                        .collect(),
+                    bind: bind.map(|name| name.to_str().unwrap().to_owned()),
+                }
+            );
+        }
     }
 
     /// spec: V10, V12, V14, C16

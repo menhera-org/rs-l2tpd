@@ -1,0 +1,13 @@
+diff --git a/src/runtime.rs b/src/runtime.rs
+index 9e521ba..859aad7 100644
+--- a/src/runtime.rs
++++ b/src/runtime.rs
+@@ -551,7 +551,7 @@ impl<K: Kernel + 'static> Runtime<K> {
+             ControlEvent::Kernel { source, notice } if self.stopping.is_none() => {
+                 self.reconciler.handle(source, notice)
+             }
+-            ControlEvent::Tick | ControlEvent::ResolverAnswers if self.stopping.is_none() => {
++            ControlEvent::Tick if self.stopping.is_none() => {
+                 self.reconciler.tick()
+             }
+             ControlEvent::TunableWritten { id, success } if self.stopping.is_none() => {

@@ -1,0 +1,77 @@
+   Compiling futures-core v0.3.34
+   Compiling pin-project-lite v0.2.17
+   Compiling futures-sink v0.3.34
+   Compiling futures-io v0.3.34
+   Compiling futures-task v0.3.34
+   Compiling memchr v2.8.3
+   Compiling slab v0.4.12
+   Compiling netlink-packet-core v0.9.0
+   Compiling log v0.4.34
+   Compiling libc v0.2.191
+   Compiling serde_core v1.0.229
+   Compiling zerocopy v0.8.63
+   Compiling thiserror v2.0.21
+   Compiling bytes v1.12.1
+   Compiling thiserror v1.0.69
+   Compiling bitflags v2.13.2
+   Compiling punycode v0.4.1
+   Compiling cfg-if v1.0.5
+   Compiling winnow v1.0.4
+   Compiling toml_writer v1.1.3+spec-1.1.0
+   Compiling serde v1.0.229
+   Compiling getrandom v0.3.4
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
+   Compiling memoffset v0.9.1
+   Compiling nix v0.30.1
+   Compiling futures-channel v0.3.34
+   Compiling fqdn v0.5.2
+   Compiling toml_parser v1.1.5+spec-1.1.0
+   Compiling futures-util v0.3.34
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.4
+   Compiling tokio v1.54.1
+   Compiling toml_datetime v1.1.2+spec-1.1.0
+   Compiling serde_spanned v1.1.2
+   Compiling toml v1.1.8+spec-1.1.0
+   Compiling iphost v0.4.4
+   Compiling futures-executor v0.3.34
+   Compiling futures v0.3.34
+   Compiling netlink-packet-generic v0.5.0
+   Compiling netlink-packet-route v0.33.0
+   Compiling netlink-packet-l2tp v0.4.0
+   Compiling netlink-sys v0.9.0
+   Compiling netlink-proto v0.13.0
+   Compiling genetlink v0.3.0
+   Compiling l2tp v0.5.0
+error: usage of an `unsafe` block
+   --> src/reconciler/../../tests/tools/syscall_fault.rs:130:13
+    |
+130 |       move || unsafe {
+    |  _____________^
+131 | |         let program = libc::sock_fprog {
+132 | |             len: length,
+133 | |             filter: filter.as_mut_ptr(),
+...   |
+154 | |         Ok(())
+155 | |     }
+    | |_____^
+    |
+note: the lint level is defined here
+   --> src/lib.rs:26:9
+    |
+ 26 | #![deny(unsafe_code)]
+    |         ^^^^^^^^^^^
+
+error: usage of an `unsafe` block
+   --> src/reconciler/../../tests/tools/syscall_fault.rs:201:9
+    |
+201 | ...   unsafe { libc::syscall(libc::SYS_capget, &mut header, caps.as_mut_ptr()) },
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: usage of an `unsafe` block
+   --> src/reconciler/../../tests/tools/syscall_fault.rs:207:9
+    |
+207 | ...   unsafe { libc::syscall(libc::SYS_capset, &header, caps.as_ptr()) },
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: could not compile `rs-l2tpd` (lib test) due to 3 previous errors

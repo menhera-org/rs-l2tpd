@@ -1,0 +1,21 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-gnu/debug/deps/rs_l2tpd-7d7b0353a23499b8)
+
+running 1 test
+
+thread 'service::tests::lost_host_delivery_waits_for_the_original_tunable_completion' (3515703) panicked at src/service.rs:977:17:
+assertion `left == right` failed: an unrelated host event must be ignored
+  left: Config { host: HostConfig { fix_bindv6only: None }, resolvers: {}, tunnels: {}, sessions: {} }
+ right: Config { host: HostConfig { fix_bindv6only: None }, resolvers: {}, tunnels: {"a": TunnelConfig { tunnel_id: 10, peer_tunnel_id: None, remote_addr: None, ip_version: Some(V6), bind_interface: None, resolver_name: None }}, sessions: {} }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test service::tests::lost_host_delivery_waits_for_the_original_tunable_completion ... FAILED
+
+failures:
+
+failures:
+    service::tests::lost_host_delivery_waits_for_the_original_tunable_completion
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 290 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

@@ -164,8 +164,8 @@ fn foreign_namespace_deletion_does_not_delete_local_session() {
             if let l2tp::L2tpEvent::SessionDeleted(info) = event.unwrap()
                 && info.tunnel_id == TunnelId(8103)
                 && info.session_id == SessionId(81031)
+                && send.send(()).is_err()
             {
-                let _ = send.send(());
                 return;
             }
         }
@@ -195,6 +195,19 @@ ip l2tp del tunnel tunnel_id 8103",
     );
     assert!(handle.get_tunnel(TunnelId(8103)).is_ok());
     assert!(handle.get_session(TunnelId(8103), SessionId(81031)).is_ok());
+    ip(&[
+        "l2tp",
+        "del",
+        "session",
+        "tunnel_id",
+        "8103",
+        "session_id",
+        "81031",
+    ]);
+    receive
+        .recv_timeout(Duration::from_secs(5))
+        .expect("the local deletion control must reach the same listener");
+    println!("K41_SCOPE foreign_announced={announced} local_control=1");
 }
 
 /// kernel: net/l2tp/l2tp_core.c (l2tp_xmit_core).

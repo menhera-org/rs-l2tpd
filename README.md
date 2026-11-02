@@ -67,9 +67,9 @@ the root system-unit sandbox have passing local records. The approved MAC
 and dependency-state contracts are applied. Broken `nix` signal wrappers
 use checked `libc` calls under the documented exception. The
 [latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-02.md) gives coverage
-and the remaining clause/resource/event-cost proof. Fresh November 1
-coverage for iphost 0.4.4 and the boundary changes is **98.01% of lines and
-92.01% of branches**, leaving 173 lines and 148 branches. Recent test packages
+and the remaining clause/resource/event-cost proof. Fresh November 2
+coverage for iphost 0.4.4 and the boundary changes is **98.34% of lines and
+93.14% of branches**, leaving 144 lines and 127 branches. Recent test packages
 cover deferred MAC changes, resolver validation
 and cleanup, public service constructors, staging bounds, ownership races,
 descriptor handover and socket-family fallback; their deliberately broken

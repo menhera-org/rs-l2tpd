@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
+
+running 1 test
+
+thread 'restart::exec_tests::descriptor_preparation_failures_leave_the_callers_table_unchanged' (3609551) panicked at src/bin/rs-l2tpd/restart.rs:329:17:
+copy: Output { status: ExitStatus(unix_wait_status(0)), stdout: "\nrunning 1 test\nrs-l2tpd-adopt 1\n", stderr: "" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test restart::exec_tests::descriptor_preparation_failures_leave_the_callers_table_unchanged ... FAILED
+
+failures:
+
+failures:
+    restart::exec_tests::descriptor_preparation_failures_leave_the_callers_table_unchanged
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

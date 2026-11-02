@@ -1,0 +1,13 @@
+diff --git a/src/reconciler/resolvers.rs b/src/reconciler/resolvers.rs
+index 70befc2..ca9b42a 100644
+--- a/src/reconciler/resolvers.rs
++++ b/src/reconciler/resolvers.rs
+@@ -618,7 +618,7 @@ impl IphostResolve {
+     }
+ 
+     fn partial(resolver: &iphost::Resolver) -> bool {
+-        matches!(resolver, iphost::Resolver::Ipv6(config) if config.dhcpv6().is_none() || config.ra().is_none())
++        matches!(resolver, iphost::Resolver::Ipv6(config) if config.dhcpv6().is_none())
+     }
+ 
+     fn resolver(&mut self, spec: &ResolverSpec) -> io::Result<iphost::Resolver> {

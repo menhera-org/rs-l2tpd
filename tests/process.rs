@@ -1156,6 +1156,57 @@ fn installer_enables_once_and_never_restarts() {
     );
 }
 
+/// spec: P27, P23, O1
+#[test]
+#[cfg(feature = "setup-systemd")]
+#[ignore = "root in disposable container; installs files and substitutes systemctl"]
+fn installer_failures_preserve_the_failed_stage_and_never_restart() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = Dir::new();
+    let script = dir.path().join("systemctl");
+    let calls = dir.path().join("calls");
+    let output = command()
+        .arg("--setup-systemd")
+        .uid(65534)
+        .gid(65534)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("requires root"));
+    for (case, diagnostic, expected) in [
+        ("missing", "systemctl is-enabled:", 0),
+        ("reload-spawn", "daemon-reload:", 1),
+        ("reload-status", "daemon-reload failed", 2),
+        ("enable-spawn", "enable --now:", 2),
+        ("enable-status", "", 3),
+    ] {
+        let _ = fs::remove_file(&calls);
+        if case != "missing" {
+            fs::write(&script, "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$SETUP_CALLS\"\ncase \"$*\" in\n '--no-pager --quiet is-enabled rs-l2tpd.service')\n  if test \"$SETUP_FAILURE\" = reload-spawn; then /bin/rm \"$0\"; fi\n  exit 1 ;;\n '--no-pager daemon-reload')\n  if test \"$SETUP_FAILURE\" = enable-spawn; then /bin/rm \"$0\"; fi\n  test \"$SETUP_FAILURE\" != reload-status ;;\n '--no-pager --now enable rs-l2tpd.service') exit 1 ;;\n *) exit 2 ;;\nesac\n").unwrap();
+            fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let output = command()
+            .arg("--setup-systemd")
+            .env("PATH", dir.path())
+            .env("SETUP_CALLS", &calls)
+            .env("SETUP_FAILURE", case)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(1), "{case}: {output:?}");
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains(diagnostic),
+            "{case}: {output:?}"
+        );
+        let recorded = fs::read_to_string(&calls).unwrap_or_default();
+        assert_eq!(recorded.lines().count(), expected, "{case}: {recorded}");
+        assert!(!recorded.contains("restart"));
+        if case.starts_with("reload") {
+            assert!(!recorded.contains("enable rs-l2tpd.service"));
+        }
+        println!("INSTALLER_FAILURE_CHECKED={case}");
+    }
+}
+
 /// spec: O8 C3
 #[test]
 fn check_and_startup_report_file_errors_in_the_same_words() {
@@ -1298,6 +1349,7 @@ fn daemon_setup_failures_return_the_original_error_before_kernel_startup() {
         ("pipe", &[libc::SYS_pipe2][..], libc::EMFILE, None),
         ("fork", fork_syscalls, libc::EAGAIN, None),
         ("session", &[libc::SYS_setsid][..], libc::EPERM, None),
+        ("stdin-redirect", &[][..], libc::EIO, None),
         (
             "signal-mask",
             &[libc::SYS_rt_sigprocmask][..],
@@ -1321,6 +1373,7 @@ fn daemon_setup_failures_return_the_original_error_before_kernel_startup() {
         }
         let mut fault = syscall_fault::on_exec(syscalls, error);
         let mut streams = (case == "streams").then(|| syscall_fault::on_exec_stdin_probe(error));
+        let mut redirect = (case == "stdin-redirect").then(|| syscall_fault::on_exec_dup2(error));
         let mut sockets = syscall_fault::on_exec(&[libc::SYS_socket], libc::EACCES);
         let mut next_stage =
             (case == "fork").then(|| syscall_fault::on_exec(&[libc::SYS_setsid], libc::EACCES));
@@ -1333,6 +1386,8 @@ fn daemon_setup_failures_return_the_original_error_before_kernel_startup() {
                 }
                 if let Some(probe) = &mut streams {
                     probe()
+                } else if let Some(redirect) = &mut redirect {
+                    redirect()
                 } else {
                     fault()
                 }

@@ -1,8 +1,9 @@
 # Phase 6 verification, 2026-11-02
 
 Phase 6 remains incomplete. The required-kernel matrix now passes with
-mainline 7.4-rc1. Production coverage remains 98.01% lines / 92.01% branches;
-the prepared test batch has not yet been merged or collected. The
+mainline 7.4-rc1. Production coverage is 98.34% lines / 93.14% branches
+after integrating the combined resolver/event/host and
+installer/descriptor/reconciler test batch. The
 [November 1 record](PHASE6_VERIFICATION_2026-11-01.md) retains the detailed
 history, earlier scope and maintainer decisions.
 
@@ -11,7 +12,7 @@ history, earlier scope and maintainer decisions.
 | P1 rule/source maps | Common checks pass with 333 active rules cited and 43 kernel facts classified/cited; prior ten-run CI qualification is retained | Complete clause proof remains distinct from declaration traceability |
 | P2 scenarios | Frozen 455eef7 passes all 27 normal scenarios on each current required kernel, including H20 fragmentation and H17 scale | Complete clause/history/resource/event-cost proof |
 | P3 required kernels | All thirteen profiles pass; initial/final publication selections agree; both tracked-source patches are empty | Recheck whenever the published target set changes |
-| P4 coverage | 8,514/8,687 lines (98.01%); 1,704/1,852 branches (92.01%); no production exclusions, mismatches or saturated regions | Cover the remaining 173 lines and 148 branches, then enforce the completed gate in CI |
+| P4 coverage | 8,543/8,687 lines (98.34%); 1,725/1,852 branches (93.14%); no production exclusions | Cover the remaining 144 lines and 127 branches, then enforce the completed gate in CI |
 | P5 Incus/LXD | Signed 1b3d876 passes GNU and three shipped-musl unprivileged system-container runs on Ubuntu 24.04 / 6.8.0-147 | Preserve that kernel/userspace scope |
 | P6 root sandbox | Signed 419c9b1 passes the unmodified supplied unit on Ubuntu 24.04 / 6.8.0-147; three GNU manager/task-limit runs also pass | Other distribution userspaces remain untested |
 | P7 docs/CI | Current kernel selection, source/build comparison and scoped behavior are documented; strict maps and workflow timeouts remain active; the parser self-test is now in common CI | Final complete proof and 100% coverage enforcement |
@@ -41,14 +42,26 @@ observations, source evidence and userspace limits.
 
 The source/build and parser-hook commit `ba0a3a6` passes
 [GitHub CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41374346801).
+The matrix record commit `651860a` also passes
+[GitHub CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41378384310).
 The full matrix consumed unchanged Rust and kernel-runner sources while
 that documentation/CI-helper commit was made. No production Rust behavior
 has changed during this resumed work.
 
-The resolver/event/host boundary batch remains isolated pending integration
-and coverage collection. Its records under `phase6/resolver-boundaries-20261102/`
-retain controls, repeated models and targeted DHCP-only guest runs. The
-K41 listener-control follow-up is being qualified separately. Neither
-pending batch is counted toward current coverage. Bare-kernel guests do not
+The integrated [resolver/event/host boundary batch](phase6/resolver-boundaries-20261102/README.md)
+records six failure controls, repeated models and DHCP-only guest runs on
+all five kernels. Instrumented GNU live repetitions contribute to the
+reported coverage. All 4,327 old production mappings remain unchanged;
+four test-induced instantiations were added. The
+[larger coverage batch](phase6/coverage-batch-20261102/README.md)
+adds installer, private descriptor-table, completion, retirement and socket
+cleanup cases. Ten instrumented native model runs, three musl model runs,
+three stable GNU/musl process repetitions and three further failure controls
+pass. Combined with the resolver package, this adds 29 covered lines and
+21 covered branch outcomes without changing production function bodies.
+The
+[K41 follow-up](phase6/kernel-notification-control-20261102/README.md)
+passes all five kernels and rejects a deliberately ineffective listener.
+Bare-kernel guests do not
 establish new udev/networkd or Incus results. Broader kernels and live
 non-x86 architectures remain unrun.

@@ -5,27 +5,40 @@ use nix::libc;
     reason = "shared helper; not every test binary denies duplication"
 )]
 pub(crate) fn refuse_dup2(errno: i32) {
-    let syscalls = &[
-        #[cfg(any(
-            target_arch = "arm",
-            target_arch = "x86",
-            target_arch = "x86_64",
-            target_arch = "powerpc",
-            target_arch = "powerpc64",
-            target_arch = "s390x",
-            target_arch = "sparc",
-            target_arch = "sparc64",
-            target_arch = "mips",
-            target_arch = "mips64",
-            target_arch = "mips32r6",
-            target_arch = "mips64r6",
-            target_arch = "m68k"
-        ))]
-        libc::SYS_dup2,
-        libc::SYS_dup3,
-    ];
-    refuse(syscalls, errno);
+    #[cfg(coverage_nightly)]
+    keep_profile_output();
+    on_exec_dup2(errno)().unwrap();
 }
+
+#[allow(
+    dead_code,
+    reason = "shared helper; only process fixtures deny dup2 on exec"
+)]
+pub(crate) fn on_exec_dup2(
+    errno: i32,
+) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
+    on_exec(DUP_SYSCALLS, errno)
+}
+
+pub(crate) const DUP_SYSCALLS: &[libc::c_long] = &[
+    #[cfg(any(
+        target_arch = "arm",
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "powerpc",
+        target_arch = "powerpc64",
+        target_arch = "s390x",
+        target_arch = "sparc",
+        target_arch = "sparc64",
+        target_arch = "mips",
+        target_arch = "mips64",
+        target_arch = "mips32r6",
+        target_arch = "mips64r6",
+        target_arch = "m68k"
+    ))]
+    libc::SYS_dup2,
+    libc::SYS_dup3,
+];
 
 #[allow(
     dead_code,
@@ -153,6 +166,60 @@ fn install(
         }
         Ok(())
     }
+}
+
+/// Refuses one socket option while preserving unrelated socket setup and sends.
+#[allow(
+    dead_code,
+    reason = "shared helper; only resolver fixtures deny RA filters"
+)]
+pub(crate) fn on_exec_socket_option(
+    level: i32,
+    option: i32,
+    errno: i32,
+) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
+    let low_word = if cfg!(target_endian = "little") { 0 } else { 4 };
+    let filter = [
+        (0x20, 0, 0, 0),
+        (0x15, 0, 5, libc::SYS_setsockopt.try_into().unwrap()),
+        (0x20, 0, 0, 24 + low_word),
+        (0x15, 0, 3, level.try_into().unwrap()),
+        (0x20, 0, 0, 32 + low_word),
+        (0x15, 0, 1, option.try_into().unwrap()),
+        (0x06, 0, 0, 0x00050000 | u32::try_from(errno).unwrap()),
+        (0x06, 0, 0, 0x7fff0000),
+    ]
+    .into_iter()
+    .map(|(code, jt, jf, k)| libc::sock_filter { code, jt, jf, k })
+    .collect();
+    install(filter)
+}
+
+/// Matches one integer syscall argument without interfering with unrelated calls.
+#[allow(
+    dead_code,
+    reason = "shared helper; only restart fixtures match one argument"
+)]
+pub(crate) fn on_exec_argument(
+    syscall: libc::c_long,
+    argument: u32,
+    value: u32,
+    errno: i32,
+) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
+    assert!(argument < 6);
+    let low_word = if cfg!(target_endian = "little") { 0 } else { 4 };
+    let filter = [
+        (0x20, 0, 0, 0),
+        (0x15, 0, 3, syscall.try_into().unwrap()),
+        (0x20, 0, 0, 16 + argument * 8 + low_word),
+        (0x15, 0, 1, value),
+        (0x06, 0, 0, 0x00050000 | u32::try_from(errno).unwrap()),
+        (0x06, 0, 0, 0x7fff0000),
+    ]
+    .into_iter()
+    .map(|(code, jt, jf, k)| libc::sock_filter { code, jt, jf, k })
+    .collect();
+    install(filter)
 }
 
 #[cfg(coverage_nightly)]

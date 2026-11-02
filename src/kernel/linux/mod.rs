@@ -15,7 +15,7 @@ mod socket;
 #[cfg_attr(coverage_nightly, coverage(off))]
 #[allow(unsafe_code)]
 #[path = "../../../tests/tools/syscall_fault.rs"]
-mod syscall_fault;
+pub(crate) mod syscall_fault;
 
 use std::collections::HashMap;
 use std::io;

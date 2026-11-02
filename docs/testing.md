@@ -238,8 +238,9 @@ badge report is distinct from the merged live-profile P4 gate. The latest
 merged report includes netlink I/O faults, real buffer-force success and
 service queue, reconciler record, runtime/socket error guards and deferred
 MAC changes after device removal, lifetime inputs, deletion recovery,
-stale completions, foreign-family parsing and PID-file inspection errors:
-98.01% lines / 92.01% branches, leaving 173 lines and 148 branches. Its fresh collector includes
+stale completions, foreign-family parsing, PID-file inspection errors,
+resolver/host boundaries and installer/descriptor/reconciler failures:
+98.34% lines / 93.14% branches, leaving 144 lines and 127 branches. Its fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
 production exclusions, mismatches or saturated regions. The checked-reply
 implementation fixes the denominators at 8,687 lines and 1,852 branches.

@@ -1,0 +1,13 @@
+diff --git a/src/reconciler/resolvers.rs b/src/reconciler/resolvers.rs
+index 70befc2..361545e 100644
+--- a/src/reconciler/resolvers.rs
++++ b/src/reconciler/resolvers.rs
+@@ -435,7 +435,7 @@ impl<K: Kernel> Reconciler<K> {
+             let mut servers = Vec::new();
+             for server in config.addresses() {
+                 let addr = match (server.addr(), server.zone()) {
+-                    (IpAddr::V6(v6), zone) if v6.is_unicast_link_local() => {
++                    (IpAddr::V6(v6), zone) if v6.is_unicast_link_local() || bind.is_some() => {
+                         let scope = match (zone, &bind) {
+                             (Some(zone), Some((index, _))) => {
+                                 let (z, _) = link(&mut self.k, zone)?;

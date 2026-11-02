@@ -1,0 +1,11 @@
+--- a/src/blocking.rs
++++ b/src/blocking.rs
+@@ -139,7 +139,7 @@
+                 Err(error)
+             }
+             Err(error) => {
+-                let _ = thread.join();
++                thread.join().unwrap();
+                 Err((Error::Other(error.to_string()), vec![]))
+             }
+         }

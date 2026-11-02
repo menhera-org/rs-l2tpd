@@ -199,6 +199,21 @@ mod tests {
     use super::*;
     use crate::kernel::fake::FakeKernel;
 
+    /// spec: L8, L9, G14
+    #[test]
+    fn a_panicked_startup_returns_the_closed_channel_error() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let entered = Arc::new(AtomicBool::new(false));
+        let observed = entered.clone();
+        let result = Service::open::<FakeKernel>(Config::new(), vec![], move || {
+            observed.store(true, Ordering::Release);
+            panic!("controlled backend startup panic");
+        });
+        assert!(entered.load(Ordering::Acquire));
+        assert!(matches!(result, Err((Error::Other(message), adopted))
+            if message == mpsc::RecvError.to_string() && adopted.is_empty()));
+    }
+
     /// spec: L5, L7, L9, G14
     #[test]
     fn unavailable_command_queues_return_the_original_error() {
