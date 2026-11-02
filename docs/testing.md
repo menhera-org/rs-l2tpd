@@ -253,7 +253,7 @@ MAC changes after device removal, lifetime inputs, deletion recovery,
 stale completions, foreign-family parsing, PID-file inspection errors,
 resolver/host boundaries, installer/descriptor/reconciler failures,
 file races, probe I/O and event boundaries:
-98.78% lines / 94.38% branches, leaving 106 lines and 104 branches. Its fresh collector includes
+98.87% lines / 95.30% branches, leaving 98 lines and 87 branches. Its fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
 production exclusions, mismatches or saturated regions. The checked-reply
 implementation fixes the denominators at 8,687 lines and 1,852 branches.

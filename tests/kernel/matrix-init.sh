@@ -18,11 +18,30 @@ run_suite() {
     [ "$(cat /tmp/suite.status)" = 0 ] || return 1
     grep -Eq 'test result: ok\. [1-9][0-9]* passed;' /tmp/suite.log
 }
+run_signal_limits() {
+    group=/sys/fs/cgroup/rs-l2tpd-signals
+    if [ ! -f /sys/fs/cgroup/cgroup.controllers ]; then
+        mount -t cgroup2 none /sys/fs/cgroup
+    fi
+    printf '%s\n' +pids > /sys/fs/cgroup/cgroup.subtree_control
+    mkdir "$group"
+    for limit in 2 3; do
+        printf '%s\n' "$limit" > "$group/pids.max"
+        # The child expands its own PID and argument before exec; PID 1 stays outside.
+        # shellcheck disable=SC2016
+        run_suite env RS_L2TPD_SIGNAL_TASK_LIMIT="$limit" RS_L2TPD_SIGNAL_TASK_CGROUP="$group" sh -c '
+            printf "%s\n" "$$" > "$1/cgroup.procs"
+            exec /binary-unit --ignored --exact signals::libc_tests::thread_spawn_failures_leave_no_signal_threads --nocapture
+        ' sh "$group"
+    done
+    rmdir "$group"
+}
 run_binary() {
 run_suite /binary-unit --test-threads=1 --nocapture
 run_suite /binary-unit --ignored --exact pidfile::permission_tests::precreated_permissions_links_and_owner --nocapture
 run_suite /binary-unit --ignored --exact pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes --nocapture
 run_suite /binary-unit --ignored --exact files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths --nocapture
+run_signal_limits
 }
 mode=$(cat /matrix-mode)
 export RS_L2TPD_SCENARIO_CONTAINER=1

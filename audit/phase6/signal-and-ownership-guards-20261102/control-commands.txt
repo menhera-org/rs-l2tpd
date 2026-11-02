@@ -1,0 +1,35 @@
+set -eu
+root=/home/dev/rs-l2tpd
+candidate=$(cat /tmp/phase6-resolver-validation-path)
+record=$root/audit/phase6/signal-and-ownership-guards-20261102
+restore() {
+ for path in tests/tools/syscall_fault.rs tests/tools/syscall_barrier.rs src/reconciler/events.rs src/reconciler/sessions.rs src/reconciler/mod.rs; do name=${path##*/}; cp "/tmp/phase6-signal-control-$name" "$candidate/$path"; done
+}
+trap restore 0
+cd "$candidate"
+sed 's/(0x15, 5, 0, 0)/(0x06, 0, 0, 0x7fff0000)/' /tmp/phase6-signal-control-syscall_fault.rs > tests/tools/syscall_fault.rs
+diff -u /tmp/phase6-signal-control-syscall_fault.rs tests/tools/syscall_fault.rs > "$record/control-pointer-high-word.patch" || [ "$?" = 1 ]
+if cargo test --locked --all-features --bin rs-l2tpd probe_and_pid_read_failures -- --nocapture > "$record/control-pointer-high-word.log" 2>&1; then echo 'pointer control unexpectedly passed'; exit 1; fi
+grep -q 'Some(14)' "$record/control-pointer-high-word.log"
+restore
+awk '/WaitStatus::Stopped\(_, signal\)/ {omit=1} omit && /^            }/ {omit=0; next} !omit {print}' /tmp/phase6-signal-control-syscall_barrier.rs > tests/tools/syscall_barrier.rs
+diff -u /tmp/phase6-signal-control-syscall_barrier.rs tests/tools/syscall_barrier.rs > "$record/control-trace-signal-delivery.patch" || [ "$?" = 1 ]
+if cargo test --locked --all-features --bin rs-l2tpd query_sizes_peek_errors -- --nocapture > "$record/control-trace-signal-delivery.log" 2>&1; then echo 'signal control unexpectedly passed'; exit 1; fi
+grep -q 'unexpected trace stop' "$record/control-trace-signal-delivery.log"
+restore
+sed '/&& self.index.sessions.get(&index) == Some(&sid)/d' /tmp/phase6-signal-control-events.rs > src/reconciler/events.rs
+diff -u /tmp/phase6-signal-control-events.rs src/reconciler/events.rs > "$record/control-stale-index.patch" || [ "$?" = 1 ]
+if cargo test --locked --all-features --lib removing_a_stale_session_reverse_index -- --nocapture > "$record/control-stale-index.log" 2>&1; then echo 'index control unexpectedly passed'; exit 1; fi
+grep -q 'left: None' "$record/control-stale-index.log"
+restore
+sed 's/&& self.k.prove(\&r) == Proof::Proved/\&\& true/' /tmp/phase6-signal-control-sessions.rs > src/reconciler/sessions.rs
+diff -u /tmp/phase6-signal-control-sessions.rs src/reconciler/sessions.rs > "$record/control-unproved-mac.patch" || [ "$?" = 1 ]
+if cargo test --locked --all-features --lib device_notices_without_identity -- --nocapture > "$record/control-unproved-mac.log" 2>&1; then echo 'MAC control unexpectedly passed'; exit 1; fi
+grep -q 'proof-deferred' "$record/control-unproved-mac.log"
+restore
+sed 's/Some(c) if c.identity != identity/Some(c) if c.identity == identity/' /tmp/phase6-signal-control-mod.rs > src/reconciler/mod.rs
+diff -u /tmp/phase6-signal-control-mod.rs src/reconciler/mod.rs > "$record/control-conflict-identity.patch" || [ "$?" = 1 ]
+if cargo test --locked --all-features --lib a_changed_conflict_identity -- --nocapture > "$record/control-conflict-identity.log" 2>&1; then echo 'conflict control unexpectedly passed'; exit 1; fi
+grep -q 'r.may_try' "$record/control-conflict-identity.log"
+restore
+printf 'FIVE_SIGNAL_AND_OWNERSHIP_FAILURE_CONTROLS_RESULT=0\n'

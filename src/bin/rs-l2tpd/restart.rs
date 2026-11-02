@@ -325,7 +325,8 @@ mod exec_tests {
                 "interrupted-read",
                 "blocked-read",
                 "wait",
-                "sigpipe",
+                "probe-sigpipe",
+                "exec-sigpipe",
                 "pid-read",
             ] {
                 let output = Command::new(std::env::current_exe().unwrap())
@@ -345,6 +346,16 @@ mod exec_tests {
         let target = dir.path().join("compatible-probe");
         std::fs::write(&target, "#!/bin/sh\nprintf 'rs-l2tpd-adopt 1\\n'\n").unwrap();
         std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o700)).unwrap();
+        if case == "exec-sigpipe" {
+            std::fs::write(
+                &target,
+                format!(
+                    "#!/bin/sh\n: > '{}/probe-checked'\nprintf 'rs-l2tpd-adopt 1\\n'\n",
+                    dir.path().display()
+                ),
+            )
+            .unwrap();
+        }
         let held = std::fs::File::open("/dev/null").unwrap();
         #[cfg(coverage_nightly)]
         crate::syscall_fault::keep_profile_output();
@@ -370,13 +381,55 @@ mod exec_tests {
                     .unwrap()
             }
             "wait" => crate::syscall_fault::refuse(&[libc::SYS_wait4], libc::EIO),
-            "sigpipe" => crate::syscall_fault::on_exec_argument(
+            "probe-sigpipe" => crate::syscall_fault::on_exec_argument(
                 libc::SYS_rt_sigaction,
                 0,
                 libc::SIGPIPE as u32,
                 libc::EIO,
             )()
             .unwrap(),
+            "exec-sigpipe" => {
+                crate::syscall_fault::on_exec_signal_install(libc::EIO)().unwrap();
+                // Query-only and write-only calls must remain available.
+                let mut action = unsafe { std::mem::zeroed::<libc::sigaction>() };
+                assert_eq!(
+                    unsafe { libc::sigaction(libc::SIGPIPE, std::ptr::null(), &mut action) },
+                    0
+                );
+                assert_eq!(
+                    unsafe { libc::sigaction(libc::SIGPIPE, &action, std::ptr::null_mut()) },
+                    0
+                );
+                let mut old = unsafe { std::mem::zeroed::<libc::sigaction>() };
+                assert_eq!(
+                    unsafe { libc::sigaction(libc::SIGUSR1, &action, &mut old) },
+                    0
+                );
+                assert_eq!(
+                    unsafe { libc::sigaction(libc::SIGUSR1, &old, std::ptr::null_mut()) },
+                    0
+                );
+                assert_eq!(
+                    unsafe { libc::sigaction(libc::SIGPIPE, &action, &mut old) },
+                    -1
+                );
+                assert_eq!(io::Error::last_os_error().raw_os_error(), Some(libc::EIO));
+                #[cfg(target_arch = "x86_64")]
+                for (new, old) in [
+                    (1_u64 << 32, &mut old as *mut libc::sigaction as u64),
+                    (&action as *const libc::sigaction as u64, 1_u64 << 32),
+                    (1_u64 << 32, 1_u64 << 32),
+                ] {
+                    // Check high-only pointer words before the kernel could dereference them.
+                    assert_eq!(
+                        unsafe {
+                            libc::syscall(libc::SYS_rt_sigaction, libc::SIGPIPE, new, old, 8_usize)
+                        },
+                        -1
+                    );
+                    assert_eq!(io::Error::last_os_error().raw_os_error(), Some(libc::EIO));
+                }
+            }
             _ => panic!("unknown probe failure"),
         }
         let error = if case == "pid-read" {
@@ -384,7 +437,7 @@ mod exec_tests {
             std::fs::write(&pid, "2\n").unwrap();
             std::fs::set_permissions(&pid, std::fs::Permissions::from_mode(0o600)).unwrap();
             signal(&pid).unwrap_err()
-        } else if case == "sigpipe" {
+        } else if case.ends_with("sigpipe") {
             exec(&target, &[], vec![], None).unwrap_err()
         } else {
             probe(&target).unwrap_err()
@@ -403,6 +456,12 @@ mod exec_tests {
             );
         }
         assert!(held.metadata().is_ok());
+        if case == "exec-sigpipe" {
+            assert!(
+                dir.path().join("probe-checked").exists(),
+                "compatibility probe did not complete"
+            );
+        }
         println!("PROBE_IO_FAILURE_CHECKED={case}");
     }
     /// spec: P26, G12

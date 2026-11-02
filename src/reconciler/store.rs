@@ -368,6 +368,45 @@ mod cost_tests {
     use crate::reconciler::IphostResolve;
     use nix::libc;
 
+    /// spec: P14, L13, A10, G20
+    #[cfg(feature = "serde")]
+    #[test]
+    fn inherited_verification_refuses_shutdown_and_an_existing_local_owner() {
+        for shutting_down in [false, true] {
+            let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+            let config = toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n").unwrap();
+            assert!(r.reconcile(config));
+            let socket = r.tunnels[&10].socket;
+            let connection = r.k.connection(socket);
+            // Exercise the verifier's defensive state directly; public inherit is startup-only.
+            r.store.names.insert("t10".into());
+            r.store
+                .inherited
+                .insert("t10".into(), vec![r.k.clone_fd(socket).unwrap()]);
+            if shutting_down {
+                r.store.shutdown = Some(r.k.now() + DELETION_WAIT);
+                r.k.fail_next("adopt", nix::errno::Errno::EIO);
+            }
+            r.k.clear_ops();
+            r.verify_inherited();
+            assert!(r.store.inherited.is_empty());
+            assert_eq!(r.tunnels.len(), 1);
+            assert_eq!(r.tunnels[&10].socket, socket);
+            assert_eq!(r.k.connection(socket), connection);
+            assert_eq!(r.store.retiring["t10"].fds.len(), 1);
+            assert_eq!(
+                r.store.retiring["t10"].sockets.len(),
+                usize::from(!shutting_down)
+            );
+            assert!(r.take_requests().is_empty());
+            assert!(r.k.ops().is_empty());
+            if shutting_down {
+                let fd = r.k.clone_fd(socket).unwrap();
+                assert_eq!(r.k.adopt(fd).err().unwrap().raw_os_error(), Some(libc::EIO));
+            }
+        }
+    }
+
     /// spec: P14, L13, G20, E12
     #[cfg(feature = "serde")]
     #[test]

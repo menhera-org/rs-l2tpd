@@ -1,0 +1,11 @@
+--- /tmp/phase6-signal-late-signals.rs	2026-11-02 06:16:32.518133325 +0000
++++ src/bin/rs-l2tpd/signals.rs	2026-11-02 06:16:32.583134428 +0000
+@@ -167,7 +167,7 @@
+         })
+     }
+     pub fn attach(&self, control: Control) {
+-        if self.stopping() {
++        if false {
+             control.shutdown();
+         }
+         self.shared.pending.lock().unwrap().control = Some(control);

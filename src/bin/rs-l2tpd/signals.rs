@@ -279,6 +279,27 @@ mod tests {
         shared.observe(Signal::SIGUSR2);
         assert!(!shared.pending.lock().unwrap().reload);
         assert!(!shared.pending.lock().unwrap().restart);
+        shared.pending.lock().unwrap().control = None;
+        let signals = Signals {
+            shared: Arc::new(shared),
+            collector: None,
+            forwarder: None,
+        };
+        let mut next = Runtime::with_kernel(
+            FakeKernel::new(2),
+            Box::new(IphostResolve::default()),
+            vec![],
+        )
+        .unwrap();
+        signals.attach(next.control());
+        assert!(matches!(
+            engine.block_on(async {
+                tokio::time::timeout(Duration::from_secs(5), next.next_event())
+                    .await
+                    .unwrap()
+            }),
+            ControlEvent::Shutdown
+        ));
     }
 }
 
@@ -353,6 +374,85 @@ mod forwarder_tests {
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod libc_tests {
     use super::*;
+
+    /// spec: P12, P16
+    #[test]
+    fn drop_joins_present_workers_and_tolerates_absent_workers() {
+        for collector in [false, true] {
+            for forwarder in [false, true] {
+                let shared = Arc::new(Shared {
+                    pending: Mutex::new(Pending::default()),
+                    wake: Condvar::new(),
+                    shutdown: AtomicBool::new(false),
+                    full_retries: Default::default(),
+                });
+                let collector = collector.then(|| {
+                    let (ready, started) = std::sync::mpsc::sync_channel(1);
+                    let thread = std::thread::spawn(move || {
+                        let mask = set();
+                        mask.thread_block().unwrap();
+                        ready.send(()).unwrap();
+                        assert_eq!(wait(&mask).unwrap(), Signal::SIGTERM);
+                    });
+                    started.recv_timeout(Duration::from_secs(5)).unwrap();
+                    thread
+                });
+                let forwarder = forwarder.then(|| {
+                    let shared = shared.clone();
+                    std::thread::spawn(move || shared.forward())
+                });
+                drop(Signals {
+                    shared: shared.clone(),
+                    collector,
+                    forwarder,
+                });
+                assert!(shared.pending.lock().unwrap().stopped);
+            }
+        }
+    }
+
+    /// spec: P4, P12, P16, G14
+    #[test]
+    #[ignore = "exact cgroup pids.max of 2 or 3; run only this test in a disposable container or guest"]
+    fn thread_spawn_failures_leave_no_signal_threads() {
+        let expected = std::env::var("RS_L2TPD_SIGNAL_TASK_LIMIT")
+            .unwrap()
+            .parse::<usize>()
+            .unwrap();
+        assert!([2, 3].contains(&expected));
+        let group = std::env::var_os("RS_L2TPD_SIGNAL_TASK_CGROUP")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| "/sys/fs/cgroup".into());
+        assert_eq!(
+            std::fs::read_to_string(group.join("pids.max"))
+                .unwrap()
+                .trim(),
+            expected.to_string()
+        );
+        let tasks = || std::fs::read_dir("/proc/self/task").unwrap().count();
+        assert_eq!(
+            tasks(),
+            2,
+            "fixture requires only libtest's main and worker threads"
+        );
+        let error = Signals::install()
+            .err()
+            .expect("task limit allowed both signal threads");
+        assert_eq!(error.raw_os_error(), Some(libc::EAGAIN));
+        assert_eq!(
+            tasks(),
+            2,
+            "failed installation left a signal thread behind"
+        );
+        assert_eq!(
+            std::fs::read_to_string(group.join("pids.peak"))
+                .unwrap()
+                .trim(),
+            expected.to_string(),
+            "fixture did not reach the selected failure stage"
+        );
+        println!("SIGNAL_TASK_LIMIT_CHECKED={expected} tasks=2");
+    }
 
     /// spec: P4 P12 P16
     #[test]

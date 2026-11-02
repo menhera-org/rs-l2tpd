@@ -1,0 +1,601 @@
+diff --git a/src/bin/rs-l2tpd/restart.rs b/src/bin/rs-l2tpd/restart.rs
+index a6028c0..0ff8de4 100644
+--- a/src/bin/rs-l2tpd/restart.rs
++++ b/src/bin/rs-l2tpd/restart.rs
+@@ -325,7 +325,8 @@ mod exec_tests {
+                 "interrupted-read",
+                 "blocked-read",
+                 "wait",
+-                "sigpipe",
++                "probe-sigpipe",
++                "exec-sigpipe",
+                 "pid-read",
+             ] {
+                 let output = Command::new(std::env::current_exe().unwrap())
+@@ -345,6 +346,16 @@ mod exec_tests {
+         let target = dir.path().join("compatible-probe");
+         std::fs::write(&target, "#!/bin/sh\nprintf 'rs-l2tpd-adopt 1\\n'\n").unwrap();
+         std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o700)).unwrap();
++        if case == "exec-sigpipe" {
++            std::fs::write(
++                &target,
++                format!(
++                    "#!/bin/sh\n: > '{}/probe-checked'\nprintf 'rs-l2tpd-adopt 1\\n'\n",
++                    dir.path().display()
++                ),
++            )
++            .unwrap();
++        }
+         let held = std::fs::File::open("/dev/null").unwrap();
+         #[cfg(coverage_nightly)]
+         crate::syscall_fault::keep_profile_output();
+@@ -370,13 +381,55 @@ mod exec_tests {
+                     .unwrap()
+             }
+             "wait" => crate::syscall_fault::refuse(&[libc::SYS_wait4], libc::EIO),
+-            "sigpipe" => crate::syscall_fault::on_exec_argument(
++            "probe-sigpipe" => crate::syscall_fault::on_exec_argument(
+                 libc::SYS_rt_sigaction,
+                 0,
+                 libc::SIGPIPE as u32,
+                 libc::EIO,
+             )()
+             .unwrap(),
++            "exec-sigpipe" => {
++                crate::syscall_fault::on_exec_signal_install(libc::EIO)().unwrap();
++                // Query-only and write-only calls must remain available.
++                let mut action = unsafe { std::mem::zeroed::<libc::sigaction>() };
++                assert_eq!(
++                    unsafe { libc::sigaction(libc::SIGPIPE, std::ptr::null(), &mut action) },
++                    0
++                );
++                assert_eq!(
++                    unsafe { libc::sigaction(libc::SIGPIPE, &action, std::ptr::null_mut()) },
++                    0
++                );
++                let mut old = unsafe { std::mem::zeroed::<libc::sigaction>() };
++                assert_eq!(
++                    unsafe { libc::sigaction(libc::SIGUSR1, &action, &mut old) },
++                    0
++                );
++                assert_eq!(
++                    unsafe { libc::sigaction(libc::SIGUSR1, &old, std::ptr::null_mut()) },
++                    0
++                );
++                assert_eq!(
++                    unsafe { libc::sigaction(libc::SIGPIPE, &action, &mut old) },
++                    -1
++                );
++                assert_eq!(io::Error::last_os_error().raw_os_error(), Some(libc::EIO));
++                #[cfg(target_arch = "x86_64")]
++                for (new, old) in [
++                    (1_u64 << 32, &mut old as *mut libc::sigaction as u64),
++                    (&action as *const libc::sigaction as u64, 1_u64 << 32),
++                    (1_u64 << 32, 1_u64 << 32),
++                ] {
++                    // Check high-only pointer words before the kernel could dereference them.
++                    assert_eq!(
++                        unsafe {
++                            libc::syscall(libc::SYS_rt_sigaction, libc::SIGPIPE, new, old, 8_usize)
++                        },
++                        -1
++                    );
++                    assert_eq!(io::Error::last_os_error().raw_os_error(), Some(libc::EIO));
++                }
++            }
+             _ => panic!("unknown probe failure"),
+         }
+         let error = if case == "pid-read" {
+@@ -384,7 +437,7 @@ mod exec_tests {
+             std::fs::write(&pid, "2\n").unwrap();
+             std::fs::set_permissions(&pid, std::fs::Permissions::from_mode(0o600)).unwrap();
+             signal(&pid).unwrap_err()
+-        } else if case == "sigpipe" {
++        } else if case.ends_with("sigpipe") {
+             exec(&target, &[], vec![], None).unwrap_err()
+         } else {
+             probe(&target).unwrap_err()
+@@ -403,6 +456,12 @@ mod exec_tests {
+             );
+         }
+         assert!(held.metadata().is_ok());
++        if case == "exec-sigpipe" {
++            assert!(
++                dir.path().join("probe-checked").exists(),
++                "compatibility probe did not complete"
++            );
++        }
+         println!("PROBE_IO_FAILURE_CHECKED={case}");
+     }
+     /// spec: P26, G12
+diff --git a/src/bin/rs-l2tpd/signals.rs b/src/bin/rs-l2tpd/signals.rs
+index d7fa682..b2ceca1 100644
+--- a/src/bin/rs-l2tpd/signals.rs
++++ b/src/bin/rs-l2tpd/signals.rs
+@@ -279,6 +279,27 @@ mod tests {
+         shared.observe(Signal::SIGUSR2);
+         assert!(!shared.pending.lock().unwrap().reload);
+         assert!(!shared.pending.lock().unwrap().restart);
++        shared.pending.lock().unwrap().control = None;
++        let signals = Signals {
++            shared: Arc::new(shared),
++            collector: None,
++            forwarder: None,
++        };
++        let mut next = Runtime::with_kernel(
++            FakeKernel::new(2),
++            Box::new(IphostResolve::default()),
++            vec![],
++        )
++        .unwrap();
++        signals.attach(next.control());
++        assert!(matches!(
++            engine.block_on(async {
++                tokio::time::timeout(Duration::from_secs(5), next.next_event())
++                    .await
++                    .unwrap()
++            }),
++            ControlEvent::Shutdown
++        ));
+     }
+ }
+ 
+@@ -354,6 +375,85 @@ mod forwarder_tests {
+ mod libc_tests {
+     use super::*;
+ 
++    /// spec: P12, P16
++    #[test]
++    fn drop_joins_present_workers_and_tolerates_absent_workers() {
++        for collector in [false, true] {
++            for forwarder in [false, true] {
++                let shared = Arc::new(Shared {
++                    pending: Mutex::new(Pending::default()),
++                    wake: Condvar::new(),
++                    shutdown: AtomicBool::new(false),
++                    full_retries: Default::default(),
++                });
++                let collector = collector.then(|| {
++                    let (ready, started) = std::sync::mpsc::sync_channel(1);
++                    let thread = std::thread::spawn(move || {
++                        let mask = set();
++                        mask.thread_block().unwrap();
++                        ready.send(()).unwrap();
++                        assert_eq!(wait(&mask).unwrap(), Signal::SIGTERM);
++                    });
++                    started.recv_timeout(Duration::from_secs(5)).unwrap();
++                    thread
++                });
++                let forwarder = forwarder.then(|| {
++                    let shared = shared.clone();
++                    std::thread::spawn(move || shared.forward())
++                });
++                drop(Signals {
++                    shared: shared.clone(),
++                    collector,
++                    forwarder,
++                });
++                assert!(shared.pending.lock().unwrap().stopped);
++            }
++        }
++    }
++
++    /// spec: P4, P12, P16, G14
++    #[test]
++    #[ignore = "exact cgroup pids.max of 2 or 3; run only this test in a disposable container or guest"]
++    fn thread_spawn_failures_leave_no_signal_threads() {
++        let expected = std::env::var("RS_L2TPD_SIGNAL_TASK_LIMIT")
++            .unwrap()
++            .parse::<usize>()
++            .unwrap();
++        assert!([2, 3].contains(&expected));
++        let group = std::env::var_os("RS_L2TPD_SIGNAL_TASK_CGROUP")
++            .map(std::path::PathBuf::from)
++            .unwrap_or_else(|| "/sys/fs/cgroup".into());
++        assert_eq!(
++            std::fs::read_to_string(group.join("pids.max"))
++                .unwrap()
++                .trim(),
++            expected.to_string()
++        );
++        let tasks = || std::fs::read_dir("/proc/self/task").unwrap().count();
++        assert_eq!(
++            tasks(),
++            2,
++            "fixture requires only libtest's main and worker threads"
++        );
++        let error = Signals::install()
++            .err()
++            .expect("task limit allowed both signal threads");
++        assert_eq!(error.raw_os_error(), Some(libc::EAGAIN));
++        assert_eq!(
++            tasks(),
++            2,
++            "failed installation left a signal thread behind"
++        );
++        assert_eq!(
++            std::fs::read_to_string(group.join("pids.peak"))
++                .unwrap()
++                .trim(),
++            expected.to_string(),
++            "fixture did not reach the selected failure stage"
++        );
++        println!("SIGNAL_TASK_LIMIT_CHECKED={expected} tasks=2");
++    }
++
+     /// spec: P4 P12 P16
+     #[test]
+     fn signal_errors_use_the_return_code_or_errno_as_required() {
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index bee59a8..58ee694 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -700,6 +700,24 @@ mod resource_tests {
+     use crate::reconciler::{Lookup, Resolve};
+     use std::sync::{Arc, Mutex};
+ 
++    /// spec: A10, A14, G2, G23
++    #[test]
++    fn removing_a_stale_session_reverse_index_preserves_its_new_owner() {
++        let mut r = Reconciler::new(
++            FakeKernel::new(42),
++            Box::new(crate::reconciler::IphostResolve::default()),
++        );
++        r.index.registrations.insert(100, 7);
++        r.index.sessions.insert(7, 101);
++        r.k.clear_ops();
++        r.unindex_session(100);
++        assert!(!r.index.registrations.contains_key(&100));
++        assert_eq!(r.index.sessions.get(&7), Some(&101));
++        r.unindex_session(100);
++        assert_eq!(r.index.sessions.get(&7), Some(&101));
++        assert!(r.k.ops().is_empty());
++    }
++
+     #[derive(Clone, Default)]
+     struct Watches(Arc<Mutex<BTreeSet<u64>>>);
+     impl Resolve for Watches {
+diff --git a/src/reconciler/store.rs b/src/reconciler/store.rs
+index b29f290..cf0a98c 100644
+--- a/src/reconciler/store.rs
++++ b/src/reconciler/store.rs
+@@ -368,6 +368,45 @@ mod cost_tests {
+     use crate::reconciler::IphostResolve;
+     use nix::libc;
+ 
++    /// spec: P14, L13, A10, G20
++    #[cfg(feature = "serde")]
++    #[test]
++    fn inherited_verification_refuses_shutdown_and_an_existing_local_owner() {
++        for shutting_down in [false, true] {
++            let mut r = Reconciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
++            let config = toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n").unwrap();
++            assert!(r.reconcile(config));
++            let socket = r.tunnels[&10].socket;
++            let connection = r.k.connection(socket);
++            // Exercise the verifier's defensive state directly; public inherit is startup-only.
++            r.store.names.insert("t10".into());
++            r.store
++                .inherited
++                .insert("t10".into(), vec![r.k.clone_fd(socket).unwrap()]);
++            if shutting_down {
++                r.store.shutdown = Some(r.k.now() + DELETION_WAIT);
++                r.k.fail_next("adopt", nix::errno::Errno::EIO);
++            }
++            r.k.clear_ops();
++            r.verify_inherited();
++            assert!(r.store.inherited.is_empty());
++            assert_eq!(r.tunnels.len(), 1);
++            assert_eq!(r.tunnels[&10].socket, socket);
++            assert_eq!(r.k.connection(socket), connection);
++            assert_eq!(r.store.retiring["t10"].fds.len(), 1);
++            assert_eq!(
++                r.store.retiring["t10"].sockets.len(),
++                usize::from(!shutting_down)
++            );
++            assert!(r.take_requests().is_empty());
++            assert!(r.k.ops().is_empty());
++            if shutting_down {
++                let fd = r.k.clone_fd(socket).unwrap();
++                assert_eq!(r.k.adopt(fd).err().unwrap().raw_os_error(), Some(libc::EIO));
++            }
++        }
++    }
++
+     /// spec: P14, L13, G20, E12
+     #[cfg(feature = "serde")]
+     #[test]
+diff --git a/src/reconciler/tests.rs b/src/reconciler/tests.rs
+index ce1f3c3..c22136d 100644
+--- a/src/reconciler/tests.rs
++++ b/src/reconciler/tests.rs
+@@ -52,6 +52,78 @@ mod completion {
+         assert!(r.take_requests().is_empty());
+     }
+ 
++    /// spec: E25, T26, L12
++    #[test]
++    fn redundant_tunable_requests_preserve_the_original_outcome_and_deadline() {
++        let mut r = reconciler();
++        r.tunable = Some(true);
++        r.request_tunable();
++        assert!(r.take_requests().is_empty());
++        assert!(r.tunable_pending.is_none());
++        r.tunable = None;
++        r.request_tunable();
++        let pending = r.tunable_pending.unwrap();
++        assert_eq!(r.take_requests().len(), 1);
++        r.k.advance(Duration::from_secs(1));
++        r.request_tunable();
++        assert_eq!(r.tunable_pending, Some(pending));
++        assert!(r.take_requests().is_empty());
++    }
++
++    /// spec: V6, V7, E10, E11, G2, G23
++    #[test]
++    fn resolver_answers_and_reload_tolerate_a_missing_local_record() {
++        let answers = crate::rule_tests::Answers::default();
++        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(answers.clone()));
++        let text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nip_version='V4'\nremote_addr='peer.example'\n";
++        assert!(r.reconcile(toml::from_str(text).unwrap()));
++        let record = r.tunnels.remove(&10).unwrap();
++        let socket = record.socket;
++        r.k.clear_ops();
++        answers.answer("peer.example", &["192.0.2.2"]);
++        r.poll_answers();
++        assert_eq!(r.resolvers.selected(10), Some("192.0.2.2".parse().unwrap()));
++        assert!(
++            r.k.ops().is_empty(),
++            "an answer without a local owner issued a kernel operation"
++        );
++        let changed: Config =
++            toml::from_str(&text.replace("peer.example", "other.example")).unwrap();
++        r.k.fail_next("register", Errno::EIO);
++        assert!(!r.reconcile(changed.clone()));
++        assert!(r.tunnels.is_empty());
++        assert!(answers.watching().is_empty());
++        r.tunnels.insert(10, record);
++        assert!(r.reconcile(changed));
++        assert_eq!(r.tunnels[&10].socket, socket);
++        assert_eq!(answers.watching()[0].host(), "other.example");
++        assert_eq!(r.k.open_sockets(), 1);
++    }
++
++    /// spec: C14, T25, E14
++    #[test]
++    fn a_changed_conflict_identity_discards_its_counter_and_slow_deadline() {
++        let mut r = reconciler();
++        let config: Config = toml::from_str(CONFIG).unwrap();
++        let old = ConflictIdentity::Tunnel(config.tunnels()["a"].identity());
++        let changed: Config =
++            toml::from_str(&CONFIG.replace("tunnel_id=10", "tunnel_id=10\npeer_tunnel_id=11"))
++                .unwrap();
++        let new = ConflictIdentity::Tunnel(changed.tunnels()["a"].identity());
++        let error = std::io::Error::from_raw_os_error(Errno::EEXIST as i32);
++        for _ in 0..10 {
++            r.conflict(false, 10, old, "a", &error);
++        }
++        assert!(r.conflicts[&(false, 10)].left_out);
++        assert!(r.conflict_times.first_deadline().is_some());
++        assert!(r.may_try(false, 10, new));
++        assert!(!r.conflicts.contains_key(&(false, 10)));
++        assert!(r.conflict_times.first_deadline().is_none());
++        r.conflict(false, 10, new, "a", &error);
++        assert_eq!(r.conflicts[&(false, 10)].attempts, 1);
++        assert!(!r.conflicts[&(false, 10)].left_out);
++    }
++
+     /// spec: T25, E12, E14, C14
+     #[test]
+     fn explicit_reload_retries_an_active_conflict_without_leaving_it_out() {
+diff --git a/src/reconciler/wanted_tests.rs b/src/reconciler/wanted_tests.rs
+index 9a2e1f0..3418e25 100644
+--- a/src/reconciler/wanted_tests.rs
++++ b/src/reconciler/wanted_tests.rs
+@@ -473,10 +473,20 @@ fn a_pending_name_already_observed_as_the_target_needs_no_kernel_write() {
+     let registration = *r.sessions[&100].state.registration().unwrap();
+     r.sessions.get_mut(&100).unwrap().name_state = Enforce::Pending;
+     r.k.clear_ops();
++    r.clear_swaps();
+     assert!(r.converge_session(100));
+     assert_eq!(r.sessions[&100].name_state, Enforce::Applied);
+     assert_eq!(r.sessions[&100].state, Identity::Proved(registration));
+     assert!(r.k.ops().is_empty(), "already satisfied name was rewritten");
++    let record = r.sessions.get_mut(&100).unwrap();
++    record.state = Identity::Adopted;
++    record.name_state = Enforce::Pending;
++    r.skip_unmanageable(100);
++    assert_eq!(r.sessions[&100].name_state, Enforce::Pending);
++    assert!(
++        r.k.ops().is_empty(),
++        "already satisfied adopted name was rewritten"
++    );
+ }
+ 
+ /// spec: S8, S10, S18, G4
+@@ -509,6 +519,52 @@ fn a_name_observed_during_staging_remains_subject_to_first_publication() {
+     assert_eq!(r.sessions[&100].name_state, Enforce::Applied);
+ }
+ 
++/// spec: S12, S19, S22, G2, G4
++#[test]
++fn device_notices_without_identity_proof_or_a_readable_mac_never_authorize_writes() {
++    for case in [
++        "lost-applied",
++        "lost-deferred",
++        "proof-applied",
++        "proof-deferred",
++        "ether-error",
++        "ether-absent",
++    ] {
++        let (mut r, config) = staging_fixture("interface_hwaddr='02:00:5e:00:53:01'");
++        assert!(r.reconcile(config));
++        let index = r.k.session_index(10, 100).unwrap();
++        let name = r.k.link(index).unwrap().name();
++        if case.starts_with("lost") {
++            r.sessions.get_mut(&100).unwrap().state = Identity::Lost { staged: false };
++        } else if case.starts_with("proof") {
++            r.k.lose_lifetime();
++        } else if case == "ether-error" {
++            r.k.fail_next("link", Errno::EIO);
++        } else {
++            r.k.clear_link_hwaddr(index);
++        }
++        let enforcement = if case.ends_with("deferred") {
++            Enforce::Deferred
++        } else {
++            Enforce::Applied
++        };
++        r.sessions.get_mut(&100).unwrap().hwaddr_state = enforcement;
++        let before = r.k.hwaddr(index);
++        r.k.clear_ops();
++        r.session_device_changed(100, name, false);
++        assert_eq!(r.sessions[&100].hwaddr_state, enforcement, "{case}");
++        assert_eq!(r.k.hwaddr(index), before, "{case}");
++        assert!(r.k.ops().is_empty(), "{case}: {:?}", r.k.ops());
++        if case.starts_with("lost") {
++            let renamed = L2tpIfName::new(b"late-name").unwrap();
++            r.session_device_changed(100, renamed, false);
++            assert_eq!(r.sessions[&100].current_name, Some(renamed));
++            assert_eq!(r.sessions[&100].name_state, Enforce::Applied);
++            assert!(r.k.ops().is_empty());
++        }
++    }
++}
++
+ /// spec: S9, S22, G2, G4
+ #[test]
+ fn deletion_without_a_stored_creation_name_neither_scans_nor_guesses() {
+diff --git a/tests/kernel/matrix-init.sh b/tests/kernel/matrix-init.sh
+index b5954dc..8e4263c 100755
+--- a/tests/kernel/matrix-init.sh
++++ b/tests/kernel/matrix-init.sh
+@@ -18,11 +18,30 @@ run_suite() {
+     [ "$(cat /tmp/suite.status)" = 0 ] || return 1
+     grep -Eq 'test result: ok\. [1-9][0-9]* passed;' /tmp/suite.log
+ }
++run_signal_limits() {
++    group=/sys/fs/cgroup/rs-l2tpd-signals
++    if [ ! -f /sys/fs/cgroup/cgroup.controllers ]; then
++        mount -t cgroup2 none /sys/fs/cgroup
++    fi
++    printf '%s\n' +pids > /sys/fs/cgroup/cgroup.subtree_control
++    mkdir "$group"
++    for limit in 2 3; do
++        printf '%s\n' "$limit" > "$group/pids.max"
++        # The child expands its own PID and argument before exec; PID 1 stays outside.
++        # shellcheck disable=SC2016
++        run_suite env RS_L2TPD_SIGNAL_TASK_LIMIT="$limit" RS_L2TPD_SIGNAL_TASK_CGROUP="$group" sh -c '
++            printf "%s\n" "$$" > "$1/cgroup.procs"
++            exec /binary-unit --ignored --exact signals::libc_tests::thread_spawn_failures_leave_no_signal_threads --nocapture
++        ' sh "$group"
++    done
++    rmdir "$group"
++}
+ run_binary() {
+ run_suite /binary-unit --test-threads=1 --nocapture
+ run_suite /binary-unit --ignored --exact pidfile::permission_tests::precreated_permissions_links_and_owner --nocapture
+ run_suite /binary-unit --ignored --exact pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes --nocapture
+ run_suite /binary-unit --ignored --exact files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths --nocapture
++run_signal_limits
+ }
+ mode=$(cat /matrix-mode)
+ export RS_L2TPD_SCENARIO_CONTAINER=1
+diff --git a/tests/tools/syscall_barrier.rs b/tests/tools/syscall_barrier.rs
+index daa2d61..655db9f 100644
+--- a/tests/tools/syscall_barrier.rs
++++ b/tests/tools/syscall_barrier.rs
+@@ -174,6 +174,12 @@ pub(crate) fn run(
+                 }
+                 trace(i64::from(libc::PTRACE_SYSCALL), tid, 0, 0)?;
+             }
++            WaitStatus::Stopped(_, signal)
++                if started && signal != nix::sys::signal::Signal::SIGSTOP =>
++            {
++                // Signal-delivery stops must preserve the worker's actual signal delivery.
++                trace(i64::from(libc::PTRACE_SYSCALL), tid, 0, signal as usize)?;
++            }
+             WaitStatus::Exited(_, _) | WaitStatus::Signaled(_, _, _) => {
+                 child.tid = None;
+                 break;
+@@ -213,7 +219,26 @@ pub(crate) fn run(
+ fn query_sizes_peek_errors_and_callback_cleanup_are_checked() {
+     const CHILD: &str = "RS_L2TPD_BARRIER_CONTRACT_CHILD";
+     if std::env::var_os(CHILD).is_some() {
++        use std::sync::atomic::{AtomicUsize, Ordering};
++        static DELIVERED: AtomicUsize = AtomicUsize::new(0);
++        extern "C" fn delivered(signal: i32) {
++            DELIVERED.fetch_or(
++                if signal == libc::SIGUSR1 { 1 } else { 2 },
++                Ordering::Relaxed,
++            );
++        }
++        for signal in [libc::SIGUSR1, libc::SIGCHLD] {
++            assert_ne!(
++                unsafe { libc::signal(signal, delivered as *const () as libc::sighandler_t) },
++                libc::SIG_ERR
++            );
++        }
+         stop().unwrap();
++        for signal in [libc::SIGUSR1, libc::SIGCHLD] {
++            assert_eq!(unsafe { libc::raise(signal) }, 0);
++        }
++        assert_eq!(DELIVERED.load(Ordering::Relaxed), 3);
++        println!("PTRACE_SIGNAL_DELIVERY_CHECKED=3");
+         let mut bytes = [0xff_u8; 4096];
+         bytes[size_of::<libc::c_long>()] = 0;
+         assert_eq!(
+@@ -299,6 +324,10 @@ fn query_sizes_peek_errors_and_callback_cleanup_are_checked() {
+             let output = result.unwrap();
+             assert!(output.status.success(), "{output:?}");
+             assert_eq!(checked, 2);
++            assert!(
++                String::from_utf8_lossy(&output.stdout)
++                    .contains("PTRACE_SIGNAL_DELIVERY_CHECKED=3")
++            );
+         }
+     }
+ }
+diff --git a/tests/tools/syscall_fault.rs b/tests/tools/syscall_fault.rs
+index b4801e3..dc50abc 100644
+--- a/tests/tools/syscall_fault.rs
++++ b/tests/tools/syscall_fault.rs
+@@ -169,6 +169,38 @@ fn install(
+     }
+ }
+ 
++/// Refuses libc signal's read-and-replace call, preserving resets and queries.
++#[allow(
++    dead_code,
++    reason = "shared helper; only exec fixtures refuse signal installation"
++)]
++pub(crate) fn on_exec_signal_install(
++    errno: i32,
++) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
++    let low = if cfg!(target_endian = "little") { 0 } else { 4 };
++    let high = 4 - low;
++    let filter = [
++        (0x20, 0, 0, 0),
++        (0x15, 0, 11, libc::SYS_rt_sigaction.try_into().unwrap()),
++        (0x20, 0, 0, 16 + low),
++        (0x15, 0, 9, libc::SIGPIPE as u32),
++        (0x20, 0, 0, 24 + low),
++        (0x15, 0, 2, 0),
++        (0x20, 0, 0, 24 + high),
++        (0x15, 5, 0, 0),
++        (0x20, 0, 0, 32 + low),
++        (0x15, 0, 2, 0),
++        (0x20, 0, 0, 32 + high),
++        (0x15, 1, 0, 0),
++        (0x06, 0, 0, 0x00050000 | u32::try_from(errno).unwrap()),
++        (0x06, 0, 0, 0x7fff0000),
++    ]
++    .into_iter()
++    .map(|(code, jt, jf, k)| libc::sock_filter { code, jt, jf, k })
++    .collect();
++    install(filter)
++}
++
+ /// Matches syscall arguments 1 and 2, preserving unrelated operations.
+ #[allow(
+     dead_code,

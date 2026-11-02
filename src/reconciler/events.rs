@@ -700,6 +700,24 @@ mod resource_tests {
     use crate::reconciler::{Lookup, Resolve};
     use std::sync::{Arc, Mutex};
 
+    /// spec: A10, A14, G2, G23
+    #[test]
+    fn removing_a_stale_session_reverse_index_preserves_its_new_owner() {
+        let mut r = Reconciler::new(
+            FakeKernel::new(42),
+            Box::new(crate::reconciler::IphostResolve::default()),
+        );
+        r.index.registrations.insert(100, 7);
+        r.index.sessions.insert(7, 101);
+        r.k.clear_ops();
+        r.unindex_session(100);
+        assert!(!r.index.registrations.contains_key(&100));
+        assert_eq!(r.index.sessions.get(&7), Some(&101));
+        r.unindex_session(100);
+        assert_eq!(r.index.sessions.get(&7), Some(&101));
+        assert!(r.k.ops().is_empty());
+    }
+
     #[derive(Clone, Default)]
     struct Watches(Arc<Mutex<BTreeSet<u64>>>);
     impl Resolve for Watches {

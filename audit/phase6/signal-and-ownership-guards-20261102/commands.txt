@@ -1,0 +1,45 @@
+Final common and compatibility checks, locked dependencies and all features:
+
+./test-ci-gates.sh
+for seed in 1 2 3; do
+    TEST_SEED=$seed cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --bin rs-l2tpd --test kernel-fake --test rules --test service --test startup --test process
+done
+cargo +1.89.0 check --locked --all-features --all-targets
+for target in aarch64-unknown-linux-musl riscv64gc-unknown-linux-musl powerpc64le-unknown-linux-musl; do
+    cargo check --locked --all-features --all-targets --target "$target"
+done
+
+The current-production collector was retained:
+CARGO_LLVM_COV_TARGET_DIR=$PWD/target/phase6-coverage-netlink-reply-state-20261101
+export CARGO_LLVM_COV_TARGET_DIR
+for seed in 1 2 3 4 5 6 7 8 9 10; do
+    TEST_SEED=$seed cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --lib --bin rs-l2tpd --test kernel-fake --test rules --test service --test startup --branch --no-report
+done
+for seed in 1 2 3 4 5 6 7 8 9 10; do
+    TEST_SEED=$seed cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --test process --branch --no-report
+done
+
+The initial instrumented run additionally executed all ordinary suites.
+Initial source qualification logs precede the later model and IPC refinements;
+final-* and process-instrumented-* retain the accepted final repetitions.
+
+container-commands.txt records the frozen stable GNU/musl binary and task runs.
+process-commands.txt records the final concurrent ordinary process runs.
+profile-commands.txt records instrumented task runs and independent exports.
+guest-commands.txt records the five frozen binary profiles. Each guest
+directory retains its exact QEMU command, configuration and artifact identities.
+That frozen source predates late-state.patch and manager-close.patch; these
+test-only changes have the local qualification above. Production bodies match.
+
+control-commands.txt, late-control-commands.txt and ipc-control-commands.txt
+retain eight restored mutations, with corresponding source patches and logs.
+
+Reports:
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path REPORT.json
+
+Mapping comparisons strip execution counts, retaining source coordinates,
+region kinds and filenames. mapping-change-detail.json retains the one
+changed branch list; mapping-location-comparison.json checks all region
+locations and filename lists. The edited production prefixes are also
+compared byte-for-byte against revision.

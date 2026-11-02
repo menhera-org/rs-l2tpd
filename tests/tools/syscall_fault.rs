@@ -169,6 +169,38 @@ fn install(
     }
 }
 
+/// Refuses libc signal's read-and-replace call, preserving resets and queries.
+#[allow(
+    dead_code,
+    reason = "shared helper; only exec fixtures refuse signal installation"
+)]
+pub(crate) fn on_exec_signal_install(
+    errno: i32,
+) -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
+    let low = if cfg!(target_endian = "little") { 0 } else { 4 };
+    let high = 4 - low;
+    let filter = [
+        (0x20, 0, 0, 0),
+        (0x15, 0, 11, libc::SYS_rt_sigaction.try_into().unwrap()),
+        (0x20, 0, 0, 16 + low),
+        (0x15, 0, 9, libc::SIGPIPE as u32),
+        (0x20, 0, 0, 24 + low),
+        (0x15, 0, 2, 0),
+        (0x20, 0, 0, 24 + high),
+        (0x15, 5, 0, 0),
+        (0x20, 0, 0, 32 + low),
+        (0x15, 0, 2, 0),
+        (0x20, 0, 0, 32 + high),
+        (0x15, 1, 0, 0),
+        (0x06, 0, 0, 0x00050000 | u32::try_from(errno).unwrap()),
+        (0x06, 0, 0, 0x7fff0000),
+    ]
+    .into_iter()
+    .map(|(code, jt, jf, k)| libc::sock_filter { code, jt, jf, k })
+    .collect();
+    install(filter)
+}
+
 /// Matches syscall arguments 1 and 2, preserving unrelated operations.
 #[allow(
     dead_code,

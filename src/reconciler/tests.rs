@@ -52,6 +52,78 @@ mod completion {
         assert!(r.take_requests().is_empty());
     }
 
+    /// spec: E25, T26, L12
+    #[test]
+    fn redundant_tunable_requests_preserve_the_original_outcome_and_deadline() {
+        let mut r = reconciler();
+        r.tunable = Some(true);
+        r.request_tunable();
+        assert!(r.take_requests().is_empty());
+        assert!(r.tunable_pending.is_none());
+        r.tunable = None;
+        r.request_tunable();
+        let pending = r.tunable_pending.unwrap();
+        assert_eq!(r.take_requests().len(), 1);
+        r.k.advance(Duration::from_secs(1));
+        r.request_tunable();
+        assert_eq!(r.tunable_pending, Some(pending));
+        assert!(r.take_requests().is_empty());
+    }
+
+    /// spec: V6, V7, E10, E11, G2, G23
+    #[test]
+    fn resolver_answers_and_reload_tolerate_a_missing_local_record() {
+        let answers = crate::rule_tests::Answers::default();
+        let mut r = Reconciler::new(FakeKernel::new(42), Box::new(answers.clone()));
+        let text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nip_version='V4'\nremote_addr='peer.example'\n";
+        assert!(r.reconcile(toml::from_str(text).unwrap()));
+        let record = r.tunnels.remove(&10).unwrap();
+        let socket = record.socket;
+        r.k.clear_ops();
+        answers.answer("peer.example", &["192.0.2.2"]);
+        r.poll_answers();
+        assert_eq!(r.resolvers.selected(10), Some("192.0.2.2".parse().unwrap()));
+        assert!(
+            r.k.ops().is_empty(),
+            "an answer without a local owner issued a kernel operation"
+        );
+        let changed: Config =
+            toml::from_str(&text.replace("peer.example", "other.example")).unwrap();
+        r.k.fail_next("register", Errno::EIO);
+        assert!(!r.reconcile(changed.clone()));
+        assert!(r.tunnels.is_empty());
+        assert!(answers.watching().is_empty());
+        r.tunnels.insert(10, record);
+        assert!(r.reconcile(changed));
+        assert_eq!(r.tunnels[&10].socket, socket);
+        assert_eq!(answers.watching()[0].host(), "other.example");
+        assert_eq!(r.k.open_sockets(), 1);
+    }
+
+    /// spec: C14, T25, E14
+    #[test]
+    fn a_changed_conflict_identity_discards_its_counter_and_slow_deadline() {
+        let mut r = reconciler();
+        let config: Config = toml::from_str(CONFIG).unwrap();
+        let old = ConflictIdentity::Tunnel(config.tunnels()["a"].identity());
+        let changed: Config =
+            toml::from_str(&CONFIG.replace("tunnel_id=10", "tunnel_id=10\npeer_tunnel_id=11"))
+                .unwrap();
+        let new = ConflictIdentity::Tunnel(changed.tunnels()["a"].identity());
+        let error = std::io::Error::from_raw_os_error(Errno::EEXIST as i32);
+        for _ in 0..10 {
+            r.conflict(false, 10, old, "a", &error);
+        }
+        assert!(r.conflicts[&(false, 10)].left_out);
+        assert!(r.conflict_times.first_deadline().is_some());
+        assert!(r.may_try(false, 10, new));
+        assert!(!r.conflicts.contains_key(&(false, 10)));
+        assert!(r.conflict_times.first_deadline().is_none());
+        r.conflict(false, 10, new, "a", &error);
+        assert_eq!(r.conflicts[&(false, 10)].attempts, 1);
+        assert!(!r.conflicts[&(false, 10)].left_out);
+    }
+
     /// spec: T25, E12, E14, C14
     #[test]
     fn explicit_reload_retries_an_active_conflict_without_leaving_it_out() {

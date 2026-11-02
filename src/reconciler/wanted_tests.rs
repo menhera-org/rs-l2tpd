@@ -473,10 +473,20 @@ fn a_pending_name_already_observed_as_the_target_needs_no_kernel_write() {
     let registration = *r.sessions[&100].state.registration().unwrap();
     r.sessions.get_mut(&100).unwrap().name_state = Enforce::Pending;
     r.k.clear_ops();
+    r.clear_swaps();
     assert!(r.converge_session(100));
     assert_eq!(r.sessions[&100].name_state, Enforce::Applied);
     assert_eq!(r.sessions[&100].state, Identity::Proved(registration));
     assert!(r.k.ops().is_empty(), "already satisfied name was rewritten");
+    let record = r.sessions.get_mut(&100).unwrap();
+    record.state = Identity::Adopted;
+    record.name_state = Enforce::Pending;
+    r.skip_unmanageable(100);
+    assert_eq!(r.sessions[&100].name_state, Enforce::Pending);
+    assert!(
+        r.k.ops().is_empty(),
+        "already satisfied adopted name was rewritten"
+    );
 }
 
 /// spec: S8, S10, S18, G4
@@ -507,6 +517,52 @@ fn a_name_observed_during_staging_remains_subject_to_first_publication() {
         "l2tp0"
     );
     assert_eq!(r.sessions[&100].name_state, Enforce::Applied);
+}
+
+/// spec: S12, S19, S22, G2, G4
+#[test]
+fn device_notices_without_identity_proof_or_a_readable_mac_never_authorize_writes() {
+    for case in [
+        "lost-applied",
+        "lost-deferred",
+        "proof-applied",
+        "proof-deferred",
+        "ether-error",
+        "ether-absent",
+    ] {
+        let (mut r, config) = staging_fixture("interface_hwaddr='02:00:5e:00:53:01'");
+        assert!(r.reconcile(config));
+        let index = r.k.session_index(10, 100).unwrap();
+        let name = r.k.link(index).unwrap().name();
+        if case.starts_with("lost") {
+            r.sessions.get_mut(&100).unwrap().state = Identity::Lost { staged: false };
+        } else if case.starts_with("proof") {
+            r.k.lose_lifetime();
+        } else if case == "ether-error" {
+            r.k.fail_next("link", Errno::EIO);
+        } else {
+            r.k.clear_link_hwaddr(index);
+        }
+        let enforcement = if case.ends_with("deferred") {
+            Enforce::Deferred
+        } else {
+            Enforce::Applied
+        };
+        r.sessions.get_mut(&100).unwrap().hwaddr_state = enforcement;
+        let before = r.k.hwaddr(index);
+        r.k.clear_ops();
+        r.session_device_changed(100, name, false);
+        assert_eq!(r.sessions[&100].hwaddr_state, enforcement, "{case}");
+        assert_eq!(r.k.hwaddr(index), before, "{case}");
+        assert!(r.k.ops().is_empty(), "{case}: {:?}", r.k.ops());
+        if case.starts_with("lost") {
+            let renamed = L2tpIfName::new(b"late-name").unwrap();
+            r.session_device_changed(100, renamed, false);
+            assert_eq!(r.sessions[&100].current_name, Some(renamed));
+            assert_eq!(r.sessions[&100].name_state, Enforce::Applied);
+            assert!(r.k.ops().is_empty());
+        }
+    }
 }
 
 /// spec: S9, S22, G2, G4

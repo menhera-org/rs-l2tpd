@@ -515,8 +515,8 @@ archive, both builds, source comparison and required live profiles now pass.
 The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
-Fresh corrected-source coverage is **98.78% of lines and 94.38% of branches**:
-8,581/8,687 lines and 1,748/1,852 branches, leaving **106 lines and 104
+Fresh corrected-source coverage is **98.87% of lines and 95.30% of branches**:
+8,589/8,687 lines and 1,765/1,852 branches, leaving **98 lines and 87
 branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files
@@ -534,6 +534,13 @@ The probe/event batch adds 18 lines and 11 outcomes, with passing binary
 profiles on all five required kernels, three GNU and three musl container
 repetitions, ten instrumented fake runs and three failure controls. It keeps
 all production mappings and exclusions unchanged.
+The signal/ownership batch adds eight lines and seventeen outcomes. It
+also fixes the tracer's SIGCHLD handling and synchronizes the unavailable
+manager fixture with actual peer refusal. Five binary profiles, repeated
+GNU/musl checks and eight controls pass; the record separates later model
+and IPC additions from the frozen guest source. No production exclusion is
+added. All region locations match; one previously empty function branch
+list now reports its existing guard.
 The following entries retain earlier measurements.
 
 **Initial status, 2026-10-31.** The strict source-link check

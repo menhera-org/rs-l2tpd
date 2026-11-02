@@ -1,0 +1,18 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
+
+running 1 test
+test restart::exec_tests::probe_and_pid_read_failures_return_errno_before_handover ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 78 filtered out; finished in 0.07s
+
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-570bb0572ec3cd85)
+
+running 1 test
+test restart::exec_tests::probe_and_pid_read_failures_return_errno_before_handover ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 78 filtered out; finished in 0.06s
+

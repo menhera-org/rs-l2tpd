@@ -1,0 +1,21 @@
+set -eu
+root=$PWD
+record=$root/audit/phase6/signal-and-ownership-guards-20261102
+collector=$root/target/phase6-coverage-netlink-reply-state-20261101
+binary=$(awk '/Running unittests src\/bin\/rs-l2tpd\/main.rs/ {line=$0; sub(/^.*\(/,"",line); sub(/\)$/,"",line); print line; exit}' /tmp/phase6-signal-instrumented-1.log)
+[ -x "$binary" ]
+profiles=$(mktemp -d "$collector/signal-task-XXXXXXXX")
+chmod 777 "$profiles"
+run_id=${profiles##*/}
+for repeat in 1 2 3; do
+ for limit in 2 3; do
+  docker run --rm --privileged --cgroupns private --network none --pids-limit "$limit" -e RS_L2TPD_SIGNAL_TASK_LIMIT="$limit" -e RS_L2TPD_SIGNAL_TASK_CGROUP=/sys/fs/cgroup/signal-test -e "LLVM_PROFILE_FILE=/profiles/$run_id-$repeat-$limit-%p-%m.profraw" -v "$root:/work:ro" -v "$profiles:/profiles" --entrypoint /bin/sh nd-test:u2404 -c 'set -eu; [ "$(cat /proc/self/cgroup)" = "0::/" ]; mkdir "$RS_L2TPD_SIGNAL_TASK_CGROUP"; printf "%s\n" "$$" > "$RS_L2TPD_SIGNAL_TASK_CGROUP/cgroup.procs"; printf "%s\n" +pids > /sys/fs/cgroup/cgroup.subtree_control; printf "%s\n" "$RS_L2TPD_SIGNAL_TASK_LIMIT" > "$RS_L2TPD_SIGNAL_TASK_CGROUP/pids.max"; exec "$1" --ignored --exact signals::libc_tests::thread_spawn_failures_leave_no_signal_threads --nocapture' sh "/work/$binary" > "$record/instrumented-task-$repeat-$limit.log" 2>&1
+ done
+done
+docker run --rm --network none -v "$profiles:/profiles" --entrypoint /bin/sh nd-test:u2404 -c 'chmod a+r /profiles/*.profraw'
+cp "$profiles"/*.profraw "$collector/"
+for path in "$profiles"/*.profraw; do
+ printf '%s git-blob: ' "${path##*/}"
+ git --no-pager hash-object "$path"
+done > "$record/profile-transport.log"
+printf 'SIGNAL_THREE_INSTRUMENTED_TASK_PROFILE_RESULT=0\n'

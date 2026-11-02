@@ -1,0 +1,11 @@
+--- /tmp/phase6-signal-control-mod.rs	2026-11-02 05:56:25.862558134 +0000
++++ src/reconciler/mod.rs	2026-11-02 05:59:12.220139862 +0000
+@@ -486,7 +486,7 @@
+     fn may_try(&mut self, session: bool, id: u32, identity: ConflictIdentity) -> bool {
+         let now = self.k.now();
+         match self.conflicts.get(&(session, id)) {
+-            Some(c) if c.identity != identity => {
++            Some(c) if c.identity == identity => {
+                 self.conflicts.remove(&(session, id));
+                 self.conflict_times.remove(&(session, id));
+                 true

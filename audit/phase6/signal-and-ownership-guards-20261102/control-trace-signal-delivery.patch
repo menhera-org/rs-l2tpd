@@ -1,0 +1,15 @@
+--- /tmp/phase6-signal-control-syscall_barrier.rs	2026-11-02 05:56:25.857558022 +0000
++++ tests/tools/syscall_barrier.rs	2026-11-02 05:59:01.297912807 +0000
+@@ -174,12 +174,6 @@
+                 }
+                 trace(i64::from(libc::PTRACE_SYSCALL), tid, 0, 0)?;
+             }
+-            WaitStatus::Stopped(_, signal)
+-                if started && signal != nix::sys::signal::Signal::SIGSTOP =>
+-            {
+-                // Signal-delivery stops must preserve the worker's actual signal delivery.
+-                trace(i64::from(libc::PTRACE_SYSCALL), tid, 0, signal as usize)?;
+-            }
+             WaitStatus::Exited(_, _) | WaitStatus::Signaled(_, _, _) => {
+                 child.tid = None;
+                 break;

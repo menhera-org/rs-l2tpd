@@ -962,10 +962,32 @@ fn startup_failure_keeps_unverified_handover_and_reports_failed_withdrawal() {
             process.event("descriptor store unavailable:");
         }
         process.event("opening kernel interfaces:");
+        let mut retained = manager.as_ref().map(|socket| socket.try_clone().unwrap());
         drop(manager);
+        if connected {
+            // Concurrent forks can briefly retain the listener until exec closes it.
+            let deadline = Instant::now() + Duration::from_secs(5);
+            loop {
+                match UnixDatagram::unbound().unwrap().connect(&notify) {
+                    Err(error) => {
+                        assert_eq!(error.raw_os_error(), Some(libc::ECONNREFUSED));
+                        break;
+                    }
+                    Ok(()) => {
+                        drop(retained.take());
+                        assert!(Instant::now() < deadline, "manager listener remained open");
+                    }
+                }
+                std::thread::yield_now();
+            }
+        }
+        assert!(retained.is_none());
         process.signal(Signal::SIGTERM);
         if connected {
-            process.event("startup withdrawal t10:");
+            process.event(&format!(
+                "startup withdrawal t10: {}",
+                io::Error::from_raw_os_error(libc::ECONNREFUSED)
+            ));
         }
         process.event("cannot confirm inherited tunnel absence");
         assert_eq!(process.child.wait().unwrap().code(), Some(1));

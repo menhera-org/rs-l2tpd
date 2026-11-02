@@ -35,7 +35,7 @@ record `audit/phase6/matrix-20261102T011736Z-3377142/README.md` seals P3.
 The RC source comparison covers 43 relevant files, verified against both
 archives; both builds pass. The integrated resolver/event/host tests raise
 coverage, together with the installer/descriptor/reconciler batch and
-file-race/inheritance/shutdown and probe/event cases, to 98.78% lines and 94.38% branches.
+file-race/inheritance/shutdown, probe/event and ownership cases, to 98.87% lines and 95.30% branches.
 K41's strengthened listener
 control passes all five required kernels and rejects a broken listener.
 
@@ -88,10 +88,11 @@ the exact live or fake scope:
 `audit/phase6/resolver-default-capacity-20261101/` and
 `audit/phase6/pidfile-inspection-errors-20261101/`.
 
-The current collector reports **98.78% of production lines and 94.38% of
-branches**: 8,581/8,687 lines and 1,748/1,852 branches, leaving **106 lines
-and 104 branches**. All 4,331 mappings remain unchanged from the previous
-report. Repository records
+The current collector reports **98.87% of production lines and 95.30% of
+branches**: 8,589/8,687 lines and 1,765/1,852 branches, leaving **98 lines
+and 87 branches**. Production source and region locations remain unchanged;
+one previously empty function branch list now reports its existing guard.
+Repository records
 `audit/phase6/resolver-boundaries-20261102/` and
 `audit/phase6/coverage-batch-20261102/` and
 `audit/phase6/file-races-and-shutdown-20261102/` retain the exact scopes and controls.
@@ -118,6 +119,17 @@ fake runs and three failure controls pass. It adds 18 covered lines and 11
 branch outcomes without changing production mappings or exclusions.
 Repository record `audit/phase6/probe-and-event-boundaries-20261102/`
 also records passing push CI and CodeQL for signed 449c751.
+
+The signal/ownership batch adds eight covered lines and seventeen outcomes.
+Its signal and tracer fixtures pass all five required binary profiles;
+final model/daemon and process suites pass ten instrumented repetitions,
+with GNU/musl container checks and eight failure controls. Later model and
+IPC fixture changes retain their separate scope. Signed 958671c passes
+live CI and CodeQL, but coverage CI exposes a SIGCHLD stop in the test
+tracer. The corrected helper forwards signal-delivery stops and verifies
+both SIGUSR1 and SIGCHLD handlers. Repository record
+`audit/phase6/signal-and-ownership-guards-20261102/` retains the failure,
+correction and qualification. Phase 6 remains open.
 
 ## Rules that hold for the whole phase
 

@@ -1,0 +1,14 @@
+set -eu
+record=$PWD/audit/phase6/signal-and-ownership-guards-20261102
+for target in x86_64-unknown-linux-gnu x86_64-unknown-linux-musl; do
+ cargo test --locked --all-features --target "$target" --bin rs-l2tpd --no-run > /tmp/phase6-signal-final-build-$target.log 2>&1
+ binary=$(awk '/Executable unittests src\/bin\/rs-l2tpd\/main.rs/ {line=$0; sub(/^.*\(/,"",line); sub(/\)$/,"",line); print line}' /tmp/phase6-signal-final-build-$target.log)
+ [ -x "$binary" ]
+ for repeat in 1 2 3; do
+  docker run --rm --privileged --network none -v "$PWD:/work:ro" --entrypoint /bin/sh nd-test:u2404 -c 'set -eu; uname -r; "$1" --test-threads=1 --nocapture' sh "/work/$binary" > "$record/container-$target-$repeat.log" 2>&1
+  for limit in 2 3; do
+   docker run --rm --privileged --cgroupns private --network none --pids-limit "$limit" -e RS_L2TPD_SIGNAL_TASK_LIMIT="$limit" -e RS_L2TPD_SIGNAL_TASK_CGROUP=/sys/fs/cgroup/signal-test -v "$PWD:/work:ro" --entrypoint /bin/sh nd-test:u2404 -c 'set -eu; [ "$(cat /proc/self/cgroup)" = "0::/" ]; mkdir "$RS_L2TPD_SIGNAL_TASK_CGROUP"; printf "%s\n" "$$" > "$RS_L2TPD_SIGNAL_TASK_CGROUP/cgroup.procs"; printf "%s\n" +pids > /sys/fs/cgroup/cgroup.subtree_control; printf "%s\n" "$RS_L2TPD_SIGNAL_TASK_LIMIT" > "$RS_L2TPD_SIGNAL_TASK_CGROUP/pids.max"; exec "$1" --ignored --exact signals::libc_tests::thread_spawn_failures_leave_no_signal_threads --nocapture' sh "/work/$binary" > "$record/task-$target-$repeat-$limit.log" 2>&1
+  done
+ done
+done
+printf 'SIGNAL_THREE_GNU_MUSL_BINARY_AND_TASK_PROFILE_RESULT=0\n'

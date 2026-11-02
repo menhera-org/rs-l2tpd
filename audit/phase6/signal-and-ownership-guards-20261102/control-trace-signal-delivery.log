@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
+
+running 1 test
+
+thread 'syscall_barrier::query_sizes_peek_errors_and_callback_cleanup_are_checked' (3813330) panicked at src/bin/rs-l2tpd/../../../tests/tools/syscall_barrier.rs:318:33:
+called `Result::unwrap()` on an `Err` value: Custom { kind: Other, error: "unexpected trace stop: Stopped(Pid(3813332), SIGUSR1)" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test syscall_barrier::query_sizes_peek_errors_and_callback_cleanup_are_checked ... FAILED
+
+failures:
+
+failures:
+    syscall_barrier::query_sizes_peek_errors_and_callback_cleanup_are_checked
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 78 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--bin rs-l2tpd`

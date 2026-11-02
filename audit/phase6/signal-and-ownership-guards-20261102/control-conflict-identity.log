@@ -1,0 +1,19 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-dc5105cc1b329540)
+
+running 1 test
+
+thread 'reconciler::tests::completion::a_changed_conflict_identity_discards_its_counter_and_slow_deadline' (3814930) panicked at src/reconciler/tests.rs:89:9:
+assertion failed: r.may_try(false, 10, new)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reconciler::tests::completion::a_changed_conflict_identity_discards_its_counter_and_slow_deadline ... FAILED
+
+failures:
+
+failures:
+    reconciler::tests::completion::a_changed_conflict_identity_discards_its_counter_and_slow_deadline
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 307 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

@@ -46,8 +46,13 @@ IPv6 multiple tables, veth, dummy and network namespaces. Require the final
 ## Ordinary CLI units in QEMU
 
 The `binary` profile runs ordinary CLI unit tests and the three selected
-filesystem-permission cases on a selected kernel. Its ordinary summary
-retains ignored tests; the three privileged cases then run separately. The runner requires
+filesystem-permission cases on a selected kernel. It also runs the signal
+installation test twice in an isolated guest cgroup: a task limit of two
+refuses the collector, and three refuses the forwarder. The fixture checks
+the selected limit, peak task count and absence of leftover signal threads.
+It needs `CONFIG_CGROUP_PIDS=y`; these limits apply to the test harness.
+Its ordinary summary retains ignored tests; the selected cases then run
+separately. The runner requires
 `BINARY_UNIT_RESULT=0` and `MATRIX_GUEST_RESULT=0`; it records this scope
 separately from the full scenario, conformance and clock profiles.
 

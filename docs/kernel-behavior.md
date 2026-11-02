@@ -61,6 +61,16 @@ record `audit/phase6/pidfile-inspection-errors-20261101/README.md` identifies
 the exact patch, results and corrected musl metadata-denial fixture. These
 additional boots retain their separate scope from the complete matrix.
 
+The later signal/tracer profile passes on every current target in the table
+below: 73 ordinary CLI cases, three filesystem cases and two runs of the
+signal-installation case. With two libtest threads already present,
+`pids.max=2` refuses the collector and `pids.max=3` refuses the forwarder;
+both return EAGAIN and leave exactly the original two threads. Each checks
+the matching peak count. The tracer calibration also preserves delivery to
+SIGUSR1 and SIGCHLD handlers on every target. Repository record
+`audit/phase6/signal-and-ownership-guards-20261102/README.md` identifies the
+frozen guest source and separates later model/IPC changes qualified locally.
+
 ## Per-kernel differences
 
 | Required target | Empty IPv6 VRF, no usable source or route (K26/K34) | Foreign-namespace L2TP deletion notification (K41) | Test boot |

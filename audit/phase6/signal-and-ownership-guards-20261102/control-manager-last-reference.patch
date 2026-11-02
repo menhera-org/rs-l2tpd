@@ -1,0 +1,10 @@
+--- /tmp/phase6-signal-control-process.rs	2026-11-02 06:31:49.191011227 +0000
++++ tests/process.rs	2026-11-02 06:31:49.260011437 +0000
+@@ -974,7 +974,6 @@
+                         break;
+                     }
+                     Ok(()) => {
+-                        drop(retained.take());
+                         assert!(Instant::now() < deadline, "manager listener remained open");
+                     }
+                 }

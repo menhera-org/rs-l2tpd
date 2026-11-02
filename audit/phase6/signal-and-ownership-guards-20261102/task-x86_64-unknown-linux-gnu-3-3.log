@@ -1,0 +1,7 @@
+
+running 1 test
+SIGNAL_TASK_LIMIT_CHECKED=3 tasks=2
+test signals::libc_tests::thread_spawn_failures_leave_no_signal_threads ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 78 filtered out; finished in 0.00s
+

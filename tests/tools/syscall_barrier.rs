@@ -174,6 +174,12 @@ pub(crate) fn run(
                 }
                 trace(i64::from(libc::PTRACE_SYSCALL), tid, 0, 0)?;
             }
+            WaitStatus::Stopped(_, signal)
+                if started && signal != nix::sys::signal::Signal::SIGSTOP =>
+            {
+                // Signal-delivery stops must preserve the worker's actual signal delivery.
+                trace(i64::from(libc::PTRACE_SYSCALL), tid, 0, signal as usize)?;
+            }
             WaitStatus::Exited(_, _) | WaitStatus::Signaled(_, _, _) => {
                 child.tid = None;
                 break;
@@ -213,7 +219,26 @@ pub(crate) fn run(
 fn query_sizes_peek_errors_and_callback_cleanup_are_checked() {
     const CHILD: &str = "RS_L2TPD_BARRIER_CONTRACT_CHILD";
     if std::env::var_os(CHILD).is_some() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static DELIVERED: AtomicUsize = AtomicUsize::new(0);
+        extern "C" fn delivered(signal: i32) {
+            DELIVERED.fetch_or(
+                if signal == libc::SIGUSR1 { 1 } else { 2 },
+                Ordering::Relaxed,
+            );
+        }
+        for signal in [libc::SIGUSR1, libc::SIGCHLD] {
+            assert_ne!(
+                unsafe { libc::signal(signal, delivered as *const () as libc::sighandler_t) },
+                libc::SIG_ERR
+            );
+        }
         stop().unwrap();
+        for signal in [libc::SIGUSR1, libc::SIGCHLD] {
+            assert_eq!(unsafe { libc::raise(signal) }, 0);
+        }
+        assert_eq!(DELIVERED.load(Ordering::Relaxed), 3);
+        println!("PTRACE_SIGNAL_DELIVERY_CHECKED=3");
         let mut bytes = [0xff_u8; 4096];
         bytes[size_of::<libc::c_long>()] = 0;
         assert_eq!(
@@ -299,6 +324,10 @@ fn query_sizes_peek_errors_and_callback_cleanup_are_checked() {
             let output = result.unwrap();
             assert!(output.status.success(), "{output:?}");
             assert_eq!(checked, 2);
+            assert!(
+                String::from_utf8_lossy(&output.stdout)
+                    .contains("PTRACE_SIGNAL_DELIVERY_CHECKED=3")
+            );
         }
     }
 }
