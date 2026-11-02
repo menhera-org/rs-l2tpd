@@ -1,0 +1,45 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
+
+running 1 test
+test restart::completion_tests::probe_drains_output_written_between_its_read_and_exit_check ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 76 filtered out; finished in 0.07s
+
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-dc5105cc1b329540)
+
+running 1 test
+test reconciler::sessions::wanted_tests::a_name_observed_during_staging_remains_subject_to_first_publication ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 302 filtered out; finished in 0.00s
+
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running tests/rules/main.rs (target/debug/deps/rules-b6f91cc18e4704bb)
+
+running 1 test
+test events::repeated_address_removal_and_unusable_vrf_member_loss_issue_no_reconnect ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
+     Running tests/rules/main.rs (target/debug/deps/rules-b6f91cc18e4704bb)
+
+running 1 test
+
+thread 'completion::completion_report_counts' (3737119) panicked at tests/rules/completion.rs:344:9:
+assertion failed: r.kernel().connection(socket).is_some()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test completion::completion_report_counts ... FAILED
+
+failures:
+
+failures:
+    completion::completion_report_counts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test rules`

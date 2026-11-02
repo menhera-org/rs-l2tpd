@@ -4,6 +4,49 @@ use super::{TUNNEL, config, deliver, ops, reconciler};
 use rs_l2tpd::kernel::{AddrInfo, Kernel, Notice};
 use rs_l2tpd::reconciler::Source;
 
+/// spec: E3, E6, E7, M16, G13, G23
+#[test]
+fn repeated_address_removal_and_unusable_vrf_member_loss_issue_no_reconnect() {
+    let (mut r, _) = reconciler();
+    let vrf = r.kernel_mut().add_link("blue", true);
+    let member = r.kernel_mut().add_link("member", false);
+    r.kernel_mut().set_master(member, Some(vrf));
+    let address = "2001:db8::1".parse().unwrap();
+    let text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nip_version='V6'\nremote_addr='2001:db8::2'\nbind_interface='blue'\n";
+    assert!(r.reconcile(config(text)));
+    deliver(&mut r);
+    let socket = r.kernel().tunnel_socket(10).unwrap();
+    assert!(r.kernel().connection(socket).is_none());
+    ops(&mut r);
+    r.kernel_mut().remove_link(member);
+    deliver(&mut r);
+    assert!(
+        ops(&mut r).is_empty(),
+        "a disconnected tunnel needs no source reselection"
+    );
+    let member = r.kernel_mut().add_link("member", false);
+    r.kernel_mut().set_master(member, Some(vrf));
+    r.kernel_mut().add_addr(member, address);
+    deliver(&mut r);
+    super::run_for(&mut r, 1);
+    assert_eq!(
+        r.kernel().connection(socket).map(|(_, source)| source),
+        Some(address)
+    );
+    r.kernel_mut().del_addr(member, address);
+    deliver(&mut r);
+    assert!(r.kernel().connection(socket).is_none());
+    ops(&mut r);
+    for _ in 0..3 {
+        r.handle(
+            Source::Monitor,
+            Notice::AddrDel(AddrInfo::new(member, address)),
+        );
+    }
+    assert!(ops(&mut r).is_empty());
+    assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
+}
+
 /// spec: R35, E20, E21, M18
 #[test]
 fn a_link_address_burst_coalesces_loss_and_recovers_the_final_source() {

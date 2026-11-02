@@ -314,6 +314,97 @@ mod tests {
 mod exec_tests {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
+    /// spec: P26, P27, G12
+    #[test]
+    fn probe_and_pid_read_failures_return_errno_before_handover() {
+        const CHILD: &str = "RS_L2TPD_PROBE_IO_FAULT";
+        let Ok(case) = std::env::var(CHILD) else {
+            for case in [
+                "nonblock",
+                "read",
+                "interrupted-read",
+                "blocked-read",
+                "wait",
+                "sigpipe",
+                "pid-read",
+            ] {
+                let output = Command::new(std::env::current_exe().unwrap())
+                    .args(["--exact", "restart::exec_tests::probe_and_pid_read_failures_return_errno_before_handover", "--nocapture"])
+                    .env(CHILD, case)
+                    .output()
+                    .unwrap();
+                assert!(output.status.success(), "{case}: {output:?}");
+                assert!(
+                    String::from_utf8_lossy(&output.stdout).contains("PROBE_IO_FAILURE_CHECKED="),
+                    "{case}: {output:?}"
+                );
+            }
+            return;
+        };
+        let dir = crate::testdir::Dir::new();
+        let target = dir.path().join("compatible-probe");
+        std::fs::write(&target, "#!/bin/sh\nprintf 'rs-l2tpd-adopt 1\\n'\n").unwrap();
+        std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let held = std::fs::File::open("/dev/null").unwrap();
+        #[cfg(coverage_nightly)]
+        crate::syscall_fault::keep_profile_output();
+        // In this isolated worker, the next open/pipe receives this free slot.
+        let next = unsafe { libc::fcntl(held.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
+        assert!(next >= 0);
+        assert_eq!(unsafe { libc::close(next) }, 0);
+        match case.as_str() {
+            "nonblock" => crate::syscall_fault::on_exec_argument(
+                libc::SYS_fcntl,
+                1,
+                libc::F_SETFL as u32,
+                libc::EIO,
+            )()
+            .unwrap(),
+            "read" | "pid-read" | "interrupted-read" | "blocked-read" => {
+                let errno = match case.as_str() {
+                    "interrupted-read" => libc::EINTR,
+                    "blocked-read" => libc::EAGAIN,
+                    _ => libc::EIO,
+                };
+                crate::syscall_fault::on_exec_argument(libc::SYS_read, 0, next as u32, errno)()
+                    .unwrap()
+            }
+            "wait" => crate::syscall_fault::refuse(&[libc::SYS_wait4], libc::EIO),
+            "sigpipe" => crate::syscall_fault::on_exec_argument(
+                libc::SYS_rt_sigaction,
+                0,
+                libc::SIGPIPE as u32,
+                libc::EIO,
+            )()
+            .unwrap(),
+            _ => panic!("unknown probe failure"),
+        }
+        let error = if case == "pid-read" {
+            let pid = dir.path().join("pid");
+            std::fs::write(&pid, "2\n").unwrap();
+            std::fs::set_permissions(&pid, std::fs::Permissions::from_mode(0o600)).unwrap();
+            signal(&pid).unwrap_err()
+        } else if case == "sigpipe" {
+            exec(&target, &[], vec![], None).unwrap_err()
+        } else {
+            probe(&target).unwrap_err()
+        };
+        if case == "blocked-read" {
+            assert_eq!(error.to_string(), "incompatible adoption protocol");
+        } else {
+            assert_eq!(
+                error.raw_os_error(),
+                Some(if case == "interrupted-read" {
+                    libc::EINTR
+                } else {
+                    libc::EIO
+                }),
+                "{case}: {error}"
+            );
+        }
+        assert!(held.metadata().is_ok());
+        println!("PROBE_IO_FAILURE_CHECKED={case}");
+    }
     /// spec: P26, G12
     #[test]
     fn descriptor_preparation_failures_leave_the_callers_table_unchanged() {
@@ -468,6 +559,101 @@ mod signal_tests {
 mod completion_tests {
     use super::*;
     use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
+    /// spec: P26, G12
+    #[test]
+    fn probe_drains_output_written_between_its_read_and_exit_check() {
+        const CHILD: &str = "RS_L2TPD_PROBE_DRAIN_CHILD";
+        if let Some(root) = std::env::var_os(CHILD) {
+            let root = PathBuf::from(root);
+            let held = std::fs::File::open("/dev/null").unwrap();
+            #[cfg(coverage_nightly)]
+            crate::syscall_fault::keep_profile_output();
+            let next = unsafe { libc::fcntl(held.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
+            assert!(next >= 0);
+            assert_eq!(unsafe { libc::close(next) }, 0);
+            std::fs::write(root.join("probe-fd"), next.to_string()).unwrap();
+            crate::syscall_barrier::stop().unwrap();
+            let result = probe(&root.join("probe"));
+            if root.ends_with("compatible") {
+                result.unwrap();
+            } else {
+                assert_eq!(
+                    result.unwrap_err().to_string(),
+                    "incompatible adoption protocol"
+                );
+            }
+            assert!(held.metadata().is_ok());
+            println!("PROBE_DRAIN_LIMIT_CHECKED=1");
+            return;
+        }
+        let dir = crate::testdir::Dir::new();
+        for (case, tail, expected_reads) in [
+            ("compatible", "printf 's-l2tpd-adopt 1\\n'", 3),
+            ("oversized", "printf '%064d' 0", 2),
+        ] {
+            let root = dir.path().join(case);
+            std::fs::create_dir(&root).unwrap();
+            let root = root.as_path();
+            let script = format!(
+                "#!/bin/sh\nprintf r\n: > '{}/ready'\nwhile [ ! -f '{}/go' ]; do :; done\n{tail}\n",
+                root.display(),
+                root.display()
+            );
+            std::fs::write(root.join("probe.body"), script).unwrap();
+            // Bound the disposable writer even if its tracing parent fails.
+            std::fs::write(
+                root.join("probe"),
+                "#!/bin/sh\nexec timeout 5 /bin/sh \"$0.body\"\n",
+            )
+            .unwrap();
+            std::fs::set_permissions(root.join("probe"), std::fs::Permissions::from_mode(0o700))
+                .unwrap();
+            let mut reads = 0;
+            let mut released = false;
+            let output = crate::syscall_barrier::run(
+            Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "restart::completion_tests::probe_drains_output_written_between_its_read_and_exit_check", "--nocapture"])
+                .env(CHILD, root),
+            root,
+            |_, number, arguments| {
+                let deadline = Instant::now() + Duration::from_secs(5);
+                if number == libc::SYS_read as u64
+                    && arguments[0] as i32 == std::fs::read_to_string(root.join("probe-fd"))?.parse::<i32>().unwrap()
+                {
+                    reads += 1;
+                    if reads == 1 {
+                        while !root.join("ready").exists() {
+                            assert!(Instant::now() < deadline);
+                            std::thread::yield_now();
+                        }
+                    }
+                }
+                if number == libc::SYS_wait4 as u64 && reads == 1 && !released {
+                    std::fs::write(root.join("go"), "")?;
+                    let pid = arguments[0] as i32;
+                    loop {
+                        let status = std::fs::read_to_string(format!("/proc/{pid}/stat"))?;
+                        if status.rsplit_once(") ").is_some_and(|(_, state)| state.starts_with('Z')) {
+                            break;
+                        }
+                        assert!(Instant::now() < deadline, "probe did not exit after release");
+                        std::thread::yield_now();
+                    }
+                    released = true;
+                }
+                Ok(())
+            },
+        ).unwrap();
+            assert!(output.status.success(), "{output:?}");
+            assert!(
+                released && reads == expected_reads,
+                "release={released} reads={reads}"
+            );
+            assert!(
+                String::from_utf8_lossy(&output.stdout).contains("PROBE_DRAIN_LIMIT_CHECKED=1")
+            );
+        }
+    }
     /// spec: P26
     #[test]
     fn malformed_entry_child() {
@@ -605,6 +791,7 @@ mod completion_tests {
         let Some(case) = std::env::var_os("COMPLETION_PID_ENTRY") else {
             return;
         };
+        crate::logger::init(true);
         let dir = crate::testdir::Dir::new();
         let keep = dir.path().join("file");
         std::fs::write(&keep, "keep").unwrap();

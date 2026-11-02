@@ -1,7 +1,7 @@
 # Phase 6 verification, 2026-11-02
 
 Phase 6 remains incomplete. The required-kernel matrix now passes with
-mainline 7.4-rc1. Production coverage is 98.57% lines / 93.79% branches
+mainline 7.4-rc1. Production coverage is 98.78% lines / 94.38% branches
 after integrating the combined resolver/event/host and
 installer/descriptor/reconciler test batch. The
 [November 1 record](PHASE6_VERIFICATION_2026-11-01.md) retains the detailed
@@ -12,7 +12,7 @@ history, earlier scope and maintainer decisions.
 | P1 rule/source maps | Common checks pass with 333 active rules cited and 43 kernel facts classified/cited; prior ten-run CI qualification is retained | Complete clause proof remains distinct from declaration traceability |
 | P2 scenarios | Frozen 455eef7 passes all 27 normal scenarios on each current required kernel, including H20 fragmentation and H17 scale | Complete clause/history/resource/event-cost proof |
 | P3 required kernels | All thirteen profiles pass; initial/final publication selections agree; both tracked-source patches are empty | Recheck whenever the published target set changes |
-| P4 coverage | 8,563/8,687 lines (98.57%); 1,737/1,852 branches (93.79%); no production exclusions | Cover the remaining 124 lines and 115 branches, then enforce the completed gate in CI |
+| P4 coverage | 8,581/8,687 lines (98.78%); 1,748/1,852 branches (94.38%); no production exclusions | Cover the remaining 106 lines and 104 branches, then enforce the completed gate in CI |
 | P5 Incus/LXD | Signed 1b3d876 passes GNU and three shipped-musl unprivileged system-container runs on Ubuntu 24.04 / 6.8.0-147 | Preserve that kernel/userspace scope |
 | P6 root sandbox | Signed 419c9b1 passes the unmodified supplied unit on Ubuntu 24.04 / 6.8.0-147; three GNU manager/task-limit runs also pass | Other distribution userspaces remain untested |
 | P7 docs/CI | Current kernel selection, source/build comparison and scoped behavior are documented; strict maps and workflow timeouts remain active; the parser self-test is now in common CI | Final complete proof and 100% coverage enforcement |
@@ -64,7 +64,13 @@ adds another 20 covered lines and 12 branch outcomes. All 4,331 production
 mappings remain unchanged. Its final expanded profiles pass on all five
 required kernels; ten fake repetitions, three musl model repetitions and
 serial GNU/musl fault collections pass. The parent commit's push CI failed
-at the BusyBox exec fixture; that selector is corrected here.
+at the BusyBox exec fixture. The corrected signed 449c751 passes
+[push CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41392740303)
+and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41392740327).
+The [probe/event batch](phase6/probe-and-event-boundaries-20261102/README.md)
+adds 18 covered lines and 11 branch outcomes with unchanged mappings.
+All five required binary profiles, three GNU and three musl container
+repetitions, ten instrumented fake runs and three failure controls pass.
 The
 [K41 follow-up](phase6/kernel-notification-control-20261102/README.md)
 passes all five kernels and rejects a deliberately ineffective listener.

@@ -35,7 +35,7 @@ record `audit/phase6/matrix-20261102T011736Z-3377142/README.md` seals P3.
 The RC source comparison covers 43 relevant files, verified against both
 archives; both builds pass. The integrated resolver/event/host tests raise
 coverage, together with the installer/descriptor/reconciler batch and
-file-race/inheritance/shutdown cases, to 98.57% lines and 93.79% branches.
+file-race/inheritance/shutdown and probe/event cases, to 98.78% lines and 94.38% branches.
 K41's strengthened listener
 control passes all five required kernels and rejects a broken listener.
 
@@ -88,9 +88,9 @@ the exact live or fake scope:
 `audit/phase6/resolver-default-capacity-20261101/` and
 `audit/phase6/pidfile-inspection-errors-20261101/`.
 
-The current collector reports **98.57% of production lines and 93.79% of
-branches**: 8,563/8,687 lines and 1,737/1,852 branches, leaving **124 lines
-and 115 branches**. All 4,331 mappings remain unchanged from the previous
+The current collector reports **98.78% of production lines and 94.38% of
+branches**: 8,581/8,687 lines and 1,748/1,852 branches, leaving **106 lines
+and 104 branches**. All 4,331 mappings remain unchanged from the previous
 report. Repository records
 `audit/phase6/resolver-boundaries-20261102/` and
 `audit/phase6/coverage-batch-20261102/` and
@@ -109,6 +109,15 @@ duplication/inheritance and daemon startup/shutdown errors. Its test-only
 syscall barrier uses the approved libc exception for a broken `nix`
 syscall-info wrapper. Fork-based library fixtures execute separately in the
 serial live profile. The full 100% gate and complete clause proof remain open.
+
+The probe/event batch adds seven controlled I/O failures, a deterministic
+probe-exit race, collector-error shutdown, staging-name observations and
+repeated address/member-removal checks. Its five required-kernel binary
+profiles, three GNU and three musl container repetitions, ten instrumented
+fake runs and three failure controls pass. It adds 18 covered lines and 11
+branch outcomes without changing production mappings or exclusions.
+Repository record `audit/phase6/probe-and-event-boundaries-20261102/`
+also records passing push CI and CodeQL for signed 449c751.
 
 ## Rules that hold for the whole phase
 

@@ -331,6 +331,24 @@ fn completion_report_counts() {
             .filter(|(l, message)| *l == level && message.contains(text))
             .count()
     };
+    for errno in [Errno::EAFNOSUPPORT, Errno::EPERM] {
+        capture.messages.lock().unwrap().clear();
+        let (mut r, _) = reconciler();
+        let device = r.kernel_mut().add_link("wan", false);
+        r.kernel_mut()
+            .add_addr(device, "192.0.2.1".parse().unwrap());
+        r.kernel_mut().fail_next("connect", errno);
+        assert!(r.reconcile(config(TUNNEL)));
+        let socket = r.kernel().tunnel_socket(10).unwrap();
+        assert!(r.kernel().connection(socket).is_none());
+        assert_eq!(count(log::Level::Error, "refused as a daemon defect"), 1);
+        assert_eq!(count(log::Level::Error, &format!("{errno:?}")), 1);
+        run_for(&mut r, 1);
+        assert!(r.kernel().connection(socket).is_some());
+        assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
+        assert_eq!(count(log::Level::Error, "refused as a daemon defect"), 1);
+    }
+    capture.messages.lock().unwrap().clear();
     for loss in [false, true] {
         capture.messages.lock().unwrap().clear();
         let (mut r, _) = reconciler();

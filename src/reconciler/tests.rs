@@ -31,6 +31,12 @@ mod completion {
         assert!(!r.reconcile(toml::from_str(CONFIG).unwrap()));
         let pending = r.tunable_pending.unwrap();
         r.take_requests();
+        assert!(!r.reconcile(toml::from_str(CONFIG).unwrap()));
+        assert_eq!(r.tunable_pending, Some(pending));
+        assert!(
+            r.take_requests().is_empty(),
+            "reload duplicated an outstanding write"
+        );
         r.tunable_written(pending.0 + 1, true);
         assert_eq!(r.tunable_pending, Some(pending));
         assert!(!r.ready());

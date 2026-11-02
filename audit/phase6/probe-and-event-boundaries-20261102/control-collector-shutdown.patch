@@ -1,0 +1,11 @@
+--- /tmp/phase6-probe-control-signals.rs	2026-11-02 05:28:50.267638302 +0000
++++ src/bin/rs-l2tpd/signals.rs	2026-11-02 05:29:09.887836620 +0000
+@@ -133,7 +133,7 @@
+                         Ok(signal) => signal,
+                         Err(error) => {
+                             log::error!("sigwait: {error}; shutting down");
+-                            collector_shared.observe(Signal::SIGTERM);
++                            // controlled omission of the shutdown request
+                             break;
+                         }
+                     };

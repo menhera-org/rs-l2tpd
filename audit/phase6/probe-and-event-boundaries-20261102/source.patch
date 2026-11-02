@@ -1,0 +1,402 @@
+diff --git a/src/bin/rs-l2tpd/restart.rs b/src/bin/rs-l2tpd/restart.rs
+index 0c24067..a6028c0 100644
+--- a/src/bin/rs-l2tpd/restart.rs
++++ b/src/bin/rs-l2tpd/restart.rs
+@@ -314,6 +314,97 @@ mod tests {
+ mod exec_tests {
+     use super::*;
+     use std::os::unix::fs::PermissionsExt;
++    /// spec: P26, P27, G12
++    #[test]
++    fn probe_and_pid_read_failures_return_errno_before_handover() {
++        const CHILD: &str = "RS_L2TPD_PROBE_IO_FAULT";
++        let Ok(case) = std::env::var(CHILD) else {
++            for case in [
++                "nonblock",
++                "read",
++                "interrupted-read",
++                "blocked-read",
++                "wait",
++                "sigpipe",
++                "pid-read",
++            ] {
++                let output = Command::new(std::env::current_exe().unwrap())
++                    .args(["--exact", "restart::exec_tests::probe_and_pid_read_failures_return_errno_before_handover", "--nocapture"])
++                    .env(CHILD, case)
++                    .output()
++                    .unwrap();
++                assert!(output.status.success(), "{case}: {output:?}");
++                assert!(
++                    String::from_utf8_lossy(&output.stdout).contains("PROBE_IO_FAILURE_CHECKED="),
++                    "{case}: {output:?}"
++                );
++            }
++            return;
++        };
++        let dir = crate::testdir::Dir::new();
++        let target = dir.path().join("compatible-probe");
++        std::fs::write(&target, "#!/bin/sh\nprintf 'rs-l2tpd-adopt 1\\n'\n").unwrap();
++        std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o700)).unwrap();
++        let held = std::fs::File::open("/dev/null").unwrap();
++        #[cfg(coverage_nightly)]
++        crate::syscall_fault::keep_profile_output();
++        // In this isolated worker, the next open/pipe receives this free slot.
++        let next = unsafe { libc::fcntl(held.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
++        assert!(next >= 0);
++        assert_eq!(unsafe { libc::close(next) }, 0);
++        match case.as_str() {
++            "nonblock" => crate::syscall_fault::on_exec_argument(
++                libc::SYS_fcntl,
++                1,
++                libc::F_SETFL as u32,
++                libc::EIO,
++            )()
++            .unwrap(),
++            "read" | "pid-read" | "interrupted-read" | "blocked-read" => {
++                let errno = match case.as_str() {
++                    "interrupted-read" => libc::EINTR,
++                    "blocked-read" => libc::EAGAIN,
++                    _ => libc::EIO,
++                };
++                crate::syscall_fault::on_exec_argument(libc::SYS_read, 0, next as u32, errno)()
++                    .unwrap()
++            }
++            "wait" => crate::syscall_fault::refuse(&[libc::SYS_wait4], libc::EIO),
++            "sigpipe" => crate::syscall_fault::on_exec_argument(
++                libc::SYS_rt_sigaction,
++                0,
++                libc::SIGPIPE as u32,
++                libc::EIO,
++            )()
++            .unwrap(),
++            _ => panic!("unknown probe failure"),
++        }
++        let error = if case == "pid-read" {
++            let pid = dir.path().join("pid");
++            std::fs::write(&pid, "2\n").unwrap();
++            std::fs::set_permissions(&pid, std::fs::Permissions::from_mode(0o600)).unwrap();
++            signal(&pid).unwrap_err()
++        } else if case == "sigpipe" {
++            exec(&target, &[], vec![], None).unwrap_err()
++        } else {
++            probe(&target).unwrap_err()
++        };
++        if case == "blocked-read" {
++            assert_eq!(error.to_string(), "incompatible adoption protocol");
++        } else {
++            assert_eq!(
++                error.raw_os_error(),
++                Some(if case == "interrupted-read" {
++                    libc::EINTR
++                } else {
++                    libc::EIO
++                }),
++                "{case}: {error}"
++            );
++        }
++        assert!(held.metadata().is_ok());
++        println!("PROBE_IO_FAILURE_CHECKED={case}");
++    }
+     /// spec: P26, G12
+     #[test]
+     fn descriptor_preparation_failures_leave_the_callers_table_unchanged() {
+@@ -468,6 +559,101 @@ mod signal_tests {
+ mod completion_tests {
+     use super::*;
+     use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
++    /// spec: P26, G12
++    #[test]
++    fn probe_drains_output_written_between_its_read_and_exit_check() {
++        const CHILD: &str = "RS_L2TPD_PROBE_DRAIN_CHILD";
++        if let Some(root) = std::env::var_os(CHILD) {
++            let root = PathBuf::from(root);
++            let held = std::fs::File::open("/dev/null").unwrap();
++            #[cfg(coverage_nightly)]
++            crate::syscall_fault::keep_profile_output();
++            let next = unsafe { libc::fcntl(held.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
++            assert!(next >= 0);
++            assert_eq!(unsafe { libc::close(next) }, 0);
++            std::fs::write(root.join("probe-fd"), next.to_string()).unwrap();
++            crate::syscall_barrier::stop().unwrap();
++            let result = probe(&root.join("probe"));
++            if root.ends_with("compatible") {
++                result.unwrap();
++            } else {
++                assert_eq!(
++                    result.unwrap_err().to_string(),
++                    "incompatible adoption protocol"
++                );
++            }
++            assert!(held.metadata().is_ok());
++            println!("PROBE_DRAIN_LIMIT_CHECKED=1");
++            return;
++        }
++        let dir = crate::testdir::Dir::new();
++        for (case, tail, expected_reads) in [
++            ("compatible", "printf 's-l2tpd-adopt 1\\n'", 3),
++            ("oversized", "printf '%064d' 0", 2),
++        ] {
++            let root = dir.path().join(case);
++            std::fs::create_dir(&root).unwrap();
++            let root = root.as_path();
++            let script = format!(
++                "#!/bin/sh\nprintf r\n: > '{}/ready'\nwhile [ ! -f '{}/go' ]; do :; done\n{tail}\n",
++                root.display(),
++                root.display()
++            );
++            std::fs::write(root.join("probe.body"), script).unwrap();
++            // Bound the disposable writer even if its tracing parent fails.
++            std::fs::write(
++                root.join("probe"),
++                "#!/bin/sh\nexec timeout 5 /bin/sh \"$0.body\"\n",
++            )
++            .unwrap();
++            std::fs::set_permissions(root.join("probe"), std::fs::Permissions::from_mode(0o700))
++                .unwrap();
++            let mut reads = 0;
++            let mut released = false;
++            let output = crate::syscall_barrier::run(
++            Command::new(std::env::current_exe().unwrap())
++                .args(["--exact", "restart::completion_tests::probe_drains_output_written_between_its_read_and_exit_check", "--nocapture"])
++                .env(CHILD, root),
++            root,
++            |_, number, arguments| {
++                let deadline = Instant::now() + Duration::from_secs(5);
++                if number == libc::SYS_read as u64
++                    && arguments[0] as i32 == std::fs::read_to_string(root.join("probe-fd"))?.parse::<i32>().unwrap()
++                {
++                    reads += 1;
++                    if reads == 1 {
++                        while !root.join("ready").exists() {
++                            assert!(Instant::now() < deadline);
++                            std::thread::yield_now();
++                        }
++                    }
++                }
++                if number == libc::SYS_wait4 as u64 && reads == 1 && !released {
++                    std::fs::write(root.join("go"), "")?;
++                    let pid = arguments[0] as i32;
++                    loop {
++                        let status = std::fs::read_to_string(format!("/proc/{pid}/stat"))?;
++                        if status.rsplit_once(") ").is_some_and(|(_, state)| state.starts_with('Z')) {
++                            break;
++                        }
++                        assert!(Instant::now() < deadline, "probe did not exit after release");
++                        std::thread::yield_now();
++                    }
++                    released = true;
++                }
++                Ok(())
++            },
++        ).unwrap();
++            assert!(output.status.success(), "{output:?}");
++            assert!(
++                released && reads == expected_reads,
++                "release={released} reads={reads}"
++            );
++            assert!(
++                String::from_utf8_lossy(&output.stdout).contains("PROBE_DRAIN_LIMIT_CHECKED=1")
++            );
++        }
++    }
+     /// spec: P26
+     #[test]
+     fn malformed_entry_child() {
+@@ -605,6 +791,7 @@ mod completion_tests {
+         let Some(case) = std::env::var_os("COMPLETION_PID_ENTRY") else {
+             return;
+         };
++        crate::logger::init(true);
+         let dir = crate::testdir::Dir::new();
+         let keep = dir.path().join("file");
+         std::fs::write(&keep, "keep").unwrap();
+diff --git a/src/bin/rs-l2tpd/signals.rs b/src/bin/rs-l2tpd/signals.rs
+index c249cc6..d7fa682 100644
+--- a/src/bin/rs-l2tpd/signals.rs
++++ b/src/bin/rs-l2tpd/signals.rs
+@@ -397,13 +397,28 @@ mod libc_tests {
+                 }
+             }
+             assert!(!current.contains(Signal::SIGUSR1));
+-            if case == "wait-error" {
++            if case == "wait-error" || case == "collector-error" {
+                 crate::syscall_fault::refuse(&[libc::SYS_rt_sigtimedwait], libc::EIO);
+-                assert_eq!(wait(&set()).unwrap_err().raw_os_error(), Some(libc::EIO));
++                if case == "wait-error" {
++                    assert_eq!(wait(&set()).unwrap_err().raw_os_error(), Some(libc::EIO));
++                } else {
++                    crate::logger::init(true);
++                    let signals = Signals::install().unwrap();
++                    let deadline = std::time::Instant::now() + Duration::from_secs(5);
++                    while !signals.stopping() {
++                        assert!(
++                            std::time::Instant::now() < deadline,
++                            "collector did not request shutdown"
++                        );
++                        std::thread::yield_now();
++                    }
++                    drop(signals);
++                    println!("COLLECTOR_ERROR_SHUTDOWN=1");
++                }
+             }
+             return;
+         }
+-        for case in ["delivery", "mask-error", "wait-error"] {
++        for case in ["delivery", "mask-error", "wait-error", "collector-error"] {
+             let output = std::process::Command::new(std::env::current_exe().unwrap())
+                 .args([
+                     "--exact",
+@@ -419,6 +434,12 @@ mod libc_tests {
+                 String::from_utf8_lossy(&output.stdout),
+                 String::from_utf8_lossy(&output.stderr)
+             );
++            if case == "collector-error" {
++                assert!(
++                    String::from_utf8_lossy(&output.stdout).contains("COLLECTOR_ERROR_SHUTDOWN=1")
++                );
++                assert!(String::from_utf8_lossy(&output.stderr).contains("sigwait:"));
++            }
+             println!("LIBC_SIGNAL_CHECKED={case}");
+         }
+     }
+diff --git a/src/reconciler/tests.rs b/src/reconciler/tests.rs
+index 3a0903b..ce1f3c3 100644
+--- a/src/reconciler/tests.rs
++++ b/src/reconciler/tests.rs
+@@ -31,6 +31,12 @@ mod completion {
+         assert!(!r.reconcile(toml::from_str(CONFIG).unwrap()));
+         let pending = r.tunable_pending.unwrap();
+         r.take_requests();
++        assert!(!r.reconcile(toml::from_str(CONFIG).unwrap()));
++        assert_eq!(r.tunable_pending, Some(pending));
++        assert!(
++            r.take_requests().is_empty(),
++            "reload duplicated an outstanding write"
++        );
+         r.tunable_written(pending.0 + 1, true);
+         assert_eq!(r.tunable_pending, Some(pending));
+         assert!(!r.ready());
+diff --git a/src/reconciler/wanted_tests.rs b/src/reconciler/wanted_tests.rs
+index 6fe8572..9a2e1f0 100644
+--- a/src/reconciler/wanted_tests.rs
++++ b/src/reconciler/wanted_tests.rs
+@@ -479,6 +479,36 @@ fn a_pending_name_already_observed_as_the_target_needs_no_kernel_write() {
+     assert!(r.k.ops().is_empty(), "already satisfied name was rewritten");
+ }
+ 
++/// spec: S8, S10, S18, G4
++#[test]
++fn a_name_observed_during_staging_remains_subject_to_first_publication() {
++    let (mut r, config) = staging_fixture("interface_hwaddr='02:00:5e:00:53:01'");
++    r.accepted = config.clone();
++    r.wanted_sessions.insert(100, "s".into());
++    r.stage(
++        "s",
++        &config.sessions()["s"],
++        config.session_identity("s").unwrap(),
++        10,
++    )
++    .unwrap();
++    let registration = *r.sessions[&100].state.registration().unwrap();
++    let manager = L2tpIfName::new(b"manager").unwrap();
++    r.k.rename_link(registration.index, "manager");
++    r.session_device_changed(100, manager, false);
++    assert_eq!(r.sessions[&100].current_name, Some(manager));
++    assert_eq!(r.sessions[&100].name_state, Enforce::Pending);
++    assert!(r.converge_session(100));
++    assert_eq!(
++        r.k.link(registration.index)
++            .unwrap()
++            .name()
++            .to_string_lossy(),
++        "l2tp0"
++    );
++    assert_eq!(r.sessions[&100].name_state, Enforce::Applied);
++}
++
+ /// spec: S9, S22, G2, G4
+ #[test]
+ fn deletion_without_a_stored_creation_name_neither_scans_nor_guesses() {
+diff --git a/tests/rules/completion.rs b/tests/rules/completion.rs
+index 6634bad..c2b759e 100644
+--- a/tests/rules/completion.rs
++++ b/tests/rules/completion.rs
+@@ -331,6 +331,24 @@ fn completion_report_counts() {
+             .filter(|(l, message)| *l == level && message.contains(text))
+             .count()
+     };
++    for errno in [Errno::EAFNOSUPPORT, Errno::EPERM] {
++        capture.messages.lock().unwrap().clear();
++        let (mut r, _) = reconciler();
++        let device = r.kernel_mut().add_link("wan", false);
++        r.kernel_mut()
++            .add_addr(device, "192.0.2.1".parse().unwrap());
++        r.kernel_mut().fail_next("connect", errno);
++        assert!(r.reconcile(config(TUNNEL)));
++        let socket = r.kernel().tunnel_socket(10).unwrap();
++        assert!(r.kernel().connection(socket).is_none());
++        assert_eq!(count(log::Level::Error, "refused as a daemon defect"), 1);
++        assert_eq!(count(log::Level::Error, &format!("{errno:?}")), 1);
++        run_for(&mut r, 1);
++        assert!(r.kernel().connection(socket).is_some());
++        assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
++        assert_eq!(count(log::Level::Error, "refused as a daemon defect"), 1);
++    }
++    capture.messages.lock().unwrap().clear();
+     for loss in [false, true] {
+         capture.messages.lock().unwrap().clear();
+         let (mut r, _) = reconciler();
+diff --git a/tests/rules/events.rs b/tests/rules/events.rs
+index a5b6e5f..3e4d334 100644
+--- a/tests/rules/events.rs
++++ b/tests/rules/events.rs
+@@ -4,6 +4,49 @@ use super::{TUNNEL, config, deliver, ops, reconciler};
+ use rs_l2tpd::kernel::{AddrInfo, Kernel, Notice};
+ use rs_l2tpd::reconciler::Source;
+ 
++/// spec: E3, E6, E7, M16, G13, G23
++#[test]
++fn repeated_address_removal_and_unusable_vrf_member_loss_issue_no_reconnect() {
++    let (mut r, _) = reconciler();
++    let vrf = r.kernel_mut().add_link("blue", true);
++    let member = r.kernel_mut().add_link("member", false);
++    r.kernel_mut().set_master(member, Some(vrf));
++    let address = "2001:db8::1".parse().unwrap();
++    let text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nip_version='V6'\nremote_addr='2001:db8::2'\nbind_interface='blue'\n";
++    assert!(r.reconcile(config(text)));
++    deliver(&mut r);
++    let socket = r.kernel().tunnel_socket(10).unwrap();
++    assert!(r.kernel().connection(socket).is_none());
++    ops(&mut r);
++    r.kernel_mut().remove_link(member);
++    deliver(&mut r);
++    assert!(
++        ops(&mut r).is_empty(),
++        "a disconnected tunnel needs no source reselection"
++    );
++    let member = r.kernel_mut().add_link("member", false);
++    r.kernel_mut().set_master(member, Some(vrf));
++    r.kernel_mut().add_addr(member, address);
++    deliver(&mut r);
++    super::run_for(&mut r, 1);
++    assert_eq!(
++        r.kernel().connection(socket).map(|(_, source)| source),
++        Some(address)
++    );
++    r.kernel_mut().del_addr(member, address);
++    deliver(&mut r);
++    assert!(r.kernel().connection(socket).is_none());
++    ops(&mut r);
++    for _ in 0..3 {
++        r.handle(
++            Source::Monitor,
++            Notice::AddrDel(AddrInfo::new(member, address)),
++        );
++    }
++    assert!(ops(&mut r).is_empty());
++    assert_eq!(r.kernel().tunnel_socket(10), Some(socket));
++}
++
+ /// spec: R35, E20, E21, M18
+ #[test]
+ fn a_link_address_burst_coalesces_loss_and_recovers_the_final_source() {

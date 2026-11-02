@@ -397,13 +397,28 @@ mod libc_tests {
                 }
             }
             assert!(!current.contains(Signal::SIGUSR1));
-            if case == "wait-error" {
+            if case == "wait-error" || case == "collector-error" {
                 crate::syscall_fault::refuse(&[libc::SYS_rt_sigtimedwait], libc::EIO);
-                assert_eq!(wait(&set()).unwrap_err().raw_os_error(), Some(libc::EIO));
+                if case == "wait-error" {
+                    assert_eq!(wait(&set()).unwrap_err().raw_os_error(), Some(libc::EIO));
+                } else {
+                    crate::logger::init(true);
+                    let signals = Signals::install().unwrap();
+                    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+                    while !signals.stopping() {
+                        assert!(
+                            std::time::Instant::now() < deadline,
+                            "collector did not request shutdown"
+                        );
+                        std::thread::yield_now();
+                    }
+                    drop(signals);
+                    println!("COLLECTOR_ERROR_SHUTDOWN=1");
+                }
             }
             return;
         }
-        for case in ["delivery", "mask-error", "wait-error"] {
+        for case in ["delivery", "mask-error", "wait-error", "collector-error"] {
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args([
                     "--exact",
@@ -419,6 +434,12 @@ mod libc_tests {
                 String::from_utf8_lossy(&output.stdout),
                 String::from_utf8_lossy(&output.stderr)
             );
+            if case == "collector-error" {
+                assert!(
+                    String::from_utf8_lossy(&output.stdout).contains("COLLECTOR_ERROR_SHUTDOWN=1")
+                );
+                assert!(String::from_utf8_lossy(&output.stderr).contains("sigwait:"));
+            }
             println!("LIBC_SIGNAL_CHECKED={case}");
         }
     }

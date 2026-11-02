@@ -479,6 +479,36 @@ fn a_pending_name_already_observed_as_the_target_needs_no_kernel_write() {
     assert!(r.k.ops().is_empty(), "already satisfied name was rewritten");
 }
 
+/// spec: S8, S10, S18, G4
+#[test]
+fn a_name_observed_during_staging_remains_subject_to_first_publication() {
+    let (mut r, config) = staging_fixture("interface_hwaddr='02:00:5e:00:53:01'");
+    r.accepted = config.clone();
+    r.wanted_sessions.insert(100, "s".into());
+    r.stage(
+        "s",
+        &config.sessions()["s"],
+        config.session_identity("s").unwrap(),
+        10,
+    )
+    .unwrap();
+    let registration = *r.sessions[&100].state.registration().unwrap();
+    let manager = L2tpIfName::new(b"manager").unwrap();
+    r.k.rename_link(registration.index, "manager");
+    r.session_device_changed(100, manager, false);
+    assert_eq!(r.sessions[&100].current_name, Some(manager));
+    assert_eq!(r.sessions[&100].name_state, Enforce::Pending);
+    assert!(r.converge_session(100));
+    assert_eq!(
+        r.k.link(registration.index)
+            .unwrap()
+            .name()
+            .to_string_lossy(),
+        "l2tp0"
+    );
+    assert_eq!(r.sessions[&100].name_state, Enforce::Applied);
+}
+
 /// spec: S9, S22, G2, G4
 #[test]
 fn deletion_without_a_stored_creation_name_neither_scans_nor_guesses() {

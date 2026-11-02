@@ -515,8 +515,8 @@ archive, both builds, source comparison and required live profiles now pass.
 The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
-Fresh corrected-source coverage is **98.57% of lines and 93.79% of branches**:
-8,563/8,687 lines and 1,737/1,852 branches, leaving **124 lines and 115
+Fresh corrected-source coverage is **98.78% of lines and 94.38% of branches**:
+8,581/8,687 lines and 1,748/1,852 branches, leaving **106 lines and 104
 branches**. There are no production exclusions, profile mismatches or
 saturated regions. Complete clause/history/resource/event-cost proof and
 the 100% gate remain open. Repository files
@@ -530,6 +530,10 @@ reject broken variants. The file-race/inheritance/shutdown batch adds another
 20 lines and 12 outcomes. Its final five-kernel profiles, ten fake repetitions,
 three GNU/musl container repetitions and three further failure controls pass.
 Fork-based syscall fixtures execute separately in the serial live profile.
+The probe/event batch adds 18 lines and 11 outcomes, with passing binary
+profiles on all five required kernels, three GNU and three musl container
+repetitions, ten instrumented fake runs and three failure controls. It keeps
+all production mappings and exclusions unchanged.
 The following entries retain earlier measurements.
 
 **Initial status, 2026-10-31.** The strict source-link check
