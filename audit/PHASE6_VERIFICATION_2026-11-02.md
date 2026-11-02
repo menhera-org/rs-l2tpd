@@ -2,7 +2,7 @@
 
 Phase 6 remains incomplete. The required-kernel matrix now passes with
 mainline 7.4-rc1. The fresh checked-boundary collector reaches **99.18%
-lines / 96.68% branch outcomes**. It contains no preceding implementation's
+lines / 96.74% branch outcomes**. It contains no preceding implementation's
 profiles and excludes no production code. The
 [November 1 record](PHASE6_VERIFICATION_2026-11-01.md) retains the detailed
 history, earlier scope and maintainer decisions.
@@ -12,7 +12,7 @@ history, earlier scope and maintainer decisions.
 | P1 rule/source maps | Common checks pass with 333 active rules cited and 43 kernel facts classified/cited; prior ten-run CI qualification is retained | Complete clause proof remains distinct from declaration traceability |
 | P2 scenarios | The checked-boundary source passes all 27 normal scenarios on each required kernel, including H20 fragmentation and H17 scale | Complete clause/history/resource/event-cost proof |
 | P3 required kernels | All thirteen fresh profiles pass; publication recheck selects the same five kernels; the batch records its production changes | Recheck whenever the published target set changes |
-| P4 coverage | 8,634/8,705 lines (99.18%); 1,779/1,840 outcomes (96.68%); no production exclusions | Cover the remaining 71 lines and 61 outcomes, then enforce the completed gate in CI |
+| P4 coverage | 8,634/8,705 lines (99.18%); 1,780/1,840 outcomes (96.74%); no production exclusions | Cover the remaining 71 lines and 60 outcomes, then enforce the completed gate in CI |
 | P5 Incus/LXD | Fresh checked-boundary GNU and shipped-musl unprivileged system-container runs pass on Ubuntu 24.04 / 6.8.0-147 | Preserve that kernel/userspace scope |
 | P6 root sandbox | Fresh checked-boundary code passes the unmodified supplied unit on Ubuntu 24.04 / 6.8.0-147; three GNU manager/task-limit runs also pass | Other distribution userspaces remain untested |
 | P7 docs/CI | Current kernel selection, source/build comparison and scoped behavior are documented; strict maps and workflow timeouts remain active; the parser self-test is now in common CI | Final complete proof and 100% coverage enforcement |

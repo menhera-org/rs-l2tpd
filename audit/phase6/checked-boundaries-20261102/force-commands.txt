@@ -1,0 +1,11 @@
+The existing audit/phase6/netlink-io-faults-20261101/run-qemu.sh was
+run three times with the fresh instrumented GNU library executable from
+checked-boundaries-20261102/native.log and the Noble 6.8.0-147 kernel root.
+Each invocation used an outer timeout -k 10 180, fresh force-guest-N record
+and profile directories, and required its seven exported profiles.
+Profiles were copied into the fresh collector with checked-force-N prefixes.
+No earlier implementation's profiles were imported.
+
+CARGO_LLVM_COV_TARGET_DIR=target/phase6-coverage-checked-boundaries-20261102
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path /tmp/phase6-checked-coverage.json

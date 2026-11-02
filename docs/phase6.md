@@ -28,11 +28,11 @@ the scenario suite below; read them before writing new scenarios.
 ## Execution status, 2026-11-02
 
 The checked-boundary batch after signed 241bd51 uses a fresh collector:
-**8,634/8,705 lines (99.18%)** and **1,779/1,840 outcomes (96.68%)**.
+**8,634/8,705 lines (99.18%)** and **1,780/1,840 outcomes (96.74%)**.
 Its shared gates, ten instrumented repetitions, repeated GNU/musl process
 suites, all thirteen required kernel profiles, GNU Incus, manager/task-limit
 runs and unmodified root systemd sandbox pass. Five restored negative
-controls fail as intended. **71 lines and 61 outcomes remain uncovered.**
+controls fail as intended. **71 lines and 60 outcomes remain uncovered.**
 Repository record `audit/phase6/checked-boundaries-20261102/README.md`
 separates those results from earlier implementation profiles and retains
 the rejected fork-limit fixture. Phase 6 remains open.

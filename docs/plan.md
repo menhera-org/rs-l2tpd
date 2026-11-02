@@ -516,8 +516,8 @@ The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
 The checked-boundary refactor has fresh coverage of **99.18% of lines and
-96.68% of branches**: 8,634/8,705 lines and 1,779/1,840 outcomes, leaving
-**71 lines and 61 outcomes**. It merges no profiles from the preceding
+96.74% of branches**: 8,634/8,705 lines and 1,780/1,840 outcomes, leaving
+**71 lines and 60 outcomes**. It merges no profiles from the preceding
 implementation and excludes no production code. Shared checks, all thirteen
 required kernel profiles, repeated GNU/musl process suites, GNU Incus,
 manager/task-limit checks and the unmodified root sandbox pass. Five

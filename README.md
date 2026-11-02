@@ -67,16 +67,18 @@ the root system-unit sandbox have passing local records. The approved MAC
 and dependency-state contracts are applied. Broken `nix` signal wrappers
 use checked `libc` calls under the documented exception. The
 [latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-02.md) gives coverage
-and the remaining clause/resource/event-cost proof. The fresh [boundary batch](audit/phase6/checked-boundaries-20261102/README.md)
-reaches **99.18% of lines and 96.68% of branches**, leaving 71 lines and
-61 outcomes. It checks SIGPIPE failures, ACK-only netlink exchanges,
+and the remaining clause/resource/event-cost proof. The fresh
+[boundary batch](audit/phase6/checked-boundaries-20261102/README.md)
+reaches **99.18% of lines and 96.74% of branches**, leaving 71 lines and
+60 outcomes. It checks SIGPIPE failures, ACK-only netlink exchanges,
 PID-file identity and daemon readiness errors. All thirteen required kernel
 profiles, repeated GNU/musl process suites, GNU Incus and the unmodified
 root systemd sandbox pass. Five deliberately broken controls fail.
 [Required-kernel behavior](docs/kernel-behavior.md) records each target's
 differences, source evidence and limitations. The checked reply decoder passes
-all thirteen profiles of the current required set, including 7.4-rc1. Request handling has complete line coverage; its branch gate remains open.
-The global gates remain open. The November 2 publication recheck retains
+all thirteen profiles of the current required set, including 7.4-rc1.
+Fresh buffer-force guests also give the request adapter complete line and
+branch coverage. The global gates remain open. The November 2 publication recheck retains
 mainline 7.4-rc1. Its source comparison, both builds and all required profiles
 pass. The earlier frozen 455eef7 matrix has matching publication selections
 and empty source patches; the new batch records its production changes.

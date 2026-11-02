@@ -3,7 +3,7 @@
 This batch starts from signed `241bd51`. It changes production boundaries,
 so its coverage collector is new; no preceding implementation's profiles
 are merged. Coverage is **8,634/8,705 lines (99.18%)** and
-**1,779/1,840 branch outcomes (96.68%)**. **71 lines and 61 outcomes
+**1,780/1,840 branch outcomes (96.74%)**. **71 lines and 60 outcomes
 remain uncovered.** There are no production exclusions. The changed
 denominators reflect refactoring; this is not an unchanged-mapping comparison.
 
@@ -43,7 +43,8 @@ child; it adds no production dependency or feature.
   35 process cases. These include the new descriptor-limit recovery.
 - The fresh GNU live collection passes the serial library, Linux, review,
   process and all 27 non-Incus scenario cases. Four serial startup
-  resource cases pass separately.
+  resource cases pass separately. Three fresh GNU buffer-force guests each
+  export seven profiles; these recover one additional branch outcome.
 - Fresh GNU Incus passes, with seven daemon profiles recovered. Three
   shipped-musl scenario/Incus pairs pass on Ubuntu 6.8.0-147. Three
   manager/task-limit repetitions and the unmodified root systemd unit pass.

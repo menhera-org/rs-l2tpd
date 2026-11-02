@@ -254,8 +254,8 @@ stale completions, foreign-family parsing, PID-file inspection errors,
 resolver/host boundaries, installer/descriptor/reconciler failures,
 file races, probe I/O, competing names and late event/input boundaries:
 the preceding report reached 98.96% lines / 96.27% branches. The new
-checked-boundary refactor reaches **99.18% lines / 96.68% branches**, leaving
-**71 lines and 61 outcomes**. Its separate fresh collector includes
+checked-boundary refactor reaches **99.18% lines / 96.74% branches**, leaving
+**71 lines and 60 outcomes**. Its separate fresh collector includes
 native models, GNU live/Incus, manager and thread-limit profiles, with no
 production exclusions, mismatches or saturated regions. The checked-boundary
 implementation has 8,705 lines and 1,840 outcomes. Profiles from earlier

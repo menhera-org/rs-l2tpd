@@ -1,9 +1,9 @@
 {
   "branches": {
     "count": 1840,
-    "covered": 1779,
-    "notcovered": 61,
-    "percent": 96.68478260869564
+    "covered": 1780,
+    "notcovered": 60,
+    "percent": 96.73913043478261
   },
   "functions": {
     "count": 1191,
