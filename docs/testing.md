@@ -254,8 +254,10 @@ stale completions, foreign-family parsing, PID-file inspection errors,
 resolver/host boundaries, installer/descriptor/reconciler failures,
 file races, probe I/O, competing names and late event/input boundaries:
 the checked-boundary report reached 99.18% lines / 96.74% branch outcomes.
-The fresh event/lifetime collector reaches **99.28% lines / 97.12% outcomes**:
-8,642/8,705 lines and 1,787/1,840 outcomes, leaving **63 lines and 53 outcomes**.
+The scoped-inventory batch reaches **99.31% lines / 97.39% outcomes**:
+8,645/8,705 lines and 1,792/1,840 outcomes, leaving **60 lines and 48 outcomes**.
+All 5,889 exported mappings match the event/lifetime collector, permitting
+its profile reuse.
 It includes native models, GNU live/Incus, manager/task-limit profiles and
 three buffer-force guests, with no production exclusions, mismatches or
 saturated regions. Moving shared test helpers changes source locations;
@@ -266,7 +268,10 @@ and the retained failed parallel clock and QEMU experiments. Direct
 container limits now exercise both fork failures; three stable GNU and
 three stable musl repetitions pass. The common CI script runs tracer
 calibrations explicitly and serially: a child before exec can otherwise
-retain descriptors belonging to concurrent fake-kernel cases.
+retain descriptors belonging to concurrent fake-kernel cases. Repository record
+`audit/phase6/scoped-inventory-events-20261102/README.md` adds five focused
+kernel profiles and seven failure controls; its newer-kernel session-query
+observations are not yet instrumented in the GNU collector.
 
 Signed code 1b3d876 passes fresh GNU live/Incus and three shipped-musl
 scenario/Incus pairs locally on Ubuntu 6.8.0-147. Profile exports use unique

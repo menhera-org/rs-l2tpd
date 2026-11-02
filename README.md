@@ -68,14 +68,15 @@ and dependency-state contracts are applied. Broken `nix` signal wrappers
 use checked `libc` calls under the documented exception. The
 [latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-02.md) gives coverage
 and the remaining clause/resource/event-cost proof. The fresh
-[event/lifetime batch](audit/phase6/event-and-lifetime-ordering-20261102/README.md)
-reaches **99.28% of lines and 97.12% of branch outcomes**, leaving 63 lines
-and 53 outcomes. It adds ordered lifetime races, closed queues, shutdown
+[scoped-inventory batch](audit/phase6/scoped-inventory-events-20261102/README.md)
+reaches **99.31% of lines and 97.39% of branch outcomes**, leaving 60 lines
+and 48 outcomes. It adds ordered lifetime races, closed queues, shutdown
 completions and direct tests of both fork failures. GNU/musl repetitions,
 GNU Incus and the unmodified root sandbox pass. Required normal/boot
 profiles and a serial clock replay pass; earlier parallel clock failures
 and rejected QEMU experiments remain documented. Seven faulty controls
-are rejected.
+are rejected. Five further focused kernel profiles check filtered inventories,
+creation-timeout capture release and VRF/zone events.
 [Required-kernel behavior](docs/kernel-behavior.md) records each target's
 differences, source evidence and limitations. The checked reply decoder passes
 all thirteen profiles of the current required set, including 7.4-rc1.

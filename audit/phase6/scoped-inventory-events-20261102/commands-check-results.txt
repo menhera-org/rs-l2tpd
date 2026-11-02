@@ -1,0 +1,44 @@
+set -eu
+record=$PWD/audit/phase6/scoped-inventory-events-20261102
+for label in noble resolute vanilla-6.8.12 vanilla-7.0.14 vanilla-7.4-rc1; do
+ [ "$(cat "$record/kernels/$label.exit")" = 0 ]
+ for marker in BINARY_UNIT_RESULT=0 MATRIX_GUEST_RESULT=0 FILTERED_SESSION_INVENTORIES_CHECKED=4 TIMED_CREATION_CAPTURE_RELEASED=1; do
+  grep -q "$marker" "$record/kernels/$label/run.log"
+ done
+ printf 'FOCUSED_REQUIRED_PROFILE=%s PASS\n' "$label"
+done
+for repeat in 1 2 3; do
+ for target in x86_64-unknown-linux-gnu x86_64-unknown-linux-musl; do
+  file=$record/container-$target-$repeat.log
+  grep -q 'test result: ok. 308 passed; 0 failed' "$file"
+  grep -q 'test result: ok. 80 passed; 0 failed' "$file"
+  grep -q 'FILTERED_SESSION_INVENTORIES_CHECKED=4' "$file"
+  grep -q 'TIMED_CREATION_CAPTURE_RELEASED=1' "$file"
+ done
+ grep -q 'FILTERED_SESSION_INVENTORIES_CHECKED=4' "$record/instrumented-live-$repeat.log"
+ grep -q 'TIMED_CREATION_CAPTURE_RELEASED=1' "$record/instrumented-live-$repeat.log"
+done
+for seed in 11 12 13 14 15 16 17 18 19 20; do
+ grep -q 'test result: ok. 308 passed; 0 failed' "$record/instrumented-$seed.log"
+ if grep -Eq 'test result: FAILED|error: test failed' "$record/instrumented-$seed.log"; then exit 1; fi
+done
+for name in readiness-byte session-filter member-connectivity address-family address-domain unbound-zone creation-deadline; do
+ grep -q 'panicked' "$record/control-$name.log"
+ printf 'NEGATIVE_CONTROL=%s REJECTED\n' "$name"
+done
+candidate=$(cat /tmp/phase6-resolver-validation-path)
+for file in src/bin/rs-l2tpd/daemon.rs src/kernel/linux/l2tp.rs src/kernel/linux/mod.rs src/reconciler/events.rs src/reconciler/ladder.rs; do
+ cmp "$file" "$candidate/$file"
+done
+candidate=$(cat /tmp/phase6-race-validation-path)
+result=0
+diff -r src "$candidate/src" > "$record/guest-final-formatting.patch" || result=$?
+[ "$result" = 1 ]
+[ "$(grep -c "^diff -r " "$record/guest-final-formatting.patch")" = 1 ]
+grep -q "^diff -r src/reconciler/events.rs " "$record/guest-final-formatting.patch"
+rustfmt --edition 2024 --emit stdout < src/reconciler/events.rs > /tmp/scoped-root-events.rs
+rustfmt --edition 2024 --emit stdout < "$candidate/src/reconciler/events.rs" > /tmp/scoped-guest-events.rs
+cmp /tmp/scoped-root-events.rs /tmp/scoped-guest-events.rs
+git --no-pager diff --exit-code -- tests/kernel/run-guest.sh tests/kernel/matrix-init.sh
+cmp "$record/publication-final/versions" audit/phase6/event-and-lifetime-ordering-20261102/publication-final/versions
+printf 'MUTATIONS_RESTORED=1\nSHIPPING_RUNNER_UNCHANGED=1\nPUBLICATION_SELECTION_UNCHANGED=1\nSCOPED_CHECKED_RESULTS_RESULT=0\n'

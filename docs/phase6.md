@@ -27,10 +27,11 @@ the scenario suite below; read them before writing new scenarios.
 
 ## Execution status, 2026-11-02
 
-Phase 6 remains open. Signed `0bb8100` passes both CI jobs and CodeQL.
-The subsequent event/lifetime collector covers **8,642/8,705 lines (99.28%)**
-and **1,787/1,840 outcomes (97.12%)**, leaving **63 lines and 53 outcomes**.
-It excludes no production code and merges no preceding profiles. The
+Phase 6 remains open. Signed `7e095c1` passes both CI jobs and CodeQL.
+The subsequent scoped-inventory collector covers **8,645/8,705 lines (99.31%)**
+and **1,792/1,840 outcomes (97.39%)**, leaving **60 lines and 48 outcomes**.
+It excludes no production code and reuses the event/lifetime profiles only
+after all 5,889 exported function mappings compare equal. The
 required set remains Ubuntu 6.8.0-147.147 and 7.0.0-42.42, vanilla 6.8.12
 and 7.0.14, and mainline 7.4-rc1.
 
@@ -50,6 +51,16 @@ the record; the shipping runner and timing assertions are unchanged.
 The passing replay does not establish determinism or resolve the suspected
 emulator fault. Final focused lifetime repetitions qualify the later
 quiet-reader fixture; normal guests retain its earlier revision.
+
+The scoped-inventory/event batch adds malformed readiness bytes, filtered
+session inventories, creation-timeout cleanup and VRF/zone event cases.
+Ten instrumented suites, three GNU and three musl container repetitions,
+three instrumented live repetitions and five focused kernel profiles pass.
+Seven further controls are rejected. Wrong-tunnel session queries return
+ENODEV on the two 6.8 targets and a foreign-tunnel record on the three
+newer targets; the adapter returns absence in both cases. Repository file
+`audit/phase6/scoped-inventory-events-20261102/README.md` records the
+scope. Its focused profiles do not replace the preceding full matrix.
 
 Strict maps cover declarations for 333 active rules and classify/cite
 43 kernel facts. They establish traceability. Complete

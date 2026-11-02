@@ -1,0 +1,16 @@
+
+running 1 test
+test reconciler::events::resource_tests::a_literal_link_local_zone_connects_without_a_configured_bind_device ... 
+thread 'reconciler::events::resource_tests::a_literal_link_local_zone_connects_without_a_configured_bind_device' (7) panicked at src/reconciler/events.rs:1256:9:
+assertion failed: matches!(r.target(10).unwrap(), crate::reconciler::ladder::Target::Connect
+    { bind: None, zone: Some(index), .. } if index == zone)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    reconciler::events::resource_tests::a_literal_link_local_zone_connects_without_a_configured_bind_device
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 336 filtered out; finished in 0.00s
+

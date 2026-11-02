@@ -23,6 +23,27 @@ retains all attempts; the replay does not establish determinism or resolve
 the suspected emulator fault. Final focused lifetime tests pass repeated
 GNU/musl runs; normal guests retain their earlier fixture revision.
 
+The subsequent scoped-inventory batch passes five focused required-kernel
+profiles. These directly distinguish a wrong-tunnel `SESSION_GET` query:
+
+| Required target | Raw kernel result | Adapter result |
+|---|---|---|
+| Ubuntu 6.8.0-147.147 | ENODEV, no record | absent |
+| Vanilla 6.8.12 | ENODEV, no record | absent |
+| Ubuntu 7.0.0-42.42 | existing session from the other tunnel | absent |
+| Vanilla 7.0.14 | existing session from the other tunnel | absent |
+| Mainline 7.4-rc1 | existing session from the other tunnel | absent |
+
+On 6.8, `l2tp_nl_session_get` calls the tunnel-local
+`l2tp_tunnel_get_session` (`l2tp_core.c:243-262`). On the newer
+targets, the v3 path reaches the namespace lookup in
+`l2tp_v3_session_get` (`v7.0 l2tp_core.c:258-283,315-322`).
+The adapter's existing ID-pair check rejects the mismatched reply. All
+five targets also pass filtered dumps, duplicate-ID refusal, creation-timeout
+capture release and the focused VRF/zone cases. Repository record
+`audit/phase6/scoped-inventory-events-20261102/README.md` retains every
+profile. These focused runs do not replace the full normal/clock matrix.
+
 The 2026-11-02 publication recheck still selects **mainline 7.4-rc1**.
 Its source comparison, both builds and all thirteen required profiles pass
 on frozen Rust/test source 455eef7. Initial/final publication selections

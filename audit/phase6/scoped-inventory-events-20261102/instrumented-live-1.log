@@ -1,0 +1,21 @@
+
+running 1 test
+test kernel::linux::l2tp::boundary_tests::filtered_session_inventories_preserve_other_tunnels_and_namespace_ids ... WRONG_TUNNEL_SESSION_REPLY=None
+FILTERED_SESSION_INVENTORIES_CHECKED=4
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.00s
+
+
+running 1 test
+test kernel::linux::creation_deadline_tests::a_timed_out_creation_waits_for_its_capture_and_releases_the_name ... 
+running 1 test
+TIMED_CREATION_CAPTURE_RELEASED=1
+test kernel::linux::creation_deadline_tests::a_timed_out_creation_waits_for_its_capture_and_releases_the_name ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 5.02s
+
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 5.02s
+

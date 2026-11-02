@@ -1,8 +1,9 @@
 # Phase 6 verification, 2026-11-02
 
-Phase 6 remains incomplete. The fresh event/lifetime collector reaches
-**99.28% lines / 97.12% branch outcomes**. It contains no preceding batch's
-profiles and excludes no production code. The required normal/boot
+Phase 6 remains incomplete. The scoped-inventory batch reaches
+**99.31% lines / 97.39% branch outcomes**. All 5,889 exported mappings match
+the event/lifetime snapshot, allowing its profile reuse. No production
+code is excluded. The required normal/boot
 profiles and a serial clock replay pass, with failed parallel clocks and
 QEMU experiments retained. The
 [November 1 record](PHASE6_VERIFICATION_2026-11-01.md) preserves earlier
@@ -13,10 +14,21 @@ scope and maintainer decisions.
 | P1 rule/source maps | Common checks cover 333 active rules and 43 kernel facts; prior ten-run CI qualification is retained | Complete clause proof remains distinct from declaration traceability |
 | P2 scenarios | All 27 normal cases pass on each required kernel, including H20 fragmentation and H17 scale | Complete clause/history/resource/event-cost proof |
 | P3 required kernels | Five normal profiles, three absence/recovery boots and five serial clock profiles pass; publication selection is unchanged | Resolve or bound the retained parallel clock/emulator failures; recheck published targets |
-| P4 coverage | 8,642/8,705 lines (99.28%); 1,787/1,840 outcomes (97.12%); no production exclusions | Cover the remaining 63 lines and 53 outcomes, then enforce 100% in CI |
+| P4 coverage | 8,645/8,705 lines (99.31%); 1,792/1,840 outcomes (97.39%); no production exclusions | Cover the remaining 60 lines and 48 outcomes, then enforce 100% in CI |
 | P5 Incus/LXD | Fresh GNU unprivileged system-container run passes on Ubuntu 24.04 / 6.8.0-147; preceding shipped-musl scope is retained | Preserve that kernel/userspace scope |
 | P6 root sandbox | The unmodified supplied unit and three manager/task-limit runs pass; direct fork-limit cases pass three stable runs per libc | Other distribution userspaces remain untested |
 | P7 docs/CI | Kernel selection, behavior and limits are documented; strict maps and workflow timeouts remain active | Final complete proof and 100% coverage enforcement |
+
+The [scoped-inventory record](phase6/scoped-inventory-events-20261102/README.md)
+adds three covered lines and five outcomes without changing production
+mappings. Ten instrumented suites, three GNU and three musl container
+repetitions, three instrumented live repetitions and five focused required
+kernel profiles pass. Seven restored controls reject their intended faults.
+The timeout case checks the unchanged five-second capture deadline in an
+isolated child. A wrong-tunnel session query yields no record on both 6.8
+targets and the other tunnel's record on all three newer targets; the
+adapter filters that record. These focused profiles do not replace the
+preceding thirteen-profile matrix. Complete proof and 100% remain open.
 
 The [event/lifetime record](phase6/event-and-lifetime-ordering-20261102/README.md)
 identifies signed base `0bb8100`, the test/helper changes and a fresh collector.

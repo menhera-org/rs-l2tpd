@@ -260,7 +260,9 @@ mod parent_boundary_tests {
             let mut write = File::from(write);
             write.write_all(&daemon.0.id().to_ne_bytes()).unwrap();
             if !case.starts_with("poll") {
-                write.write_all(&[1]).unwrap();
+                write
+                    .write_all(&[u8::from(case != "invalid-readiness")])
+                    .unwrap();
             }
             std::fs::write(root.join("writer-fd"), write.as_raw_fd().to_string()).unwrap();
             std::fs::write(root.join("first-pid"), first.0.id().to_string()).unwrap();
@@ -287,7 +289,7 @@ mod parent_boundary_tests {
                 assert_eq!(result.err().unwrap().raw_os_error(), Some(libc::EIO));
             } else {
                 assert!(
-                    matches!(result.unwrap(), Started::Parent(code) if code == u8::from(case == "stop-before-pid"))
+                    matches!(result.unwrap(), Started::Parent(code) if code == u8::from(matches!(case, "stop-before-pid" | "invalid-readiness")))
                 );
             }
             assert_eq!(
@@ -305,6 +307,7 @@ mod parent_boundary_tests {
             "poll-interrupted",
             "poll-timeout",
             "stop-before-pid",
+            "invalid-readiness",
         ] {
             let root = directory.path().join(case);
             std::fs::create_dir(&root).unwrap();

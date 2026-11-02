@@ -1,0 +1,307 @@
+diff --git a/src/bin/rs-l2tpd/daemon.rs b/src/bin/rs-l2tpd/daemon.rs
+index bacd2ce..95e9b6a 100644
+--- a/src/bin/rs-l2tpd/daemon.rs
++++ b/src/bin/rs-l2tpd/daemon.rs
+@@ -260,7 +260,9 @@ mod parent_boundary_tests {
+             let mut write = File::from(write);
+             write.write_all(&daemon.0.id().to_ne_bytes()).unwrap();
+             if !case.starts_with("poll") {
+-                write.write_all(&[1]).unwrap();
++                write
++                    .write_all(&[u8::from(case != "invalid-readiness")])
++                    .unwrap();
+             }
+             std::fs::write(root.join("writer-fd"), write.as_raw_fd().to_string()).unwrap();
+             std::fs::write(root.join("first-pid"), first.0.id().to_string()).unwrap();
+@@ -287,7 +289,7 @@ mod parent_boundary_tests {
+                 assert_eq!(result.err().unwrap().raw_os_error(), Some(libc::EIO));
+             } else {
+                 assert!(
+-                    matches!(result.unwrap(), Started::Parent(code) if code == u8::from(case == "stop-before-pid"))
++                    matches!(result.unwrap(), Started::Parent(code) if code == u8::from(matches!(case, "stop-before-pid" | "invalid-readiness")))
+                 );
+             }
+             assert_eq!(
+@@ -305,6 +307,7 @@ mod parent_boundary_tests {
+             "poll-interrupted",
+             "poll-timeout",
+             "stop-before-pid",
++            "invalid-readiness",
+         ] {
+             let root = directory.path().join(case);
+             std::fs::create_dir(&root).unwrap();
+diff --git a/src/kernel/linux/l2tp.rs b/src/kernel/linux/l2tp.rs
+index 1a6088d..cbfde5f 100644
+--- a/src/kernel/linux/l2tp.rs
++++ b/src/kernel/linux/l2tp.rs
+@@ -772,4 +772,91 @@ mod boundary_tests {
+             );
+         }
+     }
++    // kernel: (K16, K19, K35) l2tp_nl_cmd_session_dump enumerates all namespace tunnels.
++    /// spec: A14, S20, S28, K16, K19
++    #[test]
++    #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
++    fn filtered_session_inventories_preserve_other_tunnels_and_namespace_ids() {
++        use std::os::fd::AsRawFd;
++        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
++        let mut genl = Genl::new().unwrap();
++        let mut sockets = Vec::new();
++        for (tid, name) in [(19101, "inventory-a"), (19102, "inventory-b")] {
++            let socket =
++                super::super::socket::Tunnel::create(crate::kernel::Family::V6, tid, tid + 100)
++                    .unwrap();
++            genl.register_tunnel(socket.socket.as_raw_fd(), tid, tid + 100)
++                .unwrap();
++            if tid == 19102 {
++                let error = genl
++                    .create_session(
++                        &SessionCreate::new(
++                            tid,
++                            19201,
++                            19301,
++                            None,
++                            None,
++                            "duplicate-id".parse().unwrap(),
++                        ),
++                        Instant::now() + DEADLINE,
++                    )
++                    .unwrap_err();
++                assert_eq!(error.raw_os_error(), Some(libc::EEXIST));
++            }
++            genl.create_session(
++                &SessionCreate::new(tid, tid + 100, tid + 200, None, None, name.parse().unwrap()),
++                Instant::now() + DEADLINE,
++            )
++            .unwrap();
++            sockets.push(socket);
++        }
++        for filter in [None, Some(19101), Some(19102), Some(19999)] {
++            let mut seen = Vec::new();
++            genl.scan_sessions(filter, &mut |info| {
++                seen.push((info.tunnel_id(), info.session_id()));
++            })
++            .unwrap();
++            seen.sort();
++            let expected: Vec<_> = [19101, 19102]
++                .into_iter()
++                .filter(|tid| filter.is_none_or(|wanted| wanted == *tid))
++                .map(|tid| (tid, tid + 100))
++                .collect();
++            assert_eq!(seen, expected, "filter={filter:?}");
++        }
++        for tid in [19101, 19102] {
++            let info = genl.session(tid, tid + 100).unwrap().unwrap();
++            assert_eq!(info.peer_session_id(), tid + 200);
++        }
++        // v6.8 looks within the tunnel; newer v3 lookup can return a namespace match.
++        let mut reported = None;
++        let result = genl.run(
++            L2tpMessage {
++                cmd: L2tpCmd::SessionGet,
++                attributes: vec![
++                    L2tpAttribute::ConnId(19102),
++                    L2tpAttribute::SessionId(19201),
++                ],
++            },
++            false,
++            Instant::now() + DEADLINE,
++            Some(&mut |reply| {
++                let info = session_info(reply)?;
++                reported = Some((info.tunnel_id(), info.session_id()));
++                Ok(())
++            }),
++        );
++        match result {
++            Ok(()) => assert_eq!(reported, Some((19101, 19201))),
++            Err(error) => {
++                assert_eq!(error.raw_os_error(), Some(libc::ENODEV));
++                assert_eq!(reported, None);
++            }
++        }
++        println!("WRONG_TUNNEL_SESSION_REPLY={reported:?}");
++        assert!(genl.session(19102, 19201).unwrap().is_none());
++        assert!(genl.session(19101, 19202).unwrap().is_none());
++        assert_eq!(sockets.len(), 2);
++        println!("FILTERED_SESSION_INVENTORIES_CHECKED=4");
++    }
+ }
+diff --git a/src/kernel/linux/mod.rs b/src/kernel/linux/mod.rs
+index 96d413b..7ccafa4 100644
+--- a/src/kernel/linux/mod.rs
++++ b/src/kernel/linux/mod.rs
+@@ -319,3 +319,58 @@ mod resources_tests {
+         assert!(kernel.sockets.capacity() <= 16);
+     }
+ }
++
++#[cfg(test)]
++#[cfg_attr(coverage_nightly, coverage(off))]
++mod creation_deadline_tests {
++    use super::*;
++    use crate::kernel::Kernel;
++
++    // kernel: (K20, K29) a timed-out mutation cannot establish absence of its broadcast.
++    /// spec: A14, S4, S8, S9, S22, E21
++    #[test]
++    #[ignore = "isolated namespace with CAP_NET_ADMIN, L2TP modules and syscall filters"]
++    fn a_timed_out_creation_waits_for_its_capture_and_releases_the_name() {
++        const CHILD: &str = "PHASE6_TIMED_CREATION_CHILD";
++        if std::env::var_os(CHILD).is_none() {
++            let output = std::process::Command::new(std::env::current_exe().unwrap())
++                .args(["--ignored", "--exact", "kernel::linux::creation_deadline_tests::a_timed_out_creation_waits_for_its_capture_and_releases_the_name", "--nocapture"])
++                .env(CHILD, "1").output().unwrap();
++            assert!(output.status.success(), "{output:?}");
++            assert!(
++                String::from_utf8_lossy(&output.stdout)
++                    .contains("TIMED_CREATION_CAPTURE_RELEASED=1")
++            );
++            print!("{}", String::from_utf8_lossy(&output.stdout));
++            return;
++        }
++        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
++        let mut kernel = LinuxKernel::new().unwrap();
++        let socket = kernel.create_socket(Family::V6, 19401, 19402).unwrap();
++        kernel.register_tunnel(socket, 19401, 19402).unwrap();
++        #[cfg(coverage_nightly)]
++        syscall_fault::keep_profile_output();
++        syscall_fault::refuse(&[libc::SYS_sendto, libc::SYS_sendmsg], libc::ETIMEDOUT);
++        let create = SessionCreate::new(
++            19401,
++            19403,
++            19404,
++            None,
++            None,
++            "timed-creation".parse().unwrap(),
++        );
++        let started = Instant::now();
++        assert_eq!(
++            kernel.create_session(&create).unwrap_err().raw_os_error(),
++            Some(libc::ETIMEDOUT)
++        );
++        assert!(
++            started.elapsed() >= DEADLINE,
++            "capture returned before its unchanged deadline"
++        );
++        kernel.lifetime.arm(&create.ifname).unwrap();
++        kernel.lifetime.disarm(&create.ifname);
++        kernel.close(socket);
++        println!("TIMED_CREATION_CAPTURE_RELEASED=1");
++    }
++}
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index ce88340..fcbde80 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -1152,4 +1152,111 @@ mod resource_tests {
+             1
+         );
+     }
++    /// spec: E3, E4, T13, G12, G17, M16
++    #[test]
++    fn removing_a_vrf_member_reconnects_only_an_already_connected_tunnel() {
++        for connected in [false, true] {
++            let mut kernel = FakeKernel::new(42);
++            let parent = kernel.add_link("red", true);
++            let member = kernel.add_link("member", false);
++            kernel.set_master(member, Some(parent));
++            kernel.add_addr(member, "192.0.2.1".parse().unwrap());
++            let peer = "192.0.2.2".parse().unwrap();
++            if !connected {
++                kernel.refuse(peer, Some(nix::errno::Errno::ENETUNREACH));
++            }
++            let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++            let text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='red'\n";
++            assert!(r.reconcile(toml::from_str(text).unwrap()));
++            drain(&mut r);
++            let socket = r.k.tunnel_socket(10).unwrap();
++            let deadline = r.next_deadline();
++            r.k.clear_ops();
++            r.k.remove_link(member);
++            drain(&mut r);
++            assert_eq!(r.k.tunnel_socket(10), Some(socket));
++            assert_eq!(
++                r.k.ops()
++                    .iter()
++                    .filter(|op| op.starts_with("connect "))
++                    .count(),
++                usize::from(connected),
++                "connected={connected}: {:?}",
++                r.k.ops(),
++            );
++            assert_eq!(r.k.connection(socket), None);
++            if !connected {
++                assert!(r.k.ops().is_empty(), "{:?}", r.k.ops());
++                assert_eq!(r.next_deadline(), deadline);
++            }
++        }
++    }
++
++    /// spec: E6, E7, T10, T27, G12, G17, M16
++    #[test]
++    fn member_addresses_affect_only_the_matching_family_and_vrf_domain() {
++        for vrf in [false, true] {
++            for same_family in [false, true] {
++                let mut kernel = FakeKernel::new(42);
++                let parent = kernel.add_link("parent", vrf);
++                let member = kernel.add_link("member", false);
++                kernel.set_master(member, Some(parent));
++                kernel.add_addr(parent, "192.0.2.1".parse().unwrap());
++                kernel.add_addr(member, "192.0.2.3".parse().unwrap());
++                let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++                let text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='parent'\n[tunnels.b]\ntunnel_id=11\nremote_addr='192.0.2.4'\nbind_interface='member'\n";
++                assert!(r.reconcile(toml::from_str(text).unwrap()));
++                drain(&mut r);
++                let parent_socket = r.k.tunnel_socket(10).unwrap();
++                let member_socket = r.k.tunnel_socket(11).unwrap();
++                r.k.clear_ops();
++                let address = if same_family {
++                    "192.0.2.5"
++                } else {
++                    "2001:db8::5"
++                };
++                r.k.add_addr(member, address.parse().unwrap());
++                drain(&mut r);
++                for (tid, socket, reconnect) in [
++                    (10, parent_socket, same_family && vrf),
++                    (11, member_socket, same_family),
++                ] {
++                    assert_eq!(r.k.tunnel_socket(tid), Some(socket));
++                    assert_eq!(
++                        r.k.ops()
++                            .iter()
++                            .filter(|op| { op.starts_with(&format!("connect {} ", socket.0)) })
++                            .count(),
++                        usize::from(reconnect),
++                        "vrf={vrf}, same_family={same_family}: {:?}",
++                        r.k.ops(),
++                    );
++                }
++                assert!(!r.k.ops().iter().any(|op| op.starts_with("close ")));
++            }
++        }
++    }
++
++    /// spec: T21, T27, E4, G4, G17
++    #[test]
++    fn a_literal_link_local_zone_connects_without_a_configured_bind_device() {
++        let mut kernel = FakeKernel::new(42);
++        let zone = kernel.add_link("zone", false);
++        kernel.add_addr(zone, "fe80::1".parse().unwrap());
++        let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++        let text =
++            "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='fe80::2%zone'\n";
++        assert!(r.reconcile(toml::from_str(text).unwrap()));
++        let socket = r.k.tunnel_socket(10).unwrap();
++        assert_eq!(r.k.binding(socket), Some(zone));
++        assert_eq!(
++            r.k.connection(socket).unwrap().1,
++            "fe80::1".parse::<IpAddr>().unwrap()
++        );
++        assert!(matches!(r.target(10).unwrap(),
++            crate::reconciler::ladder::Target::Connect { bind: None, zone: Some(index), .. }
++                if index == zone
++        ));
++        assert!(r.ready());
++    }
+ }

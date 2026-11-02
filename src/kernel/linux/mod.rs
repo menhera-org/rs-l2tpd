@@ -319,3 +319,58 @@ mod resources_tests {
         assert!(kernel.sockets.capacity() <= 16);
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod creation_deadline_tests {
+    use super::*;
+    use crate::kernel::Kernel;
+
+    // kernel: (K20, K29) a timed-out mutation cannot establish absence of its broadcast.
+    /// spec: A14, S4, S8, S9, S22, E21
+    #[test]
+    #[ignore = "isolated namespace with CAP_NET_ADMIN, L2TP modules and syscall filters"]
+    fn a_timed_out_creation_waits_for_its_capture_and_releases_the_name() {
+        const CHILD: &str = "PHASE6_TIMED_CREATION_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--ignored", "--exact", "kernel::linux::creation_deadline_tests::a_timed_out_creation_waits_for_its_capture_and_releases_the_name", "--nocapture"])
+                .env(CHILD, "1").output().unwrap();
+            assert!(output.status.success(), "{output:?}");
+            assert!(
+                String::from_utf8_lossy(&output.stdout)
+                    .contains("TIMED_CREATION_CAPTURE_RELEASED=1")
+            );
+            print!("{}", String::from_utf8_lossy(&output.stdout));
+            return;
+        }
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let mut kernel = LinuxKernel::new().unwrap();
+        let socket = kernel.create_socket(Family::V6, 19401, 19402).unwrap();
+        kernel.register_tunnel(socket, 19401, 19402).unwrap();
+        #[cfg(coverage_nightly)]
+        syscall_fault::keep_profile_output();
+        syscall_fault::refuse(&[libc::SYS_sendto, libc::SYS_sendmsg], libc::ETIMEDOUT);
+        let create = SessionCreate::new(
+            19401,
+            19403,
+            19404,
+            None,
+            None,
+            "timed-creation".parse().unwrap(),
+        );
+        let started = Instant::now();
+        assert_eq!(
+            kernel.create_session(&create).unwrap_err().raw_os_error(),
+            Some(libc::ETIMEDOUT)
+        );
+        assert!(
+            started.elapsed() >= DEADLINE,
+            "capture returned before its unchanged deadline"
+        );
+        kernel.lifetime.arm(&create.ifname).unwrap();
+        kernel.lifetime.disarm(&create.ifname);
+        kernel.close(socket);
+        println!("TIMED_CREATION_CAPTURE_RELEASED=1");
+    }
+}

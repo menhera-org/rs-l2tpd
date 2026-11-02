@@ -1,0 +1,26 @@
+
+running 1 test
+test kernel::linux::l2tp::boundary_tests::filtered_session_inventories_preserve_other_tunnels_and_namespace_ids ... WRONG_TUNNEL_SESSION_REPLY=None
+FILTERED_SESSION_INVENTORIES_CHECKED=4
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.00s
+
+
+running 1 test
+test kernel::linux::creation_deadline_tests::a_timed_out_creation_waits_for_its_capture_and_releases_the_name ... 
+thread '<unnamed>' (9) panicked at src/kernel/linux/mod.rs:342:44:
+called `Result::unwrap()` on an `Err` value: Os { code: 110, kind: TimedOut, message: "Connection timed out" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'kernel::linux::creation_deadline_tests::a_timed_out_creation_waits_for_its_capture_and_releases_the_name' (7) panicked at src/kernel/linux/mod.rs:365:33:
+called `Result::unwrap()` on an `Err` value: Any { .. }
+FAILED
+
+failures:
+
+failures:
+    kernel::linux::creation_deadline_tests::a_timed_out_creation_waits_for_its_capture_and_releases_the_name
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 364 filtered out; finished in 5.01s
+

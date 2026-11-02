@@ -1,0 +1,3 @@
+zone = Some(link.index);
+===REPLACE===
+zone = bind.as_ref().map(|link| link.index);

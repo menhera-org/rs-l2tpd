@@ -515,18 +515,19 @@ archive, both builds, source comparison and required live profiles now pass.
 The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
-The fresh event/lifetime collector covers **99.28% of lines and 97.12% of
-branch outcomes**: 8,642/8,705 lines and 1,787/1,840 outcomes, leaving
-**63 lines and 53 outcomes**. It merges no preceding profiles and excludes
-no production code. Shared checks, repeated GNU/musl models and task-limit
+The scoped-inventory batch covers **99.31% of lines and 97.39% of branch
+outcomes**: 8,645/8,705 lines and 1,792/1,840 outcomes, leaving
+**60 lines and 48 outcomes**. All 5,889 exported mappings match the preceding
+test-only snapshot, allowing its profile reuse. No production code is excluded. Shared checks, repeated GNU/musl models and task-limit
 cases, GNU Incus, manager checks and the unmodified root sandbox pass.
 Direct container limits now exercise both fork failures. Required normal
 and boot profiles pass, as does a serial clock replay; failed parallel
 clocks and rejected QEMU experiments remain evidence of unresolved execution
 sensitivity. Seven negative controls detect their mutations. Repository
 record `audit/phase6/event-and-lifetime-ordering-20261102/README.md` retains
-the exact scope. Complete clause/history/resource/event-cost proof and the
-100% gate remain open.
+the full-profile scope. The subsequent scoped-inventory record adds five
+focused kernel profiles, repeated GNU/musl live cases and seven controls.
+Complete clause/history/resource/event-cost proof and the 100% gate remain open.
 
 The preceding competing-state/input batch reached 98.96%/96.27%, adding eight
 covered lines and eighteen outcomes. Its ten instrumented repetitions,

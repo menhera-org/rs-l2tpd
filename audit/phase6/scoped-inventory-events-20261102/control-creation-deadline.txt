@@ -1,0 +1,3 @@
+Err(error) if error.raw_os_error() != Some(libc::ETIMEDOUT) => {
+===REPLACE===
+Err(error) => {

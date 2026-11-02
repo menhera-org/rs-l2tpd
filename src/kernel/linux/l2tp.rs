@@ -772,4 +772,91 @@ mod boundary_tests {
             );
         }
     }
+    // kernel: (K16, K19, K35) l2tp_nl_cmd_session_dump enumerates all namespace tunnels.
+    /// spec: A14, S20, S28, K16, K19
+    #[test]
+    #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
+    fn filtered_session_inventories_preserve_other_tunnels_and_namespace_ids() {
+        use std::os::fd::AsRawFd;
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let mut genl = Genl::new().unwrap();
+        let mut sockets = Vec::new();
+        for (tid, name) in [(19101, "inventory-a"), (19102, "inventory-b")] {
+            let socket =
+                super::super::socket::Tunnel::create(crate::kernel::Family::V6, tid, tid + 100)
+                    .unwrap();
+            genl.register_tunnel(socket.socket.as_raw_fd(), tid, tid + 100)
+                .unwrap();
+            if tid == 19102 {
+                let error = genl
+                    .create_session(
+                        &SessionCreate::new(
+                            tid,
+                            19201,
+                            19301,
+                            None,
+                            None,
+                            "duplicate-id".parse().unwrap(),
+                        ),
+                        Instant::now() + DEADLINE,
+                    )
+                    .unwrap_err();
+                assert_eq!(error.raw_os_error(), Some(libc::EEXIST));
+            }
+            genl.create_session(
+                &SessionCreate::new(tid, tid + 100, tid + 200, None, None, name.parse().unwrap()),
+                Instant::now() + DEADLINE,
+            )
+            .unwrap();
+            sockets.push(socket);
+        }
+        for filter in [None, Some(19101), Some(19102), Some(19999)] {
+            let mut seen = Vec::new();
+            genl.scan_sessions(filter, &mut |info| {
+                seen.push((info.tunnel_id(), info.session_id()));
+            })
+            .unwrap();
+            seen.sort();
+            let expected: Vec<_> = [19101, 19102]
+                .into_iter()
+                .filter(|tid| filter.is_none_or(|wanted| wanted == *tid))
+                .map(|tid| (tid, tid + 100))
+                .collect();
+            assert_eq!(seen, expected, "filter={filter:?}");
+        }
+        for tid in [19101, 19102] {
+            let info = genl.session(tid, tid + 100).unwrap().unwrap();
+            assert_eq!(info.peer_session_id(), tid + 200);
+        }
+        // v6.8 looks within the tunnel; newer v3 lookup can return a namespace match.
+        let mut reported = None;
+        let result = genl.run(
+            L2tpMessage {
+                cmd: L2tpCmd::SessionGet,
+                attributes: vec![
+                    L2tpAttribute::ConnId(19102),
+                    L2tpAttribute::SessionId(19201),
+                ],
+            },
+            false,
+            Instant::now() + DEADLINE,
+            Some(&mut |reply| {
+                let info = session_info(reply)?;
+                reported = Some((info.tunnel_id(), info.session_id()));
+                Ok(())
+            }),
+        );
+        match result {
+            Ok(()) => assert_eq!(reported, Some((19101, 19201))),
+            Err(error) => {
+                assert_eq!(error.raw_os_error(), Some(libc::ENODEV));
+                assert_eq!(reported, None);
+            }
+        }
+        println!("WRONG_TUNNEL_SESSION_REPLY={reported:?}");
+        assert!(genl.session(19102, 19201).unwrap().is_none());
+        assert!(genl.session(19101, 19202).unwrap().is_none());
+        assert_eq!(sockets.len(), 2);
+        println!("FILTERED_SESSION_INVENTORIES_CHECKED=4");
+    }
 }

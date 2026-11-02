@@ -1,0 +1,102 @@
+set -eu
+root=/home/dev/rs-l2tpd
+record=$root/audit/phase6/scoped-inventory-events-20261102
+candidate=$(cat /tmp/phase6-resolver-validation-path)
+cp -Rp "$root/src/." "$candidate/src/"
+cp -Rp "$root/tests/." "$candidate/tests/"
+cp "$root/Cargo.toml" "$root/Cargo.lock" "$root/build.rs" "$candidate/"
+cd "$candidate"
+export CARGO_BUILD_JOBS=2
+git --no-pager rev-parse HEAD > "$record/control-base-revision"
+restore() {
+ cp "$root/src/bin/rs-l2tpd/daemon.rs" src/bin/rs-l2tpd/daemon.rs
+ cp "$root/src/kernel/linux/l2tp.rs" src/kernel/linux/l2tp.rs
+ cp "$root/src/kernel/linux/mod.rs" src/kernel/linux/mod.rs
+ cp "$root/src/reconciler/events.rs" src/reconciler/events.rs
+ cp "$root/src/reconciler/ladder.rs" src/reconciler/ladder.rs
+}
+trap restore 0
+
+/tmp/phase6-replace src/bin/rs-l2tpd/daemon.rs < "$record/control-readiness-byte.txt"
+git --no-pager diff -- src/bin/rs-l2tpd/daemon.rs > "$record/control-readiness-byte.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --bin rs-l2tpd --no-run > "$record/control-readiness-byte-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/bin/rs-l2tpd/main.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-readiness-byte-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --include-ignored --exact daemon::parent_boundary_tests::parent_wait_and_readiness_failures_are_bounded_and_preserve_shutdown --test-threads=1 --nocapture > "$record/control-readiness-byte.log" 2>&1 || result=$?
+cp "$root/src/bin/rs-l2tpd/daemon.rs" src/bin/rs-l2tpd/daemon.rs
+[ "$result" != 0 ]
+grep -q 'panicked' "$record/control-readiness-byte.log"
+printf 'SCOPED_NEGATIVE_CONTROL=readiness-byte REJECTED\n'
+
+/tmp/phase6-replace src/kernel/linux/l2tp.rs < "$record/control-session-filter.txt"
+git --no-pager diff -- src/kernel/linux/l2tp.rs > "$record/control-session-filter.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-session-filter-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-session-filter-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --include-ignored --exact kernel::linux::l2tp::boundary_tests::filtered_session_inventories_preserve_other_tunnels_and_namespace_ids --test-threads=1 --nocapture > "$record/control-session-filter.log" 2>&1 || result=$?
+cp "$root/src/kernel/linux/l2tp.rs" src/kernel/linux/l2tp.rs
+[ "$result" != 0 ]
+grep -q 'panicked' "$record/control-session-filter.log"
+printf 'SCOPED_NEGATIVE_CONTROL=session-filter REJECTED\n'
+
+/tmp/phase6-replace src/reconciler/events.rs < "$record/control-member-connectivity.txt"
+git --no-pager diff -- src/reconciler/events.rs > "$record/control-member-connectivity.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-member-connectivity-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-member-connectivity-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --include-ignored --exact reconciler::events::resource_tests::removing_a_vrf_member_reconnects_only_an_already_connected_tunnel --test-threads=1 --nocapture > "$record/control-member-connectivity.log" 2>&1 || result=$?
+cp "$root/src/reconciler/events.rs" src/reconciler/events.rs
+[ "$result" != 0 ]
+grep -q 'panicked' "$record/control-member-connectivity.log"
+printf 'SCOPED_NEGATIVE_CONTROL=member-connectivity REJECTED\n'
+
+/tmp/phase6-replace src/reconciler/events.rs < "$record/control-address-family.txt"
+git --no-pager diff -- src/reconciler/events.rs > "$record/control-address-family.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-address-family-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-address-family-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --include-ignored --exact reconciler::events::resource_tests::member_addresses_affect_only_the_matching_family_and_vrf_domain --test-threads=1 --nocapture > "$record/control-address-family.log" 2>&1 || result=$?
+cp "$root/src/reconciler/events.rs" src/reconciler/events.rs
+[ "$result" != 0 ]
+grep -q 'panicked' "$record/control-address-family.log"
+printf 'SCOPED_NEGATIVE_CONTROL=address-family REJECTED\n'
+
+/tmp/phase6-replace src/reconciler/events.rs < "$record/control-address-domain.txt"
+git --no-pager diff -- src/reconciler/events.rs > "$record/control-address-domain.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-address-domain-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-address-domain-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --include-ignored --exact reconciler::events::resource_tests::member_addresses_affect_only_the_matching_family_and_vrf_domain --test-threads=1 --nocapture > "$record/control-address-domain.log" 2>&1 || result=$?
+cp "$root/src/reconciler/events.rs" src/reconciler/events.rs
+[ "$result" != 0 ]
+grep -q 'panicked' "$record/control-address-domain.log"
+printf 'SCOPED_NEGATIVE_CONTROL=address-domain REJECTED\n'
+
+/tmp/phase6-replace src/reconciler/ladder.rs < "$record/control-unbound-zone.txt"
+git --no-pager diff -- src/reconciler/ladder.rs > "$record/control-unbound-zone.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-unbound-zone-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-unbound-zone-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --include-ignored --exact reconciler::events::resource_tests::a_literal_link_local_zone_connects_without_a_configured_bind_device --test-threads=1 --nocapture > "$record/control-unbound-zone.log" 2>&1 || result=$?
+cp "$root/src/reconciler/ladder.rs" src/reconciler/ladder.rs
+[ "$result" != 0 ]
+grep -q 'panicked' "$record/control-unbound-zone.log"
+printf 'SCOPED_NEGATIVE_CONTROL=unbound-zone REJECTED\n'
+
+/tmp/phase6-replace src/kernel/linux/mod.rs < "$record/control-creation-deadline.txt"
+git --no-pager diff -- src/kernel/linux/mod.rs > "$record/control-creation-deadline.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-creation-deadline-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-creation-deadline-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --include-ignored --exact kernel::linux::creation_deadline_tests::a_timed_out_creation_waits_for_its_capture_and_releases_the_name --test-threads=1 --nocapture > "$record/control-creation-deadline.log" 2>&1 || result=$?
+cp "$root/src/kernel/linux/mod.rs" src/kernel/linux/mod.rs
+[ "$result" != 0 ]
+grep -q 'panicked' "$record/control-creation-deadline.log"
+printf 'SCOPED_NEGATIVE_CONTROL=creation-deadline REJECTED\n'
