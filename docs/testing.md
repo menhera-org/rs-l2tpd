@@ -254,14 +254,22 @@ stale completions, foreign-family parsing, PID-file inspection errors,
 resolver/host boundaries, installer/descriptor/reconciler failures,
 file races, probe I/O, competing names and late event/input boundaries:
 the checked-boundary report reached 99.18% lines / 96.74% branch outcomes.
-The remaining-path batch reaches **99.35% lines / 97.77% outcomes**:
-8,648/8,705 lines and 1,799/1,840 outcomes, leaving **57 lines and 41 outcomes**.
-All 4,389 production-source mappings match the event/lifetime collector;
-integration-test mapping changes do not affect that comparison.
-Repository record `audit/phase6/remaining-paths-20261103/README.md` adds
-repeated startup, capability, reader, source/binding and focused-kernel
-checks, plus seven fault controls. It also diagnoses complementary
-function-instantiation counts without changing the raw coverage gate.
+The maintainer approved merged-source measurement on November 3.
+The checker (`tools/coverage/README.md`) preserves exact spans,
+repeated conditions and raw LLVM diagnostics. Eight tests pass on GNU and
+musl; compiler-generated calibration requires missing arms, repeated-guard
+misses and changed sources to fail. The common CI script runs the tool's
+tests, and CI calibrates it before the existing badge upload. The full
+production 100% CI job remains unfinished.
+
+The defensive-boundary batch reports **8,441/8,441 merged source lines and
+1,834/1,840 condition outcomes**, exits 1 and leaves **six outcomes**.
+Raw LLVM coverage is **8,655/8,707 lines (99.40%) and 1,800/1,840 outcomes
+(97.83%)**. Repository file
+`audit/phase6/defensive-boundaries-20261103/README.md` retains both reports,
+the full compressed export, repeated live checks and the source inventory's
+post-collection capture limitation.
+
 It includes native models, GNU live/Incus, manager/task-limit profiles and
 three buffer-force guests, with no production exclusions, mismatches or
 saturated regions. Moving shared test helpers changes source locations;

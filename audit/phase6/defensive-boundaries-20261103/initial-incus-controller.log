@@ -1,0 +1,5 @@
+features: all; target: x86_64-unknown-linux-gnu; nightly branch coverage
+command: incus launch images:ubuntu/24.04 NAME --no-profiles --storage ROOT_POOL -c security.privileged=false
+Error: Failed instance creation: Invalid instance name: Name can only contain alphanumeric and hyphen characters
+Error: Failed to fetch instance "rs-l2tpd-coverage-defensive-$" in project "default": Instance not found
+INCUS_COVERAGE_RESULT=1

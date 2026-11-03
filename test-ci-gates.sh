@@ -11,6 +11,11 @@ git --no-pager ls-files -z --cached --others --exclude-standard '*.sh' > "$files
 xargs -0 shellcheck --shell=sh < "$files"
 sh tests/kernel/matrix.sh self-test
 cargo fmt --all --check
+cargo fmt --manifest-path tools/coverage/Cargo.toml --check
+cargo clippy --locked --manifest-path tools/coverage/Cargo.toml --all-targets -- -D warnings
+cargo test --locked --manifest-path tools/coverage/Cargo.toml
+cargo test --locked --manifest-path tools/coverage/Cargo.toml --target x86_64-unknown-linux-musl
+
 cargo clippy --locked --all-targets --all-features -- -D warnings
 cargo build --locked --lib --no-default-features
 cargo build --locked --lib --no-default-features --features serde

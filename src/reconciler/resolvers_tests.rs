@@ -924,3 +924,28 @@ fn anonymous_adapter_rejects_a_reply_carrying_another_client_identifier() {
         "anonymous client accepted a Reply containing a Client Identifier"
     );
 }
+
+/// spec: C7, L4, V9, G1
+#[test]
+#[cfg(feature = "fake-kernel")]
+fn a_privately_malformed_unscoped_resolver_returns_the_defensive_error() {
+    let malformed = crate::config::unscoped_resolver_for_test();
+    let error = ResolverConfig::with_addresses(malformed.addresses().to_vec(), None).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("it needs a zone or bind_interface"),
+        "{error}"
+    );
+    let mut r = Reconciler::new(
+        crate::kernel::fake::FakeKernel::new(42),
+        Box::new(IphostResolve::default()),
+    );
+    r.k.clear_ops();
+    assert_eq!(
+        r.resolver_spec(&malformed).unwrap_err(),
+        "a link-local server has no scope"
+    );
+    assert!(r.k.ops().is_empty());
+    assert!(!r.resolvers.any());
+}

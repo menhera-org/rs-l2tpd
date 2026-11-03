@@ -1007,3 +1007,15 @@ fn check_id(id: u32, field: &'static str) -> std::result::Result<(), Mistake> {
         _ => Ok(()),
     }
 }
+
+#[cfg(all(test, feature = "fake-kernel"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
+pub(crate) fn unscoped_resolver_for_test() -> ResolverConfig {
+    // Only a private fixture can bypass ResolverConfig's scope validation.
+    ResolverConfig {
+        addresses: vec![NameServer::new("fe80::53".parse().unwrap(), None, 53).unwrap()],
+        method: None,
+        bind_interface: None,
+        dhcpv6_identity: None,
+    }
+}

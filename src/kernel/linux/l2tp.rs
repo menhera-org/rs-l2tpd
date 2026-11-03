@@ -673,7 +673,23 @@ mod family_recovery_tests {
         assert_eq!(genl.family, Some((42, Some(7))));
     }
 
+    // kernel: (K1, K29) the request deadline is checked before family resolution sends.
+    /// spec: A14, E21, K1, K29
+    #[test]
+    fn an_expired_uncached_family_request_preserves_the_empty_cache() {
+        let mut genl = Genl {
+            request: Request::new(netlink_sys::protocols::NETLINK_USERSOCK).unwrap(),
+            family: None,
+        };
+        for _ in 0..2 {
+            let error = genl.family(Instant::now()).unwrap_err();
+            assert_eq!(error.raw_os_error(), Some(libc::ETIMEDOUT));
+            assert_eq!(genl.family, None);
+        }
+    }
+
     // kernel: (K1, K21, K41) net/netlink/genetlink.c genl_rcv_msg rejects absent families with ENOENT.
+
     /// spec: A14, E21, E27, K1, K21, K41
     #[test]
     #[ignore = "isolated network namespace with CAP_NET_ADMIN and L2TP modules"]
@@ -858,5 +874,34 @@ mod boundary_tests {
         assert!(genl.session(19101, 19202).unwrap().is_none());
         assert_eq!(sockets.len(), 2);
         println!("FILTERED_SESSION_INVENTORIES_CHECKED=4");
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod missing_family_tests {
+    use super::*;
+
+    // kernel: (K1, K21, K29) ctrl_getfamily sends data then an ACK; K10 sk_attach_filter can drop data.
+    /// spec: A14, E21, K1, K10, K21, K29, G1
+    #[test]
+    #[ignore = "isolated namespace with CAP_NET_ADMIN and L2TP modules"]
+    fn an_ack_without_family_data_returns_eproto_and_never_populates_the_cache() {
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let original = Genl::new().unwrap().family.unwrap();
+        let mut filtered = Genl {
+            request: Request::new(NETLINK_GENERIC)
+                .unwrap()
+                .acknowledgements_only()
+                .unwrap(),
+            family: None,
+        };
+        for _ in 0..2 {
+            let error = filtered.family(Instant::now() + DEADLINE).unwrap_err();
+            assert_eq!(error.raw_os_error(), Some(libc::EPROTO));
+            assert_eq!(filtered.family, None);
+        }
+        assert_eq!(Genl::new().unwrap().family, Some(original));
+        println!("ACK_WITHOUT_FAMILY_DATA_CHECKED=2");
     }
 }

@@ -1,0 +1,20 @@
+set -eu
+record=$PWD/audit/phase6/defensive-boundaries-20261103
+unit=$(awk -v root="$PWD/" -v label='Running unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print root line}}' "$record/native.log")
+[ -x "$unit" ]
+for repeat in 1 2 3; do
+ result=0
+ sh audit/phase6/event-and-lifetime-ordering-20261102/run-force-guest.sh "$unit" "$PWD/target/phase6-kernels/ubuntu-noble-6.8.0-147.147/root" "$record/request-force-$repeat" "/tmp/phase6-defensive-force-profiles-$repeat" > "$record/request-force-$repeat.log" 2>&1 || result=$?
+ printf '%s\n' "$result" > "$record/request-force-$repeat.exit"
+done
+sh audit/phase6/remaining-paths-20261103/run-inventory-guest.sh "$unit" "$PWD/target/phase6-kernels/ubuntu-resolute-7.0.0-42.42/root" "$record/inventory-resolute" /tmp/phase6-defensive-inventory-profiles > "$record/inventory-resolute.log" 2>&1
+for repeat in 1 2 3; do
+ [ "$(cat "$record/request-force-$repeat.exit")" = 0 ]
+ for profile in "/tmp/phase6-defensive-force-profiles-$repeat/"*.profraw; do
+  cp "$profile" "$CARGO_LLVM_COV_TARGET_DIR/force-$repeat-${profile##*/}"
+ done
+done
+for profile in /tmp/phase6-defensive-inventory-profiles/*.profraw; do
+ cp "$profile" "$CARGO_LLVM_COV_TARGET_DIR/defensive-${profile##*/}"
+done
+printf 'THREE_FORCE_GUESTS_AND_NEWER_KERNEL_INVENTORY_RESULT=0\n'

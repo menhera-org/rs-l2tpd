@@ -1,0 +1,191 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-8bc04853c87ee510)
+
+running 183 tests
+test config::partial::diagnostic_tests::a_diagnostic_without_its_session_has_no_invented_identifiers ... ok
+test config::tests::a_value_of_the_wrong_type_fails_the_document ... ok
+test config::tests::an_empty_result_is_valid ... ok
+test config::tests::a_reload_corrects_tolerated_mistakes_in_place ... ok
+test config::tests::builders_and_insertions_validate ... ok
+test config::tests::completion_empty_tables_do_not_remove_merged_values ... ok
+test config::tests::check_mode_rendering_order ... ok
+test config::tests::cookies_are_never_formatted ... ok
+test config::tests::completion_hard_endpoint_mistake_precedes_tolerated_family ... ok
+test config::tests::completion_new_collision_keeps_an_accepted_name ... ok
+test config::tests::completion_corrected_host_retains_resolver ... ok
+test config::tests::configuration_names ... ok
+test config::tests::defensive_conversion_refuses_an_invalid_retained_resolver ... ok
+test config::tests::documents_are_merged_before_validation ... ok
+test config::tests::accepted_configuration_reads_back ... ok
+test config::tests::document_diagnostics_quote_nonbare_keys_and_explain_ignored_fields ... ok
+test config::tests::format_of_0_1_5 ... ok
+test config::tests::host_settings ... ok
+test config::tests::malformed_cookies_preserve_the_exact_redacted_diagnostic ... ok
+test config::tests::host_dependent_conditions_are_not_parse_errors ... ok
+test config::tests::every_explicit_document_field_replaces_its_previous_value ... ok
+test config::tests::irrelevant_dhcpv6_fields_still_validate_their_values ... ok
+test config::tests::completion_host_names_and_mapped_family ... ok
+test config::tests::merging ... ok
+test config::tests::kernel_identities ... ok
+test config::tests::new_valid_entries_collide_among_themselves_first ... ok
+test config::tests::resolver_methods ... ok
+test config::tests::retained_resolver_and_document_diagnostics_keep_their_context ... ok
+test config::tests::reload_refused_when_a_dependency_is_removed ... ok
+test config::tests::interface_names ... ok
+test config::tests::reload_keeps_values_in_force ... ok
+test config::tests::strict_conversion ... ok
+test config::tests::unknown_key_collection_rejects_a_non_map_deserializer ... ok
+test config::tests::start_up_leaves_out_and_takes_dependents ... ok
+test config::tests::tunnel_identifiers ... ok
+test error::tests::non_io_failures_preserve_their_diagnostic_without_an_io_source ... ok
+test config::tests::reload_refused_when_values_in_force_no_longer_fit ... ok
+test error::tests::propagated_io_errors_keep_their_errno_name_and_original_source ... ok
+test config::tests::resolver_dhcpv6_identities ... ok
+test kernel::fake::ownership_tests::stale_session_cleanup_preserves_a_reused_link_and_socketless_tunnel ... ok
+test config::tests::identities_and_all_discovery_choices_survive_document_round_trips ... ok
+test kernel::linux::creation_deadline_tests::a_timed_out_creation_waits_for_its_capture_and_releases_the_name ... ignored, isolated namespace with CAP_NET_ADMIN, L2TP modules and syscall filters
+test config::tests::tunnel_resolver_name ... ok
+test config::tests::session_cookies ... ok
+test kernel::linux::bpf::tests::the_filter_passes_lifetimes_and_addresses_only ... ok
+test kernel::linux::l2tp::boundary_tests::absence_does_not_hide_other_kernel_errors ... ok
+test kernel::linux::l2tp::boundary_tests::filtered_session_inventories_preserve_other_tunnels_and_namespace_ids ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test config::tests::uniqueness_in_byte_order_of_names ... ok
+test config::tests::session_hardware_addresses ... ok
+test config::tests::unknown_keys_at_every_depth ... ok
+test kernel::linux::l2tp::family_recovery_tests::an_absent_family_is_forgotten_and_resolved_again ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::l2tp::missing_family_tests::an_ack_without_family_data_returns_eproto_and_never_populates_the_cache ... ignored, isolated namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::l2tp::boundary_tests::family_records_require_an_id_and_find_only_the_named_multicast_group ... ok
+test kernel::linux::l2tp::family_recovery_tests::a_cached_family_without_its_group_returns_the_original_refusal ... ok
+test kernel::linux::l2tp::family_recovery_tests::a_transport_timeout_keeps_the_resolved_family ... ok
+test config::tests::resolver_addresses ... ok
+test config::tests::session_fields ... ok
+test kernel::linux::l2tp::tests::every_foreign_cookie_length_is_read_without_relaxing_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::l2tp::tests::a_session_record_decodes_names_and_cookies ... ok
+test kernel::fake::ownership_tests::adoption_without_a_reported_creation_name_never_invents_an_owned_name ... ok
+test config::tests::tunnel_literals ... ok
+test kernel::linux::l2tp::tests::deletions_decode_into_notices ... ok
+test kernel::linux::lifetime::tests::a_live_foreign_sender_cannot_invalidate_a_registration ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::a_live_lifetime_overflow_ends_all_old_proofs ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::l2tp::tests::incomplete_or_oversized_session_records_cannot_prove_an_identity ... ok
+test kernel::linux::lifetime::tests::a_capture_takes_the_first_broadcast_and_a_removal_sticks ... ok
+test kernel::linux::lifetime::tests::a_refused_lookup_send_ends_the_generation_without_leaking_a_pending_answer ... ok
+test config::tests::tunnel_ip_version ... ok
+test config::tests::tunnel_host_names ... ok
+test kernel::linux::lifetime::tests::deletion_and_release_are_scoped_by_index_and_incarnation ... ok
+test kernel::linux::lifetime::tests::reader_and_failed_send_ordering_preserve_the_current_generation ... ignored, isolated live namespace; traced workers must not inherit concurrent fake descriptors
+test kernel::linux::lifetime::tests::reader_io_errors_end_old_proofs_and_failed_reopen_remains_stoppable ... ignored, serial isolated live runner; child forks must not inherit concurrent fake descriptors
+test kernel::linux::lifetime::tests::only_the_requested_kernel_reply_can_resolve_a_lookup ... ok
+test kernel::linux::monitor::tests::a_live_feed_ignores_a_forged_notification_before_a_real_one ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::lifetime::tests::unavailable_duplicate_and_expired_captures_never_create_proofs ... ok
+test kernel::linux::lifetime::tests::unrelated_or_unusable_multicast_records_preserve_capture_state ... ok
+test kernel::linux::monitor::tests::registration_and_receive_failures_preserve_loss_and_retry_bounds ... ignored, serial isolated live runner; child forks must not inherit concurrent fake descriptors
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... ignored, live kernel; Incus runner additionally requires the EPERM branch
+test kernel::linux::request::completion_tests::an_expired_exchange_sends_nothing_to_its_peer ... ok
+test kernel::linux::lifetime::tests::retired_registrations_leave_only_survivors_and_generation_loss_clears_them ... ok
+test kernel::linux::request::completion_tests::payload_debug_is_redacted_without_changing_serialization ... ok
+test kernel::linux::monitor::tests::reactor_shutdown_reports_loss_before_reopening_on_the_next_runtime ... ok
+test kernel::linux::request::completion_tests::undersized_headers_and_lengths_return_protocol_errors_without_panics ... ok
+test kernel::linux::request::io_fault_tests::request_io_failures_are_fallible_and_buffers_degrade ... ignored, serial isolated runner; child exec must not inherit concurrent fake socket references
+test kernel::linux::request::reply_tests::acknowledgement_only_requests_break_on_data_and_preserve_known_errors ... ok
+test kernel::linux::request::reply_tests::an_abandoned_sequence_is_ignored_before_status_or_interruption ... ok
+test kernel::linux::request::reply_tests::an_interrupted_dump_never_visits_more_data_or_reports_success ... ok
+test kernel::linux::request::reply_tests::completion_statuses_preserve_success_and_exact_kernel_errors ... ok
+test kernel::linux::lifetime::tests::ordered_lookup_completion_keeps_removal_and_generation_authority ... ok
+test kernel::linux::request::reply_tests::data_is_visited_noops_are_ignored_and_overrun_is_transport_loss ... ok
+test kernel::linux::request::reply_tests::minimum_status_in_a_done_is_refused_without_panicking ... ok
+test kernel::linux::request::reply_tests::minimum_status_in_an_ack_is_refused_without_panicking ... ok
+test kernel::linux::request::reply_tests::positive_statuses_and_truncated_acknowledgements_are_protocol_errors ... ok
+test kernel::linux::request::strict_option_tests::a_refused_strict_option_returns_the_original_error_without_leaking_sockets ... ignored, serial isolated runner; child exec must not inherit concurrent fake socket references
+test kernel::linux::request::reply_tests::the_first_visitor_error_survives_drain_interruption_and_completion ... ok
+test kernel::linux::request::tests::a_missing_mutation_reply_is_uncertain_and_reopens_the_socket ... ignored, isolated network namespace with CAP_NET_ADMIN
+test kernel::linux::request::tests::a_datagram_splits_into_padded_messages ... ok
+test kernel::linux::resources_tests::socket_storage_follows_survivors_after_a_large_configuration ... ignored, isolated network namespace with CAP_NET_ADMIN and L2TP modules
+test kernel::linux::rtnl::tests::a_link_message_decodes_name_bytes_master_and_vrf ... ok
+test kernel::linux::rtnl::tests::address_dump_skips_foreign_families_and_rejects_malformed_inet_records ... ok
+test kernel::linux::rtnl::tests::an_address_message_prefers_the_local_address ... ok
+test kernel::linux::rtnl::tests::ipv6_inventory_requires_the_devices_ipv6_family_attribute ... ok
+test kernel::linux::rtnl::tests::link_visitors_ignore_other_types_and_refuse_malformed_entries ... ok
+test kernel::linux::rtnl::tests::malformed_dump_records_are_not_usable_entries ... ok
+test kernel::linux::socket::tests::library_error_mapping_preserves_errno_and_reports_synthetic_refusals ... ignored, serial isolated runner; child exec must not inherit concurrent fake socket references
+test kernel::linux::socket::tests::ipv4_fragmentation_refusal_preserves_io_error_and_socket ... ok
+test kernel::linux::syscall_barrier::a_refused_arming_mask_returns_the_pthread_error_before_tracing ... ignored, serial child launch; concurrent fake descriptors remain inherited until exec
+test kernel::linux::syscall_barrier::query_sizes_peek_errors_and_callback_cleanup_are_checked ... ignored, serial child launch; concurrent fake descriptors remain inherited until exec
+test reconciler::report::tests::an_episode_is_reported_once ... ok
+test reconciler::report::tests::errors_carry_their_errno_names ... ok
+test reconciler::resolvers::tests::anonymous_adapter_rejects_a_reply_carrying_another_client_identifier ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::dhcp_only_discovery_remains_partial_when_ra_setup_fails ... ignored, disposable namespace with NET_ADMIN, NET_RAW and seccomp
+test reconciler::resolvers::tests::released_adapter_preserves_client_identifiers_and_static_device_binding ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_ra_adapter_preserves_omitted_addresses_and_bounds_its_repository ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::released_unified_adapter_enables_per_family_failure_fallback ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::removing_the_last_watch_releases_discovery_threads_and_descriptors ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::shared_partial_discovery_retries_replace_the_actual_lookup_snapshot ... ignored, isolated namespace with CAP_NET_ADMIN and CAP_NET_RAW
+test reconciler::resolvers::tests::selection_checks_every_unusable_address_class_and_preserves_a_present_choice ... ok
+test reconciler::store::cost_tests::descriptor_duplication_failures_keep_local_or_inherited_ownership ... ignored, serial syscall-fault profile: children inherit concurrent fake descriptors
+test reconciler::store::cost_tests::a_processing_barrier_queries_only_its_own_retiring_tunnel ... ok
+test reconciler::resolvers::tests::aliases_share_only_their_current_host_and_resolver_job ... ok
+test reconciler::store::cost_tests::expired_and_refused_acknowledgements_keep_only_the_current_incarnation ... ok
+test reconciler::store::cost_tests::storing_the_same_socket_twice_keeps_one_submission ... ok
+test reconciler::workers::cost_tests::dropping_an_adapter_cancels_only_its_jobs_and_preserves_other_answers ... ignored, serial isolated runner; child exec must not inherit concurrent fake socket references
+test reconciler::store::cost_tests::submission_refusals_preserve_inherited_and_retiring_authority ... ok
+test reconciler::workers::tests::dispatchers_preserve_each_owners_network_namespace ... ignored, permission to create an isolated network namespace
+test reconciler::store::cost_tests::inherited_verification_refuses_shutdown_and_an_existing_local_owner ... ok
+test reconciler::workers::tests::new_jobs_follow_the_existing_rotation_and_owners_keep_separate_turns ... ok
+test runtime::tests::absent_log_sink_does_not_change_kernel_refusal_or_recovery ... ignored, serial isolated runner; child exec must not inherit concurrent fake socket references
+test reconciler::store::cost_tests::duplicate_unwanted_and_mismatched_inheritance_is_retired_before_creation ... ok
+test reconciler::store::cost_tests::named_host_requests_coalesce_without_history_and_preserve_delivery_order ... ok
+test runtime::tests::adopted_identifiers_require_canonical_nonzero_names_and_retain_ownership ... ok
+test reconciler::workers::tests::obsolete_calls_keep_separate_budgets_and_latest_results ... ok
+test runtime::tests::a_closed_receiver_returns_the_queue_error_without_consuming_admission ... ok
+test runtime::tests::a_dropped_source_removal_stays_stale_until_resync_is_forwarded ... ok
+test runtime::tests::cleanup_verifies_kernel_absence_and_reports_a_remaining_reference ... ok
+test runtime::tests::closed_admission_returns_errors_without_accepting_or_queuing_requests ... ok
+test runtime::tests::both_subscription_forwarders_stop_when_the_event_receiver_is_closed ... ok
+test runtime::tests::blocking_completions_work_inside_spawn_blocking ... ok
+test runtime::tests::event_wait_without_tokio_reports_an_error_and_channels_remain_usable ... ok
+test runtime::tests::dropping_runtime_stops_both_subscription_tasks_and_closes_the_queue ... ok
+test runtime::tests::shutdown_discards_tunable_work_that_the_program_has_not_received ... ok
+test service::tests::a_closed_startup_channel_returns_the_receive_error ... ok
+test runtime::tests::shutdown_request_and_started_shutdown_both_refuse_new_configuration ... ok
+test runtime::tests::shutdown_ignores_an_outstanding_tunable_acknowledgement ... ok
+test runtime::tests::tunable_handshake_is_observed_forwarded_and_answered_without_host_io ... ok
+test runtime::tests::library_boundary_and_extensible_api ... ok
+test runtime::tests::queue_full_waiter_and_shutdown_precedence ... ok
+test runtime::tests::subscription_loss_survives_a_full_queue_and_a_second_loss ... ok
+test runtime::tests::concurrent_completions_return_each_admission_slot_once ... ok
+test runtime::tests::l2tp_queue_loss_uses_its_own_resync_flag ... ok
+test runtime::tests::dropping_the_owner_releases_a_waiter_and_rejects_later_completions ... ok
+test runtime::tests::lifetime_proofs_do_not_use_the_full_event_queue ... ok
+test runtime::tests::cancelling_unaccepted_reload_wait_does_not_inflate_admission_capacity ... ok
+test reconciler::workers::tests::eight_blocked_calls_survive_cancellation_without_a_ninth_worker ... ok
+test runtime::tests::store_submission_and_withdrawal_acknowledgements_keep_the_incarnation ... ok
+test runtime::tests::adopted_names_are_verified_or_retired_and_store_wait_is_bounded ... ok
+test service::tests::ready_background_failure_precedes_the_next_deferred_restart ... ok
+test service::tests::unforwarded_withdrawal_completes_the_manager_barrier ... ok
+test runtime::tests::shutdown_keeps_withdrawal_and_kernel_deletion_windows_separate ... ok
+test service::tests::run_without_a_convergence_waiter_reaches_readiness_before_restart ... ok
+test service::tests::a_closed_command_queue_reports_failure_until_shutdown_is_requested ... ok
+test service::tests::store_capacity_is_acknowledged_only_before_convergence ... ok
+test service::tests::abandoned_replies_report_stopped_service_and_shutdown_releases_waiters ... ok
+test runtime::tests::tunable_timeout_ignores_late_success_and_shutdown_cancels_pending ... ok
+test service::tests::lost_host_delivery_waits_for_the_original_tunable_completion ... ok
+test service::tests::refused_host_delivery_releases_capacity_and_needs_no_withdrawal ... ok
+test service::tests::reload_completions_during_shutdown_preserve_cleanup_and_configuration ... ok
+test service::tests::superseded_deferred_reload_returns_its_admission_slot ... ok
+test kernel::linux::request::tests::a_passed_deadline_times_out_without_waiting ... ok
+test runtime::tests::unapplied_socket_operations_are_reported_without_gating_peer_availability ... ok
+test service::tests::shutdown_between_dequeue_and_dispatch_cancels_queued_service_commands ... ok
+test reconciler::workers::tests::cancelled_jobs_and_dropped_owners_release_snapshots_and_queue_storage ... ok
+test runtime::tests::completed_store_retirements_release_outgoing_queue_storage ... ok
+test reconciler::report::tests::removed_entries_release_every_condition_across_reloads ... ok
+test reconciler::store::cost_tests::completed_retirement_history_releases_acknowledgement_and_identifier_indexes ... ok
+test reconciler::deadlines::tests::replacement_cancellation_and_ties_keep_one_deadline_per_owner ... ok
+test kernel::linux::lifetime::tests::foreign_deletion_workload_preserves_current_registrations ... ok
+test reconciler::workers::cost_tests::cancellation_cost_with_unrelated_jobs ... ok
+test reconciler::store::cost_tests::stale_acknowledgement_cost_with_unrelated_retirements ... ok
+test kernel::linux::monitor::tests::broken_datagrams_and_reopen_failure_keep_loss_observable ... ok
+test kernel::linux::request::completion_tests::userspace_datagrams_are_rejected_before_framing_or_header_pid_is_trusted ... ok
+test kernel::linux::lifetime::tests::an_unanswered_lookup_times_out_and_discards_every_old_proof ... ok
+
+test result: ok. 153 passed; 0 failed; 30 ignored; 0 measured; 0 filtered out; finished in 5.01s
+

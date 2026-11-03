@@ -59,9 +59,11 @@ thirteen profiles on frozen signed commit `584062d`. Later test-only
 additions retain their separate execution records.
 
 Phase 6 remains open. The [latest verification record](audit/PHASE6_VERIFICATION_2026-11-03.md)
-reports **99.35% production-line coverage and 97.77% branch-outcome
-coverage**, leaving 57 lines and 41 outcomes. Complete clause/resource/
-event-cost proof and the 100% gate still require work.
+reports **8,441/8,441 merged source lines and 1,834/1,840 condition
+outcomes** under the approved measurement, leaving six outcomes. The
+retained raw LLVM summary is 99.40% lines / 97.83% outcomes. Complete
+clause/resource/event-cost proof and the 100% gate still require work.
+
 
 The [latest batch](audit/phase6/remaining-paths-20261103/README.md) checks
 startup withdrawal, capget failure, reader timeouts and source/binding

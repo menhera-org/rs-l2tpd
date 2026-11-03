@@ -1,0 +1,15 @@
+
+running 1 test
+test reconciler::resolvers::tests::a_privately_malformed_unscoped_resolver_returns_the_defensive_error ... 
+thread 'reconciler::resolvers::tests::a_privately_malformed_unscoped_resolver_returns_the_defensive_error' (7) panicked at src/reconciler/resolvers_tests.rs:946:37:
+called `Result::unwrap_err()` on an `Ok` value: Static { servers: [[fe80::53]:53], bind: None }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    reconciler::resolvers::tests::a_privately_malformed_unscoped_resolver_returns_the_defensive_error
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 342 filtered out; finished in 0.00s
+

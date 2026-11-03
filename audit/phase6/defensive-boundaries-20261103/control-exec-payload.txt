@@ -1,0 +1,8 @@
+fn exec_panicked(_: Box<dyn std::any::Any + Send>) -> io::Error {
+    io::Error::other("exec thread panicked")
+}
+===REPLACE===
+fn exec_panicked(payload: Box<dyn std::any::Any + Send>) -> io::Error {
+    std::mem::forget(payload);
+    io::Error::other("exec thread panicked")
+}

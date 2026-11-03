@@ -250,7 +250,7 @@ pub fn exec(
             command.exec()
         })?
         .join()
-        .map_err(|_| io::Error::other("exec thread panicked"))?;
+        .map_err(exec_panicked)?;
     drop(sockets);
     Err(error)
 }
@@ -1060,5 +1060,33 @@ mod pid_growth_tests {
         ).unwrap();
         assert!(grew && output.status.success(), "{output:?}");
         assert!(String::from_utf8_lossy(&output.stdout).contains("PID_GROWTH_REFUSAL_CHECKED=1"));
+    }
+}
+
+fn exec_panicked(_: Box<dyn std::any::Any + Send>) -> io::Error {
+    io::Error::other("exec thread panicked")
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod panic_tests {
+    /// spec: P26, O1, G1
+    #[test]
+    fn an_exec_worker_panic_becomes_an_error_and_releases_its_payload() {
+        use std::io::Read;
+        use std::os::unix::net::UnixStream;
+        let (mut reader, writer) = UnixStream::pair().unwrap();
+        reader
+            .set_read_timeout(Some(std::time::Duration::from_secs(2)))
+            .unwrap();
+        let payload = std::thread::spawn(move || std::panic::panic_any(writer))
+            .join()
+            .unwrap_err();
+        let error = super::exec_panicked(payload);
+        assert_eq!(error.kind(), std::io::ErrorKind::Other);
+        assert_eq!(error.raw_os_error(), None);
+        assert_eq!(error.to_string(), "exec thread panicked");
+        let mut byte = [0];
+        assert_eq!(reader.read(&mut byte).unwrap(), 0);
     }
 }

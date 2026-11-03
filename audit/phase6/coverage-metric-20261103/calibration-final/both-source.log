@@ -1,0 +1,87 @@
+    1|       |#![feature(coverage_attribute)]
+    2|       |use std::hint::black_box;
+    3|       |
+    4|       |#[inline(never)]
+    5|      4|fn choose<T>(value: bool) -> u8 {
+    6|      4|    if black_box((value, std::mem::size_of::<T>())).0 {
+  ------------------
+  |  Branch (6:8): [True: 1, False: 1]
+  |  Branch (6:8): [True: 1, False: 1]
+  ------------------
+    7|      2|        1
+    8|       |    } else {
+    9|      2|        2
+   10|       |    }
+   11|      4|}
+  ------------------
+  | _RINvCs4WozolX65fH_10conditions6choosehEB2_:
+  |    5|      2|fn choose<T>(value: bool) -> u8 {
+  |    6|      2|    if black_box((value, std::mem::size_of::<T>())).0 {
+  |  ------------------
+  |  |  Branch (6:8): [True: 1, False: 1]
+  |  ------------------
+  |    7|      1|        1
+  |    8|       |    } else {
+  |    9|      1|        2
+  |   10|       |    }
+  |   11|      2|}
+  ------------------
+  | _RINvCs4WozolX65fH_10conditions6choosetEB2_:
+  |    5|      2|fn choose<T>(value: bool) -> u8 {
+  |    6|      2|    if black_box((value, std::mem::size_of::<T>())).0 {
+  |  ------------------
+  |  |  Branch (6:8): [True: 1, False: 1]
+  |  ------------------
+  |    7|      1|        1
+  |    8|       |    } else {
+  |    9|      1|        2
+  |   10|       |    }
+  |   11|      2|}
+  ------------------
+   12|       |
+   13|       |enum Event { A, B, C }
+   14|       |
+   15|       |#[inline(never)]
+   16|      5|fn repeated(event: Event, enabled: bool) -> u8 {
+   17|      5|    match event {
+   18|      2|        Event::A | Event::B if black_box(enabled) => 1,
+  ------------------
+  |  Branch (18:32): [True: 1, False: 1]
+  |  Branch (18:32): [True: 1, False: 1]
+  ------------------
+   19|      3|        _ => 2,
+   20|       |    }
+   21|      5|}
+   22|       |
+   23|       |#[coverage(off)]
+   24|       |fn main() {
+   25|       |    let mode = std::env::args().nth(1).unwrap();
+   26|       |    match mode.as_str() {
+   27|       |        "complementary" | "missing-repeated" => {
+   28|       |            assert_eq!(choose::<u8>(true), 1);
+   29|       |            assert_eq!(choose::<u16>(false), 2);
+   30|       |        }
+   31|       |        "both" => {
+   32|       |            for value in [false, true] {
+   33|       |                assert_eq!(choose::<u8>(value), if value { 1 } else { 2 });
+   34|       |                assert_eq!(choose::<u16>(value), if value { 1 } else { 2 });
+   35|       |            }
+   36|       |        }
+   37|       |        "missing-arm" => {
+   38|       |            assert_eq!(choose::<u8>(true), 1);
+   39|       |            assert_eq!(choose::<u16>(true), 1);
+   40|       |        }
+   41|       |        _ => panic!("unexpected calibration mode"),
+   42|       |    }
+   43|       |    if mode == "missing-repeated" {
+   44|       |        assert_eq!(repeated(Event::A, true), 1);
+   45|       |        assert_eq!(repeated(Event::B, false), 2);
+   46|       |    } else {
+   47|       |        for enabled in [false, true] {
+   48|       |            assert_eq!(repeated(Event::A, enabled), if enabled { 1 } else { 2 });
+   49|       |            assert_eq!(repeated(Event::B, enabled), if enabled { 1 } else { 2 });
+   50|       |        }
+   51|       |    }
+   52|       |    assert_eq!(repeated(Event::C, false), 2);
+   53|       |}
+

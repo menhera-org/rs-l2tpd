@@ -1,0 +1,15 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+error[E0433]: cannot find type `FakeKernel` in this scope
+   --> src/reconciler/resolvers_tests.rs:939:33
+    |
+939 | ...ciler::new(FakeKernel::new(42), Box::new(IphostResolve::default()));
+    |               ^^^^^^^^^^ use of undeclared type `FakeKernel`
+    |
+help: consider importing this struct
+    |
+  2 + use crate::kernel::fake::FakeKernel;
+    |
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `rs-l2tpd` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

@@ -1,0 +1,3 @@
+let family = found.ok_or_else(|| errno(libc::EPROTO))?;
+===REPLACE===
+let family = found.unwrap_or((42, None));

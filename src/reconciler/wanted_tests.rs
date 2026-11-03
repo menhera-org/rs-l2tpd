@@ -963,3 +963,28 @@ fn repeated_left_out_refusals_keep_the_slow_deadline_and_release_on_identity_cha
         assert!(!r.conflict_times.contains_key(&(session, id)));
     }
 }
+
+/// spec: S10, S11, S18, G2, G4
+#[test]
+fn a_private_missing_cached_name_does_not_invent_a_swap_holder() {
+    let (mut r, config) = staging_fixture("");
+    assert!(r.reconcile(config));
+    let registration = *r.sessions[&100].state.registration().unwrap();
+    let record = r.sessions.get_mut(&100).unwrap();
+    // A proved record normally has a name; exercise the defensive Option boundary.
+    record.current_name = None;
+    record.name_state = Enforce::Pending;
+    r.k.clear_ops();
+    r.clear_swaps();
+    assert_eq!(r.sessions[&100].state, Identity::Proved(registration));
+    assert_eq!(
+        r.sessions[&100].current_name,
+        Some("l2tp0".parse().unwrap())
+    );
+    assert_eq!(r.sessions[&100].name_state, Enforce::Applied);
+    assert_eq!(r.k.session_index(10, 100), Some(registration.index()));
+    assert_eq!(
+        r.k.ops(),
+        &[format!("rename {} l2tp0", registration.index())]
+    );
+}

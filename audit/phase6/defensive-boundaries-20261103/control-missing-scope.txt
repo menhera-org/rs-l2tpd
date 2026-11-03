@@ -1,0 +1,3 @@
+(None, None) => return Err("a link-local server has no scope".into()),
+===REPLACE===
+(None, None) => 0,

@@ -1,5 +1,30 @@
 # Phase 6 verification, November 3
 
+The [defensive-boundary batch](phase6/defensive-boundaries-20261103/README.md)
+passes the mandatory common checks, repeated GNU/musl live collections,
+GNU Incus, manager/task limits and the unmodified root system-unit profile.
+Seven restored controls fail their intended assertions.
+
+The maintainer approved [merged-source measurement](phase6/coverage-metric-20261103/README.md).
+Its checker passes eight tests on GNU and musl, Rust 1.89 checks and a
+compiler-generated calibration with missing-arm and repeated-guard controls.
+It reports **8,441/8,441 merged source lines and 1,834/1,840 condition
+outcomes**, exits **1**, and leaves **six outcomes missing**. The raw LLVM
+summary remains **8,655/8,707 lines (99.40%) and 1,800/1,840 outcomes
+(97.83%)**. The record retains both reports and compressed full exports.
+The source/mapping inventory was captured after collection, not before it.
+
+The 100% production CI gate, complete clause/history/resource/event-cost
+proof and retained clock/emulator failures remain open. This batch does
+not establish Phase 6 completion or replace the earlier full kernel matrix.
+
+Signed base `6735dd6` passes
+[both CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41558686756)
+and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41558686721).
+
+## Preceding remaining-path batch
+
+
 Phase 6 remains open. The [remaining-path batch](phase6/remaining-paths-20261103/README.md)
 adds three covered lines and seven branch outcomes. The raw report is
 **8,648/8,705 lines (99.35%) and 1,799/1,840 outcomes (97.77%)**.
@@ -16,7 +41,7 @@ clock/emulator experiments.
 | Package | Current evidence | Remaining work |
 |---|---|---|
 | P1 | Common CI checks pass strict declarations for 333 active rules and classified evidence for 43 kernel facts | Declaration traceability does not establish every clause |
-| P2 | Three instrumented GNU and three stable repetitions per libc pass all 37 process cases, 57 live library cases and ordinary library/binary cases; ten final model suites pass | Complete clause/history/resource/event-cost proof |
+| P2 | Three instrumented GNU repetitions pass 57 live library cases; three stable repetitions per libc pass 29. Each collection passes all 37 process cases and ordinary library/binary cases; ten final model suites pass | Complete clause/history/resource/event-cost proof |
 | P3 | Five focused required-kernel profiles pass; three instrumented Ubuntu 7.0 inventory repetitions pass and reject a faulty ID guard; publication selection is unchanged | Preserve earlier full normal/boot/clock scope; resolve or bound retained clock/emulator failures |
 | P4 | Raw 99.35% lines / 97.77% outcomes; no production exclusions | 57 lines and 41 outcomes; enforce the final 100% gate in CI |
 | P5 | Previous GNU/musl unprivileged Incus evidence remains | No fresh Incus run in this batch |

@@ -1,0 +1,6 @@
+/tmp/rs-l2tpd-coverage-calibration.r6anH0Ms/src/conditions.rs: lines 10/10; outcomes 4/6; raw LLVM lines 9/10; raw outcomes 3/6
+  missing condition [22, 32, 22, 50] occurrence 0 owner [20, 1, 20, 47] true
+  missing condition [22, 32, 22, 50] occurrence 1 owner [20, 1, 20, 47] false
+MERGED_SOURCE_LINES=10/10
+MERGED_SOURCE_OUTCOMES=4/6
+MERGED_SOURCE_GATE=FAIL

@@ -515,16 +515,19 @@ archive, both builds, source comparison and required live profiles now pass.
 The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
-The remaining-path batch covers **99.35% of lines and 97.77% of branch
-outcomes**: 8,648/8,705 lines and 1,799/1,840 outcomes, leaving
-**57 lines and 41 outcomes**. All 4,389 production-source mappings match
-the preceding collector; only integration-test locations and mappings
-change. No production code is excluded. Three repeated GNU/musl process
-and live collections, ten final instrumented library suites, five focused
-kernel profiles and seven further fault controls pass. An instrumented
-Ubuntu 7.0 guest now exercises rejection of a foreign-tunnel session reply.
-Repository record `audit/phase6/remaining-paths-20261103/README.md` also
-documents LLVM's summary/merged-source discrepancy without changing P4.
+The defensive-boundary batch reports **8,441/8,441 merged source lines and
+1,834/1,840 condition outcomes** under the maintainer-approved P4 definition.
+The checker exits 1: six outcomes remain missing. Raw LLVM coverage remains
+**8,655/8,707 lines (99.40%) and 1,800/1,840 outcomes (97.83%)**.
+No production exclusion is added. The checker passes GNU/musl tests,
+Rust 1.89 checks and compiler-generated calibration; its source inventory
+for this batch was captured after collection. Common checks, repeated
+GNU/musl live collections, GNU Incus, manager/task limits, the root sandbox
+and seven fault controls pass. Repository files
+`audit/phase6/defensive-boundaries-20261103/README.md` and
+`audit/phase6/coverage-metric-20261103/README.md` retain the evidence and
+limitations. The 100% production CI job and complete proof remain open.
+
 The preceding checks, repeated GNU/musl models and task-limit
 cases, GNU Incus, manager checks and the unmodified root sandbox pass.
 Direct container limits now exercise both fork failures. Required normal

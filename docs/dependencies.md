@@ -119,6 +119,8 @@ default to `bin`, without the optional installer. Publishing uses
 | Tool | For |
 |---|---|
 | `cargo-llvm-cov` 0.9.1 | Phase 6 combined line/branch coverage; no daemon dependency |
+| `serde_json` 1.0.154, isolated in `tools/coverage` | Decode LLVM exports for the merged-source gate without a handwritten JSON parser; no daemon dependency or change to its lockfile |
+
 | Rust `nightly-2026-10-28`, `llvm-tools-preview` | Branch instrumentation for coverage only; shipped builds remain on stable |
 | Archived `rs-l2tpd` v0.1.5 and its own lockfile | G11/G22 peer interoperability only; isolated build cache, no dependency added to the current daemon |
 | QEMU TCG, cpio, binutils | Disposable kernel guests, initramfs creation and stripping only; not linked into the daemon |

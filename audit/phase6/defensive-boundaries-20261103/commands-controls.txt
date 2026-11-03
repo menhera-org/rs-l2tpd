@@ -1,0 +1,91 @@
+set -eu
+root=$PWD
+record=$root/audit/phase6/defensive-boundaries-20261103
+candidate=$(cat /tmp/phase6-resolver-validation-path)
+cp -Rp "$root/src/." "$candidate/src/"
+cp -Rp "$root/tests/." "$candidate/tests/"
+cp "$root/Cargo.toml" "$root/Cargo.lock" "$root/build.rs" "$candidate/"
+cd "$candidate"
+export CARGO_BUILD_JOBS=2
+git --no-pager rev-parse HEAD > "$record/control-base-revision"
+git --no-pager diff -- src tests Cargo.toml Cargo.lock build.rs > "$record/control-source-before.patch"
+restore() {
+ cp "$root/src/kernel/linux/request.rs" "src/kernel/linux/request.rs"
+ cp "$root/src/kernel/linux/l2tp.rs" "src/kernel/linux/l2tp.rs"
+ cp "$root/src/reconciler/resolvers.rs" "src/reconciler/resolvers.rs"
+ cp "$root/src/reconciler/sessions.rs" "src/reconciler/sessions.rs"
+ cp "$root/src/bin/rs-l2tpd/restart.rs" "src/bin/rs-l2tpd/restart.rs"
+}
+trap restore 0
+
+/tmp/phase6-replace src/kernel/linux/request.rs < "$record/control-filter-pass-data.txt"
+git --no-pager diff -- src/kernel/linux/request.rs > "$record/control-filter-pass-data.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-filter-pass-data-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-filter-pass-data-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --ignored --exact kernel::linux::l2tp::missing_family_tests::an_ack_without_family_data_returns_eproto_and_never_populates_the_cache --test-threads=1 --nocapture > "$record/control-filter-pass-data.log" 2>&1 || result=$?
+restore
+[ "$result" != 0 ]
+grep -q 'test result: FAILED. 0 passed; 1 failed' "$record/control-filter-pass-data.log"
+printf 'DEFENSIVE_NEGATIVE_CONTROL=filter-pass-data REJECTED\n'
+
+/tmp/phase6-replace src/kernel/linux/l2tp.rs < "$record/control-family-default.txt"
+git --no-pager diff -- src/kernel/linux/l2tp.rs > "$record/control-family-default.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-family-default-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-family-default-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --ignored --exact kernel::linux::l2tp::missing_family_tests::an_ack_without_family_data_returns_eproto_and_never_populates_the_cache --test-threads=1 --nocapture > "$record/control-family-default.log" 2>&1 || result=$?
+restore
+[ "$result" != 0 ]
+grep -q 'test result: FAILED. 0 passed; 1 failed' "$record/control-family-default.log"
+printf 'DEFENSIVE_NEGATIVE_CONTROL=family-default REJECTED\n'
+
+/tmp/phase6-replace src/reconciler/resolvers.rs < "$record/control-missing-scope.txt"
+git --no-pager diff -- src/reconciler/resolvers.rs > "$record/control-missing-scope.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-missing-scope-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-missing-scope-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --exact reconciler::resolvers::tests::a_privately_malformed_unscoped_resolver_returns_the_defensive_error --test-threads=1 --nocapture > "$record/control-missing-scope.log" 2>&1 || result=$?
+restore
+[ "$result" != 0 ]
+grep -q 'test result: FAILED. 0 passed; 1 failed' "$record/control-missing-scope.log"
+printf 'DEFENSIVE_NEGATIVE_CONTROL=missing-scope REJECTED\n'
+
+/tmp/phase6-replace src/reconciler/sessions.rs < "$record/control-missing-cache.txt"
+git --no-pager diff -- src/reconciler/sessions.rs > "$record/control-missing-cache.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-missing-cache-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-missing-cache-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --exact reconciler::sessions::wanted_tests::a_private_missing_cached_name_does_not_invent_a_swap_holder --test-threads=1 --nocapture > "$record/control-missing-cache.log" 2>&1 || result=$?
+restore
+[ "$result" != 0 ]
+grep -q 'test result: FAILED. 0 passed; 1 failed' "$record/control-missing-cache.log"
+printf 'DEFENSIVE_NEGATIVE_CONTROL=missing-cache REJECTED\n'
+
+/tmp/phase6-replace src/bin/rs-l2tpd/restart.rs < "$record/control-exec-payload.txt"
+git --no-pager diff -- src/bin/rs-l2tpd/restart.rs > "$record/control-exec-payload.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --bin rs-l2tpd --no-run > "$record/control-exec-payload-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/bin/rs-l2tpd/main.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-exec-payload-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --exact restart::panic_tests::an_exec_worker_panic_becomes_an_error_and_releases_its_payload --test-threads=1 --nocapture > "$record/control-exec-payload.log" 2>&1 || result=$?
+restore
+[ "$result" != 0 ]
+grep -q 'test result: FAILED. 0 passed; 1 failed' "$record/control-exec-payload.log"
+printf 'DEFENSIVE_NEGATIVE_CONTROL=exec-payload REJECTED\n'
+
+/tmp/phase6-replace src/bin/rs-l2tpd/restart.rs < "$record/control-exec-panic.txt"
+git --no-pager diff -- src/bin/rs-l2tpd/restart.rs > "$record/control-exec-panic.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --bin rs-l2tpd --no-run > "$record/control-exec-panic-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/bin/rs-l2tpd/main.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-exec-panic-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --exact restart::panic_tests::an_exec_worker_panic_becomes_an_error_and_releases_its_payload --test-threads=1 --nocapture > "$record/control-exec-panic.log" 2>&1 || result=$?
+restore
+[ "$result" != 0 ]
+grep -q 'test result: FAILED. 0 passed; 1 failed' "$record/control-exec-panic.log"
+printf 'DEFENSIVE_NEGATIVE_CONTROL=exec-panic REJECTED\n'

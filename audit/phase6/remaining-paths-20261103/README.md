@@ -38,15 +38,23 @@ compatible; no production exclusion is added.
 ## Executed scope
 
 Ten initial instrumented ordinary suites pass. Three instrumented GNU
-live collections and three stable GNU plus three stable musl collections
-each pass 308 ordinary library cases, all 57 ignored library cases,
-80 ordinary binary cases and all 37 process cases. Required ignored
+live collections each pass 308 ordinary library cases and all 57 ignored
+library cases. Three stable GNU plus three stable musl collections each
+pass 308 ordinary library cases and all 29 ignored library cases.
+Both kinds of collection also pass 80 ordinary binary cases and all
+37 process cases. Coverage-only shared live/startup modules account for
+the different ignored counts. Required ignored
 binary filesystem/task-limit cases retain their separate guest scope.
 
 The three additional model cases then pass ten complete instrumented
 library repetitions and three stable GNU plus three stable musl library
-repetitions: **311 ordinary cases**, with the same 57 live declarations
-ignored in that ordinary pass. Their existing live fixtures did not change.
+repetitions: **311 ordinary cases**, with 57 live declarations ignored
+in the instrumented ordinary pass and 29 in each stable pass. Their
+existing live fixtures did not change.
+
+The first version of this record incorrectly assigned the instrumented
+57-case live count to stable runs too. The underlying logs record 29
+for stable; this correction changes no execution result.
 
 All five focused required-kernel profiles pass the inventory case, all
 four lifetime-ordering modes, the three new event/binding models, both

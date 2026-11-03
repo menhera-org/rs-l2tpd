@@ -67,3 +67,9 @@ mod testdir;
 
 #[cfg(test)]
 use crate::kernel::linux::syscall_fault;
+
+// Share public service cases with private cases in the instrumented library instance.
+#[cfg(all(test, coverage_nightly, feature = "serde", feature = "fake-kernel"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[path = "../tests/service.rs"]
+mod service_tests;

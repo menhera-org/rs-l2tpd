@@ -1,0 +1,5 @@
+scope: three filtered session inventory repetitions; GNU instrumented unit
+unit git-blob: 4c99b2b25bf008bb71c0257817b0cff1edf16187
+kernel git-blob: 812729084e78b0c3f817eec4997668a631a9561c
+fixture git-blob: 93b66d18c30a2e50ac4fe34d14e934ac8a495f3d
+command: timeout 900 qemu-system-x86_64 -accel tcg,thread=single -machine q35 -cpu max -m 2048 -smp 1 -nodefaults -nographic -serial stdio -no-reboot -kernel IMAGE -initrd INITRAMFS -append console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs kho=off -fsdev local,id=profiles,path=PROFILE_DIRECTORY,security_model=none -device virtio-9p-pci,fsdev=profiles,mount_tag=profiles

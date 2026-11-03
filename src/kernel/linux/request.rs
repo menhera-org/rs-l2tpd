@@ -1047,3 +1047,21 @@ mod io_fault_tests {
         }
     }
 }
+
+#[cfg(test)]
+impl Request {
+    // kernel: (K10) net/core/filter.c sk_attach_filter and bpf_skb_load_helper_16 (network-order loads).
+    #[cfg_attr(coverage_nightly, coverage(off))]
+    pub(super) fn acknowledgements_only(self) -> io::Result<Self> {
+        // Drop family data at the socket, while preserving the kernel's real ACK.
+        let program = [
+            socket2::SockFilter::new(0x28, 0, 0, 4),
+            socket2::SockFilter::new(0x15, 0, 1, NLMSG_ERROR.to_be().into()),
+            socket2::SockFilter::new(0x06, 0, 0, u32::MAX),
+            socket2::SockFilter::new(0x06, 0, 0, 0),
+        ];
+        SockRef::from(self.socket.as_ref().expect("fresh request socket"))
+            .attach_filter(&program)?;
+        Ok(self)
+    }
+}

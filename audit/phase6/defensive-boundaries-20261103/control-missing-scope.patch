@@ -1,0 +1,13 @@
+diff --git a/src/reconciler/resolvers.rs b/src/reconciler/resolvers.rs
+index 70befc2..73180c4 100644
+--- a/src/reconciler/resolvers.rs
++++ b/src/reconciler/resolvers.rs
+@@ -446,7 +446,7 @@ impl<K: Kernel> Reconciler<K> {
+                             }
+                             (Some(zone), None) => link(&mut self.k, zone)?.0,
+                             (None, Some((index, _))) => *index,
+-                            (None, None) => return Err("a link-local server has no scope".into()),
++                            (None, None) => 0,
+                         };
+                         SocketAddr::V6(SocketAddrV6::new(v6, server.port(), 0, scope))
+                     }

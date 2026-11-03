@@ -1,0 +1,10 @@
+GUEST_KERNEL_RELEASE=7.0.0-42-generic
+FILTERED_SESSION_INVENTORIES_CHECKED=4
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 406 filtered out; finished in 0.15s
+FILTERED_SESSION_INVENTORIES_CHECKED=4
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 406 filtered out; finished in 0.03s
+FILTERED_SESSION_INVENTORIES_CHECKED=4
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 406 filtered out; finished in 0.04s
+GUEST_COVERAGE_RESULT=0
+NONEMPTY_GUEST_PROFILES=3
+INVENTORY_GUEST_RESULT=0

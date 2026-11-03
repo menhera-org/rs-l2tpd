@@ -27,20 +27,26 @@ the scenario suite below; read them before writing new scenarios.
 
 ## Execution status, 2026-11-03
 
-Phase 6 remains open. Signed `f0b666f` passes both CI jobs and CodeQL.
-The remaining-path collector covers **8,648/8,705 lines (99.35%)**
-and **1,799/1,840 outcomes (97.77%)**, leaving **57 lines and 41 outcomes**.
-It excludes no production code. All 4,389 production-source mappings
-compare equal; integration-test locations and six test mappings change.
-Repeated startup-withdrawal, capget-failure, reader-timeout and source/binding
-cases pass, including ten final instrumented library suites, three
-GNU/musl collections, five focused kernel profiles and seven fault controls.
-Three instrumented GNU guest repetitions cover the foreign-tunnel reply
-guard on Ubuntu 7.0. Repository record
-`audit/phase6/remaining-paths-20261103/README.md` retains the scope and
-an LLVM summary/merged-source discrepancy. The raw gate is unchanged. The
-required set remains Ubuntu 6.8.0-147.147 and 7.0.0-42.42, vanilla 6.8.12
-and 7.0.14, and mainline 7.4-rc1.
+Phase 6 remains open. Signed `6735dd6` passes both CI jobs and CodeQL.
+The maintainer approved merged-source coverage on November 3.
+The calibrated checker reports **8,441/8,441 source lines and
+1,834/1,840 condition outcomes**, exits 1 and leaves **six outcomes**.
+The retained raw LLVM summary is **8,655/8,707 lines (99.40%) and
+1,800/1,840 outcomes (97.83%)**. No production exclusion is added.
+The separate tool passes eight GNU/musl tests, Rust 1.89 checks and
+compiler-generated complementary-copy/repeated-guard calibration.
+The full production 100% CI job remains unfinished.
+
+The defensive-boundary batch passes common checks, ten instrumented suites,
+repeated GNU/musl live collections, GNU Incus, manager/task limits and the
+unmodified root system-unit profile. Seven restored controls reject their
+intended faults. Repository file
+`audit/phase6/defensive-boundaries-20261103/README.md` records exact counts,
+the final uncached-family test and the post-collection inventory limitation.
+This batch does not replace the earlier full matrix or resolve its clock
+failures. The required set remains Ubuntu 6.8.0-147.147 and 7.0.0-42.42,
+vanilla 6.8.12 and 7.0.14, and mainline 7.4-rc1.
+
 
 The preceding event/lifetime batch adds reader/reopen/generation races, closed queues,
 shutdown reload completions, repeated conflicts and defensive adoption/
@@ -128,7 +134,7 @@ files `audit/PHASE6_VERIFICATION_2026-11-02.md`,
 | Source link | `SRCLINK_STRICT=1 cargo test --test srclink` passes: every `kernel::linux` function cites a K fact; linux-scoped facts need production citations, delegated/source-only facts need classified evidence and test citations | P1 |
 | Scenario suite | `tests/docker/run.sh scenarios` passes on the host kernel: one scenario per H rule and per conditional promise G15–G23, plus G11 interoperability with 0.1.5 | P2 |
 | Kernel matrix | `tests/docker/run.sh matrix required` passes on every kernel of the [kernel targets](testing.md#kernel-targets) table as resolved on the run's date | P3 |
-| Coverage | `cargo llvm-cov` over unit, rules, properties, fake conformance and the container profiles reports 100 % of production lines and branches of `src/` (test-only `#[cfg(test)]` code excluded from instrumentation; tests still execute), with only the marked `kernel::linux` exclusions | P4 |
+| Coverage | The checked merged-source report from `cargo llvm-cov` exports over unit, rules, properties, fake conformance and container profiles reaches 100 % of production lines and condition outcomes of `src/` (test-only `#[cfg(test)]` code excluded from instrumentation; tests still execute), with only the marked `kernel::linux` exclusions | P4 |
 | Incus/LXD | `tests/docker/run.sh incus` ran, not skipped, in an unprivileged system container | P5 |
 
 Exit of the phase: all six green on the running kernel and on every
@@ -335,8 +341,18 @@ needs no second container: two namespaces in the guest suffice.
   the record. A branch that is reachable but untested is a missing test,
   not an exclusion.
 
-Acceptance: the merged report at 100 % with the exclusion list; the
-command in CI as a separate job.
+Coverage combines executions of the same production source across test
+executables and generic instantiations. A source line is covered when its
+merged LLVM line count is positive; each condition's true and false outcome
+must be observed at its exact source span. Different source spans remain
+separate. Folded outcomes follow LLVM's executable-outcome classification.
+The checker must fail on an unsupported export schema or inconsistent
+source mappings, and retain the raw LLVM summary and per-instantiation
+diagnostics alongside its result. No further production exclusion is added.
+
+Acceptance: merged production source lines and condition outcomes at 100 %
+with the permitted exclusion list; the command in CI as a separate job.
+
 
 ## P5. The unprivileged system container
 
