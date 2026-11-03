@@ -1,0 +1,10 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-33c7dac59ac6b88b)
+
+running 2 tests
+test reconciler::events::resource_tests::a_private_stale_device_index_does_not_reconnect_an_unbound_tunnel_on_address_addition ... ok
+test runtime::tests::shutdown_while_dequeuing_a_ready_reload_releases_its_admission_slot ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 348 filtered out; finished in 0.00s
+

@@ -30,57 +30,33 @@ The kernel carries Ethernet pseudowires over IPv4 or IPv6.
 
 ## Status
 
-The last release is 0.1.5. The tree is being rewritten against a complete
-[specification](docs/spec/README.md); the rewrite ships as 0.2.0. The
-[plan](docs/plan.md) says what is being built and in which order, and the
-[current contract gaps](docs/spec/README.md#current-contract-gaps) list the
-review corrections and their acceptance work. Configuration, kernel,
-reconciler, runtime, service and process code exists; Phases 1–5 have scoped
-verification records, including the
-[Phase 5 conformance follow-up](audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md).
-The binary runs on musl and glibc. The November 1 matrix passes all 27
-normal scenarios on each of the five required kernels, including
-fragmentation, 300 tunnels and the VRF reload regression. All five clock
-profiles, both IPv6-absent boots and missing-driver recovery pass.
-The matrix freezes production source `584062d` with released iphost 0.4.4; later test-only additions
-have separate qualification records.
+The last release is 0.1.5. The rewrite will ship as 0.2.0 and implements
+the [specification](docs/spec/README.md). Phases 1–5 have scoped verification
+records; [Phase 6 remains open](audit/PHASE6_VERIFICATION_2026-11-03.md).
 
-The current E27 correction fixes verification stopping while a session's
-announced deletion is still queued. A delayed-work model witness fails on
-the preceding implementation and passes with the correction. Repeated models,
-GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The earlier target snapshot passed all thirteen profiles on `584062d`, including
-the E27 correction and released iphost 0.4.4.
-The iphost 0.4.4 integration and standard-library boundary changes pass
-common checks, ten native and instrumented seeds, three musl model runs,
-GNU live/Incus, manager, task limits and the root sandbox. Three musl
-scenario/Incus repetitions pass. The required matrix also passes all
-thirteen profiles on frozen signed commit `584062d`. Later test-only
-additions retain their separate execution records.
+Signed `c0a1b3b` passes the common CI jobs and CodeQL. The latest completed
+[required-kernel matrix](audit/phase6/matrix-20261103T021525Z-400861/README.md)
+passes all thirteen profiles on earlier signed source `db7c1d2`. It includes
+fragmentation, 300 tunnels, five clock/pause cases, both IPv6-absent boots
+and missing-driver recovery. The later readiness/resync source still needs
+full matrix qualification. Earlier parallel clock failures remain recorded.
 
-Phase 6 remains open. The [latest verification record](audit/PHASE6_VERIFICATION_2026-11-03.md)
-retains the last combined report: **8,441/8,441 merged source lines and
-1,834/1,840 condition outcomes**, leaving six outcomes. New condition
-witnesses and input checks pass; fresh coverage for their source is pending. The
-retained raw LLVM summary is 99.40% lines / 97.83% outcomes. Complete
-clause/resource/event-cost proof and the 100% gate still require work.
+The [local coverage checker](audit/phase6/closure-coverage-20261103/README.md)
+passes **8,444/8,444 production source lines and 1,838/1,838 condition
+outcomes**, exit 0. A [fresh local rehearsal](audit/phase6/coverage-ci-rehearsal-20261103/README.md)
+reproduces those totals using the new separate CI job's recipe; its first
+GitHub execution is pending.
+
+Complete clause/resource/event-cost proof and current-source kernel
+qualification remain open.
 
 
-The [latest batch](audit/phase6/remaining-paths-20261103/README.md) checks
-startup withdrawal, capget failure, reader timeouts and source/binding
-changes. Repeated GNU/musl suites, five focused kernel profiles and seven
-fault controls pass. An instrumented Ubuntu 7.0 guest checks rejection of
-a foreign-tunnel session reply. These focused profiles supplement the
-earlier full normal/boot matrix and serial clock replay; retained parallel
-clock failures remain unresolved.
-
-Strict rule/source maps, unprivileged Incus and the unmodified root
-systemd sandbox have passing records with their execution scope stated.
-Released iphost 0.4.4 supplies the tested anonymous DHCPv6 Reply fix.
-[Required-kernel behavior](docs/kernel-behavior.md) documents each target's
-differences and limits. The November 3 publication recheck retains Ubuntu
-6.8.0-147.147 and 7.0.0-42.42, vanilla 6.8.12 and 7.0.14, and mainline
-7.4-rc1. The known-gap tables describe historical commit `741117b`.
+Strict rule/source maps, unprivileged Incus and the unmodified root systemd
+sandbox have passing records with their source and execution scope stated.
+[Required-kernel behavior](docs/kernel-behavior.md) records every target's
+differences and limitations. The November 3 publication recheck retains Ubuntu
+6.8.0-147.147 and 7.0.0-42.42, vanilla 6.8.12 and 7.0.14, and mainline 7.4-rc1.
+The specification's known-gap tables describe historical commit `741117b`.
 
 ## Quick start
 

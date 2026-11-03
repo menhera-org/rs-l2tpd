@@ -17,8 +17,8 @@ enum Event {
 }
 
 #[inline(never)]
-fn repeated(event: Event, enabled: bool) -> u8 {
-    match event {
+fn repeated<T>(event: Event, enabled: bool) -> u8 {
+    match black_box((event, std::mem::size_of::<T>())).0 {
         Event::A | Event::B if black_box(enabled) => 1,
         _ => 2,
     }
@@ -45,13 +45,30 @@ fn main() {
         _ => panic!("unexpected calibration mode"),
     }
     if mode == "missing-repeated" {
-        assert_eq!(repeated(Event::A, true), 1);
-        assert_eq!(repeated(Event::B, false), 2);
+        assert_eq!(repeated::<u8>(Event::A, true), 1);
+        assert_eq!(repeated::<u8>(Event::B, false), 2);
+        assert_eq!(repeated::<u16>(Event::A, true), 1);
+        assert_eq!(repeated::<u16>(Event::B, false), 2);
     } else {
         for enabled in [false, true] {
-            assert_eq!(repeated(Event::A, enabled), if enabled { 1 } else { 2 });
-            assert_eq!(repeated(Event::B, enabled), if enabled { 1 } else { 2 });
+            assert_eq!(
+                repeated::<u8>(Event::A, enabled),
+                if enabled { 1 } else { 2 }
+            );
+            assert_eq!(
+                repeated::<u8>(Event::B, enabled),
+                if enabled { 1 } else { 2 }
+            );
+            assert_eq!(
+                repeated::<u16>(Event::A, enabled),
+                if enabled { 1 } else { 2 }
+            );
+            assert_eq!(
+                repeated::<u16>(Event::B, enabled),
+                if enabled { 1 } else { 2 }
+            );
         }
     }
-    assert_eq!(repeated(Event::C, false), 2);
+    assert_eq!(repeated::<u8>(Event::C, false), 2);
+    assert_eq!(repeated::<u16>(Event::C, false), 2);
 }

@@ -1,0 +1,9 @@
+
+running 1 test
+CONCURRENT_MAC=kernel-random; udev MAC write refused with EBUSY; address=06:11:23:74:42:f3
+ORDERED_MAC=persistent; address=12:39:93:67:ca:23; ifindex=5
+ORDERED_MAC=persistent; address=12:39:93:67:ca:23; ifindex=6
+test incus::system_container_store_tunable_networkd_and_udev ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 18.41s
+

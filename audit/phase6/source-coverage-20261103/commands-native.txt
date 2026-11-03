@@ -1,0 +1,18 @@
+set -eu
+record=$PWD/audit/phase6/source-coverage-20261103
+coverage=$PWD/target/phase6-coverage-source-20261103
+test ! -e "$coverage"
+mkdir -p "$record"
+git --no-pager diff --exit-code HEAD -- src tests Cargo.toml Cargo.lock > "$record/initial-source.patch"
+git --no-pager rev-parse HEAD > "$record/revision"
+git --no-pager rev-parse HEAD:src HEAD:tests HEAD:Cargo.toml HEAD:Cargo.lock > "$record/initial-source-objects"
+rustc +nightly-2026-10-28 -vV > "$record/toolchain.log"
+export CARGO_LLVM_COV_TARGET_DIR=$coverage
+TEST_SEED=61 cargo +nightly-2026-10-28 llvm-cov --color never --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report > "$record/native.log" 2>&1
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path "$coverage/initial-export.json" > "$record/initial-export.log" 2>&1
+tools/coverage/target/debug/phase6-coverage snapshot "$PWD" "$coverage/source-and-mapping-inventory.json" "$coverage/initial-export.json"
+for seed in 62 63 64 65 66 67 68 69 70; do
+ TEST_SEED=$seed cargo +nightly-2026-10-28 llvm-cov --color never --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report > "$record/instrumented-$seed.log" 2>&1
+done
+git --no-pager diff --exit-code HEAD -- src tests Cargo.toml Cargo.lock > "$record/after-native-source.patch"
+printf 'TEN_FRESH_INSTRUMENTED_SUITES_WITH_FROZEN_SOURCE_RESULT=0\n'

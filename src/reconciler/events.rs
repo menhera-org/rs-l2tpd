@@ -698,6 +698,38 @@ mod resource_tests {
     use crate::reconciler::{Lookup, Resolve};
     use std::sync::{Arc, Mutex};
 
+    /// spec: E6, E7, M16, G12
+    #[test]
+    fn a_private_stale_device_index_does_not_reconnect_an_unbound_tunnel_on_address_addition() {
+        let mut kernel = FakeKernel::new(42);
+        let device = kernel.add_link("wan", false);
+        let source = "192.0.2.1".parse().unwrap();
+        kernel.add_addr(device, source);
+        let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
+        let config = toml::from_str(
+            "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'",
+        )
+        .unwrap();
+        assert!(r.reconcile(config));
+        let socket = r.k.tunnel_socket(10).unwrap();
+        let original = r.k.connection(socket);
+        assert_eq!(original.as_ref().map(|(_, address)| *address), Some(source));
+        assert!(r.tunnels[&10].bound.is_none());
+        assert!(r.tunnels[&10].bind_index.is_none() && r.tunnels[&10].zone_index.is_none());
+        // Only this private fixture installs a dependency absent from the record.
+        r.index.devices.entry(device).or_default().insert(10);
+        r.address_devices.insert(device);
+        assert!(!r.addresses.contains_key(&device));
+        r.k.clear_ops();
+        r.handle(
+            Source::Monitor,
+            Notice::AddrNew(AddrInfo::new(device, source)),
+        );
+        assert!(r.k.ops().is_empty());
+        assert_eq!(r.k.connection(socket), original);
+        assert_eq!(r.k.tunnel_socket(10), Some(socket));
+    }
+
     /// spec: A10, A14, G2, G23
     #[test]
     fn removing_a_stale_session_reverse_index_preserves_its_new_owner() {

@@ -1,0 +1,14 @@
+diff --git a/tools/coverage/restart-cli.sh b/tmp/phase6-restart-cli-negative.sh
+index 93d0c58..e283201 100644
+--- a/tools/coverage/restart-cli.sh
++++ b/tmp/phase6-restart-cli-negative.sh
+@@ -33,7 +33,8 @@ timeout 10 sh -c '
+  until grep -q "ready pid=" "$1"; do sleep 1; done
+ 
+ ' sh "$scratch/daemon.log"
+-"$binary" --restart --pid-file "$scratch/pid"
++:
++
+ # The child expands its own log argument after timeout starts it.
+ # shellcheck disable=SC2016
+ timeout 10 sh -c '

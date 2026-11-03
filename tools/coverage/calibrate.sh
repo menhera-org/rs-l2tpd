@@ -50,7 +50,11 @@ awk '/6choose/ {found++; if($7 != "80.00%" || $10 != "50.00%") exit 1}
  END {if(found != 2) exit 1}' "$record/complementary-raw.log"
 awk '/6choose/ {found++; if($7 != "100.00%" || $10 != "100.00%") exit 1}
  END {if(found != 2) exit 1}' "$record/both-raw.log"
-# Repeated match guards must keep their two independent conditions.
+# Repeated guards retain their identity in both generic executable copies.
+awk '/8repeated/ {found++; if($10 != "50.00%") exit 1}
+ END {if(found != 2) exit 1}' "$record/missing-repeated-raw.log"
+awk '/8repeated/ {found++; if($10 != "100.00%") exit 1}
+ END {if(found != 2) exit 1}' "$record/both-raw.log"
 test "$(grep -c 'missing condition' "$record/missing-repeated-merged.log")" -eq 2
 grep -q 'occurrence 0' "$record/missing-repeated-merged.log"
 grep -q 'occurrence 1' "$record/missing-repeated-merged.log"
@@ -60,4 +64,24 @@ status=0
 test "$status" -eq 2
 grep -q 'source inventory or mappings changed' "$record/changed-source.log"
 
+# Malformed artifact logs must fail before a container command can run.
+mkdir "$scratch/bin"
+cat > "$scratch/bin/docker" <<'DOCKER'
+#!/bin/sh
+printf 'UNEXPECTED_DOCKER_CALL\n' >&2
+exit 99
+DOCKER
+chmod 755 "$scratch/bin/docker"
+: > "$scratch/empty.log"
+for native in "$scratch/empty.log" relative.log; do
+ status=0
+ PATH="$scratch/bin:$PATH" sh tools/coverage/run-guest.sh "$native" /missing/kernel "$scratch/guest" "$scratch/profiles" > "$scratch/preflight.log" 2>&1 || status=$?
+ case $native in
+  /*) test "$status" -eq 1; grep -q 'missing coverage executable' "$scratch/preflight.log" ;;
+  *) test "$status" -eq 2; grep -q 'use absolute paths' "$scratch/preflight.log" ;;
+ esac
+ if grep -q UNEXPECTED_DOCKER_CALL "$scratch/preflight.log"; then exit 1; fi
+ test ! -e "$scratch/guest" && test ! -e "$scratch/profiles"
+done
 printf 'LLVM_COMPLEMENTARY_COPIES_REPEATED_CONDITIONS_MISSING_ARMS_AND_SOURCE_CHANGE_CALIBRATION_RESULT=0\n'
+printf 'COVERAGE_GUEST_PREFLIGHT_NEGATIVE_CONTROLS_RESULT=0\n'

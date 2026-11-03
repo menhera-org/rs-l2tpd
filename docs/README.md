@@ -24,56 +24,35 @@ are in the [GitHub repository](https://github.com/menhera-org/rs-l2tpd).
 | [Upstream iphost work](upstream-iphost.md) | Instructions for protocol bug fixes, optional failure fallback, compatibility and daemon integration gates |
 | [Specification](spec/README.md) | The normative behaviour, with the known gaps of the historical pre-rewrite implementation that the rewrite closes |
 
-Version 0.2.0 has not been released; the rewrite ships under that
-number. The tree contains configuration, fake/real kernel, reconciler,
-runtime, services and binary; Phases 1–5 have scoped verification records.
-The latest Phase 5 evidence is repository file
-`audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md`, following the initial
-`audit/PHASE5_VERIFICATION_2026-10-29.md` record. The binary runs on musl
-and glibc. The November 1 matrix passes all 27 normal scenarios on each
-of the five required kernels, including fragmentation, 300 tunnels and the
-VRF reload regression. All five clock profiles, both IPv6-absent boots
-and missing-driver recovery pass. The matrix freezes production source
-`584062d` with released iphost 0.4.4; later test-only additions have separate qualification records.
+Version 0.2.0 has not been released. The tree contains the configuration,
+fake/real kernel, reconciler, runtime, services and binary. Phases 1–5 have
+scoped verification records; [Phase 6](phase6.md) remains open.
 
-The current E27 correction fixes verification stopping while a session's
-announced deletion is still queued. A delayed-work model witness fails on
-the preceding implementation and passes with the correction. Repeated models,
-GNU/musl live suites, three musl Incus runs and the root sandbox pass.
-The earlier target snapshot passed all thirteen profiles on `584062d`, including
-the E27 correction and released iphost 0.4.4.
-The iphost 0.4.4 integration and standard-library boundary changes pass
-common checks, ten native and instrumented seeds, three musl model runs,
-GNU live/Incus, manager, task limits and the root sandbox. Three musl
-scenario/Incus repetitions pass. The required matrix also passes all
-thirteen profiles on frozen signed commit `584062d`. Later test-only
-additions retain their separate execution records.
+Signed `c0a1b3b` passes both common CI jobs and CodeQL. The latest full
+required-kernel matrix passes all thirteen profiles on earlier signed source
+`db7c1d2`. It includes all 27 normal scenarios on each required target,
+five clock/pause profiles, two IPv6-absent boots and missing-driver recovery.
+The later readiness/resync source still needs full matrix qualification;
+earlier parallel clock failures remain recorded.
 
-Phase 6 remains open. Released iphost 0.4.4 fixes V12's anonymous Reply
-validation defect. Three live witnesses fail with 0.4.3 and pass with the
-registry release. Local and required-kernel integration checks pass; the
-specification remains unchanged. Strict rule-map/source-link checks have passing CI
-records, including ten-repetition qualification. Unprivileged Incus and the
-root unit sandbox have passing local records. The approved MAC and
-dependency-state contracts are applied. Broken `nix` signal wrappers use
-checked `libc` calls under the [documented exception](dependencies.md#upstream-needs).
-[Required-kernel behavior](kernel-behavior.md) records each target's
-differences, source evidence, execution scope and limitations. Repository
-file `audit/PHASE6_VERIFICATION_2026-11-01.md` gives coverage and the remaining
-clause/resource/event-cost proof and identifies each test package's source.
-Fresh coverage for iphost 0.4.4 and the boundary changes is **98.01% of lines
-and 92.01% of branches**, leaving 173 lines and 148 branches. Repeated model
-and GNU/musl tests include
-failure controls for session ownership and descriptor handover. The checked
-reply decoder passes all thirteen profiles of the current set, including 7.4-rc1. Request handling
-has complete line/branch coverage, including real buffer-force success. The global gates remain open. Mainline advanced to 7.4-rc1 during the
-pre-pause check. The November 2 recheck retains that selection; its source
-comparison, both builds and the fresh full matrix pass. The current record is
-repository file `audit/PHASE6_VERIFICATION_2026-11-02.md`.
-The specification's
-[known gaps](spec/README.md#known-gaps) describe historical commit
-`741117b`, removed in Phase 0. The interface page describes the target.
+The local coverage checker passes 8,444/8,444 production source lines and
+1,838/1,838 condition outcomes, exit 0. A fresh local rehearsal reproduces
+those totals using the new separate CI job's recipe; its first GitHub
+execution is pending.
+ Complete clause/resource/event-cost proof and current-source
+kernel qualification remain open.
+ Repository file `audit/PHASE6_VERIFICATION_2026-11-03.md` identifies
+the source, commands, results and remaining work.
+
+Strict traceability, unprivileged Incus and the root system-unit sandbox
+have passing records with their scope stated. Released iphost 0.4.4 supplies
+the tested anonymous Reply correction. The approved MAC/dependency-state
+contracts and the [libc exception](dependencies.md#upstream-needs) apply.
+[Required-kernel behavior](kernel-behavior.md) records every target's
+differences, source evidence and limitations. The specification's
+[known gaps](spec/README.md#known-gaps) describe historical commit `741117b`.
 
 These pages use relative Markdown links, so navigation works in a checkout
-and on GitHub. The directory is the `/docs` source for GitHub Pages;
+and on GitHub.
+ The directory is the `/docs` source for GitHub Pages;
 `_config.yml` enables the README-index and relative-link plugins.

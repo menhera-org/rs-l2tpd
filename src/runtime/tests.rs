@@ -1173,3 +1173,115 @@ fn queued_ticks_and_resolver_answers_do_not_poll_dns_after_shutdown() {
         assert_eq!(r.control().config(), Config::new());
     }
 }
+
+/// spec: L5, L6, L10, G20, G23
+#[test]
+fn shutdown_while_dequeuing_a_ready_operator_request_releases_its_admission_slot() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::{Arc, Mutex, mpsc};
+    struct Gate {
+        entered: mpsc::SyncSender<()>,
+        release: mpsc::Receiver<()>,
+    }
+    struct GatedResolver(Arc<Mutex<Option<Gate>>>);
+    impl Resolve for GatedResolver {
+        fn watch(&mut self, _: Lookup) -> io::Result<()> {
+            Ok(())
+        }
+        fn unwatch(&mut self, _: u64) {}
+        fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
+            let gate = self.0.lock().unwrap().take();
+            if let Some(gate) = gate {
+                gate.entered.send(()).unwrap();
+                gate.release.recv().unwrap();
+            }
+            vec![]
+        }
+    }
+    struct StopOnWake(Control, AtomicBool);
+    impl std::task::Wake for StopOnWake {
+        fn wake(self: Arc<Self>) {
+            self.1.store(true, Ordering::Release);
+            self.0.shutdown();
+        }
+    }
+    for restart in [false, true] {
+        engine().block_on(async {
+            let gate = Arc::new(Mutex::new(None));
+
+            let runtime = Runtime::with_kernel(
+                FakeKernel::new(42),
+                Box::new(GatedResolver(gate.clone())),
+                vec![],
+            )
+            .map_err(|(error, _)| error)
+            .unwrap();
+            let mut wanted = Config::new();
+            wanted.set_host(crate::config::HostConfig::new().with_fix_bindv6only(false));
+            let mut service = crate::service::Service::with_runtime(wanted, runtime)
+                .map_err(|(error, _)| error)
+                .unwrap();
+            service.converge().await.unwrap();
+            let control = service.control();
+            assert_eq!(control.shared.generation.load(Ordering::Acquire), 0);
+            let (entered, entering) = mpsc::sync_channel(1);
+            let (release, releasing) = mpsc::sync_channel(1);
+            *gate.lock().unwrap() = Some(Gate {
+                entered,
+                release: releasing,
+            });
+            control.send(ControlEvent::Tick).await.unwrap();
+            entering.recv_timeout(Duration::from_secs(5)).unwrap();
+            if restart {
+                control.restart().unwrap();
+            } else {
+                control.reload().unwrap();
+            }
+            assert_eq!(control.shared.admitted.load(Ordering::Acquire), 1);
+
+            for _ in 1..QUEUE_CAPACITY {
+                assert!(control.tx.try_send(ControlEvent::Tick).is_ok());
+            }
+            let stopped = Arc::new(StopOnWake(control.clone(), AtomicBool::new(false)));
+            let waker = Waker::from(stopped.clone());
+            let mut waiting = std::pin::pin!(control.send(ControlEvent::Tick));
+            assert!(
+                waiting
+                    .as_mut()
+                    .poll(&mut Context::from_waker(&waker))
+                    .is_pending()
+            );
+            assert!(!stopped.1.load(Ordering::Acquire));
+            release.send(()).unwrap();
+            tokio::time::timeout(Duration::from_secs(5), service.run(Ok, |_| Ok(())))
+                .await
+                .unwrap()
+                .unwrap();
+            assert!(stopped.1.load(Ordering::Acquire));
+            assert_eq!(control.shared.admitted.load(Ordering::Acquire), 0);
+            assert_eq!(control.config(), Config::new());
+        });
+    }
+}
+
+/// spec: L13, T8, G20
+#[test]
+fn shutdown_refuses_unsent_store_requests_and_releases_their_socket_copies() {
+    engine().block_on(async {
+        let mut r = runtime();
+        r.set_store_capacity(1);
+        r.reconcile(config());
+        assert!(matches!(
+            r.outgoing.front(),
+            Some(ControlEvent::StoreSocket { tunnel_id: 10, name, .. }) if name == "t10"
+        ));
+        finish(&mut r);
+        assert!(
+            r.outgoing
+                .iter()
+                .all(|event| !matches!(event, ControlEvent::StoreSocket { .. }))
+        );
+        assert!(r.reconciler.kernel().tunnel_socket(10).is_none());
+        assert!(r.restart_sockets().unwrap().is_empty());
+    });
+}

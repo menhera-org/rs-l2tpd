@@ -1,0 +1,5 @@
+Terminated
+INFO rs_l2tpd: ready pid=8
+INFO rs_l2tpd: shutdown complete
+CONTROL_EXIT=143
+UNREQUESTED_CLI_RESTART_CONTROL_REJECTED=1

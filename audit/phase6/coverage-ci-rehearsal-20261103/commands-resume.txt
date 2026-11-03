@@ -1,0 +1,22 @@
+set -eu
+record=$PWD/audit/phase6/coverage-ci-rehearsal-20261103
+coverage=$PWD/target/phase6-coverage-ci-rehearsal-20261103
+export CARGO_LLVM_COV_TARGET_DIR="$coverage"
+cp /tmp/phase6-ci-rehearsal-resume.sh "$record/commands-resume.txt"
+sh tools/coverage/run-guest.sh "$record/native.log" "$PWD/target/phase6-kernels/ubuntu-resolute-7.0.0-42.42/root" "$record/guest-final" "$PWD/target/phase6-ci-rehearsal-guest-profiles-final" > "$record/guest-final-driver.log" 2>&1
+for profile in "$PWD/target/phase6-ci-rehearsal-guest-profiles-final/"*.profraw; do cp "$profile" "$coverage/guest-${profile##*/}"; done
+sh tests/docker/thread-limits.sh rs-l2tpd-coverage:phase6 "$coverage/x86_64-unknown-linux-gnu/debug/rs-l2tpd" "$record/thread-limits" "$PWD/target/phase6-ci-rehearsal-limit-profiles" > "$record/thread-limits.log" 2>&1
+docker run --rm --network none --mount "type=bind,source=$PWD/target/phase6-ci-rehearsal-limit-profiles,target=/profiles" --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'chmod a+r /profiles/*.profraw'
+for profile in "$PWD/target/phase6-ci-rehearsal-limit-profiles/"*.profraw; do cp "$profile" "$coverage/limit-${profile##*/}"; done
+git --no-pager diff HEAD -- src tests Cargo.toml Cargo.lock > "$record/final-source.patch"
+cmp "$record/initial-source.patch" "$record/final-source.patch"
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines > "$record/raw-coverage.log" 2>&1
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path "$coverage/final-export.json" > "$record/export.log" 2>&1
+xz -c "$coverage/final-export.json" > "$record/llvm-export.json.xz"
+xz -c "$coverage/source-and-mapping-inventory.json" > "$record/source-and-mapping-inventory.json.xz"
+sha256sum "$coverage/final-export.json" "$coverage/source-and-mapping-inventory.json" > "$record/coverage-digests.log"
+status=0
+tools/coverage/target/debug/phase6-coverage check "$PWD" "$coverage/source-and-mapping-inventory.json" "$coverage/final-export.json" > "$record/merged-source-coverage.log" 2>&1 || status=$?
+printf 'CHECKER_EXIT=%s\n' "$status" >> "$record/merged-source-coverage.log"
+tail -n 7 "$record/merged-source-coverage.log"
+exit "$status"

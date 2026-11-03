@@ -1,0 +1,27 @@
+   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-33c7dac59ac6b88b)
+
+running 19 tests
+test kernel::linux::monitor::tests::reactor_shutdown_reports_loss_before_reopening_on_the_next_runtime ... ok
+test rule_tests::tunnels::shutdown_cancels_the_tunable_handshake ... ok
+test rule_tests::store::malformed_names_and_shutdown_keep_cleanup_authority ... ok
+test rule_tests::tunnels::shutdown_closes_the_sockets ... ok
+test reconciler::sessions::wanted_tests::shutdown_with_a_failed_session_delete_retires_its_tunnel_and_reports_the_failure ... ok
+test rule_tests::events::a_new_configuration_supersedes_an_incomplete_one_and_shutdown_removes_progress ... ok
+test reconciler::store::cost_tests::inherited_verification_refuses_shutdown_and_an_existing_local_owner ... ok
+test runtime::tests::shutdown_refuses_unsent_store_requests_and_releases_their_socket_copies ... ok
+test runtime::tests::shutdown_discards_tunable_work_that_the_program_has_not_received ... ok
+test runtime::tests::shutdown_request_and_started_shutdown_both_refuse_new_configuration ... ok
+test runtime::tests::shutdown_ignores_an_outstanding_tunable_acknowledgement ... ok
+test runtime::tests::shutdown_keeps_withdrawal_and_kernel_deletion_windows_separate ... ok
+test service::tests::abandoned_replies_report_stopped_service_and_shutdown_releases_waiters ... ok
+test service::tests::a_closed_command_queue_reports_failure_until_shutdown_is_requested ... ok
+test runtime::tests::queue_full_waiter_and_shutdown_precedence ... ok
+test runtime::tests::tunable_timeout_ignores_late_success_and_shutdown_cancels_pending ... ok
+test service::tests::reload_completions_during_shutdown_preserve_cleanup_and_configuration ... ok
+test service::tests::shutdown_between_dequeue_and_dispatch_cancels_queued_service_commands ... ok
+test runtime::tests::shutdown_while_dequeuing_a_ready_operator_request_releases_its_admission_slot ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 332 filtered out; finished in 0.01s
+

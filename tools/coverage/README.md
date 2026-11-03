@@ -53,5 +53,22 @@ GNU and musl. After installing the pinned nightly and LLVM tools,
 `sh tools/coverage/calibrate.sh RECORD` compiles a real fixture, checks
 complementary generic copies against the raw LLVM report, and requires missing
 arms, repeated-guard misses and changed sources to fail. CI runs this
-calibration before generating its existing coverage upload. The full production
-100% CI job remains a separate, unfinished Phase 6 requirement.
+calibration before generating its existing coverage upload. Calibration also
+requires missing artifact logs and relative guest paths to fail before Docker.
+
+The separate production-coverage workflow job collects ten ordinary suites,
+a full GNU instrumented guest and thread/fork refusal profiles, then requires
+both merged totals to reach 100%. A fresh local rehearsal passes 8,444/8,444
+source lines and 1,838/1,838 condition outcomes. Its first GitHub execution
+remains pending; the workflow's presence alone does not pass P4.
+
+
+`sh tools/coverage/run-guest.sh NATIVE_LOG KERNEL_ROOT RECORD PROFILES` requires
+absolute paths, actual executable artifacts and fresh output directories.
+It reuses the normal matrix init unchanged, adding buffer-force and successful
+CLI restart checks. LLVM writes guest-local profiles because its mmap-based
+merge cannot operate through 9p; the guest copies them out after the suites.
+The caller imports profiles only after all result markers pass and no LLVM
+profile error appears. `restart-cli.sh` starts a real daemon, requires the CLI
+to return 0, observes re-exec confirmation and requires clean shutdown. Run it
+only in a disposable test container or guest.

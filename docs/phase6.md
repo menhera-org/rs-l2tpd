@@ -33,9 +33,25 @@ and empty source patches. The subsequent outcome-boundary source passes
 the full common gates, ten native suites, three musl collections and six
 fault controls. The isolated logging case runs serially; its earlier
 parallel failure is retained. Ten checker tests and four validation controls
-pass. Fresh production coverage and kernel qualification of the changed
-readiness/resync source remain pending. The following counts are the
-preceding collector's last complete measurement.
+pass. Signed c0a1b3b passes both CI jobs and CodeQL. Its fresh source measurement
+reaches 8,444/8,444 lines and 1,836/1,838 outcomes, with checker exit 1.
+Two added condition witnesses cover those outcomes; their first collection
+still misses the unsent-store refusal and restart shutdown guard:
+8,443/8,444 lines and 1,837/1,838 outcomes, exit 1. The extended shutdown
+batch passes 19 tests ten times per libc and the full common checks;
+the fresh combined checker now passes 8,444/8,444 production source lines
+and 1,838/1,838 condition outcomes, exit 0. Raw LLVM remains 99.40% lines
+and 98.15% outcomes. The separate 100% workflow job is implemented. A fresh
+local rehearsal reproduces both 100% totals using its exact profile scopes;
+its first GitHub execution is pending.
+ Current-source
+full kernel qualification and complete clause proof remain open.
+ Repository records
+`audit/phase6/source-coverage-20261103/README.md`,
+`audit/phase6/final-source-coverage-20261103/README.md` and
+`audit/phase6/final-condition-witnesses-20261103/README.md` retain the scope.
+The following counts describe the earlier defensive-boundary collector.
+
 The maintainer approved merged-source coverage on November 3.
 The calibrated checker reports **8,441/8,441 source lines and
 1,834/1,840 condition outcomes**, exits 1 and leaves **six outcomes**.

@@ -152,3 +152,114 @@ jobs:
           path: audit/phase6/ci-live/
           if-no-files-found: error
           retention-days: 14
+
+  production-coverage:
+    name: Production coverage (100%)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    defaults:
+      run:
+        shell: sh
+    env:
+      RECORD: audit/phase6/ci-production-coverage
+      CARGO_LLVM_COV_TARGET_DIR: ${{ github.workspace }}/target/ci-production-coverage
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: nightly-2026-10-28
+          components: llvm-tools-preview
+          targets: x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl
+
+      - name: Install coverage and guest tooling
+        timeout-minutes: 10
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 cpio musl-tools
+          cargo install cargo-llvm-cov --version 0.9.1 --locked
+          mkdir -p "$RECORD"
+          git --no-pager rev-parse HEAD > "$RECORD/revision"
+          git --no-pager diff HEAD -- src tests Cargo.toml Cargo.lock > "$RECORD/initial-source.patch"
+          rustc +nightly-2026-10-28 -vV > "$RECORD/toolchain.log"
+          sh tools/coverage/calibrate.sh "$RECORD/calibration"
+
+      - name: Collect ordinary profiles and freeze mappings
+        timeout-minutes: 10
+        run: |
+          TEST_SEED=1 cargo +nightly-2026-10-28 llvm-cov --color never --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report > "$RECORD/native.log" 2>&1 || {
+            cat "$RECORD/native.log"
+            exit 1
+          }
+          cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path "$CARGO_LLVM_COV_TARGET_DIR/initial-export.json"
+          tools/coverage/target/debug/phase6-coverage snapshot "$PWD" "$RECORD/source-and-mapping-inventory.json" "$CARGO_LLVM_COV_TARGET_DIR/initial-export.json"
+          for seed in 2 3 4 5 6 7 8 9 10; do
+            TEST_SEED=$seed cargo +nightly-2026-10-28 llvm-cov --color never --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report > "$RECORD/native-$seed.log" 2>&1 || {
+              cat "$RECORD/native-$seed.log"
+              exit 1
+            }
+          done
+
+      - name: Prepare guest image and published newer LTS kernel
+        timeout-minutes: 10
+        run: |
+          tests/kernel/build-review-image.sh > "$RECORD/image-build.log" 2>&1 || {
+            cat "$RECORD/image-build.log"
+            exit 1
+          }
+          docker build --network none -f audit/phase6/coverage-current-20261031/Dockerfile -t rs-l2tpd-coverage:phase6 . > "$RECORD/coverage-image.log" 2>&1 || {
+            cat "$RECORD/coverage-image.log"
+            exit 1
+          }
+          tests/kernel/fetch-ubuntu.sh resolute > "$RECORD/kernel-packages.log" 2>&1 || {
+            cat "$RECORD/kernel-packages.log"
+            exit 1
+          }
+
+      - name: Collect instrumented live profiles
+        timeout-minutes: 35
+        run: |
+          root=$(sed -n 's/^KERNEL_ROOT=//p' "$RECORD/kernel-packages.log")
+          sh tools/coverage/run-guest.sh "$PWD/$RECORD/native.log" "$root" "$PWD/$RECORD/guest" "$PWD/target/ci-coverage-guest-profiles"
+          for profile in target/ci-coverage-guest-profiles/*.profraw; do
+            cp "$profile" "$CARGO_LLVM_COV_TARGET_DIR/guest-${profile##*/}"
+          done
+
+      - name: Collect thread and fork failure profiles
+        timeout-minutes: 3
+        run: |
+          tests/docker/thread-limits.sh rs-l2tpd-coverage:phase6 "$CARGO_LLVM_COV_TARGET_DIR/x86_64-unknown-linux-gnu/debug/rs-l2tpd" "$RECORD/thread-limits" target/ci-coverage-limit-profiles > "$RECORD/thread-limits.log" 2>&1 || {
+            cat "$RECORD/thread-limits.log"
+            exit 1
+          }
+          docker run --rm --network none --mount "type=bind,source=$PWD/target/ci-coverage-limit-profiles,target=/profiles" --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'chmod a+r /profiles/*.profraw'
+          for profile in target/ci-coverage-limit-profiles/*.profraw; do
+            cp "$profile" "$CARGO_LLVM_COV_TARGET_DIR/limit-${profile##*/}"
+          done
+
+      - name: Require complete merged production coverage
+        timeout-minutes: 3
+        run: |
+          git --no-pager diff HEAD -- src tests Cargo.toml Cargo.lock > "$RECORD/final-source.patch"
+          cmp "$RECORD/initial-source.patch" "$RECORD/final-source.patch"
+          cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines > "$RECORD/raw-coverage.log" 2>&1
+          cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path "$CARGO_LLVM_COV_TARGET_DIR/combined-export.json"
+          xz -c "$CARGO_LLVM_COV_TARGET_DIR/combined-export.json" > "$RECORD/llvm-export.json.xz"
+          if tools/coverage/target/debug/phase6-coverage check "$PWD" "$RECORD/source-and-mapping-inventory.json" "$CARGO_LLVM_COV_TARGET_DIR/combined-export.json" > "$RECORD/merged-source-coverage.log" 2>&1; then
+            cat "$RECORD/merged-source-coverage.log"
+          else
+            cat "$RECORD/merged-source-coverage.log"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        timeout-minutes: 5
+        with:
+          name: phase6-production-coverage
+          path: audit/phase6/ci-production-coverage/
+          if-no-files-found: error
+          retention-days: 14

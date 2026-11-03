@@ -1,0 +1,133 @@
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index 9003974..2606d96 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -698,6 +698,38 @@ mod resource_tests {
+     use crate::reconciler::{Lookup, Resolve};
+     use std::sync::{Arc, Mutex};
+ 
++    /// spec: E6, E7, M16, G12
++    #[test]
++    fn a_private_stale_device_index_does_not_reconnect_an_unbound_tunnel_on_address_addition() {
++        let mut kernel = FakeKernel::new(42);
++        let device = kernel.add_link("wan", false);
++        let source = "192.0.2.1".parse().unwrap();
++        kernel.add_addr(device, source);
++        let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++        let config = toml::from_str(
++            "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'",
++        )
++        .unwrap();
++        assert!(r.reconcile(config));
++        let socket = r.k.tunnel_socket(10).unwrap();
++        let original = r.k.connection(socket);
++        assert_eq!(original.as_ref().map(|(_, address)| *address), Some(source));
++        assert!(r.tunnels[&10].bound.is_none());
++        assert!(r.tunnels[&10].bind_index.is_none() && r.tunnels[&10].zone_index.is_none());
++        // Only this private fixture installs a dependency absent from the record.
++        r.index.devices.entry(device).or_default().insert(10);
++        r.address_devices.insert(device);
++        assert!(!r.addresses.contains_key(&device));
++        r.k.clear_ops();
++        r.handle(
++            Source::Monitor,
++            Notice::AddrNew(AddrInfo::new(device, source)),
++        );
++        assert!(r.k.ops().is_empty());
++        assert_eq!(r.k.connection(socket), original);
++        assert_eq!(r.k.tunnel_socket(10), Some(socket));
++    }
++
+     /// spec: A10, A14, G2, G23
+     #[test]
+     fn removing_a_stale_session_reverse_index_preserves_its_new_owner() {
+diff --git a/src/runtime/tests.rs b/src/runtime/tests.rs
+index 25e98e7..9b9d22c 100644
+--- a/src/runtime/tests.rs
++++ b/src/runtime/tests.rs
+@@ -1173,3 +1173,85 @@ fn queued_ticks_and_resolver_answers_do_not_poll_dns_after_shutdown() {
+         assert_eq!(r.control().config(), Config::new());
+     }
+ }
++
++/// spec: L5, L6, L10, G20, G23
++#[test]
++fn shutdown_while_dequeuing_a_ready_reload_releases_its_admission_slot() {
++    use std::sync::atomic::{AtomicBool, Ordering};
++    use std::sync::{Arc, Mutex, mpsc};
++    struct Gate {
++        entered: mpsc::SyncSender<()>,
++        release: mpsc::Receiver<()>,
++    }
++    struct GatedResolver(Arc<Mutex<Option<Gate>>>);
++    impl Resolve for GatedResolver {
++        fn watch(&mut self, _: Lookup) -> io::Result<()> {
++            Ok(())
++        }
++        fn unwatch(&mut self, _: u64) {}
++        fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
++            let gate = self.0.lock().unwrap().take();
++            if let Some(gate) = gate {
++                gate.entered.send(()).unwrap();
++                gate.release.recv().unwrap();
++            }
++            vec![]
++        }
++    }
++    struct StopOnWake(Control, AtomicBool);
++    impl std::task::Wake for StopOnWake {
++        fn wake(self: Arc<Self>) {
++            self.1.store(true, Ordering::Release);
++            self.0.shutdown();
++        }
++    }
++    engine().block_on(async {
++        let gate = Arc::new(Mutex::new(None));
++        let runtime = Runtime::with_kernel(
++            FakeKernel::new(42),
++            Box::new(GatedResolver(gate.clone())),
++            vec![],
++        )
++        .map_err(|(error, _)| error)
++        .unwrap();
++        let mut wanted = Config::new();
++        wanted.set_host(crate::config::HostConfig::new().with_fix_bindv6only(false));
++        let mut service = crate::service::Service::with_runtime(wanted, runtime)
++            .map_err(|(error, _)| error)
++            .unwrap();
++        service.converge().await.unwrap();
++        let control = service.control();
++        assert_eq!(control.shared.generation.load(Ordering::Acquire), 0);
++        let (entered, entering) = mpsc::sync_channel(1);
++        let (release, releasing) = mpsc::sync_channel(1);
++        *gate.lock().unwrap() = Some(Gate {
++            entered,
++            release: releasing,
++        });
++        control.send(ControlEvent::Tick).await.unwrap();
++        entering.recv_timeout(Duration::from_secs(5)).unwrap();
++        control.reload().unwrap();
++        assert_eq!(control.shared.admitted.load(Ordering::Acquire), 1);
++        for _ in 1..QUEUE_CAPACITY {
++            assert!(control.tx.try_send(ControlEvent::Tick).is_ok());
++        }
++        let stopped = Arc::new(StopOnWake(control.clone(), AtomicBool::new(false)));
++        let waker = Waker::from(stopped.clone());
++        let mut waiting = std::pin::pin!(control.send(ControlEvent::Tick));
++        assert!(
++            waiting
++                .as_mut()
++                .poll(&mut Context::from_waker(&waker))
++                .is_pending()
++        );
++        assert!(!stopped.1.load(Ordering::Acquire));
++        release.send(()).unwrap();
++        tokio::time::timeout(Duration::from_secs(5), service.run(Ok, |_| Ok(())))
++            .await
++            .unwrap()
++            .unwrap();
++        assert!(stopped.1.load(Ordering::Acquire));
++        assert_eq!(control.shared.admitted.load(Ordering::Acquire), 0);
++        assert_eq!(control.config(), Config::new());
++    });
++}

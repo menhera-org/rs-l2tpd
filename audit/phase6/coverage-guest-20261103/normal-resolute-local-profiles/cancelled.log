@@ -1,0 +1,2 @@
+COLLECTION_CANCELLED=1
+reason: local profile directory also needs write access for uid-dropped permission fixtures; no profiles imported

@@ -269,9 +269,23 @@ ordinary fake owners finish, on GNU and musl. The common script requires
 one actual passing test. Its first parallel qualification failed an
 immediate fake-socket deletion assertion and remains recorded.
 The coverage checker now passes ten tests and four validation controls.
-Fresh coverage for the readiness/resync changes is pending. Signed
-`db7c1d2` passes all thirteen required matrix profiles; those later changes
-have separate qualification.
+The readiness/resync source collector reports 8,444/8,444 merged lines and
+1,836/1,838 outcomes, exit 1. Added witnesses cover those outcomes; their
+first collection still misses an unsent-store shutdown line and the restart
+shutdown guard (8,443/8,444 lines and 1,837/1,838 outcomes, exit 1).
+The extended shutdown batch passes 19 tests ten times per libc and the
+common checks. The fresh combined checker passes 8,444/8,444 production
+source lines and 1,838/1,838 condition outcomes, exit 0. Raw LLVM remains
+99.40% lines and 98.15% outcomes. The separate 100% workflow job is implemented;
+its fresh local rehearsal reproduces both 100% totals. Its first GitHub
+execution remains pending.
+ Repository
+record `audit/phase6/closure-coverage-20261103/README.md` retains the scope.
+Signed db7c1d2 passes
+
+all thirteen required matrix profiles; the later source still needs that
+full qualification. Signed c0a1b3b passes both CI jobs and CodeQL.
+
 
 The preceding defensive-boundary batch reports **8,441/8,441 merged source lines and
 1,834/1,840 condition outcomes**, exits 1 and leaves **six outcomes**.

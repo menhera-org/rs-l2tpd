@@ -519,7 +519,21 @@ The subsequent outcome-boundary batch passes common checks, ten native
 suites, three musl collections, separate serial reload cases and six fault
 controls. Ten coverage-checker tests and four validation controls pass.
 The task-helper name collision is reproduced and corrected; concurrent
-GNU/musl resource fixtures pass. Fresh production coverage remains pending.
+GNU/musl resource fixtures pass. The new source collector reports
+8,444/8,444 lines and 1,836/1,838 outcomes, exit 1. Added condition
+witnesses cover those outcomes, but their first collection still misses an
+unsent-store shutdown line and the restart shutdown guard:
+8,443/8,444 lines and 1,837/1,838 outcomes, exit 1. The extended shutdown
+batch passes 19 tests ten times per libc and the common checks. The fresh
+combined checker now passes 8,444/8,444 production source lines and
+1,838/1,838 condition outcomes, exit 0. The separate 100% workflow job is
+implemented; its fresh local rehearsal reproduces both 100% totals. Its first
+GitHub execution remains pending.
+
+Repository record `audit/phase6/closure-coverage-20261103/README.md` retains
+that measurement and its raw LLVM diagnostics.
+
+
 Signed `db7c1d2` passes the full thirteen-profile matrix; the subsequent
 readiness/resync source needs its own kernel qualification.
 

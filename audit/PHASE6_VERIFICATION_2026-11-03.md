@@ -1,5 +1,32 @@
 # Phase 6 verification, November 3
 
+The [fresh source collector](phase6/source-coverage-20261103/README.md)
+reports 8,444/8,444 lines and 1,836/1,838 outcomes, checker exit 1.
+The [two-witness collection](phase6/final-source-coverage-20261103/README.md)
+covers those outcomes but still misses the unsent-store shutdown line and
+the restart shutdown guard: 8,443/8,444 lines and 1,837/1,838 outcomes,
+checker exit 1. Both failures are retained.
+
+The [extended witness batch](phase6/final-condition-witnesses-20261103/README.md)
+passes 19 shutdown tests ten times per libc and the full common checks.
+Four fault controls reject their intended behavior changes. Ten fresh
+instrumented ordinary collections pass. The [closure collector](phase6/closure-coverage-20261103/README.md)
+now passes **8,444/8,444 production source lines and 1,838/1,838 condition
+outcomes**, checker exit **0**. Raw LLVM retains **8,657/8,709 lines
+(99.40%) and 1,804/1,838 outcomes (98.15%)**. No production exclusion is added.
+A full instrumented guest and three real-daemon CLI restarts per libc pass;
+only GNU profiles enter the coverage measurement. The new separate 100%
+workflow job's [fresh local rehearsal](phase6/coverage-ci-rehearsal-20261103/README.md)
+reproduces both 100% totals, checker exit 0. Its first GitHub execution,
+current-source full kernel matrix and
+
+complete clause/resource/event-cost proof remain unfinished.
+
+
+Signed c0a1b3b passes [both CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41572274408)
+and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41572274403).
+
+
 The [outcome-boundary batch](phase6/outcome-boundaries-20261103/README.md)
 now passes the full common checks. Ten ordinary native suites, three
 musl collections and separately run reload/shutdown witnesses pass.

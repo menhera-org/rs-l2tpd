@@ -1,0 +1,18 @@
+set -eu
+profiles=$(mktemp -d /tmp/rs-l2tpd-coverage-normal-writable.XXXXXXXX)
+rmdir "$profiles"
+printf '%s\n' "$profiles" > /tmp/phase6-coverage-normal-writable-profiles-path
+record=$PWD/audit/phase6/closure-coverage-20261103
+coverage=$PWD/target/phase6-coverage-closure-20261103
+cp /tmp/phase6-closure-guest.sh "$record/commands-guest.txt"
+sh tools/coverage/run-guest.sh "$record/native.log" "$PWD/target/phase6-kernels/ubuntu-resolute-7.0.0-42.42/root" "$PWD/audit/phase6/coverage-guest-20261103/normal-resolute-writable-profiles" "$profiles" > /tmp/phase6-coverage-normal-writable-driver.log 2>&1
+for profile in "$profiles/"*.profraw; do cp "$profile" "$coverage/closure-normal-${profile##*/}"; done
+git --no-pager diff HEAD -- src tests Cargo.toml Cargo.lock > "$record/after-guest-source.patch"
+cmp "$record/initial-source.patch" "$record/after-guest-source.patch"
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines > "$record/ci-equivalent-raw.log" 2>&1
+cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path "$coverage/ci-equivalent-export.json" > "$record/ci-equivalent-export.log" 2>&1
+status=0
+tools/coverage/target/debug/phase6-coverage check "$PWD" "$coverage/source-and-mapping-inventory.json" "$coverage/ci-equivalent-export.json" > "$record/ci-equivalent-merged.log" 2>&1 || status=$?
+printf 'CHECKER_EXIT=%s\n' "$status" >> "$record/ci-equivalent-merged.log"
+tail -n 16 "$record/ci-equivalent-merged.log"
+printf 'GNU_FULL_GUEST_COLLECTION_RESULT=0; SOURCE_COVERAGE_CHECKER_EXIT=%s\n' "$status"

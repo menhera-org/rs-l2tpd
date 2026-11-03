@@ -1,0 +1,21 @@
+set -eu
+record=$PWD/audit/phase6/final-source-coverage-20261103
+artifact() {
+ path=$(awk -v label="Running $1 (" '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/native.log")
+ case $path in /*) ;; *) path=$PWD/$path ;; esac
+ test -f "$path" && test -x "$path"
+ printf '%s\n' "$path"
+}
+unit=$(artifact 'unittests src/lib.rs')
+process=$(artifact 'tests/process.rs')
+profiles=$(mktemp -d /tmp/rs-l2tpd-final-source-live.XXXXXXXX)
+chmod 777 "$profiles"
+docker run --rm --privileged --network none --mount "type=bind,source=$PWD,target=$PWD,readonly" --mount "type=bind,source=$profiles,target=/profiles" --env 'LLVM_PROFILE_FILE=/profiles/final-live-%p-%m.profraw' --entrypoint sh rs-l2tpd-coverage:phase6 -ec '
+ uname -r
+ "$1" --ignored --test-threads=1 --nocapture
+ "$2" --include-ignored --test-threads=1 --nocapture
+' sh "$unit" "$process" > "$record/ignored-library-process.log" 2>&1
+if grep -a -q 'LLVM Profile Error' "$record/ignored-library-process.log"; then exit 1; fi
+docker run --rm --network none --mount "type=bind,source=$profiles,target=/profiles" --entrypoint sh rs-l2tpd-coverage:phase6 -ec 'chmod a+r /profiles/*.profraw'
+for profile in "$profiles/"*.profraw; do cp "$profile" "$CARGO_LLVM_COV_TARGET_DIR/${profile##*/}"; done
+printf 'IGNORED_LIBRARY_AND_ALL_PROCESS_PROFILES_RESULT=0\n'
