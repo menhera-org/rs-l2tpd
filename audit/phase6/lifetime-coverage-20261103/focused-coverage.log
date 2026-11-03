@@ -1,0 +1,989 @@
+/home/dev/rs-l2tpd/src/blocking.rs: lines 86/103; outcomes 4/4; raw LLVM lines 90/110; raw outcomes 4/4
+  missing line 43
+  missing line 44
+  missing line 46
+  missing line 47
+  missing line 49
+  missing line 50
+  missing line 80
+  missing line 81
+  missing line 82
+  missing line 83
+  missing line 84
+  missing line 93
+  missing line 100
+  missing line 101
+  missing line 128
+  missing line 137
+  missing line 138
+/home/dev/rs-l2tpd/src/config/mod.rs: lines 569/569; outcomes 60/60; raw LLVM lines 575/575; raw outcomes 60/60
+/home/dev/rs-l2tpd/src/config/partial.rs: lines 407/411; outcomes 40/40; raw LLVM lines 429/433; raw outcomes 40/40
+  missing line 137
+  missing line 138
+  missing line 139
+  missing line 769
+/home/dev/rs-l2tpd/src/config/serde.rs: lines 13/13; outcomes 0/0; raw LLVM lines 13/13; raw outcomes 0/0
+/home/dev/rs-l2tpd/src/config/text.rs: lines 140/140; outcomes 40/40; raw LLVM lines 151/151; raw outcomes 40/40
+/home/dev/rs-l2tpd/src/error.rs: lines 18/18; outcomes 0/0; raw LLVM lines 18/18; raw outcomes 0/0
+/home/dev/rs-l2tpd/src/kernel/fake.rs: lines 766/822; outcomes 115/144; raw LLVM lines 788/846; raw outcomes 115/144
+  missing line 264
+  missing line 438
+  missing line 442
+  missing line 514
+  missing line 515
+  missing line 516
+  missing line 517
+  missing line 518
+  missing line 519
+  missing line 525
+  missing line 526
+  missing line 527
+  missing line 528
+  missing line 529
+  missing line 530
+  missing line 533
+  missing line 534
+  missing line 535
+  missing line 655
+  missing line 706
+  missing line 709
+  missing line 733
+  missing line 737
+  missing line 741
+  missing line 746
+  missing line 751
+  missing line 752
+  missing line 753
+  missing line 760
+  missing line 773
+  missing line 806
+  missing line 845
+  missing line 878
+  missing line 883
+  missing line 910
+  missing line 1053
+  missing line 1087
+  missing line 1106
+  missing line 1129
+  missing line 1130
+  missing line 1131
+  missing line 1145
+  missing line 1146
+  missing line 1147
+  missing line 1153
+  missing line 1154
+  missing line 1155
+  missing line 1157
+  missing line 1158
+  missing line 1159
+  missing line 1161
+  missing line 1162
+  missing line 1163
+  missing line 1169
+  missing line 1170
+  missing line 1171
+  missing condition [260, 12, 260, 43] occurrence 0 owner [259, 5, 259, 41] false
+  missing condition [320, 28, 320, 67] occurrence 0 owner [320, 28, 320, 67] false
+  missing condition [610, 29, 610, 62] occurrence 0 owner [601, 47, 601, 62] false
+  missing condition [647, 21, 647, 47] occurrence 0 owner [645, 42, 645, 43] false
+  missing condition [705, 12, 705, 33] occurrence 0 owner [698, 5, 698, 77] true
+  missing condition [705, 37, 705, 45] occurrence 0 owner [698, 5, 698, 77] true
+  missing condition [705, 37, 705, 45] occurrence 0 owner [698, 5, 698, 77] false
+  missing condition [708, 12, 708, 20] occurrence 0 owner [698, 5, 698, 77] true
+  missing condition [732, 36, 732, 50] occurrence 0 owner [717, 5, 717, 79] true
+  missing condition [736, 23, 736, 37] occurrence 0 owner [717, 5, 717, 79] true
+  missing condition [740, 12, 740, 50] occurrence 0 owner [717, 5, 717, 79] true
+  missing condition [740, 54, 740, 68] occurrence 0 owner [717, 5, 717, 79] true
+  missing condition [740, 54, 740, 68] occurrence 0 owner [717, 5, 717, 79] false
+  missing condition [744, 16, 744, 48] occurrence 0 owner [717, 5, 717, 79] true
+  missing condition [751, 25, 751, 40] occurrence 0 owner [717, 5, 717, 79] true
+  missing condition [751, 25, 751, 40] occurrence 0 owner [717, 5, 717, 79] false
+  missing condition [757, 24, 758, 98] occurrence 0 owner [717, 5, 717, 79] true
+  missing condition [805, 16, 805, 37] occurrence 0 owner [802, 5, 802, 42] true
+  missing condition [818, 60, 818, 85] occurrence 0 owner [802, 5, 802, 42] false
+  missing condition [844, 12, 844, 50] occurrence 0 owner [835, 5, 835, 60] true
+  missing condition [877, 12, 877, 49] occurrence 0 owner [869, 5, 874, 24] true
+  missing condition [882, 12, 882, 36] occurrence 0 owner [869, 5, 874, 24] true
+  missing condition [882, 40, 882, 74] occurrence 0 owner [869, 5, 874, 24] true
+  missing condition [909, 12, 909, 57] occurrence 0 owner [907, 5, 907, 85] true
+  missing condition [1028, 24, 1028, 66] occurrence 0 owner [1026, 5, 1026, 62] true
+  missing condition [1029, 38, 1029, 67] occurrence 0 owner [1026, 5, 1026, 62] false
+  missing condition [1052, 12, 1052, 44] occurrence 0 owner [1050, 5, 1050, 74] true
+  missing condition [1074, 12, 1074, 24] occurrence 0 owner [1066, 5, 1066, 73] false
+  missing condition [1105, 26, 1105, 58] occurrence 0 owner [1103, 5, 1103, 93] true
+/home/dev/rs-l2tpd/src/kernel/linux/bpf.rs: lines 5/5; outcomes 0/0; raw LLVM lines 5/5; raw outcomes 0/0
+/home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs: lines 120/283; outcomes 9/20; raw LLVM lines 126/295; raw outcomes 9/20
+  missing line 76
+  missing line 110
+  missing line 168
+  missing line 170
+  missing line 171
+  missing line 173
+  missing line 174
+  missing line 175
+  missing line 193
+  missing line 194
+  missing line 195
+  missing line 196
+  missing line 198
+  missing line 199
+  missing line 200
+  missing line 222
+  missing line 224
+  missing line 227
+  missing line 233
+  missing line 234
+  missing line 235
+  missing line 236
+  missing line 242
+  missing line 243
+  missing line 244
+  missing line 245
+  missing line 246
+  missing line 247
+  missing line 248
+  missing line 249
+  missing line 250
+  missing line 251
+  missing line 252
+  missing line 253
+  missing line 254
+  missing line 255
+  missing line 256
+  missing line 257
+  missing line 258
+  missing line 263
+  missing line 264
+  missing line 265
+  missing line 266
+  missing line 267
+  missing line 268
+  missing line 269
+  missing line 270
+  missing line 271
+  missing line 272
+  missing line 273
+  missing line 274
+  missing line 275
+  missing line 276
+  missing line 277
+  missing line 278
+  missing line 279
+  missing line 280
+  missing line 282
+  missing line 283
+  missing line 285
+  missing line 286
+  missing line 292
+  missing line 293
+  missing line 294
+  missing line 295
+  missing line 296
+  missing line 297
+  missing line 298
+  missing line 299
+  missing line 300
+  missing line 301
+  missing line 302
+  missing line 303
+  missing line 305
+  missing line 306
+  missing line 307
+  missing line 308
+  missing line 309
+  missing line 310
+  missing line 311
+  missing line 312
+  missing line 313
+  missing line 314
+  missing line 315
+  missing line 316
+  missing line 320
+  missing line 321
+  missing line 322
+  missing line 323
+  missing line 324
+  missing line 325
+  missing line 326
+  missing line 330
+  missing line 331
+  missing line 332
+  missing line 333
+  missing line 334
+  missing line 335
+  missing line 336
+  missing line 337
+  missing line 338
+  missing line 339
+  missing line 340
+  missing line 341
+  missing line 342
+  missing line 343
+  missing line 344
+  missing line 345
+  missing line 346
+  missing line 347
+  missing line 348
+  missing line 349
+  missing line 350
+  missing line 351
+  missing line 352
+  missing line 353
+  missing line 354
+  missing line 356
+  missing line 357
+  missing line 363
+  missing line 364
+  missing line 365
+  missing line 366
+  missing line 367
+  missing line 368
+  missing line 369
+  missing line 370
+  missing line 371
+  missing line 372
+  missing line 373
+  missing line 374
+  missing line 375
+  missing line 376
+  missing line 377
+  missing line 378
+  missing line 379
+  missing line 381
+  missing line 385
+  missing line 386
+  missing line 387
+  missing line 388
+  missing line 391
+  missing line 392
+  missing line 393
+  missing line 394
+  missing line 395
+  missing line 396
+  missing line 397
+  missing line 398
+  missing line 399
+  missing line 400
+  missing line 401
+  missing line 402
+  missing line 403
+  missing line 404
+  missing line 405
+  missing line 409
+  missing line 410
+  missing line 411
+  missing line 419
+  missing line 420
+  missing line 421
+  missing line 422
+  missing condition [226, 12, 226, 89] occurrence 0 owner [207, 5, 213, 24] true
+  missing condition [305, 16, 305, 28] occurrence 0 owner [292, 5, 296, 24] true
+  missing condition [305, 16, 305, 28] occurrence 0 owner [292, 5, 296, 24] false
+  missing condition [308, 16, 308, 28] occurrence 0 owner [292, 5, 296, 24] true
+  missing condition [308, 16, 308, 28] occurrence 0 owner [292, 5, 296, 24] false
+  missing condition [350, 20, 350, 86] occurrence 0 owner [348, 31, 348, 32] true
+  missing condition [350, 20, 350, 86] occurrence 0 owner [348, 31, 348, 32] false
+  missing condition [375, 20, 375, 65] occurrence 0 owner [373, 31, 373, 32] true
+  missing condition [375, 20, 375, 65] occurrence 0 owner [373, 31, 373, 32] false
+  missing condition [387, 12, 389, 23] occurrence 0 owner [385, 5, 385, 95] true
+  missing condition [387, 12, 389, 23] occurrence 0 owner [385, 5, 385, 95] false
+/home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs: lines 233/285; outcomes 61/76; raw LLVM lines 233/286; raw outcomes 61/76
+  missing line 213
+  missing line 216
+  missing line 217
+  missing line 218
+  missing line 219
+  missing line 220
+  missing line 221
+  missing line 222
+  missing line 223
+  missing line 225
+  missing line 226
+  missing line 227
+  missing line 229
+  missing line 230
+  missing line 232
+  missing line 233
+  missing line 235
+  missing line 236
+  missing line 237
+  missing line 238
+  missing line 239
+  missing line 240
+  missing line 241
+  missing line 242
+  missing line 243
+  missing line 244
+  missing line 246
+  missing line 247
+  missing line 250
+  missing line 253
+  missing line 264
+  missing line 265
+  missing line 266
+  missing line 267
+  missing line 268
+  missing line 269
+  missing line 270
+  missing line 271
+  missing line 272
+  missing line 273
+  missing line 274
+  missing line 276
+  missing line 278
+  missing line 279
+  missing line 280
+  missing line 281
+  missing line 282
+  missing line 283
+  missing line 284
+  missing line 285
+  missing line 286
+  missing line 490
+  missing condition [217, 16, 217, 26] occurrence 0 owner [213, 1, 213, 29] true
+  missing condition [217, 16, 217, 26] occurrence 0 owner [213, 1, 213, 29] false
+  missing condition [220, 16, 220, 38] occurrence 0 owner [213, 1, 213, 29] true
+  missing condition [220, 16, 220, 38] occurrence 0 owner [213, 1, 213, 29] false
+  missing condition [225, 13, 225, 25] occurrence 0 owner [213, 1, 213, 29] true
+  missing condition [225, 13, 225, 25] occurrence 0 owner [213, 1, 213, 29] false
+  missing condition [229, 16, 229, 26] occurrence 0 owner [213, 1, 213, 29] true
+  missing condition [229, 16, 229, 26] occurrence 0 owner [213, 1, 213, 29] false
+  missing condition [230, 16, 230, 61] occurrence 0 owner [213, 1, 213, 29] true
+  missing condition [230, 16, 230, 61] occurrence 0 owner [213, 1, 213, 29] false
+  missing condition [236, 46, 236, 83] occurrence 0 owner [213, 1, 213, 29] true
+  missing condition [236, 46, 236, 83] occurrence 0 owner [213, 1, 213, 29] false
+  missing condition [240, 16, 240, 46] occurrence 0 owner [213, 1, 213, 29] true
+  missing condition [240, 16, 240, 46] occurrence 0 owner [213, 1, 213, 29] false
+  missing condition [489, 16, 489, 28] occurrence 0 owner [480, 5, 480, 23] true
+/home/dev/rs-l2tpd/src/kernel/linux/mod.rs: lines 0/142; outcomes 0/4; raw LLVM lines 0/147; raw outcomes 0/4
+  missing line 60
+  missing line 62
+  missing line 63
+  missing line 64
+  missing line 65
+  missing line 66
+  missing line 68
+  missing line 71
+  missing line 72
+  missing line 73
+  missing line 76
+  missing line 77
+  missing line 78
+  missing line 79
+  missing line 80
+  missing line 81
+  missing line 87
+  missing line 88
+  missing line 89
+  missing line 92
+  missing line 93
+  missing line 94
+  missing line 95
+  missing line 96
+  missing line 97
+  missing line 101
+  missing line 102
+  missing line 103
+  missing line 104
+  missing line 105
+  missing line 106
+  missing line 107
+  missing line 108
+  missing line 109
+  missing line 112
+  missing line 113
+  missing line 114
+  missing line 117
+  missing line 118
+  missing line 119
+  missing line 122
+  missing line 123
+  missing line 124
+  missing line 127
+  missing line 128
+  missing line 129
+  missing line 132
+  missing line 133
+  missing line 134
+  missing line 138
+  missing line 139
+  missing line 141
+  missing line 142
+  missing line 143
+  missing line 144
+  missing line 147
+  missing line 148
+  missing line 149
+  missing line 154
+  missing line 155
+  missing line 156
+  missing line 157
+  missing line 158
+  missing line 159
+  missing line 160
+  missing line 161
+  missing line 162
+  missing line 163
+  missing line 164
+  missing line 165
+  missing line 166
+  missing line 167
+  missing line 171
+  missing line 172
+  missing line 173
+  missing line 174
+  missing line 175
+  missing line 176
+  missing line 177
+  missing line 178
+  missing line 179
+  missing line 182
+  missing line 183
+  missing line 184
+  missing line 191
+  missing line 192
+  missing line 193
+  missing line 194
+  missing line 196
+  missing line 197
+  missing line 198
+  missing line 200
+  missing line 202
+  missing line 205
+  missing line 206
+  missing line 207
+  missing line 210
+  missing line 211
+  missing line 212
+  missing line 213
+  missing line 214
+  missing line 215
+  missing line 216
+  missing line 219
+  missing line 220
+  missing line 221
+  missing line 224
+  missing line 225
+  missing line 226
+  missing line 229
+  missing line 230
+  missing line 231
+  missing line 234
+  missing line 235
+  missing line 236
+  missing line 239
+  missing line 240
+  missing line 241
+  missing line 244
+  missing line 245
+  missing line 246
+  missing line 249
+  missing line 250
+  missing line 251
+  missing line 254
+  missing line 255
+  missing line 256
+  missing line 259
+  missing line 260
+  missing line 261
+  missing line 264
+  missing line 265
+  missing line 266
+  missing line 269
+  missing line 270
+  missing line 271
+  missing line 274
+  missing line 275
+  missing line 276
+  missing line 279
+  missing line 280
+  missing line 281
+  missing condition [141, 12, 141, 82] occurrence 0 owner [138, 5, 138, 42] true
+  missing condition [141, 12, 141, 82] occurrence 0 owner [138, 5, 138, 42] false
+  missing condition [196, 27, 196, 72] occurrence 0 owner [191, 5, 191, 85] true
+  missing condition [196, 27, 196, 72] occurrence 0 owner [191, 5, 191, 85] false
+/home/dev/rs-l2tpd/src/kernel/linux/monitor.rs: lines 53/92; outcomes 9/18; raw LLVM lines 54/94; raw outcomes 9/18
+  missing line 64
+  missing line 104
+  missing line 105
+  missing line 106
+  missing line 107
+  missing line 108
+  missing line 115
+  missing line 122
+  missing line 123
+  missing line 125
+  missing line 126
+  missing line 127
+  missing line 129
+  missing line 130
+  missing line 133
+  missing line 134
+  missing line 135
+  missing line 146
+  missing line 147
+  missing line 148
+  missing line 149
+  missing line 150
+  missing line 151
+  missing line 152
+  missing line 153
+  missing line 154
+  missing line 155
+  missing line 156
+  missing line 157
+  missing line 158
+  missing line 159
+  missing line 160
+  missing line 170
+  missing line 171
+  missing line 172
+  missing line 174
+  missing line 185
+  missing line 186
+  missing line 187
+  missing condition [61, 20, 61, 66] occurrence 0 owner [60, 74, 60, 75] false
+  missing condition [125, 24, 125, 47] occurrence 0 owner [75, 5, 75, 68] true
+  missing condition [125, 24, 125, 47] occurrence 0 owner [75, 5, 75, 68] false
+  missing condition [129, 35, 129, 78] occurrence 0 owner [75, 5, 75, 68] true
+  missing condition [129, 35, 129, 78] occurrence 0 owner [75, 5, 75, 68] false
+  missing condition [155, 12, 155, 22] occurrence 0 owner [146, 1, 146, 34] true
+  missing condition [155, 12, 155, 22] occurrence 0 owner [146, 1, 146, 34] false
+  missing condition [171, 21, 171, 50] occurrence 0 owner [166, 1, 166, 43] true
+  missing condition [171, 21, 171, 50] occurrence 0 owner [166, 1, 166, 43] false
+/home/dev/rs-l2tpd/src/kernel/linux/request.rs: lines 142/153; outcomes 26/34; raw LLVM lines 147/158; raw outcomes 26/34
+  missing line 96
+  missing line 117
+  missing line 126
+  missing line 174
+  missing line 175
+  missing line 219
+  missing line 223
+  missing line 224
+  missing line 225
+  missing line 226
+  missing line 227
+  missing condition [93, 8, 93, 71] occurrence 0 owner [91, 1, 91, 79] false
+  missing condition [94, 16, 94, 26] occurrence 0 owner [91, 1, 91, 79] true
+  missing condition [125, 8, 125, 57] occurrence 0 owner [123, 1, 123, 55] true
+  missing condition [201, 39, 201, 43] occurrence 0 owner [189, 1, 196, 32] true
+  missing condition [215, 27, 215, 68] occurrence 0 owner [189, 1, 196, 32] false
+  missing condition [221, 12, 221, 35] occurrence 0 owner [189, 1, 196, 32] false
+  missing condition [225, 20, 225, 46] occurrence 0 owner [189, 1, 196, 32] true
+  missing condition [225, 20, 225, 46] occurrence 0 owner [189, 1, 196, 32] false
+/home/dev/rs-l2tpd/src/kernel/linux/rtnl.rs: lines 67/170; outcomes 12/20; raw LLVM lines 71/180; raw outcomes 12/20
+  missing line 66
+  missing line 69
+  missing line 101
+  missing line 122
+  missing line 123
+  missing line 124
+  missing line 125
+  missing line 126
+  missing line 154
+  missing line 155
+  missing line 156
+  missing line 161
+  missing line 162
+  missing line 163
+  missing line 164
+  missing line 165
+  missing line 166
+  missing line 167
+  missing line 169
+  missing line 170
+  missing line 173
+  missing line 174
+  missing line 175
+  missing line 176
+  missing line 177
+  missing line 180
+  missing line 181
+  missing line 182
+  missing line 183
+  missing line 184
+  missing line 188
+  missing line 189
+  missing line 190
+  missing line 191
+  missing line 192
+  missing line 193
+  missing line 194
+  missing line 195
+  missing line 196
+  missing line 201
+  missing line 202
+  missing line 203
+  missing line 204
+  missing line 205
+  missing line 206
+  missing line 207
+  missing line 208
+  missing line 209
+  missing line 210
+  missing line 211
+  missing line 214
+  missing line 215
+  missing line 216
+  missing line 219
+  missing line 220
+  missing line 221
+  missing line 224
+  missing line 225
+  missing line 226
+  missing line 227
+  missing line 228
+  missing line 229
+  missing line 230
+  missing line 231
+  missing line 232
+  missing line 233
+  missing line 234
+  missing line 235
+  missing line 236
+  missing line 237
+  missing line 239
+  missing line 243
+  missing line 244
+  missing line 245
+  missing line 246
+  missing line 247
+  missing line 249
+  missing line 250
+  missing line 251
+  missing line 252
+  missing line 253
+  missing line 255
+  missing line 256
+  missing line 257
+  missing line 258
+  missing line 259
+  missing line 260
+  missing line 261
+  missing line 265
+  missing line 266
+  missing line 267
+  missing line 268
+  missing line 269
+  missing line 270
+  missing line 271
+  missing line 272
+  missing line 273
+  missing line 274
+  missing line 275
+  missing line 276
+  missing line 277
+  missing line 278
+  missing line 280
+  missing condition [64, 24, 64, 59] occurrence 0 owner [40, 1, 40, 57] false
+  missing condition [100, 41, 100, 64] occurrence 0 owner [92, 1, 92, 61] true
+  missing condition [230, 12, 230, 23] occurrence 0 owner [224, 5, 228, 24] true
+  missing condition [230, 12, 230, 23] occurrence 0 owner [224, 5, 228, 24] false
+  missing condition [249, 12, 249, 22] occurrence 0 owner [243, 5, 247, 24] true
+  missing condition [249, 12, 249, 22] occurrence 0 owner [243, 5, 247, 24] false
+  missing condition [257, 12, 257, 16] occurrence 0 owner [243, 5, 247, 24] true
+  missing condition [257, 12, 257, 16] occurrence 0 owner [243, 5, 247, 24] false
+/home/dev/rs-l2tpd/src/kernel/linux/socket.rs: lines 12/101; outcomes 1/12; raw LLVM lines 12/103; raw outcomes 1/12
+  missing line 24
+  missing line 25
+  missing line 26
+  missing line 27
+  missing line 28
+  missing line 29
+  missing line 30
+  missing line 31
+  missing line 33
+  missing line 50
+  missing line 51
+  missing line 52
+  missing line 53
+  missing line 55
+  missing line 56
+  missing line 57
+  missing line 58
+  missing line 59
+  missing line 60
+  missing line 61
+  missing line 65
+  missing line 66
+  missing line 67
+  missing line 68
+  missing line 70
+  missing line 72
+  missing line 74
+  missing line 76
+  missing line 77
+  missing line 78
+  missing line 79
+  missing line 80
+  missing line 81
+  missing line 82
+  missing line 83
+  missing line 84
+  missing line 88
+  missing line 89
+  missing line 90
+  missing line 94
+  missing line 95
+  missing line 96
+  missing line 105
+  missing line 106
+  missing line 107
+  missing line 108
+  missing line 109
+  missing line 110
+  missing line 111
+  missing line 112
+  missing line 115
+  missing line 116
+  missing line 117
+  missing line 121
+  missing line 122
+  missing line 123
+  missing line 129
+  missing line 130
+  missing line 131
+  missing line 132
+  missing line 133
+  missing line 134
+  missing line 135
+  missing line 136
+  missing line 142
+  missing line 143
+  missing line 144
+  missing line 145
+  missing line 146
+  missing line 147
+  missing line 148
+  missing line 149
+  missing line 151
+  missing line 154
+  missing line 155
+  missing line 156
+  missing line 157
+  missing line 158
+  missing line 159
+  missing line 160
+  missing line 161
+  missing line 182
+  missing line 187
+  missing line 188
+  missing line 189
+  missing line 190
+  missing line 191
+  missing line 192
+  missing line 193
+  missing condition [25, 12, 25, 22] occurrence 0 owner [24, 1, 24, 50] true
+  missing condition [25, 12, 25, 22] occurrence 0 owner [24, 1, 24, 50] false
+  missing condition [66, 16, 66, 36] occurrence 0 owner [50, 5, 50, 98] true
+  missing condition [66, 16, 66, 36] occurrence 0 owner [50, 5, 50, 98] false
+  missing condition [67, 16, 67, 36] occurrence 0 owner [50, 5, 50, 98] true
+  missing condition [67, 16, 67, 36] occurrence 0 owner [50, 5, 50, 98] false
+  missing condition [74, 12, 74, 32] occurrence 0 owner [50, 5, 50, 98] true
+  missing condition [74, 12, 74, 32] occurrence 0 owner [50, 5, 50, 98] false
+  missing condition [179, 8, 179, 20] occurrence 0 owner [166, 1, 166, 60] false
+  missing condition [188, 12, 188, 22] occurrence 0 owner [187, 1, 187, 66] true
+  missing condition [188, 12, 188, 22] occurrence 0 owner [187, 1, 187, 66] false
+/home/dev/rs-l2tpd/src/kernel/mod.rs: lines 140/221; outcomes 2/2; raw LLVM lines 142/224; raw outcomes 2/2
+  missing line 328
+  missing line 329
+  missing line 330
+  missing line 331
+  missing line 332
+  missing line 354
+  missing line 355
+  missing line 356
+  missing line 358
+  missing line 359
+  missing line 360
+  missing line 362
+  missing line 363
+  missing line 364
+  missing line 369
+  missing line 370
+  missing line 371
+  missing line 372
+  missing line 373
+  missing line 374
+  missing line 375
+  missing line 376
+  missing line 378
+  missing line 379
+  missing line 380
+  missing line 382
+  missing line 383
+  missing line 384
+  missing line 386
+  missing line 387
+  missing line 388
+  missing line 390
+  missing line 391
+  missing line 392
+  missing line 397
+  missing line 398
+  missing line 399
+  missing line 400
+  missing line 401
+  missing line 402
+  missing line 433
+  missing line 434
+  missing line 435
+  missing line 437
+  missing line 438
+  missing line 439
+  missing line 441
+  missing line 442
+  missing line 443
+  missing line 445
+  missing line 446
+  missing line 447
+  missing line 449
+  missing line 450
+  missing line 451
+  missing line 453
+  missing line 454
+  missing line 455
+  missing line 457
+  missing line 458
+  missing line 459
+  missing line 460
+  missing line 462
+  missing line 463
+  missing line 464
+  missing line 465
+  missing line 500
+  missing line 501
+  missing line 502
+  missing line 504
+  missing line 505
+  missing line 506
+  missing line 542
+  missing line 543
+  missing line 544
+  missing line 546
+  missing line 547
+  missing line 548
+  missing line 575
+  missing line 576
+  missing line 577
+/home/dev/rs-l2tpd/src/reconciler/deadlines.rs: lines 24/24; outcomes 2/2; raw LLVM lines 25/25; raw outcomes 2/2
+/home/dev/rs-l2tpd/src/reconciler/events.rs: lines 515/515; outcomes 212/212; raw LLVM lines 532/533; raw outcomes 212/212
+/home/dev/rs-l2tpd/src/reconciler/ladder.rs: lines 58/58; outcomes 18/18; raw LLVM lines 61/61; raw outcomes 18/18
+/home/dev/rs-l2tpd/src/reconciler/mod.rs: lines 332/333; outcomes 65/66; raw LLVM lines 337/339; raw outcomes 65/66
+  missing line 446
+  missing condition [445, 16, 445, 55] occurrence 0 owner [437, 5, 437, 42] true
+/home/dev/rs-l2tpd/src/reconciler/records.rs: lines 8/8; outcomes 0/0; raw LLVM lines 8/8; raw outcomes 0/0
+/home/dev/rs-l2tpd/src/reconciler/report.rs: lines 54/54; outcomes 6/6; raw LLVM lines 55/55; raw outcomes 6/6
+/home/dev/rs-l2tpd/src/reconciler/resolvers.rs: lines 471/497; outcomes 112/124; raw LLVM lines 490/517; raw outcomes 112/124
+  missing line 632
+  missing line 633
+  missing line 634
+  missing line 635
+  missing line 636
+  missing line 637
+  missing line 643
+  missing line 648
+  missing line 653
+  missing line 654
+  missing line 655
+  missing line 656
+  missing line 663
+  missing line 664
+  missing line 708
+  missing line 709
+  missing line 710
+  missing line 734
+  missing line 768
+  missing line 772
+  missing line 773
+  missing line 774
+  missing line 775
+  missing line 782
+  missing line 783
+  missing line 784
+  missing condition [311, 20, 311, 51] occurrence 0 owner [287, 5, 287, 59] true
+  missing condition [621, 62, 621, 87] occurrence 0 owner [620, 5, 620, 52] true
+  missing condition [621, 62, 621, 87] occurrence 0 owner [620, 5, 620, 52] false
+  missing condition [621, 91, 621, 112] occurrence 0 owner [620, 5, 620, 52] true
+  missing condition [621, 91, 621, 112] occurrence 0 owner [620, 5, 620, 52] false
+  missing condition [642, 24, 642, 34] occurrence 0 owner [624, 5, 624, 80] true
+  missing condition [706, 23, 706, 51] occurrence 0 owner [672, 5, 672, 58] true
+  missing condition [707, 12, 707, 19] occurrence 0 owner [672, 5, 672, 58] true
+  missing condition [713, 12, 713, 16] occurrence 0 owner [672, 5, 672, 58] false
+  missing condition [713, 28, 713, 35] occurrence 0 owner [672, 5, 672, 58] true
+  missing condition [729, 20, 729, 49] occurrence 0 owner [721, 5, 721, 35] false
+  missing condition [781, 16, 781, 29] occurrence 0 owner [780, 5, 780, 23] true
+/home/dev/rs-l2tpd/src/reconciler/sessions.rs: lines 477/479; outcomes 151/152; raw LLVM lines 482/491; raw outcomes 148/152
+  missing line 101
+  missing line 205
+  missing condition [204, 12, 204, 46] occurrence 0 owner [187, 5, 187, 88] true
+/home/dev/rs-l2tpd/src/reconciler/store.rs: lines 240/249; outcomes 79/80; raw LLVM lines 247/257; raw outcomes 79/80
+  missing line 74
+  missing line 75
+  missing line 76
+  missing line 77
+  missing line 79
+  missing line 125
+  missing line 219
+  missing line 220
+  missing line 221
+  missing condition [326, 37, 326, 96] occurrence 0 owner [283, 5, 283, 46] true
+/home/dev/rs-l2tpd/src/reconciler/timers.rs: lines 71/71; outcomes 28/28; raw LLVM lines 74/74; raw outcomes 28/28
+/home/dev/rs-l2tpd/src/reconciler/tunnels.rs: lines 416/417; outcomes 90/92; raw LLVM lines 436/437; raw outcomes 90/92
+  missing line 232
+  missing condition [231, 16, 231, 50] occurrence 0 owner [216, 5, 216, 51] true
+  missing condition [278, 20, 278, 57] occurrence 0 owner [258, 5, 258, 85] false
+/home/dev/rs-l2tpd/src/reconciler/workers.rs: lines 151/158; outcomes 22/24; raw LLVM lines 157/164; raw outcomes 22/24
+  missing line 116
+  missing line 117
+  missing line 136
+  missing line 137
+  missing line 138
+  missing line 227
+  missing line 228
+  missing condition [196, 13, 196, 50] occurrence 0 owner [195, 47, 195, 48] false
+  missing condition [211, 24, 211, 34] occurrence 0 owner [201, 5, 201, 40] true
+/home/dev/rs-l2tpd/src/runtime.rs: lines 340/354; outcomes 57/58; raw LLVM lines 356/372; raw outcomes 55/58
+  missing line 328
+  missing line 329
+  missing line 330
+  missing line 331
+  missing line 333
+  missing line 337
+  missing line 338
+  missing line 339
+  missing line 340
+  missing line 341
+  missing line 343
+  missing line 374
+  missing line 528
+  missing line 534
+  missing condition [533, 20, 533, 54] occurrence 0 owner [529, 38, 529, 39] true
+/home/dev/rs-l2tpd/src/service.rs: lines 289/310; outcomes 91/94; raw LLVM lines 292/322; raw outcomes 83/94
+  missing line 61
+  missing line 62
+  missing line 63
+  missing line 89
+  missing line 90
+  missing line 100
+  missing line 101
+  missing line 102
+  missing line 103
+  missing line 107
+  missing line 108
+  missing line 109
+  missing line 110
+  missing line 111
+  missing line 112
+  missing line 113
+  missing line 114
+  missing line 352
+  missing line 353
+  missing line 354
+  missing line 495
+  missing condition [106, 16, 106, 26] occurrence 0 owner [67, 5, 70, 27] true
+  missing condition [306, 51, 306, 99] occurrence 0 owner [265, 1, 271, 16] false
+  missing condition [494, 12, 494, 20] occurrence 0 owner [265, 1, 271, 16] true
+MERGED_SOURCE_LINES=6217/7055
+MERGED_SOURCE_OUTCOMES=1312/1430
+MERGED_SOURCE_GATE=FAIL

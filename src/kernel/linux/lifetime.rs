@@ -80,6 +80,14 @@ impl State {
         self.socket = open().map(Arc::new).ok();
     }
 
+    // kernel: net/netlink/af_netlink.c netlink_overrun (K29, K36)
+    /// Ends `generation` unless another failure already replaced it.
+    fn end_generation_if(&mut self, generation: u64) {
+        if self.generation == generation {
+            self.end_generation();
+        }
+    }
+
     // kernel: (K16, K20, K29, K30) net/core/dev.c:10425 register_netdevice and
     // 11205-11224 unregister (RTM_NEWLINK, RTM_DELLINK with ifi_family
     // AF_UNSPEC, also on a move to another namespace, 11380);
@@ -322,9 +330,7 @@ impl Lifetime {
         if let Err(error) = send_lookup(&socket, seq, 0) {
             log::warn!("lifetime capture barrier failed: {error}");
             let mut state = self.shared.lock();
-            if state.generation == generation {
-                state.end_generation();
-            }
+            state.end_generation_if(generation);
             loop {
                 let (next, waited) = self.shared.wait_until(state, deadline);
                 state = next;
@@ -414,9 +420,7 @@ impl Lifetime {
         let mut state = self.shared.lock();
         if let Err(error) = sent {
             log::warn!("lifetime lookup failed: {error}");
-            if state.generation == registration.generation {
-                state.end_generation();
-            }
+            state.end_generation_if(registration.generation);
             return Proof::Lost;
         }
         loop {
@@ -668,6 +672,113 @@ mod tests {
         );
     }
 
+    // kernel: net/netlink/af_netlink.c netlink_unicast, net/core/rtnetlink.c
+    // rtnl_getlink (K20, K29)
+    /// spec: G2, S8, S9, E21, K20, K29
+    #[test]
+    fn capture_barrier_failures_never_leave_identity_evidence() {
+        let name = L2tpIfName::new(b"owned").unwrap();
+        let make = |mut initial: State| {
+            initial.captures.insert(name, Capture::Armed);
+            Lifetime {
+                shared: Arc::new(Shared {
+                    state: Mutex::new(initial),
+                    changed: Condvar::new(),
+                }),
+                thread: None,
+            }
+        };
+
+        let mut guarded = state();
+        guarded.end_generation_if(1);
+        assert_eq!(guarded.generation, 0);
+        guarded.end_generation_if(0);
+        assert_eq!(guarded.generation, 1);
+
+        let lifetime = make(state());
+        assert_eq!(
+            lifetime
+                .capture(&name, 0, Instant::now())
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::ETIMEDOUT)
+        );
+        assert!(lifetime.shared.lock().captures.is_empty());
+
+        let mut socket = Socket::new(netlink_sys::protocols::NETLINK_USERSOCK).unwrap();
+        socket.bind_auto().unwrap();
+        socket.connect(&SocketAddr::new(0, 0)).unwrap();
+        let mut initial = state();
+        initial.socket = Some(Arc::new(socket));
+        let lifetime = make(initial);
+        assert_eq!(
+            lifetime
+                .capture(&name, 0, Instant::now() + Duration::from_millis(1))
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::ETIMEDOUT)
+        );
+        let failed = lifetime.shared.lock();
+        assert_eq!(failed.generation, 1);
+        assert!(failed.captures.is_empty() && failed.lookups.is_empty());
+        drop(failed);
+
+        for mode in 0..5 {
+            let mut initial = state();
+            initial.socket = Some(Arc::new(open().unwrap()));
+            let lifetime = make(initial);
+            std::thread::scope(|scope| {
+                let reply = scope.spawn(|| {
+                    let until = Instant::now() + DEADLINE;
+                    loop {
+                        let mut state = lifetime.shared.lock();
+                        if let Some(seq) = state.lookups.keys().next().copied() {
+                            match mode {
+                                0 => {
+                                    state.captures.insert(name, Capture::Seen(8, 1));
+                                    state.tracked.insert((8, 1), false);
+                                    state.lookups.insert(seq, Answer::Found);
+                                }
+                                1 => {
+                                    state.lookups.insert(seq, Answer::Failed);
+                                }
+                                2 => {
+                                    state.captures.insert(name, Capture::Seen(8, 1));
+                                    state.tracked.insert((8, 1), false);
+                                    state.lookups.remove(&seq);
+                                }
+                                3 => state.end_generation(),
+                                4 => {
+                                    state.captures.insert(name, Capture::Ambiguous);
+                                    state.lookups.insert(seq, Answer::Failed);
+                                }
+                                _ => unreachable!(),
+                            }
+                            lifetime.shared.changed.notify_all();
+                            return;
+                        }
+                        drop(state);
+                        assert!(Instant::now() < until, "no capture barrier was submitted");
+                        std::thread::yield_now();
+                    }
+                });
+                let result =
+                    lifetime.capture(&name, 0, Instant::now() + Duration::from_millis(200));
+                reply.join().unwrap();
+                if mode == 0 {
+                    assert_eq!(result.unwrap(), Registration::new(8, 0, 1));
+                    lifetime.release(&Registration::new(8, 0, 1));
+                } else {
+                    assert_eq!(result.unwrap_err().raw_os_error(), Some(libc::ETIMEDOUT));
+                }
+            });
+            let state = lifetime.shared.lock();
+            assert!(state.captures.is_empty() && state.lookups.is_empty());
+            assert!(state.tracked.is_empty());
+            assert_eq!(state.generation, u64::from(mode == 3));
+        }
+    }
+
     // kernel: net/core/dev.c unregister_netdevice broadcasts RTM_DELLINK (K29)
     /// spec: G12, M16
     #[test]
@@ -844,6 +955,13 @@ mod tests {
         state.receive(&link(libc::RTM_DELLINK, 0, 8, b"rsl2tp-t000001"), &kernel);
         state.receive(&link(libc::RTM_NEWLINK, 0, 8, b"other"), &kernel);
         assert!(!state.tracked.contains_key(&(8, 1)));
+        let reused = L2tpIfName::new(b"reused").unwrap();
+        state.captures.insert(reused, Capture::Armed);
+        state.receive(&link(libc::RTM_NEWLINK, 0, 10, b"reused"), &kernel);
+        state.receive(&link(libc::RTM_DELLINK, 0, 10, b"reused"), &kernel);
+        state.receive(&link(libc::RTM_NEWLINK, 0, 10, b"reused"), &kernel);
+        assert!(matches!(state.captures[&reused], Capture::Ambiguous));
+        assert!(!state.tracked.contains_key(&(10, 2)));
         state.lookups.insert(4, Answer::Pending);
         let mut reply = link(libc::RTM_NEWLINK, 0, 8, b"other");
         reply[8..12].copy_from_slice(&4u32.to_ne_bytes());
