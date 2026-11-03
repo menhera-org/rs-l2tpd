@@ -59,8 +59,9 @@ thirteen profiles on frozen signed commit `584062d`. Later test-only
 additions retain their separate execution records.
 
 Phase 6 remains open. The [latest verification record](audit/PHASE6_VERIFICATION_2026-11-03.md)
-reports **8,441/8,441 merged source lines and 1,834/1,840 condition
-outcomes** under the approved measurement, leaving six outcomes. The
+retains the last combined report: **8,441/8,441 merged source lines and
+1,834/1,840 condition outcomes**, leaving six outcomes. New condition
+witnesses and input checks pass; fresh coverage for their source is pending. The
 retained raw LLVM summary is 99.40% lines / 97.83% outcomes. Complete
 clause/resource/event-cost proof and the 100% gate still require work.
 

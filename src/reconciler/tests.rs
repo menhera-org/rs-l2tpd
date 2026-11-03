@@ -14,6 +14,105 @@ mod completion {
     use crate::kernel::{LinkInfo, Notice};
     use nix::errno::Errno;
 
+    /// spec: C7, T27, M7, G5
+    #[test]
+    fn a_private_global_peer_zone_never_becomes_an_effective_interface_scope() {
+        let mut r = reconciler();
+        let valid = crate::config::TunnelConfig::builder(10)
+            .remote_addr(crate::config::RemoteAddr::Ip {
+                addr: "2001:db8::2".parse().unwrap(),
+                zone: None,
+            })
+            .build()
+            .unwrap();
+        let mut configuration = Config::new();
+        configuration.insert_tunnel("a", valid).unwrap();
+        assert!(r.reconcile(configuration));
+        let malformed = crate::config::a_global_literal_with_a_private_invalid_zone_for_test();
+        assert!(
+            crate::config::TunnelConfig::builder(10)
+                .remote_addr(malformed.remote_addr().unwrap().clone())
+                .build()
+                .is_err()
+        );
+        r.tunnels.get_mut(&10).unwrap().config = malformed;
+        let target = r.target(10).unwrap();
+        assert!(matches!(target, super::super::ladder::Target::Connect {
+            peer: crate::kernel::Peer { addr, .. }, bind: None, zone: None,
+        } if addr == "2001:db8::2".parse::<std::net::IpAddr>().unwrap()));
+    }
+
+    /// spec: E20, M16, G23
+    #[test]
+    fn resync_updates_a_watched_members_parent_without_retaining_its_upstream_chain() {
+        let mut kernel = FakeKernel::new(42);
+        let upstream = kernel.add_link("upstream", true);
+        let parent = kernel.add_link("parent", false);
+        let member = kernel.add_link("member", false);
+        kernel.set_master(parent, Some(upstream));
+        kernel.set_master(member, Some(parent));
+        let unrelated = kernel.add_link("unrelated", false);
+        kernel.set_master(unrelated, Some(parent));
+        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
+        let config = toml::from_str("[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='2001:db8::2'\nip_version='V6'\nbind_interface='member'").unwrap();
+        assert!(r.reconcile(config));
+        assert_eq!(r.masters, [(member, parent)].into_iter().collect());
+        let new_parent = r.k.add_link("new-parent", false);
+        r.k.set_master(new_parent, Some(upstream));
+        r.k.set_master(member, Some(new_parent));
+        // The ordered link event is deliberately lost.
+        assert_eq!(r.masters, [(member, parent)].into_iter().collect());
+        r.handle(Source::Monitor, Notice::Loss);
+        assert_eq!(r.masters, [(member, new_parent)].into_iter().collect());
+        assert_eq!(
+            r.members,
+            [(new_parent, [member].into_iter().collect())]
+                .into_iter()
+                .collect()
+        );
+        assert!(r.vrfs.is_empty());
+        assert_eq!(r.address_devices, [member].into_iter().collect());
+        assert!(!r.masters.contains_key(&unrelated));
+        assert!(!r.masters.contains_key(&parent));
+        assert!(!r.masters.contains_key(&new_parent));
+        assert!(!r.members.contains_key(&parent));
+    }
+
+    /// spec: E6, E7, G5, M16
+    #[test]
+    fn an_ordinary_master_does_not_make_its_member_an_address_dependency() {
+        let mut kernel = FakeKernel::new(42);
+        let parent = kernel.add_link("parent", false);
+        let member = kernel.add_link("member", false);
+        kernel.set_master(member, Some(parent));
+        for device in [parent, member] {
+            kernel.add_addr(device, "192.0.2.1".parse().unwrap());
+        }
+        let mut r = Reconciler::new(kernel, Box::new(IphostResolve::default()));
+        let text = "[host]\nfix_bindv6only=false\n[tunnels.parent]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='parent'\n[tunnels.member]\ntunnel_id=11\nremote_addr='192.0.2.3'\nbind_interface='member'";
+        assert!(r.reconcile(toml::from_str(text).unwrap()));
+        assert_eq!(r.masters.get(&member), Some(&parent));
+        assert!(!r.vrfs.contains_key(&parent));
+        let parent_socket = r.k.tunnel_socket(10).unwrap();
+        let original_parent_connection = r.k.connection(parent_socket);
+        r.k.del_addr(member, "192.0.2.1".parse().unwrap());
+        r.k.clear_ops();
+        r.handle(
+            Source::Monitor,
+            Notice::AddrDel(crate::kernel::AddrInfo::new(
+                member,
+                "192.0.2.1".parse().unwrap(),
+            )),
+        );
+        assert_eq!(r.k.connection(parent_socket), original_parent_connection);
+        assert!(r.k.ops().iter().all(
+            |op| !op.starts_with(&format!("connect {} ", parent_socket.0))
+                && op != &format!("disconnect {}", parent_socket.0)
+        ));
+        let member_socket = r.k.tunnel_socket(11).unwrap();
+        assert_eq!(r.k.connection(member_socket), None);
+    }
+
     const CONFIG: &str = "[tunnels.a]\ntunnel_id=10\nremote_addr='192.0.2.2'\n[sessions.s]\ntunnel_name='a'\nsession_id=100\ninterface_name='l2tp0'";
 
     fn reconciler() -> Reconciler<FakeKernel> {

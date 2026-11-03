@@ -1,0 +1,17 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/main.rs (tools/coverage/target/debug/deps/phase6_coverage-703c7e41b44e2967)
+
+running 10 tests
+test mapping_tests::inventory_rejects_missing_files_functions_and_changed_spans_but_accepts_new_counts ... ok
+test tests::line_stats_handle_wrapped_counts_skips_gaps_and_multiple_entries ... ok
+test tests::fabricated_covered_lines_without_any_executed_region_fail ... ok
+test tests::a_missing_outcome_stays_missing ... ok
+test tests::different_spans_on_one_line_stay_separate ... ok
+test tests::complementary_copies_merge_both_outcomes_without_merging_distinct_conditions ... ok
+test tests::folded_unused_copies_do_not_erase_executable_conditions ... ok
+test tests::unsupported_or_inconsistent_exports_fail ... ok
+test tests::source_manifest_changes_with_contents_and_inventory ... ok
+test tests::source_fingerprints_ignore_git_clean_filters ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

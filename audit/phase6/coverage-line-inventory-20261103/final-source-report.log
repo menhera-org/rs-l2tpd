@@ -1,0 +1,52 @@
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/args.rs: lines 40/40; outcomes 8/8; raw LLVM lines 41/41; raw outcomes 8/8
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/caps.rs: lines 35/35; outcomes 4/4; raw LLVM lines 35/35; raw outcomes 4/4
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/check.rs: lines 23/23; outcomes 4/4; raw LLVM lines 24/24; raw outcomes 4/4
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/daemon.rs: lines 99/99; outcomes 34/34; raw LLVM lines 97/99; raw outcomes 30/34
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/fdstore.rs: lines 175/175; outcomes 52/52; raw LLVM lines 178/178; raw outcomes 52/52
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/files.rs: lines 122/122; outcomes 32/32; raw LLVM lines 127/128; raw outcomes 30/32
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/logger.rs: lines 23/23; outcomes 4/4; raw LLVM lines 23/23; raw outcomes 4/4
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/main.rs: lines 189/189; outcomes 47/48; raw LLVM lines 188/189; raw outcomes 46/48
+  missing condition [180, 12, 180, 31] occurrence 0 owner [109, 44, 109, 45] false
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/pidfile.rs: lines 214/214; outcomes 74/74; raw LLVM lines 217/217; raw outcomes 74/74
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/restart.rs: lines 218/218; outcomes 66/66; raw LLVM lines 218/227; raw outcomes 61/66
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/setup.rs: lines 114/114; outcomes 38/38; raw LLVM lines 116/117; raw outcomes 38/38
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/signals.rs: lines 161/161; outcomes 48/48; raw LLVM lines 160/162; raw outcomes 46/48
+/home/dev/rs-l2tpd/src/bin/rs-l2tpd/tunable.rs: lines 15/15; outcomes 8/8; raw LLVM lines 14/15; raw outcomes 7/8
+/home/dev/rs-l2tpd/src/blocking.rs: lines 103/103; outcomes 4/4; raw LLVM lines 107/110; raw outcomes 4/4
+/home/dev/rs-l2tpd/src/config/mod.rs: lines 569/569; outcomes 60/60; raw LLVM lines 575/575; raw outcomes 60/60
+/home/dev/rs-l2tpd/src/config/partial.rs: lines 411/411; outcomes 40/40; raw LLVM lines 432/433; raw outcomes 40/40
+/home/dev/rs-l2tpd/src/config/serde.rs: lines 13/13; outcomes 0/0; raw LLVM lines 13/13; raw outcomes 0/0
+/home/dev/rs-l2tpd/src/config/text.rs: lines 140/140; outcomes 40/40; raw LLVM lines 151/151; raw outcomes 40/40
+/home/dev/rs-l2tpd/src/error.rs: lines 18/18; outcomes 0/0; raw LLVM lines 18/18; raw outcomes 0/0
+/home/dev/rs-l2tpd/src/kernel/fake.rs: lines 822/822; outcomes 146/146; raw LLVM lines 846/846; raw outcomes 146/146
+/home/dev/rs-l2tpd/src/kernel/linux/bpf.rs: lines 5/5; outcomes 0/0; raw LLVM lines 5/5; raw outcomes 0/0
+/home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs: lines 283/283; outcomes 20/20; raw LLVM lines 293/295; raw outcomes 20/20
+/home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs: lines 243/243; outcomes 62/62; raw LLVM lines 243/244; raw outcomes 62/62
+/home/dev/rs-l2tpd/src/kernel/linux/mod.rs: lines 142/142; outcomes 4/4; raw LLVM lines 147/147; raw outcomes 4/4
+/home/dev/rs-l2tpd/src/kernel/linux/monitor.rs: lines 92/92; outcomes 18/18; raw LLVM lines 94/94; raw outcomes 18/18
+/home/dev/rs-l2tpd/src/kernel/linux/request.rs: lines 153/153; outcomes 34/34; raw LLVM lines 158/158; raw outcomes 34/34
+/home/dev/rs-l2tpd/src/kernel/linux/rtnl.rs: lines 170/170; outcomes 20/20; raw LLVM lines 179/180; raw outcomes 20/20
+/home/dev/rs-l2tpd/src/kernel/linux/socket.rs: lines 101/101; outcomes 12/12; raw LLVM lines 103/103; raw outcomes 12/12
+/home/dev/rs-l2tpd/src/kernel/mod.rs: lines 221/221; outcomes 2/2; raw LLVM lines 224/224; raw outcomes 2/2
+/home/dev/rs-l2tpd/src/reconciler/deadlines.rs: lines 24/24; outcomes 2/2; raw LLVM lines 25/25; raw outcomes 2/2
+/home/dev/rs-l2tpd/src/reconciler/events.rs: lines 515/515; outcomes 212/214; raw LLVM lines 533/534; raw outcomes 212/214
+  missing condition [352, 25, 352, 32] occurrence 0 owner [284, 5, 284, 62] false
+  missing condition [484, 25, 484, 56] occurrence 0 owner [483, 57, 483, 58] false
+/home/dev/rs-l2tpd/src/reconciler/ladder.rs: lines 58/58; outcomes 17/18; raw LLVM lines 61/61; raw outcomes 17/18
+  missing condition [90, 72, 90, 97] occurrence 0 owner [90, 25, 90, 33] false
+/home/dev/rs-l2tpd/src/reconciler/mod.rs: lines 333/333; outcomes 66/66; raw LLVM lines 338/339; raw outcomes 66/66
+/home/dev/rs-l2tpd/src/reconciler/records.rs: lines 8/8; outcomes 0/0; raw LLVM lines 8/8; raw outcomes 0/0
+/home/dev/rs-l2tpd/src/reconciler/report.rs: lines 54/54; outcomes 6/6; raw LLVM lines 55/55; raw outcomes 6/6
+/home/dev/rs-l2tpd/src/reconciler/resolvers.rs: lines 497/497; outcomes 124/124; raw LLVM lines 516/517; raw outcomes 122/124
+/home/dev/rs-l2tpd/src/reconciler/sessions.rs: lines 479/479; outcomes 152/152; raw LLVM lines 482/491; raw outcomes 148/152
+/home/dev/rs-l2tpd/src/reconciler/store.rs: lines 249/249; outcomes 80/80; raw LLVM lines 257/257; raw outcomes 79/80
+/home/dev/rs-l2tpd/src/reconciler/timers.rs: lines 71/71; outcomes 28/28; raw LLVM lines 74/74; raw outcomes 28/28
+/home/dev/rs-l2tpd/src/reconciler/tunnels.rs: lines 417/417; outcomes 92/92; raw LLVM lines 436/437; raw outcomes 90/92
+/home/dev/rs-l2tpd/src/reconciler/workers.rs: lines 158/158; outcomes 24/24; raw LLVM lines 164/164; raw outcomes 23/24
+/home/dev/rs-l2tpd/src/runtime.rs: lines 354/354; outcomes 57/58; raw LLVM lines 370/372; raw outcomes 55/58
+  missing condition [554, 67, 554, 90] occurrence 0 owner [548, 5, 548, 70] false
+/home/dev/rs-l2tpd/src/service.rs: lines 310/310; outcomes 93/94; raw LLVM lines 310/322; raw outcomes 86/94
+  missing condition [306, 51, 306, 99] occurrence 0 owner [265, 1, 271, 16] false
+MERGED_SOURCE_LINES=8441/8441
+MERGED_SOURCE_OUTCOMES=1834/1840
+MERGED_SOURCE_GATE=FAIL

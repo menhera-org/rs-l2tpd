@@ -1,8 +1,10 @@
 # Coverage summaries and duplicate functions
 
-The P4 gate is unchanged: the raw report must reach 100% of production
-lines and branch outcomes. This investigation adds no exclusion and
-does not establish that gate.
+This investigation records the pre-decision `6735dd6` snapshot. At that
+point P4 used the raw LLVM summary. The maintainer subsequently approved
+[merged-source measurement](../coverage-metric-20261103/README.md), implemented
+and calibrated in `db7c1d2`. The original raw results below remain evidence;
+they do not describe the current gate or establish Phase 6 completion.
 
 The starting snapshot's capability reporter illustrates a difference
 between the merged source display and the summary. Its test-binary copy
@@ -31,10 +33,10 @@ concerns `choose`, not the whole fixture.
 
 `commands-summary-fixture.txt` records compilation, execution and export.
 The two JSON exports, summary logs and detailed text views retain the
-evidence. No new reporting tool or dependency is introduced. These
-artifacts diagnose aggregation; they do not replace P4's raw summary.
+evidence. This original investigation added no reporting tool or dependency;
+the later approved checker is recorded separately.
 
-The final project report still has four source positions in its
+The original batch's final project report has four source positions in its
 `--show-missing-lines` section, while its summary reports 57 missed
 lines. The difference must remain explicit. It neither proves those
 four paths are the only remaining behavioral cases nor authorizes

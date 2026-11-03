@@ -1,0 +1,21 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/rs-l2tpd-outcome-batch.lkzXUzoF)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-33c7dac59ac6b88b)
+
+running 1 test
+
+thread 'reconciler::tests::completion::an_ordinary_master_does_not_make_its_member_an_address_dependency' (446169) panicked at src/reconciler/tests.rs:108:9:
+assertion failed: r.k.ops().iter().all(|op|
+        !op.starts_with(&format!("connect {} ", parent_socket.0)) &&
+            op != &format!("disconnect {}", parent_socket.0))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reconciler::tests::completion::an_ordinary_master_does_not_make_its_member_an_address_dependency ... FAILED
+
+failures:
+
+failures:
+    reconciler::tests::completion::an_ordinary_master_does_not_make_its_member_an_address_dependency
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 347 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

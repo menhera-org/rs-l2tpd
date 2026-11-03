@@ -22,6 +22,18 @@ cargo build --locked --lib --no-default-features --features serde
 cargo build --locked
 cargo test --locked --all-features
 # Child launches must not inherit concurrent fake-kernel descriptor owners.
+serial_reload_guard() {
+    cargo test --locked --all-features "$@" --test service \
+        shutdown_during_reload_application_never_reports_reload_complete \
+        -- --ignored --exact --nocapture > "$files" 2>&1 || {
+        cat "$files"
+        exit 1
+    }
+    cat "$files"
+    grep -q 'test result: ok. 1 passed; 0 failed' "$files"
+}
+serial_reload_guard
+serial_reload_guard --target x86_64-unknown-linux-musl
 cargo test --locked --all-features --bin rs-l2tpd syscall_barrier:: -- --ignored --test-threads=1
 cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process --test startup
 cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd syscall_barrier:: -- --ignored --test-threads=1

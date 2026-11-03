@@ -1,0 +1,83 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling libc v0.2.191
+   Compiling futures-sink v0.3.34
+   Compiling futures-core v0.3.34
+   Compiling pin-project-lite v0.2.17
+   Compiling zerocopy v0.8.63
+   Compiling futures-io v0.3.34
+   Compiling futures-task v0.3.34
+   Compiling serde_core v1.0.229
+   Compiling slab v0.4.12
+   Compiling memchr v2.8.3
+   Compiling netlink-packet-core v0.9.0
+   Compiling log v0.4.34
+   Compiling thiserror v2.0.21
+   Compiling bytes v1.12.1
+   Compiling autocfg v1.5.1
+   Compiling thiserror v1.0.69
+   Compiling serde v1.0.229
+   Compiling cfg_aliases v0.2.2
+   Compiling bitflags v2.13.2
+   Compiling punycode v0.4.1
+   Compiling getrandom v0.3.4
+   Compiling cfg-if v1.0.5
+   Compiling winnow v1.0.4
+   Compiling rs-l2tpd v0.2.0 (/tmp/rs-l2tpd-outcome-batch.lkzXUzoF)
+   Compiling toml_writer v1.1.3+spec-1.1.0
+   Compiling futures-channel v0.3.34
+   Compiling nix v0.30.1
+   Compiling fqdn v0.5.2
+   Compiling memoffset v0.9.1
+   Compiling toml_parser v1.1.5+spec-1.1.0
+   Compiling syn v3.0.9
+   Compiling syn v2.0.119
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.4
+   Compiling toml_datetime v1.1.2+spec-1.1.0
+   Compiling serde_spanned v1.1.2
+   Compiling tokio v1.54.1
+   Compiling toml v1.1.8+spec-1.1.0
+   Compiling zerocopy-derive v0.8.63
+   Compiling thiserror-impl v1.0.69
+   Compiling futures-macro v0.3.34
+   Compiling thiserror-impl v2.0.21
+   Compiling serde_derive v1.0.229
+   Compiling futures-util v0.3.34
+   Compiling iphost v0.4.4
+   Compiling futures-executor v0.3.34
+   Compiling netlink-sys v0.9.0
+   Compiling futures v0.3.34
+   Compiling netlink-proto v0.13.0
+   Compiling netlink-packet-generic v0.5.0
+   Compiling netlink-packet-route v0.33.0
+   Compiling netlink-packet-l2tp v0.4.0
+   Compiling genetlink v0.3.0
+   Compiling l2tp v0.5.0
+error[E0433]: cannot find type `TunnelConfig` in this scope
+  --> src/reconciler/tests.rs:21:21
+   |
+21 |         let valid = TunnelConfig::builder(10)
+   |                     ^^^^^^^^^^^^ use of undeclared type `TunnelConfig`
+   |
+help: consider importing this struct
+   |
+12 +     use crate::config::TunnelConfig;
+   |
+
+error[E0624]: method `addr_changed` is private
+   --> src/reconciler/tests.rs:63:11
+    |
+ 63 |         r.addr_changed(
+    |           ^^^^^^^^^^^^ private method
+    |
+   ::: src/reconciler/events.rs:284:5
+    |
+284 |     fn addr_changed(&mut self, addr: AddrInfo, removed: bool) {
+    |     --------------------------------------------------------- private method defined here
+
+Some errors have detailed explanations: E0433, E0624.
+For more information about an error, try `rustc --explain E0433`.
+error: could not compile `rs-l2tpd` (lib test) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...

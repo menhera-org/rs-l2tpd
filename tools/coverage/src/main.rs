@@ -87,7 +87,7 @@ fn source_files(
                 .to_str()
                 .ok_or("non-UTF8 source path")?;
             let output = Command::new("git")
-                .args(["--no-pager", "hash-object", "--", relative])
+                .args(["--no-pager", "hash-object", "--no-filters", "--", relative])
                 .current_dir(root)
                 .output()?;
             require(output.status.success(), "git hash-object failed")?;
@@ -104,7 +104,7 @@ fn manifest(root: &Path) -> Result<Value> {
     let mut sources = BTreeMap::new();
     source_files(root, &root.join("src"), &mut sources)?;
     require(!sources.is_empty(), "empty source inventory")?;
-    Ok(json!({"version": 1, "sources": sources}))
+    Ok(json!({"version": 2, "sources": sources}))
 }
 
 #[derive(Clone)]
@@ -176,7 +176,7 @@ fn lines(values: &Value, lengths: &[usize]) -> Result<BTreeMap<u64, bool>> {
     Ok(result)
 }
 
-#[derive(Default, Debug)]
+#[derive(Clone, Default, Debug)]
 struct FileCoverage {
     lines: BTreeMap<u64, bool>,
     conditions: BTreeMap<Condition, [bool; 2]>,
@@ -234,6 +234,11 @@ fn analyze(export: &Value, root: &Path) -> Result<BTreeMap<String, FileCoverage>
         let sizes: Vec<_> = source.split('\n').map(str::len).collect();
         let covered_lines = lines(&file["segments"], &sizes)?;
         let (raw_lines, raw_covered_lines) = summary(&file["summary"], "lines")?;
+        require(
+            covered_lines.len() as u64 <= raw_lines
+                && (raw_lines == 0 || !covered_lines.is_empty()),
+            "line mapping disagrees with LLVM denominator",
+        )?;
         let (raw_outcomes, raw_covered_outcomes) = summary(&file["summary"], "branches")?;
         let coverage = FileCoverage {
             lines: covered_lines,
@@ -264,6 +269,7 @@ fn analyze(export: &Value, root: &Path) -> Result<BTreeMap<String, FileCoverage>
     require(!files.is_empty(), "no production coverage files")?;
     let mut mappings: BTreeMap<(String, Span), Mapping> = BTreeMap::new();
 
+    let mut executed_region_lines: BTreeMap<String, BTreeSet<u64>> = BTreeMap::new();
     let mut seen_files = BTreeSet::new();
     let mut names = BTreeSet::new();
     for function in array(&data["functions"])? {
@@ -301,6 +307,12 @@ fn analyze(export: &Value, root: &Path) -> Result<BTreeMap<String, FileCoverage>
             span(v, sizes)?;
             let mut r = v.iter().map(number).collect::<Result<Vec<_>>>()?;
             require(r[5..] == [0, 0, 0], "unsupported region file IDs or kind")?;
+            if r[4] > 0 {
+                executed_region_lines
+                    .entry(filename.to_owned())
+                    .or_default()
+                    .extend(r[0]..=r[2]);
+            }
             r.remove(4);
             regions.push(r);
         }
@@ -357,6 +369,15 @@ fn analyze(export: &Value, root: &Path) -> Result<BTreeMap<String, FileCoverage>
             seen_files.contains(filename),
             "file has no function mappings",
         )?;
+        for (line, covered) in &file.lines {
+            require(
+                !covered
+                    || executed_region_lines
+                        .get(filename)
+                        .is_some_and(|lines| lines.contains(line)),
+                "covered line has no executed function region",
+            )?;
+        }
         // JSON omits folding flags. Reconcile the executable denominator;
         // reject partial folding or ambiguous ownership instead of guessing.
         require(
@@ -373,15 +394,26 @@ fn analyze(export: &Value, root: &Path) -> Result<BTreeMap<String, FileCoverage>
     Ok(files)
 }
 
-fn mapping_identity(export: &Value, root: &Path) -> Result<Value> {
+fn mapping_identity(
+    export: &Value,
+    root: &Path,
+    coverage: &BTreeMap<String, FileCoverage>,
+) -> Result<Value> {
     let data = &export["data"][0];
     let source_root = root.join("src");
-    let mut files = BTreeSet::new();
+    let mut files = BTreeMap::new();
     let mut functions = BTreeMap::new();
     for file in array(&data["files"])? {
         let name = string(&file["filename"])?;
         if Path::new(name).starts_with(&source_root) {
-            files.insert(name.to_owned());
+            let lines = coverage
+                .get(name)
+                .ok_or("file missing from line inventory")?
+                .lines
+                .keys()
+                .copied()
+                .collect::<Vec<_>>();
+            files.insert(name.to_owned(), lines);
         }
     }
     for function in array(&data["functions"])? {
@@ -424,7 +456,7 @@ fn run() -> Result<bool> {
     let export: Value = serde_json::from_slice(&fs::read(&args[3])?)?;
     let files = analyze(&export, &root)?;
     let mut current = manifest(&root)?;
-    current["mapping"] = mapping_identity(&export, &root)?;
+    current["mapping"] = mapping_identity(&export, &root, &files)?;
     if args[0] == "snapshot" {
         fs::write(manifest_path, serde_json::to_vec_pretty(&current)?)?;
         return Ok(true);
@@ -670,6 +702,7 @@ mod tests {
             ("/data", json!([])),
             ("/data/0/files/0/branches/0", json!([2, 2, 2, 3])),
             ("/data/0/files/0/segments/0", json!([1, 1])),
+            ("/data/0/files/0/segments", json!([])),
             ("/data/0/functions/0/regions", json!([])),
         ] {
             let mut export = original.clone();
@@ -681,6 +714,19 @@ mod tests {
         }
         let mut export = original;
         export["unexpected"] = json!(true);
+        assert!(analyze(&export, &fixture.0).is_err());
+    }
+
+    #[test]
+    fn fabricated_covered_lines_without_any_executed_region_fail() {
+        let fixture = Fixture::new();
+        let mut export = fixture.export(&[[0, 0]], false);
+        for region in export["data"][0]["functions"][0]["regions"]
+            .as_array_mut()
+            .unwrap()
+        {
+            region[4] = json!(0);
+        }
         assert!(analyze(&export, &fixture.0).is_err());
     }
 
@@ -712,6 +758,35 @@ mod tests {
     }
 
     #[test]
+    fn source_fingerprints_ignore_git_clean_filters() {
+        let fixture = Fixture::new();
+        for args in [
+            vec!["--no-pager", "init", "--quiet"],
+            vec![
+                "--no-pager",
+                "config",
+                "filter.collapse.clean",
+                "cat /dev/null",
+            ],
+        ] {
+            let output = Command::new("git")
+                .args(args)
+                .current_dir(&fixture.0)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+        fs::write(fixture.0.join(".gitattributes"), "*.rs filter=collapse\n").unwrap();
+        let before = manifest(&fixture.0).unwrap();
+        fs::write(fixture.0.join("src/example.rs"), "changed\n").unwrap();
+        assert_ne!(before, manifest(&fixture.0).unwrap());
+    }
+
+    #[test]
     fn source_manifest_changes_with_contents_and_inventory() {
         let fixture = Fixture::new();
         let before = manifest(&fixture.0).unwrap();
@@ -734,13 +809,38 @@ mod mapping_tests {
         let source = json!({"data":[{"files":[{"filename":"/project/src/a.rs"},{"filename":"/project/src/b.rs"}],
             "functions":[{"name":"a", "count":1,"filenames":["/project/src/a.rs"],
                 "regions":[[1,1,1,5,1,0,0,0]],"branches":[[1,2,1,3,1,0,0,0,4]]}]}]});
-        let original = mapping_identity(&source, root).unwrap();
+        let coverage: BTreeMap<String, FileCoverage> = ["a.rs", "b.rs"]
+            .into_iter()
+            .map(|name| {
+                (
+                    format!("/project/src/{name}"),
+                    FileCoverage {
+                        lines: BTreeMap::from([(1, true)]),
+                        ..FileCoverage::default()
+                    },
+                )
+            })
+            .collect();
+        let original = mapping_identity(&source, root, &coverage).unwrap();
+        let mut missing_lines = coverage.clone();
+        missing_lines
+            .get_mut("/project/src/a.rs")
+            .unwrap()
+            .lines
+            .clear();
+        assert_ne!(
+            original,
+            mapping_identity(&source, root, &missing_lines).unwrap()
+        );
         let mut counts = source.clone();
         counts["data"][0]["functions"][0]["count"] = json!(99);
         counts["data"][0]["functions"][0]["regions"][0][4] = json!(99);
         counts["data"][0]["functions"][0]["branches"][0][4] = json!(0);
         counts["data"][0]["functions"][0]["branches"][0][5] = json!(99);
-        assert_eq!(original, mapping_identity(&counts, root).unwrap());
+        assert_eq!(
+            original,
+            mapping_identity(&counts, root, &coverage).unwrap()
+        );
         for (pointer, value) in [
             ("/data/0/files", json!([{"filename":"/project/src/a.rs"}])),
             ("/data/0/functions", json!([])),
@@ -751,7 +851,7 @@ mod mapping_tests {
             *changed.pointer_mut(pointer).unwrap() = value;
             assert_ne!(
                 original,
-                mapping_identity(&changed, root).unwrap(),
+                mapping_identity(&changed, root, &coverage).unwrap(),
                 "{pointer}"
             );
         }

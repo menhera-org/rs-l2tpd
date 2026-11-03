@@ -27,7 +27,15 @@ the scenario suite below; read them before writing new scenarios.
 
 ## Execution status, 2026-11-03
 
-Phase 6 remains open. Signed `6735dd6` passes both CI jobs and CodeQL.
+Phase 6 remains open. Signed `db7c1d2` passes both CI jobs, CodeQL and all
+thirteen required kernel profiles, with unchanged initial/final targets
+and empty source patches. The subsequent outcome-boundary source passes
+the full common gates, ten native suites, three musl collections and six
+fault controls. The isolated logging case runs serially; its earlier
+parallel failure is retained. Ten checker tests and four validation controls
+pass. Fresh production coverage and kernel qualification of the changed
+readiness/resync source remain pending. The following counts are the
+preceding collector's last complete measurement.
 The maintainer approved merged-source coverage on November 3.
 The calibrated checker reports **8,441/8,441 source lines and
 1,834/1,840 condition outcomes**, exits 1 and leaves **six outcomes**.

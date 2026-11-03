@@ -1,0 +1,21 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/rs-l2tpd-outcome-batch.lkzXUzoF)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-33c7dac59ac6b88b)
+
+running 1 test
+
+thread 'reconciler::tests::completion::a_private_global_peer_zone_never_becomes_an_effective_interface_scope' (445797) panicked at src/reconciler/tests.rs:40:9:
+assertion failed: matches!(target, super::super::ladder::Target::Connect
+    { peer: crate::kernel::Peer { addr, .. }, bind: None, zone: None, } if
+    addr == "2001:db8::2".parse::<std::net::IpAddr>().unwrap())
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reconciler::tests::completion::a_private_global_peer_zone_never_becomes_an_effective_interface_scope ... FAILED
+
+failures:
+
+failures:
+    reconciler::tests::completion::a_private_global_peer_zone_never_becomes_an_effective_interface_scope
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 347 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

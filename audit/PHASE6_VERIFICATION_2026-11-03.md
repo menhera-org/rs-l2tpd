@@ -1,5 +1,26 @@
 # Phase 6 verification, November 3
 
+The [outcome-boundary batch](phase6/outcome-boundaries-20261103/README.md)
+now passes the full common checks. Ten ordinary native suites, three
+musl collections and separately run reload/shutdown witnesses pass.
+Six restored behavior controls fail their intended assertions. Its
+subprocess test runs serially; the earlier parallel fake-socket failure
+and the surviving inventory mutation remain in the record.
+
+The [coverage input follow-up](phase6/coverage-line-inventory-20261103/README.md)
+passes ten checker tests on both libcs, Rust 1.89 checks, compiler-generated
+calibration and four restored input-validation controls. A task-helper
+name collision is reproduced and corrected; concurrent GNU/musl resource
+fixtures pass. Fresh production coverage for this changed source is pending.
+
+The [full required matrix](phase6/matrix-20261103T021525Z-400861/README.md)
+passes all thirteen profiles on signed `db7c1d2`, with unchanged initial/
+final targets and empty source patches. The five normal profiles each pass
+all 27 scenarios and 37 process cases. This precedes the new readiness/
+resync changes and does not settle the retained parallel clock failures.
+
+## Preceding defensive-boundary batch
+
 The [defensive-boundary batch](phase6/defensive-boundaries-20261103/README.md)
 passes the mandatory common checks, repeated GNU/musl live collections,
 GNU Incus, manager/task limits and the unmodified root system-unit profile.

@@ -1,0 +1,6 @@
+    Updating `menhera-cooldown` index
+error: failed to select a version for the requirement `iphost = "^0.4.4"` (locked to 0.4.4)
+candidate versions found which didn't match: 0.4.1, 0.4.0, 0.3.3, ...
+location searched: `menhera-cooldown` index (which is replacing registry `crates-io`)
+required by package `rs-l2tpd v0.2.0 (/tmp/rs-l2tpd-outcome-batch.lkzXUzoF)`
+note: perhaps a crate was updated and forgotten to be re-vendored?

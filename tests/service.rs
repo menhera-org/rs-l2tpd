@@ -1819,3 +1819,126 @@ fn either_subscription_failure_returns_original_inputs_and_releases_partial_read
         assert!(peers.is_empty());
     }
 }
+
+static RELOAD_COMPLETED: AtomicUsize = AtomicUsize::new(0);
+struct ReloadLogger;
+impl log::Log for ReloadLogger {
+    fn enabled(&self, _: &log::Metadata<'_>) -> bool {
+        true
+    }
+    fn log(&self, record: &log::Record<'_>) {
+        if record.target() == "rs_l2tpd::service" && record.args().to_string() == "reload completed"
+        {
+            RELOAD_COMPLETED.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+    fn flush(&self) {}
+}
+
+/// spec: L5, L13, P16, O2, G20
+#[test]
+#[ignore = "isolated logger subprocess; run serially after fake descriptor owners finish"]
+fn shutdown_during_reload_application_never_reports_reload_complete() {
+    const CHILD: &str = "RS_L2TPD_TEST_RELOAD_SHUTDOWN_LOGS";
+    if std::env::var_os(CHILD).is_none() {
+        let name = std::thread::current().name().unwrap().to_owned();
+        let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", &name, "--nocapture", "--ignored"])
+            .env(CHILD, "1")
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        while child.try_wait().unwrap().is_none() {
+            if Instant::now() >= deadline {
+                child.kill().unwrap();
+                let output = child.wait_with_output().unwrap();
+                panic!(
+                    "reload/shutdown child timed out: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let output = child.wait_with_output().unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stdout).contains("RELOAD_SHUTDOWN_LOG_GUARD_CHECKED=2")
+        );
+        return;
+    }
+    log::set_logger(&ReloadLogger).unwrap();
+    log::set_max_level(log::LevelFilter::Info);
+    for shutdown_during_application in [false, true] {
+        RELOAD_COMPLETED.store(0, Ordering::SeqCst);
+        let host = Host::new();
+        let mut wanted = config(10);
+        wanted
+            .insert_session(
+                "second",
+                SessionConfig::builder("wan", 111, "l2tp1".parse().unwrap())
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        let mut service = start(&host, config(10));
+        service.set_store_capacity(1).unwrap();
+        let mut requests = service.take_requests().unwrap().unwrap();
+        service.converge().unwrap();
+        let stored = match requests.blocking_recv().unwrap() {
+            rs_l2tpd::ControlEvent::StoreSocket { name, fd, .. } => {
+                assert_eq!(name, "t10");
+                fd
+            }
+            _ => panic!("expected initial store submission"),
+        };
+        let (entered_tx, entered_rx) = mpsc::sync_channel(1);
+        let (release_tx, release_rx) = mpsc::sync_channel(1);
+        *host.7.lock().unwrap() = Some(Gate {
+            entered: entered_tx,
+            release: release_rx,
+        });
+        let control = service.control();
+        let running =
+            std::thread::spawn(move || service.run(move |_| Ok(wanted.clone()), |_| Ok(())));
+        control.reload().unwrap();
+        entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        if shutdown_during_application {
+            control.shutdown();
+        }
+        release_tx.send(()).unwrap();
+        if !shutdown_during_application {
+            wait(|| RELOAD_COMPLETED.load(Ordering::SeqCst) == 1);
+            control.shutdown();
+        }
+        let id = match requests.blocking_recv().unwrap() {
+            rs_l2tpd::ControlEvent::ForgetSocket { name, id, .. } => {
+                assert_eq!(name, "t10");
+                id
+            }
+            _ => panic!("expected shutdown withdrawal"),
+        };
+        drop(stored);
+        control.socket_forgotten_blocking(id, true).unwrap();
+        running.join().unwrap().unwrap();
+        assert_eq!(
+            RELOAD_COMPLETED.load(Ordering::SeqCst),
+            usize::from(!shutdown_during_application)
+        );
+        assert_eq!(control.config(), Config::new());
+        host.with(|kernel| {
+            kernel.tick();
+            assert!(kernel.tunnel_socket(10).is_none());
+            assert!(kernel.session_index(10, 110).is_none());
+            assert!(kernel.session_index(10, 111).is_none());
+            assert_eq!(kernel.open_sockets(), 0);
+        });
+    }
+    println!("RELOAD_SHUTDOWN_LOG_GUARD_CHECKED=2");
+}

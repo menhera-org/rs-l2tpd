@@ -14,5 +14,11 @@ which outcomes are executable. The existing production exclusion policy
 is unchanged. Unsupported schemas and inconsistent mappings must fail.
 Raw LLVM summaries and per-instantiation diagnostics remain required.
 
-The definition is approved; the checker and its calibration are still in
-progress. This decision does not establish 100% coverage or pass Phase 6.
+Signed `db7c1d2` implements the checker in `tools/coverage`. Eight tests
+pass on GNU and musl; Rust 1.89 checks and the compiler-generated
+calibration pass. The calibration requires complementary copies to cover
+both source arms while missing-arm, repeated-guard and changed-source
+controls fail. CI's Build and check job passes with that calibration.
+The production report still exits 1 with six missing condition outcomes.
+Its post-collection inventory does not establish a before-build snapshot.
+The full production 100% CI job and Phase 6 remain unfinished.

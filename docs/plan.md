@@ -515,7 +515,15 @@ archive, both builds, source comparison and required live profiles now pass.
 The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
-The defensive-boundary batch reports **8,441/8,441 merged source lines and
+The subsequent outcome-boundary batch passes common checks, ten native
+suites, three musl collections, separate serial reload cases and six fault
+controls. Ten coverage-checker tests and four validation controls pass.
+The task-helper name collision is reproduced and corrected; concurrent
+GNU/musl resource fixtures pass. Fresh production coverage remains pending.
+Signed `db7c1d2` passes the full thirteen-profile matrix; the subsequent
+readiness/resync source needs its own kernel qualification.
+
+The preceding defensive-boundary batch reports **8,441/8,441 merged source lines and
 1,834/1,840 condition outcomes** under the maintainer-approved P4 definition.
 The checker exits 1: six outcomes remain missing. Raw LLVM coverage remains
 **8,655/8,707 lines (99.40%) and 1,800/1,840 outcomes (97.83%)**.

@@ -1135,3 +1135,41 @@ fn both_subscription_forwarders_stop_when_the_event_receiver_is_closed() {
         }
     });
 }
+
+struct CountPolls(std::sync::Arc<std::sync::atomic::AtomicUsize>);
+impl Resolve for CountPolls {
+    fn watch(&mut self, _: Lookup) -> io::Result<()> {
+        Ok(())
+    }
+    fn unwatch(&mut self, _: u64) {}
+    fn poll(&mut self) -> Vec<(u64, Vec<IpAddr>)> {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        vec![]
+    }
+}
+
+/// spec: L10, P16, V15, G20
+#[test]
+fn queued_ticks_and_resolver_answers_do_not_poll_dns_after_shutdown() {
+    let engine = engine();
+    let _entered = engine.enter();
+    let polls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let mut r = Runtime::with_kernel(
+        FakeKernel::new(42),
+        Box::new(CountPolls(polls.clone())),
+        vec![],
+    )
+    .map_err(|(error, _)| error)
+    .unwrap();
+    r.reconcile(config());
+    finish(&mut r);
+    assert_eq!(r.control().config(), Config::new());
+    let before = polls.load(std::sync::atomic::Ordering::SeqCst);
+    r.reconciler.kernel_mut().clear_ops();
+    for event in [ControlEvent::Tick, ControlEvent::ResolverAnswers] {
+        r.handle_event(event).unwrap();
+        assert_eq!(polls.load(std::sync::atomic::Ordering::SeqCst), before);
+        assert!(r.reconciler.kernel().ops().is_empty());
+        assert_eq!(r.control().config(), Config::new());
+    }
+}

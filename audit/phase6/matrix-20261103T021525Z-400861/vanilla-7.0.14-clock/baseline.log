@@ -1,0 +1,4 @@
+baseline commit: 15529bab567862b6617c9c5b948a74271bc9c44c
+target: x86_64-unknown-linux-musl; features: v0.1.5 defaults; own Cargo.lock
+baseline binary git-blob: 108ea840782dfbdfd327e8637e6b5a7335fff294
+rs-l2tpd 0.1.5

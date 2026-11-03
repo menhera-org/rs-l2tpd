@@ -21,7 +21,9 @@ tools/coverage/target/debug/phase6-coverage check "$PWD" target/coverage-sources
 Exit 0 means complete merged source coverage; 1 means coverage is missing;
 2 means invalid input, changed sources/mappings or an unsupported format.
 The snapshot records every Rust source file under `src/` by Git blob ID
-and the exported production file/function mappings without execution counts.
+and the exported production file/function mappings and mapped source-line
+inventory without execution counts (inventory format 2). Git clean filters
+are disabled so that the fingerprints identify the actual source bytes.
 It detects changed contents, missing files/functions and changed source spans.
 Capture it against a known, unchanged build; LLVM's JSON does not itself
 identify the source contents used to build an executable. The checker cannot
@@ -46,7 +48,7 @@ Retain the full JSON export for per-instantiation diagnostics and the raw LLVM
 summary beside the merged report. No production exclusion is added here.
 Compiler instrumentation determines the existing exclusions.
 
-`test-ci-gates.sh` runs formatting, Clippy and the checker's eight tests on
+`test-ci-gates.sh` runs formatting, Clippy and the checker's ten tests on
 GNU and musl. After installing the pinned nightly and LLVM tools,
 `sh tools/coverage/calibrate.sh RECORD` compiles a real fixture, checks
 complementary generic copies against the raw LLVM report, and requires missing

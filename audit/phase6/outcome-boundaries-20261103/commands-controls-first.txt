@@ -1,0 +1,72 @@
+set -eu
+candidate=$(cat /tmp/phase6-outcome-batch-path)
+record=/home/dev/rs-l2tpd/audit/phase6/outcome-boundaries-20261103
+cd "$candidate"
+backup=$(mktemp -d /tmp/rs-l2tpd-outcome-controls.XXXXXXXX)
+for file in src/runtime.rs src/service.rs src/reconciler/events.rs src/reconciler/ladder.rs src/bin/rs-l2tpd/main.rs; do
+ mkdir -p "$backup/${file%/*}"
+ cp "$file" "$backup/$file"
+done
+restore() {
+ for file in src/runtime.rs src/service.rs src/reconciler/events.rs src/reconciler/ladder.rs src/bin/rs-l2tpd/main.rs; do cp "$backup/$file" "$file"; done
+}
+trap restore 0
+for fault in runtime zone ordinary-master inventory readiness reload; do
+ restore
+ case $fault in
+ runtime)
+  file=src/runtime.rs
+  old='ControlEvent::Tick | ControlEvent::ResolverAnswers if self.stopping.is_none() =>'
+  new='ControlEvent::Tick | ControlEvent::ResolverAnswers =>'
+  name=runtime::tests::queued_ticks_and_resolver_answers_do_not_poll_dns_after_shutdown
+  kind=lib
+  ;;
+ zone)
+  file=src/reconciler/ladder.rs
+  old='.filter(|_| matches!(peer.addr, std::net::IpAddr::V6(a) if a.is_unicast_link_local()))'
+  new=''
+  name=reconciler::tests::completion::a_private_global_peer_zone_never_becomes_an_effective_interface_scope
+  kind=lib
+  ;;
+ ordinary-master)
+  file=src/reconciler/events.rs
+  old='vrf_of_device == Some(b) && self.vrfs.contains_key(&b)'
+  new='vrf_of_device == Some(b)'
+  name=reconciler::tests::completion::an_ordinary_master_does_not_make_its_member_an_address_dependency
+  kind=lib
+  ;;
+ inventory)
+  file=src/reconciler/events.rs
+  old='.is_some_and(|master| self.vrfs.contains_key(&master))'
+  new='.is_some()'
+  name=reconciler::tests::completion::resync_keeps_a_watched_members_parent_without_retaining_its_upstream_chain
+  kind=lib
+  ;;
+ readiness)
+  file=src/bin/rs-l2tpd/main.rs
+  old='convergence.is_ok() && !stopping'
+  new='!stopping && (convergence.is_ok() || true)'
+  name=readiness_decision_tests::readiness_requires_successful_convergence_and_no_shutdown_request
+  kind=bin
+  ;;
+ reload)
+  file=src/service.rs
+  old='if reload_pending && runtime.applied() && !control.shared.shutdown.load(Ordering::Acquire) {'
+  new='if reload_pending && runtime.applied() {'
+  name=shutdown_during_reload_application_never_reports_reload_complete
+  kind=service
+  ;;
+ esac
+ { printf '%s\n===REPLACE===\n' "$old"; printf '%s' "$new"; } | /tmp/phase6-replace "$file"
+ status=0
+ case $kind in
+  lib) cargo test --locked --all-features --lib "$name" -- --exact --nocapture > "$record/control-$fault.log" 2>&1 || status=$? ;;
+  bin) cargo test --locked --all-features --bin rs-l2tpd "$name" -- --exact --nocapture > "$record/control-$fault.log" 2>&1 || status=$? ;;
+  service) cargo test --locked --all-features --test service "$name" -- --exact --nocapture > "$record/control-$fault.log" 2>&1 || status=$? ;;
+ esac
+ test "$status" -ne 0
+ grep -q 'test result: FAILED. 0 passed; 1 failed' "$record/control-$fault.log"
+ printf 'RESTORED_CONTROL_REJECTED=%s\n' "$fault"
+done
+restore
+printf 'SIX_OUTCOME_CONTROLS_REJECTED=1\n'

@@ -1019,3 +1019,20 @@ pub(crate) fn unscoped_resolver_for_test() -> ResolverConfig {
         dhcpv6_identity: None,
     }
 }
+
+#[cfg(all(test, feature = "fake-kernel"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
+pub(crate) fn a_global_literal_with_a_private_invalid_zone_for_test() -> TunnelConfig {
+    let mut config = TunnelConfig::builder(10)
+        .remote_addr(RemoteAddr::Ip {
+            addr: "2001:db8::2".parse().unwrap(),
+            zone: None,
+        })
+        .build()
+        .unwrap();
+    config.remote_addr = Some(RemoteAddr::Ip {
+        addr: "2001:db8::2".parse().unwrap(),
+        zone: Some("absent-zone".parse().unwrap()),
+    });
+    config
+}

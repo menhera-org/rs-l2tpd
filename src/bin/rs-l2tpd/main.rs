@@ -177,7 +177,7 @@ fn run() -> u8 {
         let requests = host_requests(&mut service)?;
         let host = fdstore::worker(requests, service.control(), store)?;
         let convergence = service.converge();
-        if convergence.is_ok() && !signals.stopping() {
+        if readiness_allowed(&convergence, signals.stopping()) {
             // The parent may send SIGHUP as soon as readiness is announced.
             signals.ready();
             if !entry.reexec {
@@ -384,3 +384,23 @@ mod syscall_barrier;
 #[cfg(all(test, feature = "fake-kernel"))]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod boundary_tests;
+
+fn readiness_allowed(convergence: &rs_l2tpd::Result<Vec<String>>, stopping: bool) -> bool {
+    convergence.is_ok() && !stopping
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod readiness_decision_tests {
+    /// spec: P6, P7, G8, G20
+    #[test]
+    fn readiness_requires_successful_convergence_and_no_shutdown_request() {
+        for stopping in [false, true] {
+            assert_eq!(super::readiness_allowed(&Ok(vec![]), stopping), !stopping);
+            assert!(!super::readiness_allowed(
+                &Err(rs_l2tpd::Error::Other("worker stopped".into())),
+                stopping
+            ));
+        }
+    }
+}

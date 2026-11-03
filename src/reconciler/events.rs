@@ -480,9 +480,9 @@ impl<K: Kernel> Reconciler<K> {
             .values()
             .filter(|link| {
                 self.index.devices.contains_key(&link.index)
-                    || link.master.is_some_and(|master| {
-                        self.vrfs.contains_key(&master) && self.index.devices.contains_key(&master)
-                    })
+                    || link
+                        .master
+                        .is_some_and(|master| self.vrfs.contains_key(&master))
             })
             .filter_map(|link| Some((link.index, link.master?)))
             .collect();

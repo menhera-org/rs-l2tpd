@@ -27,8 +27,8 @@ trap 'exit 143' TERM
 for mode in thread fork; do
     if [ "$mode" = thread ]; then set -- --foreground; else set --; fi
     for limit in 1 2; do
-    name=rs-l2tpd-$mode-limit-$-$limit
-    pattern=$mode-$-$limit-%p-%m.profraw
+    name=rs-l2tpd-$mode-limit-$$-$limit
+    pattern=$mode-$$-$limit-%p-%m.profraw
     if [ "$mode" = thread ]; then log=$record/limit-$limit.log; else log=$record/fork-limit-$limit.log; fi
     printf 'command: timeout 60 docker create --network none --init=false --pids-limit %s IMAGE DAEMON; timeout 20 docker start --attach NAME\n' "$limit" > "$log"
     timeout 60 docker create --name "$name" --network none --init=false --pids-limit "$limit" \

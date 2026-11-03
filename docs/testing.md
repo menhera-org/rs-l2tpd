@@ -262,7 +262,18 @@ misses and changed sources to fail. The common CI script runs the tool's
 tests, and CI calibrates it before the existing badge upload. The full
 production 100% CI job remains unfinished.
 
-The defensive-boundary batch reports **8,441/8,441 merged source lines and
+The subsequent condition witnesses pass ten native suites, three musl
+collections and six restored controls. The reload/shutdown logging case
+launches a subprocess and therefore runs explicitly and serially after
+ordinary fake owners finish, on GNU and musl. The common script requires
+one actual passing test. Its first parallel qualification failed an
+immediate fake-socket deletion assertion and remains recorded.
+The coverage checker now passes ten tests and four validation controls.
+Fresh coverage for the readiness/resync changes is pending. Signed
+`db7c1d2` passes all thirteen required matrix profiles; those later changes
+have separate qualification.
+
+The preceding defensive-boundary batch reports **8,441/8,441 merged source lines and
 1,834/1,840 condition outcomes**, exits 1 and leaves **six outcomes**.
 Raw LLVM coverage is **8,655/8,707 lines (99.40%) and 1,800/1,840 outcomes
 (97.83%)**. Repository file
