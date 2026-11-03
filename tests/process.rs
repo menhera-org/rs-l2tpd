@@ -111,6 +111,20 @@ impl Process {
             }
         }
     }
+    fn remaining_logs(&self) -> Vec<String> {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut lines = vec![];
+        loop {
+            match self
+                .logs
+                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+            {
+                Ok(line) => lines.push(line),
+                Err(mpsc::RecvTimeoutError::Disconnected) => return lines,
+                Err(error) => panic!("daemon stderr did not close: {error}"),
+            }
+        }
+    }
     fn signal(&self, signal: Signal) {
         kill(Pid::from_raw(self.pid), signal).unwrap();
     }
@@ -1698,4 +1712,91 @@ fn kernel_startup_recovers_after_its_descriptor_limit_is_restored() {
     process.event("kernel interfaces available");
     process.event("ready");
     process.stop();
+}
+
+/// spec: P4, P14, P16, P19, O1
+#[test]
+fn failed_startup_withdraws_an_inherited_socket_through_a_live_store() {
+    let dir = Dir::new();
+    let main = config(&dir);
+    let manager = Manager::new(&dir);
+    let file = fs::File::open("/dev/null").unwrap();
+    manager
+        .stored
+        .lock()
+        .unwrap()
+        .insert("t10".into(), vec![file.try_clone().unwrap().into()]);
+    let raw = file.as_raw_fd();
+    let mut command = launcher(&main);
+    command.env("PROCESS_LAUNCH_NOTIFY", &manager.path);
+    unsafe {
+        command.pre_exec(move || {
+            if libc::dup2(raw, 3) < 0 || libc::fcntl(3, libc::F_SETFD, 0) < 0 {
+                return Err(io::Error::last_os_error());
+            }
+            deny_netlink()
+        });
+    }
+    let mut process = Process::spawn(command);
+    process.event("opening kernel interfaces:");
+    assert_eq!(manager.stored.lock().unwrap()["t10"].len(), 1);
+    process.signal(Signal::SIGTERM);
+    manager.event("FDSTOREREMOVE=1\nFDNAME=t10");
+    manager.event("BARRIER=1");
+    let lines = process.remaining_logs();
+    assert!(
+        lines
+            .iter()
+            .any(|line| line.contains("cannot confirm inherited tunnel absence")),
+        "{lines:?}"
+    );
+    assert_eq!(process.child.wait().unwrap().code(), Some(1));
+    process.done = true;
+    assert!(manager.stored.lock().unwrap().is_empty());
+    assert!(!dir.path().join("pid").exists());
+    for line in lines {
+        assert!(!line.contains("startup withdrawal"), "{line}");
+        assert!(!line.contains(": ready"), "{line}");
+        assert!(!line.contains("panicked"), "{line}");
+    }
+}
+
+/// spec: R49, P23, G1
+#[test]
+#[ignore = "isolated privileged container with L2TP modules"]
+fn capget_failure_is_reported_once_and_does_not_block_empty_readiness() {
+    namespace();
+    let dir = Dir::new();
+    let main = dir.path().join("main");
+    fs::write(&main, "[host]\nfix_bindv6only=false\n").unwrap();
+    let mut command = start(&main, true, &dir.path().join("pid"));
+    unsafe {
+        command.pre_exec(syscall_fault::on_exec(&[libc::SYS_capget], libc::EIO));
+    }
+    let mut process = Process::spawn(command);
+    let report = process.event("capget:");
+    assert!(
+        report.contains(&io::Error::from_raw_os_error(libc::EIO).to_string()),
+        "{report}"
+    );
+    loop {
+        let line = process.logs.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert!(!line.contains("capget:"), "repeated report: {line}");
+        assert!(!line.contains("panicked"), "{line}");
+        if line.contains(": ready") {
+            break;
+        }
+    }
+    process.signal(Signal::SIGTERM);
+    let lines = process.remaining_logs();
+    assert!(
+        lines.iter().any(|line| line.contains("shutdown complete")),
+        "{lines:?}"
+    );
+    assert!(process.child.wait().unwrap().success());
+    process.done = true;
+    for line in lines {
+        assert!(!line.contains("capget:"), "repeated report: {line}");
+        assert!(!line.contains("panicked"), "{line}");
+    }
 }

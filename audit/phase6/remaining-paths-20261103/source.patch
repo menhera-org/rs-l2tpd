@@ -1,0 +1,318 @@
+diff --git a/src/kernel/linux/lifetime.rs b/src/kernel/linux/lifetime.rs
+index 2f5500c..1206214 100644
+--- a/src/kernel/linux/lifetime.rs
++++ b/src/kernel/linux/lifetime.rs
+@@ -1059,6 +1059,7 @@ mod tests {
+         const CASE: &str = "kernel::linux::lifetime::tests::reader_and_failed_send_ordering_preserve_the_current_generation";
+         if let Some(mode) = std::env::var_os(CHILD) {
+             let mode = mode.to_str().unwrap();
++            super::super::syscall_fault::log_warnings();
+             nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+             let directory = std::env::var_os("PHASE6_LIFETIME_ORDERING_DIRECTORY").unwrap();
+             let listener =
+@@ -1089,6 +1090,17 @@ mod tests {
+                 );
+                 super::super::syscall_fault::refuse(&[libc::SYS_socket], libc::EMFILE);
+             }
++            if mode == "timeout-reader" {
++                super::super::syscall_fault::refuse(
++                    &[
++                        #[cfg(target_arch = "x86_64")]
++                        libc::SYS_poll,
++                        libc::SYS_ppoll,
++                    ],
++                    libc::ETIMEDOUT,
++                );
++                super::super::syscall_fault::refuse(&[libc::SYS_recvfrom], libc::EAGAIN);
++            }
+             let stopped = shared.clone();
+             let change_generation = mode == "changed-send";
+             let notify = std::thread::spawn(move || {
+@@ -1138,7 +1150,7 @@ mod tests {
+                             && state.lookups.is_empty()
+                     );
+                 }
+-                "quiet-reader" => {
++                "quiet-reader" | "timeout-reader" => {
+                     assert_eq!(state.generation, 0);
+                     assert_eq!(state.tracked, BTreeMap::from([((1, 1), false)]));
+                 }
+@@ -1147,7 +1159,7 @@ mod tests {
+             println!("LIFETIME_ORDERING_CHECKED={mode}");
+             return;
+         }
+-        for mode in ["changed-send", "reopen", "quiet-reader"] {
++        for mode in ["changed-send", "reopen", "quiet-reader", "timeout-reader"] {
+             let directory = crate::testdir::Dir::new();
+             let mut command = std::process::Command::new(std::env::current_exe().unwrap());
+             command
+@@ -1176,7 +1188,7 @@ mod tests {
+                             number == libc::SYS_clock_nanosleep as u64
+                                 || number == libc::SYS_nanosleep as u64
+                         }
+-                        "quiet-reader" => number == libc::SYS_recvfrom as u64,
++                        "quiet-reader" | "timeout-reader" => number == libc::SYS_recvfrom as u64,
+                         _ => unreachable!(),
+                     };
+                     if selected {
+@@ -1194,6 +1206,12 @@ mod tests {
+             .unwrap();
+             assert!(output.status.success(), "mode={mode}: {output:?}");
+             assert!(checked, "mode={mode} never reached its ordered syscall");
++            if mode == "timeout-reader" || mode == "quiet-reader" {
++                assert!(
++                    !String::from_utf8_lossy(&output.stdout).contains("lifetime subscription:"),
++                    "mode={mode}: {output:?}"
++                );
++            }
+             assert!(
+                 String::from_utf8_lossy(&output.stdout)
+                     .contains(&format!("LIFETIME_ORDERING_CHECKED={mode}"))
+diff --git a/src/reconciler/events.rs b/src/reconciler/events.rs
+index fcbde80..d905a73 100644
+--- a/src/reconciler/events.rs
++++ b/src/reconciler/events.rs
+@@ -1237,6 +1237,127 @@ mod resource_tests {
+         }
+     }
+ 
++    /// spec: E3, E4, T10, T13, G12, G17, M16
++    #[test]
++    fn removing_a_member_distinguishes_direct_and_parent_bindings() {
++        let mut kernel = FakeKernel::new(42);
++        let parent = kernel.add_link("red", true);
++        let member = kernel.add_link("member", false);
++        kernel.set_master(member, Some(parent));
++        kernel.add_addr(member, "192.0.2.1".parse().unwrap());
++        let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++        let text = "[host]\nfix_bindv6only=false\n[tunnels.parent]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='red'\n[tunnels.member]\ntunnel_id=11\nremote_addr='192.0.2.3'\nbind_interface='member'\n";
++        assert!(r.reconcile(toml::from_str(text).unwrap()));
++        drain(&mut r);
++        let sockets = [
++            r.k.tunnel_socket(10).unwrap(),
++            r.k.tunnel_socket(11).unwrap(),
++        ];
++        assert!(
++            sockets
++                .iter()
++                .all(|socket| r.k.connection(*socket).is_some())
++        );
++        r.k.clear_ops();
++        r.k.remove_link(member);
++        drain(&mut r);
++        for (tid, socket, attempts) in [(10, sockets[0], 1), (11, sockets[1], 0)] {
++            assert_eq!(r.k.tunnel_socket(tid), Some(socket));
++            assert_eq!(r.k.connection(socket), None);
++            assert_eq!(
++                r.k.ops()
++                    .iter()
++                    .filter(|op| op.starts_with(&format!("connect {} ", socket.0)))
++                    .count(),
++                attempts,
++                "{:?}",
++                r.k.ops()
++            );
++        }
++        assert_eq!(r.k.binding(sockets[0]), Some(parent));
++        assert_eq!(r.k.binding(sockets[1]), None);
++        assert!(!r.masters.contains_key(&member));
++        assert!(!r.address_devices.contains(&member));
++        assert!(!r.k.ops().iter().any(|op| op.starts_with("close ")));
++    }
++
++    /// spec: E6, E7, T10, T28, G12, M16
++    #[test]
++    fn removing_a_duplicate_source_on_an_unrelated_device_preserves_bound_tunnels() {
++        for (source, peer, zone) in [
++            ("192.0.2.1", "192.0.2.2", false),
++            ("2001:db8::1", "2001:db8::2", false),
++            ("fe80::1", "fe80::2%wanted", true),
++        ] {
++            let source: IpAddr = source.parse().unwrap();
++            let mut kernel = FakeKernel::new(42);
++            let wanted = kernel.add_link("wanted", false);
++            let unrelated = kernel.add_link("unrelated", false);
++            kernel.add_addr(wanted, source);
++            kernel.add_addr(unrelated, source);
++            let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++            let binding = if zone {
++                ""
++            } else {
++                "bind_interface='wanted'\n"
++            };
++            let text = format!(
++                "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='{peer}'\n{binding}"
++            );
++            assert!(r.reconcile(toml::from_str(&text).unwrap()));
++            drain(&mut r);
++            let socket = r.k.tunnel_socket(10).unwrap();
++            let connection = r.k.connection(socket).unwrap();
++            assert_eq!(connection.1, source);
++            let deadline = r.next_deadline();
++            r.k.clear_ops();
++            r.k.del_addr(unrelated, source);
++            drain(&mut r);
++            assert_eq!(r.k.connection(socket), Some(connection));
++            assert_eq!(r.k.binding(socket), Some(wanted));
++            assert_eq!(r.next_deadline(), deadline);
++            assert!(r.k.ops().is_empty(), "peer={peer}: {:?}", r.k.ops());
++        }
++    }
++
++    /// spec: T21, T22, T27, V5, G4, M17
++    #[test]
++    fn a_pending_hostname_clears_the_previous_literal_zone_without_replacing_its_socket() {
++        let mut kernel = FakeKernel::new(42);
++        let zone = kernel.add_link("zone", false);
++        kernel.add_addr(zone, "fe80::1".parse().unwrap());
++        let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
++        let text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nip_version='V6'\nremote_addr='fe80::2%zone'\nbind_interface='zone'\n";
++        assert!(r.reconcile(toml::from_str(text).unwrap()));
++        drain(&mut r);
++        let socket = r.k.tunnel_socket(10).unwrap();
++        assert!(r.k.connection(socket).is_some());
++        assert_eq!(r.tunnels[&10].zone_index, Some(zone));
++        r.k.clear_ops();
++        assert!(
++            r.reconcile(toml::from_str(&text.replace("fe80::2%zone", "pending.example")).unwrap())
++        );
++        drain(&mut r);
++        assert_eq!(r.k.tunnel_socket(10), Some(socket));
++        assert_eq!(r.k.connection(socket), None);
++        assert_eq!(r.k.binding(socket), Some(zone));
++        assert_eq!(r.tunnels[&10].zone_index, None);
++        assert!(matches!(r.target(10).unwrap(),
++            crate::reconciler::ladder::Target::Disconnect { bind: Some(index), pending: None, why: None }
++                if index == zone
++        ));
++        assert_eq!(
++            r.k.ops()
++                .iter()
++                .filter(|op| op.starts_with("disconnect "))
++                .count(),
++            1
++        );
++        assert!(!r.k.ops().iter().any(|op| op.starts_with("close ")
++            || op.starts_with("open ")
++            || op.starts_with("connect ")));
++    }
++
+     /// spec: T21, T27, E4, G4, G17
+     #[test]
+     fn a_literal_link_local_zone_connects_without_a_configured_bind_device() {
+diff --git a/tests/process.rs b/tests/process.rs
+index 76f61b4..fb9ad3f 100644
+--- a/tests/process.rs
++++ b/tests/process.rs
+@@ -111,6 +111,20 @@ impl Process {
+             }
+         }
+     }
++    fn remaining_logs(&self) -> Vec<String> {
++        let deadline = Instant::now() + Duration::from_secs(5);
++        let mut lines = vec![];
++        loop {
++            match self
++                .logs
++                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
++            {
++                Ok(line) => lines.push(line),
++                Err(mpsc::RecvTimeoutError::Disconnected) => return lines,
++                Err(error) => panic!("daemon stderr did not close: {error}"),
++            }
++        }
++    }
+     fn signal(&self, signal: Signal) {
+         kill(Pid::from_raw(self.pid), signal).unwrap();
+     }
+@@ -1699,3 +1713,90 @@ fn kernel_startup_recovers_after_its_descriptor_limit_is_restored() {
+     process.event("ready");
+     process.stop();
+ }
++
++/// spec: P4, P14, P16, P19, O1
++#[test]
++fn failed_startup_withdraws_an_inherited_socket_through_a_live_store() {
++    let dir = Dir::new();
++    let main = config(&dir);
++    let manager = Manager::new(&dir);
++    let file = fs::File::open("/dev/null").unwrap();
++    manager
++        .stored
++        .lock()
++        .unwrap()
++        .insert("t10".into(), vec![file.try_clone().unwrap().into()]);
++    let raw = file.as_raw_fd();
++    let mut command = launcher(&main);
++    command.env("PROCESS_LAUNCH_NOTIFY", &manager.path);
++    unsafe {
++        command.pre_exec(move || {
++            if libc::dup2(raw, 3) < 0 || libc::fcntl(3, libc::F_SETFD, 0) < 0 {
++                return Err(io::Error::last_os_error());
++            }
++            deny_netlink()
++        });
++    }
++    let mut process = Process::spawn(command);
++    process.event("opening kernel interfaces:");
++    assert_eq!(manager.stored.lock().unwrap()["t10"].len(), 1);
++    process.signal(Signal::SIGTERM);
++    manager.event("FDSTOREREMOVE=1\nFDNAME=t10");
++    manager.event("BARRIER=1");
++    let lines = process.remaining_logs();
++    assert!(
++        lines
++            .iter()
++            .any(|line| line.contains("cannot confirm inherited tunnel absence")),
++        "{lines:?}"
++    );
++    assert_eq!(process.child.wait().unwrap().code(), Some(1));
++    process.done = true;
++    assert!(manager.stored.lock().unwrap().is_empty());
++    assert!(!dir.path().join("pid").exists());
++    for line in lines {
++        assert!(!line.contains("startup withdrawal"), "{line}");
++        assert!(!line.contains(": ready"), "{line}");
++        assert!(!line.contains("panicked"), "{line}");
++    }
++}
++
++/// spec: R49, P23, G1
++#[test]
++#[ignore = "isolated privileged container with L2TP modules"]
++fn capget_failure_is_reported_once_and_does_not_block_empty_readiness() {
++    namespace();
++    let dir = Dir::new();
++    let main = dir.path().join("main");
++    fs::write(&main, "[host]\nfix_bindv6only=false\n").unwrap();
++    let mut command = start(&main, true, &dir.path().join("pid"));
++    unsafe {
++        command.pre_exec(syscall_fault::on_exec(&[libc::SYS_capget], libc::EIO));
++    }
++    let mut process = Process::spawn(command);
++    let report = process.event("capget:");
++    assert!(
++        report.contains(&io::Error::from_raw_os_error(libc::EIO).to_string()),
++        "{report}"
++    );
++    loop {
++        let line = process.logs.recv_timeout(Duration::from_secs(5)).unwrap();
++        assert!(!line.contains("capget:"), "repeated report: {line}");
++        assert!(!line.contains("panicked"), "{line}");
++        if line.contains(": ready") {
++            break;
++        }
++    }
++    process.signal(Signal::SIGTERM);
++    let lines = process.remaining_logs();
++    assert!(
++        lines.iter().any(|line| line.contains("shutdown complete")),
++        "{lines:?}"
++    );
++    assert!(process.child.wait().unwrap().success());
++    process.done = true;
++    for line in lines {
++        assert!(!line.contains("capget:"), "repeated report: {line}");
++        assert!(!line.contains("panicked"), "{line}");
++    }
++}

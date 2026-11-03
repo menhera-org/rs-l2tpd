@@ -1,0 +1,17 @@
+
+running 1 test
+test reconciler::events::resource_tests::a_pending_hostname_clears_the_previous_literal_zone_without_replacing_its_socket ... 
+thread 'reconciler::events::resource_tests::a_pending_hostname_clears_the_previous_literal_zone_without_replacing_its_socket' (7) panicked at src/reconciler/events.rs:1344:9:
+assertion `left == right` failed
+  left: Some(1)
+ right: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    reconciler::events::resource_tests::a_pending_hostname_clears_the_previous_literal_zone_without_replacing_its_socket
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 339 filtered out; finished in 0.00s
+

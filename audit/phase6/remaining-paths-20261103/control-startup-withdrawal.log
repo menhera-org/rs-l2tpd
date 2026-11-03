@@ -1,0 +1,17 @@
+
+running 1 test
+test failed_startup_withdraws_an_inherited_socket_through_a_live_store ... daemon: ERROR rs_l2tpd: opening kernel interfaces: EPERM: Operation not permitted (os error 1); retrying
+daemon: ERROR rs_l2tpd: kernel unavailable; cannot confirm inherited tunnel absence
+
+thread 'failed_startup_withdraws_an_inherited_socket_through_a_live_store' (7) panicked at tests/process.rs:595:18:
+called `Result::unwrap()` on an `Err` value: Timeout
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    failed_startup_withdraws_an_inherited_socket_through_a_live_store
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 36 filtered out; finished in 10.01s
+

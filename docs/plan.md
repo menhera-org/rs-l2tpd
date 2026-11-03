@@ -515,10 +515,17 @@ archive, both builds, source comparison and required live profiles now pass.
 The completed 2d5ae45 run retains the previous
 7.3 snapshot.
 
-The scoped-inventory batch covers **99.31% of lines and 97.39% of branch
-outcomes**: 8,645/8,705 lines and 1,792/1,840 outcomes, leaving
-**60 lines and 48 outcomes**. All 5,889 exported mappings match the preceding
-test-only snapshot, allowing its profile reuse. No production code is excluded. Shared checks, repeated GNU/musl models and task-limit
+The remaining-path batch covers **99.35% of lines and 97.77% of branch
+outcomes**: 8,648/8,705 lines and 1,799/1,840 outcomes, leaving
+**57 lines and 41 outcomes**. All 4,389 production-source mappings match
+the preceding collector; only integration-test locations and mappings
+change. No production code is excluded. Three repeated GNU/musl process
+and live collections, ten final instrumented library suites, five focused
+kernel profiles and seven further fault controls pass. An instrumented
+Ubuntu 7.0 guest now exercises rejection of a foreign-tunnel session reply.
+Repository record `audit/phase6/remaining-paths-20261103/README.md` also
+documents LLVM's summary/merged-source discrepancy without changing P4.
+The preceding checks, repeated GNU/musl models and task-limit
 cases, GNU Incus, manager checks and the unmodified root sandbox pass.
 Direct container limits now exercise both fork failures. Required normal
 and boot profiles pass, as does a serial clock replay; failed parallel

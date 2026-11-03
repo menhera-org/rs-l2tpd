@@ -44,6 +44,14 @@ capture release and the focused VRF/zone cases. Repository record
 `audit/phase6/scoped-inventory-events-20261102/README.md` retains every
 profile. These focused runs do not replace the full normal/clock matrix.
 
+The November 3 batch passes another focused profile on each required
+kernel: ordered reader faults, direct/member bindings, duplicate source
+removal, a literal-to-hostname reload and startup/capget failures.
+Three instrumented GNU repetitions on Ubuntu 7.0 cover the foreign-session
+reply guard; a faulty guard fails there. Repository record
+`audit/phase6/remaining-paths-20261103/README.md` retains these results.
+The November 3 publication recheck selects the same five kernels.
+
 The 2026-11-02 publication recheck still selects **mainline 7.4-rc1**.
 Its source comparison, both builds and all thirteen required profiles pass
 on frozen Rust/test source 455eef7. Initial/final publication selections
@@ -54,7 +62,7 @@ historical evidence. Repository record
 `audit/phase6/mainline-rc-qualification-20261102/README.md` retains source/build evidence.
 
 This page records the behavior relevant to rs-l2tpd for **each required
-kernel**, resolved again on 2026-11-02. The specification defines the contract;
+kernel**, resolved again on 2026-11-03. The specification defines the contract;
 this page distinguishes observations, source evidence and remaining tests.
 The completed 455eef7 matrix passes all five current normal and clock profiles,
 including H20 fragmentation and both 300-entry daemons. It also passes both

@@ -1,0 +1,1673 @@
+{
+  "totals": {
+    "branches": {
+      "count": 1840,
+      "covered": 1799,
+      "notcovered": 41,
+      "percent": 97.77173913043478
+    },
+    "functions": {
+      "count": 1191,
+      "covered": 1183,
+      "percent": 99.32829554995803
+    },
+    "instantiations": {
+      "count": 4389,
+      "covered": 3146,
+      "percent": 71.67919799498746
+    },
+    "lines": {
+      "count": 8705,
+      "covered": 8648,
+      "percent": 99.34520390580124
+    },
+    "mcdc": {
+      "count": 0,
+      "covered": 0,
+      "notcovered": 0,
+      "percent": 0
+    },
+    "regions": {
+      "count": 9560,
+      "covered": 9349,
+      "notcovered": 211,
+      "percent": 97.79288702928869
+    }
+  },
+  "files": [
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/args.rs",
+      "summary": {
+        "branches": {
+          "count": 8,
+          "covered": 8,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 3,
+          "covered": 3,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 15,
+          "covered": 13,
+          "percent": 86.66666666666667
+        },
+        "lines": {
+          "count": 41,
+          "covered": 41,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 40,
+          "covered": 40,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/caps.rs",
+      "summary": {
+        "branches": {
+          "count": 4,
+          "covered": 4,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 2,
+          "covered": 2,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 4,
+          "covered": 4,
+          "percent": 100.0
+        },
+        "lines": {
+          "count": 35,
+          "covered": 35,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 28,
+          "covered": 28,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/check.rs",
+      "summary": {
+        "branches": {
+          "count": 4,
+          "covered": 4,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 4,
+          "covered": 4,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 8,
+          "covered": 6,
+          "percent": 75.0
+        },
+        "lines": {
+          "count": 24,
+          "covered": 24,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 26,
+          "covered": 26,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/daemon.rs",
+      "summary": {
+        "branches": {
+          "count": 34,
+          "covered": 30,
+          "notcovered": 4,
+          "percent": 88.23529411764706
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 5,
+          "covered": 5,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 10,
+          "covered": 9,
+          "percent": 90.0
+        },
+        "lines": {
+          "count": 99,
+          "covered": 97,
+          "percent": 97.97979797979798
+        },
+        "regions": {
+          "count": 116,
+          "covered": 111,
+          "notcovered": 5,
+          "percent": 95.6896551724138
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/fdstore.rs",
+      "summary": {
+        "branches": {
+          "count": 52,
+          "covered": 52,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 17,
+          "covered": 17,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 34,
+          "covered": 32,
+          "percent": 94.11764705882352
+        },
+        "lines": {
+          "count": 178,
+          "covered": 178,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 209,
+          "covered": 206,
+          "notcovered": 3,
+          "percent": 98.56459330143541
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/files.rs",
+      "summary": {
+        "branches": {
+          "count": 32,
+          "covered": 30,
+          "notcovered": 2,
+          "percent": 93.75
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 16,
+          "covered": 15,
+          "percent": 93.75
+        },
+        "instantiations": {
+          "count": 32,
+          "covered": 27,
+          "percent": 84.375
+        },
+        "lines": {
+          "count": 128,
+          "covered": 127,
+          "percent": 99.21875
+        },
+        "regions": {
+          "count": 146,
+          "covered": 142,
+          "notcovered": 4,
+          "percent": 97.26027397260275
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/logger.rs",
+      "summary": {
+        "branches": {
+          "count": 4,
+          "covered": 4,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 4,
+          "covered": 4,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 8,
+          "covered": 7,
+          "percent": 87.5
+        },
+        "lines": {
+          "count": 23,
+          "covered": 23,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 23,
+          "covered": 23,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/main.rs",
+      "summary": {
+        "branches": {
+          "count": 48,
+          "covered": 46,
+          "notcovered": 2,
+          "percent": 95.83333333333334
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 12,
+          "covered": 12,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 24,
+          "covered": 16,
+          "percent": 66.66666666666666
+        },
+        "lines": {
+          "count": 189,
+          "covered": 188,
+          "percent": 99.47089947089947
+        },
+        "regions": {
+          "count": 237,
+          "covered": 230,
+          "notcovered": 7,
+          "percent": 97.0464135021097
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/pidfile.rs",
+      "summary": {
+        "branches": {
+          "count": 74,
+          "covered": 74,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 12,
+          "covered": 12,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 24,
+          "covered": 20,
+          "percent": 83.33333333333334
+        },
+        "lines": {
+          "count": 217,
+          "covered": 217,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 239,
+          "covered": 228,
+          "notcovered": 11,
+          "percent": 95.39748953974896
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/restart.rs",
+      "summary": {
+        "branches": {
+          "count": 66,
+          "covered": 61,
+          "notcovered": 5,
+          "percent": 92.42424242424242
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 26,
+          "covered": 25,
+          "percent": 96.15384615384616
+        },
+        "instantiations": {
+          "count": 52,
+          "covered": 39,
+          "percent": 75.0
+        },
+        "lines": {
+          "count": 225,
+          "covered": 214,
+          "percent": 95.11111111111111
+        },
+        "regions": {
+          "count": 248,
+          "covered": 235,
+          "notcovered": 13,
+          "percent": 94.75806451612904
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/setup.rs",
+      "summary": {
+        "branches": {
+          "count": 38,
+          "covered": 38,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 13,
+          "covered": 12,
+          "percent": 92.3076923076923
+        },
+        "instantiations": {
+          "count": 26,
+          "covered": 20,
+          "percent": 76.92307692307693
+        },
+        "lines": {
+          "count": 117,
+          "covered": 116,
+          "percent": 99.14529914529915
+        },
+        "regions": {
+          "count": 169,
+          "covered": 155,
+          "notcovered": 14,
+          "percent": 91.71597633136095
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/signals.rs",
+      "summary": {
+        "branches": {
+          "count": 48,
+          "covered": 46,
+          "notcovered": 2,
+          "percent": 95.83333333333334
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 15,
+          "covered": 15,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 30,
+          "covered": 28,
+          "percent": 93.33333333333333
+        },
+        "lines": {
+          "count": 162,
+          "covered": 160,
+          "percent": 98.76543209876544
+        },
+        "regions": {
+          "count": 171,
+          "covered": 168,
+          "notcovered": 3,
+          "percent": 98.24561403508771
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/bin/rs-l2tpd/tunable.rs",
+      "summary": {
+        "branches": {
+          "count": 8,
+          "covered": 7,
+          "notcovered": 1,
+          "percent": 87.5
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 2,
+          "covered": 2,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 4,
+          "covered": 4,
+          "percent": 100.0
+        },
+        "lines": {
+          "count": 15,
+          "covered": 14,
+          "percent": 93.33333333333333
+        },
+        "regions": {
+          "count": 21,
+          "covered": 19,
+          "notcovered": 2,
+          "percent": 90.47619047619048
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/blocking.rs",
+      "summary": {
+        "branches": {
+          "count": 4,
+          "covered": 4,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 19,
+          "covered": 19,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 184,
+          "covered": 119,
+          "percent": 64.67391304347827
+        },
+        "lines": {
+          "count": 110,
+          "covered": 107,
+          "percent": 97.27272727272728
+        },
+        "regions": {
+          "count": 110,
+          "covered": 107,
+          "notcovered": 3,
+          "percent": 97.27272727272728
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/config/mod.rs",
+      "summary": {
+        "branches": {
+          "count": 60,
+          "covered": 60,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 101,
+          "covered": 101,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 223,
+          "covered": 197,
+          "percent": 88.34080717488789
+        },
+        "lines": {
+          "count": 575,
+          "covered": 575,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 552,
+          "covered": 552,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/config/partial.rs",
+      "summary": {
+        "branches": {
+          "count": 40,
+          "covered": 40,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 69,
+          "covered": 69,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 166,
+          "covered": 150,
+          "percent": 90.36144578313254
+        },
+        "lines": {
+          "count": 433,
+          "covered": 432,
+          "percent": 99.76905311778292
+        },
+        "regions": {
+          "count": 503,
+          "covered": 501,
+          "notcovered": 2,
+          "percent": 99.60238568588468
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/config/serde.rs",
+      "summary": {
+        "branches": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 4,
+          "covered": 4,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 27,
+          "covered": 14,
+          "percent": 51.85185185185185
+        },
+        "lines": {
+          "count": 13,
+          "covered": 13,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 17,
+          "covered": 15,
+          "notcovered": 2,
+          "percent": 88.23529411764706
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/config/text.rs",
+      "summary": {
+        "branches": {
+          "count": 40,
+          "covered": 40,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 39,
+          "covered": 39,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 78,
+          "covered": 71,
+          "percent": 91.02564102564102
+        },
+        "lines": {
+          "count": 151,
+          "covered": 151,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 168,
+          "covered": 168,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/error.rs",
+      "summary": {
+        "branches": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 3,
+          "covered": 3,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 6,
+          "covered": 5,
+          "percent": 83.33333333333334
+        },
+        "lines": {
+          "count": 18,
+          "covered": 18,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 23,
+          "covered": 23,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/kernel/fake.rs",
+      "summary": {
+        "branches": {
+          "count": 146,
+          "covered": 146,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 154,
+          "covered": 154,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 320,
+          "covered": 305,
+          "percent": 95.3125
+        },
+        "lines": {
+          "count": 846,
+          "covered": 846,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 913,
+          "covered": 898,
+          "notcovered": 15,
+          "percent": 98.35706462212487
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/kernel/linux/bpf.rs",
+      "summary": {
+        "branches": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 2,
+          "covered": 2,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 4,
+          "covered": 4,
+          "percent": 100.0
+        },
+        "lines": {
+          "count": 5,
+          "covered": 5,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 8,
+          "covered": 8,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs",
+      "summary": {
+        "branches": {
+          "count": 20,
+          "covered": 20,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 44,
+          "covered": 41,
+          "percent": 93.18181818181817
+        },
+        "instantiations": {
+          "count": 94,
+          "covered": 82,
+          "percent": 87.2340425531915
+        },
+        "lines": {
+          "count": 295,
+          "covered": 291,
+          "percent": 98.64406779661017
+        },
+        "regions": {
+          "count": 314,
+          "covered": 295,
+          "notcovered": 19,
+          "percent": 93.94904458598727
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs",
+      "summary": {
+        "branches": {
+          "count": 62,
+          "covered": 62,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 16,
+          "covered": 16,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 32,
+          "covered": 30,
+          "percent": 93.75
+        },
+        "lines": {
+          "count": 244,
+          "covered": 243,
+          "percent": 99.59016393442623
+        },
+        "regions": {
+          "count": 259,
+          "covered": 256,
+          "notcovered": 3,
+          "percent": 98.84169884169884
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/kernel/linux/mod.rs",
+      "summary": {
+        "branches": {
+          "count": 4,
+          "covered": 4,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 36,
+          "covered": 36,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 72,
+          "covered": 72,
+          "percent": 100.0
+        },
+        "lines": {
+          "count": 147,
+          "covered": 147,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 169,
+          "covered": 162,
+          "notcovered": 7,
+          "percent": 95.85798816568047
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/kernel/linux/monitor.rs",
+      "summary": {
+        "branches": {
+          "count": 18,
+          "covered": 18,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 8,
+          "covered": 8,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 16,
+          "covered": 16,
+          "percent": 100.0
+        },
+        "lines": {
+          "count": 94,
+          "covered": 94,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 105,
+          "covered": 100,
+          "notcovered": 5,
+          "percent": 95.23809523809523
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/kernel/linux/request.rs",
+      "summary": {
+        "branches": {
+          "count": 34,
+          "covered": 34,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 20,
+          "covered": 20,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 68,
+          "covered": 64,
+          "percent": 94.11764705882352
+        },
+        "lines": {
+          "count": 158,
+          "covered": 158,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 195,
+          "covered": 187,
+          "notcovered": 8,
+          "percent": 95.8974358974359
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/kernel/linux/rtnl.rs",
+      "summary": {
+        "branches": {
+          "count": 20,
+          "covered": 20,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 31,
+          "covered": 30,
+          "percent": 96.7741935483871
+        },
+        "instantiations": {
+          "count": 62,
+          "covered": 57,
+          "percent": 91.93548387096774
+        },
+        "lines": {
+          "count": 180,
+          "covered": 179,
+          "percent": 99.44444444444444
+        },
+        "regions": {
+          "count": 244,
+          "covered": 227,
+          "notcovered": 17,
+          "percent": 93.0327868852459
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/kernel/linux/socket.rs",
+      "summary": {
+        "branches": {
+          "count": 12,
+          "covered": 12,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 13,
+          "covered": 13,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 26,
+          "covered": 25,
+          "percent": 96.15384615384616
+        },
+        "lines": {
+          "count": 103,
+          "covered": 103,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 114,
+          "covered": 111,
+          "notcovered": 3,
+          "percent": 97.36842105263156
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/kernel/mod.rs",
+      "summary": {
+        "branches": {
+          "count": 2,
+          "covered": 2,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 57,
+          "covered": 57,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 126,
+          "covered": 122,
+          "percent": 96.82539682539682
+        },
+        "lines": {
+          "count": 224,
+          "covered": 224,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 203,
+          "covered": 201,
+          "notcovered": 2,
+          "percent": 99.01477832512316
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/deadlines.rs",
+      "summary": {
+        "branches": {
+          "count": 2,
+          "covered": 2,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 7,
+          "covered": 7,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 46,
+          "covered": 46,
+          "percent": 100.0
+        },
+        "lines": {
+          "count": 25,
+          "covered": 25,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 30,
+          "covered": 30,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/events.rs",
+      "summary": {
+        "branches": {
+          "count": 214,
+          "covered": 212,
+          "notcovered": 2,
+          "percent": 99.06542056074767
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 57,
+          "covered": 56,
+          "percent": 98.24561403508771
+        },
+        "instantiations": {
+          "count": 398,
+          "covered": 215,
+          "percent": 54.020100502512555
+        },
+        "lines": {
+          "count": 534,
+          "covered": 533,
+          "percent": 99.812734082397
+        },
+        "regions": {
+          "count": 567,
+          "covered": 565,
+          "notcovered": 2,
+          "percent": 99.64726631393297
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/ladder.rs",
+      "summary": {
+        "branches": {
+          "count": 18,
+          "covered": 17,
+          "notcovered": 1,
+          "percent": 94.44444444444444
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 8,
+          "covered": 8,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 56,
+          "covered": 29,
+          "percent": 51.785714285714285
+        },
+        "lines": {
+          "count": 61,
+          "covered": 61,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 58,
+          "covered": 56,
+          "notcovered": 2,
+          "percent": 96.55172413793105
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/mod.rs",
+      "summary": {
+        "branches": {
+          "count": 66,
+          "covered": 66,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 41,
+          "covered": 41,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 279,
+          "covered": 178,
+          "percent": 63.799283154121866
+        },
+        "lines": {
+          "count": 339,
+          "covered": 339,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 357,
+          "covered": 354,
+          "notcovered": 3,
+          "percent": 99.15966386554622
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/records.rs",
+      "summary": {
+        "branches": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 2,
+          "covered": 2,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 4,
+          "covered": 4,
+          "percent": 100.0
+        },
+        "lines": {
+          "count": 8,
+          "covered": 8,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 9,
+          "covered": 9,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/report.rs",
+      "summary": {
+        "branches": {
+          "count": 6,
+          "covered": 6,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 11,
+          "covered": 11,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 205,
+          "covered": 105,
+          "percent": 51.21951219512195
+        },
+        "lines": {
+          "count": 55,
+          "covered": 55,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 67,
+          "covered": 67,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/resolvers.rs",
+      "summary": {
+        "branches": {
+          "count": 124,
+          "covered": 122,
+          "notcovered": 2,
+          "percent": 98.38709677419355
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 73,
+          "covered": 73,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 299,
+          "covered": 176,
+          "percent": 58.862876254180605
+        },
+        "lines": {
+          "count": 517,
+          "covered": 515,
+          "percent": 99.61315280464217
+        },
+        "regions": {
+          "count": 565,
+          "covered": 556,
+          "notcovered": 9,
+          "percent": 98.4070796460177
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/sessions.rs",
+      "summary": {
+        "branches": {
+          "count": 152,
+          "covered": 147,
+          "notcovered": 5,
+          "percent": 96.71052631578947
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 44,
+          "covered": 44,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 308,
+          "covered": 183,
+          "percent": 59.41558441558442
+        },
+        "lines": {
+          "count": 491,
+          "covered": 481,
+          "percent": 97.9633401221996
+        },
+        "regions": {
+          "count": 592,
+          "covered": 575,
+          "notcovered": 17,
+          "percent": 97.12837837837837
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/store.rs",
+      "summary": {
+        "branches": {
+          "count": 80,
+          "covered": 79,
+          "notcovered": 1,
+          "percent": 98.75
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 30,
+          "covered": 30,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 186,
+          "covered": 115,
+          "percent": 61.82795698924731
+        },
+        "lines": {
+          "count": 257,
+          "covered": 257,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 286,
+          "covered": 286,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/timers.rs",
+      "summary": {
+        "branches": {
+          "count": 28,
+          "covered": 28,
+          "notcovered": 0,
+          "percent": 100.0
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 9,
+          "covered": 9,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 63,
+          "covered": 37,
+          "percent": 58.730158730158735
+        },
+        "lines": {
+          "count": 74,
+          "covered": 74,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 79,
+          "covered": 79,
+          "notcovered": 0,
+          "percent": 100.0
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/tunnels.rs",
+      "summary": {
+        "branches": {
+          "count": 92,
+          "covered": 90,
+          "notcovered": 2,
+          "percent": 97.82608695652173
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 47,
+          "covered": 47,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 315,
+          "covered": 173,
+          "percent": 54.920634920634924
+        },
+        "lines": {
+          "count": 437,
+          "covered": 436,
+          "percent": 99.77116704805492
+        },
+        "regions": {
+          "count": 533,
+          "covered": 526,
+          "notcovered": 7,
+          "percent": 98.68667917448404
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/reconciler/workers.rs",
+      "summary": {
+        "branches": {
+          "count": 24,
+          "covered": 23,
+          "notcovered": 1,
+          "percent": 95.83333333333334
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 27,
+          "covered": 27,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 54,
+          "covered": 53,
+          "percent": 98.14814814814817
+        },
+        "lines": {
+          "count": 164,
+          "covered": 164,
+          "percent": 100.0
+        },
+        "regions": {
+          "count": 175,
+          "covered": 173,
+          "notcovered": 2,
+          "percent": 98.85714285714286
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/runtime.rs",
+      "summary": {
+        "branches": {
+          "count": 58,
+          "covered": 55,
+          "notcovered": 3,
+          "percent": 94.82758620689656
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 61,
+          "covered": 61,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 241,
+          "covered": 177,
+          "percent": 73.44398340248964
+        },
+        "lines": {
+          "count": 372,
+          "covered": 370,
+          "percent": 99.46236559139786
+        },
+        "regions": {
+          "count": 365,
+          "covered": 361,
+          "notcovered": 4,
+          "percent": 98.9041095890411
+        }
+      }
+    },
+    {
+      "filename": "/home/dev/rs-l2tpd/src/service.rs",
+      "summary": {
+        "branches": {
+          "count": 94,
+          "covered": 86,
+          "notcovered": 8,
+          "percent": 91.48936170212765
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0.0
+        },
+        "functions": {
+          "count": 27,
+          "covered": 27,
+          "percent": 100.0
+        },
+        "instantiations": {
+          "count": 160,
+          "covered": 97,
+          "percent": 60.62499999999999
+        },
+        "lines": {
+          "count": 322,
+          "covered": 310,
+          "percent": 96.27329192546584
+        },
+        "regions": {
+          "count": 307,
+          "covered": 290,
+          "notcovered": 17,
+          "percent": 94.46254071661238
+        }
+      }
+    }
+  ]
+}

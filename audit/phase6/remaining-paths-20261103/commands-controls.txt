@@ -1,0 +1,62 @@
+set -eu
+root=$PWD
+record=$root/audit/phase6/remaining-paths-20261103
+candidate=$(cat /tmp/phase6-resolver-validation-path)
+cp -Rp "$root/src/." "$candidate/src/"
+cp -Rp "$root/tests/." "$candidate/tests/"
+cp "$root/Cargo.toml" "$root/Cargo.lock" "$root/build.rs" "$candidate/"
+cd "$candidate"
+export CARGO_BUILD_JOBS=2
+git --no-pager rev-parse HEAD > "$record/control-base-revision"
+git --no-pager diff -- src tests Cargo.toml Cargo.lock build.rs > "$record/control-source-before.patch"
+restore() {
+ cp "$root/src/bin/rs-l2tpd/main.rs" src/bin/rs-l2tpd/main.rs
+ cp "$root/src/bin/rs-l2tpd/caps.rs" src/bin/rs-l2tpd/caps.rs
+ cp "$root/src/kernel/linux/lifetime.rs" src/kernel/linux/lifetime.rs
+ cp "$root/src/kernel/linux/l2tp.rs" src/kernel/linux/l2tp.rs
+}
+trap restore 0
+
+/tmp/phase6-replace src/bin/rs-l2tpd/main.rs < "$record/control-startup-withdrawal.txt"
+git --no-pager diff -- src/bin/rs-l2tpd/main.rs > "$record/control-startup-withdrawal.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --test process --no-run > "$record/control-startup-withdrawal-build.log" 2>&1
+process=$(awk -v label='Executable tests/process.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-startup-withdrawal-build.log")
+[ -x "$process" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$process" nd-test:u2404 --exact failed_startup_withdraws_an_inherited_socket_through_a_live_store --test-threads=1 --nocapture > "$record/control-startup-withdrawal.log" 2>&1 || result=$?
+restore
+[ "$result" != 0 ] && grep -q 'panicked' "$record/control-startup-withdrawal.log"
+printf 'REMAINING_NEGATIVE_CONTROL=startup-withdrawal REJECTED\n'
+
+/tmp/phase6-replace src/bin/rs-l2tpd/caps.rs < "$record/control-capget-error.txt"
+git --no-pager diff -- src/bin/rs-l2tpd/caps.rs > "$record/control-capget-error.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --test process --no-run > "$record/control-capget-error-build.log" 2>&1
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$process" nd-test:u2404 --ignored --exact capget_failure_is_reported_once_and_does_not_block_empty_readiness --test-threads=1 --nocapture > "$record/control-capget-error.log" 2>&1 || result=$?
+restore
+[ "$result" != 0 ] && grep -q 'panicked' "$record/control-capget-error.log"
+printf 'REMAINING_NEGATIVE_CONTROL=capget-error REJECTED\n'
+
+/tmp/phase6-replace src/kernel/linux/lifetime.rs < "$record/control-timeout-warning.txt"
+git --no-pager diff -- src/kernel/linux/lifetime.rs > "$record/control-timeout-warning.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-timeout-warning-build.log" 2>&1
+unit=$(awk -v label='Executable unittests src/lib.rs (' '{at=index($0,label);if(at){line=substr($0,at+length(label));sub(/[)]$/, "",line);print line}}' "$record/control-timeout-warning-build.log")
+[ -x "$unit" ]
+result=0
+docker run --rm --privileged --network none -v "$candidate:$candidate:ro" --entrypoint "$candidate/$unit" nd-test:u2404 --ignored --exact kernel::linux::lifetime::tests::reader_and_failed_send_ordering_preserve_the_current_generation --test-threads=1 --nocapture > "$record/control-timeout-warning.log" 2>&1 || result=$?
+restore
+[ "$result" != 0 ] && grep -q 'mode=timeout-reader' "$record/control-timeout-warning.log"
+printf 'REMAINING_NEGATIVE_CONTROL=timeout-warning REJECTED\n'
+
+/tmp/phase6-replace src/kernel/linux/l2tp.rs < "$record/control-foreign-session.txt"
+git --no-pager diff -- src/kernel/linux/l2tp.rs > "$record/control-foreign-session.patch"
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --lib --no-run > "$record/control-foreign-session-build.log" 2>&1
+result=0
+cd "$root"
+sh "$record/run-inventory-guest.sh" "$candidate/$unit" "$root/target/phase6-kernels/ubuntu-resolute-7.0.0-42.42/root" "$record/control-foreign-session-guest" /tmp/phase6-foreign-session-control-profiles > "$record/control-foreign-session.log" 2>&1 || result=$?
+cd "$candidate"
+restore
+[ "$result" != 0 ]
+grep -q 'genl.session(19102, 19201).unwrap().is_none()' "$record/control-foreign-session-guest/run.log"
+grep -q 'test result: FAILED. 0 passed; 1 failed' "$record/control-foreign-session-guest/run.log"
+printf 'REMAINING_NEGATIVE_CONTROL=foreign-session REJECTED\n'

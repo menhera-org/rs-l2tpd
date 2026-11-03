@@ -1,0 +1,51 @@
+    1|       |// Complementary instantiations cover both source arms without covering both per copy.
+    2|       |#[inline(never)]
+    3|      4|fn choose<T>(value: bool) -> usize {
+    4|      4|    if std::hint::black_box(value) {
+  ------------------
+  |  Branch (4:8): [True: 1, False: 1]
+  |  Branch (4:8): [True: 1, False: 1]
+  ------------------
+    5|      2|        std::mem::size_of::<T>()
+    6|       |    } else {
+    7|      2|        0
+    8|       |    }
+    9|      4|}
+  ------------------
+  | _RINvCs25eMgonaDVJ_24coverage_summary_fixture6choosehEB2_:
+  |    3|      2|fn choose<T>(value: bool) -> usize {
+  |    4|      2|    if std::hint::black_box(value) {
+  |  ------------------
+  |  |  Branch (4:8): [True: 1, False: 1]
+  |  ------------------
+  |    5|      1|        std::mem::size_of::<T>()
+  |    6|       |    } else {
+  |    7|      1|        0
+  |    8|       |    }
+  |    9|      2|}
+  ------------------
+  | _RINvCs25eMgonaDVJ_24coverage_summary_fixture6choosetEB2_:
+  |    3|      2|fn choose<T>(value: bool) -> usize {
+  |    4|      2|    if std::hint::black_box(value) {
+  |  ------------------
+  |  |  Branch (4:8): [True: 1, False: 1]
+  |  ------------------
+  |    5|      1|        std::mem::size_of::<T>()
+  |    6|       |    } else {
+  |    7|      1|        0
+  |    8|       |    }
+  |    9|      2|}
+  ------------------
+   10|       |
+   11|      1|fn main() {
+   12|      1|    assert_eq!(choose::<u8>(true), 1);
+   13|      1|    assert_eq!(choose::<u16>(false), 0);
+   14|      2|    if std::env::args().any(|arg| arg == "both") {
+  ------------------
+  |  Branch (14:8): [True: 1, False: 0]
+  ------------------
+   15|      1|        assert_eq!(choose::<u8>(false), 0);
+   16|      1|        assert_eq!(choose::<u16>(true), 2);
+   17|      0|    }
+   18|      1|}
+

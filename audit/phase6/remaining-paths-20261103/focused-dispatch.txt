@@ -1,0 +1,12 @@
+    echo 'scope: ordinary CLI units and selected filesystem-permission cases'
+    run_binary
+===REPLACE===
+    echo 'scope: scoped inventories, lifetime ordering, source and binding models, startup withdrawal and capget failures, CLI units'
+    run_suite /kernel-unit --ignored --exact kernel::linux::l2tp::boundary_tests::filtered_session_inventories_preserve_other_tunnels_and_namespace_ids --nocapture --test-threads=1
+    run_suite /kernel-unit --ignored --exact kernel::linux::lifetime::tests::reader_and_failed_send_ordering_preserve_the_current_generation --nocapture --test-threads=1
+    run_suite /kernel-unit --exact reconciler::events::resource_tests::removing_a_member_distinguishes_direct_and_parent_bindings --nocapture --test-threads=1
+    run_suite /kernel-unit --exact reconciler::events::resource_tests::removing_a_duplicate_source_on_an_unrelated_device_preserves_bound_tunnels --nocapture --test-threads=1
+    run_suite /kernel-unit --exact reconciler::events::resource_tests::a_pending_hostname_clears_the_previous_literal_zone_without_replacing_its_socket --nocapture --test-threads=1
+    run_suite /process-test --exact failed_startup_withdraws_an_inherited_socket_through_a_live_store --nocapture --test-threads=1
+    run_suite /process-test --ignored --exact capget_failure_is_reported_once_and_does_not_block_empty_readiness --nocapture --test-threads=1
+    run_binary

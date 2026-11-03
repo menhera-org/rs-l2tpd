@@ -1,0 +1,3 @@
+record.bind_index == Some(link.index) || record.zone_index == Some(link.index)
+===REPLACE===
+record.zone_index == Some(link.index)

@@ -1,0 +1,9 @@
+set -eu
+# Export both snapshots with the same pinned tool and collector before comparison.
+query='.data[0].functions[]|{name,filenames,regions:[.regions[]|[.[0],.[1],.[2],.[3],.[5],.[6],.[7]]],branches:[.branches[]|[.[0],.[1],.[2],.[3],.[6],.[7],.[8]]]}'
+jq -cS "$query" BASELINE_JSON | LC_ALL=C sort > BEFORE
+jq -cS "$query" CURRENT_JSON | LC_ALL=C sort > AFTER
+jq -cS 'select(any(.filenames[]; startswith("/home/dev/rs-l2tpd/src/")))' BEFORE > PRODUCTION_BEFORE
+jq -cS 'select(any(.filenames[]; startswith("/home/dev/rs-l2tpd/src/")))' AFTER > PRODUCTION_AFTER
+cmp PRODUCTION_BEFORE PRODUCTION_AFTER
+# Both contain 4,389 records. Whole exports differ only in process-test mappings.

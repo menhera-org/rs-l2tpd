@@ -1,0 +1,6 @@
+record.bind_index = bind;
+        record.zone_index = None;
+        record.stale = false;
+===REPLACE===
+record.bind_index = bind;
+        record.stale = false;

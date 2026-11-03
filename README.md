@@ -58,34 +58,26 @@ scenario/Incus repetitions pass. The required matrix also passes all
 thirteen profiles on frozen signed commit `584062d`. Later test-only
 additions retain their separate execution records.
 
-Phase 6 remains open. Released iphost 0.4.4 fixes V12's anonymous Reply
-validation defect. Three live witnesses fail with 0.4.3 and pass with the
-registry release. Local and required-kernel integration checks pass; the
-specification remains unchanged. Strict rule-map/source-link checks have passing CI
-records, including ten-repetition qualification. Unprivileged Incus and
-the root system-unit sandbox have passing local records. The approved MAC
-and dependency-state contracts are applied. Broken `nix` signal wrappers
-use checked `libc` calls under the documented exception. The
-[latest Phase 6 record](audit/PHASE6_VERIFICATION_2026-11-02.md) gives coverage
-and the remaining clause/resource/event-cost proof. The fresh
-[scoped-inventory batch](audit/phase6/scoped-inventory-events-20261102/README.md)
-reaches **99.31% of lines and 97.39% of branch outcomes**, leaving 60 lines
-and 48 outcomes. It adds ordered lifetime races, closed queues, shutdown
-completions and direct tests of both fork failures. GNU/musl repetitions,
-GNU Incus and the unmodified root sandbox pass. Required normal/boot
-profiles and a serial clock replay pass; earlier parallel clock failures
-and rejected QEMU experiments remain documented. Seven faulty controls
-are rejected. Five further focused kernel profiles check filtered inventories,
-creation-timeout capture release and VRF/zone events.
-[Required-kernel behavior](docs/kernel-behavior.md) records each target's
-differences, source evidence and limitations. The checked reply decoder passes
-all thirteen profiles of the current required set, including 7.4-rc1.
-Fresh buffer-force guests also give the request adapter complete line and
-branch coverage. The global gates remain open. The November 2 publication recheck retains
-mainline 7.4-rc1. Its source comparison, both builds and all required profiles
-pass. The earlier frozen 455eef7 matrix has matching publication selections
-and empty source patches; the new batch records its production changes.
-The known-gap tables describe historical commit `741117b`.
+Phase 6 remains open. The [latest verification record](audit/PHASE6_VERIFICATION_2026-11-03.md)
+reports **99.35% production-line coverage and 97.77% branch-outcome
+coverage**, leaving 57 lines and 41 outcomes. Complete clause/resource/
+event-cost proof and the 100% gate still require work.
+
+The [latest batch](audit/phase6/remaining-paths-20261103/README.md) checks
+startup withdrawal, capget failure, reader timeouts and source/binding
+changes. Repeated GNU/musl suites, five focused kernel profiles and seven
+fault controls pass. An instrumented Ubuntu 7.0 guest checks rejection of
+a foreign-tunnel session reply. These focused profiles supplement the
+earlier full normal/boot matrix and serial clock replay; retained parallel
+clock failures remain unresolved.
+
+Strict rule/source maps, unprivileged Incus and the unmodified root
+systemd sandbox have passing records with their execution scope stated.
+Released iphost 0.4.4 supplies the tested anonymous DHCPv6 Reply fix.
+[Required-kernel behavior](docs/kernel-behavior.md) documents each target's
+differences and limits. The November 3 publication recheck retains Ubuntu
+6.8.0-147.147 and 7.0.0-42.42, vanilla 6.8.12 and 7.0.14, and mainline
+7.4-rc1. The known-gap tables describe historical commit `741117b`.
 
 ## Quick start
 

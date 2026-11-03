@@ -1237,6 +1237,127 @@ mod resource_tests {
         }
     }
 
+    /// spec: E3, E4, T10, T13, G12, G17, M16
+    #[test]
+    fn removing_a_member_distinguishes_direct_and_parent_bindings() {
+        let mut kernel = FakeKernel::new(42);
+        let parent = kernel.add_link("red", true);
+        let member = kernel.add_link("member", false);
+        kernel.set_master(member, Some(parent));
+        kernel.add_addr(member, "192.0.2.1".parse().unwrap());
+        let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
+        let text = "[host]\nfix_bindv6only=false\n[tunnels.parent]\ntunnel_id=10\nremote_addr='192.0.2.2'\nbind_interface='red'\n[tunnels.member]\ntunnel_id=11\nremote_addr='192.0.2.3'\nbind_interface='member'\n";
+        assert!(r.reconcile(toml::from_str(text).unwrap()));
+        drain(&mut r);
+        let sockets = [
+            r.k.tunnel_socket(10).unwrap(),
+            r.k.tunnel_socket(11).unwrap(),
+        ];
+        assert!(
+            sockets
+                .iter()
+                .all(|socket| r.k.connection(*socket).is_some())
+        );
+        r.k.clear_ops();
+        r.k.remove_link(member);
+        drain(&mut r);
+        for (tid, socket, attempts) in [(10, sockets[0], 1), (11, sockets[1], 0)] {
+            assert_eq!(r.k.tunnel_socket(tid), Some(socket));
+            assert_eq!(r.k.connection(socket), None);
+            assert_eq!(
+                r.k.ops()
+                    .iter()
+                    .filter(|op| op.starts_with(&format!("connect {} ", socket.0)))
+                    .count(),
+                attempts,
+                "{:?}",
+                r.k.ops()
+            );
+        }
+        assert_eq!(r.k.binding(sockets[0]), Some(parent));
+        assert_eq!(r.k.binding(sockets[1]), None);
+        assert!(!r.masters.contains_key(&member));
+        assert!(!r.address_devices.contains(&member));
+        assert!(!r.k.ops().iter().any(|op| op.starts_with("close ")));
+    }
+
+    /// spec: E6, E7, T10, T28, G12, M16
+    #[test]
+    fn removing_a_duplicate_source_on_an_unrelated_device_preserves_bound_tunnels() {
+        for (source, peer, zone) in [
+            ("192.0.2.1", "192.0.2.2", false),
+            ("2001:db8::1", "2001:db8::2", false),
+            ("fe80::1", "fe80::2%wanted", true),
+        ] {
+            let source: IpAddr = source.parse().unwrap();
+            let mut kernel = FakeKernel::new(42);
+            let wanted = kernel.add_link("wanted", false);
+            let unrelated = kernel.add_link("unrelated", false);
+            kernel.add_addr(wanted, source);
+            kernel.add_addr(unrelated, source);
+            let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
+            let binding = if zone {
+                ""
+            } else {
+                "bind_interface='wanted'\n"
+            };
+            let text = format!(
+                "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nremote_addr='{peer}'\n{binding}"
+            );
+            assert!(r.reconcile(toml::from_str(&text).unwrap()));
+            drain(&mut r);
+            let socket = r.k.tunnel_socket(10).unwrap();
+            let connection = r.k.connection(socket).unwrap();
+            assert_eq!(connection.1, source);
+            let deadline = r.next_deadline();
+            r.k.clear_ops();
+            r.k.del_addr(unrelated, source);
+            drain(&mut r);
+            assert_eq!(r.k.connection(socket), Some(connection));
+            assert_eq!(r.k.binding(socket), Some(wanted));
+            assert_eq!(r.next_deadline(), deadline);
+            assert!(r.k.ops().is_empty(), "peer={peer}: {:?}", r.k.ops());
+        }
+    }
+
+    /// spec: T21, T22, T27, V5, G4, M17
+    #[test]
+    fn a_pending_hostname_clears_the_previous_literal_zone_without_replacing_its_socket() {
+        let mut kernel = FakeKernel::new(42);
+        let zone = kernel.add_link("zone", false);
+        kernel.add_addr(zone, "fe80::1".parse().unwrap());
+        let mut r = Reconciler::new(kernel, Box::new(Watches::default()));
+        let text = "[host]\nfix_bindv6only=false\n[tunnels.a]\ntunnel_id=10\nip_version='V6'\nremote_addr='fe80::2%zone'\nbind_interface='zone'\n";
+        assert!(r.reconcile(toml::from_str(text).unwrap()));
+        drain(&mut r);
+        let socket = r.k.tunnel_socket(10).unwrap();
+        assert!(r.k.connection(socket).is_some());
+        assert_eq!(r.tunnels[&10].zone_index, Some(zone));
+        r.k.clear_ops();
+        assert!(
+            r.reconcile(toml::from_str(&text.replace("fe80::2%zone", "pending.example")).unwrap())
+        );
+        drain(&mut r);
+        assert_eq!(r.k.tunnel_socket(10), Some(socket));
+        assert_eq!(r.k.connection(socket), None);
+        assert_eq!(r.k.binding(socket), Some(zone));
+        assert_eq!(r.tunnels[&10].zone_index, None);
+        assert!(matches!(r.target(10).unwrap(),
+            crate::reconciler::ladder::Target::Disconnect { bind: Some(index), pending: None, why: None }
+                if index == zone
+        ));
+        assert_eq!(
+            r.k.ops()
+                .iter()
+                .filter(|op| op.starts_with("disconnect "))
+                .count(),
+            1
+        );
+        assert!(!r.k.ops().iter().any(|op| op.starts_with("close ")
+            || op.starts_with("open ")
+            || op.starts_with("connect ")));
+    }
+
     /// spec: T21, T27, E4, G4, G17
     #[test]
     fn a_literal_link_local_zone_connects_without_a_configured_bind_device() {

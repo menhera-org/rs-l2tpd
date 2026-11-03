@@ -1,0 +1,6 @@
+all exported baseline/current mappings: 5889
+5895
+production-source baseline mappings: 4389
+production-source current mappings: 4389
+PRODUCTION_SOURCE_MAPPINGS_IDENTICAL=0
+Only tests/process.rs changes its existing exported locations and adds six mappings.

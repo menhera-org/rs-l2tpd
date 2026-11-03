@@ -1059,6 +1059,7 @@ mod tests {
         const CASE: &str = "kernel::linux::lifetime::tests::reader_and_failed_send_ordering_preserve_the_current_generation";
         if let Some(mode) = std::env::var_os(CHILD) {
             let mode = mode.to_str().unwrap();
+            super::super::syscall_fault::log_warnings();
             nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
             let directory = std::env::var_os("PHASE6_LIFETIME_ORDERING_DIRECTORY").unwrap();
             let listener =
@@ -1088,6 +1089,17 @@ mod tests {
                     libc::EIO,
                 );
                 super::super::syscall_fault::refuse(&[libc::SYS_socket], libc::EMFILE);
+            }
+            if mode == "timeout-reader" {
+                super::super::syscall_fault::refuse(
+                    &[
+                        #[cfg(target_arch = "x86_64")]
+                        libc::SYS_poll,
+                        libc::SYS_ppoll,
+                    ],
+                    libc::ETIMEDOUT,
+                );
+                super::super::syscall_fault::refuse(&[libc::SYS_recvfrom], libc::EAGAIN);
             }
             let stopped = shared.clone();
             let change_generation = mode == "changed-send";
@@ -1138,7 +1150,7 @@ mod tests {
                             && state.lookups.is_empty()
                     );
                 }
-                "quiet-reader" => {
+                "quiet-reader" | "timeout-reader" => {
                     assert_eq!(state.generation, 0);
                     assert_eq!(state.tracked, BTreeMap::from([((1, 1), false)]));
                 }
@@ -1147,7 +1159,7 @@ mod tests {
             println!("LIFETIME_ORDERING_CHECKED={mode}");
             return;
         }
-        for mode in ["changed-send", "reopen", "quiet-reader"] {
+        for mode in ["changed-send", "reopen", "quiet-reader", "timeout-reader"] {
             let directory = crate::testdir::Dir::new();
             let mut command = std::process::Command::new(std::env::current_exe().unwrap());
             command
@@ -1176,7 +1188,7 @@ mod tests {
                             number == libc::SYS_clock_nanosleep as u64
                                 || number == libc::SYS_nanosleep as u64
                         }
-                        "quiet-reader" => number == libc::SYS_recvfrom as u64,
+                        "quiet-reader" | "timeout-reader" => number == libc::SYS_recvfrom as u64,
                         _ => unreachable!(),
                     };
                     if selected {
@@ -1194,6 +1206,12 @@ mod tests {
             .unwrap();
             assert!(output.status.success(), "mode={mode}: {output:?}");
             assert!(checked, "mode={mode} never reached its ordered syscall");
+            if mode == "timeout-reader" || mode == "quiet-reader" {
+                assert!(
+                    !String::from_utf8_lossy(&output.stdout).contains("lifetime subscription:"),
+                    "mode={mode}: {output:?}"
+                );
+            }
             assert!(
                 String::from_utf8_lossy(&output.stdout)
                     .contains(&format!("LIFETIME_ORDERING_CHECKED={mode}"))

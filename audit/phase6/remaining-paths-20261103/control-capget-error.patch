@@ -1,0 +1,13 @@
+diff --git a/src/bin/rs-l2tpd/caps.rs b/src/bin/rs-l2tpd/caps.rs
+index 26c0193..5254a77 100644
+--- a/src/bin/rs-l2tpd/caps.rs
++++ b/src/bin/rs-l2tpd/caps.rs
+@@ -48,7 +48,7 @@ pub fn report() {
+                 }
+             }
+         }
+-        Err(error) => log::warn!("capget: {error}"),
++        Err(error) => panic!("controlled capget failure: {error}"),
+     }
+ }
+ #[cfg(test)]

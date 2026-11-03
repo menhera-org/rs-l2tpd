@@ -1,0 +1,5 @@
+guest successful cases=3; nonempty exported profiles=3
+inventory-84-2635597541635415315_0.profraw git-blob=5da38f1aeda639b8ff6dc095ae66a3cff7146644
+inventory-86-2635597541635415315_0.profraw git-blob=9e28ec4338b943cb6d129605ba058d4d5abe26e1
+inventory-88-2635597541635415315_0.profraw git-blob=588ccf6b200879bdc682b19fe16676c0fc838197
+rejected incomplete hostname fixture profile excluded; git-blob=f9e4f8ade3aacb7c1c258cdb87c3c2c01414e0c9

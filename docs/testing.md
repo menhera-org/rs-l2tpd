@@ -254,10 +254,14 @@ stale completions, foreign-family parsing, PID-file inspection errors,
 resolver/host boundaries, installer/descriptor/reconciler failures,
 file races, probe I/O, competing names and late event/input boundaries:
 the checked-boundary report reached 99.18% lines / 96.74% branch outcomes.
-The scoped-inventory batch reaches **99.31% lines / 97.39% outcomes**:
-8,645/8,705 lines and 1,792/1,840 outcomes, leaving **60 lines and 48 outcomes**.
-All 5,889 exported mappings match the event/lifetime collector, permitting
-its profile reuse.
+The remaining-path batch reaches **99.35% lines / 97.77% outcomes**:
+8,648/8,705 lines and 1,799/1,840 outcomes, leaving **57 lines and 41 outcomes**.
+All 4,389 production-source mappings match the event/lifetime collector;
+integration-test mapping changes do not affect that comparison.
+Repository record `audit/phase6/remaining-paths-20261103/README.md` adds
+repeated startup, capability, reader, source/binding and focused-kernel
+checks, plus seven fault controls. It also diagnoses complementary
+function-instantiation counts without changing the raw coverage gate.
 It includes native models, GNU live/Incus, manager/task-limit profiles and
 three buffer-force guests, with no production exclusions, mismatches or
 saturated regions. Moving shared test helpers changes source locations;
@@ -270,8 +274,9 @@ three stable musl repetitions pass. The common CI script runs tracer
 calibrations explicitly and serially: a child before exec can otherwise
 retain descriptors belonging to concurrent fake-kernel cases. Repository record
 `audit/phase6/scoped-inventory-events-20261102/README.md` adds five focused
-kernel profiles and seven failure controls; its newer-kernel session-query
-observations are not yet instrumented in the GNU collector.
+kernel profiles and seven failure controls. The November 3 batch adds
+three instrumented GNU repetitions of the newer-kernel session-query
+guard on Ubuntu 7.0; its faulty guard also fails in that guest.
 
 Signed code 1b3d876 passes fresh GNU live/Incus and three shipped-musl
 scenario/Incus pairs locally on Ubuntu 6.8.0-147. Profile exports use unique

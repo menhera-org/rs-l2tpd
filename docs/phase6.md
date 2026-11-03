@@ -25,17 +25,24 @@ into P7's packaging page, F7 into P1's service tests). The live reconnection sce
 udev experiment (`audit/phase5-completion/networkd/`) are the seeds of
 the scenario suite below; read them before writing new scenarios.
 
-## Execution status, 2026-11-02
+## Execution status, 2026-11-03
 
-Phase 6 remains open. Signed `7e095c1` passes both CI jobs and CodeQL.
-The subsequent scoped-inventory collector covers **8,645/8,705 lines (99.31%)**
-and **1,792/1,840 outcomes (97.39%)**, leaving **60 lines and 48 outcomes**.
-It excludes no production code and reuses the event/lifetime profiles only
-after all 5,889 exported function mappings compare equal. The
+Phase 6 remains open. Signed `f0b666f` passes both CI jobs and CodeQL.
+The remaining-path collector covers **8,648/8,705 lines (99.35%)**
+and **1,799/1,840 outcomes (97.77%)**, leaving **57 lines and 41 outcomes**.
+It excludes no production code. All 4,389 production-source mappings
+compare equal; integration-test locations and six test mappings change.
+Repeated startup-withdrawal, capget-failure, reader-timeout and source/binding
+cases pass, including ten final instrumented library suites, three
+GNU/musl collections, five focused kernel profiles and seven fault controls.
+Three instrumented GNU guest repetitions cover the foreign-tunnel reply
+guard on Ubuntu 7.0. Repository record
+`audit/phase6/remaining-paths-20261103/README.md` retains the scope and
+an LLVM summary/merged-source discrepancy. The raw gate is unchanged. The
 required set remains Ubuntu 6.8.0-147.147 and 7.0.0-42.42, vanilla 6.8.12
 and 7.0.14, and mainline 7.4-rc1.
 
-The batch adds controlled reader/reopen/generation races, closed queues,
+The preceding event/lifetime batch adds reader/reopen/generation races, closed queues,
 shutdown reload completions, repeated conflicts and defensive adoption/
 rename cases. Ten instrumented suites, repeated GNU/musl models, GNU live
 and Incus, manager/task-limit checks, the unmodified root systemd unit and
