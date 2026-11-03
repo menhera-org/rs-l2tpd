@@ -138,3 +138,13 @@ codegen-units = 1
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(coverage_nightly)"] }
+
+[[test]]
+name = "resource-alloc"
+path = "tests/resource_alloc.rs"
+required-features = ["fake-kernel", "serde"]
+
+[[test]]
+name = "source-work"
+path = "tests/source_work.rs"
+required-features = ["fake-kernel", "serde"]

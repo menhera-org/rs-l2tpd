@@ -1,0 +1,13 @@
+diff --git a/Cargo.toml b/tmp/rs-l2tpd-outcome-batch.lkzXUzoF/Cargo.toml
+index 9c2888f..dc299cd 100644
+--- a/Cargo.toml
++++ b/tmp/rs-l2tpd-outcome-batch.lkzXUzoF/Cargo.toml
+@@ -138,3 +138,8 @@ codegen-units = 1
+ 
+ [lints.rust]
+ unexpected_cfgs = { level = "warn", check-cfg = ["cfg(coverage_nightly)"] }
++
++[[test]]
++name = "resource-alloc"
++path = "tests/resource_alloc.rs"
++required-features = ["fake-kernel", "serde"]

@@ -1,0 +1,630 @@
+c[?7l[2J[0mSeaBIOS (version 1.17.0-debian-1.17.0-1ubuntu1)
+Booting from ROM...
+c[?7l[2J[    0.000000] Linux version 6.8.0-147-generic (buildd@lcy02-amd64-081) (x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 (Ubuntu 6.8.0-147.147-generic 6.8.12)
+[    0.000000] Command line: console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs
+[    0.000000] KERNEL supported cpus:
+[    0.000000]   Intel GenuineIntel
+[    0.000000]   AMD AuthenticAMD
+[    0.000000]   Hygon HygonGenuine
+[    0.000000]   Centaur CentaurHauls
+[    0.000000]   zhaoxin   Shanghai  
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff] usable
+[    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff] reserved
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x000000007ffdffff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007ffe0000-0x000000007fffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000b0000000-0x00000000bfffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000fed1c000-0x00000000fed1ffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x000000fd00000000-0x000000ffffffffff] reserved
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] APIC: Static calls initialized
+[    0.000000] SMBIOS 2.8 present.
+[    0.000000] DMI: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.17.0-debian-1.17.0-1ubuntu1 04/01/2014
+[    0.000000] tsc: Fast TSC calibration using PIT
+[    0.000000] tsc: Detected 1995.318 MHz processor
+[    0.010347] last_pfn = 0x7ffe0 max_arch_pfn = 0x10000000000
+[    0.011597] MTRR map: 4 entries (3 fixed + 1 variable; max 19), built from 8 variable MTRRs
+[    0.011996] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT  
+[    0.054729] found SMP MP-table at [mem 0x000f5460-0x000f546f]
+[    0.057791] Using GB pages for direct mapping
+[    0.063948] RAMDISK: [mem 0x6ac36000-0x7ffdffff]
+[    0.123576] ACPI: Early table checksum verification disabled
+[    0.124628] ACPI: RSDP 0x00000000000F5290 000014 (v00 BOCHS )
+[    0.125294] ACPI: RSDT 0x000000007FFE233B 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.126765] ACPI: FACP 0x000000007FFE212B 0000F4 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.128217] ACPI: DSDT 0x000000007FFE0040 0020EB (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.128447] ACPI: FACS 0x000000007FFE0000 000040
+[    0.128582] ACPI: APIC 0x000000007FFE221F 000080 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.128655] ACPI: HPET 0x000000007FFE229F 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.128721] ACPI: MCFG 0x000000007FFE22D7 00003C (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.128786] ACPI: WAET 0x000000007FFE2313 000028 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.129012] ACPI: Reserving FACP table memory at [mem 0x7ffe212b-0x7ffe221e]
+[    0.129061] ACPI: Reserving DSDT table memory at [mem 0x7ffe0040-0x7ffe212a]
+[    0.129083] ACPI: Reserving FACS table memory at [mem 0x7ffe0000-0x7ffe003f]
+[    0.129100] ACPI: Reserving APIC table memory at [mem 0x7ffe221f-0x7ffe229e]
+[    0.129117] ACPI: Reserving HPET table memory at [mem 0x7ffe229f-0x7ffe22d6]
+[    0.129141] ACPI: Reserving MCFG table memory at [mem 0x7ffe22d7-0x7ffe2312]
+[    0.129156] ACPI: Reserving WAET table memory at [mem 0x7ffe2313-0x7ffe233a]
+[    0.134594] No NUMA configuration found
+[    0.134645] Faking a node at [mem 0x0000000000000000-0x000000007ffdffff]
+[    0.136000] NODE_DATA(0) allocated [mem 0x6ac0b000-0x6ac35fff]
+[    0.149633] Zone ranges:
+[    0.149693]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    0.149871]   DMA32    [mem 0x0000000001000000-0x000000007ffdffff]
+[    0.149903]   Normal   empty
+[    0.149947]   Device   empty
+[    0.149980] Movable zone start for each node
+[    0.150044] Early memory node ranges
+[    0.150103]   node   0: [mem 0x0000000000001000-0x000000000009efff]
+[    0.150450]   node   0: [mem 0x0000000000100000-0x000000007ffdffff]
+[    0.150854] Initmem setup node 0 [mem 0x0000000000001000-0x000000007ffdffff]
+[    0.155269] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.155890] On node 0, zone DMA: 97 pages in unavailable ranges
+[    0.321548] On node 0, zone DMA32: 32 pages in unavailable ranges
+[    0.323654] ACPI: PM-Timer IO Port: 0x608
+[    0.325409] ACPI: LAPIC_NMI (acpi_id[0xff] dfl dfl lint[0x1])
+[    0.327241] IOAPIC[0]: apic_id 0, version 32, address 0xfec00000, GSI 0-23
+[    0.327646] ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)
+[    0.328818] ACPI: INT_SRC_OVR (bus 0 bus_irq 5 global_irq 5 high level)
+[    0.329045] ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)
+[    0.329453] ACPI: INT_SRC_OVR (bus 0 bus_irq 10 global_irq 10 high level)
+[    0.329505] ACPI: INT_SRC_OVR (bus 0 bus_irq 11 global_irq 11 high level)
+[    0.330296] ACPI: Using ACPI (MADT) for SMP configuration information
+[    0.330458] ACPI: HPET id: 0x8086a201 base: 0xfed00000
+[    0.331508] smpboot: Allowing 2 CPUs, 0 hotplug CPUs
+[    0.342165] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    0.342270] PM: hibernation: Registered nosave memory: [mem 0x0009f000-0x000fffff]
+[    0.342540] [mem 0xc0000000-0xfed1bfff] available for PCI devices
+[    0.342704] Booting paravirtualized kernel on bare hardware
+[    0.343444] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns
+[    0.344754] setup_percpu: NR_CPUS:8192 nr_cpumask_bits:2 nr_cpu_ids:2 nr_node_ids:1
+[    0.349131] percpu: Embedded 86 pages/cpu s229376 r8192 d114688 u1048576
+[    0.352063] Kernel command line: console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs
+[    0.355496] random: crng init done
+[    0.358390] Dentry cache hash table entries: 262144 (order: 9, 2097152 bytes, linear)
+[    0.359703] Inode-cache hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    0.365693] Fallback order for Node 0: 0 
+[    0.366565] Built 1 zonelists, mobility grouping on.  Total pages: 515808
+[    0.366623] Policy zone: DMA32
+[    0.367643] mem auto-init: stack:all(zero), heap alloc:on, heap free:off
+[    0.402286] Memory: 1656884K/2096632K available (22528K kernel code, 4441K rwdata, 14440K rodata, 4936K init, 4772K bss, 439544K reserved, 0K cma-reserved)
+[    0.424316] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+[    0.511850] ftrace: allocating 57776 entries in 228 pages
+[    0.512802] ftrace: allocated 228 pages with 4 groups
+[    0.533062] Dynamic Preempt: voluntary
+[    0.557165] rcu: Preemptible hierarchical RCU implementation.
+[    0.557233] rcu: 	RCU restricting CPUs from NR_CPUS=8192 to nr_cpu_ids=2.
+[    0.557431] 	Trampoline variant of Tasks RCU enabled.
+[    0.557446] 	Rude variant of Tasks RCU enabled.
+[    0.557459] 	Tracing variant of Tasks RCU enabled.
+[    0.557642] rcu: RCU calculated value of scheduler-enlistment delay is 100 jiffies.
+[    0.557691] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2
+[    0.559924] RCU Tasks: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.559985] RCU Tasks Rude: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.560008] RCU Tasks Trace: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.602017] NR_IRQS: 524544, nr_irqs: 440, preallocated irqs: 16
+[    0.618906] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.641921] Console: colour *CGA 80x25
+[    0.645002] printk: legacy console [ttyS0] enabled
+[    0.710327] ACPI: Core revision 20230628
+[    0.721152] clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604467 ns
+[    0.731738] APIC: Switch to symmetric I/O mode setup
+[    0.734360] x2apic: IRQ remapping doesn't support X2APIC mode
+[    0.746514] ..TIMER: vector=0x30 apic1=0 pin1=2 apic2=-1 pin2=-1
+[    0.753398] tsc: Marking TSC unstable due to TSCs unsynchronized
+[    0.754617] Calibrating delay loop (skipped), value calculated using timer frequency.. 3990.63 BogoMIPS (lpj=1995318)
+[    0.762211] x86/cpu: User Mode Instruction Prevention (UMIP) activated
+[    0.777328] Last level iTLB entries: 4KB 0, 2MB 0, 4MB 0
+[    0.778083] Last level dTLB entries: 4KB 0, 2MB 0, 4MB 0, 1GB 0
+[    0.780628] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    0.781757] Spectre V2 : Mitigation: Retpolines
+[    0.782287] Spectre V2 : Spectre v2 / SpectreRSB: Filling RSB on context switch and VMEXIT
+[    0.783507] Speculative Store Bypass: Vulnerable
+[    0.791672] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.796361] x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    0.797037] x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    0.797272] x86/fpu: Supporting XSAVE feature 0x008: 'MPX bounds registers'
+[    0.798271] x86/fpu: Supporting XSAVE feature 0x010: 'MPX CSR'
+[    0.799314] x86/fpu: Supporting XSAVE feature 0x200: 'Protection Keys User registers'
+[    0.800378] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.801173] x86/fpu: xstate_offset[3]:  960, xstate_sizes[3]:   64
+[    0.801836] x86/fpu: xstate_offset[4]: 1024, xstate_sizes[4]:   64
+[    0.802276] x86/fpu: xstate_offset[9]: 2688, xstate_sizes[9]:    8
+[    0.802911] x86/fpu: Enabled xstate features 0x21f, context size is 2696 bytes, using 'standard' format.
+[    1.088643] Freeing SMP alternatives memory: 48K
+[    1.090602] pid_max: default: 32768 minimum: 301
+[    1.102959] LSM: initializing lsm=lockdown,capability,landlock,yama,apparmor,integrity
+[    1.105719] landlock: Up and running.
+[    1.106114] Yama: becoming mindful.
+[    1.113762] AppArmor: AppArmor initialized
+[    1.121672] Mount-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    1.122434] Mountpoint-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    1.281234] smpboot: CPU0: AMD QEMU TCG CPU version 2.5+ (family: 0x6, model: 0x6, stepping: 0x3)
+[    1.300088] Performance Events: PMU not available due to virtualization, using software events only.
+[    1.303745] signal: max sigframe size: 3632
+[    1.306774] rcu: Hierarchical SRCU implementation.
+[    1.307295] rcu: 	Max phase no-delay instances is 400.
+[    1.324072] NMI watchdog: Perf NMI watchdog permanently disabled
+[    1.328856] smp: Bringing up secondary CPUs ...
+[    1.340004] smpboot: x86: Booting SMP configuration:
+[    1.340311] .... node  #0, CPUs:      #1
+[    1.444380] smp: Brought up 1 node, 2 CPUs
+[    1.445298] smpboot: Max logical packages: 1
+[    1.445940] smpboot: Total of 2 processors activated (7986.57 BogoMIPS)
+[    1.476494] devtmpfs: initialized
+[    1.483125] x86/mm: Memory block size: 128MB
+[    1.504440] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+[    1.506555] futex hash table entries: 512 (order: 3, 32768 bytes, linear)
+[    1.514857] pinctrl core: initialized pinctrl subsystem
+[    1.529403] PM: RTC time: 06:48:35, date: 2026-11-03
+[    1.559145] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    1.567624] DMA: preallocated 256 KiB GFP_KERNEL pool for atomic allocations
+[    1.569901] DMA: preallocated 256 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    1.571862] DMA: preallocated 256 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+[    1.572609] audit: initializing netlink subsys (disabled)
+[    1.576991] audit: type=2000 audit(1793688514.844:1): state=initialized audit_enabled=0 res=1
+[    1.587347] thermal_sys: Registered thermal governor 'fair_share'
+[    1.587408] thermal_sys: Registered thermal governor 'bang_bang'
+[    1.588029] thermal_sys: Registered thermal governor 'step_wise'
+[    1.588270] thermal_sys: Registered thermal governor 'user_space'
+[    1.589253] thermal_sys: Registered thermal governor 'power_allocator'
+[    1.590724] cpuidle: using governor ladder
+[    1.591862] cpuidle: using governor menu
+[    1.596845] acpiphp: ACPI Hot Plug PCI Controller Driver version: 0.5
+[    1.602511] PCI: ECAM [mem 0xb0000000-0xbfffffff] (base 0xb0000000) for domain 0000 [bus 00-ff]
+[    1.604729] PCI: ECAM [mem 0xb0000000-0xbfffffff] reserved as E820 entry
+[    1.609521] PCI: Using configuration type 1 for base access
+[    1.610942] mtrr: your CPUs had inconsistent fixed MTRR settings
+[    1.611276] mtrr: your CPUs had inconsistent variable MTRR settings
+[    1.612265] mtrr: your CPUs had inconsistent MTRRdefType settings
+[    1.612920] mtrr: probably your BIOS does not setup all CPUs.
+[    1.613260] mtrr: corrected configuration.
+[    1.618522] kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.
+[    1.678773] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    1.679306] HugeTLB: 16380 KiB vmemmap can be freed for a 1.00 GiB page
+[    1.681314] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    1.682288] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    1.712479] ACPI: Added _OSI(Module Device)
+[    1.713112] ACPI: Added _OSI(Processor Device)
+[    1.714254] ACPI: Added _OSI(Processor Aggregator Device)
+[    1.763643] ACPI: 1 ACPI AML tables successfully acquired and loaded
+[    1.802738] ACPI: _OSC evaluation for CPUs failed, trying _PDC
+[    1.807788] ACPI: Interpreter enabled
+[    1.810671] ACPI: PM: (supports S0 S3 S4 S5)
+[    1.811327] ACPI: Using IOAPIC for interrupt routing
+[    1.816260] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    1.817316] PCI: Using E820 reservations for host bridge windows
+[    1.821562] ACPI: Enabled 2 GPEs in block 00 to 3F
+[    1.893943] ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])
+[    1.896115] acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI EDR HPX-Type3]
+[    1.899317] acpi PNP0A08:00: _OSC: platform does not support [PCIeHotplug LTR DPC]
+[    1.902502] acpi PNP0A08:00: _OSC: OS now controls [SHPCHotplug PME AER PCIeCapability]
+[    1.912395] PCI host bridge to bus 0000:00
+[    1.913308] pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]
+[    1.915317] pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]
+[    1.916256] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]
+[    1.916259] pci_bus 0000:00: root bus resource [mem 0x80000000-0xafffffff window]
+[    1.918280] pci_bus 0000:00: root bus resource [mem 0xc0000000-0xfebfffff window]
+[    1.919259] pci_bus 0000:00: root bus resource [mem 0x100000000-0x8ffffffff window]
+[    1.920557] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    1.924768] pci 0000:00:00.0: [8086:29c0] type 00 class 0x060000 conventional PCI endpoint
+[    1.938161] pci 0000:00:1f.0: [8086:2918] type 00 class 0x060100 conventional PCI endpoint
+[    1.939703] pci 0000:00:1f.0: quirk: [io  0x0600-0x067f] claimed by ICH6 ACPI/GPIO/TCO
+[    1.942645] pci 0000:00:1f.2: [8086:2922] type 00 class 0x010601 conventional PCI endpoint
+[    1.945501] pci 0000:00:1f.2: BAR 4 [io  0xc040-0xc05f]
+[    1.946306] pci 0000:00:1f.2: BAR 5 [mem 0xfebff000-0xfebfffff]
+[    1.948572] pci 0000:00:1f.3: [8086:2930] type 00 class 0x0c0500 conventional PCI endpoint
+[    1.950317] pci 0000:00:1f.3: BAR 4 [io  0x0700-0x073f]
+[    1.959539] ACPI: PCI: Interrupt link LNKA configured for IRQ 10
+[    1.962609] ACPI: PCI: Interrupt link LNKB configured for IRQ 10
+[    1.966349] ACPI: PCI: Interrupt link LNKC configured for IRQ 11
+[    1.968039] ACPI: PCI: Interrupt link LNKD configured for IRQ 11
+[    1.970344] ACPI: PCI: Interrupt link LNKE configured for IRQ 10
+[    1.970399] ACPI: PCI: Interrupt link LNKF configured for IRQ 10
+[    1.973470] ACPI: PCI: Interrupt link LNKG configured for IRQ 11
+[    1.975429] ACPI: PCI: Interrupt link LNKH configured for IRQ 11
+[    1.976634] ACPI: PCI: Interrupt link GSIA configured for IRQ 16
+[    1.977558] ACPI: PCI: Interrupt link GSIB configured for IRQ 17
+[    1.978498] ACPI: PCI: Interrupt link GSIC configured for IRQ 18
+[    1.980533] ACPI: PCI: Interrupt link GSID configured for IRQ 19
+[    1.982517] ACPI: PCI: Interrupt link GSIE configured for IRQ 20
+[    1.983234] ACPI: PCI: Interrupt link GSIF configured for IRQ 21
+[    1.983492] ACPI: PCI: Interrupt link GSIG configured for IRQ 22
+[    1.984463] ACPI: PCI: Interrupt link GSIH configured for IRQ 23
+[    1.999476] iommu: Default domain type: Translated
+[    2.000311] iommu: DMA domain TLB invalidation policy: lazy mode
+[    2.007332] SCSI subsystem initialized
+[    2.012901] ACPI: bus type USB registered
+[    2.014915] usbcore: registered new interface driver usbfs
+[    2.016887] usbcore: registered new interface driver hub
+[    2.018394] usbcore: registered new device driver usb
+[    2.020825] pps_core: LinuxPPS API ver. 1 registered
+[    2.021274] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    2.022386] PTP clock support registered
+[    2.029538] EDAC MC: Ver: 3.0.0
+[    2.063961] NetLabel: Initializing
+[    2.064302] NetLabel:  domain hash size = 128
+[    2.065272] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    2.069108] NetLabel:  unlabeled traffic allowed by default
+[    2.079293] mctp: management component transport protocol core
+[    2.080295] NET: Registered PF_MCTP protocol family
+[    2.082329] PCI: Using ACPI for IRQ routing
+[    2.109520] vgaarb: loaded
+[    2.112330] hpet0: at MMIO 0xfed00000, IRQs 2, 8, 0
+[    2.112996] hpet0: 3 comparators, 64-bit 100.000000 MHz counter
+[    2.119209] clocksource: Switched to clocksource hpet
+[    2.143912] VFS: Disk quotas dquot_6.6.0
+[    2.145048] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    2.158195] AppArmor: AppArmor Filesystem Enabled
+[    2.159932] pnp: PnP ACPI init
+[    2.167934] system 00:04: [mem 0xb0000000-0xbfffffff window] has been reserved
+[    2.173988] pnp: PnP ACPI: found 5 devices
+[    2.243765] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    2.252482] NET: Registered PF_INET protocol family
+[    2.257693] IP idents hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    2.480069] tcp_listen_portaddr_hash hash table entries: 1024 (order: 2, 16384 bytes, linear)
+[    2.482428] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    2.484074] TCP established hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    2.487391] TCP bind hash table entries: 16384 (order: 7, 524288 bytes, linear)
+[    2.489741] TCP: Hash tables configured (established 16384 bind 16384)
+[    2.496685] MPTCP token hash table entries: 2048 (order: 4, 49152 bytes, linear)
+[    2.499039] UDP hash table entries: 1024 (order: 3, 32768 bytes, linear)
+[    2.501199] UDP-Lite hash table entries: 1024 (order: 3, 32768 bytes, linear)
+[    2.507345] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    2.509708] NET: Registered PF_XDP protocol family
+[    2.513337] pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]
+[    2.514528] pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]
+[    2.515752] pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000bffff window]
+[    2.516832] pci_bus 0000:00: resource 7 [mem 0x80000000-0xafffffff window]
+[    2.517928] pci_bus 0000:00: resource 8 [mem 0xc0000000-0xfebfffff window]
+[    2.518931] pci_bus 0000:00: resource 9 [mem 0x100000000-0x8ffffffff window]
+[    2.520990] PCI: CLS 0 bytes, default 64
+[    2.534821] Initialise system trusted keyrings
+[    2.538870] Key type blacklist registered
+[    2.543265] workingset: timestamp_bits=36 max_order=19 bucket_order=0
+[    2.545953] zbud: loaded
+[    2.554853] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    2.561143] fuse: init (API version 7.39)
+[    2.598051] integrity: Platform Keyring initialized
+[    2.598341] Trying to unpack rootfs image as initramfs...
+[    2.600445] integrity: Machine keyring initialized
+[    2.839369] Key type asymmetric registered
+[    2.840747] Asymmetric key parser 'x509' registered
+[    2.843193] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 243)
+[    2.847847] io scheduler mq-deadline registered
+[    2.859054] shpchp: Standard Hot Plug PCI Controller Driver version: 0.4
+[    2.872664] input: Power Button as /devices/LNXSYSTM:00/LNXPWRBN:00/input/input0
+[    2.880801] ACPI: button: Power Button [PWRF]
+[    2.891663] Serial: 8250/16550 driver, 32 ports, IRQ sharing enabled
+[    2.921512] 00:02: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    2.996220] Linux agpgart interface v0.103
+[    3.044960] loop: module loaded
+[    3.050922] ACPI: bus type drm_connector registered
+[    3.061037] tun: Universal TUN/TAP device driver, 1.6
+[    3.062405] PPP generic driver version 2.4.2
+[    3.068000] i8042: PNP: PS/2 Controller [PNP0303:KBD,PNP0f13:MOU] at 0x60,0x64 irq 1,12
+[    3.075726] serio: i8042 KBD port at 0x60,0x64 irq 1
+[    3.076716] serio: i8042 AUX port at 0x60,0x64 irq 12
+[    3.080090] mousedev: PS/2 mouse device common for all mice
+[    3.084408] rtc_cmos 00:03: RTC can wake from S4
+[    3.091750] input: AT Translated Set 2 keyboard as /devices/platform/i8042/serio0/input/input1
+[    3.094427] rtc_cmos 00:03: registered as rtc0
+[    3.097669] rtc_cmos 00:03: setting system clock to 2026-11-03T06:48:36 UTC (1793688516)
+[    3.101025] rtc_cmos 00:03: alarms up to one day, y3k, 242 bytes nvram, hpet irqs
+[    3.102111] i2c_dev: i2c /dev entries driver
+[    3.103700] device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is disabled. Duplicate IMA measurements will not be recorded in the IMA log.
+[    3.105480] device-mapper: uevent: version 1.0.3
+[    3.107316] device-mapper: ioctl: 4.48.0-ioctl (2023-03-01) initialised: dm-devel@redhat.com
+[    3.109098] amd_pstate: the _CPC object is not present in SBIOS or ACPI disabled
+[    3.110964] ledtrig-cpu: registered to indicate activity on CPUs
+[    3.113241] drop_monitor: Initializing network drop monitor service
+[    3.116370] NET: Registered PF_INET6 protocol family
+[   10.137162] Freeing initrd memory: 347816K
+[   10.444688] Segment Routing with IPv6
+[   10.447325] In-situ OAM (IOAM) with IPv6
+[   10.451903] NET: Registered PF_PACKET protocol family
+[   10.454948] Key type dns_resolver registered
+[   10.475938] IPI shorthand broadcast: enabled
+[   10.510136] registered taskstats version 1
+[   10.517269] Loading compiled-in X.509 certificates
+[   10.555175] Loaded X.509 cert 'Build time autogenerated kernel key: 67dae3bf0284ce2ad34b9632cb7c8734f4f57c6c'
+[   10.563788] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing 2025 Kmod: d541cef61dc7e793b7eb7e899970a2eef0b5dc8c'
+[   10.571494] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing: 14df34d1a87cf37625abec039ef2bf521249b969'
+[   10.579243] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing 2025 Kmod: 4627603d2357a2a3f81006370894c221175893e9'
+[   10.586956] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing: 88f752e560a1e0737e31163a466ad7b70a850c19'
+[   10.589256] blacklist: Loading compiled-in revocation X.509 certificates
+[   10.596076] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing: 61482aa2830d0ab2ad5af10b7250da9033ddcef0'
+[   10.598854] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2017): 242ade75ac4a15e50d50c84b0d45ff3eae707a03'
+[   10.601352] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (ESM 2018): 365188c1d374d6b07c3c8f240f8ef722433d6a8b'
+[   10.604070] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2019): c0746fd6c5da3ae827864651ad66ae47fe24b3e8'
+[   10.606031] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v1): a8d54bbb3825cfb94fa13c9f8a594a195c107b8d'
+[   10.607842] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v2): 4cf046892d6fd3c9a5b03f98d845f90851dc6a8c'
+[   10.609989] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v3): 100437bb6de6e469b581e61cd66bce3ef4ed53af'
+[   10.611908] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (Ubuntu Core 2019): c1d57b8f6b743f23ee41f4f7ee292f06eecadfb9'
+[   10.666838] Key type .fscrypt registered
+[   10.667341] Key type fscrypt-provisioning registered
+[   10.867940] Key type encrypted registered
+[   10.868894] AppArmor: AppArmor sha256 policy hashing enabled
+[   10.870905] ima: No TPM chip found, activating TPM-bypass!
+[   10.871996] Loading compiled-in module X.509 certificates
+[   10.875411] Loaded X.509 cert 'Build time autogenerated kernel key: 67dae3bf0284ce2ad34b9632cb7c8734f4f57c6c'
+[   10.877179] ima: Allocated hash algorithm: sha256
+[   10.882289] ima: No architecture policies found
+[   10.887494] evm: Initialising EVM extended attributes:
+[   10.888308] evm: security.selinux
+[   10.888794] evm: security.SMACK64
+[   10.889215] evm: security.SMACK64EXEC
+[   10.889677] evm: security.SMACK64TRANSMUTE
+[   10.890246] evm: security.SMACK64MMAP
+[   10.890743] evm: security.apparmor
+[   10.891210] evm: security.ima
+[   10.891622] evm: security.capability
+[   10.892103] evm: HMAC attrs: 0x1
+[   10.898039] PM:   Magic number: 2:677:821
+[   11.010882] RAS: Correctable Errors collector initialized.
+[   11.014725] Unstable clock detected, switching default tracing clock to "global"
+[   11.014725] If you want to keep using the local clock, then add:
+[   11.014725]   "trace_clock=local"
+[   11.014725] on the kernel command line
+[   11.019005] clk: Disabling unused clocks
+[   11.136660] Freeing unused decrypted memory: 2028K
+[   11.280522] Freeing unused kernel image (initmem) memory: 4936K
+[   11.281634] Write protecting the kernel read-only data: 38912k
+[   11.289628] Freeing unused kernel image (rodata/data gap) memory: 1944K
+[   11.612713] x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[   11.614304] Run /init as init process
+Linux (none) 6.8.0-147-generic #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+GUEST_KERNEL_RELEASE=6.8.0-147-generic
+[   41.005251] l2tp_core: L2TP core driver, V2.0
+[   41.015799] l2tp_ip: L2TP IP encapsulation support (L2TPv3)
+[   41.048708] l2tp_ip6: L2TP IP encapsulation support for IPv6 (L2TPv3)
+Inserted module 'autofs4'
+systemd 255.4-1ubuntu8.18 running in system mode (+PAM +AUDIT +SELINUX +APPARMOR +IMA +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBFDISK +PCRE2 -PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD -BPF_FRAMEWORK -XKBCOMMON +UTMP +SYSVINIT default-hierarchy=unified)
+Detected virtualization docker.
+Detected architecture x86-64.
+
+Welcome to [1mUbuntu 24.04.5 LTS[0m!
+
+Hostname set to <phase6>.
+Queued start job for default target multi-user.target.
+[[0;32m  OK  [0m] Created slice [0;1;39msystem-getty.slice[0m - Slice /system/getty.
+[[0;32m  OK  [0m] Created slice [0;1;39msystem-modprobe.slice[0m - Slice /system/modprobe.
+[[0;32m  OK  [0m] Created slice [0;1;39muser.slice[0m - User and Session Slice.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-ask-password-conso…[0mequests to Console Directory Watch.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-ask-password-wall.…[0md Requests to Wall Directory Watch.
+[[0;32m  OK  [0m] Set up automount [0;1;39mproc-sys-fs-binfm…[0mormats File System Automount Point.
+[[0;32m  OK  [0m] Reached target [0;1;39mcryptsetup.target[0m - Local Encrypted Volumes.
+[[0;32m  OK  [0m] Reached target [0;1;39mintegritysetup.targ…[0m Local Integrity Protected Volumes.
+[[0;32m  OK  [0m] Reached target [0;1;39mpaths.target[0m - Path Units.
+[[0;32m  OK  [0m] Reached target [0;1;39mremote-fs.target[0m - Remote File Systems.
+[[0;32m  OK  [0m] Reached target [0;1;39mslices.target[0m - Slice Units.
+[[0;32m  OK  [0m] Reached target [0;1;39mswap.target[0m - Swaps.
+[[0;32m  OK  [0m] Reached target [0;1;39mveritysetup.target[0m - Local Verity Protected Volumes.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-initctl.socke…[0m- initctl Compatibility Named Pipe.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-journald-dev-…socket[0m - Journal Socket (/dev/log).
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-journald.socket[0m - Journal Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-networkd.socket[0m - Network Service Netlink Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-udevd-control.socket[0m - udev Control Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-udevd-kernel.socket[0m - udev Kernel Socket.
+         Mounting [0;1;39mdev-hugepages.mount[0m - Huge Pages File System...
+         Mounting [0;1;39mdev-mqueue.mount[0m - POSIX Message Queue File System...
+         Mounting [0;1;39msys-kernel-debug.mount[0m - Kernel Debug File System...
+         Mounting [0;1;39msys-kernel-tracing.mount[0m - Kernel Trace File System...
+         Starting [0;1;39msystemd-journald.service[0m - Journal Service...
+         Starting [0;1;39mkmod-static-nodes.service[0m…eate List of Static Device Nodes...
+         Starting [0;1;39mmodprobe@configfs.service[0m - Load Kernel Module configfs...
+         Starting [0;1;39mmodprobe@dm_mod.service[0m - Load Kernel Module dm_mod...
+         Starting [0;1;39mmodprobe@drm.service[0m - Load Kernel Module drm...
+[   43.758309] systemd-journald[125]: Collecting audit messages is disabled.
+         Starting [0;1;39mmodprobe@efi_pstore.servi…[0m - Load Kernel Module efi_pstore...
+         Starting [0;1;39mmodprobe@fuse.service[0m - Load Kernel Module fuse...
+         Starting [0;1;39mmodprobe@loop.service[0m - Load Kernel Module loop...
+         Starting [0;1;39msystemd-modules-load.service[0m - Load Kernel Modules...
+         Starting [0;1;39msystemd-remount-fs.servic…[0munt Root and Kernel File Systems...
+         Starting [0;1;39msystemd-udev-trigger.service[0m - Coldplug All udev Devices...
+[[0;32m  OK  [0m] Started [0;1;39msystemd-journald.service[0m - Journal Service.
+[[0;32m  OK  [0m] Mounted [0;1;39mdev-hugepages.mount[0m - Huge Pages File System.
+[[0;32m  OK  [0m] Mounted [0;1;39mdev-mqueue.mount[0m - POSIX Message Queue File System.
+[[0;32m  OK  [0m] Mounted [0;1;39msys-kernel-debug.mount[0m - Kernel Debug File System.
+[[0;32m  OK  [0m] Mounted [0;1;39msys-kernel-tracing.mount[0m - Kernel Trace File System.
+[[0;32m  OK  [0m] Finished [0;1;39mkmod-static-nodes.service[0m…Create List of Static Device Nodes.
+modprobe@configfs.service: Deactivated successfully.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@configfs.service[0m - Load Kernel Module configfs.
+modprobe@dm_mod.service: Deactivated successfully.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@dm_mod.service[0m - Load Kernel Module dm_mod.
+modprobe@drm.service: Deactivated successfully.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@drm.service[0m - Load Kernel Module drm.
+modprobe@efi_pstore.service: Deactivated successfully.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@efi_pstore.service[0m - Load Kernel Module efi_pstore.
+modprobe@fuse.service: Deactivated successfully.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@fuse.service[0m - Load Kernel Module fuse.
+modprobe@loop.service: Deactivated successfully.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@loop.service[0m - Load Kernel Module loop.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-modules-load.service[0m - Load Kernel Modules.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-remount-fs.servic…[0mmount Root and Kernel File Systems.
+         Mounting [0;1;39msys-fs-fuse-connections.mount[0m - FUSE Control File System...
+         Mounting [0;1;39msys-kernel-config.mount[0m - Kernel Configuration File System...
+         Starting [0;1;39msystemd-journal-flush.ser…[0msh Journal to Persistent Storage...
+         Starting [0;1;39msystemd-sysctl.service[0m - Apply Kernel Variables...
+         Starting [0;1;39msystemd-tmpfiles-setup-de…[0m Device Nodes in /dev gracefully...
+[[0;32m  OK  [0m] Mounted [0;1;39msys-fs-fuse-connections.mount[0m - FUSE Control File System.
+[[0;32m  OK  [0m] Mounted [0;1;39msys-kernel-config.mount[0m - Kernel Configuration File System.
+[   45.509979] systemd-journald[125]: Received client request to flush runtime journal.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-journal-flush.ser…[0mlush Journal to Persistent Storage.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-sysctl.service[0m - Apply Kernel Variables.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup-de…[0mic Device Nodes in /dev gracefully.
+         Starting [0;1;39msystemd-sysusers.service[0m - Create System Users...
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-sysusers.service[0m - Create System Users.
+         Starting [0;1;39msystemd-tmpfiles-setup-de…[0meate Static Device Nodes in /dev...
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup-de…[0mCreate Static Device Nodes in /dev.
+[[0;32m  OK  [0m] Reached target [0;1;39mlocal-fs-pre.target[0m…Preparation for Local File Systems.
+[[0;32m  OK  [0m] Reached target [0;1;39mlocal-fs.target[0m - Local File Systems.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-sysext.socket[0m…tension Image Management (Varlink).
+[[0;32m  OK  [0m] Reached target [0;1;39msockets.target[0m - Socket Units.
+         Starting [0;1;39mldconfig.service[0m - Rebuild Dynamic Linker Cache...
+         Starting [0;1;39msystemd-tmpfiles-setup.se…[0me Volatile Files and Directories...
+         Starting [0;1;39msystemd-udevd.service[0m - R…ager for Device Events and Files...
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-udev-trigger.service[0m - Coldplug All udev Devices.
+[[0;32m  OK  [0m] Finished [0;1;39mldconfig.service[0m - Rebuild Dynamic Linker Cache.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup.se…[0mate Volatile Files and Directories.
+         Starting [0;1;39msystemd-journal-catalog-u…ervice[0m - Rebuild Journal Catalog...
+         Starting [0;1;39msystemd-update-utmp.servi…[0mord System Boot/Shutdown in UTMP...
+[   46.922381] systemd-udevd[171]: Using default interface naming scheme 'v255'.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-udevd.service[0m - Ru…anager for Device Events and Files.
+         Starting [0;1;39msystemd-networkd.service[0m - Network Configuration...
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-journal-catalog-u….service[0m - Rebuild Journal Catalog.
+         Starting [0;1;39msystemd-update-done.service[0m - Update is Completed...
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-update-utmp.servi…[0mecord System Boot/Shutdown in UTMP.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-update-done.service[0m - Update is Completed.
+[[0;32m  OK  [0m] Reached target [0;1;39msysinit.target[0m - System Initialization.
+[[0;32m  OK  [0m] Started [0;1;39mapt-daily.timer[0m - Daily apt download activities.
+[[0;32m  OK  [0m] Started [0;1;39mapt-daily-upgrade.timer[0m - …y apt upgrade and clean activities.
+[[0;32m  OK  [0m] Started [0;1;39mdpkg-db-backup.timer[0m - Daily dpkg database backup timer.
+[[0;32m  OK  [0m] Started [0;1;39me2scrub_all.timer[0m - Period…Metadata Check for All Filesystems.
+[[0;32m  OK  [0m] Started [0;1;39mmotd-news.timer[0m - Message of the Day.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-tmpfiles-clean.tim…[0my Cleanup of Temporary Directories.
+[[0;32m  OK  [0m] Reached target [0;1;39mtimers.target[0m - Timer Units.
+[[0;32m  OK  [0m] Listening on [0;1;39mdbus.socket[0m - D-Bus System Message Bus Socket.
+[[0;32m  OK  [0m] Reached target [0;1;39mbasic.target[0m - Basic System.
+         Starting [0;1;39mdbus.service[0m - D-Bus System Message Bus...
+         Starting [0;1;39me2scrub_reap.service[0m - Re…ne ext4 Metadata Check Snapshots...
+         Starting [0;1;39msystemd-logind.service[0m - User Login Management...
+[[0;32m  OK  [0m] Started [0;1;39mdbus.service[0m - D-Bus System Message Bus.
+e2scrub_reap.service: Deactivated successfully.
+[[0;32m  OK  [0m] Finished [0;1;39me2scrub_reap.service[0m - Re…line ext4 Metadata Check Snapshots.
+[   48.990859] systemd-networkd[180]: lo: Link UP
+[   48.998951] systemd-networkd[180]: lo: Gained carrier
+[   49.159554] systemd-networkd[180]: Enumeration completed
+[[0;32m  OK  [0m] Started [0;1;39msystemd-networkd.service[0m - Network Configuration.
+[[0;32m  OK  [0m] Reached target [0;1;39mnetwork.target[0m - Network.
+[[0;32m  OK  [0m] Started [0;1;39mphase6-probe.service[0m - Phase 6 root systemd assertions.
+         Starting [0;1;39msystemd-user-sessions.service[0m - Permit User Sessions...
+[   49.382658] systemd-logind[198]: New seat seat0.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-logind.service[0m - User Login Management.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-user-sessions.service[0m - Permit User Sessions.
+[[0;32m  OK  [0m] Started [0;1;39mconsole-getty.service[0m - Console Getty.
+[[0;32m  OK  [0m] Started [0;1;39mgetty@tty1.service[0m - Getty on tty1.
+[[0;32m  OK  [0m] Reached target [0;1;39mgetty.target[0m - Login Prompts.
+[[0;32m  OK  [0m] Reached target [0;1;39mmulti-user.target[0m - Multi-User System.
+         Starting [0;1;39msystemd-update-utmp-runle…[0m- Record Runlevel Change in UTMP...
+systemd-update-utmp-runlevel.service: Deactivated successfully.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-update-utmp-runle…e[0m - Record Runlevel Change in UTMP.
+Startup finished in 9.192s.
+Reloading requested from client PID 223 ('systemctl') (unit phase6-probe.service)...
+Reloading...
+
+Ubuntu 24.04.5 LTS phase6 console
+
+phase6 login: [   52.993411] systemd-logind[198]: Watching system buttons on /dev/input/event0 (Power Button)
+[   53.085358] systemd-logind[198]: Watching system buttons on /dev/input/event1 (AT Translated Set 2 keyboard)
+Reloading finished in 3460 ms.
+Reloading requested from client PID 246 ('systemctl') (unit phase6-probe.service)...
+Reloading...
+[   55.724864] Error: Driver 'pcspkr' is already registered, aborting...
+Reloading finished in 3176 ms.
+[   59.362494] rs-l2tpd[292]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+[   59.397164] rs-l2tpd[292]: ERROR rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): cannot be created: EPROTONOSUPPORT: Protocol not supported
+[   59.421693] rs-l2tpd[292]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[   60.560760] rs-l2tpd[292]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as incusl2tp
+[   60.566501] rs-l2tpd[292]: INFO rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): created
+[   60.658822] rs-l2tpd[292]: INFO rs_l2tpd: ready pid=292
+[   60.819199] rs-l2tpd[292]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+[   60.839287] rs-l2tpd[292]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+[   60.936661] rs-l2tpd[292]: INFO rs_l2tpd: shutdown complete
+rs-l2tpd.service: Deactivated successfully.
+rs-l2tpd.service: Consumed 1.344s CPU time, 1.4M memory peak, 0B memory swap peak.
+Reloading requested from client PID 320 ('systemctl') (unit phase6-probe.service)...
+Reloading...
+Reloading finished in 2233 ms.
+systemd-networkd.service: Deactivated successfully.
+[   64.240433] systemd-networkd[344]: lo: Link UP
+[   64.242931] systemd-networkd[344]: lo: Gained carrier
+[   64.244690] systemd-networkd[344]: Enumeration completed
+Reloading requested from client PID 347 ('systemctl') (unit phase6-probe.service)...
+Reloading...
+Reloading finished in 2090 ms.
+Reloading requested from client PID 368 ('systemctl') (unit phase6-probe.service)...
+Reloading...
+Reloading finished in 2049 ms.
+[   69.766480] rs-l2tpd[391]: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+[   69.774334] rs-l2tpd[391]: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+[   69.781203] rs-l2tpd[391]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+[   69.800997] systemd-networkd[344]: incusl2tp: Configuring with /etc/systemd/network/10-phase6.network.
+[   69.812842] rs-l2tpd[391]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as incusl2tp
+[   69.825828] rs-l2tpd[391]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[   69.865729] rs-l2tpd[391]: INFO rs_l2tpd: ready pid=391
+[   69.874680] systemd-networkd[344]: incusl2tp: Link UP
+[   69.879746] systemd-networkd[344]: incusl2tp: Gained carrier
+Reloading rs-l2tpd.service - Resilient L2TPv3 daemon...
+Reloaded rs-l2tpd.service - Resilient L2TPv3 daemon.
+[   71.087496] rs-l2tpd[391]: INFO rs_l2tpd::service: reload completed
+[   71.269723] systemd-networkd[344]: incusl2tp: Gained IPv6LL
+[0;1;38;5;185mrs-l2tpd.service: Main process exited, code=killed, status=9/KILL[0m
+[0;1;38;5;185mrs-l2tpd.service: Failed with result 'signal'.[0m
+rs-l2tpd.service: Scheduled restart job, restart counter is at 1.
+[   74.874301] rs-l2tpd[446]: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+[   74.881296] rs-l2tpd[446]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[   74.884003] rs-l2tpd[446]: WARN rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+[   74.887910] rs-l2tpd[446]: INFO rs_l2tpd: ready pid=446
+[   75.351383] rs-l2tpd[446]: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+[   75.354396] rs-l2tpd[446]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[   75.357671] rs-l2tpd[446]: WARN rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+[   75.363670] rs-l2tpd[446]: INFO rs_l2tpd: re-exec resumed
+[   75.585699] systemd-networkd[344]: incusl2tp: Link DOWN
+[   75.590995] systemd-networkd[344]: incusl2tp: Lost carrier
+[   75.592963] rs-l2tpd[446]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+[   75.600721] rs-l2tpd[446]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+[   75.665527] rs-l2tpd[446]: INFO rs_l2tpd: shutdown complete
+rs-l2tpd.service: Deactivated successfully.
+[   75.785948] phase6-probe[480]: running 1 test
+[   75.788368] phase6-probe[480]: CONCURRENT_MAC=persistent; address=d6:60:07:ec:2e:96
+[   75.790362] phase6-probe[480]: ROOT_SANDBOX=active; private mounts, protected root/tunables, writable exception, exact capabilities
+[   75.792553] phase6-probe[480]: test supplied_unit_enforces_mounts_capabilities_ordering_store_and_cleanup ... ok
+[   75.794586] phase6-probe[480]: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 26.23s
+phase6-probe.service: Deactivated successfully.
+phase6-probe.service: Consumed 5.206s CPU time, 44.2M memory peak, 0B memory swap peak.
+phase6-probe.service: Triggering OnSuccess= dependencies.
+[0;1;38;5;185mphase6-finish.service: multiple trigger source candidates for exit status propagation (phase6-probe.service, phase6-probe.service), skipping.[0m
+[   76.008203] phase6-finish[484]: Nov 03 06:49:32 phase6 rs-l2tpd[292]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+[   76.010915] phase6-finish[484]: Nov 03 06:49:32 phase6 rs-l2tpd[292]: ERROR rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): cannot be created: EPROTONOSUPPORT: Protocol not supported
+[   76.014318] phase6-finish[484]: Nov 03 06:49:32 phase6 rs-l2tpd[292]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[   76.017515] phase6-finish[484]: Nov 03 06:49:34 phase6 rs-l2tpd[292]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as incusl2tp
+[   76.020195] phase6-finish[484]: Nov 03 06:49:34 phase6 rs-l2tpd[292]: INFO rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): created
+[   76.022734] phase6-finish[484]: Nov 03 06:49:34 phase6 rs-l2tpd[292]: INFO rs_l2tpd: ready pid=292
+[   76.024621] phase6-finish[484]: Nov 03 06:49:34 phase6 rs-l2tpd[292]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+[   76.027157] phase6-finish[484]: Nov 03 06:49:34 phase6 rs-l2tpd[292]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+[   76.029546] phase6-finish[484]: Nov 03 06:49:34 phase6 rs-l2tpd[292]: INFO rs_l2tpd: shutdown complete
+[   76.031527] phase6-finish[484]: Nov 03 06:49:43 phase6 rs-l2tpd[391]: WARN rs_l2tpd::reconciler: net.ipv6.bindv6only is set; asking for it to be set back to 0 (T26, P25)
+[   76.034145] phase6-finish[484]: Nov 03 06:49:43 phase6 rs-l2tpd[391]: WARN rs_l2tpd::tunable: net.ipv6.bindv6only set to 0 (previous value 1)
+[   76.036503] phase6-finish[484]: Nov 03 06:49:43 phase6 rs-l2tpd[391]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): created
+[   76.038776] phase6-finish[484]: Nov 03 06:49:43 phase6 rs-l2tpd[391]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): created as incusl2tp
+[   76.041467] phase6-finish[484]: Nov 03 06:49:43 phase6 rs-l2tpd[391]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[   76.044680] phase6-finish[484]: Nov 03 06:49:43 phase6 rs-l2tpd[391]: INFO rs_l2tpd: ready pid=391
+[   76.046571] phase6-finish[484]: Nov 03 06:49:44 phase6 rs-l2tpd[391]: INFO rs_l2tpd::service: reload completed
+[   76.048818] phase6-finish[484]: Nov 03 06:49:48 phase6 rs-l2tpd[446]: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+[   76.051507] phase6-finish[484]: Nov 03 06:49:48 phase6 rs-l2tpd[446]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[   76.054492] phase6-finish[484]: Nov 03 06:49:48 phase6 rs-l2tpd[446]: WARN rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+[   76.058521] phase6-finish[484]: Nov 03 06:49:48 phase6 rs-l2tpd[446]: INFO rs_l2tpd: ready pid=446
+[   76.060365] phase6-finish[484]: Nov 03 06:49:48 phase6 rs-l2tpd[446]: INFO rs_l2tpd::reconciler::tunnels: tunnel  (tunnel_id=10): adopted from the previous instance
+[   76.062801] phase6-finish[484]: Nov 03 06:49:48 phase6 rs-l2tpd[446]: WARN rs_l2tpd::reconciler::report: tunnel incus (tunnel_id=10): disconnected, peer 192.0.2.2 pending: ENETUNREACH: Network is unreachable
+[   76.065747] phase6-finish[484]: Nov 03 06:49:48 phase6 rs-l2tpd[446]: WARN rs_l2tpd::reconciler::report: session incus (tunnel_id=10, session_id=100): unmanageable because it was adopted from a previous instance; not changing its name; a change of session_id, peer_session_id or a cookie, or a restart, re-creates it (S20)
+[   76.070186] phase6-finish[484]: Nov 03 06:49:48 phase6 rs-l2tpd[446]: INFO rs_l2tpd: re-exec resumed
+[   76.072027] phase6-finish[484]: Nov 03 06:49:49 phase6 rs-l2tpd[446]: INFO rs_l2tpd::reconciler::sessions: session incus (tunnel_id=10, session_id=100): removed
+[   76.074556] phase6-finish[484]: Nov 03 06:49:49 phase6 rs-l2tpd[446]: INFO rs_l2tpd::reconciler::tunnels: tunnel incus (tunnel_id=10): removed
+[   76.076690] phase6-finish[484]: Nov 03 06:49:49 phase6 rs-l2tpd[446]: INFO rs_l2tpd: shutdown complete
+[   76.078572] phase6-finish[484]: Nov 03 06:49:49 phase6 phase6-probe[480]: running 1 test
+[   76.080356] phase6-finish[484]: Nov 03 06:49:49 phase6 phase6-probe[480]: CONCURRENT_MAC=persistent; address=d6:60:07:ec:2e:96
+[   76.082502] phase6-finish[484]: Nov 03 06:49:49 phase6 phase6-probe[480]: ROOT_SANDBOX=active; private mounts, protected root/tunables, writable exception, exact capabilities
+[   76.085439] phase6-finish[484]: Nov 03 06:49:49 phase6 phase6-probe[480]: test supplied_unit_enforces_mounts_capabilities_ordering_store_and_cleanup ... ok
+[   76.087741] phase6-finish[484]: Nov 03 06:49:49 phase6 phase6-probe[480]: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 26.23s
+
+ROOT_SYSTEMD_RESULT=0
+[0;1;39mShutting down.[0m
+Sending SIGTERM to remaining processes...
+Sending SIGKILL to remaining processes...
+[0;1;39mSending SIGKILL to PID 496 ((sd-close)).[0m
+All filesystems, swaps, loop devices, MD devices and DM devices detached.
+Powering off.
+[   76.814949] reboot: Power down

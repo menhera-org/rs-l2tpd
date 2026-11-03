@@ -1,0 +1,4 @@
+5a20a3f75bcc224a78c9837718050fb82f4bcef2208a7748a3ca9b919805b436  /tmp/rs-l2tpd-outcome-batch.lkzXUzoF/target/source-work/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/c603efb40df4e15c/out/source_work-c603efb40df4e15c
+eb84b3fe21ef8b65fb4f544eb1e3578175fe5dcafcf1bbb40fb5b986cfe18b47  tests/source_work.rs
+55d8a8735793d4cd89e29a7dbd2ac08033348ec79a08b416db13d96596a3dcef  tools/coverage/src/work.rs
+096e2efe8cfaf5cd7ee39ec1fde7b8c0124af21bb0c0c058d907934afba54c5a  tools/coverage/source-work.sh

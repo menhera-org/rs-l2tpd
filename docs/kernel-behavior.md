@@ -3,16 +3,16 @@
 [Documentation index](README.md) · [Required targets](testing.md#kernel-targets) · [Kernel specification](spec/kernel.md) · [Evidence map](kernel-evidence.md)
 
 The latest complete matrix passes all thirteen profiles on signed
-`db7c1d2`, with identical initial/final publication selection and empty
+`e29c6f3`, with identical initial/final publication selection and empty
 source patches. Each of the five normal profiles passes 27 scenarios and
 37 process cases; all five clock profiles, both IPv6-absent boots and
 missing-driver recovery pass. Every target rejects ACKs without family
 data with EPROTO and an empty cache. The wrong-tunnel query distinction
 below is reproduced on all five targets. Repository record
-`audit/phase6/matrix-20261103T021525Z-400861/README.md` identifies the run.
-The later readiness/resync changes have separate model/common qualification;
-their fresh coverage and full matrix remain pending. Earlier clock failures
-remain unresolved evidence about determinism.
+`audit/phase6/matrix-20261103T051118Z-682716/README.md` identifies the run.
+The same source passes the separate 100% coverage CI gate. Earlier
+parallel clock failures remain unresolved evidence about execution
+sensitivity; the passing serial matrix does not establish their cause.
 
 The checked-boundary batch after signed 241bd51 passes all thirteen
 required profiles with fresh production qualification. This includes all

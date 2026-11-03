@@ -27,85 +27,38 @@ the scenario suite below; read them before writing new scenarios.
 
 ## Execution status, 2026-11-03
 
-Phase 6 remains open. Signed `db7c1d2` passes both CI jobs, CodeQL and all
-thirteen required kernel profiles, with unchanged initial/final targets
-and empty source patches. The subsequent outcome-boundary source passes
-the full common gates, ten native suites, three musl collections and six
-fault controls. The isolated logging case runs serially; its earlier
-parallel failure is retained. Ten checker tests and four validation controls
-pass. Signed c0a1b3b passes both CI jobs and CodeQL. Its fresh source measurement
-reaches 8,444/8,444 lines and 1,836/1,838 outcomes, with checker exit 1.
-Two added condition witnesses cover those outcomes; their first collection
-still misses the unsent-store refusal and restart shutdown guard:
-8,443/8,444 lines and 1,837/1,838 outcomes, exit 1. The extended shutdown
-batch passes 19 tests ten times per libc and the full common checks;
-the fresh combined checker now passes 8,444/8,444 production source lines
-and 1,838/1,838 condition outcomes, exit 0. Raw LLVM remains 99.40% lines
-and 98.15% outcomes. The separate 100% workflow job is implemented. A fresh
-local rehearsal reproduces both 100% totals using its exact profile scopes;
-its first GitHub execution is pending.
- Current-source
-full kernel qualification and complete clause proof remain open.
- Repository records
-`audit/phase6/source-coverage-20261103/README.md`,
-`audit/phase6/final-source-coverage-20261103/README.md` and
-`audit/phase6/final-condition-witnesses-20261103/README.md` retain the scope.
-The following counts describe the earlier defensive-boundary collector.
+Phase 6 remains open. Signed `e29c6f3` passes all three jobs in
+[CI run 41582370103](https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370103)
+and CodeQL. Its complete required-kernel matrix passes all thirteen profiles:
+five normal suites, five clock/pause cases, both IPv6-absent boots and
+missing-driver recovery. Initial/final publication selections agree and
+both source patches are empty. Each normal profile includes all 27
+scenarios and 37 process cases.
 
-The maintainer approved merged-source coverage on November 3.
-The calibrated checker reports **8,441/8,441 source lines and
-1,834/1,840 condition outcomes**, exits 1 and leaves **six outcomes**.
-The retained raw LLVM summary is **8,655/8,707 lines (99.40%) and
-1,800/1,840 outcomes (97.83%)**. No production exclusion is added.
-The separate tool passes eight GNU/musl tests, Rust 1.89 checks and
-compiler-generated complementary-copy/repeated-guard calibration.
-The full production 100% CI job remains unfinished.
+P4's local measurement and separate CI acceptance pass: **8,444/8,444
+production source lines and 1,838/1,838 condition outcomes**. The downloaded
+CI artifact has the same 51 source fingerprints as the independent local
+rehearsal. Raw LLVM remains 99.40% lines and 98.20% outcomes in CI; no
+production exclusion is added. The approved source metric and raw summary
+remain separate reports.
 
-The defensive-boundary batch passes common checks, ten instrumented suites,
-repeated GNU/musl live collections, GNU Incus, manager/task limits and the
-unmodified root system-unit profile. Seven restored controls reject their
-intended faults. Repository file
-`audit/phase6/defensive-boundaries-20261103/README.md` records exact counts,
-the final uncached-family test and the post-collection inventory limitation.
-This batch does not replace the earlier full matrix or resolve its clock
-failures. The required set remains Ubuntu 6.8.0-147.147 and 7.0.0-42.42,
-vanilla 6.8.12 and 7.0.14, and mainline 7.4-rc1.
+Strict maps cover 333 active rules and classify/cite 43 kernel facts.
+They prove traceability, not every clause. The expanded allocation fixture
+passes ten GNU and ten musl repetitions; the integrated dispatch-work runner
+passes 240 cases. Deliberate temporary inventories, a configuration-wide scan
+and both meter defects are rejected and restored. Common checks pass after
+registration. Three fresh musl scenario/Incus pairs and the unmodified root
+systemd profile pass; the shipped daemon remains byte-identical to e29c6f3.
+The final clause assessment and actual CI qualification of the new checks
+remain open. One current CI execution does not establish ten repetitions
+of this revision.
+Earlier parallel-QEMU clock failures remain recorded; this serial passing
+matrix does not establish their cause or erase them.
 
-
-The preceding event/lifetime batch adds reader/reopen/generation races, closed queues,
-shutdown reload completions, repeated conflicts and defensive adoption/
-rename cases. Ten instrumented suites, repeated GNU/musl models, GNU live
-and Incus, manager/task-limit checks, the unmodified root systemd unit and
-three GNU buffer-force guests pass. Direct container limits exercise both
-fork failures; three stable repetitions per libc pass. Seven mutation
-controls reject their intended faults. Sharing test helpers changes source
-locations, so these figures come from a fresh collector.
-
-Required normal/boot profiles and a serial replay of all five clock
-profiles pass. The earlier parallel launch fails two clocks, and QEMU
-single-thread/one-CPU experiments fail scale. Those attempts remain in
-the record; the shipping runner and timing assertions are unchanged.
-The passing replay does not establish determinism or resolve the suspected
-emulator fault. Final focused lifetime repetitions qualify the later
-quiet-reader fixture; normal guests retain its earlier revision.
-
-The scoped-inventory/event batch adds malformed readiness bytes, filtered
-session inventories, creation-timeout cleanup and VRF/zone event cases.
-Ten instrumented suites, three GNU and three musl container repetitions,
-three instrumented live repetitions and five focused kernel profiles pass.
-Seven further controls are rejected. Wrong-tunnel session queries return
-ENODEV on the two 6.8 targets and a foreign-tunnel record on the three
-newer targets; the adapter returns absence in both cases. Repository file
-`audit/phase6/scoped-inventory-events-20261102/README.md` records the
-scope. Its focused profiles do not replace the preceding full matrix.
-
-Strict maps cover declarations for 333 active rules and classify/cite
-43 kernel facts. They establish traceability. Complete
-clause/history/resource/event-cost proof and the 100% coverage gate still
-require evidence. Current and historical scopes are retained in repository
-files `audit/PHASE6_VERIFICATION_2026-11-02.md`,
-`audit/phase6/checked-boundaries-20261102/README.md` and
-`audit/phase6/event-and-lifetime-ordering-20261102/README.md`.
+Repository records `audit/PHASE6_VERIFICATION_2026-11-03.md`,
+`audit/phase6/ci-coverage-20261103/README.md` and
+`audit/phase6/matrix-20261103T051118Z-682716/README.md` retain the commands,
+results, source identities, earlier failures and remaining scope.
 
 ## Rules that hold for the whole phase
 
@@ -231,9 +184,9 @@ identifies the source and each result. Both strict flags are now set in
 the common CI script; regular CI retains one full guest per run. This
 establishes declaration traceability. The updated strict workflow also
 [passes in CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41211013318).
-Declaration traceability passes; complete clause proof and 100% coverage
-remain open. The latest November 1 required matrix passes on signed production source
-`2d5ae45`, as recorded above.
+Declaration traceability passes. P4 and the complete required matrix now
+also pass on signed e29c6f3, as recorded in the current execution status;
+complete clause proof remains separate.
 
 ## P2. The scenario suite
 

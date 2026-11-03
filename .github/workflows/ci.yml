@@ -16,7 +16,7 @@ jobs:
   build:
     name: Build and check
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
@@ -39,20 +39,36 @@ jobs:
           toolchain: nightly-2026-10-28
           components: llvm-tools-preview
 
+      - name: Install coverage tool
+        timeout-minutes: 5
+        run: cargo install cargo-llvm-cov --version 0.9.1 --locked
+
+      - name: Measure event dispatch work
+        id: source_work
+        timeout-minutes: 20
+        run: |
+          sh tools/coverage/source-work.sh target/source-work-record > target/source-work-driver.log 2>&1 || {
+            cat target/source-work-driver.log
+            exit 1
+          }
+          cat target/source-work-driver.log
+
       - name: Generate coverage
         id: coverage
         timeout-minutes: 10
         run: |
           sh tools/coverage/calibrate.sh target/coverage-calibration
-          cargo install cargo-llvm-cov --version 0.9.1 --locked
           cargo +nightly-2026-10-28 llvm-cov --locked --all-features --branch --lcov --output-path target/lcov.info
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: always() && steps.coverage.outcome != 'skipped'
+        if: always() && (steps.source_work.outcome != 'skipped' || steps.coverage.outcome != 'skipped')
         timeout-minutes: 2
         with:
           name: coverage-calibration
-          path: target/coverage-calibration/
+          path: |
+            target/coverage-calibration/
+            target/source-work-record/
+            target/source-work-driver.log
           if-no-files-found: error
           retention-days: 14
 

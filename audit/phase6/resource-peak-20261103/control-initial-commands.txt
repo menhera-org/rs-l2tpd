@@ -1,0 +1,29 @@
+set -eu
+candidate=/tmp/rs-l2tpd-outcome-batch.lkzXUzoF
+record=/home/dev/rs-l2tpd/audit/phase6/resource-peak-20261103
+backup=$(mktemp /tmp/rs-l2tpd-initial-peak.XXXXXXXX)
+cp "$candidate/src/reconciler/mod.rs" "$backup"
+restore() { cp "$backup" "$candidate/src/reconciler/mod.rs"; rm -f "$backup"; }
+trap restore 0
+trap 'exit 1' HUP INT TERM
+cd "$candidate"
+/tmp/phase6-replace src/reconciler/mod.rs <<'PATCH'
+    pub fn reconcile(&mut self, config: Config) -> bool {
+===REPLACE===
+    pub fn reconcile(&mut self, config: Config) -> bool {
+        if let Ok(inventory) = self.k.dump_links() {
+            std::hint::black_box(inventory);
+        }
+PATCH
+status=0
+git --no-pager diff --no-index -- "$backup" src/reconciler/mod.rs > "$record/control-initial-owned-inventory.patch" || status=$?
+test "$status" -eq 1
+status=0
+cargo test --locked --all-features --target x86_64-unknown-linux-gnu --test resource-alloc -- --nocapture > "$record/control-initial-owned-inventory.log" 2>&1 || status=$?
+test "$status" -eq 101
+grep -q 'initial inventory peak.*count=10000' "$record/control-initial-owned-inventory.log"
+grep -q 'test result: FAILED' "$record/control-initial-owned-inventory.log"
+restore
+trap - 0
+cmp src/reconciler/mod.rs /home/dev/rs-l2tpd/src/reconciler/mod.rs
+printf 'INITIAL_TEMPORARY_INVENTORY_REGRESSION_REJECTED_AND_RESTORED=1\n'

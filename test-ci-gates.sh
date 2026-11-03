@@ -35,7 +35,7 @@ serial_reload_guard() {
 serial_reload_guard
 serial_reload_guard --target x86_64-unknown-linux-musl
 cargo test --locked --all-features --bin rs-l2tpd syscall_barrier:: -- --ignored --test-threads=1
-cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process --test startup
+cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process --test startup --test resource-alloc
 cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd syscall_barrier:: -- --ignored --test-threads=1
 
 RULEMAP_STRICT=1 SRCLINK_STRICT=1 \

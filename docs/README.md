@@ -28,21 +28,21 @@ Version 0.2.0 has not been released. The tree contains the configuration,
 fake/real kernel, reconciler, runtime, services and binary. Phases 1–5 have
 scoped verification records; [Phase 6](phase6.md) remains open.
 
-Signed `c0a1b3b` passes both common CI jobs and CodeQL. The latest full
-required-kernel matrix passes all thirteen profiles on earlier signed source
-`db7c1d2`. It includes all 27 normal scenarios on each required target,
-five clock/pause profiles, two IPv6-absent boots and missing-driver recovery.
-The later readiness/resync source still needs full matrix qualification;
-earlier parallel clock failures remain recorded.
+Signed `e29c6f3` passes all three CI jobs, including the separate production
+coverage job, and CodeQL. Its full required-kernel matrix passes all
+thirteen profiles, with identical initial/final publication selections
+and empty source patches. Every normal target passes 27 scenarios and
+37 process cases; the five clocks and special boot profiles also pass.
+Earlier parallel clock failures remain recorded.
 
-The local coverage checker passes 8,444/8,444 production source lines and
-1,838/1,838 condition outcomes, exit 0. A fresh local rehearsal reproduces
-those totals using the new separate CI job's recipe; its first GitHub
-execution is pending.
- Complete clause/resource/event-cost proof and current-source
-kernel qualification remain open.
- Repository file `audit/PHASE6_VERIFICATION_2026-11-03.md` identifies
-the source, commands, results and remaining work.
+The approved source checker passes 8,444/8,444 production lines and
+1,838/1,838 condition outcomes, both locally and in CI. The CI artifact's
+51 source fingerprints match the independent local rehearsal.
+Allocation-peak checks pass ten GNU and ten musl repetitions; the integrated
+dispatch-work runner passes 240 cases and rejects a configuration-wide scan.
+Their actual CI qualification and the final clause assessment remain open. Repository file
+`audit/PHASE6_VERIFICATION_2026-11-03.md` identifies the source, commands,
+results and remaining work.
 
 Strict traceability, unprivileged Incus and the root system-unit sandbox
 have passing records with their scope stated. Released iphost 0.4.4 supplies

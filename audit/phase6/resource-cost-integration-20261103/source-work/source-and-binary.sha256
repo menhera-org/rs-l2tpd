@@ -1,0 +1,4 @@
+f6422ad0939cf2bc8c57e0d881bbb3615f0e6024ca6b77c59aed42d40edf3e3d  /home/dev/rs-l2tpd/target/source-work/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/c603efb40df4e15c/out/source_work-c603efb40df4e15c
+22447f5c9bce6648a0e21f813d28510f108437082cfde7c316be8227e1ae232f  tests/source_work.rs
+8acd51c13709635a4dda5872ff36f45359fe4136b04f6b8523c2c872729ae8de  tools/coverage/src/work.rs
+51b961e409c1c84a0fdec411a70a28aac0b652846f6a95da46e2c70ce55f2b54  tools/coverage/source-work.sh

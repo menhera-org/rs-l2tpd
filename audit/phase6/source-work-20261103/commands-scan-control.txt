@@ -1,0 +1,26 @@
+set -eu
+record=/home/dev/rs-l2tpd/audit/phase6/source-work-20261103
+candidate=/tmp/rs-l2tpd-outcome-batch.lkzXUzoF
+cp /tmp/phase6-source-work-scan-control.sh "$record/commands-scan-control.txt"
+executable=$(awk -v root="$candidate/" -v label='Running tests/source_work.rs (' '
+ {at=index($0,label); if(at) {line=substr($0,at+length(label));sub(/[)]$/, "",line);print root line}}
+' "$record/build-scan-control.log")
+test -f "$executable" && test -x "$executable"
+sysroot=$(rustc +nightly-2026-10-28 --print sysroot)
+llvm=$sysroot/lib/rustlib/x86_64-unknown-linux-gnu/bin
+for kind in calibration unrelated; do
+ for count in 1 100 300; do
+  output=$record/control-$kind-$count
+  mkdir "$output"
+  PHASE6_WORK_BINDINGS=$count PHASE6_WORK_KIND=$kind PHASE6_WORK_RECORD=$output LLVM_PROFILE_FILE="$output/exit-%p-%m.profraw" "$executable" --ignored --exact measured_dispatch_work --nocapture > "$output/test.log" 2>&1
+  grep -q 'test result: ok. 1 passed; 0 failed' "$output/test.log"
+  for stage in before after; do
+   "$llvm/llvm-profdata" merge -sparse "$output/$stage.profraw" -o "$output/$stage.profdata"
+   "$llvm/llvm-cov" export "$executable" --instr-profile "$output/$stage.profdata" --compilation-dir "$candidate" > "$output/$stage.json"
+  done
+  /tmp/phase6-source-work-count "$candidate" "$output/before.json" "$output/after.json" > "$output/work.log"
+  printf '%s bindings=%s ' "$kind" "$count"
+  cat "$output/work.log"
+ done
+done
+printf 'SOURCE_WORK_SNAPSHOTS_EXPORTED=1\n'

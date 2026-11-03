@@ -34,22 +34,20 @@ The last release is 0.1.5. The rewrite will ship as 0.2.0 and implements
 the [specification](docs/spec/README.md). Phases 1–5 have scoped verification
 records; [Phase 6 remains open](audit/PHASE6_VERIFICATION_2026-11-03.md).
 
-Signed `c0a1b3b` passes the common CI jobs and CodeQL. The latest completed
-[required-kernel matrix](audit/phase6/matrix-20261103T021525Z-400861/README.md)
-passes all thirteen profiles on earlier signed source `db7c1d2`. It includes
-fragmentation, 300 tunnels, five clock/pause cases, both IPv6-absent boots
-and missing-driver recovery. The later readiness/resync source still needs
-full matrix qualification. Earlier parallel clock failures remain recorded.
+Signed `e29c6f3` passes [all three CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370103),
+including production coverage, and CodeQL. Its
+[required-kernel matrix](audit/phase6/matrix-20261103T051118Z-682716/README.md)
+passes all thirteen profiles: five normal suites including fragmentation
+and 300 tunnels, five clock/pause cases, both IPv6-absent boots and
+missing-driver recovery. Source and publication selections remain unchanged
+throughout the matrix. Earlier parallel clock failures remain recorded.
 
-The [local coverage checker](audit/phase6/closure-coverage-20261103/README.md)
-passes **8,444/8,444 production source lines and 1,838/1,838 condition
-outcomes**, exit 0. A [fresh local rehearsal](audit/phase6/coverage-ci-rehearsal-20261103/README.md)
-reproduces those totals using the new separate CI job's recipe; its first
-GitHub execution is pending.
-
-Complete clause/resource/event-cost proof and current-source kernel
-qualification remain open.
-
+The approved coverage checker passes **8,444/8,444 production source lines
+and 1,838/1,838 condition outcomes**, both
+[locally](audit/phase6/closure-coverage-20261103/README.md) and
+[in CI](audit/phase6/ci-coverage-20261103/README.md).
+The new allocation/work checks pass their local qualification. The final
+clause assessment and their actual CI qualification remain open.
 
 Strict rule/source maps, unprivileged Incus and the unmodified root systemd
 sandbox have passing records with their source and execution scope stated.

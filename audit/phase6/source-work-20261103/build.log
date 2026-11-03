@@ -1,0 +1,2 @@
+warning: --no-run is deprecated, use `cargo llvm-cov report` subcommand instead
+error: --no-report may not be used together with --no-run

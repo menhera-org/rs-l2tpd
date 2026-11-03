@@ -1,0 +1,102 @@
+//! Separate profiling snapshots for event-dispatch work; no wall-clock threshold.
+#![cfg(coverage_nightly)]
+use rs_l2tpd::kernel::{LinkInfo, Notice, fake::FakeKernel};
+use rs_l2tpd::reconciler::{IphostResolve, Reconciler, Source};
+use std::error::Error;
+use std::path::Path;
+
+unsafe extern "C" {
+    fn __llvm_profile_get_size_for_buffer() -> u64;
+    fn __llvm_profile_write_buffer(buffer: *mut std::ffi::c_char) -> i32;
+}
+
+fn snapshot(path: &Path) -> Result<(), Box<dyn Error>> {
+    // LLVM's profile runtime supplies the required size and fills this owned buffer.
+    let size = usize::try_from(unsafe { __llvm_profile_get_size_for_buffer() })?;
+    if !(1..=64 * 1024 * 1024).contains(&size) {
+        return Err("unexpected LLVM profile buffer size".into());
+    }
+    let mut bytes = vec![0u8; size];
+    if unsafe { __llvm_profile_write_buffer(bytes.as_mut_ptr().cast()) } != 0 {
+        return Err("LLVM profile buffer write failed".into());
+    }
+    std::fs::write(path, bytes)?;
+    Ok(())
+}
+
+/// spec: M16, G12
+#[test]
+#[ignore = "separate before/after profile snapshots; source-work runner only"]
+fn measured_dispatch_work() -> Result<(), Box<dyn Error>> {
+    let count: usize = std::env::var("PHASE6_WORK_BINDINGS")?.parse()?;
+    if !(1..=300).contains(&count) {
+        return Err("work fixture needs 1 through 300 bindings".into());
+    }
+    let kind = std::env::var("PHASE6_WORK_KIND")?;
+    if !matches!(
+        kind.as_str(),
+        "unrelated" | "unchanged" | "rename" | "calibration"
+    ) {
+        return Err("unknown work fixture kind".into());
+    }
+    let output = std::env::var_os("PHASE6_WORK_RECORD").ok_or("missing profile directory")?;
+    let output = Path::new(&output);
+    std::fs::create_dir_all(output)?;
+    let mut kernel = FakeKernel::new(42);
+    let mut text = "[host]\nfix_bindv6only=false\n".to_owned();
+    let mut first = None;
+    for n in 0..count {
+        let name = format!("wan{n}");
+        let index = kernel.add_link(&name, false);
+        first.get_or_insert(index);
+        kernel.set_up(index, true);
+        kernel.add_addr(index, "192.0.2.1".parse()?);
+        text += &format!(
+            "[tunnels.t{n}]\ntunnel_id={}\nremote_addr='192.0.2.2'\nbind_interface='{name}'\n",
+            n + 1
+        );
+    }
+    kernel.take_monitor();
+    let link = if matches!(kind.as_str(), "unchanged" | "rename") {
+        kernel.link(first.unwrap()).unwrap().clone()
+    } else {
+        LinkInfo::new(90_000, "foreign".parse()?, true, false, None)
+    };
+    let mut r = Reconciler::new(kernel, Box::<IphostResolve>::default());
+    assert!(r.reconcile(toml::from_str(&text)?));
+    let original: Vec<_> = (1..=count as u32)
+        .map(|id| {
+            let socket = r.kernel().tunnel_socket(id).unwrap();
+            (socket, r.kernel().connection(socket))
+        })
+        .collect();
+    r.kernel_mut().clear_ops();
+    snapshot(&output.join("before.profraw"))?;
+    for event in 0..500 {
+        if kind == "calibration" {
+            for _ in 0..count {
+                std::hint::black_box(r.kernel().inet6());
+            }
+        } else if kind == "rename" {
+            let notice = {
+                let kernel = r.kernel_mut();
+                kernel.rename_link(first.unwrap(), if event % 2 == 0 { "away" } else { "wan0" });
+                kernel.link(first.unwrap()).unwrap().clone()
+            };
+            r.handle(Source::Monitor, Notice::LinkNew(notice));
+        } else {
+            r.handle(Source::Monitor, Notice::LinkNew(link.clone()));
+        }
+    }
+    snapshot(&output.join("after.profraw"))?;
+    if kind != "rename" {
+        assert!(r.kernel().ops().is_empty());
+    }
+    for (id, (socket, connection)) in (1..=count as u32).zip(original) {
+        assert_eq!(r.kernel().tunnel_socket(id), Some(socket));
+        assert_eq!(r.kernel().connection(socket), connection);
+    }
+    assert!(r.ready());
+    println!("SOURCE_WORK_SNAPSHOT kind={kind} bindings={count} events=500");
+    Ok(())
+}

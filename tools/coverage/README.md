@@ -59,8 +59,10 @@ requires missing artifact logs and relative guest paths to fail before Docker.
 The separate production-coverage workflow job collects ten ordinary suites,
 a full GNU instrumented guest and thread/fork refusal profiles, then requires
 both merged totals to reach 100%. A fresh local rehearsal passes 8,444/8,444
-source lines and 1,838/1,838 condition outcomes. Its first GitHub execution
-remains pending; the workflow's presence alone does not pass P4.
+source lines and 1,838/1,838 condition outcomes. GitHub run 41582370103
+passes the separate job on signed e29c6f3, with identical source fingerprints
+and the same complete source totals. Its raw summary remains 99.40% lines
+and 98.20% outcomes. This is one CI execution of this revision.
 
 
 `sh tools/coverage/run-guest.sh NATIVE_LOG KERNEL_ROOT RECORD PROFILES` requires
@@ -72,3 +74,28 @@ The caller imports profiles only after all result markers pass and no LLVM
 profile error appears. `restart-cli.sh` starts a real daemon, requires the CLI
 to return 0, observes re-exec confirmation and requires clean shutdown. Run it
 only in a disposable test container or guest.
+
+`sh tools/coverage/source-work.sh RECORD` runs a separate dispatch-cost
+measurement with a fresh record and isolated target directory. It takes
+before/after LLVM snapshots of one binary for eight workloads, three
+configuration sizes and ten repetitions. The calibration must grow with
+configuration size; all single-entry/unrelated cases must keep the same
+executed daemon-region count. It retains full compressed exports, exact
+binary/source hashes and actual test results. This is GNU profiling and
+requires the pinned nightly, cargo-llvm-cov, xz and sha256sum.
+
+The separate phase6-source-work binary validates the export schema, region
+geometry/identity, monotonic counters and overflow. Its four tests run on
+GNU and musl in the common script. Fake host-emulation regions are excluded
+from this cost measurement; P4 coverage still includes them. Source-region
+executions do not measure standard library internals, machine instructions,
+kernel work or wall-clock latency. Existing request spies and semantic
+index/history cases remain necessary.
+
+The integrated 240-case collection passes. A deliberate configuration-wide
+scan fails its curve check while the older functional witness still passes.
+The ordinary resource-alloc integration target separately measures startup
+and resync allocation peaks on GNU and musl. The build workflow has a
+20-minute work step and a 60-minute job bound, and uploads failure records.
+Its new revision still needs an actual GitHub result; the earlier successful
+P4 run does not qualify this added step.

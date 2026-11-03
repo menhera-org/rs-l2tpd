@@ -1,0 +1,31 @@
+set -eu
+candidate=/tmp/rs-l2tpd-outcome-batch.lkzXUzoF
+record=/home/dev/rs-l2tpd/audit/phase6/source-work-20261103
+backup=$(mktemp /tmp/rs-l2tpd-final-work.XXXXXXXX)
+cp "$candidate/src/reconciler/events.rs" "$backup"
+restore() { cp "$backup" "$candidate/src/reconciler/events.rs"; rm -f "$backup"; }
+trap restore 0
+trap 'exit 1' HUP INT TERM
+cp /home/dev/rs-l2tpd/tools/coverage/src/work.rs "$candidate/tools/coverage/src/work.rs"
+cd "$candidate"
+/tmp/phase6-replace src/reconciler/events.rs <<'PATCH'
+    pub fn handle(&mut self, source: Source, notice: Notice) {
+===REPLACE===
+    pub fn handle(&mut self, source: Source, notice: Notice) {
+        for id in self.tunnels.keys() {
+            std::hint::black_box(id);
+        }
+PATCH
+status=0
+git --no-pager diff --no-index -- "$backup" src/reconciler/events.rs > "$record/final-control-config-scan.patch" || status=$?
+test "$status" -eq 1
+status=0
+sh tools/coverage/source-work.sh "$record/final-control" > "$record/final-control-driver.log" 2>&1 || status=$?
+test "$status" -eq 1
+grep -q 'work curve differs: repeat=1 kind=unrelated bindings=100' "$record/final-control-driver.log"
+cargo test --locked --all-features --lib --target x86_64-unknown-linux-gnu reconciler::tests::cache_cost::unchanged_bound_link_workload_preserves_other_dependencies -- --exact --nocapture > "$record/final-control-functional-witness.log" 2>&1
+grep -q 'test result: ok. 1 passed; 0 failed' "$record/final-control-functional-witness.log"
+restore
+trap - 0
+cmp src/reconciler/events.rs /home/dev/rs-l2tpd/src/reconciler/events.rs
+printf 'FINAL_RUNNER_REJECTS_CONFIG_SCAN_WHILE_FUNCTIONAL_WITNESS_PASSES=1\n'

@@ -1,5 +1,39 @@
 # Phase 6 verification, November 3
 
+Signed `e29c6f3` is synced. All three jobs pass in
+[CI run 41582370103](https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370103),
+as does [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370032).
+The [downloaded production artifact](phase6/ci-coverage-20261103/README.md)
+reports **8,444/8,444 source lines and 1,838/1,838 condition outcomes**,
+with a successful mandatory gate. All 51 source fingerprints match the
+independent local rehearsal. Raw LLVM remains 99.40% lines and 98.20%
+outcomes in CI; no production exclusion is added.
+
+The [required matrix on e29c6f3](phase6/matrix-20261103T051118Z-682716/README.md)
+passes all thirteen profiles, with empty source patches and unchanged
+initial/final publication selections. Each normal target passes all 27
+scenarios and 37 process cases. All clocks, both IPv6-absent boots and
+missing-driver recovery pass. This does not erase earlier failed parallel
+clock experiments or establish their cause.
+
+The [allocation/cost integration](phase6/resource-cost-integration-20261103/README.md)
+passes the final common checks. The expanded allocation fixture passes
+ten GNU and ten musl repetitions, with 18 startup and 18 resync measurements
+per repetition. The integrated work runner passes all 240 cases. Its new
+parser passes four tests on both libcs. Fault controls reject temporary
+full inventories, a configuration-wide scan, disabled peak accounting and
+forgotten deallocation; all mutations are restored.
+
+The [fresh host checks](phase6/final-hosts-20261103/README.md) pass three
+complete musl scenario/Incus pairs and the unmodified root systemd profile.
+Production src/ is unchanged from e29c6f3; the compiled shipped-musl daemon
+is byte-identical to the tested binary. Actual CI qualification of the
+new checks and the final clause assessment remain open. The first
+production-coverage job is a pass, not ten CI executions of this revision.
+
+The following collector entries retain their historical failures and
+subsequent local closure.
+
 The [fresh source collector](phase6/source-coverage-20261103/README.md)
 reports 8,444/8,444 lines and 1,836/1,838 outcomes, checker exit 1.
 The [two-witness collection](phase6/final-source-coverage-20261103/README.md)
@@ -17,10 +51,9 @@ outcomes**, checker exit **0**. Raw LLVM retains **8,657/8,709 lines
 A full instrumented guest and three real-daemon CLI restarts per libc pass;
 only GNU profiles enter the coverage measurement. The new separate 100%
 workflow job's [fresh local rehearsal](phase6/coverage-ci-rehearsal-20261103/README.md)
-reproduces both 100% totals, checker exit 0. Its first GitHub execution,
-current-source full kernel matrix and
-
-complete clause/resource/event-cost proof remain unfinished.
+reproduces both 100% totals, checker exit 0. The first GitHub execution and
+current-source full kernel matrix subsequently pass, as recorded above.
+The final clause assessment remains separate.
 
 
 Signed c0a1b3b passes [both CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41572274408)

@@ -1,0 +1,113 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 51af15e..e87bbce 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -16,7 +16,7 @@ jobs:
+   build:
+     name: Build and check
+     runs-on: ubuntu-latest
+-    timeout-minutes: 30
++    timeout-minutes: 60
+     steps:
+       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+         with:
+@@ -39,20 +39,36 @@ jobs:
+           toolchain: nightly-2026-10-28
+           components: llvm-tools-preview
+ 
++      - name: Install coverage tool
++        timeout-minutes: 5
++        run: cargo install cargo-llvm-cov --version 0.9.1 --locked
++
++      - name: Measure event dispatch work
++        id: source_work
++        timeout-minutes: 20
++        run: |
++          sh tools/coverage/source-work.sh target/source-work-record > target/source-work-driver.log 2>&1 || {
++            cat target/source-work-driver.log
++            exit 1
++          }
++          cat target/source-work-driver.log
++
+       - name: Generate coverage
+         id: coverage
+         timeout-minutes: 10
+         run: |
+           sh tools/coverage/calibrate.sh target/coverage-calibration
+-          cargo install cargo-llvm-cov --version 0.9.1 --locked
+           cargo +nightly-2026-10-28 llvm-cov --locked --all-features --branch --lcov --output-path target/lcov.info
+ 
+       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+-        if: always() && steps.coverage.outcome != 'skipped'
++        if: always() && (steps.source_work.outcome != 'skipped' || steps.coverage.outcome != 'skipped')
+         timeout-minutes: 2
+         with:
+           name: coverage-calibration
+-          path: target/coverage-calibration/
++          path: |
++            target/coverage-calibration/
++            target/source-work-record/
++            target/source-work-driver.log
+           if-no-files-found: error
+           retention-days: 14
+ 
+diff --git a/Cargo.toml b/Cargo.toml
+index 9c2888f..e4d5656 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -138,3 +138,13 @@ codegen-units = 1
+ 
+ [lints.rust]
+ unexpected_cfgs = { level = "warn", check-cfg = ["cfg(coverage_nightly)"] }
++
++[[test]]
++name = "resource-alloc"
++path = "tests/resource_alloc.rs"
++required-features = ["fake-kernel", "serde"]
++
++[[test]]
++name = "source-work"
++path = "tests/source_work.rs"
++required-features = ["fake-kernel", "serde"]
+diff --git a/test-ci-gates.sh b/test-ci-gates.sh
+index 5bf81ae..7de38f5 100755
+--- a/test-ci-gates.sh
++++ b/test-ci-gates.sh
+@@ -35,7 +35,7 @@ serial_reload_guard() {
+ serial_reload_guard
+ serial_reload_guard --target x86_64-unknown-linux-musl
+ cargo test --locked --all-features --bin rs-l2tpd syscall_barrier:: -- --ignored --test-threads=1
+-cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process --test startup
++cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd --test process --test startup --test resource-alloc
+ cargo test --locked --all-features --target x86_64-unknown-linux-musl --bin rs-l2tpd syscall_barrier:: -- --ignored --test-threads=1
+ 
+ RULEMAP_STRICT=1 SRCLINK_STRICT=1 \
+diff --git a/tools/coverage/Cargo.toml b/tools/coverage/Cargo.toml
+index 5aa2936..1e73476 100644
+--- a/tools/coverage/Cargo.toml
++++ b/tools/coverage/Cargo.toml
+@@ -9,3 +9,7 @@ publish = false
+ serde_json = "=1.0.154"
+ 
+ [workspace]
++
++[[bin]]
++name = "phase6-source-work"
++path = "src/work.rs"
+diff --git a/tools/coverage/README.md b/tools/coverage/README.md
+index 0b97654..2982bab 100644
+--- a/tools/coverage/README.md
++++ b/tools/coverage/README.md
+@@ -59,8 +59,10 @@ requires missing artifact logs and relative guest paths to fail before Docker.
+ The separate production-coverage workflow job collects ten ordinary suites,
+ a full GNU instrumented guest and thread/fork refusal profiles, then requires
+ both merged totals to reach 100%. A fresh local rehearsal passes 8,444/8,444
+-source lines and 1,838/1,838 condition outcomes. Its first GitHub execution
+-remains pending; the workflow's presence alone does not pass P4.
++source lines and 1,838/1,838 condition outcomes. GitHub run 41582370103
++passes the separate job on signed e29c6f3, with identical source fingerprints
++and the same complete source totals. Its raw summary remains 99.40% lines
++and 98.20% outcomes. This is one CI execution of this revision.
+ 
+ 
+ `sh tools/coverage/run-guest.sh NATIVE_LOG KERNEL_ROOT RECORD PROFILES` requires

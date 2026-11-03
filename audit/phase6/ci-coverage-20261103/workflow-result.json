@@ -1,0 +1,215 @@
+{
+  "id": 41582370103,
+  "sha": "e29c6f3055e9108e589f43edd673d2b4411dc34d",
+  "status": "completed",
+  "conclusion": "success",
+  "attempt": 1,
+  "url": "https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370103",
+  "jobs": [
+    {
+      "name": "Live conformance",
+      "id": 125739892792,
+      "status": "completed",
+      "conclusion": "success",
+      "started": "2026-11-03T05:10:50Z",
+      "completed": "2026-11-03T05:24:48Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install guest tooling",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run seeded fake suites",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Prepare networkless guest image",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Fetch stock guest kernel",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build guest executables and interoperability peer",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check task resource failures",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run live suites in a fresh guest",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Build and check",
+      "id": 125739893065,
+      "status": "completed",
+      "conclusion": "success",
+      "started": "2026-11-03T05:10:50Z",
+      "completed": "2026-11-03T05:15:36Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CI gates",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install coverage toolchain",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Generate coverage",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run qltysh/qlty-action/coverage@ebcd284bf32e36a030afe15f1e136c7be08b9506",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Production coverage (100%)",
+      "id": 125739893204,
+      "status": "completed",
+      "conclusion": "success",
+      "started": "2026-11-03T05:10:50Z",
+      "completed": "2026-11-03T05:28:26Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install coverage and guest tooling",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Collect ordinary profiles and freeze mappings",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Prepare guest image and published newer LTS kernel",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Collect instrumented live profiles",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Collect thread and fork failure profiles",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Require complete merged production coverage",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ]
+}

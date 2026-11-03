@@ -223,8 +223,10 @@ until exec and invalidate immediate-cleanup assertions.
 CI and local `./test-ci-gates.sh` runs share the same blocking checks:
 ShellCheck, formatting, warning-denied Clippy and documentation,
 no-default/serde library builds, native/musl tests, and strict rule-map and
-source-link checks. A green CI run does not establish the coverage or complete kernel matrix
-gates. Current review probes and exact commands are in repository file
+source-link checks. CI now also requires the separate 100% production coverage
+job. A green run does not establish the full required-kernel matrix, Incus,
+root-systemd or complete clause-proof gates.
+ Current review probes and exact commands are in repository file
 `tests/kernel/README.md`.
 
 The initial CI qualification (`audit/phase6/strict-gates-20261031/README.md`)
@@ -243,118 +245,49 @@ still requires investigation; the retained qualification does not establish
 that every test or kernel target is deterministic.
 
 Coverage instrumentation excludes test-only `#[cfg(test)]` modules/helpers,
-as approved on 2026-10-31. Every required test still runs. The coverage step
-uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
-ordinary checks and shipped musl binaries stay on stable. The native CI
-badge report is distinct from the merged live-profile P4 gate. The latest
-merged report includes netlink I/O faults, real buffer-force success and
-service queue, reconciler record, runtime/socket error guards and deferred
-MAC changes after device removal, lifetime inputs, deletion recovery,
-stale completions, foreign-family parsing, PID-file inspection errors,
-resolver/host boundaries, installer/descriptor/reconciler failures,
-file races, probe I/O, competing names and late event/input boundaries:
-the checked-boundary report reached 99.18% lines / 96.74% branch outcomes.
+as approved on 2026-10-31. Every required test still runs. Coverage uses
+pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
+ordinary checks and shipped musl binaries stay on stable. The native badge
+report is separate from the merged live-profile P4 gate.
+
 The maintainer approved merged-source measurement on November 3.
-The checker (`tools/coverage/README.md`) preserves exact spans,
-repeated conditions and raw LLVM diagnostics. Eight tests pass on GNU and
-musl; compiler-generated calibration requires missing arms, repeated-guard
-misses and changed sources to fail. The common CI script runs the tool's
-tests, and CI calibrates it before the existing badge upload. The full
-production 100% CI job remains unfinished.
+The checker (`tools/coverage/README.md`) preserves exact spans, repeated
+conditions and raw LLVM diagnostics. Its ten tests pass on GNU and musl.
+Compiler-generated calibration requires missing arms, repeated-guard misses
+and changed sources to fail; four additional controls test input validation.
 
-The subsequent condition witnesses pass ten native suites, three musl
-collections and six restored controls. The reload/shutdown logging case
-launches a subprocess and therefore runs explicitly and serially after
-ordinary fake owners finish, on GNU and musl. The common script requires
-one actual passing test. Its first parallel qualification failed an
-immediate fake-socket deletion assertion and remains recorded.
-The coverage checker now passes ten tests and four validation controls.
-The readiness/resync source collector reports 8,444/8,444 merged lines and
-1,836/1,838 outcomes, exit 1. Added witnesses cover those outcomes; their
-first collection still misses an unsent-store shutdown line and the restart
-shutdown guard (8,443/8,444 lines and 1,837/1,838 outcomes, exit 1).
-The extended shutdown batch passes 19 tests ten times per libc and the
-common checks. The fresh combined checker passes 8,444/8,444 production
-source lines and 1,838/1,838 condition outcomes, exit 0. Raw LLVM remains
-99.40% lines and 98.15% outcomes. The separate 100% workflow job is implemented;
-its fresh local rehearsal reproduces both 100% totals. Its first GitHub
-execution remains pending.
- Repository
-record `audit/phase6/closure-coverage-20261103/README.md` retains the scope.
-Signed db7c1d2 passes
+Signed `e29c6f3` passes all three jobs in
+[CI run 41582370103](https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370103)
+and CodeQL. Both independent local collections and the separate production
+CI job pass **8,444/8,444 source lines and 1,838/1,838 condition outcomes**.
+The CI artifact's 51 source fingerprints match the local rehearsal.
+CI retains raw LLVM **99.40% lines and 98.20% outcomes**; no production
+exclusion is added. Its production job has a 70-minute limit, with 35
+minutes for the instrumented guest and an internal 1,800-second timeout.
 
-all thirteen required matrix profiles; the later source still needs that
-full qualification. Signed c0a1b3b passes both CI jobs and CodeQL.
+The same signed source passes all thirteen required matrix profiles:
+five full normal suites, five clock/pause cases, both IPv6-absent boots and
+missing-driver recovery. Source patches are empty and initial/final
+publication selections agree. Earlier parallel-QEMU clock failures remain
+recorded; serial passes do not establish their cause. Three fresh musl
+scenario/Incus pairs and the unmodified root-systemd profile also pass.
+The shipped daemon remains byte-identical after new test registration.
+Allocation peaks pass ten GNU and ten musl repetitions; the integrated
+source-work runner passes 240 cases. Their actual CI qualification and
+the final clause assessment remain open.
 
+Fork-based fixtures execute explicitly and serially after ordinary fake
+descriptor owners finish. Their earlier parallel failure remains retained.
+The library harness also compiles the public rule cases so public/private
+tests can exercise the same generic instantiation; both targets still run.
+Ignored declarations alone never count as execution.
 
-The preceding defensive-boundary batch reports **8,441/8,441 merged source lines and
-1,834/1,840 condition outcomes**, exits 1 and leaves **six outcomes**.
-Raw LLVM coverage is **8,655/8,707 lines (99.40%) and 1,800/1,840 outcomes
-(97.83%)**. Repository file
-`audit/phase6/defensive-boundaries-20261103/README.md` retains both reports,
-the full compressed export, repeated live checks and the source inventory's
-post-collection capture limitation.
-
-It includes native models, GNU live/Incus, manager/task-limit profiles and
-three buffer-force guests, with no production exclusions, mismatches or
-saturated regions. Moving shared test helpers changes source locations;
-profiles from preceding collectors are not merged. Repository record
-`audit/phase6/event-and-lifetime-ordering-20261102/README.md` records normal
-and boot results on the required targets, a passing serial clock replay,
-and the retained failed parallel clock and QEMU experiments. Direct
-container limits now exercise both fork failures; three stable GNU and
-three stable musl repetitions pass. The common CI script runs tracer
-calibrations explicitly and serially: a child before exec can otherwise
-retain descriptors belonging to concurrent fake-kernel cases. Repository record
-`audit/phase6/scoped-inventory-events-20261102/README.md` adds five focused
-kernel profiles and seven failure controls. The November 3 batch adds
-three instrumented GNU repetitions of the newer-kernel session-query
-guard on Ubuntu 7.0; its faulty guard also fails in that guest.
-
-Signed code 1b3d876 passes fresh GNU live/Incus and three shipped-musl
-scenario/Incus pairs locally on Ubuntu 6.8.0-147. Profile exports use unique
-collection/container prefixes to preserve earlier data. The root sandbox
-passes on signed 419c9b1 with the unmodified supplied unit; three GNU
-manager/task-limit repetitions also pass. Frozen 2d5ae45 passed all thirteen previous-snapshot matrix
-profiles with the checked reply correction. Later test-only additions retain
-their separate execution scope.
-Repository record `audit/phase6/netlink-reply-state-20261101/README.md`
-identifies the source, malformed-status witnesses, eight controls, complete
-commands and execution limits. Repository record
-`audit/phase6/netlink-io-faults-20261101/README.md` records three accepted GNU
-buffer-force guests, the reduced-buffer control, serial startup profiles
-and unchanged production mappings. Request handling covers 156/156 lines
-and 34/34 branches. The initial rejected wrapper run is not merged. The later
-`audit/phase6/service-queue-guards-20261101/README.md` adds stale/current
-reload and background-dispatch assertions with three failing controls.
-`audit/phase6/reconciler-record-guards-20261101/README.md` adds four policy
-and defensive-helper cases with five failing controls; all 4,319 mappings
-remain unchanged. The later error-boundary record
-(`audit/phase6/error-boundaries-20261101/README.md`) adds queue refusal,
-subscription cleanup, reload-spawn EAGAIN and typed socket-error mapping.
-Nine controls fail; the full GNU live run passes. Socket handling reaches
-103/103 lines and 12/12 branches. Eight service instantiations are added;
-all preceding mappings remain unchanged.
-
-The library test harness also compiles
-the same 94 public rule cases as the external rules target. This lets public
-and private cases exercise one generic instantiation; both targets still run.
-The shared live-harness record contains three passing 46-case serial
-library repetitions and the full GNU collection, including the external
-Linux target. The later family-recovery case raises the instrumented
-serial set to 47 (20 ordinary library cases, three startup and 24 shared
-Linux cases). That new case passes three GNU and three musl repetitions.
-Those startup declarations remain ordinary tests in the external target;
-its instrumented copies are ignored in favor of the serial library run. Repository file
-`audit/phase6/shared-rule-harness-20261101/README.md` records declaration
-equality, isolation controls and GNU/musl qualification.
-
-Earlier repository file
-`audit/phase6/upstream-dhcp-queues-20261031/README.md` records fresh native,
-live, manager, Incus and root-systemd profiles with released `iphost` 0.4.3,
-including a deterministic readiness case. It fixes subscriber history and
-queue bounds after 0.4.2 fixed namespace isolation. Complete resource/event-cost
-proof and final qualification remain open.
+Repository records `audit/PHASE6_VERIFICATION_2026-11-03.md`,
+`audit/phase6/ci-coverage-20261103/README.md` and
+`audit/phase6/matrix-20261103T051118Z-682716/README.md` retain current
+commands, identities and results. Earlier collectors and failures retain
+their own source scope; their profiles are not silently mixed into the
+passing current measurement.
 
 ## Running
 

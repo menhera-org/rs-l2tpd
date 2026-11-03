@@ -1,0 +1,15 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/rs-l2tpd-outcome-batch.lkzXUzoF)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-33c7dac59ac6b88b)
+
+running 1 test
+CACHE_COST bindings=1 events=500 elapsed_ns=1375690
+MEMBER_COST bindings=1 events=500 elapsed_ns=11476180
+CACHE_COST bindings=100 events=500 elapsed_ns=4698435
+MEMBER_COST bindings=100 events=500 elapsed_ns=34314791
+CACHE_COST bindings=300 events=500 elapsed_ns=11096957
+MEMBER_COST bindings=300 events=500 elapsed_ns=76380301
+test reconciler::tests::cache_cost::unchanged_bound_link_workload_preserves_other_dependencies ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 350 filtered out; finished in 0.31s
+

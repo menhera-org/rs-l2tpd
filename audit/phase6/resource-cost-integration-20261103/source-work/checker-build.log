@@ -1,0 +1,3 @@
+    Blocking waiting for file lock on build directory
+   Compiling phase6-coverage v0.1.0 (/home/dev/rs-l2tpd/tools/coverage)
+    Finished `dev` profile [unoptimized + debuginfo] target(s)

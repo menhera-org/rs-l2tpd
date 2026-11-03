@@ -1,0 +1,4 @@
+/tmp/rs-l2tpd-outcome-batch.lkzXUzoF/target/source-work/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/c603efb40df4e15c/out/source_work-c603efb40df4e15c: OK
+tests/source_work.rs: OK
+tools/coverage/src/work.rs: OK
+tools/coverage/source-work.sh: OK

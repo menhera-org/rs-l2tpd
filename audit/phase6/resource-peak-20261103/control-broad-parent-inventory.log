@@ -1,0 +1,21 @@
+   Compiling rs-l2tpd v0.2.0 (/tmp/rs-l2tpd-outcome-batch.lkzXUzoF)
+    Finished `test` profile [unoptimized + debuginfo] target(s)
+     Running tests/resource_alloc.rs (target/debug/deps/resource_alloc-8950d13dec44983a)
+
+running 1 test
+INVENTORY_PEAK vrf=false related=false failed=false count=1 extra_bytes=1461
+INVENTORY_PEAK vrf=false related=false failed=false count=100 extra_bytes=8277
+
+thread 'resync_inventory_peak_follows_dependencies_and_not_unrelated_host_state' (702600) panicked at tests/resource_alloc.rs:122:17:
+inventory peak vrf=false related=false failed=false count=10000: 704037 versus 1461
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test resync_inventory_peak_follows_dependencies_and_not_unrelated_host_state ... FAILED
+
+failures:
+
+failures:
+    resync_inventory_peak_follows_dependencies_and_not_unrelated_host_state
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+error: test failed, to rerun pass `--test resource-alloc`
