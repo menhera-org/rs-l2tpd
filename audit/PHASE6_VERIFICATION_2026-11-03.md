@@ -9,15 +9,23 @@ retains the failure. The working fix orders capture completion through the
 lifetime socket and refuses multiple distinct registrations. It passes all
 31 ignored live library cases, all 24 Linux integration cases and ten forced
 interleavings. The original five-second uncertain-creation deadline also
-passes. Required-kernel, production-coverage, Incus and root-unit
-qualification of this production change remain pending.
+passes. Signed `f744335` contains the fix and passes the complete
+[required matrix](phase6/matrix-20261103T074746Z-889916/README.md): five normal
+suites, five clock/pause profiles, both IPv6-absent boots and missing-driver
+recovery. Its source patches are empty and publication selections agree.
 
 Signed `f771c24` has a failed
 [CI run 41595151274](https://github.com/menhera-org/rs-l2tpd/actions/runs/41595151274).
 Live conformance and the 100% production-coverage job pass; the build job
 fails because ANSI bytes from `CARGO_TERM_COLOR=always` enter the
 source-work executable path. The working change adds `--color never` to
-that parsed command. It has not run in CI.
+that parsed command. Signed `f744335` fixes the parser command. Its build and
+live jobs pass in
+[CI run 41598593512](https://github.com/menhera-org/rs-l2tpd/actions/runs/41598593512),
+and CodeQL passes. Its production-coverage job fails at **8,477/8,485 lines
+and 1,848/1,854 outcomes** on the new lifetime capture paths. The current
+working tests cover those new paths in fresh focused measurement, but
+current-source CI coverage, Incus and root-unit qualification remain pending.
 
 Signed `e29c6f3` is synced. All three jobs pass in
 [CI run 41582370103](https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370103),

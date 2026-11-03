@@ -50,18 +50,21 @@ and both meter defects are rejected and restored. Common checks pass after
 registration. Three fresh musl scenario/Incus pairs and the unmodified root
 systemd profile pass; the shipped daemon remains byte-identical to e29c6f3.
 Signed `f771c24` adds the allocation and dispatch-work gates. Its live and
-production-coverage CI jobs pass, but its build job fails because colored
-Cargo output corrupts the parsed source-work executable path. The pending
-fix requests uncolored output for that machine-readable command.
+production-coverage CI jobs pass, while its build job records the colored
+Cargo output that corrupted a parsed executable path. Signed `f744335` fixes
+that command and the S8 creation-name race found by the final clause
+assessment. Its build and live-conformance jobs pass in
+[CI run 41598593512](https://github.com/menhera-org/rs-l2tpd/actions/runs/41598593512),
+and CodeQL passes. Production coverage fails at 8,477/8,485 source lines and
+1,848/1,854 condition outcomes; the misses are confined to the new lifetime
+capture paths and are not reported as success.
 
-The final clause assessment then found an S8 creation-name race: the old
-capture could prove a foreign registration that released the name before
-the requested session registered. The working fix adds an ordered
-route-netlink barrier and rejects multiple registrations as uncertain.
-Its focused live batch passes, but all prior production coverage, matrix,
-Incus and root-unit results precede this production change. Phase 6 remains
-open while those gates are rerun. One current CI execution does not
-establish ten repetitions of this revision.
+The required matrix on `f744335` passes all thirteen profiles with empty
+source patches and unchanged publication selections. The current working
+coverage fix has passed the shared local gates and focused GNU/musl lifetime
+tests, but it changes production source identity. Its CI coverage, required
+matrix, Incus and root-unit qualification remain pending. Phase 6 remains
+open. One matrix execution and one CI run do not establish ten repetitions.
 Earlier parallel-QEMU clock failures remain recorded; this serial passing
 matrix does not establish their cause or erase them.
 
@@ -69,7 +72,9 @@ Repository records `audit/PHASE6_VERIFICATION_2026-11-03.md`,
 `audit/phase6/ci-coverage-20261103/README.md` and
 `audit/phase6/matrix-20261103T051118Z-682716/README.md` retain the preceding
 commands and source identities. The creation-race failure and focused fix
-are in `audit/phase6/creation-capture-ordering-20261103/README.md`.
+are in `audit/phase6/creation-capture-ordering-20261103/README.md`; the first
+complete matrix of that fix is in
+`audit/phase6/matrix-20261103T074746Z-889916/README.md`.
 
 ## Rules that hold for the whole phase
 
