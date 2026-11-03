@@ -47,7 +47,11 @@ and 1,838/1,838 condition outcomes**, both
 [locally](audit/phase6/closure-coverage-20261103/README.md) and
 [in CI](audit/phase6/ci-coverage-20261103/README.md).
 The new allocation/work checks pass their local qualification. The final
-clause assessment and their actual CI qualification remain open.
+clause audit found an S8 creation-capture race and the focused fix passes,
+but its production coverage and environment gates remain pending. Signed
+`f771c24` passes live conformance and production coverage in CI; its
+overall run fails because colored Cargo output corrupts the source-work
+executable path. The pending correction has not yet run in CI.
 
 Strict rule/source maps, unprivileged Incus and the unmodified root systemd
 sandbox have passing records with their source and execution scope stated.

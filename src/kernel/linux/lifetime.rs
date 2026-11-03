@@ -35,10 +35,13 @@ use crate::kernel::{L2tpIfName, Proof, Registration};
 const TICK: Duration = Duration::from_secs(1);
 
 /// A capture armed for a creation name (S8).
+#[derive(Clone, Copy)]
 enum Capture {
     Armed,
-    /// The first registration broadcast: index and incarnation.
+    /// One registration broadcast: index and incarnation.
     Seen(u32, u64),
+    /// More than one registration used the creation name.
+    Ambiguous,
 }
 
 /// The answer to a lookup.
@@ -116,14 +119,23 @@ impl State {
             }
             let index = link.info.index;
             match msg.kind {
-                libc::RTM_NEWLINK => {
-                    if let Some(capture @ Capture::Armed) = self.captures.get_mut(&link.info.name) {
+                libc::RTM_NEWLINK => match self.captures.get(&link.info.name).copied() {
+                    Some(Capture::Armed) => {
                         self.incarnations += 1;
                         let incarnation = self.incarnations;
-                        *capture = Capture::Seen(index, incarnation);
+                        self.captures
+                            .insert(link.info.name, Capture::Seen(index, incarnation));
                         self.tracked.insert((index, incarnation), false);
                     }
-                }
+                    Some(Capture::Seen(old_index, incarnation))
+                        if old_index != index
+                            || self.tracked.get(&(old_index, incarnation)) == Some(&true) =>
+                    {
+                        self.tracked.remove(&(old_index, incarnation));
+                        self.captures.insert(link.info.name, Capture::Ambiguous);
+                    }
+                    _ => {}
+                },
                 libc::RTM_DELLINK => {
                     for (_, removed) in self.tracked.range_mut((index, 0)..=(index, u64::MAX)) {
                         *removed = true;
@@ -281,9 +293,10 @@ impl Lifetime {
         Ok(state.generation)
     }
 
-    // kernel: net/core/dev.c:10425 (the registration broadcast) (K20)
+    // kernel: net/core/dev.c:10425 (the registration broadcast);
+    // net/core/rtnetlink.c rtnl_getlink (the ordered barrier) (K20, K29)
     /// The registration captured for `name` by `deadline`; `ETIMEDOUT` when
-    /// it was not seen or the generation ended (an uncertain creation).
+    /// it was not uniquely seen or the generation ended (an uncertain creation).
     /// Disarms the capture.
     pub(super) fn capture(
         &self,
@@ -291,17 +304,60 @@ impl Lifetime {
         generation: u64,
         deadline: Instant,
     ) -> io::Result<Registration> {
+        let (seq, socket) = {
+            let mut state = self.shared.lock();
+            if state.generation != generation {
+                state.captures.remove(name);
+                return Err(errno(libc::ETIMEDOUT));
+            }
+            let Some(socket) = state.socket.clone() else {
+                state.captures.remove(name);
+                return Err(errno(libc::ETIMEDOUT));
+            };
+            state.seq = state.seq.wrapping_add(1).max(1);
+            let seq = state.seq;
+            state.lookups.insert(seq, Answer::Pending);
+            (seq, socket)
+        };
+        if let Err(error) = send_lookup(&socket, seq, 0) {
+            log::warn!("lifetime capture barrier failed: {error}");
+            let mut state = self.shared.lock();
+            if state.generation == generation {
+                state.end_generation();
+            }
+            loop {
+                let (next, waited) = self.shared.wait_until(state, deadline);
+                state = next;
+                if !waited {
+                    break;
+                }
+            }
+            return Err(errno(libc::ETIMEDOUT));
+        }
         let mut state = self.shared.lock();
+        let mut barrier_closed = false;
         let result = loop {
             if state.generation != generation {
                 break Err(errno(libc::ETIMEDOUT));
             }
-            if let Some(&Capture::Seen(index, incarnation)) = state.captures.get(name) {
-                break Ok(Registration {
-                    index,
-                    generation,
-                    incarnation,
-                });
+            if !barrier_closed {
+                match state.lookups.get(&seq).copied() {
+                    Some(Answer::Pending) => {}
+                    Some(_) => match state.captures.get(name) {
+                        Some(&Capture::Seen(index, incarnation)) => {
+                            break Ok(Registration {
+                                index,
+                                generation,
+                                incarnation,
+                            });
+                        }
+                        Some(Capture::Ambiguous) => {
+                            break Err(errno(libc::ETIMEDOUT));
+                        }
+                        _ => barrier_closed = true,
+                    },
+                    None => break Err(errno(libc::ETIMEDOUT)),
+                }
             }
             let (next, waited) = self.shared.wait_until(state, deadline);
             state = next;
@@ -309,7 +365,12 @@ impl Lifetime {
                 break Err(errno(libc::ETIMEDOUT));
             }
         };
-        state.captures.remove(name);
+        state.lookups.remove(&seq);
+        if let Some(Capture::Seen(index, incarnation)) = state.captures.remove(name)
+            && result.is_err()
+        {
+            state.tracked.remove(&(index, incarnation));
+        }
         result
     }
 
@@ -756,7 +817,7 @@ mod tests {
     // kernel: net/core/dev.c:10425, 11205-11224 (K16, K20)
     /// spec: S8, S9, M18, E5, E22
     #[test]
-    fn a_capture_takes_the_first_broadcast_and_a_removal_sticks() {
+    fn a_capture_rejects_distinct_broadcasts_and_a_removal_sticks() {
         let kernel = SocketAddr::new(0, libc::RTNLGRP_LINK);
         let name = L2tpIfName::new(b"rsl2tp-t000001").unwrap();
         let mut state = state();
@@ -776,11 +837,13 @@ mod tests {
         );
         assert!(matches!(state.captures[&name], Capture::Armed));
         state.receive(&link(libc::RTM_NEWLINK, 0, 8, b"rsl2tp-t000001"), &kernel);
-        state.receive(&link(libc::RTM_NEWLINK, 0, 9, b"rsl2tp-t000001"), &kernel);
+        state.receive(&link(libc::RTM_NEWLINK, 0, 8, b"rsl2tp-t000001"), &kernel);
         assert!(matches!(state.captures[&name], Capture::Seen(8, 1)));
+        state.receive(&link(libc::RTM_NEWLINK, 0, 9, b"rsl2tp-t000001"), &kernel);
+        assert!(matches!(state.captures[&name], Capture::Ambiguous));
         state.receive(&link(libc::RTM_DELLINK, 0, 8, b"rsl2tp-t000001"), &kernel);
         state.receive(&link(libc::RTM_NEWLINK, 0, 8, b"other"), &kernel);
-        assert!(state.tracked[&(8, 1)]);
+        assert!(!state.tracked.contains_key(&(8, 1)));
         state.lookups.insert(4, Answer::Pending);
         let mut reply = link(libc::RTM_NEWLINK, 0, 8, b"other");
         reply[8..12].copy_from_slice(&4u32.to_ne_bytes());
@@ -1217,5 +1280,69 @@ mod tests {
                     .contains(&format!("LIFETIME_ORDERING_CHECKED={mode}"))
             );
         }
+    }
+    /// spec: G2, S8, S9, K20
+    #[test]
+    #[ignore = "disposable privileged container: creation-name race witness"]
+    // kernel: net/l2tp/l2tp_eth.c l2tp_eth_create, net/core/rtnetlink.c
+    // rtnl_getlink (K20, K29)
+    fn a_foreign_registration_cannot_become_the_direct_session_proof() -> std::io::Result<()> {
+        use crate::kernel::linux::LinuxKernel;
+        use crate::kernel::{Family, Kernel, SessionCreate};
+        nix::sched::unshare(nix::sched::CloneFlags::CLONE_NEWNET)?;
+        let ip = |args: &[&str]| -> std::io::Result<()> {
+            let output = std::process::Command::new("ip").args(args).output()?;
+            if !output.status.success() {
+                return Err(std::io::Error::other(
+                    String::from_utf8_lossy(&output.stderr).into_owned(),
+                ));
+            }
+            Ok(())
+        };
+        let mut kernel = LinuxKernel::new()?;
+        let socket = kernel.create_socket(Family::V4, 8101, 8102)?;
+        kernel.register_tunnel(socket, 8101, 8102)?;
+        let creation = L2tpIfName::new(b"direct-proof")
+            .map_err(|_| std::io::Error::other("invalid fixed creation name"))?;
+        let deadline = Instant::now() + DEADLINE;
+        // Interleave another writer between the two operations in create_session.
+        let generation = kernel.lifetime.arm(&creation)?;
+        ip(&["link", "add", "direct-proof", "type", "dummy"])?;
+        let foreign = kernel
+            .link_by_name(&creation)?
+            .ok_or_else(|| std::io::Error::other("missing foreign device"))?
+            .index;
+        ip(&["link", "set", "direct-proof", "name", "foreign-kept"])?;
+        loop {
+            let seen = matches!(
+                kernel.lifetime.shared.lock().captures.get(&creation),
+                Some(Capture::Seen(_, _))
+            );
+            if seen {
+                break;
+            }
+            if Instant::now() >= deadline {
+                return Err(std::io::Error::other(
+                    "foreign registration was not observed",
+                ));
+            }
+            std::thread::yield_now();
+        }
+        let create = SessionCreate::new(8101, 8103, 8104, None, None, creation);
+        kernel.genl.create_session(&create, deadline)?;
+        let error = kernel
+            .lifetime
+            .capture(&creation, generation, deadline)
+            .unwrap_err();
+        let actual = kernel
+            .link_by_name(&creation)?
+            .ok_or_else(|| std::io::Error::other("missing actual session"))?
+            .index;
+        println!(
+            "CREATION_RACE foreign_index={foreign} actual_session_index={actual} error={error}"
+        );
+        assert_ne!(foreign, actual);
+        assert_eq!(error.raw_os_error(), Some(libc::ETIMEDOUT));
+        Ok(())
     }
 }

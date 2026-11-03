@@ -512,16 +512,25 @@ The expanded allocation fixture passes ten repetitions per libc and the
 integrated dispatch-work runner passes 240 cases. Common checks and the
 intended fault controls pass after registration. Three fresh musl
 scenario/Incus pairs and the unmodified root systemd guest pass; the shipped
-daemon is byte-identical to e29c6f3. The final clause assessment and actual
-CI qualification of the new checks remain open. e29c6f3 has one completed
-CI execution;
+daemon is byte-identical to e29c6f3. Signed `f771c24` passes its live and
+production-coverage CI jobs, but the overall run fails when colored Cargo
+output corrupts the source-work executable path. The working parser fix has
+not run in CI.
+
+The final clause audit also reproduced an S8 race that could prove a foreign
+link index. The working ordered-barrier fix passes its focused live batch.
+Because it changes production source, coverage, the required matrix, Incus
+and the root-unit profile must run again. e29c6f3 has one completed
+successful CI execution;
 earlier ten-run qualification does not establish ten runs of this revision.
 Retained parallel-QEMU clock failures remain separate evidence; passing
 serial profiles do not resolve their cause.
 
 The [Phase 6 status](phase6.md#execution-status-2026-11-03) and repository
 record `audit/PHASE6_VERIFICATION_2026-11-03.md` identify the current
-evidence and historical failed attempts.
+evidence and historical failed attempts. Repository record
+`audit/phase6/creation-capture-ordering-20261103/README.md` identifies the
+new failure and the focused fix without claiming the pending gates.
 
 ### Phase 7 — release
 

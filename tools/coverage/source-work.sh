@@ -11,7 +11,7 @@ record=$(CDPATH='' cd -P "$1" && pwd)
 toolchain=nightly-2026-10-28
 export CARGO_LLVM_COV_TARGET_DIR="$repo/target/source-work"
 cargo build --locked --manifest-path tools/coverage/Cargo.toml --bin phase6-source-work > "$record/checker-build.log" 2>&1
-cargo "+$toolchain" llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --no-report --test source-work -- --list > "$record/build.log" 2>&1
+cargo "+$toolchain" llvm-cov --color never --locked --all-features --target x86_64-unknown-linux-gnu --no-report --test source-work -- --list > "$record/build.log" 2>&1
 executable=$(awk -v root="$repo/" -v label='Running tests/source_work.rs (' '
  {at=index($0,label); if(at) {line=substr($0,at+length(label));sub(/[)]$/, "",line);print root line}}
 ' "$record/build.log")

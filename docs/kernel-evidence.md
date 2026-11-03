@@ -41,7 +41,7 @@ their own relevant citations.
 | K17 | shared: closing the socket deletes tunnel and sessions; live real-manager reference test and handover test | linux |
 | K18 | shared: identifier reuse after deletion; live review: 32 delete/recreate cycles; policy: reuse waits for confirmed absence; source comparison establishes the release boundary | linux |
 | K19 | shared: tunnel and namespace-wide session uniqueness, wrong-tunnel lookup and deletion refusal; verified on both sides of the newer lookup behavior | linux |
-| K20 | shared: a taken name leaves no session | linux |
+| K20 | shared: a taken name leaves no session; live production unit: a foreign registration between capture arming and session creation makes the capture uncertain instead of proving the foreign index | linux |
 | K21 | source/requirement: autoload call sites in the kernel specification; fixtures exercise normal family/link creation, without claiming that already-loaded modules prove autoload policy | linux |
 | K22 | shared: bound/unbound binding semantics; fake runs without NET_RAW, live runs with it; reconnect policy is tested without that capability in the fake | linux |
 | K23 | live: tunable write, old socket stays v6-only, fresh socket reads dual-stack; fake policy covers both fallbacks and failed read-back | linux |

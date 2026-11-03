@@ -49,16 +49,27 @@ passes 240 cases. Deliberate temporary inventories, a configuration-wide scan
 and both meter defects are rejected and restored. Common checks pass after
 registration. Three fresh musl scenario/Incus pairs and the unmodified root
 systemd profile pass; the shipped daemon remains byte-identical to e29c6f3.
-The final clause assessment and actual CI qualification of the new checks
-remain open. One current CI execution does not establish ten repetitions
-of this revision.
+Signed `f771c24` adds the allocation and dispatch-work gates. Its live and
+production-coverage CI jobs pass, but its build job fails because colored
+Cargo output corrupts the parsed source-work executable path. The pending
+fix requests uncolored output for that machine-readable command.
+
+The final clause assessment then found an S8 creation-name race: the old
+capture could prove a foreign registration that released the name before
+the requested session registered. The working fix adds an ordered
+route-netlink barrier and rejects multiple registrations as uncertain.
+Its focused live batch passes, but all prior production coverage, matrix,
+Incus and root-unit results precede this production change. Phase 6 remains
+open while those gates are rerun. One current CI execution does not
+establish ten repetitions of this revision.
 Earlier parallel-QEMU clock failures remain recorded; this serial passing
 matrix does not establish their cause or erase them.
 
 Repository records `audit/PHASE6_VERIFICATION_2026-11-03.md`,
 `audit/phase6/ci-coverage-20261103/README.md` and
-`audit/phase6/matrix-20261103T051118Z-682716/README.md` retain the commands,
-results, source identities, earlier failures and remaining scope.
+`audit/phase6/matrix-20261103T051118Z-682716/README.md` retain the preceding
+commands and source identities. The creation-race failure and focused fix
+are in `audit/phase6/creation-capture-ordering-20261103/README.md`.
 
 ## Rules that hold for the whole phase
 

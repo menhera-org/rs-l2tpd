@@ -238,7 +238,7 @@ the same Rust scenario binary as the Docker runner, plus live kernel and
 process suites. QEMU keeps module loading and networking inside the guest;
 it does not test the Incus or root-systemd profiles. Each job has a
 40-minute limit, the live-suite step has 20 minutes, and QEMU itself has
-900 seconds. The ordinary build job has 30 minutes. Failed repetitions
+900 seconds. The ordinary build job has 60 minutes. Failed repetitions
 remain failures and retain their logs; the workflow does not retry them.
 The ten-run qualification preceded strict map enforcement. A later failure
 still requires investigation; the retained qualification does not establish
@@ -273,8 +273,13 @@ recorded; serial passes do not establish their cause. Three fresh musl
 scenario/Incus pairs and the unmodified root-systemd profile also pass.
 The shipped daemon remains byte-identical after new test registration.
 Allocation peaks pass ten GNU and ten musl repetitions; the integrated
-source-work runner passes 240 cases. Their actual CI qualification and
-the final clause assessment remain open.
+source-work runner passes 240 cases locally. Signed `f771c24` passes its
+live and production-coverage CI jobs, but the build job fails before badge
+coverage because colored Cargo output enters the parsed source-work
+executable path. The pending correction forces uncolored output there.
+The final clause audit also found a production S8 creation-capture race.
+Its focused fix passes, but production coverage and every environment gate
+must be repeated for the changed source.
 
 Fork-based fixtures execute explicitly and serially after ordinary fake
 descriptor owners finish. Their earlier parallel failure remains retained.

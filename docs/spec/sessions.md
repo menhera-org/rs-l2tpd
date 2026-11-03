@@ -87,13 +87,18 @@ only once, at creation ([K16](kernel.md#facts)). The index is captured
 from the kernel's registration broadcast, observed by the link-lifetime
 subscription opened before the creation request, so that a manager
 renaming the device immediately cannot make the daemon address another
-device. The broadcast is matched to the creation request by the temporary
-name and nothing else: the name is unique at that instant because the
-kernel refuses a taken name ([K20](kernel.md#facts)), and the broadcast
-is sent while the kernel still holds the lock that a rename needs
-(`l2tp_eth_create` registers the device and copies its name under
-`rtnl`), so the first broadcast of that name is the device created. The
-index is never obtained by a lookup by name, which would race a rename.
+device. After creation succeeds, the daemon sends a lookup on the lifetime
+socket and waits for its reply. This orders the capture after every link
+notification that the kernel queued before the lookup. The daemon accepts
+the capture only if exactly one distinct registration used the temporary
+name in that interval. A foreign device can take and release the name
+between arming the capture and sending the creation request; two distinct
+registrations therefore make the creation uncertain and authorize no
+write. The session is recovered through the complete fresh scan. The
+kernel still refuses a name that is occupied when the session registers
+([K20](kernel.md#facts)), and sends that registration broadcast while it
+holds the lock that a rename needs. The index is never obtained by a lookup
+by name, which would race a rename.
 
 S9. The link-lifetime subscription, opened before the first session,
 proves before every change that the index still refers to the device

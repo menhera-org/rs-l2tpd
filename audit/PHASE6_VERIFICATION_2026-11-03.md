@@ -1,5 +1,24 @@
 # Phase 6 verification, November 3
 
+The final clause audit after signed `f771c24` reproduced an S8 ownership
+failure: a foreign device registered under an armed creation name, moved
+away, and its index was returned as `Proved` after the real L2TP session
+registered under that name. The
+[creation-capture record](phase6/creation-capture-ordering-20261103/README.md)
+retains the failure. The working fix orders capture completion through the
+lifetime socket and refuses multiple distinct registrations. It passes all
+31 ignored live library cases, all 24 Linux integration cases and ten forced
+interleavings. The original five-second uncertain-creation deadline also
+passes. Required-kernel, production-coverage, Incus and root-unit
+qualification of this production change remain pending.
+
+Signed `f771c24` has a failed
+[CI run 41595151274](https://github.com/menhera-org/rs-l2tpd/actions/runs/41595151274).
+Live conformance and the 100% production-coverage job pass; the build job
+fails because ANSI bytes from `CARGO_TERM_COLOR=always` enter the
+source-work executable path. The working change adds `--color never` to
+that parsed command. It has not run in CI.
+
 Signed `e29c6f3` is synced. All three jobs pass in
 [CI run 41582370103](https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370103),
 as does [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370032).
