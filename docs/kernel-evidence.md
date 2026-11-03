@@ -4,8 +4,8 @@
 records the version-dependent observations and remaining proof.
 
 The current required set includes 7.4-rc1. Its latest full matrix passes on
-signed e29c6f3; repository record
-`audit/phase6/matrix-20261103T051118Z-682716/README.md` identifies the run.
+signed `9e6aae6`; repository record
+`audit/phase6/matrix-20261103T090121Z-983779/README.md` identifies the run.
 Repository record `audit/phase6/mainline-rc-qualification-20261102/`
 also retains exact archive/file identities and the 43-file source comparison.
 The evidence kinds below retain their distinct execution and source scope.

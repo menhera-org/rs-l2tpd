@@ -20,7 +20,7 @@ tests/
   kernel/         shared operation cases plus live-only fixture/source checks for K facts
   process.rs      actual-binary CLI and live process cases; binary unit tests live in src/bin/
   process/        instructions for privileged and real-manager process checks
-  scenarios/      partial Phase 6 host/manager scenarios plus the Incus system-unit case
+  scenarios/      complete host/manager scenarios plus the Incus system-unit case
   docker/         scenario/matrix/Incus runners and thread-limits.sh resource checks
   tools/
     rulemap.rs    the rule-map check
@@ -42,11 +42,11 @@ systemd transport commands. The manager test covers the address-family
 filter and descriptor protocol. The complete root system-unit mount
 sandbox, including the bindv6only write, subsequently passed in QEMU; see
 repository file `audit/phase6/P6_ROOT_SANDBOX_2026-10-30.md`. The November 1
-required matrix passed its 27-scenario normal profile and separate clock
-profiles on all five resolved targets. Later changes still need final
-qualification. Repository file `audit/PHASE6_VERIFICATION_2026-11-01.md`
-tracks the H11/G23 decisions, checked libc signal exception, remaining proof and
-merged 100% coverage gate.
+root-unit result is historical evidence. The final November 3 source passes
+its 27-scenario normal profile and separate clock profiles on all five
+required targets, three unprivileged Incus repetitions and the supplied root
+unit. Repository file `audit/PHASE6_VERIFICATION_2026-11-03.md` retains the
+complete Phase 6 evidence and its limits.
 
 ## The four suites
 
@@ -55,7 +55,7 @@ merged 100% coverage gate.
 | Unit and `rules/` | fake and local syscalls | `cargo test --all-features`, no privilege | C, M, T, S, V, E, O, L rules |
 | `properties/` | fake | included by the feature-gated `rules` target in `cargo test --all-features` | seeded reload invariants for G3, G5–G7 and G18 |
 | `kernel/` conformance | fake **and** real | `cargo test --all-features` for the fake; a privileged container and the QEMU matrix for the real one | K facts, `kernel::linux` |
-| `scenarios/` (partial, Phase 6) | real | privileged containers; QEMU for `ipv6.disable=1` and other boot options | H rules, P rules, the unit, G15–G23 end to end |
+| `scenarios/` | real | privileged containers; QEMU for `ipv6.disable=1` and other boot options | H rules, P rules, the unit, G15–G23 end to end |
 
 Syscall-fault tests require seccomp filtering of their own child
 processes. File-race tests also require tracing an owned child worker and
@@ -125,13 +125,11 @@ new mainline tag appears, the table MUST be updated and the matrix
 re-run on the new versions before the phase 6 gate is called green;
 a matrix run on a superseded version does not count.
 
-Resolved again on 2026-11-02 from the published Ubuntu updates/security
+Resolved again on 2026-11-03 from the published Ubuntu updates/security
 `linux-image-generic` candidates and kernel.org releases and source
-indexes. The selection matches the preceding 23:11 UTC check. Mainline
-has advanced from the previously tested 7.3 to 7.4-rc1; its source comparison
-and both kernel builds are recorded; the fresh full matrix passes on signed
-455eef7, with matching publication checks and empty source patches. Proposed packages do not
-replace the published targets:
+indexes. The final full matrix passes on signed `9e6aae6`, with matching
+publication checks and empty source patches. Proposed packages do not replace
+the published targets:
 
 | Kernel | Rule | How it runs |
 |---|---|---|
@@ -139,7 +137,7 @@ replace the published targets:
 | Ubuntu 26.04 `7.0.0-42-generic` (also 24.04's HWE kernel) | newer of the two latest LTS kernels | QEMU, the `vmlinuz` and modules unpacked from the `linux-image` package of the `ubuntu:26.04` image |
 | vanilla `6.8.12` (the last 6.8.y) | vanilla equivalent of the 24.04 kernel | QEMU, built from the kernel.org tarball with `x86_64_defconfig` plus L2TP |
 | vanilla `7.0.14` | vanilla equivalent of the 26.04 kernel | QEMU, built the same way |
-| mainline `v7.4-rc1` | newest mainline tag, retained by the November 2 recheck | Source compared; both builds and normal/clock/IPv6-absent profiles pass |
+| mainline `v7.4-rc1` | newest mainline tag, retained by the November 3 recheck | Source compared; both builds and normal/clock/IPv6-absent profiles pass |
 
 [Per-target behavior and limitations](kernel-behavior.md) records the
 observed errnos, notification scope, fragmentation, container/manager
@@ -215,8 +213,8 @@ as skipped, never as passed.
 
 Required suites separately record the selected features, ignored/live test
 execution and results. Keep explicit per-clause/table-case coverage;
-a green rule map alone cannot close a phase. The implemented runners
-exercise a partial case set; their existence does not close a gate.
+a green rule map alone cannot close a phase. The final clause assessment
+records how the complete runners and independent cases cover composite rules.
 Startup fault-injection subprocesses have a separate test executable:
 forking alongside fake socket owners can temporarily retain their descriptors
 until exec and invalidate immediate-cleanup assertions.
@@ -256,14 +254,13 @@ conditions and raw LLVM diagnostics. Its ten tests pass on GNU and musl.
 Compiler-generated calibration requires missing arms, repeated-guard misses
 and changed sources to fail; four additional controls test input validation.
 
-Signed `e29c6f3` passes all three jobs in
-[CI run 41582370103](https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370103)
-and CodeQL. Both independent local collections and the separate production
-CI job pass **8,444/8,444 source lines and 1,838/1,838 condition outcomes**.
-The CI artifact's 51 source fingerprints match the local rehearsal.
-CI retains raw LLVM **99.40% lines and 98.20% outcomes**; no production
-exclusion is added. Its production job has a 70-minute limit, with 35
-minutes for the instrumented guest and an internal 1,800-second timeout.
+Signed `9e6aae6` passes all three jobs in
+[CI run 41607623091](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623091)
+and CodeQL. The production job passes **8,486/8,486 merged source lines and
+1,852/1,852 condition outcomes**. CI retains raw LLVM **99.41% lines and
+98.22% outcomes**; no production exclusion is added. Its production job has
+a 70-minute limit, with 35 minutes for the instrumented guest and an internal
+1,800-second timeout.
 
 The same signed source passes all thirteen required matrix profiles:
 five full normal suites, five clock/pause cases, both IPv6-absent boots and
@@ -271,15 +268,10 @@ missing-driver recovery. Source patches are empty and initial/final
 publication selections agree. Earlier parallel-QEMU clock failures remain
 recorded; serial passes do not establish their cause. Three fresh musl
 scenario/Incus pairs and the unmodified root-systemd profile also pass.
-The shipped daemon remains byte-identical after new test registration.
 Allocation peaks pass ten GNU and ten musl repetitions; the integrated
-source-work runner passes 240 cases locally. Signed `f771c24` passes its
-live and production-coverage CI jobs, but the build job fails before badge
-coverage because colored Cargo output enters the parsed source-work
-executable path. The pending correction forces uncolored output there.
-The final clause audit also found a production S8 creation-capture race.
-Its focused fix passes, but production coverage and every environment gate
-must be repeated for the changed source.
+source-work runner passes 240 cases locally. The clause assessment found an
+S8 creation-capture race; the fix and its failure-path coverage are included
+in this final CI, matrix and host qualification.
 
 Fork-based fixtures execute explicitly and serially after ordinary fake
 descriptor owners finish. Their earlier parallel failure remains retained.
@@ -288,9 +280,10 @@ tests can exercise the same generic instantiation; both targets still run.
 Ignored declarations alone never count as execution.
 
 Repository records `audit/PHASE6_VERIFICATION_2026-11-03.md`,
-`audit/phase6/ci-coverage-20261103/README.md` and
-`audit/phase6/matrix-20261103T051118Z-682716/README.md` retain current
-commands, identities and results. Earlier collectors and failures retain
+`audit/phase6/ci-coverage-9e6aae6-20261103/README.md`,
+`audit/phase6/matrix-20261103T090121Z-983779/README.md` and
+`audit/phase6/clause-assessment-20261103/README.md` retain the final commands,
+identities and results. Earlier collectors and failures retain
 their own source scope; their profiles are not silently mixed into the
 passing current measurement.
 
@@ -299,7 +292,6 @@ passing current measurement.
 ```sh
 ./test-ci-gates.sh                          # the same blocking checks as CI (requires ShellCheck)
 cargo test --locked --all-features --target x86_64-unknown-linux-musl # unit, rules, seeded properties, fake conformance
-# Planned: tests/docker/run.sh conformance; existing live commands are in tests/kernel/README.md
 tests/docker/run.sh scenarios                # the scenario suite
 tests/docker/run.sh matrix required          # the required kernels of "Kernel targets" (QEMU, TCG, unprivileged)
 tests/docker/run.sh matrix v6.8..v7.3        # every vanilla release of the range
@@ -309,10 +301,9 @@ cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unkno
 cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch
 ```
 
-The musl command and the scenarios, matrix and Incus entry points exist;
-their complete case set remains Phase 6 work. The separate conformance
-entry point is still planned; repository file `tests/kernel/README.md`
-gives the existing live commands. Plain `cargo test` skips the
+The musl command and the scenarios, matrix and Incus entry points execute the
+complete Phase 6 case set; repository file `tests/kernel/README.md` gives the
+live conformance commands. Plain `cargo test` skips the
 `fake-kernel`-gated rules and conformance targets. Coverage must name and execute
 the required features and live suites; do not treat a lenient rule map as
 proof that new clauses pass.

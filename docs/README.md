@@ -25,27 +25,23 @@ are in the [GitHub repository](https://github.com/menhera-org/rs-l2tpd).
 | [Specification](spec/README.md) | The normative behaviour, with the known gaps of the historical pre-rewrite implementation that the rewrite closes |
 
 Version 0.2.0 has not been released. The tree contains the configuration,
-fake/real kernel, reconciler, runtime, services and binary. Phases 1–5 have
-scoped verification records; [Phase 6](phase6.md) remains open.
+fake/real kernel, reconciler, runtime, services and binary. Phases 1–6 have
+complete verification records; [Phase 6](phase6.md) identifies its final
+source and gates.
 
-Signed `e29c6f3` passes all three CI jobs, including the separate production
-coverage job, and CodeQL. Its full required-kernel matrix passes all
-thirteen profiles, with identical initial/final publication selections
-and empty source patches. Every normal target passes 27 scenarios and
-37 process cases; the five clocks and special boot profiles also pass.
-Earlier parallel clock failures remain recorded.
+Signed `9e6aae6` passes all three CI jobs and CodeQL. Its full required-kernel
+matrix passes all thirteen profiles, with identical initial/final publication
+selections and empty source patches. Every normal target passes 27 scenarios
+and 37 process cases; all five clocks and special boot profiles also pass.
+The approved checker reports 8,486/8,486 merged production lines and
+1,852/1,852 condition outcomes. Strict traceability covers all 333 active
+rules and all 43 kernel facts; the separate clause assessment checks the
+assertions and executed suites behind those citations. Repository file
+`audit/PHASE6_VERIFICATION_2026-11-03.md` identifies the commands, source,
+results, limitations and retained failures.
 
-The approved source checker passes 8,444/8,444 production lines and
-1,838/1,838 condition outcomes, both locally and in CI. The CI artifact's
-51 source fingerprints match the independent local rehearsal.
-Allocation-peak checks pass ten GNU and ten musl repetitions; the integrated
-dispatch-work runner passes 240 cases and rejects a configuration-wide scan.
-Their actual CI qualification and the final clause assessment remain open. Repository file
-`audit/PHASE6_VERIFICATION_2026-11-03.md` identifies the source, commands,
-results and remaining work.
-
-Strict traceability, unprivileged Incus and the root system-unit sandbox
-have passing records with their scope stated. Released iphost 0.4.4 supplies
+Three final-source unprivileged Incus repetitions and the root system-unit
+sandbox pass with their scope stated. Released iphost 0.4.4 supplies
 the tested anonymous Reply correction. The approved MAC/dependency-state
 contracts and the [libc exception](dependencies.md#upstream-needs) apply.
 [Required-kernel behavior](kernel-behavior.md) records every target's

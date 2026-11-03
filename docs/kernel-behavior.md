@@ -3,13 +3,13 @@
 [Documentation index](README.md) · [Required targets](testing.md#kernel-targets) · [Kernel specification](spec/kernel.md) · [Evidence map](kernel-evidence.md)
 
 The latest complete matrix passes all thirteen profiles on signed
-`e29c6f3`, with identical initial/final publication selection and empty
+`9e6aae6`, with identical initial/final publication selection and empty
 source patches. Each of the five normal profiles passes 27 scenarios and
 37 process cases; all five clock profiles, both IPv6-absent boots and
 missing-driver recovery pass. Every target rejects ACKs without family
 data with EPROTO and an empty cache. The wrong-tunnel query distinction
 below is reproduced on all five targets. Repository record
-`audit/phase6/matrix-20261103T051118Z-682716/README.md` identifies the run.
+`audit/phase6/matrix-20261103T090121Z-983779/README.md` identifies the run.
 The same source passes the separate 100% coverage CI gate. Earlier
 parallel clock failures remain unresolved evidence about execution
 sensitivity; the passing serial matrix does not establish their cause.
@@ -251,7 +251,7 @@ signal-mask/wait refusals pass on all five required targets.
 | Mainline `7.4.0-rc1` | 27 pass / pass | Pass | Pass | Pass | Not run |
 
 Reproduction and transcripts are in the
-latest matrix (`audit/phase6/matrix-20261102T011736Z-3377142/README.md`).
+latest matrix (`audit/phase6/matrix-20261103T090121Z-983779/README.md`).
 The approved explicit-MAC-authority case passes three fresh unprivileged
 Incus runs and the unmodified root-systemd guest. Their source and logs are
 in `audit/phase6/maintainer-decisions-20261101/README.md`; the earlier failure

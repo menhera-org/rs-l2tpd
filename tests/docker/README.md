@@ -1,6 +1,6 @@
 # Live scenario runner
 
-Run the implemented host/manager subset on the host kernel:
+Run the complete host/manager suite on the host kernel:
 
 ```sh
 tests/docker/run.sh scenarios
@@ -34,7 +34,7 @@ A libtest filter can select a case while debugging, for example:
 tests/docker/run.sh scenarios vrf_membership
 ```
 
-The current subset covers dual stack, IPv4-only, IPv6-only, sysctl-disabled
+The suite covers dual stack, IPv4-only, IPv6-only, sysctl-disabled
 IPv6, early readiness without routes, VRF membership, procfs-hidden
 operation with the three capabilities, hotplug, address churn,
 `bindv6only`, a VLAN child in another namespace, and foreign identifiers
@@ -46,27 +46,24 @@ capture loss. Guards kill daemons and delete namespaces on panic. Frame
 delivery and drop counters are asserted, along with interface identity,
 kernel objects, logs and bounded event waits.
 
-Phase 6 remains incomplete. Released iphost 0.4.4 fixes V12's anonymous
-Reply validation defect. Three live witnesses fail with 0.4.3 and pass with
-the registry release; local and required-kernel integration checks pass.
-Production source `584062d` passes all thirteen
-required profiles, including 27 normal scenarios on each of five kernels,
-five clock profiles, both IPv6-absent boots and missing-driver recovery.
-The E27 correction passes repeated model and GNU/musl live tests, three
-musl Incus runs and the root sandbox. Its required matrix now passes all
-thirteen profiles on 584062d with released iphost 0.4.4. The approved checked-libc signal
-exception is applied; no nix contribution or release is required.
-Later test-only additions have separate GNU/musl qualification.
-Fresh merged coverage for 0.4.4 and the boundary changes is 97.14% of lines
-and 90.38% of branches; 248 lines and 178 branches remain.
-100% coverage and complete clause/history/resource/event-cost proof remain
-open. See the [current verification record](../../audit/PHASE6_VERIFICATION_2026-11-01.md).
+Phase 6 is complete on signed `9e6aae6`. All thirteen required profiles pass:
+27 normal scenarios on each of five kernels, five clock profiles, both
+IPv6-absent boots and missing-driver recovery. Three complete musl scenario
+and unprivileged-Incus pairs pass, as does the supplied root-systemd unit.
+The separate CI coverage gate reports 8,486/8,486 merged production lines
+and 1,852/1,852 condition outcomes. See the
+[verification record](../../audit/PHASE6_VERIFICATION_2026-11-03.md).
+
+Released iphost 0.4.4 supplies V12's corrected anonymous Reply validation.
+The approved checked-libc signal exception is applied; no nix contribution or
+release is required.
 The normal suite includes the 300-tunnel/session case. H20 now covers full-MTU frames and 1 MiB transfers over both families,
 1500/9000 session MTUs and VRF/no-VRF binding, with sender fragment and
 session receive/drop counters. A separate live socket test reads back
 T5's options; a child-only seccomp case checks actual option refusals.
-The matrix driver runs this implemented subset; it cannot close missing
-scenario coverage by itself.
+The matrix driver runs the complete scenario suite and the separate kernel and
+process suites. Its publication and source-identity checks remain independent
+acceptance conditions.
 
 ## Kernel matrix
 
@@ -90,8 +87,8 @@ builder images from `tests/kernel/Dockerfile.review` and
 all Docker invocations use `--network none`. Kernels and the archived
 0.1.5 peer are cached under `target/`. Records include exact artifact
 hashes under `audit/phase6/matrix-<run>/`. Missing or changed publication
-formats fail closed. Mainline release candidates are not yet accepted by
-the tarball builder; add and verify that path when mainline moves to one.
+formats fail closed. The tarball builder accepts and verifies mainline
+release candidates; the final matrix uses 7.4-rc1.
 
 ## Unprivileged system container
 

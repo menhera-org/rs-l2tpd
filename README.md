@@ -31,30 +31,28 @@ The kernel carries Ethernet pseudowires over IPv4 or IPv6.
 ## Status
 
 The last release is 0.1.5. The rewrite will ship as 0.2.0 and implements
-the [specification](docs/spec/README.md). Phases 1–5 have scoped verification
-records; [Phase 6 remains open](audit/PHASE6_VERIFICATION_2026-11-03.md).
+the [specification](docs/spec/README.md). Phases 1–6 are complete, with the
+[Phase 6 verification record](audit/PHASE6_VERIFICATION_2026-11-03.md)
+retaining the commands, exact source identities and unsuccessful attempts.
 
-Signed `e29c6f3` passes [all three CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370103),
-including production coverage, and CodeQL. Its
-[required-kernel matrix](audit/phase6/matrix-20261103T051118Z-682716/README.md)
+Signed `9e6aae6` passes [all three CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623091),
+including production coverage, and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623178). Its
+[required-kernel matrix](audit/phase6/matrix-20261103T090121Z-983779/README.md)
 passes all thirteen profiles: five normal suites including fragmentation
 and 300 tunnels, five clock/pause cases, both IPv6-absent boots and
 missing-driver recovery. Source and publication selections remain unchanged
 throughout the matrix. Earlier parallel clock failures remain recorded.
 
-The approved coverage checker passes **8,444/8,444 production source lines
-and 1,838/1,838 condition outcomes**, both
-[locally](audit/phase6/closure-coverage-20261103/README.md) and
-[in CI](audit/phase6/ci-coverage-20261103/README.md).
-The new allocation/work checks pass their local qualification. The final
-clause audit found an S8 creation-capture race and the focused fix passes,
-but its production coverage and environment gates remain pending. Signed
-`f771c24` passes live conformance and production coverage in CI; its
-overall run fails because colored Cargo output corrupts the source-work
-executable path. The pending correction has not yet run in CI.
+The approved checker passes **8,486/8,486 merged production source lines and
+1,852/1,852 condition outcomes** in the
+[final CI artifact](audit/phase6/ci-coverage-9e6aae6-20261103/README.md).
+The [clause assessment](audit/phase6/clause-assessment-20261103/README.md)
+checks semantic cases separately from lexical traceability. The S8 race it
+found is fixed and included in the final CI, matrix and host runs.
 
-Strict rule/source maps, unprivileged Incus and the unmodified root systemd
-sandbox have passing records with their source and execution scope stated.
+Strict rule/source maps cover all 333 active rules and all 43 kernel facts.
+Three consecutive unprivileged Incus runs and the unmodified root systemd
+sandbox pass on the final source.
 [Required-kernel behavior](docs/kernel-behavior.md) records every target's
 differences and limitations. The November 3 publication recheck retains Ubuntu
 6.8.0-147.147 and 7.0.0-42.42, vanilla 6.8.12 and 7.0.14, and mainline 7.4-rc1.

@@ -494,43 +494,29 @@ and acceptance criteria, are on the [Phase 6 page](phase6.md).
 Exit: all five gates green on the running kernel and on every required
 kernel target; the Incus/LXD scenario run, not skipped.
 
-**Status: in progress on 2026-11-03.** Signed `e29c6f3` passes all three
-CI jobs, including the separate production 100% gate, and CodeQL. Its
-complete required-kernel matrix passes all thirteen profiles with unchanged
-initial/final publication selections and empty source patches. Each normal
-target passes all 27 scenarios, including fragmentation, and 37 process
-cases; all five clock profiles and the special boot profiles pass.
+**Status: done on 2026-11-03.** Signed `9e6aae6` passes all three CI jobs
+and CodeQL. The approved checker reports **8,486/8,486 merged production
+lines and 1,852/1,852 condition outcomes**. Strict maps cover all 333 active
+rules and all 43 kernel facts; the separate clause assessment checks their
+assertions and executed suites.
 
-The approved merged-source checker reports **8,444/8,444 production lines
-and 1,838/1,838 condition outcomes**, exit 0, both locally and in CI.
-CI's retained raw LLVM summary is 99.40% lines and 98.20% outcomes. Its
-51 source fingerprints match the local rehearsal; no production exclusion
-is added. Strict maps cover declarations for 333 active rules and
-classified evidence for 43 kernel facts.
+The complete required-kernel matrix passes all thirteen profiles with
+unchanged initial/final publication selections and empty source patches.
+Each normal target passes all 27 scenarios, including fragmentation, and 37
+process cases. All five clock profiles and the three special boot/recovery
+profiles pass. Three consecutive musl scenario/Incus pairs and the unmodified
+root systemd guest pass on the same source.
 
-The expanded allocation fixture passes ten repetitions per libc and the
-integrated dispatch-work runner passes 240 cases. Common checks and the
-intended fault controls pass after registration. Three fresh musl
-scenario/Incus pairs and the unmodified root systemd guest pass; the shipped
-daemon is byte-identical to e29c6f3. Signed `f771c24` passes its live and
-production-coverage CI jobs, but the overall run fails when colored Cargo
-output corrupts the source-work executable path. The working parser fix has
-not run in CI.
-
-The final clause audit also reproduced an S8 race that could prove a foreign
-link index. The working ordered-barrier fix passes its focused live batch.
-Because it changes production source, coverage, the required matrix, Incus
-and the root-unit profile must run again. e29c6f3 has one completed
-successful CI execution;
-earlier ten-run qualification does not establish ten runs of this revision.
-Retained parallel-QEMU clock failures remain separate evidence; passing
-serial profiles do not resolve their cause.
+The clause assessment found an S8 creation-name capture race. The ordered
+barrier fix and its missing failure-path coverage are included in `9e6aae6`;
+CI, the matrix and the host qualifications were repeated after that change.
+The initial ten-seed CI qualification remains the evidence used before strict
+gates were enabled. Earlier failed collectors and parallel-QEMU clock runs
+remain retained failures.
 
 The [Phase 6 status](phase6.md#execution-status-2026-11-03) and repository
-record `audit/PHASE6_VERIFICATION_2026-11-03.md` identify the current
-evidence and historical failed attempts. Repository record
-`audit/phase6/creation-capture-ordering-20261103/README.md` identifies the
-new failure and the focused fix without claiming the pending gates.
+record `audit/PHASE6_VERIFICATION_2026-11-03.md` identify the final evidence,
+approved distinctions, limitations and historical attempts.
 
 ### Phase 7 — release
 

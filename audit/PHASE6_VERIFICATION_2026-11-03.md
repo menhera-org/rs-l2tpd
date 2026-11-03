@@ -1,5 +1,56 @@
 # Phase 6 verification, November 3
 
+## Final result
+
+Phase 6 is complete on signed commit
+`9e6aae63ec43166941a14fed8883547ead7dc4f0`.
+[CI run 41607623091](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623091)
+passes Build and check, Live conformance, and Production coverage (100%).
+[CodeQL run 41607623178](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623178)
+also passes. The downloaded
+[coverage artifact](phase6/ci-coverage-9e6aae6-20261103/README.md) reports
+**8,486/8,486 merged production source lines and 1,852/1,852 condition
+outcomes**. Raw LLVM reports 8,699/8,751 lines (99.41%) and 1,819/1,852
+outcomes (98.22%); no production exclusion was added.
+
+The [required matrix](phase6/matrix-20261103T090121Z-983779/README.md)
+passes all thirteen profiles on that source. The five normal kernels each
+pass all 27 scenarios and 37 process cases; all five clock/pause profiles,
+both IPv6-absent profiles and missing-driver recovery pass. Initial and final
+publication selections agree and both source patches are empty.
+
+The [final host record](phase6/final-hosts-9e6aae6-20261103/README.md)
+contains three consecutive complete musl scenario/unprivileged-Incus pairs
+and the supplied root-systemd unit. All pass with empty initial/final source
+patches. The [clause assessment](phase6/clause-assessment-20261103/README.md)
+checks the assertions and required-suite execution behind all 333 active rule
+citations and all 43 kernel facts. It treats lexical traceability as a map,
+not as semantic proof.
+
+The assessment found an S8 ownership race. Signed `f744335` contains the
+ordering fix; `9e6aae6` adds the missing failure-path coverage. CI, the full
+matrix, Incus repetitions and root-unit qualification were all repeated after
+that production change. The initial ten-seed CI qualification passed before
+strict gates were enabled. Earlier failed collectors and parallel-QEMU clock
+experiments remain failures in the chronological record below; no passing run
+is used to erase or explain them.
+
+Desired Debian/RHEL-family userspaces and intermediate vanilla kernels were
+not run. They are explicitly non-gating targets. No required Phase 6 case was
+skipped in the final records.
+
+| Package | Final evidence | Result |
+|---|---|---|
+| P1 | Strict rule/source commands in `phase6/clause-assessment-20261103/commands.txt`; 333 active rules and 43 classified kernel facts | pass |
+| P2 | 27 scenarios in every normal matrix profile and each of three final musl repetitions | pass |
+| P3 | `tests/docker/run.sh matrix required`; five normal, five clock and three boot/recovery profiles | pass |
+| P4 | Required Production coverage (100%) CI job; 8,486 lines and 1,852 outcomes | pass |
+| P5 | Three `tests/docker/run.sh incus` executions, unprivileged and unskipped | pass |
+| P6 | Supplied unit in the retained root-systemd QEMU guest | pass |
+| P7 | This record and the status, testing, kernel-behavior and index pages | pass |
+
+## Chronological evidence and retained failures
+
 The final clause audit after signed `f771c24` reproduced an S8 ownership
 failure: a foreign device registered under an armed creation name, moved
 away, and its index was returned as `Proved` after the real L2TP session

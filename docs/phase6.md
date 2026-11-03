@@ -27,54 +27,36 @@ the scenario suite below; read them before writing new scenarios.
 
 ## Execution status, 2026-11-03
 
-Phase 6 remains open. Signed `e29c6f3` passes all three jobs in
-[CI run 41582370103](https://github.com/menhera-org/rs-l2tpd/actions/runs/41582370103)
-and CodeQL. Its complete required-kernel matrix passes all thirteen profiles:
-five normal suites, five clock/pause cases, both IPv6-absent boots and
-missing-driver recovery. Initial/final publication selections agree and
-both source patches are empty. Each normal profile includes all 27
-scenarios and 37 process cases.
+Phase 6 is complete on signed commit `9e6aae6`. All three jobs in
+[CI run 41607623091](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623091)
+and [CodeQL run 41607623178](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623178)
+pass. P4 reports **8,486/8,486 merged production source lines and
+1,852/1,852 condition outcomes**. Raw LLVM reports 99.41% lines and 98.22%
+outcomes; the two metrics remain separate, and no production exclusion was
+added.
 
-P4's local measurement and separate CI acceptance pass: **8,444/8,444
-production source lines and 1,838/1,838 condition outcomes**. The downloaded
-CI artifact has the same 51 source fingerprints as the independent local
-rehearsal. Raw LLVM remains 99.40% lines and 98.20% outcomes in CI; no
-production exclusion is added. The approved source metric and raw summary
-remain separate reports.
+The complete required-kernel matrix passes all thirteen profiles: five normal
+suites, five clock/pause cases, both IPv6-absent boots and missing-driver
+recovery. Each normal profile passes all 27 scenarios and 37 process cases.
+Initial/final publication selections agree and both source patches are empty.
+Three consecutive musl scenario/Incus pairs and the unmodified root-systemd
+profile also pass with empty source patches.
 
-Strict maps cover 333 active rules and classify/cite 43 kernel facts.
-They prove traceability, not every clause. The expanded allocation fixture
-passes ten GNU and ten musl repetitions; the integrated dispatch-work runner
-passes 240 cases. Deliberate temporary inventories, a configuration-wide scan
-and both meter defects are rejected and restored. Common checks pass after
-registration. Three fresh musl scenario/Incus pairs and the unmodified root
-systemd profile pass; the shipped daemon remains byte-identical to e29c6f3.
-Signed `f771c24` adds the allocation and dispatch-work gates. Its live and
-production-coverage CI jobs pass, while its build job records the colored
-Cargo output that corrupted a parsed executable path. Signed `f744335` fixes
-that command and the S8 creation-name race found by the final clause
-assessment. Its build and live-conformance jobs pass in
-[CI run 41598593512](https://github.com/menhera-org/rs-l2tpd/actions/runs/41598593512),
-and CodeQL passes. Production coverage fails at 8,477/8,485 source lines and
-1,848/1,854 condition outcomes; the misses are confined to the new lifetime
-capture paths and are not reported as success.
-
-The required matrix on `f744335` passes all thirteen profiles with empty
-source patches and unchanged publication selections. The current working
-coverage fix has passed the shared local gates and focused GNU/musl lifetime
-tests, but it changes production source identity. Its CI coverage, required
-matrix, Incus and root-unit qualification remain pending. Phase 6 remains
-open. One matrix execution and one CI run do not establish ten repetitions.
-Earlier parallel-QEMU clock failures remain recorded; this serial passing
-matrix does not establish their cause or erase them.
+Strict maps cover all 333 active rules and all 43 kernel facts. The separate
+clause assessment checks the assertions and executed suites behind those
+citations. It found the S8 creation-name race; `f744335` fixes the ordering,
+and `9e6aae6` covers its remaining failure paths. Every final gate above uses
+that source. Allocation peaks pass ten GNU and ten musl repetitions, and the
+integrated source-work runner passes 240 cases with its mutation controls.
 
 Repository records `audit/PHASE6_VERIFICATION_2026-11-03.md`,
-`audit/phase6/ci-coverage-20261103/README.md` and
-`audit/phase6/matrix-20261103T051118Z-682716/README.md` retain the preceding
-commands and source identities. The creation-race failure and focused fix
-are in `audit/phase6/creation-capture-ordering-20261103/README.md`; the first
-complete matrix of that fix is in
-`audit/phase6/matrix-20261103T074746Z-889916/README.md`.
+`audit/phase6/ci-coverage-9e6aae6-20261103/README.md`,
+`audit/phase6/matrix-20261103T090121Z-983779/README.md`,
+`audit/phase6/final-hosts-9e6aae6-20261103/README.md` and
+`audit/phase6/clause-assessment-20261103/README.md` retain the final evidence.
+Earlier failed collectors and parallel-QEMU clock experiments remain in their
+original records; the passing serial matrix does not assign those failures a
+cause.
 
 ## Rules that hold for the whole phase
 
@@ -201,8 +183,8 @@ the common CI script; regular CI retains one full guest per run. This
 establishes declaration traceability. The updated strict workflow also
 [passes in CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41211013318).
 Declaration traceability passes. P4 and the complete required matrix now
-also pass on signed e29c6f3, as recorded in the current execution status;
-complete clause proof remains separate.
+also pass on signed `9e6aae6`, as recorded in the current execution status;
+the separate clause assessment passes on the same source.
 
 ## P2. The scenario suite
 

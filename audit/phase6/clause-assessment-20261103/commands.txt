@@ -1,0 +1,2 @@
+RULEMAP_STRICT=1 cargo test --locked --all-features --test rulemap -- --nocapture
+SRCLINK_STRICT=1 cargo test --locked --all-features --test srclink -- --nocapture
