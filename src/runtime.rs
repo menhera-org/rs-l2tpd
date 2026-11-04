@@ -487,37 +487,44 @@ impl<K: Kernel + 'static> Runtime<K> {
         self.wait_event(wake_at)
     }
 
+    fn ready_event(&mut self, shared: &Shared, wake_at: Option<Instant>) -> Option<ControlEvent> {
+        if self.stopping.is_none() && shared.shutdown.load(Ordering::Acquire) {
+            return Some(ControlEvent::Shutdown);
+        }
+        if let Some(event) = self.outgoing.pop_front() {
+            if self.outgoing.capacity() > self.outgoing.len().saturating_mul(4).max(16) {
+                self.outgoing.shrink_to(self.outgoing.len());
+            }
+            return Some(event);
+        }
+        for (i, source) in [Source::Monitor, Source::L2tp].into_iter().enumerate() {
+            if shared.loss[i].swap(false, Ordering::AcqRel) {
+                return Some(ControlEvent::Kernel {
+                    source,
+                    notice: Notice::Loss,
+                });
+            }
+        }
+        // An always-ready receiver can complete block_on without polling
+        // Tokio's timer driver. Due policy work must still make progress.
+        if wake_at.is_some_and(|deadline| deadline <= Instant::now()) {
+            return Some(ControlEvent::Tick);
+        }
+        if wake_at.is_some()
+            && let Err(error) = tokio::runtime::Handle::try_current()
+        {
+            return Some(ControlEvent::Failed(Error::Other(error.to_string())));
+        }
+        None
+    }
+
     async fn wait_event(&mut self, wake_at: Option<Instant>) -> ControlEvent {
         let shared = self.control.shared.clone();
         loop {
             let notified = shared.wake.notified();
             let mut notified = pin!(notified);
-            if self.stopping.is_none() && shared.shutdown.load(Ordering::Acquire) {
-                return ControlEvent::Shutdown;
-            }
-            if let Some(event) = self.outgoing.pop_front() {
-                if self.outgoing.capacity() > self.outgoing.len().saturating_mul(4).max(16) {
-                    self.outgoing.shrink_to(self.outgoing.len());
-                }
+            if let Some(event) = self.ready_event(&shared, wake_at) {
                 return event;
-            }
-            for (i, source) in [Source::Monitor, Source::L2tp].into_iter().enumerate() {
-                if shared.loss[i].swap(false, Ordering::AcqRel) {
-                    return ControlEvent::Kernel {
-                        source,
-                        notice: Notice::Loss,
-                    };
-                }
-            }
-            // An always-ready receiver can complete block_on without polling
-            // Tokio's timer driver. Due policy work must still make progress.
-            if wake_at.is_some_and(|deadline| deadline <= Instant::now()) {
-                return ControlEvent::Tick;
-            }
-            if wake_at.is_some()
-                && let Err(error) = tokio::runtime::Handle::try_current()
-            {
-                return ControlEvent::Failed(Error::Other(error.to_string()));
             }
             let mut timer = pin!(async {
                 if let Some(deadline) = wake_at {

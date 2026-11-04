@@ -31,6 +31,16 @@ pub(super) struct Retirement {
     closed: Option<Instant>,
 }
 
+impl Retirement {
+    fn close(&mut self, kernel: &mut impl Kernel, now: Instant) {
+        for socket in self.sockets.drain(..) {
+            kernel.close(socket);
+        }
+        self.fds.clear();
+        self.closed.get_or_insert(now);
+    }
+}
+
 impl<K: Kernel> Drop for Reconciler<K> {
     fn drop(&mut self) {
         for socket in self.tunnels.values().map(|record| record.socket).chain(
@@ -45,6 +55,19 @@ impl<K: Kernel> Drop for Reconciler<K> {
 }
 
 impl Store {
+    fn finish_retirement(&mut self, name: &String) {
+        let removed = self.retiring.remove(name).unwrap();
+        for id in removed.ids {
+            let count = self.blocked.get_mut(&id).unwrap();
+            *count -= 1;
+            if *count == 0 {
+                self.blocked.remove(&id);
+            }
+        }
+        self.deadlines.remove(name);
+        self.names.remove(name);
+    }
+
     pub fn retry_now(&mut self, now: Instant) {
         for name in self.retiring.keys() {
             self.deadlines.insert(name.clone(), now);
@@ -289,19 +312,11 @@ impl<K: Kernel> Reconciler<K> {
             if let Some((id, _)) = r.pending.take() {
                 self.store.pending.remove(&id);
             }
-            for socket in r.sockets.drain(..) {
-                self.k.close(socket);
-            }
-            r.fds.clear();
-            r.closed.get_or_insert(now);
+            r.close(&mut self.k, now);
             r.next = now + RETRY;
         }
         if r.withdrawn {
-            for socket in r.sockets.drain(..) {
-                self.k.close(socket);
-            }
-            r.fds.clear();
-            r.closed.get_or_insert(now);
+            r.close(&mut self.k, now);
         }
         let absent = r.sockets.is_empty()
             && r.fds.is_empty()
@@ -309,16 +324,7 @@ impl<K: Kernel> Reconciler<K> {
                 .iter()
                 .all(|id| matches!(self.k.tunnel(*id), Ok(None)));
         if r.withdrawn && absent {
-            let removed = self.store.retiring.remove(&name).unwrap();
-            for id in removed.ids {
-                let count = self.store.blocked.get_mut(&id).unwrap();
-                *count -= 1;
-                if *count == 0 {
-                    self.store.blocked.remove(&id);
-                }
-            }
-            self.store.deadlines.remove(&name);
-            self.store.names.remove(&name);
+            self.store.finish_retirement(&name);
             return;
         }
         if stopping {

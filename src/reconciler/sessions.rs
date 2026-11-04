@@ -8,7 +8,7 @@ use std::io;
 use nix::errno::Errno;
 
 use crate::config::{L2tpIfName, SessionConfig, SessionIdentity};
-use crate::kernel::{Kernel, Proof, SessionCreate, SessionInfo, errno};
+use crate::kernel::{Kernel, Proof, Registration, SessionCreate, SessionInfo, errno};
 
 use super::records::{ConflictIdentity, Enforce, Identity, SessionRecord};
 use super::{Reconciler, report};
@@ -498,10 +498,14 @@ impl<K: Kernel> Reconciler<K> {
                 };
             }
         }
-        let mut done = self.apply_hwaddr(sid, registration.index);
-        if !done {
+        if !self.apply_hwaddr(sid, registration.index) {
             return false;
         }
+        self.apply_session_name(sid, registration, &label)
+    }
+
+    fn apply_session_name(&mut self, sid: u32, registration: Registration, label: &str) -> bool {
+        let mut done = true;
         let record = &self.sessions[&sid];
         if record.name_state == Enforce::Pending {
             let target = *record.config.interface_name();
@@ -529,12 +533,12 @@ impl<K: Kernel> Reconciler<K> {
                         record.current_name = Some(target);
                         record.name_state = Enforce::Applied;
                         record.state = Identity::Proved(registration);
-                        self.report.forget_condition(&label, "name");
+                        self.report.forget_condition(label, "name");
                         let verb = if staged { "published" } else { "renamed" };
                         log::info!("{label}: {verb} as {}", target.to_string_lossy());
                     }
                     Err(e) => {
-                        self.report.begin(&label, "name", || {
+                        self.report.begin(label, "name", || {
                             format!(
                                 "cannot take the name {}: {}",
                                 target.to_string_lossy(),

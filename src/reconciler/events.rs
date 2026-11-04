@@ -2,7 +2,7 @@
 //! concerns, found by lookup in the daemon's own records; an event that
 //! concerns no entry costs a comparison (M5, M16).
 
-use crate::config::{Family, L2tpIfName};
+use crate::config::L2tpIfName;
 use crate::kernel::{AddrInfo, Kernel, LinkInfo, Notice};
 use std::collections::{BTreeMap, BTreeSet};
 use std::net::IpAddr;
@@ -18,7 +18,7 @@ pub(super) struct Index {
     registrations: BTreeMap<u32, u32>,
 }
 
-pub(super) fn remove<T: Ord>(map: &mut BTreeMap<T, BTreeSet<u32>>, key: T, id: u32) {
+pub(super) fn remove<T: Ord, V: Ord>(map: &mut BTreeMap<T, BTreeSet<V>>, key: T, id: V) {
     if let std::collections::btree_map::Entry::Occupied(mut entry) = map.entry(key) {
         entry.get_mut().remove(&id);
         if entry.get().is_empty() {
@@ -181,7 +181,6 @@ impl<K: Kernel> Reconciler<K> {
         } else {
             self.set_master(link.index, None);
         }
-        let controller_changed = previous != link.master;
         if let Some(sid) = self.owned_session(link.index) {
             self.session_device_changed(sid, link.name, link.up);
         }
@@ -202,38 +201,41 @@ impl<K: Kernel> Reconciler<K> {
             .collect();
         let tracked = !ids.is_empty() || relevant || previous.is_some();
         for id in ids {
-            let record = &self.tunnels[&id];
-            let bind_name = record.config.bind_interface().copied();
-            let zone_name = self.zone_name(id);
-            let named = |n: Option<L2tpIfName>, index: Option<u32>| {
-                (n == Some(link.name) && index != Some(link.index))
-                    || (index == Some(link.index) && n != Some(link.name))
-            };
-            let follows =
-                named(bind_name, record.bind_index) || named(zone_name, record.zone_index);
-            // E4: the bound device's L3 domain changed, or the bound VRF's
-            // set of members did.
-            let domain = controller_changed
-                && ((record.bind_index == Some(link.index)
-                    && [previous, link.master]
-                        .iter()
-                        .flatten()
-                        .any(|m| self.vrfs.contains_key(m)))
-                    || record.bind_index.is_some_and(|b| {
-                        self.vrfs.contains_key(&b)
-                            && (previous == Some(b) || link.master == Some(b))
-                    }));
-            if domain && record.connection.is_connected() {
-                self.tunnels.get_mut(&id).unwrap().stale = true;
-            }
-            if follows || domain {
-                self.converge_tunnel(id);
-            }
+            self.tunnel_link_changed(id, &link, previous);
         }
         if tracked {
             self.retain_devices();
         }
         self.resolver_device_changed(&link.name, Some(link.index));
+    }
+
+    fn tunnel_link_changed(&mut self, id: u32, link: &LinkInfo, previous: Option<u32>) {
+        let controller_changed = previous != link.master;
+        let record = &self.tunnels[&id];
+        let bind_name = record.config.bind_interface().copied();
+        let zone_name = self.zone_name(id);
+        let named = |n: Option<L2tpIfName>, index: Option<u32>| {
+            (n == Some(link.name) && index != Some(link.index))
+                || (index == Some(link.index) && n != Some(link.name))
+        };
+        let follows = named(bind_name, record.bind_index) || named(zone_name, record.zone_index);
+        // E4: the bound device's L3 domain changed, or the bound VRF's
+        // set of members did.
+        let domain = controller_changed
+            && ((record.bind_index == Some(link.index)
+                && [previous, link.master]
+                    .iter()
+                    .flatten()
+                    .any(|m| self.vrfs.contains_key(m)))
+                || record.bind_index.is_some_and(|b| {
+                    self.vrfs.contains_key(&b) && (previous == Some(b) || link.master == Some(b))
+                }));
+        if domain && record.connection.is_connected() {
+            self.tunnels.get_mut(&id).unwrap().stale = true;
+        }
+        if follows || domain {
+            self.converge_tunnel(id);
+        }
     }
 
     /// A device left the namespace (E3, S19, S27).
@@ -285,12 +287,7 @@ impl<K: Kernel> Reconciler<K> {
         let address = addr.addr.to_canonical();
         if self.address_devices.contains(&addr.index) {
             if removed {
-                if let Some(addresses) = self.addresses.get_mut(&addr.index) {
-                    addresses.remove(&address);
-                    if addresses.is_empty() {
-                        self.addresses.remove(&addr.index);
-                    }
-                }
+                remove(&mut self.addresses, addr.index, address);
             } else if !self
                 .addresses
                 .entry(addr.index)
@@ -302,11 +299,7 @@ impl<K: Kernel> Reconciler<K> {
         } else if !removed {
             return;
         }
-        let family = if addr.addr.to_canonical().is_ipv4() {
-            Family::V4
-        } else {
-            Family::V6
-        };
+        let ipv4 = address.is_ipv4();
         let vrf_of_device = self.masters.get(&addr.index).copied();
         let ids: BTreeSet<_> = self
             .index
@@ -321,7 +314,7 @@ impl<K: Kernel> Reconciler<K> {
             )
             .chain(
                 removed
-                    .then(|| self.index.sources.get(&addr.addr.to_canonical()))
+                    .then(|| self.index.sources.get(&address))
                     .flatten()
                     .into_iter()
                     .flatten(),
@@ -330,26 +323,19 @@ impl<K: Kernel> Reconciler<K> {
             .collect();
         for id in ids {
             let record = &self.tunnels[&id];
-            let peer_family = match &record.connection {
-                super::records::Connection::Connected { peer, .. } => {
-                    if peer.addr.to_canonical().is_ipv4() {
-                        Family::V4
-                    } else {
-                        Family::V6
-                    }
-                }
-                _ => continue,
+            let super::records::Connection::Connected { peer, .. } = &record.connection else {
+                continue;
             };
             let effective = record.zone_index.or(record.bind_index);
             let concerns = match effective {
                 Some(device) => {
-                    peer_family == family
+                    peer.addr.to_canonical().is_ipv4() == ipv4
                         && (device == addr.index
                             || record.bind_index.is_some_and(|b| {
                                 vrf_of_device == Some(b) && self.vrfs.contains_key(&b)
                             }))
                 }
-                None => removed && self.source_of(id) == Some(addr.addr.to_canonical()),
+                None => removed && self.source_of(id) == Some(address),
             };
             if concerns {
                 self.tunnels.get_mut(&id).unwrap().stale = true;
@@ -420,28 +406,15 @@ impl<K: Kernel> Reconciler<K> {
         report::session(&r.name, r.tunnel_id, sid)
     }
 
-    /// E20, event monitor: every binding checked by name, every connected
-    /// tunnel reconnected, deferred addresses re-checked, resolver devices
-    /// validated again.
-    pub(super) fn monitor_resync(&mut self) {
-        self.monitor_pending = true;
-        self.report.begin("event monitor", "loss", || {
-            "lost notifications; resynchronising (E20)".into()
-        });
+    fn monitor_links(&mut self) -> std::io::Result<BTreeMap<u32, LinkInfo>> {
         let mut links = BTreeMap::new();
-        if self
-            .k
-            .scan_links(0, &mut |link| {
-                if self.index.devices.contains_key(&link.index)
-                    || self.index.sessions.contains_key(&link.index)
-                {
-                    links.insert(link.index, link.clone());
-                }
-            })
-            .is_err()
-        {
-            return;
-        }
+        self.k.scan_links(0, &mut |link| {
+            if self.index.devices.contains_key(&link.index)
+                || self.index.sessions.contains_key(&link.index)
+            {
+                links.insert(link.index, link.clone());
+            }
+        })?;
         let watched_vrfs: BTreeSet<_> = links
             .values()
             .filter(|link| link.vrf && self.index.devices.contains_key(&link.index))
@@ -453,22 +426,31 @@ impl<K: Kernel> Reconciler<K> {
             .filter_map(|link| link.master)
             .collect();
         // Members can precede their VRF, so discover dependencies before streaming them.
-        if (!watched_vrfs.is_empty() || !parents.is_empty())
-            && self
-                .k
-                .scan_links(0, &mut |link| {
-                    if parents.contains(&link.index)
-                        || link
-                            .master
-                            .is_some_and(|master| watched_vrfs.contains(&master))
-                    {
-                        links.insert(link.index, link.clone());
-                    }
-                })
-                .is_err()
-        {
-            return;
+        if !watched_vrfs.is_empty() || !parents.is_empty() {
+            self.k.scan_links(0, &mut |link| {
+                if parents.contains(&link.index)
+                    || link
+                        .master
+                        .is_some_and(|master| watched_vrfs.contains(&master))
+                {
+                    links.insert(link.index, link.clone());
+                }
+            })?;
         }
+        Ok(links)
+    }
+
+    /// E20, event monitor: every binding checked by name, every connected
+    /// tunnel reconnected, deferred addresses re-checked, resolver devices
+    /// validated again.
+    pub(super) fn monitor_resync(&mut self) {
+        self.monitor_pending = true;
+        self.report.begin("event monitor", "loss", || {
+            "lost notifications; resynchronising (E20)".into()
+        });
+        let Ok(links) = self.monitor_links() else {
+            return;
+        };
         self.changed_devices
             .extend(self.address_devices.iter().copied());
         self.vrfs = links
@@ -624,36 +606,40 @@ impl<K: Kernel> Reconciler<K> {
         self.changed_devices.insert(index);
     }
 
+    fn retain_device_bindings(&mut self, index: u32) {
+        let binding_changed = self.changed_bindings.remove(&index);
+        if binding_changed && !self.index.devices.contains_key(&index) {
+            if let Some(complete) = self.vrfs.get_mut(&index) {
+                *complete = false;
+            }
+            let children: Vec<_> = self
+                .members
+                .get(&index)
+                .into_iter()
+                .flatten()
+                .copied()
+                .collect();
+            for child in children {
+                if !self.index.devices.contains_key(&child) {
+                    self.set_master(child, None);
+                }
+            }
+        }
+        if let Some(master) = self.masters.get(&index).copied()
+            && !self.index.devices.contains_key(&index)
+            && !self.index.devices.contains_key(&master)
+        {
+            self.set_master(index, None);
+        }
+        if !self.index.devices.contains_key(&index) && !self.members.contains_key(&index) {
+            self.vrfs.remove(&index);
+        }
+    }
+
     pub(super) fn retain_devices(&mut self) {
         let mut seed = BTreeSet::new();
         while let Some(index) = self.changed_devices.pop_first() {
-            let binding_changed = self.changed_bindings.remove(&index);
-            if binding_changed && !self.index.devices.contains_key(&index) {
-                if let Some(complete) = self.vrfs.get_mut(&index) {
-                    *complete = false;
-                }
-                let children: Vec<_> = self
-                    .members
-                    .get(&index)
-                    .into_iter()
-                    .flatten()
-                    .copied()
-                    .collect();
-                for child in children {
-                    if !self.index.devices.contains_key(&child) {
-                        self.set_master(child, None);
-                    }
-                }
-            }
-            if let Some(master) = self.masters.get(&index).copied()
-                && !self.index.devices.contains_key(&index)
-                && !self.index.devices.contains_key(&master)
-            {
-                self.set_master(index, None);
-            }
-            if !self.index.devices.contains_key(&index) && !self.members.contains_key(&index) {
-                self.vrfs.remove(&index);
-            }
+            self.retain_device_bindings(index);
             let watched =
                 self.index.devices.contains_key(&index) || self.masters.contains_key(&index);
             if !watched {

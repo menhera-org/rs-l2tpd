@@ -40,6 +40,43 @@ fn safe_precreated(file: File, before: &libc::stat) -> io::Result<File> {
     Ok(file)
 }
 
+fn directory_component(dir: &OwnedFd, value: &CString, create: bool) -> io::Result<OwnedFd> {
+    let mut fd = unsafe {
+        libc::openat(
+            dir.as_raw_fd(),
+            value.as_ptr(),
+            libc::O_RDONLY | libc::O_DIRECTORY | libc::O_CLOEXEC,
+        )
+    };
+    if create && fd < 0 && io::Error::last_os_error().kind() == io::ErrorKind::NotFound {
+        if unsafe { libc::mkdirat(dir.as_raw_fd(), value.as_ptr(), 0o755) } < 0 {
+            let error = io::Error::last_os_error();
+            if error.kind() != io::ErrorKind::AlreadyExists {
+                return Err(error);
+            }
+        } else {
+            let created = cvt(unsafe {
+                libc::openat(
+                    dir.as_raw_fd(),
+                    value.as_ptr(),
+                    libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                )
+            })?;
+            if unsafe { libc::fchmod(created.as_raw_fd(), 0o755) } < 0 {
+                return Err(io::Error::last_os_error());
+            }
+        }
+        fd = unsafe {
+            libc::openat(
+                dir.as_raw_fd(),
+                value.as_ptr(),
+                libc::O_RDONLY | libc::O_DIRECTORY | libc::O_CLOEXEC,
+            )
+        };
+    }
+    cvt(fd)
+}
+
 fn directory(path: &Path, create: bool) -> io::Result<(OwnedFd, CString)> {
     let path = if path.is_absolute() {
         path.to_owned()
@@ -71,40 +108,7 @@ fn directory(path: &Path, create: bool) -> io::Result<(OwnedFd, CString)> {
             }
         };
         let value = cstr(value.as_bytes())?;
-        let mut fd = unsafe {
-            libc::openat(
-                dir.as_raw_fd(),
-                value.as_ptr(),
-                libc::O_RDONLY | libc::O_DIRECTORY | libc::O_CLOEXEC,
-            )
-        };
-        if create && fd < 0 && io::Error::last_os_error().kind() == io::ErrorKind::NotFound {
-            if unsafe { libc::mkdirat(dir.as_raw_fd(), value.as_ptr(), 0o755) } < 0 {
-                let error = io::Error::last_os_error();
-                if error.kind() != io::ErrorKind::AlreadyExists {
-                    return Err(error);
-                }
-            } else {
-                let created = cvt(unsafe {
-                    libc::openat(
-                        dir.as_raw_fd(),
-                        value.as_ptr(),
-                        libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
-                    )
-                })?;
-                if unsafe { libc::fchmod(created.as_raw_fd(), 0o755) } < 0 {
-                    return Err(io::Error::last_os_error());
-                }
-            }
-            fd = unsafe {
-                libc::openat(
-                    dir.as_raw_fd(),
-                    value.as_ptr(),
-                    libc::O_RDONLY | libc::O_DIRECTORY | libc::O_CLOEXEC,
-                )
-            };
-        }
-        dir = cvt(fd)?;
+        dir = directory_component(&dir, &value, create)?;
         if !create {
             continue;
         }

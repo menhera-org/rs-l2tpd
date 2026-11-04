@@ -119,38 +119,44 @@ impl State {
                 }
                 continue;
             }
-            let Some(link) = parse_link(msg.payload) else {
-                continue;
-            };
-            if link.family != libc::AF_UNSPEC as u8 {
-                continue; // E5
-            }
-            let index = link.info.index;
-            match msg.kind {
-                libc::RTM_NEWLINK => match self.captures.get(&link.info.name).copied() {
-                    Some(Capture::Armed) => {
-                        self.incarnations += 1;
-                        let incarnation = self.incarnations;
-                        self.captures
-                            .insert(link.info.name, Capture::Seen(index, incarnation));
-                        self.tracked.insert((index, incarnation), false);
-                    }
-                    Some(Capture::Seen(old_index, incarnation))
-                        if old_index != index
-                            || self.tracked.get(&(old_index, incarnation)) == Some(&true) =>
-                    {
-                        self.tracked.remove(&(old_index, incarnation));
-                        self.captures.insert(link.info.name, Capture::Ambiguous);
-                    }
-                    _ => {}
-                },
-                libc::RTM_DELLINK => {
-                    for (_, removed) in self.tracked.range_mut((index, 0)..=(index, u64::MAX)) {
-                        *removed = true;
-                    }
+            self.receive_link(msg.kind, msg.payload);
+        }
+    }
+
+    // kernel: (K16, K20, K29, K30) net/core/dev.c register_netdevice,
+    // unregister_netdevice; net/l2tp/l2tp_eth.c l2tp_eth_create.
+    fn receive_link(&mut self, kind: u16, payload: &[u8]) {
+        let Some(link) = parse_link(payload) else {
+            return;
+        };
+        if link.family != libc::AF_UNSPEC as u8 {
+            return; // E5
+        }
+        let index = link.info.index;
+        match kind {
+            libc::RTM_NEWLINK => match self.captures.get(&link.info.name).copied() {
+                Some(Capture::Armed) => {
+                    self.incarnations += 1;
+                    let incarnation = self.incarnations;
+                    self.captures
+                        .insert(link.info.name, Capture::Seen(index, incarnation));
+                    self.tracked.insert((index, incarnation), false);
+                }
+                Some(Capture::Seen(old_index, incarnation))
+                    if old_index != index
+                        || self.tracked.get(&(old_index, incarnation)) == Some(&true) =>
+                {
+                    self.tracked.remove(&(old_index, incarnation));
+                    self.captures.insert(link.info.name, Capture::Ambiguous);
                 }
                 _ => {}
+            },
+            libc::RTM_DELLINK => {
+                for (_, removed) in self.tracked.range_mut((index, 0)..=(index, u64::MAX)) {
+                    *removed = true;
+                }
             }
+            _ => {}
         }
     }
 }
@@ -340,6 +346,18 @@ impl Lifetime {
             }
             return Err(errno(libc::ETIMEDOUT));
         }
+        self.finish_capture(name, generation, seq, deadline)
+    }
+
+    // kernel: net/core/rtnetlink.c rtnl_getlink; net/core/dev.c
+    // register_netdevice; net/netlink/af_netlink.c netlink_overrun (K20, K29).
+    fn finish_capture(
+        &self,
+        name: &L2tpIfName,
+        generation: u64,
+        seq: u32,
+        deadline: Instant,
+    ) -> io::Result<Registration> {
         let mut state = self.shared.lock();
         let mut barrier_closed = false;
         let result = loop {
