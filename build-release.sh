@@ -43,6 +43,9 @@ trap 'rm -rf "$temporary"' 0
 trap 'exit 1' HUP INT TERM
 umask 022
 cargo "+$RELEASE_TOOLCHAIN" fetch --locked
+# Compile identical verified sources without embedding registry-cache names.
+cargo "+$RELEASE_TOOLCHAIN" vendor --locked --offline --respect-source-config --versioned-dirs \
+    target/release-vendor > "$temporary/vendor-config"
 
 for target in $TARGETS; do
     case $target in
@@ -54,7 +57,9 @@ for target in $TARGETS; do
     CARGO_TARGET_DIR="$cross_target_dir/$target"
     export CARGO_TARGET_DIR
     RUSTFLAGS="$release_rustflags" cross "+$RELEASE_TOOLCHAIN" build --release --locked --offline \
-        --target="$target" --bin "$BIN" --features "$FEATURES" "$@"
+        --target="$target" --bin "$BIN" --features "$FEATURES" \
+        --config "source.crates-io.replace-with='release-vendor'" \
+        --config "source.release-vendor.directory='target/release-vendor'" "$@"
 
     out="$dir/$BIN-$ver-$target.tar.gz"
     cargo "+$RELEASE_TOOLCHAIN" run --locked --manifest-path musl-deb/Cargo.toml \

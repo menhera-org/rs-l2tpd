@@ -70,7 +70,11 @@ for target in x86_64-unknown-linux-musl aarch64-unknown-linux-musl; do
             echo "binary is not stripped: $mode $target" >&2
             exit 1
         fi
-        printf 'mode=%s target=%s binary=identical stripped=yes\n' "$mode" "$target" >> "$record/comparisons.log"
+        if strings "$first/$binary" | grep -E '/(cargo|usr/src/cargo)/registry/src/'; then
+            echo "binary embeds a registry-cache path: $mode $target" >&2
+            exit 1
+        fi
+        printf 'mode=%s target=%s binary=identical stripped=yes registry_paths=absent\n' "$mode" "$target" >> "$record/comparisons.log"
     done
     cmp "$first/target/repro-standalone/$target.tar.gz" "$second/target/repro-standalone/$target.tar.gz"
     cmp "$first/rs-l2tpd-$ver-$target.tar.gz" "$second/rs-l2tpd-$ver-$target.tar.gz"

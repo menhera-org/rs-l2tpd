@@ -414,7 +414,9 @@ cargo install cross --version "$RELEASE_CROSS" --locked --registry crates-io
 
 Both musl architectures remain stripped. The helper fixes source-date,
 locale and timezone, disables incremental compilation, remaps the cross
-mount paths, and omits the linker build ID. Target directories stay separate.
+mount paths, and omits the linker build ID. Cargo vendors the checksum-verified
+locked sources into a fixed project path before compilation; registry-cache
+names therefore cannot leak into binaries. Target directories stay separate.
 The existing `FEATURES`, `TARGETS` and `CROSS_TARGET_DIR` settings still select
 the requested build; custom flags and configured paths are build inputs.
 
@@ -433,6 +435,7 @@ different paths, varies source mtimes and umasks, and builds each copy with
 separate clean target directories. It compares both feature variants'
 binaries and tarballs and both Debian packages byte for byte. It also
 extracts the tarballs and checks their executable bytes, and uses readelf to
-reject debug sections and a symbol table. The Packages workflow requires
+reject debug sections and a symbol table. Embedded registry-cache paths also
+fail the check. The Packages workflow requires
 this check and retains the results. Reproduction requires the same source,
 locked dependencies, pinned build tools and explicit build options.
