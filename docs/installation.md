@@ -2,17 +2,17 @@
 
 Version 0.2.0 has not been published. Build artifacts from this checkout
 until a release is available. See [kernel support](kernel-support.md)
-before deploying to a host or system container. Binary distribution is held
-for service-policy handling and third-party license notices; the
+before deploying to a host or system container. The
 [current review](https://github.com/menhera-org/rs-l2tpd/blob/main/audit/RELEASE_READINESS.md)
-records the required fixes.
+tracks qualification of the packaging and build inputs.
 
 ## Debian packages
 
 The `musl-deb/` builder produces stripped static packages for `amd64` and `arm64`.
 Packages contain the daemon, a systemd unit, a commented configuration
-example and the license texts. They have no shared-library dependency and
-recommend systemd. The packaged daemon excludes `setup-systemd`.
+example and license notices. They depend on Debian's `init-system-helpers`
+for policy-aware service management and recommend systemd; the executable
+has no shared-library dependency. The packaged daemon excludes `setup-systemd`.
 
 Run installation commands as root on the target host:
 
@@ -32,11 +32,14 @@ artifacts, not packages accepted into a distribution archive.
 | `/lib/systemd/system/rs-l2tpd.service` | Supplied service unit |
 | `/etc/rs-l2tpd.toml` | Main configuration, managed as a dpkg conffile |
 | `/etc/rs-l2tpd.toml.d/` | Configuration fragments |
-| `/usr/share/doc/rs-l2tpd/` | README, installation guide and both licenses |
+| `/usr/share/doc/rs-l2tpd/` | README with published guide links, project licenses and third-party/runtime notices |
 
-On the first installation, the package reloads systemd and enables/starts
-the service if systemd is running. Without systemd it leaves service
-management to the operator; use the [process interface](operation.md#command-line).
+On first installation, Debian's helper enables the service according to local
+service policy. If systemd is running, the package reloads its unit definitions
+and asks `deb-systemd-invoke` to start the service. A `policy-rc.d` denial
+prevents startup. Administrator masks and enable/disable state are preserved
+on reinstall and upgrade. Without systemd, manage the service through your
+chosen service manager; see the [process interface](operation.md#command-line).
 
 ## Upgrading
 
@@ -62,7 +65,9 @@ dpkg --remove rs-l2tpd
 dpkg --purge rs-l2tpd
 ```
 
-Removal stops and disables the service and leaves its conffile.
+Removal asks Debian's policy-aware helper to stop the service and leaves its
+conffile. A helper-owned mask prevents activation while the unit is absent;
+reinstallation removes that mask. Administrator masks remain untouched.
 Purge lets dpkg remove the main conffile and removes the fragment directory
 only if it is empty. Operator-created fragments are preserved.
 

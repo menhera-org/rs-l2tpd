@@ -4,6 +4,7 @@ Architecture: @ARCH@
 Section: net
 Priority: optional
 Maintainer: metastable-void <mori@menhera.ad.jp>
+Depends: init-system-helpers (>= 1.54)
 Recommends: systemd
 Homepage: https://github.com/menhera-org/rs-l2tpd
 Description: Resilient Linux L2TPv3 Ethernet pseudowire daemon

@@ -1,38 +1,22 @@
 # Release readiness
 
-Binary distribution is held for the two packaging fixes below.
-Production code and tests match qualified source `81d49f9`; release tooling
-is `97fbbf8`. The [verification record](VERIFICATION.md) gives the completed
-gates, exact scope and signed evidence.
+All five findings from the [prior audit](https://github.com/menhera-org/rs-l2tpd/blob/1f261be0dbff7584a14cc39a3bfe91b38919fd4e/audit/phase6/release-candidate/release-readiness-audit.md)
+have implementation fixes. Binary distribution awaits independent clean-build
+comparisons for the refreshed cross revision and notice bundle.
 
-| Priority | Finding | Required change |
-|---|---|---|
-| Must fix | [postinst](../musl-deb/postinst) starts the service without consulting `policy-rc.d`. A Debian container reproduction with policy exit 101 still records `systemctl enable --now`. | Use Debian's policy-aware service helpers and test denied startup. |
-| Must fix | [Debian packages](../musl-deb/src/main.rs) omit third-party notices; [tarballs](../build-release.sh) contain only the executable. Tokio's MIT notice is one verified omission. | Ship the project licenses and required notices for linked dependencies/runtime libraries in both formats; check artifact contents. |
-| Should fix | Installed README/installation links point to operator/developer files absent from the package. Checkout link checks cannot detect this. | Ship the referenced documentation or use package-specific links to the published book; check the installed tree. |
-| Should fix | The pinned cross 0.2.5 bootstrap has one reported vulnerability and six warnings, including yanked dunce; the three project lockfiles pass. The verified Unix path delegates to modern Rust's standard library, and atty's unsoundness is Windows-specific. | Refresh the upstream tool lock or pin a maintained audited revision, then repeat reproducibility checks. Retain the nonzero audit result without an ignore rule. |
-| Should fix | The root-unit gate requires a prepared nd-test:u2404 image; its documented recipe exists only in audit history and installs packages through networked Docker RUN steps. | Maintain that active recipe outside audit/ with offline package preparation, then qualify the rebuilt image. |
+| Finding | Current implementation and verification |
+|---|---|
+| Service policy | Debian's real helpers honor policy-rc.d denial for starts/stops, preserve administrator masks and disabled state, and clean up helper-owned removal masks. The networkless Debian 13 dpkg consumer passes. |
+| License notices | Both formats carry project licenses, locked dependency notices/source URLs, Rust compiler/runtime notices and musl's copyright text. Unit and installed-package checks pass; clean-build comparisons remain required. |
+| Installed documentation | The packaged README links directly to published operator guides and names notice files present beside it. The installed-tree consumer passes. |
+| Build tool audit | cross is pinned to upstream revision a9301e91f72bba3850460512685f6b16062015ff with its unchanged lockfile. That lock passes cargo audit without ignored advisories; artifact comparisons remain required. |
+| Root-unit image | The maintained builder and Dockerfile live under tests/kernel/. A fresh Ubuntu 24.04 build, fully offline rebuild, corrupt-package rejection and root-systemd guest gate pass. |
 
-The [tool advisory](https://rustsec.org/advisories/RUSTSEC-2023-0018.html) and
-[verified source](https://docs.rs/crate/remove_dir_all/0.5.3/source/src/lib.rs)
-are distinct from daemon dependency findings.
+The production daemon/library source and root Cargo files remain unchanged.
+The [verification record](VERIFICATION.md) separates the existing complete
+kernel/coverage qualification from the refreshed packaging qualification.
 
-The operator guide's musl resolver wording has been corrected. It now
-distinguishes the linked libc from the host's glibc NSS configuration;
-the normative V3 contract is unchanged. See [peer discovery](../docs/peer-discovery.md#resolver-choices).
-
-Debian documents its policy-aware maintainer-script interface in
-[deb-systemd-invoke(1p)](https://manpages.debian.org/trixie/init-system-helpers/deb-systemd-invoke.1p.en.html).
-[Tokio's license](https://raw.githubusercontent.com/tokio-rs/tokio/tokio-1.54.1/LICENSE)
-contains the notice requirement used in the artifact review.
-
-The review traced configuration loading/reload, scheduling, resolver
-admission, netlink input checks, lifetime proofs, session ownership,
-descriptor handover, restart/shutdown, packaging and documentation.
-The load assumption was 300 configured bindings with unrelated host
-activity, failures, reloads and namespace/interface reuse.
-
-No further daemon regression was verified in those paths. Arm64 runtime
-execution and full Debian/Rocky service-manager/SELinux integration remain
-outside qualification. Upstream implementations and every test fixture
-were not independently re-audited.
+Arm64 runtime execution and full Debian/Rocky service-manager/SELinux
+integration remain outside qualification. The Debian consumer uses real
+package helpers and a systemctl stub; the root-unit gate uses real Ubuntu
+systemd in QEMU.

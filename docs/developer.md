@@ -121,11 +121,24 @@ force MAC assignment.
 tests/kernel/run-guest.sh IMAGE MODULES CONFIG systemd RECORD
 ```
 
-The runner consumes a prepared `nd-test:u2404` image with Ubuntu 24.04,
-systemd, udev, dbus, iproute2 and procps. Provision it from an offline source
-with Docker networking disabled. The
-[archived image recipe](https://github.com/menhera-org/rs-l2tpd/blob/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase5-completion/networkd/Dockerfile)
-records the required packages.
+Prepare the Ubuntu 24.04 systemd image from a fresh checkout:
+
+```sh
+tests/kernel/build-systemd-image.sh
+# Rebuild using only the already fetched indexes and packages:
+tests/kernel/build-systemd-image.sh --offline
+```
+
+The caller fetches Ubuntu's InRelease files, indexes and packages over HTTPS.
+The resolver container verifies signatures with Ubuntu's archive keyring;
+apt verifies package digests before installation. Both Docker build stages
+and the resolver container use `--network none`. The maintained
+[Dockerfile](https://github.com/menhera-org/rs-l2tpd/blob/main/tests/kernel/Dockerfile.systemd) installs systemd, udev, dbus,
+iproute2, procps and kmod. The runner consumes the resulting
+`rs-l2tpd-systemd:ubuntu24.04` image. Cached inputs live under
+`target/systemd-image/`; preserve them for a later offline rebuild.
+Offline mode requires the cached Ubuntu base image as well as the fetched
+files. Apt's signature and expiry checks remain enabled.
 
 Install through `--setup-systemd` inside the guest. Leave the unit unmodified
 and check startup ordering, the tunable-write exception, PID directory and
@@ -394,27 +407,34 @@ root ownership, fixed modes and zero archive timestamps. Unit tests check
 deterministic writers, malformed/truncated archives, ELF validation and
 version-field injection. The Packages workflow builds both architectures
 and uses real Debian 13 dpkg to exercise install, upgrade, remove and purge.
-A recorded systemctl stub checks maintainer-script commands and failure
-propagation; it does not qualify Debian's real service manager.
+A recorded systemctl stub checks service actions and failure propagation.
+The real Debian helpers are exercised with policy-rc.d denial and allowed
+startup, plus administrator-disabled and masked units. Upgrade preserves
+configuration and leaves the running daemon in place. The helper package
+is a declared Debian dependency; the daemon needs no shared-library package.
+This consumer test does not qualify Debian's real service manager.
 
 The package layout is described in [installation](installation.md).
 
 ## Reproducible releases
 
 Canonical release builds use `build-release.sh`. `release-config.sh` pins
-Rust 1.99.1, cross 0.2.5 and both Linux amd64 cross images by digest.
+Rust 1.99.1, cross revision `a9301e91f72bba3850460512685f6b16062015ff`
+(version 0.2.5) and both Linux amd64 cross images by digest.
 Install the pinned compiler and cross before building:
 
 ```sh
 . ./release-config.sh
 rustup toolchain install "$RELEASE_TOOLCHAIN" --profile minimal --target x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
-cargo install cross --version "$RELEASE_CROSS" --locked --registry crates-io
+cargo "+$RELEASE_TOOLCHAIN" install cross --git https://github.com/cross-rs/cross --rev "$RELEASE_CROSS_REV" --locked
 ./build-release.sh
 ```
 
 Both musl architectures remain stripped. The helper fixes source-date,
 locale and timezone, disables incremental compilation, remaps the cross
-mount paths, and omits the linker build ID. Cargo vendors the checksum-verified
+mount paths, and omits the linker build ID. Current cross preserves host
+mount paths. `tools/release-rustc.sh` applies their mappings at compiler
+invocation, keeping varying checkout paths out of Cargo's flag hash. Cargo vendors the checksum-verified
 locked sources into a fixed project path before compilation; registry-cache
 names therefore cannot leak into binaries. Target directories stay separate.
 The existing `FEATURES`, `TARGETS` and `CROSS_TARGET_DIR` settings still select
@@ -425,6 +445,22 @@ Gzip runs with `-n` inside the pinned build image, so host tar/gzip versions,
 source mtimes and archive creation times cannot affect the release bytes.
 Debian packages use the same fixed metadata in their uncompressed ar/ustar
 members. No unstripped binary is packaged.
+
+Both formats carry `musl-deb/README.binary.md` as README.md; its guide URLs
+point to the published book. `musl-deb/prepare-notices.sh` obtains the union
+of both musl targets' all-feature normal/build dependency graphs from Cargo.
+It copies license, copyright and notice texts from the checksum-verified
+vendor tree and records exact crate-source URLs. A dependency without a
+license text fails the build; fqdn 0.5.2 has an explicit MIT-text supplement
+because its published manifest declares MIT but omits a license file.
+
+The artifacts also carry the pinned compiler's complete copyright inventory,
+compressed with timestamp-free gzip in the pinned image, and its license
+texts. The additional [musl notice](https://github.com/menhera-org/rs-l2tpd/blob/main/musl-deb/licenses/MUSL-COPYRIGHT)
+is the verbatim [musl 1.2.5 COPYRIGHT](https://git.musl-libc.org/cgit/musl/tree/COPYRIGHT?h=v1.2.5),
+SHA256 `f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af`.
+The notice bundle includes unused/build-time components to cover both feature
+variants; it does not claim they are all linked.
 
 ```sh
 musl-deb/test-reproducible.sh target/verification/reproducibility
@@ -442,14 +478,11 @@ locked dependencies, pinned build tools and explicit build options.
 
 ## Release readiness
 
-The root-unit image bootstrap is also an open maintenance finding: its
-archived Dockerfile installs packages through networked RUN steps. The
-qualified unit result uses the supplied image. A maintained offline image
-builder outside `audit/` is still needed for a fresh-checkout bootstrap.
-
 The [current review](https://github.com/menhera-org/rs-l2tpd/blob/main/audit/RELEASE_READINESS.md)
-separates operational qualification from artifact and build-tool findings.
-Binary distribution is held for service-policy handling and license notices.
+records package-policy, notice, installed-documentation, build-tool and
+systemd-image qualification. These changes preserve the production source
+qualified by the kernel and coverage gates. Independent clean-build
+comparisons must pass for the refreshed release inputs before distribution.
 
 The checked release candidate passes the declared Rust 1.89 minimum on GNU
 and musl, the library feature combinations, and an all-feature musl build
@@ -470,11 +503,16 @@ Install the minimum compiler's musl target before its check. Use a fresh
 official registry index for the dependency scan and inspect its output;
 an index-lookup error can accompany exit 0 and does not complete the audit.
 
-The three project lockfiles pass. The published cross 0.2.5 lockfile returns
-1 with one reported vulnerability and six warnings, including yanked dunce.
-Those entries belong to the build tool. The verified Unix deletion path
-delegates to modern Rust's standard library; atty's unsoundness concerns
-Windows. The review retains that tool result and the source analysis,
-without an ignore rule. Refresh the upstream lockfile or pin an audited
-maintained revision before closing the maintenance finding, then repeat
-the artifact comparisons.
+The three project lockfiles and the pinned cross revision's unchanged
+upstream lockfile pass the dependency scan without ignored advisories.
+To scan that exact tool revision from a fresh checkout:
+
+```sh
+. ./release-config.sh
+git --no-pager clone --no-checkout https://github.com/cross-rs/cross target/cross-audit
+git --no-pager -C target/cross-audit checkout --detach "$RELEASE_CROSS_REV"
+cargo audit --file target/cross-audit/Cargo.lock
+```
+
+The older published cross lock's yanked dunce and advisory findings remain
+in the [prior audit](https://github.com/menhera-org/rs-l2tpd/blob/1f261be0dbff7584a14cc39a3bfe91b38919fd4e/audit/phase6/release-candidate/dependency-audit/applicability.md).

@@ -33,13 +33,13 @@ tests/kernel/run-guest.sh "$KERNEL_IMAGE" "$KERNEL_MODULES" "$KERNEL_CONFIG" nor
 Use `-` for built-in modules or an unavailable configuration as permitted
 by the runner. `clock`, `binary`, `ipv6-disable`, `no-ipv6`, `no-ethernet`,
 `no-vrf` and `systemd` select scoped profiles; they are not substitutes for
-the normal suite. The root-systemd profile consumes `nd-test:u2404`, a
-prepared Ubuntu 24.04 image with systemd, udev, dbus, iproute2 and procps.
-Provision it with an offline package source and Docker networking disabled;
-the runner does not install its packages. Its previous preparation recipe
-is preserved in
-[Git history](https://github.com/menhera-org/rs-l2tpd/blob/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase5-completion/networkd/Dockerfile).
-The guest leaves the supplied unit unmodified.
+the normal suite. Build the root-systemd input with
+`tests/kernel/build-systemd-image.sh`. It fetches on the caller, authenticates
+Ubuntu metadata, and resolves/installs packages in networkless containers.
+Use `--offline` to rebuild from the cached inputs. The runner consumes
+`rs-l2tpd-systemd:ubuntu24.04` and leaves the supplied unit unmodified.
+See [root systemd unit](../../docs/developer.md#root-systemd-unit) for prerequisites
+and verification scope.
 
 ## Optional stock kernels
 

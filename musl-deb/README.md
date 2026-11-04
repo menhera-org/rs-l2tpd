@@ -26,7 +26,9 @@ The common gates run native/musl unit tests and ShellCheck on all maintainer
 scripts. `test-package.sh` runs only in a disposable Debian container, with
 `MUSL_DEB_TEST_CONTAINER=1`. The Packages workflow supplies the networkless
 container, verifies real dpkg install/upgrade/remove/purge behavior and records
-systemctl commands with a stub. It does not test Debian's actual service manager.
+systemctl actions with a stub. The real Debian helpers test startup/stop policy
+denial and preserve administrator-disabled/masked units. It does not test
+Debian's actual service manager.
 
 Release inputs are pinned in `release-config.sh`. Binaries stay stripped;
 locked sources are vendored and archive metadata is normalized. The [reproducibility check](../docs/developer.md#reproducible-releases)

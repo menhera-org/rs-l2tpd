@@ -1,5 +1,5 @@
 #!/bin/sh
 set -eu
-if [ "$1" = remove ] && [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
-    systemctl disable --now rs-l2tpd.service
+if [ "$1" = remove ] && [ -d /run/systemd/system ]; then
+    deb-systemd-invoke stop rs-l2tpd.service
 fi

@@ -65,6 +65,17 @@ for target in x86_64-unknown-linux-musl aarch64-unknown-linux-musl; do
         mkdir -p "$work/extract-$mode-$target"
         tar -xf "$work/extract.tar" -C "$work/extract-$mode-$target"
         cmp "$first/$binary" "$work/extract-$mode-$target/rs-l2tpd"
+        for document in README.md LICENSE-APACHE LICENSE-MPL THIRD-PARTY-NOTICES.txt \
+            RUST-COPYRIGHT.html.gz RUST-LICENSES.txt MUSL-COPYRIGHT; do
+            case $document in
+                README.md) source=$first/musl-deb/README.binary.md ;;
+                LICENSE-*) source=$first/$document ;;
+                *) source=$first/target/release-notices/$document ;;
+            esac
+            cmp "$source" "$work/extract-$mode-$target/$document"
+        done
+        gzip -t "$work/extract-$mode-$target/RUST-COPYRIGHT.html.gz"
+        grep -q 'Tokio Contributors' "$work/extract-$mode-$target/THIRD-PARTY-NOTICES.txt"
         readelf --wide --sections "$first/$binary" > "$record/$mode-$target-sections.log"
         if grep -E '\.(debug|zdebug|symtab)([._[:space:]]|$)' "$record/$mode-$target-sections.log"; then
             echo "binary is not stripped: $mode $target" >&2
@@ -74,7 +85,11 @@ for target in x86_64-unknown-linux-musl aarch64-unknown-linux-musl; do
             echo "binary embeds a registry-cache path: $mode $target" >&2
             exit 1
         fi
-        printf 'mode=%s target=%s binary=identical stripped=yes registry_paths=absent\n' "$mode" "$target" >> "$record/comparisons.log"
+        if strings "$first/$binary" | grep -F -e "$first" -e "$second"; then
+            echo "binary embeds a checkout path: $mode $target" >&2
+            exit 1
+        fi
+        printf 'mode=%s target=%s binary=identical stripped=yes registry_paths=absent notices=verified\n' "$mode" "$target" >> "$record/comparisons.log"
     done
     cmp "$first/target/repro-standalone/$target.tar.gz" "$second/target/repro-standalone/$target.tar.gz"
     cmp "$first/rs-l2tpd-$ver-$target.tar.gz" "$second/rs-l2tpd-$ver-$target.tar.gz"

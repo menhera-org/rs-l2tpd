@@ -1,15 +1,22 @@
 #!/bin/sh
 set -eu
-if [ "$1" = purge ] && [ -d /etc/rs-l2tpd.toml.d ]; then
-    # Remove only an empty directory; preserve operator files.
-    if ! rmdir /etc/rs-l2tpd.toml.d; then
-        echo 'rs-l2tpd: configuration fragments preserved in /etc/rs-l2tpd.toml.d'
+if [ "$1" = purge ]; then
+    deb-systemd-helper purge rs-l2tpd.service
+    deb-systemd-helper unmask rs-l2tpd.service
+    if [ -d /etc/rs-l2tpd.toml.d ]; then
+        # Remove only an empty directory; preserve operator files.
+        if ! rmdir /etc/rs-l2tpd.toml.d; then
+            echo 'rs-l2tpd: configuration fragments preserved in /etc/rs-l2tpd.toml.d'
+        fi
     fi
+fi
+if [ "$1" = remove ]; then
+    deb-systemd-helper mask rs-l2tpd.service
 fi
 case $1 in
 remove|purge)
-    if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
-        systemctl daemon-reload
+    if [ -d /run/systemd/system ]; then
+        systemctl --system daemon-reload
     fi
     ;;
 esac

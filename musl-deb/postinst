@@ -1,10 +1,17 @@
 #!/bin/sh
 set -eu
 [ "$1" = configure ] || exit 0
-if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
-    systemctl daemon-reload
+# The Debian helper preserves administrator masks and enable/disable state.
+deb-systemd-helper unmask rs-l2tpd.service
+if deb-systemd-helper --quiet was-enabled rs-l2tpd.service; then
+    deb-systemd-helper enable rs-l2tpd.service
+else
+    deb-systemd-helper update-state rs-l2tpd.service
+fi
+if [ -d /run/systemd/system ]; then
+    systemctl --system daemon-reload
     if [ -z "${2:-}" ]; then
-        systemctl enable --now rs-l2tpd.service
+        deb-systemd-invoke start rs-l2tpd.service
     else
         echo 'rs-l2tpd: upgrade installed; restart with rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid'
     fi

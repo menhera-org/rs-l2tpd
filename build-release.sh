@@ -10,17 +10,19 @@ FEATURES=${FEATURES:-setup-systemd}
 TARGETS=${TARGETS:-"x86_64-unknown-linux-musl aarch64-unknown-linux-musl"}
 ver=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' Cargo.toml | head -n1)
 test -n "$ver"
-test "$(cross "+$RELEASE_TOOLCHAIN" --version 2>&1 | sed -n 's/^cross //p')" = "$RELEASE_CROSS" || {
-    echo "release builds require cross $RELEASE_CROSS" >&2
-    exit 1
-}
+cross_version=$(cross "+$RELEASE_TOOLCHAIN" --version 2>&1 | sed -n 's/^cross //p')
+cross_short=$(printf '%.7s' "$RELEASE_CROSS_REV")
+case $cross_version in
+    "$RELEASE_CROSS ($cross_short "*")") ;;
+    *) echo "release builds require cross revision $RELEASE_CROSS_REV" >&2; exit 1 ;;
+esac
 if [ -n "${CARGO_ENCODED_RUSTFLAGS:-}" ]; then
     echo 'release builds accept RUSTFLAGS, not CARGO_ENCODED_RUSTFLAGS' >&2
     exit 1
 fi
 
-# Cross mounts these paths consistently, so Cargo's flag hashes also stay fixed.
-release_rustflags="${RUSTFLAGS:+$RUSTFLAGS }--remap-path-prefix=/project=/usr/src/rs-l2tpd --remap-path-prefix=/cargo=/usr/src/cargo --remap-path-prefix=/rust=/usr/src/rust -C link-arg=-Wl,--build-id=none"
+# Keep Cargo's flag hash fixed; release-rustc.sh remaps actual cross mount paths.
+release_rustflags="${RUSTFLAGS:+$RUSTFLAGS }--remap-path-prefix=/project=/usr/src/rs-l2tpd --remap-path-prefix=/cargo=/usr/src/cargo --remap-path-prefix=/rust=/usr/src/rust --remap-path-prefix=/target=/usr/src/target -C link-arg=-Wl,--build-id=none"
 SOURCE_DATE_EPOCH=0
 CARGO_INCREMENTAL=0
 CARGO_PROFILE_RELEASE_STRIP=symbols
@@ -28,7 +30,7 @@ CROSS_CONTAINER_ENGINE=docker
 CROSS_CONTAINER_OPTS='--network none --platform linux/amd64'
 CROSS_TARGET_X86_64_UNKNOWN_LINUX_MUSL_IMAGE=$RELEASE_X86_IMAGE
 CROSS_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_IMAGE=$RELEASE_ARM_IMAGE
-CROSS_BUILD_ENV_PASSTHROUGH="${CROSS_BUILD_ENV_PASSTHROUGH:+$CROSS_BUILD_ENV_PASSTHROUGH }SOURCE_DATE_EPOCH TZ LC_ALL CONFIG_FILE_PATH CONFIG_DIR_PATH PID_FILE_PATH"
+CROSS_BUILD_ENV_PASSTHROUGH="${CROSS_BUILD_ENV_PASSTHROUGH:+$CROSS_BUILD_ENV_PASSTHROUGH }SOURCE_DATE_EPOCH TZ LC_ALL CONFIG_FILE_PATH CONFIG_DIR_PATH PID_FILE_PATH RELEASE_SOURCE_ROOT RUSTC_WRAPPER RUSTC_WORKSPACE_WRAPPER"
 TZ=UTC
 LC_ALL=C
 export SOURCE_DATE_EPOCH CARGO_INCREMENTAL CARGO_PROFILE_RELEASE_STRIP
@@ -46,6 +48,7 @@ cargo "+$RELEASE_TOOLCHAIN" fetch --locked
 # Compile identical verified sources without embedding registry-cache names.
 cargo "+$RELEASE_TOOLCHAIN" vendor --locked --offline --respect-source-config --versioned-dirs \
     target/release-vendor > "$temporary/vendor-config"
+./musl-deb/prepare-notices.sh
 
 for target in $TARGETS; do
     case $target in
@@ -56,7 +59,9 @@ for target in $TARGETS; do
     # Keep host build scripts separate for the two cross-image environments.
     CARGO_TARGET_DIR="$cross_target_dir/$target"
     export CARGO_TARGET_DIR
-    RUSTFLAGS="$release_rustflags" cross "+$RELEASE_TOOLCHAIN" build --release --locked --offline \
+    RUSTFLAGS="$release_rustflags" RELEASE_SOURCE_ROOT="$dir" \
+        RUSTC_WRAPPER="$dir/tools/release-rustc.sh" RUSTC_WORKSPACE_WRAPPER='' \
+        cross "+$RELEASE_TOOLCHAIN" build --release --locked --offline \
         --target="$target" --bin "$BIN" --features "$FEATURES" \
         --config "source.crates-io.replace-with='release-vendor'" \
         --config "source.release-vendor.directory='target/release-vendor'" "$@"

@@ -14,7 +14,7 @@ case $mode in normal|binary|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|system
 [ "$mode" != no-vrf ] || [ "$modules" != - ] || { echo 'no-vrf needs a modular stock kernel' >&2; exit 2; }
 mkdir -p "$record"
 image=rs-l2tpd-audit-vm:local
-if [ "$mode" = systemd ]; then image=nd-test:u2404; fi
+if [ "$mode" = systemd ]; then image=rs-l2tpd-systemd:ubuntu24.04; fi
 image_id=$(docker image inspect --format '{{.Id}}' "$image")
 printf '%s\n' "$image_id" > "$record/image.log"
 base=$repo/target/phase6-kernels/base-${image_id#sha256:}

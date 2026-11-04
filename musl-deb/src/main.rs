@@ -75,7 +75,55 @@ fn build(root: &Path, target: &str) -> io::Result<PathBuf> {
     Ok(output.join(target).join(target).join("release/rs-l2tpd"))
 }
 
-fn package(root: &Path, version: &str, arch: &str, binary: &[u8]) -> io::Result<Vec<u8>> {
+const DOCUMENTS: [(&str, &str); 7] = [
+    ("README.md", "musl-deb/README.binary.md"),
+    ("LICENSE-APACHE", "LICENSE-APACHE"),
+    ("LICENSE-MPL", "LICENSE-MPL"),
+    (
+        "THIRD-PARTY-NOTICES.txt",
+        "target/release-notices/THIRD-PARTY-NOTICES.txt",
+    ),
+    (
+        "RUST-COPYRIGHT.html.gz",
+        "target/release-notices/RUST-COPYRIGHT.html.gz",
+    ),
+    (
+        "RUST-LICENSES.txt",
+        "target/release-notices/RUST-LICENSES.txt",
+    ),
+    ("MUSL-COPYRIGHT", "target/release-notices/MUSL-COPYRIGHT"),
+];
+
+fn documentation(root: &Path) -> io::Result<Vec<(&'static str, Vec<u8>)>> {
+    DOCUMENTS
+        .iter()
+        .map(|&(name, source)| Ok((name, fs::read(root.join(source))?)))
+        .collect()
+}
+
+fn tarball(binary: &[u8], docs: &[(&str, Vec<u8>)]) -> io::Result<Vec<u8>> {
+    let mut entries = vec![Entry {
+        name: "rs-l2tpd",
+        mode: 0o755,
+        directory: false,
+        data: binary,
+    }];
+    entries.extend(docs.iter().map(|(name, data)| Entry {
+        name,
+        mode: 0o644,
+        directory: false,
+        data,
+    }));
+    archive::tar(&entries)
+}
+
+fn package(
+    root: &Path,
+    version: &str,
+    arch: &str,
+    binary: &[u8],
+    docs: &[(&str, Vec<u8>)],
+) -> io::Result<Vec<u8>> {
     let control = include_str!("../control.in")
         .replace("@VERSION@", version)
         .replace("@ARCH@", arch);
@@ -95,7 +143,7 @@ fn package(root: &Path, version: &str, arch: &str, binary: &[u8]) -> io::Result<
     let unit = fs::read_to_string(root.join("contrib/rs-l2tpd.service.in"))?
         .replace("@BINARY@", "/usr/sbin/rs-l2tpd")
         .into_bytes();
-    let mut files = vec![
+    let files = [
         ("usr/sbin/rs-l2tpd", 0o755, binary.to_vec()),
         ("lib/systemd/system/rs-l2tpd.service", 0o644, unit),
         (
@@ -104,24 +152,10 @@ fn package(root: &Path, version: &str, arch: &str, binary: &[u8]) -> io::Result<
             fs::read(root.join("contrib/rs-l2tpd.toml"))?,
         ),
     ];
-    for file in [
-        "README.md",
-        "LICENSE-APACHE",
-        "LICENSE-MPL",
-        "docs/installation.md",
-    ] {
-        let name = Path::new(file).file_name().unwrap().to_str().unwrap();
-        files.push((
-            match name {
-                "README.md" => "usr/share/doc/rs-l2tpd/README.md",
-                "LICENSE-APACHE" => "usr/share/doc/rs-l2tpd/LICENSE-APACHE",
-                "LICENSE-MPL" => "usr/share/doc/rs-l2tpd/LICENSE-MPL",
-                _ => "usr/share/doc/rs-l2tpd/installation.md",
-            },
-            0o644,
-            fs::read(root.join(file))?,
-        ));
-    }
+    let doc_names: Vec<_> = docs
+        .iter()
+        .map(|(name, _)| format!("usr/share/doc/rs-l2tpd/{name}"))
+        .collect();
     let mut entries: Vec<_> = [
         "usr/",
         "usr/sbin/",
@@ -148,6 +182,12 @@ fn package(root: &Path, version: &str, arch: &str, binary: &[u8]) -> io::Result<
         directory: false,
         data,
     }));
+    entries.extend(docs.iter().zip(&doc_names).map(|((_, data), name)| Entry {
+        name,
+        mode: 0o644,
+        directory: false,
+        data,
+    }));
     Ok(archive::deb(&control, &archive::tar(&entries)?))
 }
 
@@ -170,16 +210,12 @@ fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
 }
 
 fn run(args: Vec<OsString>) -> io::Result<()> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
     if let [flag, binary, output] = args.as_slice()
         && flag == "--tar"
     {
         let data = fs::read(binary)?;
-        let tar = archive::tar(&[Entry {
-            name: "rs-l2tpd",
-            mode: 0o755,
-            directory: false,
-            data: &data,
-        }])?;
+        let tar = tarball(&data, &documentation(root)?)?;
         return write_atomic(Path::new(output), &tar);
     }
     if let [flag, path] = args.as_slice()
@@ -204,13 +240,12 @@ fn run(args: Vec<OsString>) -> io::Result<()> {
             ));
         }
     };
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
     let manifest = fs::read_to_string(root.join("Cargo.toml"))?;
     let version = version(&manifest)?;
     for &(target, arch, machine) in targets {
         let binary = fs::read(build(root, target)?)?;
         elf::check(&binary, machine)?;
-        let bytes = package(root, version, arch, &binary)?;
+        let bytes = package(root, version, arch, &binary, &documentation(root)?)?;
         let output = root.join(format!("rs-l2tpd_{version}-1_{arch}.deb"));
         write_atomic(&output, &bytes)?;
         println!("built {}", output.display());
@@ -253,8 +288,44 @@ mod tests {
     #[test]
     fn package_has_unit_configuration_and_all_scripts() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-        let bytes = package(root, "0.2.0", "amd64", b"fixture").unwrap();
-        assert_eq!(bytes, package(root, "0.2.0", "amd64", b"fixture").unwrap());
+        let docs: Vec<_> = DOCUMENTS
+            .iter()
+            .map(|&(name, source)| {
+                (
+                    name,
+                    if source.starts_with("target/") {
+                        b"notice fixture".to_vec()
+                    } else {
+                        fs::read(root.join(source)).unwrap()
+                    },
+                )
+            })
+            .collect();
+        let bytes = package(root, "0.2.0", "amd64", b"fixture", &docs).unwrap();
+        assert_eq!(
+            bytes,
+            package(root, "0.2.0", "amd64", b"fixture", &docs).unwrap()
+        );
+        let release = tarball(b"fixture", &docs).unwrap();
+        for (name, contents) in &docs {
+            let path = format!("usr/share/doc/rs-l2tpd/{name}");
+            assert!(
+                archive::list(&bytes)
+                    .unwrap()
+                    .lines()
+                    .any(|line| line.ends_with(&format!(" {path}")))
+            );
+            assert!(
+                release
+                    .windows(name.len())
+                    .any(|window| window == name.as_bytes())
+            );
+            assert!(
+                release
+                    .windows(contents.len())
+                    .any(|window| window == contents)
+            );
+        }
         let listing = archive::list(&bytes).unwrap();
         for name in [
             "control",
@@ -278,10 +349,6 @@ mod tests {
                 .windows(29)
                 .any(|w| w == b"ExecStart=/usr/sbin/rs-l2tpd ")
         );
-        assert!(
-            !include_str!("../control.in")
-                .lines()
-                .any(|line| line.starts_with("Depends:"))
-        );
+        assert!(include_str!("../control.in").contains("Depends: init-system-helpers (>= 1.54)"));
     }
 }
