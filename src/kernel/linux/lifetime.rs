@@ -69,6 +69,14 @@ struct State {
 }
 
 impl State {
+    // kernel: net/core/dev.c register_netdevice (K20)
+    /// Discards a capture and the registration it cannot authorize.
+    fn discard_capture(&mut self, name: &L2tpIfName) {
+        if let Some(Capture::Seen(index, incarnation)) = self.captures.remove(name) {
+            self.tracked.remove(&(index, incarnation));
+        }
+    }
+
     // kernel: net/netlink/af_netlink.c netlink_overrun (K29, K36)
     /// Ends the generation (E20, M18): nothing captured in it is provable,
     /// and a new socket takes over.
@@ -189,6 +197,29 @@ struct Shared {
 }
 
 impl Shared {
+    // kernel: net/netlink/af_netlink.c netlink_recvmsg, netlink_overrun (K29)
+    /// Drains only the socket generation selected by the reader.
+    fn drain(&self, socket: &Socket, generation: u64) {
+        loop {
+            let received = socket.recv_from_full();
+            if matches!(&received, Err(e) if e.kind() == io::ErrorKind::WouldBlock) {
+                break;
+            }
+            let mut state = self.lock();
+            if state.generation != generation {
+                break;
+            }
+            match received {
+                Ok((datagram, from)) => state.receive(&datagram, &from),
+                Err(error) => {
+                    log::warn!("lifetime subscription lost notifications: {error}");
+                    state.end_generation();
+                }
+            }
+            self.changed.notify_all();
+        }
+    }
+
     // kernel: net/netlink/af_netlink.c netlink_recvmsg (K29)
     fn lock(&self) -> MutexGuard<'_, State> {
         self.state.lock().unwrap_or_else(PoisonError::into_inner)
@@ -237,24 +268,7 @@ fn read(shared: Arc<Shared>) {
         {
             log::warn!("lifetime subscription: {error}");
         }
-        loop {
-            let received = socket.recv_from_full();
-            if matches!(&received, Err(e) if e.kind() == io::ErrorKind::WouldBlock) {
-                break;
-            }
-            let mut state = shared.lock();
-            if state.generation != generation {
-                break;
-            }
-            match received {
-                Ok((datagram, from)) => state.receive(&datagram, &from),
-                Err(error) => {
-                    log::warn!("lifetime subscription lost notifications: {error}");
-                    state.end_generation();
-                }
-            }
-            shared.changed.notify_all();
-        }
+        shared.drain(&socket, generation);
     }
 }
 
@@ -390,10 +404,10 @@ impl Lifetime {
             }
         };
         state.lookups.remove(&seq);
-        if let Some(Capture::Seen(index, incarnation)) = state.captures.remove(name)
-            && result.is_err()
-        {
-            state.tracked.remove(&(index, incarnation));
+        if result.is_err() {
+            state.discard_capture(name);
+        } else {
+            state.captures.remove(name);
         }
         result
     }
@@ -402,10 +416,7 @@ impl Lifetime {
     /// Disarms the capture of a creation the kernel refused; what it saw
     /// was a foreign device of that name.
     pub(super) fn disarm(&self, name: &L2tpIfName) {
-        let mut state = self.shared.lock();
-        if let Some(Capture::Seen(index, incarnation)) = state.captures.remove(name) {
-            state.tracked.remove(&(index, incarnation));
-        }
+        self.shared.lock().discard_capture(name);
     }
 
     // kernel: (K29, K42) net/core/rtnetlink.c rtnl_getlink, answered after every
