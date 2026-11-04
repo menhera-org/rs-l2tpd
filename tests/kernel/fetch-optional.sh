@@ -1,29 +1,30 @@
 #!/bin/sh
 # Fetch the selected distro packages; extract without installing on the host.
 set -eu
-[ "$#" -eq 2 ] || { echo 'usage: fetch-optional.sh debian12|rocky9|rocky10 RECORD' >&2; exit 2; }
+[ "$#" -eq 2 ] || { echo 'usage: fetch-optional.sh debian13|rocky9|rocky10 RECORD' >&2; exit 2; }
 kind=$1
 record=$2
-case $kind in debian12|rocky9|rocky10) ;; *) exit 2 ;; esac
+case $kind in debian13|rocky9|rocky10) ;; *) exit 2 ;; esac
 repo=$(pwd -P)
 case $record in /*) ;; *) record=$repo/$record ;; esac
 cache=$repo/target/optional-kernels/$kind
 mkdir -p "$record" "$cache/root"
+modules=$cache/root/lib/modules
 check_digest() {
     [ "${#1}" -eq 64 ]
     case $1 in *[!0-9a-f]*) return 1 ;; esac
 }
 case $kind in
-debian12)
+debian13)
     base=https://security.debian.org/debian-security
     curl --fail --location --max-time 180 --output "$cache/Packages.xz" \
-        "$base/dists/bookworm-security/main/binary-amd64/Packages.xz"
+        "$base/dists/trixie-security/main/binary-amd64/Packages.xz"
     xz -dc "$cache/Packages.xz" > "$cache/Packages"
-    package=linux-image-6.1.0-54-amd64
+    package=linux-image-6.12.115+deb13.1-amd64
     awk -v package="$package" 'BEGIN {RS=""; FS="\n"}
         $1 == "Package: " package {print; found++}
         END {if(found != 1) exit 1}' "$cache/Packages" > "$record/package.txt"
-    grep -qx 'Version: 6.1.190-1' "$record/package.txt"
+    grep -qx 'Version: 6.12.115-2' "$record/package.txt"
     file=$(sed -n 's/^Filename: //p' "$record/package.txt")
     digest=$(sed -n 's/^SHA256: //p' "$record/package.txt")
     check_digest "$digest"
@@ -37,7 +38,8 @@ debian12)
         --mount "type=bind,source=$archive,target=/package.deb,readonly" \
         --mount "type=bind,source=$cache/root,target=/extract" \
         --entrypoint dpkg-deb debian:trixie-slim -x /package.deb /extract
-    release=6.1.0-54-amd64
+    release=6.12.115+deb13.1-amd64
+    modules=$cache/root/usr/lib/modules
     ;;
 rocky9|rocky10)
     case $kind in
@@ -89,7 +91,7 @@ rocky9|rocky10)
 esac
 test -s "$cache/root/boot/vmlinuz-$release"
 test -s "$cache/root/boot/config-$release"
-test -d "$cache/root/lib/modules/$release"
+test -d "$modules/$release"
 printf 'KERNEL_RELEASE=%s\nKERNEL_ROOT=%s\nKERNEL_IMAGE=%s\nKERNEL_MODULES=%s\nKERNEL_CONFIG=%s\n' \
     "$release" "$cache/root" "$cache/root/boot/vmlinuz-$release" \
-    "$cache/root/lib/modules/$release" "$cache/root/boot/config-$release"
+    "$modules/$release" "$cache/root/boot/config-$release"

@@ -10,7 +10,7 @@ git --no-pager diff HEAD -- src tests Cargo.toml Cargo.lock > "$record/initial-s
 test ! -s "$record/initial-source.patch"
 field() { sed -n "s/^$1=//p" "$2"; }
 result=0
-for kind in debian12 rocky9 rocky10; do
+for kind in debian13 rocky9 rocky10; do
     metadata=$record/$kind-packages/kernel.env
     release=$(field KERNEL_RELEASE "$metadata")
     image=$(field KERNEL_IMAGE "$metadata")

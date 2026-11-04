@@ -43,7 +43,7 @@ The guest leaves the supplied unit unmodified.
 
 ## Optional stock kernels
 
-`fetch-optional.sh` selects the qualified Debian 12 and Rocky 9/10 package
+`fetch-optional.sh` selects the Debian 13 and Rocky 9/10 qualification package
 versions, verifies metadata/package digests and extracts without host
 installation. It needs prepared `debian:trixie-slim` and `rockylinux:9` images;
 Docker extraction uses `--network none`. `run-optional.sh` runs normal and
@@ -52,7 +52,7 @@ clock profiles serially, records each result and checks source consistency.
 ```sh
 record=target/verification/optional-$(date -u +%Y%m%dT%H%M%SZ)
 mkdir -p "$record"
-for kind in debian12 rocky9 rocky10; do
+for kind in debian13 rocky9 rocky10; do
     sh tests/kernel/fetch-optional.sh "$kind" "$record/$kind-packages" > "$record/$kind-fetch.log" 2>&1
     sed -n '/^KERNEL_/p' "$record/$kind-fetch.log" > "$record/$kind-packages/kernel.env"
 done
@@ -61,10 +61,11 @@ sh tests/kernel/run-optional.sh "$record"
 
 These are fixed qualification versions, not an automatic moving-target
 resolver. Refresh the selections and rerun when qualifying newer packages.
-Rocky 9/10 normal and clock profiles pass. Debian 12 fails existing
-unchanged-MAC/UP-device rename assumptions; no assertion is relaxed and
-later normal suites are not counted as executed. Kernel-only results do
-not qualify a distribution's systemd, networkd, SELinux or packaging.
+Rocky 9/10 normal and clock profiles pass. Debian 13 qualification is pending.
+Debian 12 is outside the support target; existing error handling leaves running
+devices intact and retries refused operations. Its older kernel cannot rename
+UP devices. No assertion is relaxed. Kernel-only results do not qualify a
+distribution's systemd, networkd, SELinux or packaging.
 
 ## Direct live conformance
 
