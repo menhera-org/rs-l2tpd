@@ -1,6 +1,0 @@
-c[?7l[2J[    0.000000] Linux version 6.1.0-54-amd64 (debian-kernel@lists.debian.org) (gcc-12 (Debian 12.2.0-14+deb12u1) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP PREEMPT_DYNAMIC Debian 6.1.190-1 (2026-10-16)
-GUEST_KERNEL_RELEASE=6.1.0-54-amd64
-scope: H16 wall-clock and QMP pause scenario only
-test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 63.00s
-MATRIX_GUEST_RESULT=1
-H16_CONTROLLER_RESULT=0

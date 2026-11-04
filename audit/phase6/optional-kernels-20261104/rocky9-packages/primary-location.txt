@@ -1,8 +1,0 @@
-  <data type="primary">
-    <checksum type="sha256">651c31ce7c6afba85a0b8cc0096c11ab6e05ee6aab642b366b429e03c0bf9e61</checksum>
-    <open-checksum type="sha256">b48b59810a964e79abbafb3a19251af412525788191f7bd5315e2ebce5a926b6</open-checksum>
-    <location href="repodata/651c31ce7c6afba85a0b8cc0096c11ab6e05ee6aab642b366b429e03c0bf9e61-primary.xml.gz"/>
-    <timestamp>1793675510</timestamp>
-    <size>43166840</size>
-    <open-size>313993853</open-size>
-  </data>
