@@ -1,0 +1,22 @@
+Package: linux-image-6.12.115+deb13.1-amd64
+Source: linux-signed-amd64 (6.12.115+2)
+Version: 6.12.115-2
+Installed-Size: 108906
+Maintainer: Debian Kernel Team <debian-kernel@lists.debian.org>
+Architecture: amd64
+Replaces: linux-image-6.12.115+deb13.1-amd64-unsigned
+Depends: kmod, initramfs-tools (>= 0.120+deb8u2) | linux-initramfs-tool
+Suggests: firmware-linux-free, linux-doc-6.12, debian-kernel-handbook, grub-pc | grub-efi-amd64 | extlinux
+Conflicts: linux-image-6.12.115+deb13.1-amd64-unsigned
+Breaks: fwupdate (<< 12-7), initramfs-tools (<< 0.120+deb8u2), wireless-regdb (<< 2019.06.03-1~)
+Description: Linux 6.12 for 64-bit PCs (signed)
+Homepage: https://www.kernel.org/
+Built-Using: linux (= 6.12.115-2)
+Description-md5: 224c8e7ad16235c8d318cebf70217775
+Pre-Depends: linux-base (>= 4.12~)
+Recommends: apparmor
+Section: kernel
+Priority: optional
+Filename: pool/updates/main/l/linux-signed-amd64/linux-image-6.12.115+deb13.1-amd64_6.12.115-2_amd64.deb
+Size: 108492156
+SHA256: 6aa130b0864e58c7102b53ab9c2be4071fae62394f57c80bf4e1912f4c9b3b2a

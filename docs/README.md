@@ -23,18 +23,19 @@ Version 0.2.0 is not released. Implementation phases 1–6 are complete;
 | [Specification](spec/README.md) | Normative requirements, promises and behavior |
 
 Production source `c599b1f` passes all three
-[CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915522)
-and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915465).
+[CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583123)
+and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583117).
 Merged production coverage reaches 8,582/8,582 lines and 1,844/1,844 condition
 outcomes. Strict maps cover all 333 active rules and 43 kernel facts;
 semantic clause cases and actual live execution remain separate obligations.
 
 All thirteen required kernel profiles pass, as do three fresh musl
 scenario/Incus pairs and the unmodified root-systemd guest. All six optional
-profiles ran: Rocky 9/10 pass normal and clock checks; Debian 13 passes clock
-checks but its normal run fails an intermittent nlmon capture check. Debian 13
-remains unqualified. Debian 12 receives best-effort degradation outside the
-support target. The [qualification page](kernel-behavior.md) states the exact results and limits.
+Debian 13 and Rocky 9/10 profiles pass after a test-only capture fix: each
+normal guest passes 28 scenarios and 37 process cases, with a separate
+clock/pause pass. Production behavior is unchanged. Debian 12 receives
+best-effort degradation outside the support target. The
+[qualification page](kernel-behavior.md) states the exact results and limits.
 Repository file `audit/VERIFICATION.md` indexes current evidence.
 
 Completed diaries and superseded audits remain in

@@ -88,10 +88,11 @@ crash/store adoption, re-exec and clean shutdown on Ubuntu 24.04 with kernel
 other distributions' managers. The template is also parsed by tests and
 checked with `systemd-analyze --no-pager verify`.
 
-Current required normal guests each pass all 37 process cases and 27
-scenarios. All optional normal guests pass their 37 process cases.
-Rocky 9/10 also pass their complete normal and clock profiles; Debian 13 passes clock checks
-but fails H17's intermittent nlmon capture check in the normal profile.
+The recorded required normal guests each pass all 37 process cases and 27
+scenarios. All optional Debian 13 and Rocky 9/10 guests pass their normal
+and clock profiles on fixture fix `69a0b42`: 37 process cases and 28 scenarios
+per normal guest. The added scenario tests nlmon capture startup; the daemon
+and existing assertions are unchanged.
 Debian 12 receives best-effort degradation outside the support target.
 GNU coverage, stable musl, CI and exact source/host scope are indexed by the
 [current verification record](../../audit/VERIFICATION.md). Historical

@@ -1,0 +1,3 @@
+command: ./test-ci-gates.sh; exit=0
+command: /tmp/rs-l2tpd-doc-links; 782 links checked; failures=0
+command: qlty smells .; exit=0; report=qlty-smells.log

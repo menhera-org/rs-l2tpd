@@ -1,0 +1,15 @@
+Negative control: disposable fixture changes only capture_socket protocol zero back to ETH_P_ALL.
+--- tests/scenarios/netlink.rs
++++ DIAGNOSTIC/bind-race/mutant/netlink.rs
+@@ -44,7 +44,7 @@
+ // immediately; packet_do_bind activates protocol zero on the chosen device.
+ fn capture_socket() -> io::Result<socket2::Socket> {
+     // Stay inactive until bind so Ethernet cannot enter the nlmon queue.
+-    let socket = socket2::Socket::new(socket2::Domain::PACKET, socket2::Type::RAW, None)?;
++    let socket = socket2::Socket::new(socket2::Domain::PACKET, socket2::Type::RAW, Some(socket2::Protocol::from(i32::from(3u16.to_be()))))?;
+     socket.set_recv_buffer_size(8 << 20)?;
+     socket.set_read_timeout(Some(Duration::from_millis(100)))?;
+     Ok(socket)
+Mutant executable git-blob:
+0897f020dc8373b13e00e1f52fe68834298b6c64
+Exact regression returned 101 with foreign Ethernet queued; see mutant-result.log.

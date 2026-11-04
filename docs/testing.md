@@ -33,11 +33,12 @@ Every test names the rules it guards in its doc comment,
 Current production source `c599b1f` passes the common CI gates, strict maps
 and the separate merged-source coverage job. All thirteen required kernel
 profiles, three musl scenario/Incus pairs and the unmodified root-systemd
-guest pass. All six optional Debian 13 and Rocky 9/10 profiles ran.
-Rocky 9/10 pass normal and clock checks. Debian 13 passes clock checks but its normal profile
-fails H17's intermittent nlmon capture check. Debian 12 receives best-effort
-degradation outside the support target. Repository file `audit/VERIFICATION.md`
-indexes the exact commands, source identities, counts and failure scope.
+guest pass. All six optional Debian 13 and Rocky 9/10 profiles pass after
+a test-only nlmon capture-startup fix: 28 scenarios and 37 process cases
+per normal guest, plus separate clock/pause checks. Production source and
+existing assertions are unchanged. Debian 12 receives best-effort degradation
+outside the support target. Repository file `audit/VERIFICATION.md` indexes
+the exact commands, source identities, counts and limits.
 Repository file `tests/process/README.md` gives actual-process commands.
 
 ## The four suites
@@ -76,6 +77,14 @@ isolation alone cannot keep those queries out of an unrelated-link capture.
 Use an independent QEMU kernel when other live workloads cannot be isolated.
 The [archived control](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase6/vrf-inventory-state-20261101)
 reproduces this interference with matching and different identifiers.
+
+The nlmon fixture opens its packet socket with protocol zero, enabling
+capture only when bound to the intended monitor. Opening with ETH_P_ALL
+can queue foreign Ethernet before bind; binding does not remove that queue.
+The live regression injects traffic in this interval, checks the old-opening
+control and verifies valid post-bind netlink. Strict parsing and drop checks
+remain required. See the
+[capture investigation](kernel-behavior.md#optional-distribution-kernels).
 
 The signal-thread resource check runs the actual daemon in disposable
 networkless Docker containers with task limits of one and two. Both must
@@ -243,11 +252,12 @@ Current CI passes **8,582/8,582 merged production lines and 1,844/1,844
 condition outcomes**. The local raw LLVM report remains separate at 99.45%
 lines and 98.26% outcomes; no production exclusion is added. All thirteen
 required profiles, three musl scenario/Incus pairs and root-systemd pass.
-All six optional Debian 13 and Rocky 9/10 profiles ran. Rocky 9/10 pass
-normal and clock checks. Debian 13 passes clock checks and 37 process cases,
-but its normal profile fails H17's intermittent nlmon capture check; it
-remains unqualified despite a passing scoped rerun. Debian 12 is outside the
-support target; its best-effort handling preserves running devices on refusals.
+All six optional Debian 13 and Rocky 9/10 profiles pass on fixture fix
+`69a0b42`: 28 scenarios and 37 process cases per normal guest, plus separate
+clock/pause checks. The added test proves capture stays inactive before
+binding to nlmon; the earlier required runs contained 27 scenarios.
+Debian 12 is outside the support target; its best-effort handling preserves
+running devices on refusals.
 Source-work cost curves and GNU/musl allocation repetitions pass in the build
 job. Historical clause assessments and failed attempts remain in Git history;
 current results never silently incorporate their profiles.

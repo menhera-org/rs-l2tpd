@@ -34,8 +34,8 @@ The last release is 0.1.5; v0.2.0 is not released. Its implementation and
 Phase 6 proof are complete. The [verification record](audit/VERIFICATION.md)
 indexes current commands, source identities, results and limitations.
 
-Production source `c599b1f` passes [all three CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915522)
-and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915465).
+Production source `c599b1f` passes [all three CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583123)
+and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583117).
 Merged production coverage is **8,582/8,582 lines and 1,844/1,844 condition
 outcomes**, with unchanged exclusions. Strict rule/source maps cover all
 333 active rules and 43 kernel facts; semantic clause cases remain a
@@ -45,11 +45,11 @@ All thirteen required kernel profiles pass: Ubuntu 6.8.0-147 and 7.0.0-42,
 vanilla 6.8.12 and 7.0.14, and mainline 7.4-rc1, with separate clock and
 special boot checks. Three fresh scenario/Incus pairs and the unmodified
 root-systemd guest pass. [Kernel qualification](docs/kernel-behavior.md)
-records exact scope and differences. All six optional profiles ran: Rocky
-9/10 pass normal and clock checks; Debian 13 passes clock checks but its
-normal run fails an intermittent nlmon capture check. Debian 13 remains
-unqualified. Debian 12 receives best-effort degradation outside the support
-target.
+records exact scope and differences. All six optional Debian 13 and Rocky
+9/10 profiles pass after a test-only capture fix: each normal guest passes
+28 scenarios and 37 process cases, with a separate clock/pause pass.
+The daemon is unchanged. Debian 12 receives best-effort degradation outside
+the support target.
 
 Completed implementation diaries and superseded audits are preserved in
 [Git history](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit).

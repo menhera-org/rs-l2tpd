@@ -10,8 +10,8 @@ Repository file `audit/VERIFICATION.md` indexes the current source and results.
 ## Current status
 
 Production source `c599b1f` passes all three
-[CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915522)
-and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915465).
+[CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583123)
+and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583117).
 Merged production coverage is **8,582/8,582 lines and 1,844/1,844 condition
 outcomes**, with unchanged exclusions. The local raw LLVM summary is
 99.45% lines and 98.26% outcomes; it remains a separate measurement.
@@ -23,14 +23,17 @@ cases, both IPv6-absent boots and missing-driver recovery. Each normal
 target passes 27 scenarios and 37 process cases. Three consecutive musl
 scenario/Incus pairs and the unmodified root-systemd guest also pass.
 
-All six Debian 13 and Rocky 9/10 optional profiles ran after signed tooling
-commit `3dee493` was synced. Rocky 9/10 pass normal and clock checks. Debian 13
-passes clock checks, 37 process cases and 26 of 27 normal scenarios; H17's
-nlmon reader rejects a packet header. A scoped H17 rerun passes, but the
-original failure remains unresolved and Debian 13 remains unqualified.
-Production behavior and guest assertions are unchanged. Debian 12 is outside
-the support target, with best-effort degradation. Optional results remain
-separate from the required Phase 6 gate.
+All six Debian 13 and Rocky 9/10 optional profiles pass after signed fixture
+fix `69a0b42` was synced. Each normal guest passes 28 scenarios, including
+the new capture-startup regression, and 37 process cases; clock/pause
+profiles pass separately. The fix prevents foreign Ethernet from entering
+the nlmon socket before bind. Production source, existing assertions and
+coverage exclusions are unchanged. The earlier required runs above used
+27 scenarios; fresh CI on the fix passes the full 28-scenario Ubuntu 6.8
+normal profile and 100% production coverage. The added test also passes ten
+consecutive GNU and ten musl runs on Ubuntu 6.8.
+Debian 12 is outside the support target, with best-effort degradation.
+Optional results remain separate from the required Phase 6 gate.
 
 ## Rules for verification
 
@@ -128,7 +131,7 @@ Record parsed publication selections and package/source digests. Kernel.org
 HTML indexes are fetched and parsed in temporary storage, never committed.
 Reject changed targets or source patches.
 
-Each normal boot runs conformance, binary/process checks and all 27 scenarios.
+Each normal boot runs conformance, binary/process checks and all 28 current scenarios.
 Each required kernel also gets an H16 boot with guest wall-clock steps and a
 controller-confirmed QMP pause/resume. Run clock-sensitive profiles serially.
 Mainline additionally boots with `ipv6.disable=1` and with `CONFIG_IPV6=n`;

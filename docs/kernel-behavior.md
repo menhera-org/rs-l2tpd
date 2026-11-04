@@ -5,7 +5,7 @@
 
 Repository file `audit/VERIFICATION.md` identifies the qualified production
 source, commands, publication selections and results. Normal QEMU profiles
-run kernel conformance, process tests and all 27 normal scenarios, including
+run kernel conformance, process tests and all 28 current normal scenarios, including
 300 tunnels/sessions and fragmentation. Clock/pause tests use separate boots.
 A passing bare-kernel guest does not qualify that distribution's systemd,
 udev, networkd, SELinux policy, installer or system-container integration.
@@ -45,6 +45,11 @@ namespace. Removing/replacing the record cancels that verification task.
 
 ## Executed profiles
 
+The required matrix below records source `c599b1f` with its 27-scenario
+fixture. Fresh CI on fixture fix `69a0b42` passes the complete 28-scenario
+Ubuntu 6.8 normal profile and unchanged 100% production coverage. The added
+capture regression also passes ten consecutive GNU and ten musl runs.
+
 | Required kernel | Normal / H20 / H17 | Process cases | H16 clock/pause |
 |---|---|---|---|
 | Ubuntu `6.8.0-147-generic` | 27 pass / pass / pass | 37 pass | Pass |
@@ -66,26 +71,39 @@ Ubuntu 7.0 has missing-Ethernet-driver degradation and recovery.
 
 | Distribution | Exact stock kernel | Normal | Clock/pause |
 |---|---|---|---|
-| Debian 13 | `6.12.115+deb13.1-amd64` (6.12.115-2) | Fail: H17 nlmon capture; 26/27 scenarios and all 37 process cases pass | Pass |
-| Rocky Linux 9 | `5.14.0-687.61.1.el9_8.x86_64` | Pass: 27 scenarios and 37 process cases | Pass |
-| Rocky Linux 10 | `6.12.0-211.72.1.el10_2.x86_64` | Pass: 27 scenarios and 37 process cases | Pass |
+| Debian 13 | `6.12.115+deb13.1-amd64` (6.12.115-2) | Pass: 28 scenarios and 37 process cases | Pass |
+| Rocky Linux 9 | `5.14.0-687.61.1.el9_8.x86_64` | Pass: 28 scenarios and 37 process cases | Pass |
+| Rocky Linux 10 | `6.12.0-211.72.1.el10_2.x86_64` | Pass: 28 scenarios and 37 process cases | Pass |
 
-Debian 13 replaces Debian 12 in the optional matrix. All six profiles ran
-after signed `3dee493` was synced, with empty initial/final source patches.
-Production behavior, all executable hashes and guest assertions are unchanged.
-The aggregate optional result is failure.
+Debian 13 replaces Debian 12 in the optional matrix. All six profiles pass
+after signed fixture fix `69a0b42` was synced, with empty initial/final source
+patches. Production executables and existing assertions are unchanged; the
+scenario executable adds the capture regression. The required profiles above
+retain their earlier 27-scenario results.
 
-Debian 13 passes the 31 private live cases, all 24 Linux cases, five review
-cases and 37 process cases, including the MAC/UP-rename cases Debian 12
-refused. H17 exchanges frames through all 300 sessions in both directions
-and verifies an identical reload before the fixture's nlmon reader fails
-with `nlmon header` during unrelated-link notifications. A separate scoped
-H17 diagnostic passes all three expansion/shrink cycles. Further diagnostic
-probes pass 20 rounds each with one and two subscribers: 12,000 captured
-packets, no loss. These passes do not erase the full-run failure. Its cause
-remains unresolved; no captured packet, assertion or loss check was waived,
-and Debian 13 remains unqualified. These diagnostic profiles are separate
-from the maintained matrix.
+The Debian 13 failure exposed a race in the test fixture, not the daemon.
+Opening an `AF_PACKET` socket with `ETH_P_ALL` immediately captures every
+interface. Ethernet frames queued before binding to nlmon survive that bind;
+the strict nlmon parser then rejects their headers. Linux documents this in
+[packet(7)](https://man7.org/linux/man-pages/man7/packet.7.html); the relevant
+[6.12.115 source](https://github.com/gregkh/linux/blob/v6.12.115/net/packet/af_packet.c)
+is `packet_create`, `packet_do_bind` and `packet_recvmsg`.
+
+Fixture fix `69a0b42` opens with protocol zero and activates capture by binding
+to nlmon with the original nonzero protocol. Capture windows, positive controls,
+request thresholds, parsing and loss checks are unchanged. The new live
+regression deliberately sends Ethernet before binding: the old opening queues
+it, the fixed opening excludes it, and a subsequent route request is captured.
+GNU and musl executions pass; restoring the old opening makes this test fail.
+The same controlled probe passes on the stock Debian 13 kernel.
+
+The daemon uses `AF_NETLINK`, not `AF_PACKET`; its behavior is unchanged.
+The original failed run did not retain packet bytes, so its precise packet
+cannot be identified retrospectively. The documented race deterministically
+recreates the same rejection. Earlier failure and diagnostic records remain
+in [Git history](https://github.com/menhera-org/rs-l2tpd/tree/8766a43c2099a9ff71ae7ee1e30866c61777fbb4/audit/optional-kernels).
+All six complete optional profiles pass on the committed fix, including
+the new regression in each normal guest.
 
 These use checksum-verified stock images, configurations and matching module
 packages. They run the unchanged guest suites and remain optional additions
