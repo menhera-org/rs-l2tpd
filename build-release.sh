@@ -10,7 +10,7 @@ FEATURES=${FEATURES:-setup-systemd}
 TARGETS=${TARGETS:-"x86_64-unknown-linux-musl aarch64-unknown-linux-musl"}
 ver=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' Cargo.toml | head -n1)
 test -n "$ver"
-test "$(cross --version | awk '{print $2}')" = "$RELEASE_CROSS" || {
+test "$(cross "+$RELEASE_TOOLCHAIN" --version 2>&1 | sed -n 's/^cross //p')" = "$RELEASE_CROSS" || {
     echo "release builds require cross $RELEASE_CROSS" >&2
     exit 1
 }

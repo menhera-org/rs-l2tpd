@@ -1,1 +1,3 @@
 source-path=SCRIPTDIR
+# Analyze shared release inputs when Qlty checks each script individually.
+external-sources=true
