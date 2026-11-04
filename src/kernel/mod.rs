@@ -25,10 +25,12 @@ pub struct SocketId(pub(crate) u64);
 
 impl SocketId {
     /// Constructs an implementation-local socket identifier.
+    #[inline]
     pub fn new(value: u64) -> Self {
         Self(value)
     }
     /// The implementation-local identifier.
+    #[inline]
     pub fn get(self) -> u64 {
         self.0
     }
@@ -355,10 +357,12 @@ impl Peer {
         Self { addr, zone }
     }
     /// The reported `addr` field.
+    #[inline]
     pub fn addr(&self) -> IpAddr {
         self.addr
     }
     /// The reported `zone` field.
+    #[inline]
     pub fn zone(&self) -> Option<L2tpIfName> {
         self.zone
     }
@@ -591,6 +595,7 @@ impl AddrInfo {
         self.index
     }
     /// The reported `addr` field.
+    #[inline]
     pub fn addr(&self) -> IpAddr {
         self.addr
     }
