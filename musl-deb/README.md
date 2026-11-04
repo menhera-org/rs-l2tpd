@@ -27,3 +27,8 @@ scripts. `test-package.sh` runs only in a disposable Debian container, with
 `MUSL_DEB_TEST_CONTAINER=1`. The Packages workflow supplies the networkless
 container, verifies real dpkg install/upgrade/remove/purge behavior and records
 systemctl commands with a stub. It does not test Debian's actual service manager.
+
+Release inputs are pinned in `release-config.sh`. Binaries stay stripped;
+source paths and archive metadata are normalized. The [reproducibility check](../docs/developer.md#reproducible-releases)
+compares clean builds in different paths, with different mtimes and umasks,
+for both architectures and both installer feature variants.

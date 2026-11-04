@@ -6,7 +6,7 @@ before deploying to a host or system container.
 
 ## Debian packages
 
-The `musl-deb/` builder produces static packages for `amd64` and `arm64`.
+The `musl-deb/` builder produces stripped static packages for `amd64` and `arm64`.
 Packages contain the daemon, a systemd unit, a commented configuration
 example and the license texts. They have no shared-library dependency and
 recommend systemd. The packaged daemon excludes `setup-systemd`.
@@ -103,4 +103,5 @@ The systemd unit uses `/run/rs-l2tpd/rs-l2tpd.pid`. Standalone daemonized
 starts default to `/run/rs-l2tpd.pid`. Match the PID-file argument when
 issuing an in-place restart.
 
-Build and package commands are in [development](developer.md).
+Build and package commands, including reproducible release checks, are in
+[the developer guide](developer.md#reproducible-releases).

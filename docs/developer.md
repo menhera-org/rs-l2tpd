@@ -398,3 +398,41 @@ A recorded systemctl stub checks maintainer-script commands and failure
 propagation; it does not qualify Debian's real service manager.
 
 The package layout is described in [installation](installation.md).
+
+## Reproducible releases
+
+Canonical release builds use `build-release.sh`. `release-config.sh` pins
+Rust 1.99.1, cross 0.2.5 and both Linux amd64 cross images by digest.
+Install the pinned compiler and cross before building:
+
+```sh
+. ./release-config.sh
+rustup toolchain install "$RELEASE_TOOLCHAIN" --profile minimal --target x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
+cargo install cross --version "$RELEASE_CROSS" --locked --registry crates-io
+./build-release.sh
+```
+
+Both musl architectures remain stripped. The helper fixes source-date,
+locale and timezone, disables incremental compilation, remaps the cross
+mount paths, and omits the linker build ID. Target directories stay separate.
+The existing `FEATURES`, `TARGETS` and `CROSS_TARGET_DIR` settings still select
+the requested build; custom flags and configured paths are build inputs.
+
+The shared Rust tar writer sets ownership, modes and timestamps explicitly.
+Gzip runs with `-n` inside the pinned build image, so host tar/gzip versions,
+source mtimes and archive creation times cannot affect the release bytes.
+Debian packages use the same fixed metadata in their uncompressed ar/ustar
+members. No unstripped binary is packaged.
+
+```sh
+musl-deb/test-reproducible.sh target/verification/reproducibility
+```
+
+Run from a clean committed tree. The check exports the same Git revision to
+different paths, varies source mtimes and umasks, and builds each copy with
+separate clean target directories. It compares both feature variants'
+binaries and tarballs and both Debian packages byte for byte. It also
+extracts the tarballs and checks their executable bytes, and uses readelf to
+reject debug sections and a symbol table. The Packages workflow requires
+this check and retains the results. Reproduction requires the same source,
+locked dependencies, pinned build tools and explicit build options.

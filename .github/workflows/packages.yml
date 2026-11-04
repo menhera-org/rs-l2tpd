@@ -17,7 +17,7 @@ jobs:
   build:
     name: Static Debian packages
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
@@ -25,8 +25,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
-      - name: Install cross
-        run: cargo install cross --locked --version 0.2.5 --registry crates-io
+          components: rustfmt,clippy
+      - name: Install pinned release tools
+        run: |
+          toolchain=$(sed -n 's/^RELEASE_TOOLCHAIN=//p' release-config.sh)
+          cross_version=$(sed -n 's/^RELEASE_CROSS=//p' release-config.sh)
+          rustup toolchain install "$toolchain" --profile minimal --target x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
+          cargo install cross --locked --version "$cross_version" --registry crates-io
       - name: Check package builder
         run: |
           cargo fmt --manifest-path musl-deb/Cargo.toml --check
@@ -39,6 +44,8 @@ jobs:
             cargo run --locked --manifest-path musl-deb/Cargo.toml -- --list "$package"
           done
           sha256sum rs-l2tpd_*.deb
+      - name: Require identical clean builds and stripped binaries
+        run: musl-deb/test-reproducible.sh target/reproducibility
       - name: Test Debian installation and upgrade
         run: |
           docker pull debian:trixie-slim
@@ -53,4 +60,12 @@ jobs:
           name: static-debian-packages
           path: rs-l2tpd_*.deb
           if-no-files-found: error
+          retention-days: 14
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: reproducibility-record
+          path: target/reproducibility
+          if-no-files-found: warn
           retention-days: 14

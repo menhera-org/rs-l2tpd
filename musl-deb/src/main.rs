@@ -60,21 +60,17 @@ fn checked(command: &mut Command) -> io::Result<()> {
 }
 
 fn build(root: &Path, target: &str) -> io::Result<PathBuf> {
-    checked(
-        Command::new("cargo")
-            .current_dir(root)
-            .args(["fetch", "--locked"]),
-    )?;
     let output = root.join("target/musl-deb-build");
     checked(
         Command::new(root.join("build-release.sh"))
             .current_dir(root)
             .env("FEATURES", "bin")
+            .env("CONFIG_FILE_PATH", "/etc/rs-l2tpd.toml")
+            .env("CONFIG_DIR_PATH", "/etc/rs-l2tpd.toml.d")
+            .env("PID_FILE_PATH", "/run/rs-l2tpd.pid")
             .env("TARGETS", target)
             .env("CROSS_TARGET_DIR", &output)
-            .env("CROSS_CONTAINER_ENGINE", "docker")
-            .env("CROSS_CONTAINER_OPTS", "--network none")
-            .args(["--no-default-features", "--offline"]),
+            .arg("--no-default-features"),
     )?;
     Ok(output.join(target).join(target).join("release/rs-l2tpd"))
 }
@@ -155,9 +151,9 @@ fn package(root: &Path, version: &str, arch: &str, binary: &[u8]) -> io::Result<
     Ok(archive::deb(&control, &archive::tar(&entries)?))
 }
 
-fn write_package(path: &Path, bytes: &[u8]) -> io::Result<()> {
+fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
     use std::io::Write;
-    let temporary = path.with_extension(format!("deb.{}.tmp", std::process::id()));
+    let temporary = path.with_extension(format!("{}.tmp", std::process::id()));
     let mut file = fs::OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -174,6 +170,18 @@ fn write_package(path: &Path, bytes: &[u8]) -> io::Result<()> {
 }
 
 fn run(args: Vec<OsString>) -> io::Result<()> {
+    if let [flag, binary, output] = args.as_slice()
+        && flag == "--tar"
+    {
+        let data = fs::read(binary)?;
+        let tar = archive::tar(&[Entry {
+            name: "rs-l2tpd",
+            mode: 0o755,
+            directory: false,
+            data: &data,
+        }])?;
+        return write_atomic(Path::new(output), &tar);
+    }
     if let [flag, path] = args.as_slice()
         && flag == "--list"
     {
@@ -192,7 +200,7 @@ fn run(args: Vec<OsString>) -> io::Result<()> {
             })?,
         _ => {
             return Err(invalid(
-                "usage: musl-deb [--target TARGET | --list PACKAGE]",
+                "usage: musl-deb [--target TARGET | --list PACKAGE | --tar BINARY OUTPUT]",
             ));
         }
     };
@@ -204,7 +212,7 @@ fn run(args: Vec<OsString>) -> io::Result<()> {
         elf::check(&binary, machine)?;
         let bytes = package(root, version, arch, &binary)?;
         let output = root.join(format!("rs-l2tpd_{version}-1_{arch}.deb"));
-        write_package(&output, &bytes)?;
+        write_atomic(&output, &bytes)?;
         println!("built {}", output.display());
     }
     Ok(())
