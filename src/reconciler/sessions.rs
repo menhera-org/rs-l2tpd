@@ -357,7 +357,16 @@ impl<K: Kernel> Reconciler<K> {
                     .insert(*sid);
             }
         }
-        // Release acyclic dependencies before staging cycles (S11).
+        self.release_names(&mut holders, &waiting);
+        self.stage_swaps(&mut holders);
+    }
+
+    // Release acyclic dependencies before staging cycles (S11).
+    fn release_names(
+        &mut self,
+        holders: &mut BTreeMap<L2tpIfName, BTreeSet<u32>>,
+        waiting: &BTreeMap<L2tpIfName, BTreeSet<u32>>,
+    ) {
         let mut ready: BTreeSet<_> = waiting
             .iter()
             .filter(|(name, _)| !holders.contains_key(name))
@@ -378,7 +387,7 @@ impl<K: Kernel> Reconciler<K> {
                 break;
             }
             if let Some(name) = before {
-                super::events::remove(&mut holders, name, sid);
+                super::events::remove(holders, name, sid);
                 if !holders.contains_key(&name) {
                     ready.extend(waiting.get(&name).into_iter().flatten().copied());
                 }
@@ -391,6 +400,9 @@ impl<K: Kernel> Reconciler<K> {
                 holders.entry(name).or_default().insert(sid);
             }
         }
+    }
+
+    fn stage_swaps(&mut self, holders: &mut BTreeMap<L2tpIfName, BTreeSet<u32>>) {
         holders.retain(|_, ids| {
             ids.retain(|sid| matches!(self.sessions[sid].state, Identity::Proved(_)));
             !ids.is_empty()
@@ -423,30 +435,40 @@ impl<K: Kernel> Reconciler<K> {
             if self.k.prove(registration) != Proof::Proved {
                 continue;
             }
-            for _ in 0..DRAWS {
-                let temp = match self.random_name("rsl2tp-r") {
-                    Ok(name) => name,
-                    Err(error) => {
-                        let label = self.session_label(holder);
-                        self.report.begin(&label, "random", || {
-                            format!("temporary name unavailable: {error}")
-                        });
-                        self.incomplete = true;
-                        break;
-                    }
-                };
-                match self.k.rename(registration.index, &temp) {
-                    Ok(()) => {
-                        self.sessions.get_mut(&holder).unwrap().current_name = Some(temp);
-                        super::events::remove(&mut holders, *target, holder);
-                        holders.entry(temp).or_default().insert(holder);
-                        break;
-                    }
-                    Err(error) if errno(&error) == Errno::EEXIST as i32 => continue,
-                    Err(_) => break,
-                }
+            if let Some(temp) = self.stage_swap(holder, registration) {
+                super::events::remove(holders, *target, holder);
+                holders.entry(temp).or_default().insert(holder);
             }
         }
+    }
+
+    fn stage_swap(
+        &mut self,
+        holder: u32,
+        registration: &crate::kernel::Registration,
+    ) -> Option<L2tpIfName> {
+        for _ in 0..DRAWS {
+            let temp = match self.random_name("rsl2tp-r") {
+                Ok(name) => name,
+                Err(error) => {
+                    let label = self.session_label(holder);
+                    self.report.begin(&label, "random", || {
+                        format!("temporary name unavailable: {error}")
+                    });
+                    self.incomplete = true;
+                    break;
+                }
+            };
+            match self.k.rename(registration.index, &temp) {
+                Ok(()) => {
+                    self.sessions.get_mut(&holder).unwrap().current_name = Some(temp);
+                    return Some(temp);
+                }
+                Err(error) if errno(&error) == Errno::EEXIST as i32 => continue,
+                Err(_) => break,
+            }
+        }
+        None
     }
 
     /// Converges one session in place: staging finished, name and hardware

@@ -144,58 +144,66 @@ fn probe(path: &Path) -> io::Result<()> {
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()?;
-    let result = (|| {
-        let mut stdout = child.stdout.take().unwrap();
-        use nix::fcntl::{FcntlArg, OFlag, fcntl};
-        fcntl(&stdout, FcntlArg::F_SETFL(OFlag::O_NONBLOCK))?;
-        let mut output = vec![];
-        let deadline = Instant::now() + Duration::from_secs(3);
-        loop {
-            let mut bytes = [0; 64];
-            match stdout.read(&mut bytes) {
-                Ok(count) => output.extend_from_slice(&bytes[..count]),
-                Err(e)
-                    if matches!(
-                        e.kind(),
-                        io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
-                    ) => {}
-                Err(e) => return Err(e),
-            }
-            if output.len() > VERSION.len() {
-                return Err(io::Error::other("incompatible adoption protocol"));
-            }
-            if let Some(status) = child.try_wait()? {
-                // Drain the small remaining pipe payload after process exit.
-                loop {
-                    match stdout.read(&mut bytes) {
-                        Ok(0) => break,
-                        Ok(count) => {
-                            output.extend_from_slice(&bytes[..count]);
-                            if output.len() > VERSION.len() {
-                                break;
-                            }
-                        }
-                        Err(e) if e.kind() == io::ErrorKind::WouldBlock => break,
-                        Err(e) => return Err(e),
-                    }
-                }
-                return if status.success() && output == VERSION.as_bytes() {
-                    Ok(())
-                } else {
-                    Err(io::Error::other("incompatible adoption protocol"))
-                };
-            }
-            if Instant::now() >= deadline {
-                return Err(io::Error::new(io::ErrorKind::TimedOut, "adoption probe"));
-            }
-            std::thread::sleep(Duration::from_millis(10));
-        }
-    })();
+    let result = probe_output(&mut child);
     if result.is_err() {
         let _ = child.kill();
         let _ = child.wait();
     }
     result
+}
+
+fn drain_probe(stdout: &mut std::process::ChildStdout, output: &mut Vec<u8>) -> io::Result<()> {
+    let mut bytes = [0; 64];
+    loop {
+        match stdout.read(&mut bytes) {
+            Ok(0) => break,
+            Ok(count) => {
+                output.extend_from_slice(&bytes[..count]);
+                if output.len() > VERSION.len() {
+                    break;
+                }
+            }
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => break,
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(())
+}
+
+fn probe_output(child: &mut std::process::Child) -> io::Result<()> {
+    let mut stdout = child.stdout.take().unwrap();
+    use nix::fcntl::{FcntlArg, OFlag, fcntl};
+    fcntl(&stdout, FcntlArg::F_SETFL(OFlag::O_NONBLOCK))?;
+    let mut output = vec![];
+    let deadline = Instant::now() + Duration::from_secs(3);
+    loop {
+        let mut bytes = [0; 64];
+        match stdout.read(&mut bytes) {
+            Ok(count) => output.extend_from_slice(&bytes[..count]),
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
+                ) => {}
+            Err(e) => return Err(e),
+        }
+        if output.len() > VERSION.len() {
+            return Err(io::Error::other("incompatible adoption protocol"));
+        }
+        if let Some(status) = child.try_wait()? {
+            // Drain the small remaining pipe payload after process exit.
+            drain_probe(&mut stdout, &mut output)?;
+            return if status.success() && output == VERSION.as_bytes() {
+                Ok(())
+            } else {
+                Err(io::Error::other("incompatible adoption protocol"))
+            };
+        }
+        if Instant::now() >= deadline {
+            return Err(io::Error::new(io::ErrorKind::TimedOut, "adoption probe"));
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
 }
 pub fn exec(
     path: &Path,

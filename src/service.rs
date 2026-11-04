@@ -262,6 +262,252 @@ struct Callbacks {
     restart: Restart,
 }
 
+impl Callbacks {
+    fn start_reload(
+        &mut self,
+        generation: u64,
+        control: &Control,
+        panicked: Arc<AtomicBool>,
+    ) -> std::io::Result<()> {
+        let mut reload = self.reload.take().unwrap();
+        let accepted = control.config();
+        let returned = control.clone();
+        std::thread::Builder::new()
+            .name("l2tp-reload".into())
+            .spawn(move || {
+                let result =
+                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| reload(accepted)))
+                        .map_err(|_| Error::ReloadPanicked);
+                // A completion queued during shutdown may not be
+                // dequeued before cleanup ends. Preserve its panic.
+                if result.is_err() {
+                    panicked.store(true, Ordering::Release);
+                    returned.shutdown();
+                }
+                let _ =
+                    returned
+                        .tx
+                        .blocking_send(ControlEvent::Service(Operation(Action::Reloaded {
+                            generation,
+                            reload,
+                            result,
+                        })));
+            })?;
+        Ok(())
+    }
+
+    fn restart<K: Kernel + 'static>(&mut self, runtime: &mut Runtime<K>) -> Result<()> {
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            runtime.restart_sockets().and_then(&mut self.restart)
+        }));
+        match outcome {
+            Ok(Ok(())) => log::warn!("restart callback returned; resuming"),
+            Ok(Err(error)) => log::warn!("restart failed; resuming: {error}"),
+            Err(_) => return Err(Error::RestartPanicked),
+        }
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+struct WorkerState {
+    started: bool,
+    converged: bool,
+    convergence_generation: u64,
+    convergence: Option<tokio::sync::oneshot::Sender<Result<Vec<String>>>>,
+    serving: Option<Callbacks>,
+    in_flight: Option<u64>,
+    reload_pending: bool,
+    // Admission slots stay reserved until processing, bounding this deferral
+    // queue as well as preserving every accepted restart's position.
+    pending: VecDeque<OperatorRequest>,
+    failure: Option<Error>,
+}
+
+impl WorkerState {
+    fn update_readiness<K: Kernel + 'static>(&mut self, runtime: &Runtime<K>, control: &Control) {
+        if self.started && !self.converged && runtime.ready() {
+            self.converged = true;
+            // Ignore reloads accepted during convergence even if a kernel
+            // operation kept them queued until after readiness.
+            self.convergence_generation = control.shared.generation.load(Ordering::Acquire);
+            if let Some(tx) = self.convergence.take() {
+                let _ = tx.send(Ok(runtime.left_out()));
+            }
+        }
+        if self.reload_pending
+            && runtime.applied()
+            && !control.shared.shutdown.load(Ordering::Acquire)
+        {
+            log::info!("reload completed");
+            self.reload_pending = false;
+        }
+    }
+
+    fn pending_ready(&self, control: &Control) -> bool {
+        self.converged
+            && self.in_flight.is_none()
+            && self.serving.is_some()
+            && !self.pending.is_empty()
+            && !control.shared.shutdown.load(Ordering::Acquire)
+    }
+
+    // Returns whether this request must be followed by a background turn.
+    fn process_operator<K: Kernel + 'static>(
+        &mut self,
+        runtime: &mut Runtime<K>,
+        control: &Control,
+        callback_panicked: &Arc<AtomicBool>,
+    ) -> bool {
+        let callbacks = self.serving.as_mut().unwrap();
+        match self.pending.pop_front().unwrap() {
+            OperatorRequest::Reload(generation) => {
+                if generation != control.shared.generation.load(Ordering::Acquire) {
+                    control.request_processed();
+                    return false;
+                }
+                match callbacks.start_reload(generation, control, callback_panicked.clone()) {
+                    Ok(()) => self.in_flight = Some(generation),
+                    Err(error) => {
+                        control.request_processed();
+                        self.failure = Some(error.into());
+                        control.shutdown();
+                    }
+                }
+            }
+            OperatorRequest::Restart => {
+                if let Err(error) = callbacks.restart(runtime) {
+                    self.failure = Some(error);
+                    control.shutdown();
+                }
+                control.request_processed();
+            }
+        }
+        true
+    }
+
+    fn apply_reload<K: Kernel + 'static>(
+        &mut self,
+        generation: u64,
+        result: Result<Result<Config>>,
+        runtime: &mut Runtime<K>,
+        control: &Control,
+    ) {
+        match result {
+            Err(error) => {
+                self.failure = Some(error);
+                control.shutdown();
+            }
+            Ok(Err(error)) => {
+                log::error!("reload failed; retaining accepted configuration: {error}")
+            }
+            Ok(Ok(config))
+                if !control.shared.shutdown.load(Ordering::Acquire)
+                    && generation == control.shared.generation.load(Ordering::Acquire) =>
+            {
+                runtime.reconcile(config);
+                self.reload_pending = true;
+            }
+            _ => {}
+        }
+    }
+
+    fn start<K: Kernel + 'static>(&mut self, runtime: &mut Runtime<K>, config: &Config) {
+        if !self.started {
+            runtime.reconcile(config.clone());
+            self.started = true;
+        }
+    }
+
+    fn handle_action<K: Kernel + 'static>(
+        &mut self,
+        action: Action,
+        runtime: &mut Runtime<K>,
+        config: &Config,
+        control: &Control,
+    ) {
+        match action {
+            Action::Reloaded {
+                generation,
+                reload,
+                result,
+            } => {
+                self.in_flight = None;
+                control.request_processed();
+                if let Some(callbacks) = self.serving.as_mut() {
+                    callbacks.reload = Some(reload);
+                }
+                self.apply_reload(generation, result, runtime, control);
+            }
+            Action::StoreCapacity(capacity, tx) => {
+                let result = if self.started {
+                    Err(Error::Other("set store capacity before convergence".into()))
+                } else {
+                    runtime.set_store_capacity(capacity);
+                    Ok(())
+                };
+                let _ = tx.send(result);
+            }
+            Action::Converge(tx) => {
+                if self.converged {
+                    let _ = tx.send(Ok(runtime.left_out()));
+                } else {
+                    self.convergence = Some(tx);
+                }
+                self.start(runtime, config);
+            }
+            Action::Run(reload, restart) => {
+                self.serving = Some(Callbacks {
+                    reload: Some(reload),
+                    restart,
+                });
+                self.start(runtime, config);
+            }
+        }
+    }
+
+    fn handle_event<K: Kernel + 'static>(
+        &mut self,
+        event: ControlEvent,
+        runtime: &mut Runtime<K>,
+        config: &Config,
+        control: &Control,
+    ) {
+        match event {
+            ControlEvent::Service(Operation(action))
+                if matches!(action, Action::Reloaded { .. })
+                    || !control.shared.shutdown.load(Ordering::Acquire) =>
+            {
+                self.handle_action(action, runtime, config, control);
+            }
+            ControlEvent::Reload { generation }
+                if self.converged
+                    && generation > self.convergence_generation
+                    && !control.shared.shutdown.load(Ordering::Acquire) =>
+            {
+                self.pending.retain(|request| {
+                    if matches!(request, OperatorRequest::Reload(_)) {
+                        control.request_processed();
+                        false
+                    } else {
+                        true
+                    }
+                });
+                self.pending.push_back(OperatorRequest::Reload(generation));
+            }
+            ControlEvent::Restart if !control.shared.shutdown.load(Ordering::Acquire) => {
+                self.pending.push_back(OperatorRequest::Restart);
+            }
+            event => {
+                if let Err(error) = runtime.handle_event(event) {
+                    self.failure.get_or_insert(error);
+                    control.shutdown();
+                }
+            }
+        }
+    }
+}
+
 fn worker<K: Kernel + 'static>(
     engine: tokio::runtime::Runtime,
     mut runtime: Runtime<K>,
@@ -270,116 +516,28 @@ fn worker<K: Kernel + 'static>(
     forward: Arc<AtomicBool>,
 ) -> Result<()> {
     let control = runtime.control();
-    let mut started = false;
-    let mut converged = false;
-    let mut convergence_generation = 0;
-    let mut convergence: Option<tokio::sync::oneshot::Sender<Result<Vec<String>>>> = None;
-    let mut serving: Option<Callbacks> = None;
-    let mut in_flight = None;
-    let mut reload_pending = false;
-    // Admission slots stay reserved until processing, bounding this deferral
-    // queue as well as preserving every accepted restart's position.
-    let mut pending = VecDeque::new();
+    let mut state = WorkerState::default();
     let mut poll_background = false;
     let callback_panicked = Arc::new(AtomicBool::new(false));
-    let mut failure = None;
     loop {
         if control.shared.shutdown.load(Ordering::Acquire) {
             match runtime.shutdown() {
                 Ok(true) => break,
                 Err(error) => {
-                    failure.get_or_insert(error);
+                    state.failure.get_or_insert(error);
                     break;
                 }
                 Ok(false) => {}
             }
         }
-        if started && !converged && runtime.ready() {
-            converged = true;
-            // Ignore reloads accepted during convergence even if a kernel
-            // operation kept them queued until after readiness.
-            convergence_generation = control.shared.generation.load(Ordering::Acquire);
-            if let Some(tx) = convergence.take() {
-                let _ = tx.send(Ok(runtime.left_out()));
-            }
-        }
-        if reload_pending && runtime.applied() && !control.shared.shutdown.load(Ordering::Acquire) {
-            log::info!("reload completed");
-            reload_pending = false;
-        }
-        if !poll_background
-            && converged
-            && in_flight.is_none()
-            && !control.shared.shutdown.load(Ordering::Acquire)
-            && let Some(callbacks) = serving.as_mut()
-            && let Some(request) = pending.pop_front()
-        {
-            match request {
-                OperatorRequest::Reload(generation) => {
-                    if generation != control.shared.generation.load(Ordering::Acquire) {
-                        control.request_processed();
-                        continue;
-                    }
-                    let mut reload = callbacks.reload.take().unwrap();
-                    let accepted = control.config();
-                    let returned = control.clone();
-                    let panicked = callback_panicked.clone();
-                    let spawned = std::thread::Builder::new()
-                        .name("l2tp-reload".into())
-                        .spawn(move || {
-                            let result =
-                                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                                    reload(accepted)
-                                }))
-                                .map_err(|_| Error::ReloadPanicked);
-                            // A completion queued during shutdown may not be
-                            // dequeued before cleanup ends. Preserve its panic.
-                            if result.is_err() {
-                                panicked.store(true, Ordering::Release);
-                                returned.shutdown();
-                            }
-                            let _ = returned.tx.blocking_send(ControlEvent::Service(Operation(
-                                Action::Reloaded {
-                                    generation,
-                                    reload,
-                                    result,
-                                },
-                            )));
-                        });
-                    match spawned {
-                        Ok(_) => in_flight = Some(generation),
-                        Err(error) => {
-                            control.request_processed();
-                            failure = Some(error.into());
-                            control.shutdown();
-                        }
-                    }
-                }
-                OperatorRequest::Restart => {
-                    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        runtime.restart_sockets().and_then(&mut callbacks.restart)
-                    }));
-                    match outcome {
-                        Ok(Ok(())) => log::warn!("restart callback returned; resuming"),
-                        Ok(Err(error)) => log::warn!("restart failed; resuming: {error}"),
-                        Err(_) => {
-                            failure = Some(Error::RestartPanicked);
-                            control.shutdown();
-                        }
-                    }
-                    control.request_processed();
-                }
-            }
-            poll_background = true;
+        state.update_readiness(&runtime, &control);
+        if !poll_background && state.pending_ready(&control) {
+            poll_background = state.process_operator(&mut runtime, &control, &callback_panicked);
             continue;
         }
         // Interleave policy and host work with deferred operator requests;
         // neither a full input queue nor a long restart backlog may starve the other.
-        let pending_ready = converged
-            && in_flight.is_none()
-            && serving.is_some()
-            && !pending.is_empty()
-            && !control.shared.shutdown.load(Ordering::Acquire);
+        let pending_ready = state.pending_ready(&control);
         let event = if pending_ready {
             let mut next = pin!(runtime.next_event());
             engine.block_on(poll_fn(|cx| {
@@ -396,108 +554,21 @@ fn worker<K: Kernel + 'static>(
             continue;
         };
         match event {
-            ControlEvent::Service(Operation(Action::Reloaded {
-                generation,
-                reload,
-                result,
-            })) => {
-                in_flight = None;
-                control.request_processed();
-                if let Some(callbacks) = serving.as_mut() {
-                    callbacks.reload = Some(reload);
-                }
-                match result {
-                    Err(error) => {
-                        failure = Some(error);
-                        control.shutdown();
-                    }
-                    Ok(Err(error)) => {
-                        log::error!("reload failed; retaining accepted configuration: {error}")
-                    }
-                    Ok(Ok(config))
-                        if !control.shared.shutdown.load(Ordering::Acquire)
-                            && generation == control.shared.generation.load(Ordering::Acquire) =>
-                    {
-                        runtime.reconcile(config);
-                        reload_pending = true;
-                    }
-                    _ => {}
-                }
-            }
-            ControlEvent::Service(Operation(Action::StoreCapacity(capacity, tx)))
-                if !control.shared.shutdown.load(Ordering::Acquire) =>
-            {
-                let result = if started {
-                    Err(Error::Other("set store capacity before convergence".into()))
-                } else {
-                    runtime.set_store_capacity(capacity);
-                    Ok(())
-                };
-                let _ = tx.send(result);
-            }
-            ControlEvent::Service(Operation(Action::Converge(tx)))
-                if !control.shared.shutdown.load(Ordering::Acquire) =>
-            {
-                if converged {
-                    let _ = tx.send(Ok(runtime.left_out()));
-                } else {
-                    convergence = Some(tx);
-                }
-                if !started {
-                    runtime.reconcile(config.clone());
-                    started = true;
-                }
-            }
-            ControlEvent::Service(Operation(Action::Run(reload, restart)))
-                if !control.shared.shutdown.load(Ordering::Acquire) =>
-            {
-                serving = Some(Callbacks {
-                    reload: Some(reload),
-                    restart,
-                });
-                if !started {
-                    runtime.reconcile(config.clone());
-                    started = true;
-                }
-            }
-            ControlEvent::Reload { generation }
-                if converged
-                    && generation > convergence_generation
-                    && !control.shared.shutdown.load(Ordering::Acquire) =>
-            {
-                pending.retain(|request| {
-                    if matches!(request, OperatorRequest::Reload(_)) {
-                        control.request_processed();
-                        false
-                    } else {
-                        true
-                    }
-                });
-                pending.push_back(OperatorRequest::Reload(generation));
-            }
-            ControlEvent::Restart if !control.shared.shutdown.load(Ordering::Acquire) => {
-                pending.push_back(OperatorRequest::Restart);
-            }
             event @ (ControlEvent::WriteTunable { .. }
             | ControlEvent::StoreSocket { .. }
             | ControlEvent::ForgetSocket { .. }) => {
                 host_request(&mut runtime, event, &host, forward.load(Ordering::Acquire));
             }
-            event => {
-                if let Err(error) = runtime.handle_event(event) {
-                    failure.get_or_insert(error);
-                    control.shutdown();
-                }
-            }
+            event => state.handle_event(event, &mut runtime, &config, &control),
         }
     }
-    if let Some(tx) = convergence {
+    if let Some(tx) = state.convergence {
         let _ = tx.send(Ok(runtime.left_out()));
     }
     if callback_panicked.load(Ordering::Acquire) {
         return Err(Error::ReloadPanicked);
     }
-    failure.map_or(Ok(()), Err)
+    state.failure.map_or(Ok(()), Err)
 }
 
 #[cfg(test)]

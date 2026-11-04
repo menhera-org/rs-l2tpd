@@ -1,0 +1,48 @@
+Scope: private function boundaries in main.rs, restart.rs, sessions.rs and service.rs.
+Behavior, public APIs, specifications, tests, gate definitions and coverage exclusions are unchanged.
+The initial and final source patches agree; the coverage inventory retains source bytes and LLVM mappings.
+
+command: qlty smells .
+Service worker complexity: 80 -> 24.
+The original startup (68), session swap planner (44) and restart probe (39) no longer trigger high function complexity.
+Lower-complexity production findings, test matrices and historical audit code remain.
+
+command: ./test-ci-gates.sh
+CI_GATES_RESULT=0
+RULE_MAP_ACTIVE_RULES=333
+SOURCE_LINK_KERNEL_FACTS=43
+SOURCE_LINK_UNCITED_FUNCTIONS=0
+
+command: sh tools/coverage/calibrate.sh RECORD/calibration
+COVERAGE_CALIBRATION_RESULT=0
+command: TEST_SEED=SEED cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report
+NATIVE_SEEDS_PASSED=1,2,3,4,5,6,7,8,9,10
+command: sh tools/coverage/run-guest.sh NATIVE_LOG KERNEL_ROOT RECORD/guest PROFILES
+COVERAGE_GUEST_KERNEL=7.0.0-42-generic
+COVERAGE_GUEST_PROFILES=322
+COVERAGE_GUEST_PROCESS_CASES=37
+COVERAGE_GUEST_SCENARIOS=27
+COVERAGE_GUEST_RESULT=0
+command: tests/docker/thread-limits.sh rs-l2tpd-coverage:phase6 INSTRUMENTED_DAEMON RECORD/thread-limits PROFILES
+THREAD_LIMIT_RESULT=0
+FORK_LIMIT_RESULT=0
+command: phase6-coverage check REPO source-and-mapping-inventory.json combined-export.json
+MERGED_SOURCE_LINES=8582/8582
+MERGED_SOURCE_OUTCOMES=1844/1844
+MERGED_SOURCE_GATE=PASS
+The raw LLVM metrics remain separate in raw-coverage.log and llvm-export.json.xz.
+
+command: tests/docker/run.sh scenarios
+command: tests/docker/run.sh incus
+THREE_MUSL_SCENARIO_INCUS_PAIRS_RESULT=0
+Each scenario run passed 27 cases. Every disposable Incus container was deleted.
+Pair 1: ../scenarios-20261104T012017Z-1227314/ and ../incus-20261104T012247Z-1237727/
+Pair 2: ../scenarios-20261104T012527Z-1246951/ and ../incus-20261104T012821Z-1261819/
+Pair 3: ../scenarios-20261104T012843Z-1263370/ and ../incus-20261104T013133Z-1270272/
+
+command: tests/kernel/run-guest.sh IMAGE MODULES CONFIG systemd RECORD/root-systemd
+ROOT_SYSTEMD_KERNEL=6.8.0-147-generic
+ROOT_SYSTEMD_RESULT=0
+
+The required kernel matrix is running against this same source and will receive a separate completion record.
+The requested Debian 12 and Rocky 9/10 profiles will run after the refactor is committed and synced.

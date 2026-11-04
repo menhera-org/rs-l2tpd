@@ -104,6 +104,86 @@ fn run() -> u8 {
         }
         _ => (),
     }
+    run_service(args, argv, original)
+}
+
+fn open_service(
+    config: &rs_l2tpd::config::Config,
+    mut adopted: Vec<rs_l2tpd::AdoptedSocket>,
+    signals: &signals::Signals,
+    store: Option<&fdstore::Store>,
+) -> Option<Service> {
+    let mut reported = false;
+    loop {
+        if signals.stopping() {
+            withdraw_startup(&adopted, store);
+            return None;
+        }
+        match Service::new(config.clone(), adopted) {
+            Ok(service) => {
+                if reported {
+                    log::info!("kernel interfaces available");
+                }
+                return Some(service);
+            }
+            Err((error, returned)) => {
+                adopted = returned;
+                if !reported {
+                    log::error!("opening kernel interfaces: {error}; retrying");
+                    reported = true;
+                }
+                signals.retry();
+            }
+        }
+    }
+}
+
+fn withdraw_startup(adopted: &[rs_l2tpd::AdoptedSocket], store: Option<&fdstore::Store>) {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    for socket in adopted {
+        if let Some(store) = store
+            && let Err(error) = store.forget(socket.name(), deadline)
+        {
+            log::error!("startup withdrawal {}: {error}", socket.name());
+        }
+    }
+    if !adopted.is_empty() {
+        log::error!("kernel unavailable; cannot confirm inherited tunnel absence");
+    }
+}
+
+fn announce_ready(
+    args: &Args,
+    reexec: bool,
+    pid: &mut Option<pidfile::PidFile>,
+    pipe: &mut Option<std::fs::File>,
+    signals: &signals::Signals,
+) {
+    // The parent may send SIGHUP as soon as readiness is announced.
+    signals.ready();
+    if !reexec {
+        if args.mode == Mode::Daemon {
+            match pidfile::PidFile::publish(&args.pid_file) {
+                Ok(published) => *pid = Some(published),
+                Err(error) => log::error!(
+                    "PID file {}: {error}; readiness still valid",
+                    args.pid_file.display()
+                ),
+            }
+        }
+        daemon::ready(pipe);
+        log::info!("ready pid={}", std::process::id());
+    }
+    if reexec {
+        log::info!("re-exec resumed");
+    }
+}
+
+fn run_service(
+    args: Args,
+    argv: Vec<std::ffi::OsString>,
+    original: io::Result<std::path::PathBuf>,
+) -> u8 {
     let mut pid = None;
     let mut completed = false;
     let mut result = (|| -> io::Result<u8> {
@@ -138,38 +218,10 @@ fn run() -> u8 {
         } else {
             0
         };
-        let mut adopted = inherited.sockets;
-        let mut reported = false;
-        let mut service = loop {
-            if signals.stopping() {
-                let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
-                for socket in &adopted {
-                    if let Some(store) = &store
-                        && let Err(error) = store.forget(socket.name(), deadline)
-                    {
-                        log::error!("startup withdrawal {}: {error}", socket.name());
-                    }
-                }
-                if !adopted.is_empty() {
-                    log::error!("kernel unavailable; cannot confirm inherited tunnel absence");
-                }
-                return Ok(1);
-            }
-            match Service::new(config.clone(), adopted) {
-                Ok(service) => break service,
-                Err((error, returned)) => {
-                    adopted = returned;
-                    if !reported {
-                        log::error!("opening kernel interfaces: {error}; retrying");
-                        reported = true;
-                    }
-                    signals.retry();
-                }
-            }
+        let Some(mut service) = open_service(&config, inherited.sockets, &signals, store.as_ref())
+        else {
+            return Ok(1);
         };
-        if reported {
-            log::info!("kernel interfaces available");
-        }
         signals.attach(service.control());
         service
             .set_store_capacity(capacity)
@@ -178,24 +230,7 @@ fn run() -> u8 {
         let host = fdstore::worker(requests, service.control(), store)?;
         let convergence = service.converge();
         if readiness_allowed(&convergence, signals.stopping()) {
-            // The parent may send SIGHUP as soon as readiness is announced.
-            signals.ready();
-            if !entry.reexec {
-                if args.mode == Mode::Daemon {
-                    match pidfile::PidFile::publish(&args.pid_file) {
-                        Ok(published) => pid = Some(published),
-                        Err(error) => log::error!(
-                            "PID file {}: {error}; readiness still valid",
-                            args.pid_file.display()
-                        ),
-                    }
-                }
-                daemon::ready(&mut pipe);
-                log::info!("ready pid={}", std::process::id());
-            }
-            if entry.reexec {
-                log::info!("re-exec resumed");
-            }
+            announce_ready(&args, entry.reexec, &mut pid, &mut pipe, &signals);
         } else {
             service.control().shutdown();
         }
