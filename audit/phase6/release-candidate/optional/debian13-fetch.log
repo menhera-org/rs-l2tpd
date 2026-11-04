@@ -1,0 +1,8 @@
+  0      0   0      0   0      0      0      0                              0100 289.2k 100 289.2k   0      0  5.00M      0                              0100 289.2k 100 289.2k   0      0  4.94M      0                              0100 289.2k 100 289.2k   0      0  4.88M      0                              0
+  0      0   0      0   0      0      0      0                              0100 103.4M 100 103.4M   0      0 254.1M      0                              0100 103.4M 100 103.4M   0      0 253.5M      0                              0100 103.4M 100 103.4M   0      0 252.8M      0                              0
+CHECKOUT/target/optional-kernels/debian13/linux-image-6.12.115+deb13.1-amd64_6.12.115-2_amd64.deb: OK
+KERNEL_RELEASE=6.12.115+deb13.1-amd64
+KERNEL_ROOT=CHECKOUT/target/optional-kernels/debian13/root
+KERNEL_IMAGE=CHECKOUT/target/optional-kernels/debian13/root/boot/vmlinuz-6.12.115+deb13.1-amd64
+KERNEL_MODULES=CHECKOUT/target/optional-kernels/debian13/root/usr/lib/modules/6.12.115+deb13.1-amd64
+KERNEL_CONFIG=CHECKOUT/target/optional-kernels/debian13/root/boot/config-6.12.115+deb13.1-amd64

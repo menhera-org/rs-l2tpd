@@ -6,7 +6,11 @@ Use a literal peer address when DNS is unnecessary. For a host name, set
 
 ## Resolver choices
 
-Without `resolver_name`, the system resolver uses the host's libc settings.
+Without `resolver_name`, system lookups use the libc linked into the binary.
+Static musl releases use `/etc/hosts` and `/etc/resolv.conf`; they do not load
+glibc NSS modules. A glibc build follows the host's NSS configuration.
+See [V3](spec/resolvers.md#model) for the contract.
+
 A configured resolver can use explicit DNS server addresses or discover
 servers on one interface:
 

@@ -1,0 +1,15 @@
+  0      0   0      0   0      0      0      0                              0100   4452 100   4452   0      0  10017      0                              0100   4452 100   4452   0      0  10005      0                              0100   4452 100   4452   0      0   9993      0                              0
+CHECKOUT/target/optional-kernels/rocky10/primary.xml.gz: OK
+CHECKOUT/target/optional-kernels/rocky10/kernel-core-6.12.0-211.72.1.el10_2.x86_64.rpm: OK
+51111 blocks
+CHECKOUT/target/optional-kernels/rocky10/kernel-modules-core-6.12.0-211.72.1.el10_2.x86_64.rpm: OK
+57384 blocks
+CHECKOUT/target/optional-kernels/rocky10/kernel-modules-6.12.0-211.72.1.el10_2.x86_64.rpm: OK
+80225 blocks
+CHECKOUT/target/optional-kernels/rocky10/kernel-modules-extra-6.12.0-211.72.1.el10_2.x86_64.rpm: OK
+2933 blocks
+KERNEL_RELEASE=6.12.0-211.72.1.el10_2.x86_64
+KERNEL_ROOT=CHECKOUT/target/optional-kernels/rocky10/root
+KERNEL_IMAGE=CHECKOUT/target/optional-kernels/rocky10/root/boot/vmlinuz-6.12.0-211.72.1.el10_2.x86_64
+KERNEL_MODULES=CHECKOUT/target/optional-kernels/rocky10/root/lib/modules/6.12.0-211.72.1.el10_2.x86_64
+KERNEL_CONFIG=CHECKOUT/target/optional-kernels/rocky10/root/boot/config-6.12.0-211.72.1.el10_2.x86_64

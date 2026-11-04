@@ -1,0 +1,4 @@
+command=docker run --rm --network none debian:trixie-slim; invoke postinst configure with policy-rc.d returning 101 and recorded systemctl
+systemctl daemon-reload
+systemctl enable --now rs-l2tpd.service
+POLICY_BYPASS_REPRODUCED=1

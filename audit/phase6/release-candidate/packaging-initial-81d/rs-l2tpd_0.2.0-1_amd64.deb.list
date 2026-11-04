@@ -1,0 +1,24 @@
+control.tar
+0644 0:0 386 control
+0644 0:0 19 conffiles
+0755 0:0 459 postinst
+0755 0:0 163 prerm
+0755 0:0 429 postrm
+data.tar
+0755 0:0 0 usr/
+0755 0:0 0 usr/sbin/
+0755 0:0 0 usr/share/
+0755 0:0 0 usr/share/doc/
+0755 0:0 0 usr/share/doc/rs-l2tpd/
+0755 0:0 0 lib/
+0755 0:0 0 lib/systemd/
+0755 0:0 0 lib/systemd/system/
+0755 0:0 0 etc/
+0755 0:0 0 etc/rs-l2tpd.toml.d/
+0755 0:0 2917200 usr/sbin/rs-l2tpd
+0644 0:0 912 lib/systemd/system/rs-l2tpd.service
+0644 0:0 573 etc/rs-l2tpd.toml
+0644 0:0 3755 usr/share/doc/rs-l2tpd/README.md
+0644 0:0 11358 usr/share/doc/rs-l2tpd/LICENSE-APACHE
+0644 0:0 16726 usr/share/doc/rs-l2tpd/LICENSE-MPL
+0644 0:0 4183 usr/share/doc/rs-l2tpd/installation.md

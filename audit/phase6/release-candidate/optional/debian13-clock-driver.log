@@ -1,0 +1,8 @@
+Probing EDD (edd=off to disable)... o[    0.000000] Linux version 6.12.115+deb13.1-amd64 (debian-kernel@lists.debian.org) (x86_64-linux-gnu-gcc-14 (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Debian 6.12.115-2 (2026-11-01)
+GUEST_KERNEL_RELEASE=6.12.115+deb13.1-amd64
+scope: H16 wall-clock and QMP pause scenario only
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 64.32s
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+H16_CONTROLLER_RESULT=0

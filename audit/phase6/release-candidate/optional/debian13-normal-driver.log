@@ -1,0 +1,25 @@
+Probing EDD (edd=off to disable)... o[    0.000000] Linux version 6.12.115+deb13.1-amd64 (debian-kernel@lists.debian.org) (x86_64-linux-gnu-gcc-14 (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Debian 6.12.115-2 (2026-11-01)
+GUEST_KERNEL_RELEASE=6.12.115+deb13.1-amd64
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 352 filtered out; finished in 6.09s
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... FORCE_RESULT=allowed
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 352 filtered out; finished in 0.39s
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 322 filtered out; finished in 19.98s
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.25s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.03s
+test result: ok. 82 passed; 0 failed; 8 ignored; 0 measured; 0 filtered out; finished in 9.81s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.09s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.03s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.01s
+test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.61s
+CONFORMANCE_RESULT=0
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 448.62s
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0

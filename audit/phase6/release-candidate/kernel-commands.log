@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+record=target/verification/release-candidate
+sh tests/docker/run.sh matrix required > "$record/required-driver.log" 2>&1 || { tail -n 20 "$record/required-driver.log"; exit 1; }
+printf '%s\n' 'Required matrix passed'
+sh tests/kernel/run-optional.sh "$record/optional" > "$record/optional-driver.log" 2>&1 || { tail -n 20 "$record/optional-driver.log"; exit 1; }
+cat "$record/optional/result.log"
+kernel=target/phase6-kernels/ubuntu-noble-6.8.0-147.147/root
+sh tests/kernel/run-guest.sh "$kernel/boot/vmlinuz-6.8.0-147-generic" "$kernel/lib/modules/6.8.0-147-generic" "$kernel/boot/config-6.8.0-147-generic" systemd "$record/systemd" > "$record/systemd-driver.log" 2>&1 || { tail -n 20 "$record/systemd-driver.log"; exit 1; }
+grep 'ROOT_SYSTEMD_RESULT=0' "$record/systemd-driver.log"
+git --no-pager diff HEAD -- src tests Cargo.toml Cargo.lock > "$record/final-source.patch"
+test ! -s "$record/final-source.patch"
+printf '%s\n' 'FULL_KERNEL_QUALIFICATION_RESULT=0'

@@ -439,3 +439,42 @@ reject debug sections and a symbol table. Embedded registry-cache paths also
 fail the check. The Packages workflow requires
 this check and retains the results. Reproduction requires the same source,
 locked dependencies, pinned build tools and explicit build options.
+
+## Release readiness
+
+The root-unit image bootstrap is also an open maintenance finding: its
+archived Dockerfile installs packages through networked RUN steps. The
+qualified unit result uses the supplied image. A maintained offline image
+builder outside `audit/` is still needed for a fresh-checkout bootstrap.
+
+The [current review](https://github.com/menhera-org/rs-l2tpd/blob/main/audit/RELEASE_READINESS.md)
+separates operational qualification from artifact and build-tool findings.
+Binary distribution is held for service-policy handling and license notices.
+
+The checked release candidate passes the declared Rust 1.89 minimum on GNU
+and musl, the library feature combinations, and an all-feature musl build
+from a clean source package. Reproduce those checks from a clean checkout:
+
+```sh
+cargo +1.89.0 check --locked --all-targets --all-features
+cargo +1.89.0 check --locked --all-features --target x86_64-unknown-linux-musl
+cargo +1.89.0 check --locked --lib --no-default-features
+cargo +1.89.0 check --locked --lib --no-default-features --features serde
+cargo package --locked --all-features --target x86_64-unknown-linux-musl
+cargo audit
+cargo audit --file tools/coverage/Cargo.lock
+cargo audit --file musl-deb/Cargo.lock
+```
+
+Install the minimum compiler's musl target before its check. Use a fresh
+official registry index for the dependency scan and inspect its output;
+an index-lookup error can accompany exit 0 and does not complete the audit.
+
+The three project lockfiles pass. The published cross 0.2.5 lockfile returns
+1 with one reported vulnerability and six warnings, including yanked dunce.
+Those entries belong to the build tool. The verified Unix deletion path
+delegates to modern Rust's standard library; atty's unsoundness concerns
+Windows. The review retains that tool result and the source analysis,
+without an ignore rule. Refresh the upstream lockfile or pin an audited
+maintained revision before closing the maintenance finding, then repeat
+the artifact comparisons.

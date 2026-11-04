@@ -23,5 +23,8 @@ The optional `setup-systemd` installer embeds the unit and invokes
 feature because package installation supplies the unit and configuration.
 
 
+Third-party license notices for binary artifacts remain a release blocker;
+see the [current review](https://github.com/menhera-org/rs-l2tpd/blob/main/audit/RELEASE_READINESS.md).
+
 The [developer guide](developer.md#build-tools) lists build and verification
 tools. Those tools are not daemon runtime dependencies.

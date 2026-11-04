@@ -1,0 +1,4 @@
+scope=daemon exit=0
+scope=coverage exit=0
+scope=musl-deb exit=0
+scope=cross exit=1

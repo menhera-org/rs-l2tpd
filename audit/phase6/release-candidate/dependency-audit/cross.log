@@ -1,0 +1,91 @@
+    Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
+      Loaded 1403 security advisories (from CARGO_HOME/advisory-db)
+    Updating crates.io index
+    Scanning CHECKOUT/target/verification/cross-audit-input/cross-0.2.5/Cargo.lock for vulnerabilities (80 crate dependencies)
+Crate:     remove_dir_all
+Version:   0.5.3
+Title:     Race Condition Enabling Link Following and Time-of-check Time-of-use (TOCTOU)
+Date:      2023-02-24
+ID:        RUSTSEC-2023-0018
+URL:       https://rustsec.org/advisories/RUSTSEC-2023-0018
+Solution:  Upgrade to >=0.8.0
+Dependency tree:
+remove_dir_all 0.5.3
+└── tempfile 3.3.0
+    └── cross 0.2.5
+
+Crate:     adler
+Version:   1.0.2
+Warning:   unmaintained
+Title:     adler crate is unmaintained, use adler2 instead
+Date:      2025-09-05
+ID:        RUSTSEC-2025-0056
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0056
+Dependency tree:
+adler 1.0.2
+└── miniz_oxide 0.5.3
+    └── backtrace 0.3.66
+        └── color-eyre 0.6.1
+            └── cross 0.2.5
+
+Crate:     atty
+Version:   0.2.14
+Warning:   unmaintained
+Title:     `atty` is unmaintained
+Date:      2024-09-25
+ID:        RUSTSEC-2024-0375
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0375
+Dependency tree:
+atty 0.2.14
+├── supports-color 1.3.0
+│   └── owo-colors 3.4.0
+│       ├── cross 0.2.5
+│       └── color-eyre 0.6.1
+│           └── cross 0.2.5
+├── cross 0.2.5
+└── clap 3.2.8
+    └── cross 0.2.5
+
+Crate:     instant
+Version:   0.1.12
+Warning:   unmaintained
+Title:     `instant` is unmaintained
+Date:      2024-09-01
+ID:        RUSTSEC-2024-0384
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0384
+Dependency tree:
+instant 0.1.12
+└── fastrand 1.7.0
+    └── tempfile 3.3.0
+        └── cross 0.2.5
+
+Crate:     proc-macro-error
+Version:   1.0.4
+Warning:   unmaintained
+Title:     proc-macro-error is unmaintained
+Date:      2024-09-01
+ID:        RUSTSEC-2024-0370
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0370
+Dependency tree:
+proc-macro-error 1.0.4
+└── clap_derive 3.2.7
+    └── clap 3.2.8
+        └── cross 0.2.5
+
+Crate:     atty
+Version:   0.2.14
+Warning:   unsound
+Title:     Potential unaligned read
+Date:      2021-07-04
+ID:        RUSTSEC-2021-0145
+URL:       https://rustsec.org/advisories/RUSTSEC-2021-0145
+
+Crate:     dunce
+Version:   1.0.2
+Warning:   yanked
+Dependency tree:
+dunce 1.0.2
+└── cross 0.2.5
+
+error: 1 vulnerability found!
+warning: 6 allowed warnings found

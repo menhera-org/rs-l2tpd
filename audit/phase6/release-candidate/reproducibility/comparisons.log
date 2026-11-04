@@ -1,0 +1,8 @@
+mode=standalone target=x86_64-unknown-linux-musl binary=identical stripped=yes registry_paths=absent
+mode=package target=x86_64-unknown-linux-musl binary=identical stripped=yes registry_paths=absent
+target=x86_64-unknown-linux-musl standalone_tarball=identical package_tarball=identical
+mode=standalone target=aarch64-unknown-linux-musl binary=identical stripped=yes registry_paths=absent
+mode=package target=aarch64-unknown-linux-musl binary=identical stripped=yes registry_paths=absent
+target=aarch64-unknown-linux-musl standalone_tarball=identical package_tarball=identical
+architecture=amd64 deb=identical
+architecture=arm64 deb=identical

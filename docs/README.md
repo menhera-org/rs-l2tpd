@@ -9,7 +9,9 @@ The [kernel support guide](kernel-support.md) describes qualified targets,
 container requirements and degradation on older hosts.
 [Peer discovery](peer-discovery.md) explains resolver choices.
 
-Version 0.2.0 is prepared for release; it has not been published.
+Version 0.2.0 is unpublished. The
+[release readiness review](https://github.com/menhera-org/rs-l2tpd/blob/main/audit/RELEASE_READINESS.md)
+records open packaging findings that hold binary distribution.
 [Verification scope](developer.md#kernel-evidence) distinguishes tested behavior
 from source and upstream evidence. Repository file `audit/VERIFICATION.md`
 identifies the source and qualification results.

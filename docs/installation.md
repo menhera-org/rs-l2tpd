@@ -2,7 +2,10 @@
 
 Version 0.2.0 has not been published. Build artifacts from this checkout
 until a release is available. See [kernel support](kernel-support.md)
-before deploying to a host or system container.
+before deploying to a host or system container. Binary distribution is held
+for service-policy handling and third-party license notices; the
+[current review](https://github.com/menhera-org/rs-l2tpd/blob/main/audit/RELEASE_READINESS.md)
+records the required fixes.
 
 ## Debian packages
 

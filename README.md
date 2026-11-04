@@ -31,7 +31,8 @@ The kernel carries Ethernet pseudowires over IPv4 or IPv6.
 ## Status
 
 Version 0.2.0 has not been published. The [verification record](audit/VERIFICATION.md)
-identifies qualified source, commands, results and remaining checks.
+identifies qualified source, commands and results. The [release readiness review](audit/RELEASE_READINESS.md)
+records the packaging fixes required before binary distribution.
 [Kernel support](docs/kernel-support.md) describes supported targets and
 operating limits. Debian 12 receives best-effort degradation outside support.
 
@@ -54,7 +55,7 @@ validate it:
 target/x86_64-unknown-linux-musl/release/rs-l2tpd --check
 ```
 
-See the [interface page](docs/operation.md) for the command line,
+See the [operation guide](docs/operation.md) for the command line,
 signals, the supplied systemd unit and the host requirements.
 
 ## Documentation
@@ -66,7 +67,7 @@ Read the [published book](https://menhera-org.github.io/rs-l2tpd/) or the
 - [Configuration and operation](docs/operation.md): files, command line, signals and host requirements
 - [Kernel support](docs/kernel-support.md): qualified targets and operating limits
 - [Peer discovery](docs/peer-discovery.md): DNS, RA and DHCPv6 choices
-- [Dependencies](docs/dependencies.md): shipped software and build tools
+- [Dependencies](docs/dependencies.md): shipped software and licenses
 - [Developer guide](docs/developer.md): library integration and contribution gates
 - [Specification](docs/spec/README.md): normative behavior
 

@@ -1,0 +1,6 @@
+tool=cross 0.2.5
+source=https://static.crates.io/crates/cross/cross-0.2.5.crate
+crate_sha256=cc6abfd6b5130d5d470548ef0d04c9201805c3825b6e992009774c37738a954a
+commands=cargo audit; cargo audit --file tools/coverage/Cargo.lock; cargo audit --file musl-deb/Cargo.lock; cargo audit --file published-cross-lock
+registry=sparse+https://index.crates.io/
+ignores=none

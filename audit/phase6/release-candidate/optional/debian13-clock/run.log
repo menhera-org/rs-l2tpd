@@ -1,0 +1,543 @@
+SeaBIOS (version 1.17.0-debian-1.17.0-1ubuntu1)
+Booting from ROM...
+Probing EDD (edd=off to disable)... o[    0.000000] Linux version 6.12.115+deb13.1-amd64 (debian-kernel@lists.debian.org) (x86_64-linux-gnu-gcc-14 (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Debian 6.12.115-2 (2026-11-01)
+[    0.000000] Command line: console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs rs_l2tpd_clock_guest=1
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff] usable
+[    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff] reserved
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x000000007ffdffff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007ffe0000-0x000000007fffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000b0000000-0x00000000bfffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000fed1c000-0x00000000fed1ffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x000000fd00000000-0x000000ffffffffff] reserved
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] APIC: Static calls initialized
+[    0.000000] SMBIOS 2.8 present.
+[    0.000000] DMI: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.17.0-debian-1.17.0-1ubuntu1 04/01/2014
+[    0.000000] DMI: Memory slots populated: 1/1
+[    0.000000] tsc: Fast TSC calibration using PIT
+[    0.000000] tsc: Detected 1995.294 MHz processor
+[    0.012389] last_pfn = 0x7ffe0 max_arch_pfn = 0x10000000000
+[    0.013438] MTRR map: 4 entries (3 fixed + 1 variable; max 19), built from 8 variable MTRRs
+[    0.013759] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT  
+[    0.054940] found SMP MP-table at [mem 0x000f5460-0x000f546f]
+[    0.057440] Using GB pages for direct mapping
+[    0.064891] RAMDISK: [mem 0x70b06000-0x7ffdffff]
+[    0.093406] ACPI: Early table checksum verification disabled
+[    0.094214] ACPI: RSDP 0x00000000000F5290 000014 (v00 BOCHS )
+[    0.094680] ACPI: RSDT 0x000000007FFE233B 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.095675] ACPI: FACP 0x000000007FFE212B 0000F4 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.096673] ACPI: DSDT 0x000000007FFE0040 0020EB (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.096823] ACPI: FACS 0x000000007FFE0000 000040
+[    0.096906] ACPI: APIC 0x000000007FFE221F 000080 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.096946] ACPI: HPET 0x000000007FFE229F 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.096983] ACPI: MCFG 0x000000007FFE22D7 00003C (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.097019] ACPI: WAET 0x000000007FFE2313 000028 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.097152] ACPI: Reserving FACP table memory at [mem 0x7ffe212b-0x7ffe221e]
+[    0.097193] ACPI: Reserving DSDT table memory at [mem 0x7ffe0040-0x7ffe212a]
+[    0.097206] ACPI: Reserving FACS table memory at [mem 0x7ffe0000-0x7ffe003f]
+[    0.097217] ACPI: Reserving APIC table memory at [mem 0x7ffe221f-0x7ffe229e]
+[    0.097228] ACPI: Reserving HPET table memory at [mem 0x7ffe229f-0x7ffe22d6]
+[    0.097238] ACPI: Reserving MCFG table memory at [mem 0x7ffe22d7-0x7ffe2312]
+[    0.097248] ACPI: Reserving WAET table memory at [mem 0x7ffe2313-0x7ffe233a]
+[    0.101450] No NUMA configuration found
+[    0.101487] Faking a node at [mem 0x0000000000000000-0x000000007ffdffff]
+[    0.102874] NODE_DATA(0) allocated [mem 0x70adb680-0x70b05fff]
+[    0.110953] Zone ranges:
+[    0.110995]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    0.111120]   DMA32    [mem 0x0000000001000000-0x000000007ffdffff]
+[    0.111141]   Normal   empty
+[    0.111168]   Device   empty
+[    0.111189] Movable zone start for each node
+[    0.111245] Early memory node ranges
+[    0.111293]   node   0: [mem 0x0000000000001000-0x000000000009efff]
+[    0.111574]   node   0: [mem 0x0000000000100000-0x000000007ffdffff]
+[    0.111897] Initmem setup node 0 [mem 0x0000000000001000-0x000000007ffdffff]
+[    0.114447] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.114909] On node 0, zone DMA: 97 pages in unavailable ranges
+[    0.119235] On node 0, zone DMA32: 32 pages in unavailable ranges
+[    0.119891] ACPI: PM-Timer IO Port: 0x608
+[    0.120633] ACPI: LAPIC_NMI (acpi_id[0xff] dfl dfl lint[0x1])
+[    0.121278] IOAPIC[0]: apic_id 0, version 32, address 0xfec00000, GSI 0-23
+[    0.121467] ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)
+[    0.121877] ACPI: INT_SRC_OVR (bus 0 bus_irq 5 global_irq 5 high level)
+[    0.121950] ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)
+[    0.122116] ACPI: INT_SRC_OVR (bus 0 bus_irq 10 global_irq 10 high level)
+[    0.122134] ACPI: INT_SRC_OVR (bus 0 bus_irq 11 global_irq 11 high level)
+[    0.122410] ACPI: Using ACPI (MADT) for SMP configuration information
+[    0.122480] ACPI: HPET id: 0x8086a201 base: 0xfed00000
+[    0.123082] CPU topo: Max. logical packages:   1
+[    0.123105] CPU topo: Max. logical dies:       1
+[    0.123122] CPU topo: Max. dies per package:   1
+[    0.123211] CPU topo: Max. threads per core:   1
+[    0.123379] CPU topo: Num. cores per package:     2
+[    0.123404] CPU topo: Num. threads per package:   2
+[    0.123419] CPU topo: Allowing 2 present CPUs plus 0 hotplug CPUs
+[    0.124907] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    0.124955] PM: hibernation: Registered nosave memory: [mem 0x0009f000-0x000fffff]
+[    0.125126] [mem 0xc0000000-0xfed1bfff] available for PCI devices
+[    0.125241] Booting paravirtualized kernel on bare hardware
+[    0.125771] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645519600211568 ns
+[    0.144175] setup_percpu: NR_CPUS:8192 nr_cpumask_bits:2 nr_cpu_ids:2 nr_node_ids:1
+[    0.148481] percpu: Embedded 66 pages/cpu s233472 r8192 d28672 u1048576
+[    0.150696] Kernel command line: console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs rs_l2tpd_clock_guest=1
+[    0.152886] Unknown kernel command line parameters "rs_l2tpd_clock_guest=1", will be passed to user space.
+[    0.154658] random: crng init done
+[    0.156211] Dentry cache hash table entries: 262144 (order: 9, 2097152 bytes, linear)
+[    0.157165] Inode-cache hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    0.162129] Fallback order for Node 0: 0 
+[    0.162656] Built 1 zonelists, mobility grouping on.  Total pages: 524158
+[    0.162684] Policy zone: DMA32
+[    0.163460] mem auto-init: stack:all(zero), heap alloc:on, heap free:off
+[    0.197255] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+[    0.262475] ftrace: allocating 45285 entries in 180 pages
+[    0.262874] ftrace: allocated 180 pages with 4 groups
+[    0.277647] Dynamic Preempt: voluntary
+[    0.284895] rcu: Preemptible hierarchical RCU implementation.
+[    0.284934] rcu: 	RCU restricting CPUs from NR_CPUS=8192 to nr_cpu_ids=2.
+[    0.285128] 	Trampoline variant of Tasks RCU enabled.
+[    0.285140] 	Rude variant of Tasks RCU enabled.
+[    0.285151] 	Tracing variant of Tasks RCU enabled.
+[    0.285361] rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
+[    0.285410] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2
+[    0.287491] RCU Tasks: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.287527] RCU Tasks Rude: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.287547] RCU Tasks Trace: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.355317] NR_IRQS: 524544, nr_irqs: 440, preallocated irqs: 16
+[    0.370565] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.371759] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+[    0.381620] Console: colour *CGA 80x25
+[    0.384936] printk: legacy console [ttyS0] enabled
+[    0.410842] ACPI: Core revision 20240827
+[    0.419906] clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604467 ns
+[    0.428334] APIC: Switch to symmetric I/O mode setup
+[    0.429441] x2apic: IRQ remapping doesn't support X2APIC mode
+[    0.436715] ..TIMER: vector=0x30 apic1=0 pin1=2 apic2=-1 pin2=-1
+[    0.458531] clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x3985a1f60f1, max_idle_ns: 881590641985 ns
+[    0.459481] Calibrating delay loop (skipped), value calculated using timer frequency.. 3990.58 BogoMIPS (lpj=7981176)
+[    0.468150] x86/cpu: User Mode Instruction Prevention (UMIP) activated
+[    0.486516] Last level iTLB entries: 4KB 0, 2MB 0, 4MB 0
+[    0.486961] Last level dTLB entries: 4KB 0, 2MB 0, 4MB 0, 1GB 0
+[    0.489669] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    0.490657] Spectre V2 : Mitigation: Retpolines
+[    0.490885] Spectre V2 : Spectre v2 / SpectreRSB: Filling RSB on context switch and VMEXIT
+[    0.491585] Speculative Store Bypass: Vulnerable
+[    0.499993] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.505724] x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    0.506038] x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    0.506277] x86/fpu: Supporting XSAVE feature 0x008: 'MPX bounds registers'
+[    0.506533] x86/fpu: Supporting XSAVE feature 0x010: 'MPX CSR'
+[    0.506898] x86/fpu: Supporting XSAVE feature 0x200: 'Protection Keys User registers'
+[    0.507325] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.507760] x86/fpu: xstate_offset[3]:  960, xstate_sizes[3]:   64
+[    0.507991] x86/fpu: xstate_offset[4]: 1024, xstate_sizes[4]:   64
+[    0.508215] x86/fpu: xstate_offset[9]: 2688, xstate_sizes[9]:    8
+[    0.508462] x86/fpu: Enabled xstate features 0x21f, context size is 2696 bytes, using 'standard' format.
+[    0.760106] Freeing SMP alternatives memory: 40K
+[    0.762048] pid_max: default: 32768 minimum: 301
+[    0.773926] LSM: initializing lsm=lockdown,capability,landlock,yama,apparmor,tomoyo,bpf,ipe,ima,evm
+[    0.777369] landlock: Up and running.
+[    0.777555] Yama: disabled by default; enable with sysctl kernel.yama.*
+[    0.783975] AppArmor: AppArmor initialized
+[    0.784326] TOMOYO Linux initialized
+[    0.787383] LSM support for eBPF active
+[    0.792954] Mount-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    0.793355] Mountpoint-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    0.958590] smpboot: CPU0: AMD QEMU TCG CPU version 2.5+ (family: 0x6, model: 0x6, stepping: 0x3)
+[    0.982454] Performance Events: PMU not available due to virtualization, using software events only.
+[    0.985285] signal: max sigframe size: 3632
+[    0.987177] rcu: Hierarchical SRCU implementation.
+[    0.987358] rcu: 	Max phase no-delay instances is 1000.
+[    0.990365] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    1.001695] NMI watchdog: Perf NMI watchdog permanently disabled
+[    1.006555] smp: Bringing up secondary CPUs ...
+[    1.016103] smpboot: x86: Booting SMP configuration:
+[    1.016302] .... node  #0, CPUs:      #1
+[    1.124904] smp: Brought up 1 node, 2 CPUs
+[    1.127544] smpboot: Total of 2 processors activated (7994.00 BogoMIPS)
+[    1.161822] node 0 deferred pages initialised in 20ms
+[    1.164113] Memory: 1757520K/2096632K available (16384K kernel code, 2499K rwdata, 11832K rodata, 4176K init, 4888K bss, 335076K reserved, 0K cma-reserved)
+[    1.178918] devtmpfs: initialized
+[    1.185418] x86/mm: Memory block size: 128MB
+[    1.208219] futex hash table entries: 512 (order: 3, 32768 bytes, linear)
+[    1.213813] pinctrl core: initialized pinctrl subsystem
+[    1.253307] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    1.261094] DMA: preallocated 256 KiB GFP_KERNEL pool for atomic allocations
+[    1.263515] DMA: preallocated 256 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    1.264584] DMA: preallocated 256 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+[    1.265233] audit: initializing netlink subsys (disabled)
+[    1.268958] audit: type=2000 audit(1793785239.848:1): state=initialized audit_enabled=0 res=1
+[    1.277438] thermal_sys: Registered thermal governor 'fair_share'
+[    1.277502] thermal_sys: Registered thermal governor 'bang_bang'
+[    1.277745] thermal_sys: Registered thermal governor 'step_wise'
+[    1.277966] thermal_sys: Registered thermal governor 'user_space'
+[    1.278207] thermal_sys: Registered thermal governor 'power_allocator'
+[    1.279364] cpuidle: using governor ladder
+[    1.279780] cpuidle: using governor menu
+[    1.281967] acpiphp: ACPI Hot Plug PCI Controller Driver version: 0.5
+[    1.288763] PCI: ECAM [mem 0xb0000000-0xbfffffff] (base 0xb0000000) for domain 0000 [bus 00-ff]
+[    1.290109] PCI: ECAM [mem 0xb0000000-0xbfffffff] reserved as E820 entry
+[    1.293138] PCI: Using configuration type 1 for base access
+[    1.294378] mtrr: your CPUs had inconsistent fixed MTRR settings
+[    1.294614] mtrr: your CPUs had inconsistent variable MTRR settings
+[    1.294852] mtrr: your CPUs had inconsistent MTRRdefType settings
+[    1.295040] mtrr: probably your BIOS does not setup all CPUs.
+[    1.295130] mtrr: corrected configuration.
+[    1.300250] kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.
+[    1.417548] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    1.417808] HugeTLB: 16380 KiB vmemmap can be freed for a 1.00 GiB page
+[    1.418046] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    1.418251] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    1.438891] ACPI: Added _OSI(Module Device)
+[    1.439163] ACPI: Added _OSI(Processor Device)
+[    1.439472] ACPI: Added _OSI(Processor Aggregator Device)
+[    1.468955] ACPI: 1 ACPI AML tables successfully acquired and loaded
+[    1.500016] ACPI: Interpreter enabled
+[    1.502208] ACPI: PM: (supports S0 S3 S4 S5)
+[    1.502552] ACPI: Using IOAPIC for interrupt routing
+[    1.504829] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    1.505428] PCI: Using E820 reservations for host bridge windows
+[    1.507936] ACPI: Enabled 2 GPEs in block 00 to 3F
+[    1.547120] ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])
+[    1.548480] acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI HPX-Type3]
+[    1.550733] acpi PNP0A08:00: _OSC: platform does not support [PCIeHotplug LTR]
+[    1.552190] acpi PNP0A08:00: _OSC: OS now controls [SHPCHotplug PME AER PCIeCapability]
+[    1.560384] PCI host bridge to bus 0000:00
+[    1.561098] pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]
+[    1.561636] pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]
+[    1.562023] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]
+[    1.562433] pci_bus 0000:00: root bus resource [mem 0x80000000-0xafffffff window]
+[    1.562854] pci_bus 0000:00: root bus resource [mem 0xc0000000-0xfebfffff window]
+[    1.563141] pci_bus 0000:00: root bus resource [mem 0x100000000-0x8ffffffff window]
+[    1.563849] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    1.566285] pci 0000:00:00.0: [8086:29c0] type 00 class 0x060000 conventional PCI endpoint
+[    1.574174] pci 0000:00:1f.0: [8086:2918] type 00 class 0x060100 conventional PCI endpoint
+[    1.575524] pci 0000:00:1f.0: quirk: [io  0x0600-0x067f] claimed by ICH6 ACPI/GPIO/TCO
+[    1.577178] pci 0000:00:1f.2: [8086:2922] type 00 class 0x010601 conventional PCI endpoint
+[    1.582680] pci 0000:00:1f.2: BAR 4 [io  0xc040-0xc05f]
+[    1.584208] pci 0000:00:1f.2: BAR 5 [mem 0xfebff000-0xfebfffff]
+[    1.586635] pci 0000:00:1f.3: [8086:2930] type 00 class 0x0c0500 conventional PCI endpoint
+[    1.590067] pci 0000:00:1f.3: BAR 4 [io  0x0700-0x073f]
+[    1.597104] ACPI: PCI: Interrupt link LNKA configured for IRQ 10
+[    1.598237] ACPI: PCI: Interrupt link LNKB configured for IRQ 10
+[    1.599173] ACPI: PCI: Interrupt link LNKC configured for IRQ 11
+[    1.600001] ACPI: PCI: Interrupt link LNKD configured for IRQ 11
+[    1.601406] ACPI: PCI: Interrupt link LNKE configured for IRQ 10
+[    1.602224] ACPI: PCI: Interrupt link LNKF configured for IRQ 10
+[    1.603453] ACPI: PCI: Interrupt link LNKG configured for IRQ 11
+[    1.604295] ACPI: PCI: Interrupt link LNKH configured for IRQ 11
+[    1.604901] ACPI: PCI: Interrupt link GSIA configured for IRQ 16
+[    1.605401] ACPI: PCI: Interrupt link GSIB configured for IRQ 17
+[    1.605891] ACPI: PCI: Interrupt link GSIC configured for IRQ 18
+[    1.606327] ACPI: PCI: Interrupt link GSID configured for IRQ 19
+[    1.606819] ACPI: PCI: Interrupt link GSIE configured for IRQ 20
+[    1.607267] ACPI: PCI: Interrupt link GSIF configured for IRQ 21
+[    1.607786] ACPI: PCI: Interrupt link GSIG configured for IRQ 22
+[    1.608293] ACPI: PCI: Interrupt link GSIH configured for IRQ 23
+[    1.614208] iommu: Default domain type: Translated
+[    1.614208] iommu: DMA domain TLB invalidation policy: lazy mode
+[    1.618122] pps_core: LinuxPPS API ver. 1 registered
+[    1.618328] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    1.618698] PTP clock support registered
+[    1.619401] EDAC MC: Ver: 3.0.0
+[    1.638766] NetLabel: Initializing
+[    1.638944] NetLabel:  domain hash size = 128
+[    1.639071] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    1.640509] NetLabel:  unlabeled traffic allowed by default
+[    1.640707] PCI: Using ACPI for IRQ routing
+[    1.653661] vgaarb: loaded
+[    1.653661] hpet0: at MMIO 0xfed00000, IRQs 2, 8, 0
+[    1.653661] hpet0: 3 comparators, 64-bit 100.000000 MHz counter
+[    1.660695] clocksource: Switched to clocksource tsc-early
+[    1.674124] VFS: Disk quotas dquot_6.6.0
+[    1.674510] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    1.682099] AppArmor: AppArmor Filesystem Enabled
+[    1.683020] pnp: PnP ACPI init
+[    1.689333] system 00:04: [mem 0xb0000000-0xbfffffff window] has been reserved
+[    1.693699] pnp: PnP ACPI: found 5 devices
+[    1.753508] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    1.756748] NET: Registered PF_INET protocol family
+[    1.761999] IP idents hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    1.943313] tcp_listen_portaddr_hash hash table entries: 1024 (order: 2, 16384 bytes, linear)
+[    1.944413] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    1.945348] TCP established hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    1.946974] TCP bind hash table entries: 16384 (order: 7, 524288 bytes, linear)
+[    1.948402] TCP: Hash tables configured (established 16384 bind 16384)
+[    1.951935] MPTCP token hash table entries: 2048 (order: 4, 49152 bytes, linear)
+[    1.952632] UDP hash table entries: 1024 (order: 3, 32768 bytes, linear)
+[    1.953241] UDP-Lite hash table entries: 1024 (order: 3, 32768 bytes, linear)
+[    1.956504] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    1.957303] NET: Registered PF_XDP protocol family
+[    1.958901] pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]
+[    1.959106] pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]
+[    1.959318] pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000bffff window]
+[    1.959509] pci_bus 0000:00: resource 7 [mem 0x80000000-0xafffffff window]
+[    1.959815] pci_bus 0000:00: resource 8 [mem 0xc0000000-0xfebfffff window]
+[    1.960026] pci_bus 0000:00: resource 9 [mem 0x100000000-0x8ffffffff window]
+[    1.960920] PCI: CLS 0 bytes, default 64
+[    1.970751] Initialise system trusted keyrings
+[    1.973117] Trying to unpack rootfs image as initramfs...
+[    1.975040] Key type blacklist registered
+[    1.981614] workingset: timestamp_bits=36 max_order=19 bucket_order=0
+[    1.981916] zbud: loaded
+[    1.985139] fuse: init (API version 7.41)
+[    1.991034] integrity: Platform Keyring initialized
+[    1.991824] integrity: Machine keyring initialized
+[    2.156773] Key type asymmetric registered
+[    2.157229] Asymmetric key parser 'x509' registered
+[    2.980016] tsc: Refined TSC clocksource calibration: 1995.281 MHz
+[    2.980877] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x398588eb56b, max_idle_ns: 881590675945 ns
+[    2.981418] clocksource: Switched to clocksource tsc
+[    5.546108] Freeing initrd memory: 250728K
+[    5.741873] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 246)
+[    5.743402] io scheduler mq-deadline registered
+[    5.767878] ledtrig-cpu: registered to indicate activity on CPUs
+[    5.769364] shpchp: Standard Hot Plug PCI Controller Driver version: 0.4
+[    5.778011] Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+[    5.794953] 00:02: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    5.809041] Linux agpgart interface v0.103
+[    5.822359] i8042: PNP: PS/2 Controller [PNP0303:KBD,PNP0f13:MOU] at 0x60,0x64 irq 1,12
+[    5.827948] serio: i8042 KBD port at 0x60,0x64 irq 1
+[    5.828510] serio: i8042 AUX port at 0x60,0x64 irq 12
+[    5.831458] mousedev: PS/2 mouse device common for all mice
+[    5.836400] rtc_cmos 00:03: RTC can wake from S4
+[    5.841337] input: AT Translated Set 2 keyboard as /devices/platform/i8042/serio0/input/input0
+[    5.845595] rtc_cmos 00:03: registered as rtc0
+[    5.846986] rtc_cmos 00:03: setting system clock to 2026-11-04T09:40:45 UTC (1793785245)
+[    5.850729] rtc_cmos 00:03: alarms up to one day, y3k, 242 bytes nvram, hpet irqs
+[    5.851299] amd_pstate: the _CPC object is not present in SBIOS or ACPI disabled
+[    5.855413] NET: Registered PF_INET6 protocol family
+[    5.920824] Segment Routing with IPv6
+[    5.921387] In-situ OAM (IOAM) with IPv6
+[    5.922507] mip6: Mobile IPv6
+[    5.923210] NET: Registered PF_PACKET protocol family
+[    5.925015] mpls_gso: MPLS GSO support
+[    5.929572] IPI shorthand broadcast: enabled
+[    5.953930] sched_clock: Marking stable (5904060265, 47576066)->(5955800232, -4163901)
+[    5.959971] registered taskstats version 1
+[    5.965270] Loading compiled-in X.509 certificates
+[    6.124633] Loaded X.509 cert 'Build time autogenerated kernel key: 6a85889db6fd84d8915bd6ad2e7b53d0bec514b4'
+[    6.147909] Demotion targets for Node 0: null
+[    6.149691] Key type .fscrypt registered
+[    6.149853] Key type fscrypt-provisioning registered
+[    6.362024] Key type encrypted registered
+[    6.362317] AppArmor: AppArmor sha256 policy hashing enabled
+[    6.363541] ima: No TPM chip found, activating TPM-bypass!
+[    6.363959] ima: Allocated hash algorithm: sha256
+[    6.367058] ima: No architecture policies found
+[    6.368287] evm: Initialising EVM extended attributes:
+[    6.368525] evm: security.selinux
+[    6.368698] evm: security.SMACK64 (disabled)
+[    6.368840] evm: security.SMACK64EXEC (disabled)
+[    6.368993] evm: security.SMACK64TRANSMUTE (disabled)
+[    6.369164] evm: security.SMACK64MMAP (disabled)
+[    6.369308] evm: security.apparmor
+[    6.369416] evm: security.ima
+[    6.369516] evm: security.capability
+[    6.369647] evm: HMAC attrs: 0x1
+[    6.580912] RAS: Correctable Errors collector initialized.
+[    6.671612] clk: Disabling unused clocks
+[    6.672221] PM: genpd: Disabling unused power domains
+[    6.797898] Freeing unused decrypted memory: 2028K
+[    6.924351] Freeing unused kernel image (initmem) memory: 4176K
+[    6.925250] Write protecting the kernel read-only data: 28672k
+[    6.932583] Freeing unused kernel image (rodata/data gap) memory: 456K
+[    7.197464] x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    7.198032] Run /init as init process
+Linux (none) 6.12.115+deb13.1-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.12.115-2 (2026-11-01) x86_64 Linux
+GUEST_KERNEL_RELEASE=6.12.115+deb13.1-amd64
+[  108.644370] l2tp_core: L2TP core driver, V2.0
+[  108.709906] l2tp_netlink: L2TP netlink interface
+[  108.771442] l2tp_ip: L2TP IP encapsulation support (L2TPv3)
+[  108.962104] l2tp_eth: L2TP ethernet pseudowire support (L2TPv3)
+[  109.025313] l2tp_ip6: L2TP IP encapsulation support for IPv6 (L2TPv3)
+[  109.398538] bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+[  109.546694] 8021q: 802.1Q VLAN Support v1.8
+scope: H16 wall-clock and QMP pause scenario only
+
+running 1 test
+[  109.858902] underlay: renamed from other
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): created
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): created
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): created as l2tp0
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): created as l2tp1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): connected to 192.0.2.1 from 192.0.2.2
+daemon: INFO rs_l2tpd: ready pid=186
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): waiting for its resolver's first usable answer (V8)
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+daemon: INFO rs_l2tpd: ready pid=188
+daemon: WARN rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): the answer contains unusable addresses of V4; skipped (V5)
+daemon: INFO rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): resolver answers are usable again
+daemon: INFO rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): controlled.example resolves to 192.0.2.9
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.9 from 192.0.2.1
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_WALL_SET=1825321349
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1001818813
+H16_WALL_SET=1762249349
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1004655445
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003205229
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1002863461
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003823073
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1005133651
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003417796
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1005610757
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003261827
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003192877
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003636788
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003371283
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003476421
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003728852
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003409429
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003244763
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003357929
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003535000
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003417942
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003922517
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1002685201
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003119208
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1004086467
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1004191601
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1004175154
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1002928915
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003728127
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1004365891
+daemon: WARN rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): the answer contains unusable addresses of V4; skipped (V5)
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1004350081
+H16_REFRESH_BEFORE_PAUSE_NS=30030253134
+H16_WALL_SET=1793785380
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003654294
+H16_PAUSE_READY
+H16_QMP_STATE=paused
+H16_QMP_STATE=paused
+H16_CONTROLLER_PAUSE_NS=3000785238
+H16_QMP_STATE=running
+H16_RESUMED
+H16_GUEST_PAUSE_NS=6941477
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003853618
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003414124
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1002682819
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003756574
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003303666
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003676839
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003820347
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003672390
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003995646
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003867852
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003236256
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003408166
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003868741
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003235114
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003920716
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003457799
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1004529603
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1002736465
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1002749501
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1002739908
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003668394
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003302089
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003521633
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1002413628
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003371529
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003576572
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003783628
+test clocks::clock_steps_and_vm_pause_preserve_retries_refreshes_and_network_events has been running for over 60 seconds
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003864353
+daemon: WARN rs_l2tpd::reconciler::resolvers: tunnel t0 (tunnel_id=1): the answer contains unusable addresses of V4; skipped (V5)
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t1 (tunnel_id=11): disconnected, peer 203.0.113.2 pending: ENETUNREACH: Network is unreachable
+H16_RETRY_NS=1003863462
+H16_REFRESH_AFTER_PAUSE_NS=30006069967
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): connected to 203.0.113.2 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.9 from 192.0.2.1
+[  172.348079] clock-old: renamed from underlay (while UP)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): disconnected
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected: its bind device is absent
+daemon: WARN rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): its resolver waits: underlay does not exist (V9, V12)
+daemon: DEBUG rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): disconnected: its bind device is absent
+[  173.421564] underlay: renamed from clock-old (while UP)
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): connected to 192.0.2.9 from 192.0.2.1
+daemon: INFO rs_l2tpd::reconciler::report: tunnel t0 (tunnel_id=1): its resolver started
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=1, session_id=101): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=11, session_id=111): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=1): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=11): removed
+daemon: INFO rs_l2tpd: shutdown complete
+daemon: INFO rs_l2tpd::reconciler::sessions: session s0 (tunnel_id=2, session_id=102): removed
+daemon: INFO rs_l2tpd::reconciler::sessions: session s1 (tunnel_id=12, session_id=112): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t0 (tunnel_id=2): removed
+daemon: INFO rs_l2tpd::reconciler::tunnels: tunnel t1 (tunnel_id=12): removed
+daemon: INFO rs_l2tpd: shutdown complete
+test clocks::clock_steps_and_vm_pause_preserve_retries_refreshes_and_network_events ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 64.32s
+
+CONFORMANCE_RESULT=0
+SCENARIO_RESULT=0
+MATRIX_GUEST_RESULT=0
+[  174.049771] ACPI: PM: Preparing to enter system sleep state S5
+[  174.051388] reboot: Power down
+H16_CONTROLLER_RESULT=0

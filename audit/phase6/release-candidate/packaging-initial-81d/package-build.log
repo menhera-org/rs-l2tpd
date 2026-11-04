@@ -1,0 +1,35 @@
+   Compiling musl-deb v0.1.0 (CHECKOUT/musl-deb)
+     Running `musl-deb/target/debug/musl-deb`
+info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+
+  stable-x86_64-unknown-linux-gnu unchanged - rustc 1.99.1 (58cf8f9c3 2026-10-13)
+
+info: checking for self-update (current version: 1.29.3)
+   Compiling rs-l2tpd v0.2.0 (/project)
+built CHECKOUT/rs-l2tpd-0.2.0-x86_64-unknown-linux-musl.tar.gz
+built CHECKOUT/rs-l2tpd_0.2.0-1_amd64.deb
+info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+
+  stable-x86_64-unknown-linux-gnu unchanged - rustc 1.99.1 (58cf8f9c3 2026-10-13)
+
+info: checking for self-update (current version: 1.29.3)
+   Compiling rs-l2tpd v0.2.0 (/project)
+warning: linker stderr: + set -euo pipefail
+         + main -Wl,--fix-cortex-a53-843419 /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crt1.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crti.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtbegin.o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-2a48553d8128aae9.rs_l2tpd.657344daa42b47c7-cgu.0.rcgu.o -Wl,--as-needed -Wl,-Bstatic -lunwind -lc /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/libcompiler_builtins-29674cca14587d3c.rlib -L /target/aarch64-unknown-linux-musl/release/deps/rustc2gU1cE/raw-dylibs -Wl,-Bdynamic -Wl,--eh-frame-hdr -Wl,-z,noexecstack -nostartfiles -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib -o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-2a48553d8128aae9 -Wl,--gc-sections -static -no-pie -Wl,-z,relro,-z,now -Wl,-O1 -Wl,--strip-all -nodefaultlibs /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtend.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtn.o
+         + local release=
+         ++ rustc -Vv
+         ++ grep '^release:'
+         ++ cut -d : -f2
+         + release=' 1.99.1'
+         + local minor=
+         ++ echo ' 1.99.1'
+         ++ cut -d . -f2
+         + minor=99
+         + ((  minor >= 48  ))
+         + aarch64-linux-musl-gcc -Wl,--fix-cortex-a53-843419 /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crt1.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crti.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtbegin.o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-2a48553d8128aae9.rs_l2tpd.657344daa42b47c7-cgu.0.rcgu.o -Wl,--as-needed -Wl,-Bstatic -lunwind -lc /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/libcompiler_builtins-29674cca14587d3c.rlib -L /target/aarch64-unknown-linux-musl/release/deps/rustc2gU1cE/raw-dylibs -Wl,-Bdynamic -Wl,--eh-frame-hdr -Wl,-z,noexecstack -nostartfiles -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib -o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-2a48553d8128aae9 -Wl,--gc-sections -static -no-pie -Wl,-z,relro,-z,now -Wl,-O1 -Wl,--strip-all -nodefaultlibs /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtend.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtn.o
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `rs-l2tpd` (bin "rs-l2tpd") generated 1 warning
+built CHECKOUT/rs-l2tpd-0.2.0-aarch64-unknown-linux-musl.tar.gz
+built CHECKOUT/rs-l2tpd_0.2.0-1_arm64.deb

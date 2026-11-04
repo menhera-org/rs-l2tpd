@@ -6,7 +6,8 @@ the configured peers. The modules are `l2tp_core`, `l2tp_netlink`, `l2tp_ip`,
 unprivileged system container. The daemon itself does not need the dummy driver.
 
 Repository file `audit/VERIFICATION.md` identifies the qualified source,
-exact commands and results. Final qualification of the current source is in progress.
+exact commands and results. All 13 required profiles and all six optional
+profiles pass on the unchanged production source.
 Kernel-only guests test the daemon against distribution kernels; they do
 not establish support for that distribution's systemd, udev, networkd,
 SELinux policy or package installation.

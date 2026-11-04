@@ -1,0 +1,235 @@
+   Vendoring autocfg v1.5.1 (CARGO_HOME/registry/src/REGISTRY/autocfg-1.5.1) to target/release-vendor/autocfg-1.5.1
+   Vendoring bitflags v2.13.2 (CARGO_HOME/registry/src/REGISTRY/bitflags-2.13.2) to target/release-vendor/bitflags-2.13.2
+   Vendoring bytes v1.12.1 (CARGO_HOME/registry/src/REGISTRY/bytes-1.12.1) to target/release-vendor/bytes-1.12.1
+   Vendoring cfg-if v1.0.5 (CARGO_HOME/registry/src/REGISTRY/cfg-if-1.0.5) to target/release-vendor/cfg-if-1.0.5
+   Vendoring cfg_aliases v0.2.2 (CARGO_HOME/registry/src/REGISTRY/cfg_aliases-0.2.2) to target/release-vendor/cfg_aliases-0.2.2
+   Vendoring equivalent v1.0.3 (CARGO_HOME/registry/src/REGISTRY/equivalent-1.0.3) to target/release-vendor/equivalent-1.0.3
+   Vendoring fqdn v0.5.2 (CARGO_HOME/registry/src/REGISTRY/fqdn-0.5.2) to target/release-vendor/fqdn-0.5.2
+   Vendoring futures v0.3.34 (CARGO_HOME/registry/src/REGISTRY/futures-0.3.34) to target/release-vendor/futures-0.3.34
+   Vendoring futures-channel v0.3.34 (CARGO_HOME/registry/src/REGISTRY/futures-channel-0.3.34) to target/release-vendor/futures-channel-0.3.34
+   Vendoring futures-core v0.3.34 (CARGO_HOME/registry/src/REGISTRY/futures-core-0.3.34) to target/release-vendor/futures-core-0.3.34
+   Vendoring futures-executor v0.3.34 (CARGO_HOME/registry/src/REGISTRY/futures-executor-0.3.34) to target/release-vendor/futures-executor-0.3.34
+   Vendoring futures-io v0.3.34 (CARGO_HOME/registry/src/REGISTRY/futures-io-0.3.34) to target/release-vendor/futures-io-0.3.34
+   Vendoring futures-macro v0.3.34 (CARGO_HOME/registry/src/REGISTRY/futures-macro-0.3.34) to target/release-vendor/futures-macro-0.3.34
+   Vendoring futures-sink v0.3.34 (CARGO_HOME/registry/src/REGISTRY/futures-sink-0.3.34) to target/release-vendor/futures-sink-0.3.34
+   Vendoring futures-task v0.3.34 (CARGO_HOME/registry/src/REGISTRY/futures-task-0.3.34) to target/release-vendor/futures-task-0.3.34
+   Vendoring futures-util v0.3.34 (CARGO_HOME/registry/src/REGISTRY/futures-util-0.3.34) to target/release-vendor/futures-util-0.3.34
+   Vendoring genetlink v0.3.0 (CARGO_HOME/registry/src/REGISTRY/genetlink-0.3.0) to target/release-vendor/genetlink-0.3.0
+   Vendoring getrandom v0.3.4 (CARGO_HOME/registry/src/REGISTRY/getrandom-0.3.4) to target/release-vendor/getrandom-0.3.4
+   Vendoring hashbrown v0.17.1 (CARGO_HOME/registry/src/REGISTRY/hashbrown-0.17.1) to target/release-vendor/hashbrown-0.17.1
+   Vendoring indexmap v2.14.2 (CARGO_HOME/registry/src/REGISTRY/indexmap-2.14.2) to target/release-vendor/indexmap-2.14.2
+   Vendoring iphost v0.4.4 (CARGO_HOME/registry/src/REGISTRY/iphost-0.4.4) to target/release-vendor/iphost-0.4.4
+   Vendoring l2tp v0.5.0 (CARGO_HOME/registry/src/REGISTRY/l2tp-0.5.0) to target/release-vendor/l2tp-0.5.0
+   Vendoring libc v0.2.191 (CARGO_HOME/registry/src/REGISTRY/libc-0.2.191) to target/release-vendor/libc-0.2.191
+   Vendoring log v0.4.34 (CARGO_HOME/registry/src/REGISTRY/log-0.4.34) to target/release-vendor/log-0.4.34
+   Vendoring memchr v2.8.3 (CARGO_HOME/registry/src/REGISTRY/memchr-2.8.3) to target/release-vendor/memchr-2.8.3
+   Vendoring memoffset v0.9.1 (CARGO_HOME/registry/src/REGISTRY/memoffset-0.9.1) to target/release-vendor/memoffset-0.9.1
+   Vendoring mio v1.2.4 (CARGO_HOME/registry/src/REGISTRY/mio-1.2.4) to target/release-vendor/mio-1.2.4
+   Vendoring netlink-packet-core v0.9.0 (CARGO_HOME/registry/src/REGISTRY/netlink-packet-core-0.9.0) to target/release-vendor/netlink-packet-core-0.9.0
+   Vendoring netlink-packet-generic v0.5.0 (CARGO_HOME/registry/src/REGISTRY/netlink-packet-generic-0.5.0) to target/release-vendor/netlink-packet-generic-0.5.0
+   Vendoring netlink-packet-l2tp v0.4.0 (CARGO_HOME/registry/src/REGISTRY/netlink-packet-l2tp-0.4.0) to target/release-vendor/netlink-packet-l2tp-0.4.0
+   Vendoring netlink-packet-route v0.33.0 (CARGO_HOME/registry/src/REGISTRY/netlink-packet-route-0.33.0) to target/release-vendor/netlink-packet-route-0.33.0
+   Vendoring netlink-proto v0.13.0 (CARGO_HOME/registry/src/REGISTRY/netlink-proto-0.13.0) to target/release-vendor/netlink-proto-0.13.0
+   Vendoring netlink-sys v0.9.0 (CARGO_HOME/registry/src/REGISTRY/netlink-sys-0.9.0) to target/release-vendor/netlink-sys-0.9.0
+   Vendoring nix v0.30.1 (CARGO_HOME/registry/src/REGISTRY/nix-0.30.1) to target/release-vendor/nix-0.30.1
+   Vendoring pin-project-lite v0.2.17 (CARGO_HOME/registry/src/REGISTRY/pin-project-lite-0.2.17) to target/release-vendor/pin-project-lite-0.2.17
+   Vendoring proc-macro2 v1.0.107 (CARGO_HOME/registry/src/REGISTRY/proc-macro2-1.0.107) to target/release-vendor/proc-macro2-1.0.107
+   Vendoring punycode v0.4.1 (CARGO_HOME/registry/src/REGISTRY/punycode-0.4.1) to target/release-vendor/punycode-0.4.1
+   Vendoring quote v1.0.47 (CARGO_HOME/registry/src/REGISTRY/quote-1.0.47) to target/release-vendor/quote-1.0.47
+   Vendoring r-efi v5.3.0 (CARGO_HOME/registry/src/REGISTRY/r-efi-5.3.0) to target/release-vendor/r-efi-5.3.0
+   Vendoring serde v1.0.229 (CARGO_HOME/registry/src/REGISTRY/serde-1.0.229) to target/release-vendor/serde-1.0.229
+   Vendoring serde_core v1.0.229 (CARGO_HOME/registry/src/REGISTRY/serde_core-1.0.229) to target/release-vendor/serde_core-1.0.229
+   Vendoring serde_derive v1.0.229 (CARGO_HOME/registry/src/REGISTRY/serde_derive-1.0.229) to target/release-vendor/serde_derive-1.0.229
+   Vendoring serde_spanned v1.1.2 (CARGO_HOME/registry/src/REGISTRY/serde_spanned-1.1.2) to target/release-vendor/serde_spanned-1.1.2
+   Vendoring slab v0.4.12 (CARGO_HOME/registry/src/REGISTRY/slab-0.4.12) to target/release-vendor/slab-0.4.12
+   Vendoring socket2 v0.6.5 (CARGO_HOME/registry/src/REGISTRY/socket2-0.6.5) to target/release-vendor/socket2-0.6.5
+   Vendoring syn v2.0.119 (CARGO_HOME/registry/src/REGISTRY/syn-2.0.119) to target/release-vendor/syn-2.0.119
+   Vendoring syn v3.0.9 (CARGO_HOME/registry/src/REGISTRY/syn-3.0.9) to target/release-vendor/syn-3.0.9
+   Vendoring thiserror v1.0.69 (CARGO_HOME/registry/src/REGISTRY/thiserror-1.0.69) to target/release-vendor/thiserror-1.0.69
+   Vendoring thiserror v2.0.21 (CARGO_HOME/registry/src/REGISTRY/thiserror-2.0.21) to target/release-vendor/thiserror-2.0.21
+   Vendoring thiserror-impl v1.0.69 (CARGO_HOME/registry/src/REGISTRY/thiserror-impl-1.0.69) to target/release-vendor/thiserror-impl-1.0.69
+   Vendoring thiserror-impl v2.0.21 (CARGO_HOME/registry/src/REGISTRY/thiserror-impl-2.0.21) to target/release-vendor/thiserror-impl-2.0.21
+   Vendoring tokio v1.54.1 (CARGO_HOME/registry/src/REGISTRY/tokio-1.54.1) to target/release-vendor/tokio-1.54.1
+   Vendoring toml v1.1.8+spec-1.1.0 (CARGO_HOME/registry/src/REGISTRY/toml-1.1.8+spec-1.1.0) to target/release-vendor/toml-1.1.8+spec-1.1.0
+   Vendoring toml_datetime v1.1.2+spec-1.1.0 (CARGO_HOME/registry/src/REGISTRY/toml_datetime-1.1.2+spec-1.1.0) to target/release-vendor/toml_datetime-1.1.2+spec-1.1.0
+   Vendoring toml_parser v1.1.5+spec-1.1.0 (CARGO_HOME/registry/src/REGISTRY/toml_parser-1.1.5+spec-1.1.0) to target/release-vendor/toml_parser-1.1.5+spec-1.1.0
+   Vendoring toml_writer v1.1.3+spec-1.1.0 (CARGO_HOME/registry/src/REGISTRY/toml_writer-1.1.3+spec-1.1.0) to target/release-vendor/toml_writer-1.1.3+spec-1.1.0
+   Vendoring unicode-ident v1.0.27 (CARGO_HOME/registry/src/REGISTRY/unicode-ident-1.0.27) to target/release-vendor/unicode-ident-1.0.27
+   Vendoring wasi v0.11.1+wasi-snapshot-preview1 (CARGO_HOME/registry/src/REGISTRY/wasi-0.11.1+wasi-snapshot-preview1) to target/release-vendor/wasi-0.11.1+wasi-snapshot-preview1
+   Vendoring wasip2 v1.0.4+wasi-0.2.12 (CARGO_HOME/registry/src/REGISTRY/wasip2-1.0.4+wasi-0.2.12) to target/release-vendor/wasip2-1.0.4+wasi-0.2.12
+   Vendoring windows-link v0.2.1 (CARGO_HOME/registry/src/REGISTRY/windows-link-0.2.1) to target/release-vendor/windows-link-0.2.1
+   Vendoring windows-sys v0.61.2 (CARGO_HOME/registry/src/REGISTRY/windows-sys-0.61.2) to target/release-vendor/windows-sys-0.61.2
+   Vendoring winnow v1.0.4 (CARGO_HOME/registry/src/REGISTRY/winnow-1.0.4) to target/release-vendor/winnow-1.0.4
+   Vendoring wit-bindgen v0.57.1 (CARGO_HOME/registry/src/REGISTRY/wit-bindgen-0.57.1) to target/release-vendor/wit-bindgen-0.57.1
+   Vendoring zerocopy v0.8.63 (CARGO_HOME/registry/src/REGISTRY/zerocopy-0.8.63) to target/release-vendor/zerocopy-0.8.63
+   Vendoring zerocopy-derive v0.8.63 (CARGO_HOME/registry/src/REGISTRY/zerocopy-derive-0.8.63) to target/release-vendor/zerocopy-derive-0.8.63
+To use vendored sources, add this to your .cargo/config.toml for this project:
+
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling libc v0.2.191
+   Compiling syn v3.0.9
+   Compiling syn v2.0.119
+   Compiling pin-project-lite v0.2.17
+   Compiling futures-core v0.3.34
+   Compiling futures-sink v0.3.34
+   Compiling futures-channel v0.3.34
+   Compiling futures-macro v0.3.34
+   Compiling memchr v2.8.3
+   Compiling futures-io v0.3.34
+   Compiling futures-task v0.3.34
+   Compiling serde_core v1.0.229
+   Compiling slab v0.4.12
+   Compiling zerocopy v0.8.63
+   Compiling futures-util v0.3.34
+   Compiling zerocopy-derive v0.8.63
+   Compiling socket2 v0.6.5
+   Compiling netlink-packet-core v0.9.0
+   Compiling mio v1.2.4
+   Compiling log v0.4.34
+   Compiling thiserror v2.0.21
+   Compiling tokio v1.54.1
+   Compiling thiserror-impl v2.0.21
+   Compiling thiserror v1.0.69
+   Compiling bytes v1.12.1
+   Compiling autocfg v1.5.1
+   Compiling memoffset v0.9.1
+   Compiling netlink-packet-generic v0.5.0
+   Compiling netlink-sys v0.9.0
+   Compiling futures-executor v0.3.34
+   Compiling thiserror-impl v1.0.69
+   Compiling serde v1.0.229
+   Compiling cfg_aliases v0.2.2
+   Compiling nix v0.30.1
+   Compiling futures v0.3.34
+   Compiling netlink-proto v0.13.0
+   Compiling serde_derive v1.0.229
+   Compiling bitflags v2.13.2
+   Compiling getrandom v0.3.4
+   Compiling winnow v1.0.4
+   Compiling cfg-if v1.0.5
+   Compiling punycode v0.4.1
+   Compiling fqdn v0.5.2
+   Compiling toml_parser v1.1.5+spec-1.1.0
+   Compiling genetlink v0.3.0
+   Compiling netlink-packet-l2tp v0.4.0
+   Compiling toml_datetime v1.1.2+spec-1.1.0
+   Compiling serde_spanned v1.1.2
+   Compiling rs-l2tpd v0.2.0 (/project)
+   Compiling toml_writer v1.1.3+spec-1.1.0
+   Compiling iphost v0.4.4
+   Compiling toml v1.1.8+spec-1.1.0
+   Compiling l2tp v0.5.0
+   Compiling netlink-packet-route v0.33.0
+   Compiling musl-deb v0.1.0 (REPRO_ROOT/different-path-length/source-b/musl-deb)
+     Running `target/musl-deb-build/x86_64-unknown-linux-musl/debug/musl-deb --tar REPRO_ROOT/different-path-length/source-b/target/musl-deb-build/x86_64-unknown-linux-musl/x86_64-unknown-linux-musl/release/rs-l2tpd RELEASE_TEMP/binary.tar`
+built REPRO_ROOT/different-path-length/source-b/rs-l2tpd-0.2.0-x86_64-unknown-linux-musl.tar.gz
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling libc v0.2.191
+   Compiling syn v3.0.9
+   Compiling syn v2.0.119
+   Compiling futures-core v0.3.34
+   Compiling futures-sink v0.3.34
+   Compiling pin-project-lite v0.2.17
+   Compiling futures-channel v0.3.34
+   Compiling futures-macro v0.3.34
+   Compiling futures-io v0.3.34
+   Compiling serde_core v1.0.229
+   Compiling slab v0.4.12
+   Compiling futures-task v0.3.34
+   Compiling zerocopy v0.8.63
+   Compiling memchr v2.8.3
+   Compiling zerocopy-derive v0.8.63
+   Compiling futures-util v0.3.34
+   Compiling socket2 v0.6.5
+   Compiling netlink-packet-core v0.9.0
+   Compiling mio v1.2.4
+   Compiling log v0.4.34
+   Compiling thiserror v2.0.21
+   Compiling tokio v1.54.1
+   Compiling thiserror-impl v2.0.21
+   Compiling bytes v1.12.1
+   Compiling autocfg v1.5.1
+   Compiling thiserror v1.0.69
+   Compiling memoffset v0.9.1
+   Compiling netlink-packet-generic v0.5.0
+   Compiling netlink-sys v0.9.0
+   Compiling futures-executor v0.3.34
+   Compiling thiserror-impl v1.0.69
+   Compiling cfg_aliases v0.2.2
+   Compiling serde v1.0.229
+   Compiling nix v0.30.1
+   Compiling futures v0.3.34
+   Compiling netlink-proto v0.13.0
+   Compiling serde_derive v1.0.229
+   Compiling winnow v1.0.4
+   Compiling getrandom v0.3.4
+   Compiling cfg-if v1.0.5
+   Compiling bitflags v2.13.2
+   Compiling punycode v0.4.1
+   Compiling fqdn v0.5.2
+   Compiling toml_parser v1.1.5+spec-1.1.0
+   Compiling genetlink v0.3.0
+   Compiling netlink-packet-l2tp v0.4.0
+   Compiling toml_datetime v1.1.2+spec-1.1.0
+   Compiling serde_spanned v1.1.2
+   Compiling toml_writer v1.1.3+spec-1.1.0
+   Compiling rs-l2tpd v0.2.0 (/project)
+   Compiling toml v1.1.8+spec-1.1.0
+   Compiling iphost v0.4.4
+   Compiling l2tp v0.5.0
+   Compiling netlink-packet-route v0.33.0
+warning: linker stderr: + set -euo pipefail
+         + main -Wl,--fix-cortex-a53-843419 /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crt1.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crti.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtbegin.o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-5367cd13cd054221.rs_l2tpd.5ffb3ff8dfda9e7a-cgu.0.rcgu.o -Wl,--as-needed -Wl,-Bstatic -lunwind -lc /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/libcompiler_builtins-29674cca14587d3c.rlib -L /target/aarch64-unknown-linux-musl/release/deps/rustcCsRNBJ/raw-dylibs -Wl,-Bdynamic -Wl,--eh-frame-hdr -Wl,-z,noexecstack -nostartfiles -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib -o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-5367cd13cd054221 -Wl,--gc-sections -static -no-pie -Wl,-z,relro,-z,now -Wl,-O1 -Wl,--strip-all -nodefaultlibs -Wl,--build-id=none /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtend.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtn.o
+         + local release=
+         ++ rustc -Vv
+         ++ grep '^release:'
+         ++ cut -d : -f2
+         + release=' 1.99.1'
+         + local minor=
+         ++ echo ' 1.99.1'
+         ++ cut -d . -f2
+         + minor=99
+         + ((  minor >= 48  ))
+         + aarch64-linux-musl-gcc -Wl,--fix-cortex-a53-843419 /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crt1.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crti.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtbegin.o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-5367cd13cd054221.rs_l2tpd.5ffb3ff8dfda9e7a-cgu.0.rcgu.o -Wl,--as-needed -Wl,-Bstatic -lunwind -lc /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/libcompiler_builtins-29674cca14587d3c.rlib -L /target/aarch64-unknown-linux-musl/release/deps/rustcCsRNBJ/raw-dylibs -Wl,-Bdynamic -Wl,--eh-frame-hdr -Wl,-z,noexecstack -nostartfiles -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib -o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-5367cd13cd054221 -Wl,--gc-sections -static -no-pie -Wl,-z,relro,-z,now -Wl,-O1 -Wl,--strip-all -nodefaultlibs -Wl,--build-id=none /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtend.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtn.o
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `rs-l2tpd` (bin "rs-l2tpd") generated 1 warning
+   Compiling musl-deb v0.1.0 (REPRO_ROOT/different-path-length/source-b/musl-deb)
+     Running `target/musl-deb-build/aarch64-unknown-linux-musl/debug/musl-deb --tar REPRO_ROOT/different-path-length/source-b/target/musl-deb-build/aarch64-unknown-linux-musl/aarch64-unknown-linux-musl/release/rs-l2tpd RELEASE_TEMP/binary.tar`
+built REPRO_ROOT/different-path-length/source-b/rs-l2tpd-0.2.0-aarch64-unknown-linux-musl.tar.gz
+   Compiling musl-deb v0.1.0 (REPRO_ROOT/different-path-length/source-b/musl-deb)
+     Running `musl-deb/target/debug/musl-deb`
+To use vendored sources, add this to your .cargo/config.toml for this project:
+
+   Compiling rs-l2tpd v0.2.0 (/project)
+     Running `target/musl-deb-build/x86_64-unknown-linux-musl/debug/musl-deb --tar REPRO_ROOT/different-path-length/source-b/target/musl-deb-build/x86_64-unknown-linux-musl/x86_64-unknown-linux-musl/release/rs-l2tpd RELEASE_TEMP/binary.tar`
+built REPRO_ROOT/different-path-length/source-b/rs-l2tpd-0.2.0-x86_64-unknown-linux-musl.tar.gz
+built REPRO_ROOT/different-path-length/source-b/rs-l2tpd_0.2.0-1_amd64.deb
+To use vendored sources, add this to your .cargo/config.toml for this project:
+
+   Compiling rs-l2tpd v0.2.0 (/project)
+warning: linker stderr: + set -euo pipefail
+         + main -Wl,--fix-cortex-a53-843419 /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crt1.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crti.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtbegin.o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-0a24456578cba8ac.rs_l2tpd.657344daa42b47c7-cgu.0.rcgu.o -Wl,--as-needed -Wl,-Bstatic -lunwind -lc /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/libcompiler_builtins-29674cca14587d3c.rlib -L /target/aarch64-unknown-linux-musl/release/deps/rustc9a4Z5R/raw-dylibs -Wl,-Bdynamic -Wl,--eh-frame-hdr -Wl,-z,noexecstack -nostartfiles -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib -o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-0a24456578cba8ac -Wl,--gc-sections -static -no-pie -Wl,-z,relro,-z,now -Wl,-O1 -Wl,--strip-all -nodefaultlibs -Wl,--build-id=none /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtend.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtn.o
+         + local release=
+         ++ rustc -Vv
+         ++ grep '^release:'
+         ++ cut -d : -f2
+         + release=' 1.99.1'
+         + local minor=
+         ++ echo ' 1.99.1'
+         ++ cut -d . -f2
+         + minor=99
+         + ((  minor >= 48  ))
+         + aarch64-linux-musl-gcc -Wl,--fix-cortex-a53-843419 /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crt1.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crti.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtbegin.o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-0a24456578cba8ac.rs_l2tpd.657344daa42b47c7-cgu.0.rcgu.o -Wl,--as-needed -Wl,-Bstatic -lunwind -lc /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/libcompiler_builtins-29674cca14587d3c.rlib -L /target/aarch64-unknown-linux-musl/release/deps/rustc9a4Z5R/raw-dylibs -Wl,-Bdynamic -Wl,--eh-frame-hdr -Wl,-z,noexecstack -nostartfiles -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained -L /rust/lib/rustlib/aarch64-unknown-linux-musl/lib -o /target/aarch64-unknown-linux-musl/release/deps/rs_l2tpd-0a24456578cba8ac -Wl,--gc-sections -static -no-pie -Wl,-z,relro,-z,now -Wl,-O1 -Wl,--strip-all -nodefaultlibs -Wl,--build-id=none /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtend.o /rust/lib/rustlib/aarch64-unknown-linux-musl/lib/self-contained/crtn.o
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `rs-l2tpd` (bin "rs-l2tpd") generated 1 warning
+     Running `target/musl-deb-build/aarch64-unknown-linux-musl/debug/musl-deb --tar REPRO_ROOT/different-path-length/source-b/target/musl-deb-build/aarch64-unknown-linux-musl/aarch64-unknown-linux-musl/release/rs-l2tpd RELEASE_TEMP/binary.tar`
+built REPRO_ROOT/different-path-length/source-b/rs-l2tpd-0.2.0-aarch64-unknown-linux-musl.tar.gz
+built REPRO_ROOT/different-path-length/source-b/rs-l2tpd_0.2.0-1_arm64.deb
