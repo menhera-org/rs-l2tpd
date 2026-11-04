@@ -1,6 +1,0 @@
-kernel=debian13 release=6.12.115+deb13.1-amd64 mode=normal exit=1
-kernel=debian13 release=6.12.115+deb13.1-amd64 mode=clock exit=0
-kernel=rocky9 release=5.14.0-687.61.1.el9_8.x86_64 mode=normal exit=0
-kernel=rocky9 release=5.14.0-687.61.1.el9_8.x86_64 mode=clock exit=0
-kernel=rocky10 release=6.12.0-211.72.1.el10_2.x86_64 mode=normal exit=0
-kernel=rocky10 release=6.12.0-211.72.1.el10_2.x86_64 mode=clock exit=0

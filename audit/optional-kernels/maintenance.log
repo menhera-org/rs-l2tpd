@@ -1,4 +1,0 @@
-command: ./test-ci-gates.sh
-exit: 0
-command: Markdown local-link checker
-links: 780; failures: 0

@@ -33,7 +33,7 @@ All six new profiles ran after it was synced, with empty initial/final source
 patches. The aggregate optional result is **failure**: Debian 13's full normal
 run fails an intermittent nlmon capture check. A scoped H17 rerun and 40
 notification-only rounds pass without reproducing it; Debian 13 remains
-unqualified. [Commands, package identities, full results and diagnostic scope](optional-kernels/README.md)
+unqualified. [Commands, package identities, full results and diagnostic scope](https://github.com/menhera-org/rs-l2tpd/blob/8766a43c2099a9ff71ae7ee1e30866c61777fbb4/audit/optional-kernels/README.md)
 are retained separately. Debian 12 is outside the support target, with
 [best-effort degradation](../docs/kernel-behavior.md#best-effort-behavior-on-debian-12).
 Its failed qualification and the earlier Rocky results remain in the
