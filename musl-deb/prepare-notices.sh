@@ -7,7 +7,8 @@ cd "$repo"
 . ./release-config.sh
 directory=target/release-notices
 mkdir -p "$directory"
-cargo "+$RELEASE_TOOLCHAIN" tree --locked --offline --all-features --edges normal,build \
+# Package IDs feed a parser even when CI forces colored Cargo output.
+cargo "+$RELEASE_TOOLCHAIN" tree --color never --locked --offline --all-features --edges normal,build \
     --target x86_64-unknown-linux-musl --target aarch64-unknown-linux-musl \
     --prefix none --format '{p}' > "$directory/tree"
 awk 'NF >= 2 && $1 != "rs-l2tpd" {sub(/^v/, "", $2); print $1, $2}' "$directory/tree" \
@@ -24,7 +25,7 @@ test -s "$directory/crates"
         found=false
         for file in "$source"/LICENSE* "$source"/COPYING* "$source"/COPYRIGHT* \
             "$source"/NOTICE* "$source"/UNLICENSE "$source"/license-*; do
-            [ -f "$file" ] || continue
+            [ -s "$file" ] || continue
             printf '\n--- %s ---\n' "${file##*/}"
             cat "$file"
             printf '\n'
