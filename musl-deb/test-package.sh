@@ -114,13 +114,14 @@ dpkg -i "$package"
 cmp "$work/operator.toml" /etc/rs-l2tpd.toml
 test ! -L /etc/systemd/system/network-online.target.requires/rs-l2tpd.service
 test "$(readlink /etc/systemd/system/rs-l2tpd.service)" = /dev/null
-no_start
+test "$(sort -u "$MUSL_DEB_CALLS")" = daemon-reload
 
 : > "$MUSL_DEB_CALLS"
 sh "$work/control/prerm" upgrade 0.2.0-1
 sh "$work/control/postrm" upgrade 0.2.0-1
 test ! -s "$MUSL_DEB_CALLS"
 if MUSL_DEB_FAIL=daemon-reload sh "$work/control/postinst" configure 0.2.0-1; then exit 1; fi
+test "$(sort -u "$MUSL_DEB_CALLS")" = daemon-reload
 
 # Stops also honor policy. Removing and purging preserve administrator files.
 policy 101
