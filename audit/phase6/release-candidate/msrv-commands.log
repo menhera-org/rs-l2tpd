@@ -1,4 +1,0 @@
-command=cargo +1.89.0 check --locked --all-targets --all-features
-MSRV_NATIVE_CHECK_RESULT=0
-command=cargo +1.89.0 check --locked --all-features --target x86_64-unknown-linux-musl
-MSRV_MUSL_CHECK_RESULT=0

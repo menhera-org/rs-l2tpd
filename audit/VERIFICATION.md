@@ -3,7 +3,7 @@
 Binary distribution is held for the [release readiness findings](RELEASE_READINESS.md).
 
 The production source qualified at `81d49f9` is unchanged by release-build
-commit `97fbbf8`. Signed [qualification records](phase6/release-candidate/README.md)
+commit `97fbbf8`. Signed [qualification records](https://github.com/menhera-org/rs-l2tpd/blob/1f261be0dbff7584a14cc39a3bfe91b38919fd4e/audit/phase6/release-candidate/README.md)
 retain commands, source guards, guest output, package checks and the full
 compressed LLVM export and mapping inventory. Raw records are preserved in Git history.
 

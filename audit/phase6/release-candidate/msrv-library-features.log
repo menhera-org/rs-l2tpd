@@ -1,8 +1,0 @@
-   Compiling nix v0.30.1
-   Compiling rs-l2tpd v0.2.0 (CHECKOUT)
-    Checking iphost v0.4.4
-   Compiling serde_core v1.0.229
-   Compiling rs-l2tpd v0.2.0 (CHECKOUT)
-    Checking serde v1.0.229
-    Checking iphost v0.4.4
-MSRV_LIBRARY_FEATURE_COMBINATIONS_RESULT=0

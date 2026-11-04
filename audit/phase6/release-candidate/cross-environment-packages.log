@@ -1,4 +1,0 @@
-revision=97fbbf8e4b2d650e9517a41d0cf05363189c531f
-9958a9c9614b2319eba0e70af605764ff5b3c0785b543407428c0e00b8f9904d  target/verification/local-97-packages/rs-l2tpd_0.2.0-1_amd64.deb
-61669962aabef591338abb8d639b1f5b34d45ab72e9eb6916b3008b2c1bc7e29  target/verification/local-97-packages/rs-l2tpd_0.2.0-1_arm64.deb
-CROSS_ENVIRONMENT_PACKAGES_IDENTICAL=1

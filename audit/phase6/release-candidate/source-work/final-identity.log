@@ -1,4 +1,0 @@
-CHECKOUT/target/source-work/x86_64-unknown-linux-gnu/debug/build/rs-l2tpd/4d4aae9456687d9d/out/source_work-4d4aae9456687d9d: OK
-tests/source_work.rs: OK
-tools/coverage/src/work.rs: OK
-tools/coverage/source-work.sh: OK

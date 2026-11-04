@@ -1,5 +1,0 @@
-command=sh /tmp/rs-l2tpd-release-candidate-kernels.sh
-required=13/13
-optional=6/6
-ROOT_SYSTEMD_RESULT=0
-FULL_KERNEL_QUALIFICATION_RESULT=0

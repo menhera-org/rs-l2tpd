@@ -1,6 +1,0 @@
-target/verification/package-audit-tree/usr/share/doc/rs-l2tpd/LICENSE-APACHE
-target/verification/package-audit-tree/usr/share/doc/rs-l2tpd/LICENSE-MPL
-target/verification/package-audit-tree/usr/share/doc/rs-l2tpd/README.md
-target/verification/package-audit-tree/usr/share/doc/rs-l2tpd/installation.md
-PACKAGED_RELATIVE_LINK_TARGETS_MISSING=1
-TOKIO_LICENSE_NOTICE_MISSING=1
