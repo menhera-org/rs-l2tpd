@@ -61,7 +61,10 @@ sh tests/kernel/run-optional.sh "$record"
 
 These are fixed qualification versions, not an automatic moving-target
 resolver. Refresh the selections and rerun when qualifying newer packages.
-Rocky 9/10 normal and clock profiles pass. Debian 13 qualification is pending.
+Rocky 9/10 normal and clock profiles pass. Debian 13 passes clock checks but
+its normal profile fails H17's intermittent nlmon capture check; it remains
+unqualified despite a passing scoped rerun.
+See [kernel behavior](../../docs/kernel-behavior.md#optional-distribution-kernels).
 Debian 12 is outside the support target; existing error handling leaves running
 devices intact and retries refused operations. Its older kernel cannot rename
 UP devices. No assertion is relaxed. Kernel-only results do not qualify a

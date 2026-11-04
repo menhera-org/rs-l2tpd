@@ -66,24 +66,26 @@ Ubuntu 7.0 has missing-Ethernet-driver degradation and recovery.
 
 | Distribution | Exact stock kernel | Normal | Clock/pause |
 |---|---|---|---|
-| Debian 12 | `6.1.0-54-amd64` (6.1.190-1) | Fail: 21 Linux cases pass, three fail; later suites not reached | Fail: UP underlay rename returns `EBUSY`; QMP controller passes |
+| Debian 13 | `6.12.115+deb13.1-amd64` (6.12.115-2) | Fail: H17 nlmon capture; 26/27 scenarios and all 37 process cases pass | Pass |
 | Rocky Linux 9 | `5.14.0-687.61.1.el9_8.x86_64` | Pass: 27 scenarios and 37 process cases | Pass |
 | Rocky Linux 10 | `6.12.0-211.72.1.el10_2.x86_64` | Pass: 27 scenarios and 37 process cases | Pass |
 
-Debian refuses writing an unchanged session MAC while UP and refuses UP-device
-renaming in these fixtures. The required range's assertions remain unchanged;
-this is not a Debian qualification pass. No production behavior was changed.
+Debian 13 replaces Debian 12 in the optional matrix. All six profiles ran
+after signed `3dee493` was synced, with empty initial/final source patches.
+Production behavior, all executable hashes and guest assertions are unchanged.
+The aggregate optional result is failure.
 
-Upstream [v6.1.190 `dev.c`](https://github.com/gregkh/linux/blob/v6.1.190/net/core/dev.c#L1222)
-rejects UP renames before checking the target name and passes MAC writes to
-the driver without the newer unchanged-address shortcut. This explains the
-observed failures; it is not a complete audit of Debian's source patches.
-
-All six profiles executed; the aggregate optional result is a failure
-because of Debian. Both Rocky guests report empty-VRF errno 99 and
-foreign-namespace K41 announcements while preserving local objects. Rocky 9
-passes the MAC/UP-rename cases despite its nominal 5.14 base, illustrating
-why behavior cannot be inferred from version numbers alone.
+Debian 13 passes the 31 private live cases, all 24 Linux cases, five review
+cases and 37 process cases, including the MAC/UP-rename cases Debian 12
+refused. H17 exchanges frames through all 300 sessions in both directions
+and verifies an identical reload before the fixture's nlmon reader fails
+with `nlmon header` during unrelated-link notifications. A separate scoped
+H17 diagnostic passes all three expansion/shrink cycles. Further diagnostic
+probes pass 20 rounds each with one and two subscribers: 12,000 captured
+packets, no loss. These passes do not erase the full-run failure. Its cause
+remains unresolved; no captured packet, assertion or loss check was waived,
+and Debian 13 remains unqualified. These diagnostic profiles are separate
+from the maintained matrix.
 
 These use checksum-verified stock images, configurations and matching module
 packages. They run the unchanged guest suites and remain optional additions
@@ -91,6 +93,18 @@ to the required matrix. The metadata, exact package digests and extractor
 identity are retained with the results. Kernel version numbers alone do not
 identify distribution backports. No per-distribution userspace or complete
 optional-kernel source audit is inferred from these guest results.
+
+## Best-effort behavior on Debian 12
+
+Debian 12 is outside the support target. Its 6.1 kernel refuses UP-device
+renames and even unchanged MAC writes while UP, as recorded in the
+[archived optional run](https://github.com/menhera-org/rs-l2tpd/tree/129a4e1fb02da9fab01ef61730853c2129ee9e5a/audit/phase6/optional-kernels-20261104).
+The daemon defers MAC writes and retains the device, name, addresses and
+children when a rename is refused; pending operations are retried. An active
+rename or staged publication can remain pending until the operator lowers
+the device. The daemon never lowers it to force convergence. Startup
+readiness does not wait for publication; reload completion can wait for a
+refused rename. Debian 12 remains unqualified.
 
 ## Session deletion and dump traversal
 

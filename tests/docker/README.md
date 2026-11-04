@@ -50,10 +50,12 @@ kernel objects, logs and bounded event waits.
 Production source `c599b1f` passes all thirteen required profiles, three musl
 scenario/Incus pairs and the unmodified root-systemd unit. The separate CI
 coverage gate reaches 8,582/8,582 merged production lines and 1,844/1,844
-condition outcomes. Optional Rocky 9/10 normal and clock profiles pass.
-Debian 12 fails older MAC/UP-device rename assumptions; later normal suites
-are not reached. See the [current record](../../audit/VERIFICATION.md) for
-exact identities, commands and limits.
+condition outcomes. All six optional Debian 13 and Rocky 9/10 profiles ran.
+Rocky 9/10 pass normal and clock checks. Debian 13 passes clock checks but fails H17's
+intermittent nlmon capture check in the normal profile; it remains unqualified.
+Debian 12 receives best-effort degradation outside the support target.
+See the [current record](../../audit/VERIFICATION.md) for exact identities,
+commands and limits.
 
 Released iphost 0.4.4 supplies V12's corrected anonymous Reply validation.
 The approved checked-libc signal exception is applied; no nix contribution or

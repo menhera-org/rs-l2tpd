@@ -33,8 +33,10 @@ Every test names the rules it guards in its doc comment,
 Current production source `c599b1f` passes the common CI gates, strict maps
 and the separate merged-source coverage job. All thirteen required kernel
 profiles, three musl scenario/Incus pairs and the unmodified root-systemd
-guest pass. All optional profiles have run: Rocky 9/10 normal and clock
-checks pass; Debian 12 fails both. Repository file `audit/VERIFICATION.md`
+guest pass. All six optional Debian 13 and Rocky 9/10 profiles ran.
+Rocky 9/10 pass normal and clock checks. Debian 13 passes clock checks but its normal profile
+fails H17's intermittent nlmon capture check. Debian 12 receives best-effort
+degradation outside the support target. Repository file `audit/VERIFICATION.md`
 indexes the exact commands, source identities, counts and failure scope.
 Repository file `tests/process/README.md` gives actual-process commands.
 
@@ -141,7 +143,7 @@ records `uname -r` next to its result, as the probes of
 `tests/kernel/README.md` do. The verified range of
 [kernel](spec/kernel.md) grows with what the matrix has run.
 
-The Debian 12, Rocky Linux 9 and Rocky Linux 10 optional profiles use
+The Debian 13, Rocky Linux 9 and Rocky Linux 10 optional profiles use
 checksum-verified stock images/configurations and matching modules. Their
 normal and separate clock results are listed in [kernel behavior](kernel-behavior.md).
 They do not replace required targets or qualify distribution userspace.
@@ -241,8 +243,11 @@ Current CI passes **8,582/8,582 merged production lines and 1,844/1,844
 condition outcomes**. The local raw LLVM report remains separate at 99.45%
 lines and 98.26% outcomes; no production exclusion is added. All thirteen
 required profiles, three musl scenario/Incus pairs and root-systemd pass.
-All six optional profiles ran: Rocky 9/10 pass normal and clock checks;
-Debian 12 fails both, with later normal suites not reached.
+All six optional Debian 13 and Rocky 9/10 profiles ran. Rocky 9/10 pass
+normal and clock checks. Debian 13 passes clock checks and 37 process cases,
+but its normal profile fails H17's intermittent nlmon capture check; it
+remains unqualified despite a passing scoped rerun. Debian 12 is outside the
+support target; its best-effort handling preserves running devices on refusals.
 Source-work cost curves and GNU/musl allocation repetitions pass in the build
 job. Historical clause assessments and failed attempts remain in Git history;
 current results never silently incorporate their profiles.

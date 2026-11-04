@@ -23,12 +23,14 @@ cases, both IPv6-absent boots and missing-driver recovery. Each normal
 target passes 27 scenarios and 37 process cases. Three consecutive musl
 scenario/Incus pairs and the unmodified root-systemd guest also pass.
 
-All six Debian 12 and Rocky 9/10 optional profiles have run. Rocky 9/10
-pass normal and clock checks. Debian 12's normal and clock profiles fail
-existing MAC/UP-device rename assertions;
-its process and normal scenario suites were not reached. Results remain
+All six Debian 13 and Rocky 9/10 optional profiles ran after signed tooling
+commit `3dee493` was synced. Rocky 9/10 pass normal and clock checks. Debian 13
+passes clock checks, 37 process cases and 26 of 27 normal scenarios; H17's
+nlmon reader rejects a packet header. A scoped H17 rerun passes, but the
+original failure remains unresolved and Debian 13 remains unqualified.
+Production behavior and guest assertions are unchanged. Debian 12 is outside
+the support target, with best-effort degradation. Optional results remain
 separate from the required Phase 6 gate.
-
 
 ## Rules for verification
 

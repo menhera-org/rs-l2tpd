@@ -1,0 +1,1039 @@
+Source: probe.rs
+#[allow(dead_code)]
+#[path="CHECKOUT/tests/scenarios/support.rs"]
+mod support;
+mod netlink;
+#[path="CHECKOUT/tests/scenarios/scale.rs"]
+mod scale;
+Source: noise-main.rs
+#[allow(dead_code)]
+#[path="CHECKOUT/tests/scenarios/support.rs"]
+mod support;
+mod netlink;
+#[path="CHECKOUT/tests/scenarios/scale.rs"]
+mod scale;
+#[test]
+fn noise() {
+    for round in 0..20 {
+        let pair = support::Pair::new();
+        pair.underlay(true, true);
+        let mut listener = pair.command(0, "ip", &["monitor", "link"]).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let trace = netlink::RouteTrace::start(&pair, 0);
+        for n in 0..100 {
+            let name = format!("noise{n}");
+            pair.ip(1, &["link","add",&name,"type","veth","peer","name","noise-peer"]);
+            pair.ip(1, &["link","set","noise-peer","netns",&pair.names[0]]);
+            pair.ip(1, &["link","del",&name]);
+        }
+        let counts = trace.finish();
+        listener.kill().unwrap();
+        listener.wait().unwrap();
+        assert_eq!(counts.requests, 0);
+        assert!(counts.packets >= 200);
+        println!("DEBIAN_CAPTURE_NOISE_ROUND={round} {counts:?}");
+    }
+}
+Source: two-listeners.rs
+#[allow(dead_code)]
+#[path="CHECKOUT/tests/scenarios/support.rs"]
+mod support;
+mod netlink;
+#[path="CHECKOUT/tests/scenarios/scale.rs"]
+mod scale;
+#[test]
+fn noise() {
+    for round in 0..20 {
+        let pair = support::Pair::new();
+        pair.underlay(true, true);
+        let mut listener = pair.command(0, "ip", &["monitor", "link"]).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().unwrap();
+        let mut second_listener = pair.command(0, "ip", &["monitor", "link"]).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let trace = netlink::RouteTrace::start(&pair, 0);
+        for n in 0..100 {
+            let name = format!("noise{n}");
+            pair.ip(1, &["link","add",&name,"type","veth","peer","name","noise-peer"]);
+            pair.ip(1, &["link","set","noise-peer","netns",&pair.names[0]]);
+            pair.ip(1, &["link","del",&name]);
+        }
+        let counts = trace.finish();
+        listener.kill().unwrap();
+        listener.wait().unwrap();
+        second_listener.kill().unwrap();
+        second_listener.wait().unwrap();
+        assert_eq!(counts.requests, 0);
+        assert!(counts.packets >= 200);
+        println!("DEBIAN_CAPTURE_NOISE_ROUND={round} {counts:?}");
+    }
+}
+Source: netlink.rs
+//! Fixture-only netlink observation. No request adapter is added to the daemon.
+// Kernel: Linux v6.8 net/netlink/af_netlink.c __netlink_deliver_tap_skb
+// preserves the netlink datagram and puts its protocol in sll_protocol;
+// net/packet/af_packet.c packet_recvmsg/packet_getsockopt provide capture/drop
+// accounting. include/uapi/linux/netlink.h defines the aligned message header.
+use super::support::Pair;
+use netlink_packet_core::NetlinkBuffer;
+use std::io;
+use std::os::fd::AsRawFd;
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
+};
+use std::time::Duration;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Counts {
+    pub requests: usize,
+    pub route_queries: usize,
+    pub generic_requests: usize,
+    pub packets: u32,
+}
+pub struct RouteTrace {
+    stop: Arc<AtomicBool>,
+    counts: Arc<Mutex<Counts>>,
+    reader: Option<std::thread::JoinHandle<io::Result<[u32; 2]>>>,
+}
+fn requests(protocol: u16, bytes: &[u8]) -> io::Result<(usize, usize)> {
+    let mut rest = bytes;
+    let (mut requests, mut routes) = (0, 0);
+    while !rest.is_empty() {
+        let header = NetlinkBuffer::new_checked(rest)
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, format!("nlmon header: protocol={protocol} packet_len={} remaining={} prefix={:?}: {error}", bytes.len(), rest.len(), &rest[..rest.len().min(64)])))?;
+        if header.flags() & netlink_packet_core::NLM_F_REQUEST != 0 {
+            requests += 1;
+            routes += usize::from(protocol == 0 && header.message_type() == 26); // RTM_GETROUTE
+        }
+        let length = header.length() as usize;
+        rest = rest.get(length.next_multiple_of(4)..).unwrap_or_default();
+    }
+    Ok((requests, routes))
+}
+impl RouteTrace {
+    pub fn start(pair: &Pair, side: usize) -> Self {
+        assert!(
+            std::path::Path::new("/sys/module/nlmon").exists()
+                || std::env::var("RS_L2TPD_BUILTIN_NLMON").as_deref() == Ok("1"),
+            "nlmon must already be available; the fixture never loads host modules"
+        );
+        pair.ip(side, &["link", "add", "nltrace", "type", "nlmon"]);
+        pair.ip(side, &["link", "set", "nltrace", "up"]);
+        let index = pair.index(side, "nltrace");
+        let original = std::fs::File::open("/proc/self/ns/net").unwrap();
+        let target = std::fs::File::open(format!("/run/netns/{}", pair.names[side])).unwrap();
+        nix::sched::setns(target, nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let opened = (|| -> io::Result<socket2::Socket> {
+            let socket = socket2::Socket::new(
+                socket2::Domain::PACKET,
+                socket2::Type::RAW,
+                Some(socket2::Protocol::from(i32::from(3u16.to_be()))),
+            )?;
+            socket.set_recv_buffer_size(8 << 20)?;
+            socket.set_read_timeout(Some(Duration::from_millis(100)))?;
+            // Kernel UAPI sockaddr_ll is an initialized POD address; bind reads
+            // exactly its size and the packet socket is owned by this scope.
+            let address = libc::sockaddr_ll {
+                sll_family: libc::AF_PACKET as u16,
+                sll_protocol: 3u16.to_be(),
+                sll_ifindex: index as i32,
+                sll_hatype: 0,
+                sll_pkttype: 0,
+                sll_halen: 0,
+                sll_addr: [0; 8],
+            };
+            let result = unsafe {
+                libc::bind(
+                    socket.as_raw_fd(),
+                    (&address as *const libc::sockaddr_ll).cast(),
+                    std::mem::size_of_val(&address) as libc::socklen_t,
+                )
+            };
+            if result < 0 {
+                return Err(io::Error::last_os_error());
+            }
+            Ok(socket)
+        })();
+        nix::sched::setns(original, nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+        let socket = opened.unwrap();
+        let stop = Arc::new(AtomicBool::new(false));
+        let done = stop.clone();
+        let counts = Arc::new(Mutex::new(Counts::default()));
+        let captured = counts.clone();
+        let reader = std::thread::spawn(move || {
+            let mut bytes = [0u8; 65536];
+            loop {
+                let mut address = libc::sockaddr_ll {
+                    sll_family: 0,
+                    sll_protocol: 0,
+                    sll_ifindex: 0,
+                    sll_hatype: 0,
+                    sll_pkttype: 0,
+                    sll_halen: 0,
+                    sll_addr: [0; 8],
+                };
+                let mut length = std::mem::size_of_val(&address) as libc::socklen_t;
+                // The receive buffer/address are initialized and writable; the
+                // returned length is checked before any byte is inspected.
+                let received = unsafe {
+                    libc::recvfrom(
+                        socket.as_raw_fd(),
+                        bytes.as_mut_ptr().cast(),
+                        bytes.len(),
+                        libc::MSG_TRUNC,
+                        (&mut address as *mut libc::sockaddr_ll).cast(),
+                        &mut length,
+                    )
+                };
+                if received < 0 {
+                    let error = io::Error::last_os_error();
+                    if error.kind() == io::ErrorKind::Interrupted {
+                        continue;
+                    }
+                    if error.kind() != io::ErrorKind::WouldBlock {
+                        return Err(error);
+                    }
+                    if done.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    continue;
+                }
+                let received = received as usize;
+                if received > bytes.len() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "truncated nlmon packet",
+                    ));
+                }
+                let protocol = u16::from_be(address.sll_protocol);
+                let (requests, routes) = requests(protocol, &bytes[..received])?;
+                let mut state = captured.lock().unwrap();
+                if requests != 0 && state.requests == 0 {
+                    eprintln!(
+                        "NLMON_FIRST_REQUEST protocol={protocol} packet_type={} header={:?}",
+                        address.sll_pkttype,
+                        &bytes[..received.min(20)]
+                    );
+                }
+                state.packets += 1;
+                state.requests += requests;
+                state.route_queries += routes;
+                state.generic_requests += if protocol == 16 { requests } else { 0 };
+            }
+            let mut statistics = [0u32; 2];
+            let mut length = std::mem::size_of_val(&statistics) as libc::socklen_t;
+            // Default TPACKET_V1 PACKET_STATISTICS is two u32 counters.
+            let result = unsafe {
+                libc::getsockopt(
+                    socket.as_raw_fd(),
+                    libc::SOL_PACKET,
+                    libc::PACKET_STATISTICS,
+                    statistics.as_mut_ptr().cast(),
+                    &mut length,
+                )
+            };
+            if result < 0 {
+                return Err(io::Error::last_os_error());
+            }
+            assert_eq!(length as usize, std::mem::size_of_val(&statistics));
+            Ok(statistics)
+        });
+        Self {
+            stop,
+            counts,
+            reader: Some(reader),
+        }
+    }
+    pub fn snapshot(&self) -> Counts {
+        *self.counts.lock().unwrap()
+    }
+    pub fn finish(mut self) -> Counts {
+        self.stop.store(true, Ordering::SeqCst);
+        let statistics = self.reader.take().unwrap().join().unwrap().unwrap();
+        let counts = self.snapshot();
+        assert_eq!(statistics[1], 0, "nlmon capture lost packets");
+        assert_eq!(
+            counts.packets, statistics[0],
+            "all captured packets must be read"
+        );
+        counts
+    }
+}
+impl Drop for RouteTrace {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::SeqCst);
+        if let Some(reader) = self.reader.take() {
+            let _ = reader.join();
+        }
+    }
+}
+
+#[test]
+fn netlink_requests_are_counted_without_counting_notifications_or_replies() {
+    let mut query = [0u8; 16];
+    query[..4].copy_from_slice(&16u32.to_ne_bytes());
+    query[4..6].copy_from_slice(&26u16.to_ne_bytes());
+    query[6..8].copy_from_slice(&1u16.to_ne_bytes());
+    assert_eq!(requests(0, &query).unwrap(), (1, 1));
+    assert_eq!(requests(16, &query).unwrap(), (1, 0));
+    let mut reply = query;
+    reply[4..6].copy_from_slice(&24u16.to_ne_bytes());
+    reply[6..8].copy_from_slice(&0u16.to_ne_bytes());
+    assert_eq!(requests(0, &reply).unwrap(), (0, 0));
+    let datagram = [query, reply].concat();
+    assert_eq!(requests(0, &datagram).unwrap(), (1, 1));
+    assert!(requests(0, &query[..8]).is_err());
+    query[..4].copy_from_slice(&200u32.to_ne_bytes());
+    assert!(requests(0, &query).is_err());
+}
+
+#[test]
+#[ignore = "disposable privileged container with nlmon already available"]
+fn nlmon_sees_fixture_route_and_generic_requests_without_packet_loss() {
+    let pair = Pair::new();
+    pair.underlay(true, true);
+    let trace = RouteTrace::start(&pair, 0);
+    pair.ip(0, &["-4", "route", "get", "192.0.2.2"]);
+    pair.ip(0, &["-6", "route", "get", "2001:db8:1::2"]);
+    super::support::wait("both deliberate route queries captured", || {
+        trace.snapshot().route_queries == 2
+    });
+    pair.ip(0, &["l2tp", "show", "tunnel"]);
+    super::support::wait("deliberate L2TP query captured", || {
+        trace.snapshot().generic_requests > 0
+    });
+    let counts = trace.finish();
+    assert_eq!(counts.route_queries, 2);
+    assert!(counts.requests >= 3 && counts.generic_requests > 0);
+    println!("nlmon counts: {counts:?}");
+}
+
+fn populate_routes(pair: &Pair) {
+    use std::io::Write;
+    use std::process::Stdio;
+    for family in ["-4", "-6"] {
+        let mut child = pair
+            .command(0, "ip", &[family, "-batch", "-"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut input = child.stdin.take().unwrap();
+        let writer = std::thread::spawn(move || {
+            for n in 0..100_000u32 {
+                if family == "-4" {
+                    writeln!(
+                        input,
+                        "route add blackhole 10.{}.{}.{}/32",
+                        n >> 16,
+                        (n >> 8) & 255,
+                        n & 255
+                    )?;
+                } else {
+                    writeln!(
+                        input,
+                        "route add blackhole 2001:db8:ffff::{:x}:{:x}/128",
+                        n >> 16,
+                        n & 65535
+                    )?;
+                }
+            }
+            Ok::<_, io::Error>(())
+        });
+        let result = child.wait_with_output().unwrap();
+        writer.join().unwrap().unwrap();
+        assert!(result.status.success(), "{result:?}");
+        let routes = pair.ip(0, &[family, "route", "show", "type", "blackhole"]);
+        assert_eq!(routes.lines().count(), 100_000);
+        assert!(
+            pair.ip(0, &[family, "route", "show", "default"])
+                .trim()
+                .is_empty()
+        );
+    }
+}
+
+/// spec: H8
+#[test]
+#[ignore = "disposable privileged container with nlmon already available"]
+fn large_default_free_tables_do_not_add_daemon_route_queries() {
+    use super::support::config;
+    use std::time::Instant;
+    let pair = Pair::new();
+    pair.underlay(true, true);
+    let mut counts = Vec::new();
+    for large in [false, true] {
+        if large {
+            populate_routes(&pair);
+            pair.ip(0, &["link", "del", "nltrace"]);
+        }
+        let trace = RouteTrace::start(&pair, 0);
+        let started = Instant::now();
+        let mut daemon = pair.start(0, &config(0, &["192.0.2.2", "2001:db8:1::2"]));
+        let ready = daemon.event("ready").duration_since(started);
+        let reloaded = Instant::now();
+        daemon.reload();
+        let reload = reloaded.elapsed();
+        // Positive controls in each capture prevent an empty trace passing.
+        pair.ip(0, &["-4", "route", "get", "192.0.2.2"]);
+        pair.ip(0, &["-6", "route", "get", "2001:db8:1::2"]);
+        super::support::wait("route-query controls captured", || {
+            trace.snapshot().route_queries >= 2
+        });
+        // Cleanup query counts depend on kernel worker scheduling. Compare
+        // startup/reload after the capture has drained, before shutdown.
+        let startup = trace.snapshot();
+        daemon.stop();
+        let observed = trace.finish();
+        assert_eq!(observed.route_queries, 2, "only the fixture queries routes");
+        println!(
+            "large={large}: ready={ready:?}, reload={reload:?}, startup={startup:?}, total={observed:?}"
+        );
+        counts.push(startup.requests);
+        pair.absent(0);
+    }
+    assert_eq!(
+        counts[0], counts[1],
+        "route-table size must not add daemon startup/reload requests"
+    );
+}
+Source: init.sh
+#!/bin/sh
+# PID 1 only in the disposable QEMU guest.
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+finish() { result=$?; echo "MATRIX_GUEST_RESULT=$result"; poweroff -f; }
+trap finish 0
+set -eu
+mount -t devtmpfs devtmpfs /dev
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mkdir -p /dev/pts /run
+mount -t devpts devpts /dev/pts
+chmod 1777 /tmp
+uname -a
+printf 'GUEST_KERNEL_RELEASE=%s\n' "$(uname -r)"
+run_suite() {
+    rm -f /tmp/suite.status
+    { result=0; "$@" || result=$?; printf '%s\n' "$result" > /tmp/suite.status; } 2>&1 | tee /tmp/suite.log
+    [ "$(cat /tmp/suite.status)" = 0 ] || return 1
+    grep -Eq 'test result: ok\. [1-9][0-9]* passed;' /tmp/suite.log
+}
+run_signal_limits() {
+    group=/sys/fs/cgroup/rs-l2tpd-signals
+    if [ ! -f /sys/fs/cgroup/cgroup.controllers ]; then
+        mount -t cgroup2 none /sys/fs/cgroup
+    fi
+    printf '%s\n' +pids > /sys/fs/cgroup/cgroup.subtree_control
+    mkdir "$group"
+    for limit in 2 3; do
+        printf '%s\n' "$limit" > "$group/pids.max"
+        # The child expands its own PID and argument before exec; PID 1 stays outside.
+        # shellcheck disable=SC2016
+        run_suite env RS_L2TPD_SIGNAL_TASK_LIMIT="$limit" RS_L2TPD_SIGNAL_TASK_CGROUP="$group" sh -c '
+            printf "%s\n" "$$" > "$1/cgroup.procs"
+            exec /binary-unit --ignored --exact signals::libc_tests::thread_spawn_failures_leave_no_signal_threads --nocapture
+        ' sh "$group"
+    done
+    rmdir "$group"
+}
+run_binary() {
+run_suite /binary-unit --test-threads=1 --nocapture
+run_suite /binary-unit --ignored --exact pidfile::permission_tests::precreated_permissions_links_and_owner --nocapture
+run_suite /binary-unit --ignored --exact pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes --nocapture
+run_suite /binary-unit --ignored --exact files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths --nocapture
+run_signal_limits
+}
+mode=$(cat /matrix-mode)
+export RS_L2TPD_SCENARIO_CONTAINER=1
+# Parameterless built-in drivers need not have a /sys/module directory.
+if grep -q 'l2tp_builtin=1' /proc/cmdline; then export RS_L2TPD_BUILTIN_NLMON=1; fi
+if ! grep -q 'l2tp_builtin=1' /proc/cmdline; then
+    depmod -a
+    for module in l2tp_core l2tp_netlink l2tp_ip dummy veth; do modprobe "$module"; done
+    if [ "$mode" != no-ethernet ]; then modprobe l2tp_eth; fi
+    if [ "$mode" = normal ] || [ "$mode" = clock ] || [ "$mode" = binary ]; then
+        for module in l2tp_ip6 vrf bridge 8021q nlmon; do modprobe "$module"; done
+    fi
+fi
+if [ "$mode" = no-ethernet ]; then
+    modprobe l2tp_ip6
+    # The guest alone owns this autoload policy; the test later loads the driver explicitly.
+    printf '%s\n' /no-module-loader > /proc/sys/kernel/modprobe
+    export RS_L2TPD_NO_ETHERNET=1
+    echo 'scope: missing Ethernet driver host-defect scenario only'
+    run_suite /boot-scenarios --ignored --exact missing_ethernet_driver_withholds_readiness_until_the_driver_is_loaded --nocapture
+    echo CONFORMANCE_RESULT=0
+    echo SCENARIO_RESULT=0
+    exit 0
+fi
+if [ "$mode" = no-vrf ]; then
+    for module in l2tp_ip6 l2tp_eth; do modprobe "$module"; done
+    printf '%s\n' /no-module-loader > /proc/sys/kernel/modprobe
+    export RS_L2TPD_NO_VRF=1
+    echo 'scope: unavailable VRF driver with ordinary named-device binding only'
+    run_suite /boot-scenarios --ignored --exact unavailable_vrf_driver_keeps_ordinary_device_binding_and_frames --nocapture
+    echo CONFORMANCE_RESULT=0
+    echo SCENARIO_RESULT=0
+    exit 0
+fi
+if [ "$mode" = clock ]; then
+    export RS_L2TPD_CLOCK_GUEST=1
+    echo 'scope: H16 wall-clock and QMP pause scenario only'
+    run_suite /boot-scenarios --ignored --exact clocks::clock_steps_and_vm_pause_preserve_retries_refreshes_and_network_events --nocapture
+    echo CONFORMANCE_RESULT=0
+    echo SCENARIO_RESULT=0
+    exit 0
+fi
+if [ "$mode" = binary ]; then
+    echo 'scope: ordinary CLI units and selected filesystem-permission cases'
+    run_binary
+    echo BINARY_UNIT_RESULT=0
+    exit 0
+fi
+if [ "$mode" != normal ]; then
+    export RS_L2TPD_IPV6_ABSENT=1
+    echo 'scope: IPv6-absent boot scenario only'
+    run_suite /boot-scenarios --ignored --exact absent_ipv6_stack_uses_native_ipv4_and_keeps_ipv6_peers_disconnected --nocapture
+    echo CONFORMANCE_RESULT=0
+    echo SCENARIO_RESULT=0
+    exit 0
+fi
+echo 'scope: Debian 13 scale capture diagnostics; no production changes'
+run_suite /scenarios --ignored --exact scale::three_hundred_tunnels_release_resources_and_ignore_unrelated_events --nocapture
+echo CAPTURE_DIAGNOSTIC_RESULT=0
+Source: noise-init.sh
+#!/bin/sh
+# PID 1 only in the disposable QEMU guest.
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+finish() { result=$?; echo "MATRIX_GUEST_RESULT=$result"; poweroff -f; }
+trap finish 0
+set -eu
+mount -t devtmpfs devtmpfs /dev
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mkdir -p /dev/pts /run
+mount -t devpts devpts /dev/pts
+chmod 1777 /tmp
+uname -a
+printf 'GUEST_KERNEL_RELEASE=%s\n' "$(uname -r)"
+run_suite() {
+    rm -f /tmp/suite.status
+    { result=0; "$@" || result=$?; printf '%s\n' "$result" > /tmp/suite.status; } 2>&1 | tee /tmp/suite.log
+    [ "$(cat /tmp/suite.status)" = 0 ] || return 1
+    grep -Eq 'test result: ok\. [1-9][0-9]* passed;' /tmp/suite.log
+}
+run_signal_limits() {
+    group=/sys/fs/cgroup/rs-l2tpd-signals
+    if [ ! -f /sys/fs/cgroup/cgroup.controllers ]; then
+        mount -t cgroup2 none /sys/fs/cgroup
+    fi
+    printf '%s\n' +pids > /sys/fs/cgroup/cgroup.subtree_control
+    mkdir "$group"
+    for limit in 2 3; do
+        printf '%s\n' "$limit" > "$group/pids.max"
+        # The child expands its own PID and argument before exec; PID 1 stays outside.
+        # shellcheck disable=SC2016
+        run_suite env RS_L2TPD_SIGNAL_TASK_LIMIT="$limit" RS_L2TPD_SIGNAL_TASK_CGROUP="$group" sh -c '
+            printf "%s\n" "$$" > "$1/cgroup.procs"
+            exec /binary-unit --ignored --exact signals::libc_tests::thread_spawn_failures_leave_no_signal_threads --nocapture
+        ' sh "$group"
+    done
+    rmdir "$group"
+}
+run_binary() {
+run_suite /binary-unit --test-threads=1 --nocapture
+run_suite /binary-unit --ignored --exact pidfile::permission_tests::precreated_permissions_links_and_owner --nocapture
+run_suite /binary-unit --ignored --exact pidfile::removal_tests::removal_uses_inode_after_directory_owner_changes --nocapture
+run_suite /binary-unit --ignored --exact files::filesystem_tests::permission_errors_name_unreadable_unlistable_and_uninspectable_paths --nocapture
+run_signal_limits
+}
+mode=$(cat /matrix-mode)
+export RS_L2TPD_SCENARIO_CONTAINER=1
+# Parameterless built-in drivers need not have a /sys/module directory.
+if grep -q 'l2tp_builtin=1' /proc/cmdline; then export RS_L2TPD_BUILTIN_NLMON=1; fi
+if ! grep -q 'l2tp_builtin=1' /proc/cmdline; then
+    depmod -a
+    for module in l2tp_core l2tp_netlink l2tp_ip dummy veth; do modprobe "$module"; done
+    if [ "$mode" != no-ethernet ]; then modprobe l2tp_eth; fi
+    if [ "$mode" = normal ] || [ "$mode" = clock ] || [ "$mode" = binary ]; then
+        for module in l2tp_ip6 vrf bridge 8021q nlmon; do modprobe "$module"; done
+    fi
+fi
+if [ "$mode" = no-ethernet ]; then
+    modprobe l2tp_ip6
+    # The guest alone owns this autoload policy; the test later loads the driver explicitly.
+    printf '%s\n' /no-module-loader > /proc/sys/kernel/modprobe
+    export RS_L2TPD_NO_ETHERNET=1
+    echo 'scope: missing Ethernet driver host-defect scenario only'
+    run_suite /boot-scenarios --ignored --exact missing_ethernet_driver_withholds_readiness_until_the_driver_is_loaded --nocapture
+    echo CONFORMANCE_RESULT=0
+    echo SCENARIO_RESULT=0
+    exit 0
+fi
+if [ "$mode" = no-vrf ]; then
+    for module in l2tp_ip6 l2tp_eth; do modprobe "$module"; done
+    printf '%s\n' /no-module-loader > /proc/sys/kernel/modprobe
+    export RS_L2TPD_NO_VRF=1
+    echo 'scope: unavailable VRF driver with ordinary named-device binding only'
+    run_suite /boot-scenarios --ignored --exact unavailable_vrf_driver_keeps_ordinary_device_binding_and_frames --nocapture
+    echo CONFORMANCE_RESULT=0
+    echo SCENARIO_RESULT=0
+    exit 0
+fi
+if [ "$mode" = clock ]; then
+    export RS_L2TPD_CLOCK_GUEST=1
+    echo 'scope: H16 wall-clock and QMP pause scenario only'
+    run_suite /boot-scenarios --ignored --exact clocks::clock_steps_and_vm_pause_preserve_retries_refreshes_and_network_events --nocapture
+    echo CONFORMANCE_RESULT=0
+    echo SCENARIO_RESULT=0
+    exit 0
+fi
+if [ "$mode" = binary ]; then
+    echo 'scope: ordinary CLI units and selected filesystem-permission cases'
+    run_binary
+    echo BINARY_UNIT_RESULT=0
+    exit 0
+fi
+if [ "$mode" != normal ]; then
+    export RS_L2TPD_IPV6_ABSENT=1
+    echo 'scope: IPv6-absent boot scenario only'
+    run_suite /boot-scenarios --ignored --exact absent_ipv6_stack_uses_native_ipv4_and_keeps_ipv6_peers_disconnected --nocapture
+    echo CONFORMANCE_RESULT=0
+    echo SCENARIO_RESULT=0
+    exit 0
+fi
+echo 'scope: Debian 13 scale capture diagnostics; no production changes'
+run_suite /scenarios --exact noise --nocapture
+echo CAPTURE_DIAGNOSTIC_RESULT=0
+Source: run.sh
+#!/bin/sh
+set -eu
+[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|binary|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd RECORD" >&2; exit 2; }
+repo=CHECKOUT
+cd "$repo"
+kernel=$1; modules=$2; config=$3; mode=$4; record=$5
+case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
+case $record in /*) ;; *) record=$repo/$record ;; esac
+case $mode in normal|binary|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd) ;; *) exit 2 ;; esac
+[ -f "$kernel" ] && [ -s "$kernel" ] || exit 1
+[ "$modules" = - ] || [ -d "$modules" ] || { echo 'module directory missing' >&2; exit 1; }
+[ "$config" = - ] || [ -f "$config" ] || { echo 'kernel config missing' >&2; exit 1; }
+[ "$mode" != no-ethernet ] || [ "$modules" != - ] || { echo 'no-ethernet needs a modular stock kernel' >&2; exit 2; }
+[ "$mode" != no-vrf ] || [ "$modules" != - ] || { echo 'no-vrf needs a modular stock kernel' >&2; exit 2; }
+mkdir -p "$record"
+image=rs-l2tpd-audit-vm:local
+if [ "$mode" = systemd ]; then image=nd-test:u2404; fi
+image_id=$(docker image inspect --format '{{.Id}}' "$image")
+printf '%s\n' "$image_id" > "$record/image.log"
+base=$repo/target/phase6-kernels/base-${image_id#sha256:}
+guest=$(mktemp -d /tmp/rs-l2tpd-phase6-qemu.XXXXXX)
+container=
+cleanup() {
+    if [ -n "$container" ]; then docker rm -f "$container" >/dev/null 2>&1 || :; fi
+    rm -rf "$guest"
+}
+trap cleanup 0
+trap 'exit 1' 1 2 3 15
+if [ ! -f "$base/complete" ]; then
+    mkdir -p "$base"
+    container=$(docker create --network none "$image")
+    docker export --output "$base/root.tar" "$container"
+    docker rm "$container" >/dev/null
+    container=
+    rm -rf "$base/root"
+    mkdir "$base/root"
+    tar -xf "$base/root.tar" --exclude=dev --no-same-owner -C "$base/root"
+    : > "$base/complete"
+fi
+{
+    printf '%s\n' 'features: all; target: x86_64-unknown-linux-musl' \
+        'command: cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run'
+    # The executable-path parser needs plain output even when CI forces color.
+    cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run
+} > "$record/build.log" 2>&1 || { cat "$record/build.log"; exit 1; }
+# Build-time duration is a machine fact, not verification evidence.
+sed 's/\(Finished .*\) in .*/\1/' "$record/build.log" > "$record/build.tmp"
+mv "$record/build.tmp" "$record/build.log"
+cp -Rp "$base/root" "$guest/root"
+mkdir -p "$guest/root/dev"
+copy_test() {
+    path=$(awk -v label="Executable $1 (" '{
+        at=index($0,label)
+        if(at) { line=substr($0,at+length(label)); sub(/\)$/,"",line); print line }
+    }' "$record/build.log")
+    case $path in /*) ;; *) path=$repo/$path ;; esac
+    if [ ! -f "$path" ] || [ ! -x "$path" ]; then
+        echo "missing executable for $1: $path" >&2
+        exit 1
+    fi
+    cp "$path" "$guest/root/$2"
+    strip --strip-debug "$guest/root/$2"
+    printf '%s git-blob: ' "$2" >> "$record/artifacts.log"
+    git --no-pager hash-object "$path" >> "$record/artifacts.log"
+}
+: > "$record/artifacts.log"
+copy_test 'unittests src/lib.rs' kernel-unit
+copy_test 'unittests src/bin/rs-l2tpd/main.rs' binary-unit
+copy_test 'tests/kernel/linux.rs' kernel-linux
+copy_test 'tests/kernel/review.rs' review-kernel
+copy_test 'tests/process.rs' process-test
+copy_test 'tests/scenarios/main.rs' scenarios
+copy_test 'tests/scenarios/boot.rs' boot-scenarios
+if [ "$mode" = systemd ]; then copy_test 'tests/scenarios/systemd.rs' systemd-scenarios; fi
+binary=$repo/target/x86_64-unknown-linux-musl/debug/rs-l2tpd
+mkdir -p "$guest/root$(dirname "$binary")"
+cp "$binary" "$guest/root$binary"
+strip --strip-debug "$guest/root$binary"
+printf 'daemon git-blob: ' >> "$record/artifacts.log"
+git --no-pager hash-object "$binary" >> "$record/artifacts.log"
+baseline_revision=$(git --no-pager rev-parse 'v0.1.5^{commit}')
+baseline=$(sh tests/docker/baseline.sh "$record")
+cp "$baseline" "$guest/root/baseline"
+if [ "$modules" != - ]; then
+    release=${modules##*/}
+    mkdir -p "$guest/root/lib/modules/$release"
+    cp -Rp "$modules/." "$guest/root/lib/modules/$release/"
+fi
+if [ "$config" != - ]; then cp "$config" "$record/kernel.config"; fi
+cp /tmp/rs-l2tpd-debian13-capture/init.sh "$guest/root/init"
+cp /tmp/rs-l2tpd-debian13-capture/capture-probe "$guest/root/scenarios"
+if [ "$mode" = systemd ]; then
+    cp tests/kernel/systemd-init.sh "$guest/root/init"
+    cp -Rp "$modules/../../../usr/." "$guest/root/usr/"
+fi
+chmod 755 "$guest/root/init"
+printf '%s\n' "$mode" > "$guest/root/matrix-mode"
+(cd "$guest/root" && find . -print | cpio -o -H newc -R 0:0 > "$guest/initramfs.cpio") > "$record/initramfs.log" 2>&1
+append='console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs'
+# KHO scratch can starve the cold-boot initramfs; these tests never kexec.
+if [ "$config" != - ] && grep -q '^CONFIG_KEXEC_HANDOVER_ENABLE_DEFAULT=y$' "$config"; then
+    append="$append kho=off"
+fi
+if [ "$modules" = - ]; then append="$append l2tp_builtin=1"; fi
+if [ "$mode" = ipv6-disable ]; then append="$append ipv6.disable=1"; fi
+if [ "$mode" = clock ]; then append="$append rs_l2tpd_clock_guest=1"; fi
+{
+    printf 'mode: %s\nkernel image git-blob: ' "$mode"
+    git --no-pager hash-object "$kernel"
+    printf 'baseline commit: %s\n' "$baseline_revision"
+    printf 'baseline binary git-blob: '
+    git --no-pager hash-object "$baseline"
+    printf '%s\n' "command: qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 -nodefaults -nographic -serial stdio -no-reboot -kernel IMAGE -initrd INITRAMFS -append '$append'"
+} > "$record/command.log"
+set -- qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 \
+    -nodefaults -nographic -serial stdio -no-reboot -kernel "$kernel" \
+    -initrd "$guest/initramfs.cpio" -append "$append"
+if [ "$mode" = clock ]; then
+    {
+        printf '%s\n' 'command: rustc --edition=2024 -D warnings tests/kernel/clock-control.rs; rustc --test; execute controller unit tests'
+        rustc --edition=2024 -D warnings tests/kernel/clock-control.rs -o "$guest/clock-control"
+        rustc --edition=2024 -D warnings --test tests/kernel/clock-control.rs -o "$guest/clock-control-tests"
+        "$guest/clock-control-tests"
+    } > "$record/clock-control-build.log" 2>&1
+    set -- "$@" -qmp "unix:$guest/qmp,server=on,wait=off"
+    set -- "$guest/clock-control" "$guest/qmp" "$@"
+    {
+        printf '%s\n' 'controller: tests/kernel/clock-control.rs; QMP stop/query-status/cont; three-second measured pause' \
+            'qmp argument: -qmp unix:QMP_SOCKET,server=on,wait=off' \
+            'host command: timeout 900 CLOCK_CONTROL QMP_SOCKET QEMU_COMMAND'
+        printf 'controller source git-blob: '
+        git --no-pager hash-object tests/kernel/clock-control.rs
+        printf 'controller executable git-blob: '
+        git --no-pager hash-object "$guest/clock-control"
+    } >> "$record/command.log"
+fi
+result=0
+timeout 900 "$@" > "$record/run.log" 2>&1 || result=$?
+tr -d '\r' < "$record/run.log" > "$record/run.tmp"
+mv "$record/run.tmp" "$record/run.log"
+grep -E 'Linux version|GUEST_KERNEL_RELEASE|scope:|test result:|_RESULT=' "$record/run.log" || :
+[ "$result" = 0 ] || exit "$result"
+grep -q CAPTURE_DIAGNOSTIC_RESULT=0 "$record/run.log"
+Source: noise-run.sh
+#!/bin/sh
+set -eu
+[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|binary|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd RECORD" >&2; exit 2; }
+repo=CHECKOUT
+cd "$repo"
+kernel=$1; modules=$2; config=$3; mode=$4; record=$5
+case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
+case $record in /*) ;; *) record=$repo/$record ;; esac
+case $mode in normal|binary|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd) ;; *) exit 2 ;; esac
+[ -f "$kernel" ] && [ -s "$kernel" ] || exit 1
+[ "$modules" = - ] || [ -d "$modules" ] || { echo 'module directory missing' >&2; exit 1; }
+[ "$config" = - ] || [ -f "$config" ] || { echo 'kernel config missing' >&2; exit 1; }
+[ "$mode" != no-ethernet ] || [ "$modules" != - ] || { echo 'no-ethernet needs a modular stock kernel' >&2; exit 2; }
+[ "$mode" != no-vrf ] || [ "$modules" != - ] || { echo 'no-vrf needs a modular stock kernel' >&2; exit 2; }
+mkdir -p "$record"
+image=rs-l2tpd-audit-vm:local
+if [ "$mode" = systemd ]; then image=nd-test:u2404; fi
+image_id=$(docker image inspect --format '{{.Id}}' "$image")
+printf '%s\n' "$image_id" > "$record/image.log"
+base=$repo/target/phase6-kernels/base-${image_id#sha256:}
+guest=$(mktemp -d /tmp/rs-l2tpd-phase6-qemu.XXXXXX)
+container=
+cleanup() {
+    if [ -n "$container" ]; then docker rm -f "$container" >/dev/null 2>&1 || :; fi
+    rm -rf "$guest"
+}
+trap cleanup 0
+trap 'exit 1' 1 2 3 15
+if [ ! -f "$base/complete" ]; then
+    mkdir -p "$base"
+    container=$(docker create --network none "$image")
+    docker export --output "$base/root.tar" "$container"
+    docker rm "$container" >/dev/null
+    container=
+    rm -rf "$base/root"
+    mkdir "$base/root"
+    tar -xf "$base/root.tar" --exclude=dev --no-same-owner -C "$base/root"
+    : > "$base/complete"
+fi
+{
+    printf '%s\n' 'features: all; target: x86_64-unknown-linux-musl' \
+        'command: cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run'
+    # The executable-path parser needs plain output even when CI forces color.
+    cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run
+} > "$record/build.log" 2>&1 || { cat "$record/build.log"; exit 1; }
+# Build-time duration is a machine fact, not verification evidence.
+sed 's/\(Finished .*\) in .*/\1/' "$record/build.log" > "$record/build.tmp"
+mv "$record/build.tmp" "$record/build.log"
+cp -Rp "$base/root" "$guest/root"
+mkdir -p "$guest/root/dev"
+copy_test() {
+    path=$(awk -v label="Executable $1 (" '{
+        at=index($0,label)
+        if(at) { line=substr($0,at+length(label)); sub(/\)$/,"",line); print line }
+    }' "$record/build.log")
+    case $path in /*) ;; *) path=$repo/$path ;; esac
+    if [ ! -f "$path" ] || [ ! -x "$path" ]; then
+        echo "missing executable for $1: $path" >&2
+        exit 1
+    fi
+    cp "$path" "$guest/root/$2"
+    strip --strip-debug "$guest/root/$2"
+    printf '%s git-blob: ' "$2" >> "$record/artifacts.log"
+    git --no-pager hash-object "$path" >> "$record/artifacts.log"
+}
+: > "$record/artifacts.log"
+copy_test 'unittests src/lib.rs' kernel-unit
+copy_test 'unittests src/bin/rs-l2tpd/main.rs' binary-unit
+copy_test 'tests/kernel/linux.rs' kernel-linux
+copy_test 'tests/kernel/review.rs' review-kernel
+copy_test 'tests/process.rs' process-test
+copy_test 'tests/scenarios/main.rs' scenarios
+copy_test 'tests/scenarios/boot.rs' boot-scenarios
+if [ "$mode" = systemd ]; then copy_test 'tests/scenarios/systemd.rs' systemd-scenarios; fi
+binary=$repo/target/x86_64-unknown-linux-musl/debug/rs-l2tpd
+mkdir -p "$guest/root$(dirname "$binary")"
+cp "$binary" "$guest/root$binary"
+strip --strip-debug "$guest/root$binary"
+printf 'daemon git-blob: ' >> "$record/artifacts.log"
+git --no-pager hash-object "$binary" >> "$record/artifacts.log"
+baseline_revision=$(git --no-pager rev-parse 'v0.1.5^{commit}')
+baseline=$(sh tests/docker/baseline.sh "$record")
+cp "$baseline" "$guest/root/baseline"
+if [ "$modules" != - ]; then
+    release=${modules##*/}
+    mkdir -p "$guest/root/lib/modules/$release"
+    cp -Rp "$modules/." "$guest/root/lib/modules/$release/"
+fi
+if [ "$config" != - ]; then cp "$config" "$record/kernel.config"; fi
+cp /tmp/rs-l2tpd-debian13-capture/noise-init.sh "$guest/root/init"
+cp /tmp/rs-l2tpd-debian13-capture/noise-probe "$guest/root/scenarios"
+if [ "$mode" = systemd ]; then
+    cp tests/kernel/systemd-init.sh "$guest/root/init"
+    cp -Rp "$modules/../../../usr/." "$guest/root/usr/"
+fi
+chmod 755 "$guest/root/init"
+printf '%s\n' "$mode" > "$guest/root/matrix-mode"
+(cd "$guest/root" && find . -print | cpio -o -H newc -R 0:0 > "$guest/initramfs.cpio") > "$record/initramfs.log" 2>&1
+append='console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs'
+# KHO scratch can starve the cold-boot initramfs; these tests never kexec.
+if [ "$config" != - ] && grep -q '^CONFIG_KEXEC_HANDOVER_ENABLE_DEFAULT=y$' "$config"; then
+    append="$append kho=off"
+fi
+if [ "$modules" = - ]; then append="$append l2tp_builtin=1"; fi
+if [ "$mode" = ipv6-disable ]; then append="$append ipv6.disable=1"; fi
+if [ "$mode" = clock ]; then append="$append rs_l2tpd_clock_guest=1"; fi
+{
+    printf 'mode: %s\nkernel image git-blob: ' "$mode"
+    git --no-pager hash-object "$kernel"
+    printf 'baseline commit: %s\n' "$baseline_revision"
+    printf 'baseline binary git-blob: '
+    git --no-pager hash-object "$baseline"
+    printf '%s\n' "command: qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 -nodefaults -nographic -serial stdio -no-reboot -kernel IMAGE -initrd INITRAMFS -append '$append'"
+} > "$record/command.log"
+set -- qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 \
+    -nodefaults -nographic -serial stdio -no-reboot -kernel "$kernel" \
+    -initrd "$guest/initramfs.cpio" -append "$append"
+if [ "$mode" = clock ]; then
+    {
+        printf '%s\n' 'command: rustc --edition=2024 -D warnings tests/kernel/clock-control.rs; rustc --test; execute controller unit tests'
+        rustc --edition=2024 -D warnings tests/kernel/clock-control.rs -o "$guest/clock-control"
+        rustc --edition=2024 -D warnings --test tests/kernel/clock-control.rs -o "$guest/clock-control-tests"
+        "$guest/clock-control-tests"
+    } > "$record/clock-control-build.log" 2>&1
+    set -- "$@" -qmp "unix:$guest/qmp,server=on,wait=off"
+    set -- "$guest/clock-control" "$guest/qmp" "$@"
+    {
+        printf '%s\n' 'controller: tests/kernel/clock-control.rs; QMP stop/query-status/cont; three-second measured pause' \
+            'qmp argument: -qmp unix:QMP_SOCKET,server=on,wait=off' \
+            'host command: timeout 900 CLOCK_CONTROL QMP_SOCKET QEMU_COMMAND'
+        printf 'controller source git-blob: '
+        git --no-pager hash-object tests/kernel/clock-control.rs
+        printf 'controller executable git-blob: '
+        git --no-pager hash-object "$guest/clock-control"
+    } >> "$record/command.log"
+fi
+result=0
+timeout 900 "$@" > "$record/run.log" 2>&1 || result=$?
+tr -d '\r' < "$record/run.log" > "$record/run.tmp"
+mv "$record/run.tmp" "$record/run.log"
+grep -E 'Linux version|GUEST_KERNEL_RELEASE|scope:|test result:|_RESULT=' "$record/run.log" || :
+[ "$result" = 0 ] || exit "$result"
+grep -q CAPTURE_DIAGNOSTIC_RESULT=0 "$record/run.log"
+Source: two-listeners-run.sh
+#!/bin/sh
+set -eu
+[ "$#" = 5 ] || { echo "usage: $0 IMAGE MODULES|- CONFIG|- normal|binary|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd RECORD" >&2; exit 2; }
+repo=CHECKOUT
+cd "$repo"
+kernel=$1; modules=$2; config=$3; mode=$4; record=$5
+case $kernel in /*) ;; *) kernel=$repo/$kernel ;; esac
+case $record in /*) ;; *) record=$repo/$record ;; esac
+case $mode in normal|binary|ipv6-disable|no-ipv6|no-ethernet|no-vrf|clock|systemd) ;; *) exit 2 ;; esac
+[ -f "$kernel" ] && [ -s "$kernel" ] || exit 1
+[ "$modules" = - ] || [ -d "$modules" ] || { echo 'module directory missing' >&2; exit 1; }
+[ "$config" = - ] || [ -f "$config" ] || { echo 'kernel config missing' >&2; exit 1; }
+[ "$mode" != no-ethernet ] || [ "$modules" != - ] || { echo 'no-ethernet needs a modular stock kernel' >&2; exit 2; }
+[ "$mode" != no-vrf ] || [ "$modules" != - ] || { echo 'no-vrf needs a modular stock kernel' >&2; exit 2; }
+mkdir -p "$record"
+image=rs-l2tpd-audit-vm:local
+if [ "$mode" = systemd ]; then image=nd-test:u2404; fi
+image_id=$(docker image inspect --format '{{.Id}}' "$image")
+printf '%s\n' "$image_id" > "$record/image.log"
+base=$repo/target/phase6-kernels/base-${image_id#sha256:}
+guest=$(mktemp -d /tmp/rs-l2tpd-phase6-qemu.XXXXXX)
+container=
+cleanup() {
+    if [ -n "$container" ]; then docker rm -f "$container" >/dev/null 2>&1 || :; fi
+    rm -rf "$guest"
+}
+trap cleanup 0
+trap 'exit 1' 1 2 3 15
+if [ ! -f "$base/complete" ]; then
+    mkdir -p "$base"
+    container=$(docker create --network none "$image")
+    docker export --output "$base/root.tar" "$container"
+    docker rm "$container" >/dev/null
+    container=
+    rm -rf "$base/root"
+    mkdir "$base/root"
+    tar -xf "$base/root.tar" --exclude=dev --no-same-owner -C "$base/root"
+    : > "$base/complete"
+fi
+{
+    printf '%s\n' 'features: all; target: x86_64-unknown-linux-musl' \
+        'command: cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run'
+    # The executable-path parser needs plain output even when CI forces color.
+    cargo test --color never --locked --all-features --target x86_64-unknown-linux-musl --no-run
+} > "$record/build.log" 2>&1 || { cat "$record/build.log"; exit 1; }
+# Build-time duration is a machine fact, not verification evidence.
+sed 's/\(Finished .*\) in .*/\1/' "$record/build.log" > "$record/build.tmp"
+mv "$record/build.tmp" "$record/build.log"
+cp -Rp "$base/root" "$guest/root"
+mkdir -p "$guest/root/dev"
+copy_test() {
+    path=$(awk -v label="Executable $1 (" '{
+        at=index($0,label)
+        if(at) { line=substr($0,at+length(label)); sub(/\)$/,"",line); print line }
+    }' "$record/build.log")
+    case $path in /*) ;; *) path=$repo/$path ;; esac
+    if [ ! -f "$path" ] || [ ! -x "$path" ]; then
+        echo "missing executable for $1: $path" >&2
+        exit 1
+    fi
+    cp "$path" "$guest/root/$2"
+    strip --strip-debug "$guest/root/$2"
+    printf '%s git-blob: ' "$2" >> "$record/artifacts.log"
+    git --no-pager hash-object "$path" >> "$record/artifacts.log"
+}
+: > "$record/artifacts.log"
+copy_test 'unittests src/lib.rs' kernel-unit
+copy_test 'unittests src/bin/rs-l2tpd/main.rs' binary-unit
+copy_test 'tests/kernel/linux.rs' kernel-linux
+copy_test 'tests/kernel/review.rs' review-kernel
+copy_test 'tests/process.rs' process-test
+copy_test 'tests/scenarios/main.rs' scenarios
+copy_test 'tests/scenarios/boot.rs' boot-scenarios
+if [ "$mode" = systemd ]; then copy_test 'tests/scenarios/systemd.rs' systemd-scenarios; fi
+binary=$repo/target/x86_64-unknown-linux-musl/debug/rs-l2tpd
+mkdir -p "$guest/root$(dirname "$binary")"
+cp "$binary" "$guest/root$binary"
+strip --strip-debug "$guest/root$binary"
+printf 'daemon git-blob: ' >> "$record/artifacts.log"
+git --no-pager hash-object "$binary" >> "$record/artifacts.log"
+baseline_revision=$(git --no-pager rev-parse 'v0.1.5^{commit}')
+baseline=$(sh tests/docker/baseline.sh "$record")
+cp "$baseline" "$guest/root/baseline"
+if [ "$modules" != - ]; then
+    release=${modules##*/}
+    mkdir -p "$guest/root/lib/modules/$release"
+    cp -Rp "$modules/." "$guest/root/lib/modules/$release/"
+fi
+if [ "$config" != - ]; then cp "$config" "$record/kernel.config"; fi
+cp /tmp/rs-l2tpd-debian13-capture/noise-init.sh "$guest/root/init"
+cp /tmp/rs-l2tpd-debian13-capture/two-listeners-probe "$guest/root/scenarios"
+if [ "$mode" = systemd ]; then
+    cp tests/kernel/systemd-init.sh "$guest/root/init"
+    cp -Rp "$modules/../../../usr/." "$guest/root/usr/"
+fi
+chmod 755 "$guest/root/init"
+printf '%s\n' "$mode" > "$guest/root/matrix-mode"
+(cd "$guest/root" && find . -print | cpio -o -H newc -R 0:0 > "$guest/initramfs.cpio") > "$record/initramfs.log" 2>&1
+append='console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs'
+# KHO scratch can starve the cold-boot initramfs; these tests never kexec.
+if [ "$config" != - ] && grep -q '^CONFIG_KEXEC_HANDOVER_ENABLE_DEFAULT=y$' "$config"; then
+    append="$append kho=off"
+fi
+if [ "$modules" = - ]; then append="$append l2tp_builtin=1"; fi
+if [ "$mode" = ipv6-disable ]; then append="$append ipv6.disable=1"; fi
+if [ "$mode" = clock ]; then append="$append rs_l2tpd_clock_guest=1"; fi
+{
+    printf 'mode: %s\nkernel image git-blob: ' "$mode"
+    git --no-pager hash-object "$kernel"
+    printf 'baseline commit: %s\n' "$baseline_revision"
+    printf 'baseline binary git-blob: '
+    git --no-pager hash-object "$baseline"
+    printf '%s\n' "command: qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 -nodefaults -nographic -serial stdio -no-reboot -kernel IMAGE -initrd INITRAMFS -append '$append'"
+} > "$record/command.log"
+set -- qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 \
+    -nodefaults -nographic -serial stdio -no-reboot -kernel "$kernel" \
+    -initrd "$guest/initramfs.cpio" -append "$append"
+if [ "$mode" = clock ]; then
+    {
+        printf '%s\n' 'command: rustc --edition=2024 -D warnings tests/kernel/clock-control.rs; rustc --test; execute controller unit tests'
+        rustc --edition=2024 -D warnings tests/kernel/clock-control.rs -o "$guest/clock-control"
+        rustc --edition=2024 -D warnings --test tests/kernel/clock-control.rs -o "$guest/clock-control-tests"
+        "$guest/clock-control-tests"
+    } > "$record/clock-control-build.log" 2>&1
+    set -- "$@" -qmp "unix:$guest/qmp,server=on,wait=off"
+    set -- "$guest/clock-control" "$guest/qmp" "$@"
+    {
+        printf '%s\n' 'controller: tests/kernel/clock-control.rs; QMP stop/query-status/cont; three-second measured pause' \
+            'qmp argument: -qmp unix:QMP_SOCKET,server=on,wait=off' \
+            'host command: timeout 900 CLOCK_CONTROL QMP_SOCKET QEMU_COMMAND'
+        printf 'controller source git-blob: '
+        git --no-pager hash-object tests/kernel/clock-control.rs
+        printf 'controller executable git-blob: '
+        git --no-pager hash-object "$guest/clock-control"
+    } >> "$record/command.log"
+fi
+result=0
+timeout 900 "$@" > "$record/run.log" 2>&1 || result=$?
+tr -d '\r' < "$record/run.log" > "$record/run.tmp"
+mv "$record/run.tmp" "$record/run.log"
+grep -E 'Linux version|GUEST_KERNEL_RELEASE|scope:|test result:|_RESULT=' "$record/run.log" || :
+[ "$result" = 0 ] || exit "$result"
+grep -q CAPTURE_DIAGNOSTIC_RESULT=0 "$record/run.log"

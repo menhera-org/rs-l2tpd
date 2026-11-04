@@ -1,0 +1,472 @@
+<package type="rpm">
+  <name>kernel-modules-extra</name>
+  <arch>x86_64</arch>
+  <version epoch="0" ver="6.12.0" rel="211.72.1.el10_2"/>
+  <checksum type="sha256" pkgid="YES">bd95b98c9f39160713d2b96faa9a1922c0dec047625aa9c76ed672982adc5144</checksum>
+  <summary>Extra kernel modules to match the kernel</summary>
+  <description>This package provides less commonly used kernel modules for the kernel package.</description>
+  <packager>Release Engineering &lt;releng@rockylinux.org&gt;</packager>
+  <url>https://www.kernel.org/</url>
+  <time file="1793652351" build="1793633601"/>
+  <size package="3310369" installed="1468985" archive="1501248"/>
+  <location href="Packages/k/kernel-modules-extra-6.12.0-211.72.1.el10_2.x86_64.rpm"/>
+  <format>
+    <rpm:license>((GPL-2.0-only WITH Linux-syscall-note) OR BSD-2-Clause) AND ((GPL-2.0-only WITH Linux-syscall-note) OR BSD-3-Clause) AND ((GPL-2.0-only WITH Linux-syscall-note) OR CDDL-1.0) AND ((GPL-2.0-only WITH Linux-syscall-note) OR Linux-OpenIB) AND ((GPL-2.0-only WITH Linux-syscall-note) OR MIT) AND ((GPL-2.0-or-later WITH Linux-syscall-note) OR BSD-3-Clause) AND ((GPL-2.0-or-later WITH Linux-syscall-note) OR MIT) AND 0BSD AND BSD-2-Clause AND (BSD-2-Clause OR Apache-2.0) AND BSD-3-Clause AND BSD-3-Clause-Clear AND CC0-1.0 AND GFDL-1.1-no-invariants-or-later AND GPL-1.0-or-later AND (GPL-1.0-or-later OR BSD-3-Clause) AND (GPL-1.0-or-later WITH Linux-syscall-note) AND GPL-2.0-only AND (GPL-2.0-only OR Apache-2.0) AND (GPL-2.0-only OR BSD-2-Clause) AND (GPL-2.0-only OR BSD-3-Clause) AND (GPL-2.0-only OR CDDL-1.0) AND (GPL-2.0-only OR GFDL-1.1-no-invariants-or-later) AND (GPL-2.0-only OR GFDL-1.2-no-invariants-only) AND (GPL-2.0-only WITH Linux-syscall-note) AND GPL-2.0-or-later AND (GPL-2.0-or-later OR BSD-2-Clause) AND (GPL-2.0-or-later OR BSD-3-Clause) AND (GPL-2.0-or-later OR CC-BY-4.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH Linux-syscall-note) AND ISC AND LGPL-2.0-or-later AND (LGPL-2.0-or-later OR BSD-2-Clause) AND (LGPL-2.0-or-later WITH Linux-syscall-note) AND LGPL-2.1-only AND (LGPL-2.1-only OR BSD-2-Clause) AND (LGPL-2.1-only WITH Linux-syscall-note) AND LGPL-2.1-or-later AND (LGPL-2.1-or-later WITH Linux-syscall-note) AND (Linux-OpenIB OR GPL-2.0-only) AND (Linux-OpenIB OR GPL-2.0-only OR BSD-2-Clause) AND Linux-man-pages-copyleft AND MIT AND (MIT OR Apache-2.0) AND (MIT OR GPL-2.0-only) AND (MIT OR GPL-2.0-or-later) AND (MIT OR LGPL-2.1-only) AND (MPL-1.1 OR GPL-2.0-only) AND (X11 OR GPL-2.0-only) AND (X11 OR GPL-2.0-or-later) AND Zlib AND (copyleft-next-0.3.1 OR GPL-2.0-or-later)</rpm:license>
+    <rpm:vendor>Rocky Enterprise Software Foundation</rpm:vendor>
+    <rpm:group>Unspecified</rpm:group>
+    <rpm:buildhost>hou1-build-x86-01.releng.rockylinux.org</rpm:buildhost>
+    <rpm:sourcerpm>kernel-6.12.0-211.72.1.el10_2.src.rpm</rpm:sourcerpm>
+    <rpm:header-range start="4504" end="1833157"/>
+    <rpm:provides>
+      <rpm:entry name="config(kernel-modules-extra)" flags="EQ" epoch="0" ver="6.12.0" rel="211.72.1.el10_2"/>
+      <rpm:entry name="installonlypkg(kernel-module)"/>
+      <rpm:entry name="kernel(__fou_build_header)" flags="EQ" epoch="0" ver="0x6b00abbd"/>
+      <rpm:entry name="kernel(__gue_build_header)" flags="EQ" epoch="0" ver="0xadf908c2"/>
+      <rpm:entry name="kernel(arpt_alloc_initial_table)" flags="EQ" epoch="0" ver="0xa51bfb07"/>
+      <rpm:entry name="kernel(arpt_do_table)" flags="EQ" epoch="0" ver="0x82d2ee9f"/>
+      <rpm:entry name="kernel(arpt_register_table)" flags="EQ" epoch="0" ver="0x4e6940b2"/>
+      <rpm:entry name="kernel(arpt_unregister_table)" flags="EQ" epoch="0" ver="0x89b2598f"/>
+      <rpm:entry name="kernel(ebt_do_table)" flags="EQ" epoch="0" ver="0xb68e7eb1"/>
+      <rpm:entry name="kernel(ebt_register_table)" flags="EQ" epoch="0" ver="0x642e6c79"/>
+      <rpm:entry name="kernel(ebt_register_template)" flags="EQ" epoch="0" ver="0x51514574"/>
+      <rpm:entry name="kernel(ebt_unregister_table)" flags="EQ" epoch="0" ver="0x310a6215"/>
+      <rpm:entry name="kernel(ebt_unregister_table_pre_exit)" flags="EQ" epoch="0" ver="0x33c6abb0"/>
+      <rpm:entry name="kernel(ebt_unregister_template)" flags="EQ" epoch="0" ver="0xafc43016"/>
+      <rpm:entry name="kernel(fou_encap_hlen)" flags="EQ" epoch="0" ver="0x1757d1a4"/>
+      <rpm:entry name="kernel(gue_encap_hlen)" flags="EQ" epoch="0" ver="0xf13914b3"/>
+      <rpm:entry name="kernel(hv_call_delete_vp)" flags="EQ" epoch="0" ver="0x9d7f113a"/>
+      <rpm:entry name="kernel(ip6t_alloc_initial_table)" flags="EQ" epoch="0" ver="0x7b0547a9"/>
+      <rpm:entry name="kernel(ip6t_do_table)" flags="EQ" epoch="0" ver="0xe16fdd9f"/>
+      <rpm:entry name="kernel(ip6t_register_table)" flags="EQ" epoch="0" ver="0x43d55fc2"/>
+      <rpm:entry name="kernel(ip6t_unregister_table_exit)" flags="EQ" epoch="0" ver="0x5a7b4533"/>
+      <rpm:entry name="kernel(ip_set_add)" flags="EQ" epoch="0" ver="0x8d757b72"/>
+      <rpm:entry name="kernel(ip_set_alloc)" flags="EQ" epoch="0" ver="0xf3b4d4ae"/>
+      <rpm:entry name="kernel(ip_set_del)" flags="EQ" epoch="0" ver="0x85ea23f2"/>
+      <rpm:entry name="kernel(ip_set_elem_len)" flags="EQ" epoch="0" ver="0xea077ae2"/>
+      <rpm:entry name="kernel(ip_set_extensions)" flags="EQ" epoch="0" ver="0x8b790016"/>
+      <rpm:entry name="kernel(ip_set_free)" flags="EQ" epoch="0" ver="0x397f6231"/>
+      <rpm:entry name="kernel(ip_set_get_byname)" flags="EQ" epoch="0" ver="0xdd1bd1cf"/>
+      <rpm:entry name="kernel(ip_set_get_extensions)" flags="EQ" epoch="0" ver="0x7900f423"/>
+      <rpm:entry name="kernel(ip_set_get_ip4_port)" flags="EQ" epoch="0" ver="0x18076c4a"/>
+      <rpm:entry name="kernel(ip_set_get_ip6_port)" flags="EQ" epoch="0" ver="0x648d9919"/>
+      <rpm:entry name="kernel(ip_set_get_ipaddr4)" flags="EQ" epoch="0" ver="0xa293f8a6"/>
+      <rpm:entry name="kernel(ip_set_get_ipaddr6)" flags="EQ" epoch="0" ver="0x9e98722b"/>
+      <rpm:entry name="kernel(ip_set_hostmask_map)" flags="EQ" epoch="0" ver="0x7924b6de"/>
+      <rpm:entry name="kernel(ip_set_init_comment)" flags="EQ" epoch="0" ver="0x70c3ebb8"/>
+      <rpm:entry name="kernel(ip_set_match_extensions)" flags="EQ" epoch="0" ver="0x4d382e99"/>
+      <rpm:entry name="kernel(ip_set_name_byindex)" flags="EQ" epoch="0" ver="0x2b5b2f85"/>
+      <rpm:entry name="kernel(ip_set_netmask_map)" flags="EQ" epoch="0" ver="0x81fff2d1"/>
+      <rpm:entry name="kernel(ip_set_nfnl_get_byindex)" flags="EQ" epoch="0" ver="0xe36113c6"/>
+      <rpm:entry name="kernel(ip_set_nfnl_put)" flags="EQ" epoch="0" ver="0x373a907b"/>
+      <rpm:entry name="kernel(ip_set_put_byindex)" flags="EQ" epoch="0" ver="0x04fbc24b"/>
+      <rpm:entry name="kernel(ip_set_put_extensions)" flags="EQ" epoch="0" ver="0x70a77376"/>
+      <rpm:entry name="kernel(ip_set_put_flags)" flags="EQ" epoch="0" ver="0xa464b060"/>
+      <rpm:entry name="kernel(ip_set_range_to_cidr)" flags="EQ" epoch="0" ver="0x22d966c6"/>
+      <rpm:entry name="kernel(ip_set_test)" flags="EQ" epoch="0" ver="0x671900b8"/>
+      <rpm:entry name="kernel(ip_set_type_register)" flags="EQ" epoch="0" ver="0xdb38cdab"/>
+      <rpm:entry name="kernel(ip_set_type_unregister)" flags="EQ" epoch="0" ver="0x8f389426"/>
+      <rpm:entry name="kernel(ipt_alloc_initial_table)" flags="EQ" epoch="0" ver="0xedde332e"/>
+      <rpm:entry name="kernel(ipt_do_table)" flags="EQ" epoch="0" ver="0x18f02d7a"/>
+      <rpm:entry name="kernel(ipt_register_table)" flags="EQ" epoch="0" ver="0x617075ca"/>
+      <rpm:entry name="kernel(ipt_unregister_table_exit)" flags="EQ" epoch="0" ver="0x6f1501b2"/>
+      <rpm:entry name="kernel(l2tp_ioctl)" flags="EQ" epoch="0" ver="0xc47ee280"/>
+      <rpm:entry name="kernel(l2tp_nl_register_ops)" flags="EQ" epoch="0" ver="0x23a2ae83"/>
+      <rpm:entry name="kernel(l2tp_nl_unregister_ops)" flags="EQ" epoch="0" ver="0x337f2432"/>
+      <rpm:entry name="kernel(l2tp_recv_common)" flags="EQ" epoch="0" ver="0x7502b99a"/>
+      <rpm:entry name="kernel(l2tp_session_create)" flags="EQ" epoch="0" ver="0xdeb90342"/>
+      <rpm:entry name="kernel(l2tp_session_delete)" flags="EQ" epoch="0" ver="0xb9560009"/>
+      <rpm:entry name="kernel(l2tp_session_get)" flags="EQ" epoch="0" ver="0xb99f4dce"/>
+      <rpm:entry name="kernel(l2tp_session_get_by_ifname)" flags="EQ" epoch="0" ver="0x4964a9ec"/>
+      <rpm:entry name="kernel(l2tp_session_get_next)" flags="EQ" epoch="0" ver="0x96567736"/>
+      <rpm:entry name="kernel(l2tp_session_put)" flags="EQ" epoch="0" ver="0xe7cfe99f"/>
+      <rpm:entry name="kernel(l2tp_session_register)" flags="EQ" epoch="0" ver="0xa0b8cff2"/>
+      <rpm:entry name="kernel(l2tp_session_set_header_len)" flags="EQ" epoch="0" ver="0x1654e7d1"/>
+      <rpm:entry name="kernel(l2tp_sk_to_tunnel)" flags="EQ" epoch="0" ver="0x3e739ef3"/>
+      <rpm:entry name="kernel(l2tp_tunnel_create)" flags="EQ" epoch="0" ver="0xcd1db3d8"/>
+      <rpm:entry name="kernel(l2tp_tunnel_delete)" flags="EQ" epoch="0" ver="0x0d7bfd14"/>
+      <rpm:entry name="kernel(l2tp_tunnel_get)" flags="EQ" epoch="0" ver="0x550a1c1a"/>
+      <rpm:entry name="kernel(l2tp_tunnel_get_next)" flags="EQ" epoch="0" ver="0x4e63acfd"/>
+      <rpm:entry name="kernel(l2tp_tunnel_put)" flags="EQ" epoch="0" ver="0xb9921e9a"/>
+      <rpm:entry name="kernel(l2tp_tunnel_register)" flags="EQ" epoch="0" ver="0xb5da5362"/>
+      <rpm:entry name="kernel(l2tp_udp_encap_recv)" flags="EQ" epoch="0" ver="0xc1bf87cb"/>
+      <rpm:entry name="kernel(l2tp_v2_session_get)" flags="EQ" epoch="0" ver="0x7e38dfb9"/>
+      <rpm:entry name="kernel(l2tp_v3_session_get)" flags="EQ" epoch="0" ver="0x2213d954"/>
+      <rpm:entry name="kernel(l2tp_xmit_skb)" flags="EQ" epoch="0" ver="0xe1b9eb5a"/>
+      <rpm:entry name="kernel(sctp_for_each_endpoint)" flags="EQ" epoch="0" ver="0x831d2d1f"/>
+      <rpm:entry name="kernel(sctp_get_sctp_info)" flags="EQ" epoch="0" ver="0xedf9d389"/>
+      <rpm:entry name="kernel(sctp_transport_lookup_process)" flags="EQ" epoch="0" ver="0x0d63f065"/>
+      <rpm:entry name="kernel(sctp_transport_traverse_process)" flags="EQ" epoch="0" ver="0xbc4ba7a3"/>
+      <rpm:entry name="kernel(tipc_dump_done)" flags="EQ" epoch="0" ver="0xc7989f30"/>
+      <rpm:entry name="kernel(tipc_dump_start)" flags="EQ" epoch="0" ver="0xf9110ee6"/>
+      <rpm:entry name="kernel(tipc_nl_sk_walk)" flags="EQ" epoch="0" ver="0x1404a7be"/>
+      <rpm:entry name="kernel(tipc_sk_fill_sock_diag)" flags="EQ" epoch="0" ver="0xdae23104"/>
+      <rpm:entry name="kernel(xt_rateest_lookup)" flags="EQ" epoch="0" ver="0x8df77dfd"/>
+      <rpm:entry name="kernel(xt_rateest_put)" flags="EQ" epoch="0" ver="0x23d3320f"/>
+      <rpm:entry name="kernel-modules-extra" flags="EQ" epoch="0" ver="6.12.0" rel="211.72.1.el10_2"/>
+      <rpm:entry name="kernel-modules-extra(x86-64)" flags="EQ" epoch="0" ver="6.12.0" rel="211.72.1.el10_2"/>
+      <rpm:entry name="kernel-modules-extra-uname-r" flags="EQ" epoch="0" ver="6.12.0" rel="211.72.1.el10_2.x86_64"/>
+      <rpm:entry name="kernel-modules-extra-x86_64" flags="EQ" epoch="0" ver="6.12.0" rel="211.72.1.el10_2"/>
+      <rpm:entry name="kmod(aer_inject.ko)"/>
+      <rpm:entry name="kmod(arp_tables.ko)"/>
+      <rpm:entry name="kmod(arpt_mangle.ko)"/>
+      <rpm:entry name="kmod(arptable_filter.ko)"/>
+      <rpm:entry name="kmod(br_netfilter.ko)"/>
+      <rpm:entry name="kmod(cuse.ko)"/>
+      <rpm:entry name="kmod(ebt_802_3.ko)"/>
+      <rpm:entry name="kmod(ebt_among.ko)"/>
+      <rpm:entry name="kmod(ebt_arp.ko)"/>
+      <rpm:entry name="kmod(ebt_arpreply.ko)"/>
+      <rpm:entry name="kmod(ebt_dnat.ko)"/>
+      <rpm:entry name="kmod(ebt_ip.ko)"/>
+      <rpm:entry name="kmod(ebt_ip6.ko)"/>
+      <rpm:entry name="kmod(ebt_limit.ko)"/>
+      <rpm:entry name="kmod(ebt_log.ko)"/>
+      <rpm:entry name="kmod(ebt_mark.ko)"/>
+      <rpm:entry name="kmod(ebt_mark_m.ko)"/>
+      <rpm:entry name="kmod(ebt_nflog.ko)"/>
+      <rpm:entry name="kmod(ebt_pkttype.ko)"/>
+      <rpm:entry name="kmod(ebt_redirect.ko)"/>
+      <rpm:entry name="kmod(ebt_snat.ko)"/>
+      <rpm:entry name="kmod(ebt_stp.ko)"/>
+      <rpm:entry name="kmod(ebt_vlan.ko)"/>
+      <rpm:entry name="kmod(ebtable_broute.ko)"/>
+      <rpm:entry name="kmod(ebtable_filter.ko)"/>
+      <rpm:entry name="kmod(ebtable_nat.ko)"/>
+      <rpm:entry name="kmod(ebtables.ko)"/>
+      <rpm:entry name="kmod(ems_usb.ko)"/>
+      <rpm:entry name="kmod(fou.ko)"/>
+      <rpm:entry name="kmod(fou6.ko)"/>
+      <rpm:entry name="kmod(ip6_tables.ko)"/>
+      <rpm:entry name="kmod(ip6t_NPT.ko)"/>
+      <rpm:entry name="kmod(ip6t_REJECT.ko)"/>
+      <rpm:entry name="kmod(ip6t_ah.ko)"/>
+      <rpm:entry name="kmod(ip6t_eui64.ko)"/>
+      <rpm:entry name="kmod(ip6t_frag.ko)"/>
+      <rpm:entry name="kmod(ip6t_hbh.ko)"/>
+      <rpm:entry name="kmod(ip6t_ipv6header.ko)"/>
+      <rpm:entry name="kmod(ip6t_mh.ko)"/>
+      <rpm:entry name="kmod(ip6t_rpfilter.ko)"/>
+      <rpm:entry name="kmod(ip6t_rt.ko)"/>
+      <rpm:entry name="kmod(ip6table_filter.ko)"/>
+      <rpm:entry name="kmod(ip6table_mangle.ko)"/>
+      <rpm:entry name="kmod(ip6table_nat.ko)"/>
+      <rpm:entry name="kmod(ip6table_raw.ko)"/>
+      <rpm:entry name="kmod(ip6table_security.ko)"/>
+      <rpm:entry name="kmod(ip_set.ko)"/>
+      <rpm:entry name="kmod(ip_set_bitmap_ip.ko)"/>
+      <rpm:entry name="kmod(ip_set_bitmap_ipmac.ko)"/>
+      <rpm:entry name="kmod(ip_set_bitmap_port.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_ip.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_ipmac.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_ipmark.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_ipport.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_ipportip.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_ipportnet.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_mac.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_net.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_netiface.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_netnet.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_netport.ko)"/>
+      <rpm:entry name="kmod(ip_set_hash_netportnet.ko)"/>
+      <rpm:entry name="kmod(ip_set_list_set.ko)"/>
+      <rpm:entry name="kmod(ip_tables.ko)"/>
+      <rpm:entry name="kmod(ipt_ECN.ko)"/>
+      <rpm:entry name="kmod(ipt_REJECT.ko)"/>
+      <rpm:entry name="kmod(ipt_ah.ko)"/>
+      <rpm:entry name="kmod(ipt_rpfilter.ko)"/>
+      <rpm:entry name="kmod(iptable_filter.ko)"/>
+      <rpm:entry name="kmod(iptable_mangle.ko)"/>
+      <rpm:entry name="kmod(iptable_nat.ko)"/>
+      <rpm:entry name="kmod(iptable_raw.ko)"/>
+      <rpm:entry name="kmod(iptable_security.ko)"/>
+      <rpm:entry name="kmod(l2tp_core.ko)"/>
+      <rpm:entry name="kmod(l2tp_debugfs.ko)"/>
+      <rpm:entry name="kmod(l2tp_eth.ko)"/>
+      <rpm:entry name="kmod(l2tp_ip.ko)"/>
+      <rpm:entry name="kmod(l2tp_ip6.ko)"/>
+      <rpm:entry name="kmod(l2tp_netlink.ko)"/>
+      <rpm:entry name="kmod(l2tp_ppp.ko)"/>
+      <rpm:entry name="kmod(mshv_root.ko)"/>
+      <rpm:entry name="kmod(nft_compat.ko)"/>
+      <rpm:entry name="kmod(sctp.ko)"/>
+      <rpm:entry name="kmod(sctp_diag.ko)"/>
+      <rpm:entry name="kmod(slcan.ko)"/>
+      <rpm:entry name="kmod(slip.ko)"/>
+      <rpm:entry name="kmod(tcp_bic.ko)"/>
+      <rpm:entry name="kmod(tcp_htcp.ko)"/>
+      <rpm:entry name="kmod(tcp_illinois.ko)"/>
+      <rpm:entry name="kmod(tcp_westwood.ko)"/>
+      <rpm:entry name="kmod(tipc.ko)"/>
+      <rpm:entry name="kmod(tipc_diag.ko)"/>
+      <rpm:entry name="kmod(vcan.ko)"/>
+      <rpm:entry name="kmod(xt_AUDIT.ko)"/>
+      <rpm:entry name="kmod(xt_CHECKSUM.ko)"/>
+      <rpm:entry name="kmod(xt_CLASSIFY.ko)"/>
+      <rpm:entry name="kmod(xt_CONNSECMARK.ko)"/>
+      <rpm:entry name="kmod(xt_CT.ko)"/>
+      <rpm:entry name="kmod(xt_DSCP.ko)"/>
+      <rpm:entry name="kmod(xt_HL.ko)"/>
+      <rpm:entry name="kmod(xt_HMARK.ko)"/>
+      <rpm:entry name="kmod(xt_IDLETIMER.ko)"/>
+      <rpm:entry name="kmod(xt_LOG.ko)"/>
+      <rpm:entry name="kmod(xt_MASQUERADE.ko)"/>
+      <rpm:entry name="kmod(xt_NETMAP.ko)"/>
+      <rpm:entry name="kmod(xt_NFLOG.ko)"/>
+      <rpm:entry name="kmod(xt_NFQUEUE.ko)"/>
+      <rpm:entry name="kmod(xt_RATEEST.ko)"/>
+      <rpm:entry name="kmod(xt_REDIRECT.ko)"/>
+      <rpm:entry name="kmod(xt_SECMARK.ko)"/>
+      <rpm:entry name="kmod(xt_TCPMSS.ko)"/>
+      <rpm:entry name="kmod(xt_TCPOPTSTRIP.ko)"/>
+      <rpm:entry name="kmod(xt_TEE.ko)"/>
+      <rpm:entry name="kmod(xt_TPROXY.ko)"/>
+      <rpm:entry name="kmod(xt_TRACE.ko)"/>
+      <rpm:entry name="kmod(xt_addrtype.ko)"/>
+      <rpm:entry name="kmod(xt_bpf.ko)"/>
+      <rpm:entry name="kmod(xt_cgroup.ko)"/>
+      <rpm:entry name="kmod(xt_cluster.ko)"/>
+      <rpm:entry name="kmod(xt_comment.ko)"/>
+      <rpm:entry name="kmod(xt_connbytes.ko)"/>
+      <rpm:entry name="kmod(xt_connlabel.ko)"/>
+      <rpm:entry name="kmod(xt_connlimit.ko)"/>
+      <rpm:entry name="kmod(xt_connmark.ko)"/>
+      <rpm:entry name="kmod(xt_conntrack.ko)"/>
+      <rpm:entry name="kmod(xt_cpu.ko)"/>
+      <rpm:entry name="kmod(xt_dccp.ko)"/>
+      <rpm:entry name="kmod(xt_devgroup.ko)"/>
+      <rpm:entry name="kmod(xt_dscp.ko)"/>
+      <rpm:entry name="kmod(xt_ecn.ko)"/>
+      <rpm:entry name="kmod(xt_esp.ko)"/>
+      <rpm:entry name="kmod(xt_hashlimit.ko)"/>
+      <rpm:entry name="kmod(xt_helper.ko)"/>
+      <rpm:entry name="kmod(xt_hl.ko)"/>
+      <rpm:entry name="kmod(xt_iprange.ko)"/>
+      <rpm:entry name="kmod(xt_ipvs.ko)"/>
+      <rpm:entry name="kmod(xt_length.ko)"/>
+      <rpm:entry name="kmod(xt_limit.ko)"/>
+      <rpm:entry name="kmod(xt_mac.ko)"/>
+      <rpm:entry name="kmod(xt_mark.ko)"/>
+      <rpm:entry name="kmod(xt_multiport.ko)"/>
+      <rpm:entry name="kmod(xt_nat.ko)"/>
+      <rpm:entry name="kmod(xt_osf.ko)"/>
+      <rpm:entry name="kmod(xt_owner.ko)"/>
+      <rpm:entry name="kmod(xt_physdev.ko)"/>
+      <rpm:entry name="kmod(xt_pkttype.ko)"/>
+      <rpm:entry name="kmod(xt_policy.ko)"/>
+      <rpm:entry name="kmod(xt_quota.ko)"/>
+      <rpm:entry name="kmod(xt_rateest.ko)"/>
+      <rpm:entry name="kmod(xt_realm.ko)"/>
+      <rpm:entry name="kmod(xt_recent.ko)"/>
+      <rpm:entry name="kmod(xt_sctp.ko)"/>
+      <rpm:entry name="kmod(xt_set.ko)"/>
+      <rpm:entry name="kmod(xt_socket.ko)"/>
+      <rpm:entry name="kmod(xt_state.ko)"/>
+      <rpm:entry name="kmod(xt_statistic.ko)"/>
+      <rpm:entry name="kmod(xt_string.ko)"/>
+      <rpm:entry name="kmod(xt_tcpmss.ko)"/>
+      <rpm:entry name="modalias(arpt_AUDIT)"/>
+      <rpm:entry name="modalias(arpt_CLASSIFY)"/>
+      <rpm:entry name="modalias(arpt_MARK)"/>
+      <rpm:entry name="modalias(arpt_NFQUEUE)"/>
+      <rpm:entry name="modalias(char-major-10-203)"/>
+      <rpm:entry name="modalias(devname:cuse)"/>
+      <rpm:entry name="modalias(ebt_AUDIT)"/>
+      <rpm:entry name="modalias(ebt_string)"/>
+      <rpm:entry name="modalias(ip6t_AUDIT)"/>
+      <rpm:entry name="modalias(ip6t_CHECKSUM)"/>
+      <rpm:entry name="modalias(ip6t_CLASSIFY)"/>
+      <rpm:entry name="modalias(ip6t_CONNMARK)"/>
+      <rpm:entry name="modalias(ip6t_CONNSECMARK)"/>
+      <rpm:entry name="modalias(ip6t_CT)"/>
+      <rpm:entry name="modalias(ip6t_DSCP)"/>
+      <rpm:entry name="modalias(ip6t_HL)"/>
+      <rpm:entry name="modalias(ip6t_HMARK)"/>
+      <rpm:entry name="modalias(ip6t_IDLETIMER)"/>
+      <rpm:entry name="modalias(ip6t_LOG)"/>
+      <rpm:entry name="modalias(ip6t_MARK)"/>
+      <rpm:entry name="modalias(ip6t_MASQUERADE)"/>
+      <rpm:entry name="modalias(ip6t_NETMAP)"/>
+      <rpm:entry name="modalias(ip6t_NFLOG)"/>
+      <rpm:entry name="modalias(ip6t_NFQUEUE)"/>
+      <rpm:entry name="modalias(ip6t_NOTRACK)"/>
+      <rpm:entry name="modalias(ip6t_RATEEST)"/>
+      <rpm:entry name="modalias(ip6t_REDIRECT)"/>
+      <rpm:entry name="modalias(ip6t_SECMARK)"/>
+      <rpm:entry name="modalias(ip6t_SET)"/>
+      <rpm:entry name="modalias(ip6t_TCPMSS)"/>
+      <rpm:entry name="modalias(ip6t_TCPOPTSTRIP)"/>
+      <rpm:entry name="modalias(ip6t_TEE)"/>
+      <rpm:entry name="modalias(ip6t_TOS)"/>
+      <rpm:entry name="modalias(ip6t_TPROXY)"/>
+      <rpm:entry name="modalias(ip6t_TRACE)"/>
+      <rpm:entry name="modalias(ip6t_[DS]NAT)"/>
+      <rpm:entry name="modalias(ip6t_[DS]NPT)"/>
+      <rpm:entry name="modalias(ip6t_addrtype)"/>
+      <rpm:entry name="modalias(ip6t_bpf)"/>
+      <rpm:entry name="modalias(ip6t_cgroup)"/>
+      <rpm:entry name="modalias(ip6t_cluster)"/>
+      <rpm:entry name="modalias(ip6t_comment)"/>
+      <rpm:entry name="modalias(ip6t_connbytes)"/>
+      <rpm:entry name="modalias(ip6t_connlabel)"/>
+      <rpm:entry name="modalias(ip6t_connlimit)"/>
+      <rpm:entry name="modalias(ip6t_connmark)"/>
+      <rpm:entry name="modalias(ip6t_conntrack)"/>
+      <rpm:entry name="modalias(ip6t_cpu)"/>
+      <rpm:entry name="modalias(ip6t_dccp)"/>
+      <rpm:entry name="modalias(ip6t_devgroup)"/>
+      <rpm:entry name="modalias(ip6t_dscp)"/>
+      <rpm:entry name="modalias(ip6t_dst)"/>
+      <rpm:entry name="modalias(ip6t_ecn)"/>
+      <rpm:entry name="modalias(ip6t_esp)"/>
+      <rpm:entry name="modalias(ip6t_hashlimit)"/>
+      <rpm:entry name="modalias(ip6t_helper)"/>
+      <rpm:entry name="modalias(ip6t_hl)"/>
+      <rpm:entry name="modalias(ip6t_iprange)"/>
+      <rpm:entry name="modalias(ip6t_ipvs)"/>
+      <rpm:entry name="modalias(ip6t_length)"/>
+      <rpm:entry name="modalias(ip6t_limit)"/>
+      <rpm:entry name="modalias(ip6t_mac)"/>
+      <rpm:entry name="modalias(ip6t_mark)"/>
+      <rpm:entry name="modalias(ip6t_multiport)"/>
+      <rpm:entry name="modalias(ip6t_osf)"/>
+      <rpm:entry name="modalias(ip6t_owner)"/>
+      <rpm:entry name="modalias(ip6t_physdev)"/>
+      <rpm:entry name="modalias(ip6t_pkttype)"/>
+      <rpm:entry name="modalias(ip6t_policy)"/>
+      <rpm:entry name="modalias(ip6t_quota)"/>
+      <rpm:entry name="modalias(ip6t_rateest)"/>
+      <rpm:entry name="modalias(ip6t_recent)"/>
+      <rpm:entry name="modalias(ip6t_sctp)"/>
+      <rpm:entry name="modalias(ip6t_set)"/>
+      <rpm:entry name="modalias(ip6t_socket)"/>
+      <rpm:entry name="modalias(ip6t_state)"/>
+      <rpm:entry name="modalias(ip6t_statistic)"/>
+      <rpm:entry name="modalias(ip6t_string)"/>
+      <rpm:entry name="modalias(ip6t_tcpmss)"/>
+      <rpm:entry name="modalias(ip6t_tos)"/>
+      <rpm:entry name="modalias(ip_set_bitmap:ip)"/>
+      <rpm:entry name="modalias(ip_set_bitmap:ip_mac)"/>
+      <rpm:entry name="modalias(ip_set_bitmap:port)"/>
+      <rpm:entry name="modalias(ip_set_hash:ip)"/>
+      <rpm:entry name="modalias(ip_set_hash:ip_mac)"/>
+      <rpm:entry name="modalias(ip_set_hash:ip_mark)"/>
+      <rpm:entry name="modalias(ip_set_hash:ip_port)"/>
+      <rpm:entry name="modalias(ip_set_hash:ip_port_ip)"/>
+      <rpm:entry name="modalias(ip_set_hash:ip_port_net)"/>
+      <rpm:entry name="modalias(ip_set_hash:mac)"/>
+      <rpm:entry name="modalias(ip_set_hash:net)"/>
+      <rpm:entry name="modalias(ip_set_hash:net_iface)"/>
+      <rpm:entry name="modalias(ip_set_hash:net_net)"/>
+      <rpm:entry name="modalias(ip_set_hash:net_port)"/>
+      <rpm:entry name="modalias(ip_set_hash:net_port_net)"/>
+      <rpm:entry name="modalias(ip_set_list:set)"/>
+      <rpm:entry name="modalias(ipt_AUDIT)"/>
+      <rpm:entry name="modalias(ipt_CHECKSUM)"/>
+      <rpm:entry name="modalias(ipt_CLASSIFY)"/>
+      <rpm:entry name="modalias(ipt_CONNMARK)"/>
+      <rpm:entry name="modalias(ipt_CONNSECMARK)"/>
+      <rpm:entry name="modalias(ipt_CT)"/>
+      <rpm:entry name="modalias(ipt_DSCP)"/>
+      <rpm:entry name="modalias(ipt_HMARK)"/>
+      <rpm:entry name="modalias(ipt_IDLETIMER)"/>
+      <rpm:entry name="modalias(ipt_LOG)"/>
+      <rpm:entry name="modalias(ipt_MARK)"/>
+      <rpm:entry name="modalias(ipt_MASQUERADE)"/>
+      <rpm:entry name="modalias(ipt_NETMAP)"/>
+      <rpm:entry name="modalias(ipt_NFLOG)"/>
+      <rpm:entry name="modalias(ipt_NFQUEUE)"/>
+      <rpm:entry name="modalias(ipt_NOTRACK)"/>
+      <rpm:entry name="modalias(ipt_RATEEST)"/>
+      <rpm:entry name="modalias(ipt_REDIRECT)"/>
+      <rpm:entry name="modalias(ipt_SECMARK)"/>
+      <rpm:entry name="modalias(ipt_SET)"/>
+      <rpm:entry name="modalias(ipt_TCPMSS)"/>
+      <rpm:entry name="modalias(ipt_TCPOPTSTRIP)"/>
+      <rpm:entry name="modalias(ipt_TEE)"/>
+      <rpm:entry name="modalias(ipt_TOS)"/>
+      <rpm:entry name="modalias(ipt_TPROXY)"/>
+      <rpm:entry name="modalias(ipt_TRACE)"/>
+      <rpm:entry name="modalias(ipt_TTL)"/>
+      <rpm:entry name="modalias(ipt_[DS]NAT)"/>
+      <rpm:entry name="modalias(ipt_addrtype)"/>
+      <rpm:entry name="modalias(ipt_bpf)"/>
+      <rpm:entry name="modalias(ipt_cgroup)"/>
+      <rpm:entry name="modalias(ipt_cluster)"/>
+      <rpm:entry name="modalias(ipt_comment)"/>
+      <rpm:entry name="modalias(ipt_connbytes)"/>
+      <rpm:entry name="modalias(ipt_connlabel)"/>
+      <rpm:entry name="modalias(ipt_connlimit)"/>
+      <rpm:entry name="modalias(ipt_connmark)"/>
+      <rpm:entry name="modalias(ipt_conntrack)"/>
+      <rpm:entry name="modalias(ipt_cpu)"/>
+      <rpm:entry name="modalias(ipt_dccp)"/>
+      <rpm:entry name="modalias(ipt_devgroup)"/>
+      <rpm:entry name="modalias(ipt_dscp)"/>
+      <rpm:entry name="modalias(ipt_ecn)"/>
+      <rpm:entry name="modalias(ipt_esp)"/>
+      <rpm:entry name="modalias(ipt_hashlimit)"/>
+      <rpm:entry name="modalias(ipt_helper)"/>
+      <rpm:entry name="modalias(ipt_iprange)"/>
+      <rpm:entry name="modalias(ipt_ipvs)"/>
+      <rpm:entry name="modalias(ipt_length)"/>
+      <rpm:entry name="modalias(ipt_limit)"/>
+      <rpm:entry name="modalias(ipt_mac)"/>
+      <rpm:entry name="modalias(ipt_mark)"/>
+      <rpm:entry name="modalias(ipt_multiport)"/>
+      <rpm:entry name="modalias(ipt_osf)"/>
+      <rpm:entry name="modalias(ipt_owner)"/>
+      <rpm:entry name="modalias(ipt_physdev)"/>
+      <rpm:entry name="modalias(ipt_pkttype)"/>
+      <rpm:entry name="modalias(ipt_policy)"/>
+      <rpm:entry name="modalias(ipt_quota)"/>
+      <rpm:entry name="modalias(ipt_rateest)"/>
+      <rpm:entry name="modalias(ipt_realm)"/>
+      <rpm:entry name="modalias(ipt_recent)"/>
+      <rpm:entry name="modalias(ipt_sctp)"/>
+      <rpm:entry name="modalias(ipt_set)"/>
+      <rpm:entry name="modalias(ipt_socket)"/>
+      <rpm:entry name="modalias(ipt_state)"/>
+      <rpm:entry name="modalias(ipt_statistic)"/>
+      <rpm:entry name="modalias(ipt_string)"/>
+      <rpm:entry name="modalias(ipt_tcpmss)"/>
+      <rpm:entry name="modalias(ipt_tos)"/>
+      <rpm:entry name="modalias(ipt_ttl)"/>
+      <rpm:entry name="modalias(net-l2tp-type-5)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-l2tp-type-7)" flags="EQ" epoch="0" ver="V2.0"/>
+      <rpm:entry name="modalias(net-pf-10-proto-115)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-pf-10-proto-115-type-2)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-pf-10-proto-132)"/>
+      <rpm:entry name="modalias(net-pf-16-proto-16-family-l2tp)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-pf-16-proto-4-type-2-132)"/>
+      <rpm:entry name="modalias(net-pf-16-proto-4-type-30)"/>
+      <rpm:entry name="modalias(net-pf-2-proto-115)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-pf-2-proto-115-type-2)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-pf-2-proto-132)"/>
+      <rpm:entry name="modalias(net-pf-24-proto-1)" flags="EQ" epoch="0" ver="V2.0"/>
+      <rpm:entry name="modalias(nfnetlink-subsys-11)"/>
+      <rpm:entry name="modalias(nfnetlink-subsys-6)"/>
+      <rpm:entry name="modalias(nft-expr-match)"/>
+      <rpm:entry name="modalias(nft-expr-target)"/>
+      <rpm:entry name="modalias(rtnl-link-vcan)"/>
+      <rpm:entry name="modalias(tty-ldisc-1)"/>
+      <rpm:entry name="modalias(tty-ldisc-17)"/>
+      <rpm:entry name="modalias(usb:v12D6p0444d*dc*dsc*dp*ic*isc*ip*in*)"/>
+      <rpm:entry name="modalias(xt_SET)"/>
+    </rpm:provides>
+    <rpm:requires>
+      <rpm:entry name="/bin/sh" pre="1"/>
+      <rpm:entry name="/bin/sh"/>
+      <rpm:entry name="kernel-modules-core-uname-r" flags="EQ" epoch="0" ver="6.12.0" rel="211.72.1.el10_2.x86_64"/>
+      <rpm:entry name="kernel-modules-uname-r" flags="EQ" epoch="0" ver="6.12.0" rel="211.72.1.el10_2.x86_64"/>
+      <rpm:entry name="kernel-uname-r" flags="EQ" epoch="0" ver="6.12.0" rel="211.72.1.el10_2.x86_64"/>
+    </rpm:requires>
+    <file>/etc/modprobe.d/l2tp_eth-blacklist.conf</file>
+    <file>/etc/modprobe.d/l2tp_ip-blacklist.conf</file>
+    <file>/etc/modprobe.d/l2tp_ip6-blacklist.conf</file>
+    <file>/etc/modprobe.d/l2tp_netlink-blacklist.conf</file>
+    <file>/etc/modprobe.d/l2tp_ppp-blacklist.conf</file>
+    <file>/etc/modprobe.d/sctp-blacklist.conf</file>
+    <file>/etc/modprobe.d/sctp_diag-blacklist.conf</file>
+    <file>/etc/modprobe.d/tipc_diag-blacklist.conf</file>
+  </format>
+</package>

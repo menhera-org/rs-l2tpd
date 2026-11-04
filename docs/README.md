@@ -30,16 +30,17 @@ outcomes. Strict maps cover all 333 active rules and 43 kernel facts;
 semantic clause cases and actual live execution remain separate obligations.
 
 All thirteen required kernel profiles pass, as do three fresh musl
-scenario/Incus pairs and the unmodified root-systemd guest. All optional
-profiles have run: Rocky 9/10 pass normal and clock checks; Debian 12
-fails older MAC/UP-device rename assumptions. The
-[qualification page](kernel-behavior.md) states the exact results and limits.
+scenario/Incus pairs and the unmodified root-systemd guest. All six optional
+profiles ran: Rocky 9/10 pass normal and clock checks; Debian 13 passes clock
+checks but its normal run fails an intermittent nlmon capture check. Debian 13
+remains unqualified. Debian 12 receives best-effort degradation outside the
+support target. The [qualification page](kernel-behavior.md) states the exact results and limits.
 Repository file `audit/VERIFICATION.md` indexes current evidence.
 
 Completed diaries and superseded audits remain in
 [Git history](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit).
 Current gating scripts live under `tests/`, `tools/` or the repository root;
-`audit/` holds evidence. Fetched kernel.org HTML is not retained in commits.
+`audit/` holds the verification summary. Fetched kernel.org HTML is not retained in commits.
 
 Relative links work in a checkout and on GitHub. This directory is the
 GitHub Pages source; `_config.yml` enables README-index and relative-link

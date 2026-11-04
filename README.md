@@ -46,8 +46,10 @@ vanilla 6.8.12 and 7.0.14, and mainline 7.4-rc1, with separate clock and
 special boot checks. Three fresh scenario/Incus pairs and the unmodified
 root-systemd guest pass. [Kernel qualification](docs/kernel-behavior.md)
 records exact scope and differences. All six optional profiles ran: Rocky
-9/10 passed normal and clock checks; Debian 12 failed older MAC/UP-device
-rename assumptions and is not qualified by this run.
+9/10 pass normal and clock checks; Debian 13 passes clock checks but its
+normal run fails an intermittent nlmon capture check. Debian 13 remains
+unqualified. Debian 12 receives best-effort degradation outside the support
+target.
 
 Completed implementation diaries and superseded audits are preserved in
 [Git history](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit).
