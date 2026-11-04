@@ -1,9 +1,0 @@
-File '/home/dev/rs-l2tpd/audit/phase6/remaining-paths-20261103/coverage-summary-fixture.rs':
-Name                                                        Regions    Miss   Cover     Lines    Miss   Cover  Branches    Miss   Cover
----------------------------------------------------------------------------------------------------------------------------------------
-_RINvCs25eMgonaDVJ_24coverage_summary_fixture6choosehEB2_         5       0 100.00%         5       0 100.00%         2       0 100.00%
-_RINvCs25eMgonaDVJ_24coverage_summary_fixture6choosetEB2_         5       0 100.00%         5       0 100.00%         2       0 100.00%
-_RNCNvCs25eMgonaDVJ_24coverage_summary_fixture4main0B3_           2       0 100.00%         1       0 100.00%         0       0   0.00%
-_RNvCs25eMgonaDVJ_24coverage_summary_fixture4main                16       1  93.75%         8       1  87.50%         2       1  50.00%
----------------------------------------------------------------------------------------------------------------------------------------
-TOTAL                                                            28       1  96.43%        19       1  94.74%         6       1  83.33%

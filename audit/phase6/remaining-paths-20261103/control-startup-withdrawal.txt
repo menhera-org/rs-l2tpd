@@ -1,3 +1,0 @@
-store.forget(socket.name(), deadline)
-===REPLACE===
-{ let _ = (store, socket, deadline); Ok::<(), io::Error>(()) }

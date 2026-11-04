@@ -44,5 +44,8 @@ command: tests/kernel/run-guest.sh IMAGE MODULES CONFIG systemd RECORD/root-syst
 ROOT_SYSTEMD_KERNEL=6.8.0-147-generic
 ROOT_SYSTEMD_RESULT=0
 
-The required kernel matrix is running against this same source and will receive a separate completion record.
-The requested Debian 12 and Rocky 9/10 profiles will run after the refactor is committed and synced.
+The required kernel matrix passed all thirteen profiles on the same source.
+The Debian 12 and Rocky 9/10 profiles ran after c599b1f was committed and synced.
+Rocky 9/10 passed normal and clock profiles. Debian 12 failed both on older MAC/UP-device rename assumptions; later normal suites were not reached.
+The optional aggregate result is 1; initial/final optional source patches are empty.
+CI and CodeQL for c599b1f pass; ci-result.log retains the result and complete merged-source totals.

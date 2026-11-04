@@ -1,3 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-fake-baseline)
-    Finished `test` profile [unoptimized + debuginfo] target(s)
-  Executable tests/process.rs (target/debug/deps/process-37d514bf57e2b158)

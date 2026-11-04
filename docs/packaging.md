@@ -7,6 +7,11 @@ package builder below is a Phase 7 design; its directory and CI packaging
 checks do not exist yet. These paths have a bounded scope for hosts where
 no distribution package is available.
 
+The unmodified systemd unit and installer pass the Ubuntu 24.04 root guest
+and unprivileged Incus qualification described in [testing](testing.md).
+Optional distribution-kernel guests do not test their distro userspace or
+establish Debian/RPM package qualification.
+
 ## `--setup-systemd` (feature `setup-systemd`)
 
 A mode of the binary, present only when it was built with the

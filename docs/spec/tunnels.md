@@ -234,9 +234,7 @@ is not disturbed by another's retry.
 T22. The following configuration changes keep the socket, the tunnel and
 its sessions: `remote_addr`, `ip_version`, `resolver_name`,
 `bind_interface`, and the correction of an unusable endpoint. A changed
-`bind_interface` is applied by a reconnect to the new name. The
-[historical comparison](README.md#known-gaps) records the pre-rewrite
-re-creation behavior.
+`bind_interface` is applied by a reconnect to the new name.
 
 T23. The following changes re-create the tunnel, and with it its sessions
 and their interfaces, because the kernel cannot change them: `tunnel_id`

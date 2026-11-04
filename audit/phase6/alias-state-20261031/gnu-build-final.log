@@ -1,3 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s)
-  Executable tests/kernel/linux.rs (target/debug/deps/kernel_linux-1c4e811bdb79be76)

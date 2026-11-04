@@ -71,6 +71,8 @@ if [ "$selection" != required ] && ! printf '%s\n' "$selection" | grep -Eq '^v[0
 fi
 record=$repo/audit/phase6/matrix-$(date -u +%Y%m%dT%H%M%SZ)-$$
 mkdir -p "$record"
+indexes=$(mktemp -d /tmp/rs-l2tpd-kernel-indexes.XXXXXX)
+trap 'rm -rf "$indexes"' 0
 revision=$(git --no-pager rev-parse HEAD)
 printf '%s\n' "$revision" > "$record/revision"
 git --no-pager diff "$revision" -- src tests Cargo.toml Cargo.lock > "$record/source.patch"
@@ -80,7 +82,7 @@ resolve() {
     mkdir -p "$destination"
     for major in 6 7; do
         curl --fail --location --max-time 90 --header 'Cache-Control: no-cache' \
-            --output "$destination/v$major.html" "https://cdn.kernel.org/pub/linux/kernel/v$major.x/"
+            --output "$indexes/v$major.html" "https://cdn.kernel.org/pub/linux/kernel/v$major.x/"
     done
     curl --fail --location --max-time 90 --header 'Cache-Control: no-cache' \
         --output "$destination/releases.json" https://www.kernel.org/releases.json
@@ -92,7 +94,8 @@ resolve() {
             release=$(field KERNEL_RELEASE "$destination/$suite.log")
             series=$(printf '%s\n' "$release" | awk -F. '{print $1 "." $2}')
             major=${series%%.*}
-            latest_series "$series" "$destination/v$major.html" >> "$destination/versions"
+            latest_series "$series" "$indexes/v$major.html" > "$destination/$suite-vanilla"
+            cat "$destination/$suite-vanilla" >> "$destination/versions"
         done
     fi
     cat "$destination/mainline" >> "$destination/versions"
@@ -128,9 +131,7 @@ if [ "$selection" = required ]; then
         if tests/kernel/run-guest.sh "$image" "$modules" "$config" clock "$record/$suite-clock"; then
             grep -qx "GUEST_KERNEL_RELEASE=$release" "$record/$suite-clock/run.log" || result=1
         else result=1; fi
-        series=$(printf '%s\n' "$release" | awk -F. '{print $1 "." $2}')
-        major=${series%%.*}
-        version=$(latest_series "$series" "$record/initial/v$major.html")
+        version=$(cat "$record/initial/$suite-vanilla")
         run_vanilla "$version" || result=1
     done
     version=$(cat "$record/initial/mainline")
@@ -158,7 +159,7 @@ else
             }
         }
         END {for(key in best)print best[key]}
-    ' "$record/initial/v6.html" "$record/initial/v7.html" | sort -t. -k1,1n -k2,2n > "$record/range"
+    ' "$indexes/v6.html" "$indexes/v7.html" | sort -t. -k1,1n -k2,2n > "$record/range"
     [ -s "$record/range" ] || { echo "empty range" >&2; exit 1; }
     while IFS= read -r version; do run_vanilla "$version" || result=1; done < "$record/range"
 fi

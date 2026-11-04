@@ -1,7 +1,0 @@
-REFUSED_MASK_RESULT=Ok(())
-
-thread 'main' (739613) panicked at audit/phase6/upstream-signal-errors-20261031/pinned-repro.rs:10:5:
-assertion `left == right` failed
-  left: Ok(())
- right: Err(EIO)
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

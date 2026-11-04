@@ -1,6 +1,0 @@
-Final collection: ordinary per-process raw profiles with %p and %m, pinned nightly-2026-10-28.
-A coverage-only __llvm_profile_write_file call precedes the intermediate-child _exit, before daemon threads exist.
-No mid-exec dump is retained: its full collection samples active reader threads and has two saturated inferred regions.
-Continuous experiment is not merged: it produces seven saturated inferred regions in the full daemon report.
-The standalone manual-flush probe validates the primitive; only the single-threaded _exit use is retained in the daemon.
-Successful exec can still discard its predecessor's final counters. Actual process exec behavior has separate assertions; coverage does not treat those discarded counters as recorded.

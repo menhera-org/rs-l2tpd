@@ -1,4 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
-  Executable unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
-  Executable tests/process.rs (target/debug/deps/process-9dbb5629319da099)

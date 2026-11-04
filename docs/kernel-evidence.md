@@ -1,16 +1,10 @@
 # Kernel evidence map
 
-[Per-required-kernel behavior and execution scope](kernel-behavior.md)
-records the version-dependent observations and remaining proof.
+[Kernel behavior and qualification](kernel-behavior.md) records target-specific
+observations and limits. Repository file `audit/VERIFICATION.md` identifies
+the current source and runs; the strict map covers all 43 active K facts.
 
-The current required set includes 7.4-rc1. Its latest full matrix passes on
-signed `9e6aae6`; repository record
-`audit/phase6/matrix-20261103T090121Z-983779/README.md` identifies the run.
-Repository record `audit/phase6/mainline-rc-qualification-20261102/`
-also retains exact archive/file identities and the 43-file source comparison.
-The evidence kinds below retain their distinct execution and source scope.
-
-[Documentation index](README.md) · Verification results (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`)
+[Documentation index](README.md)
 
 `shared` means the same operation body runs on fake and real kernels in
 `tests/kernel/conformance.rs`. `live` means a host/fixture assertion against
@@ -57,21 +51,21 @@ their own relevant citations.
 | K33 | source: IPv6 down transition; the Kernel boundary has no operation to lower a device, and policy tests preserve administrative state and child records | source-only |
 | K34 | shared/live: unspecified IPv4 source and missing IPv6 source; policy treats an unspecified returned source as a failed connect | linux |
 | K35 | live production unit: every cookie length 0 through 8 is read; invalid configuration lengths stay rejected and Debug hides bytes | linux |
-| K36 | source/requirement: initial-user-namespace capability check; live production unit: `subscription_buffer_matches_force_or_capped_fallback` compares the production buffer with FORCE or ordinary-buffer behavior; the unprivileged Incus runner requires the EPERM fallback branch to run; three GNU QEMU probes constrain ordinary buffers and verify the full doubled 8 MiB FORCE request, with a reduced-buffer failure control (`audit/phase6/netlink-io-faults-20261101/`); finite-buffer overflow is exercised separately | linux |
+| K36 | source/requirement: initial-user-namespace capability check; live production unit: `subscription_buffer_matches_force_or_capped_fallback` compares the production buffer with FORCE or ordinary-buffer behavior; the unprivileged Incus runner requires the EPERM fallback branch to run; the current GNU QEMU coverage guest checks constrained ordinary buffers and the full doubled 8 MiB FORCE request, retaining the reduced-buffer failure control; finite-buffer overflow is exercised separately | linux |
 | K37 | live: descriptor duplicate/adoption and real systemd manager holds the only reference until acknowledged withdrawal | linux |
 | K38 | delegated source/requirement: released iphost shared DHCPv6 listener and the kernel socket-selection sources; downstream live adapter binds 546 and exchanges a Reply | delegated |
 | K39 | requirement + live: raw RA socket under NET_RAW; fake binding conformance also runs without NET_RAW | linux |
 | K40 | live raw-source adapter explicitly receives RDNSS with `accept_ra=0`; netlink gating is source/requirement evidence | delegated |
 | K41 | shared: commanded deletions announced; live: socket close not announced; review probe tests colliding foreign-namespace IDs on pre-7.3 and 7.3 kernels | linux |
 | K42 | live: namespace move and explicit index/name reuse within one lifetime generation; old proof remains Removed and new registration has a distinct incarnation | linux |
-| K43 | source + live 2026-10-30 (repository directory `audit/phase5-completion/fragmentation/`: current and 0.1.5 daemons, sessions at 1500 and 9000 over a 1500-byte veth, IPv4 and IPv6 underlays, full-size pings both ways, sender fragment counters growing, whole frames on the receiving session device) + Phase 6 scenario H20; no daemon code path depends on it (T5) | source-only |
+| K43 | source + live H20: session MTUs 1500/9000 over a 1500-byte underlay, IPv4/IPv6, ordinary/VRF binding; full-size bidirectional frames, sender fragments and receiving session counters; no daemon path depends on this implementation detail (T5) | source-only |
 | K44 | source + live T5 option setting on every tunnel socket (`kernel::linux` socket creation cites it); a live case reads the options back with `getsockopt` on both families; the H20 scenario proves the IPv4 contract and, together with K43, the IPv6 behaviour | linux |
 
 The source-link gate reads the scope column. Every active fact needs an
 explicit scope: linux requires a production function citation; delegated
 and source-only require a test declaration citation and the evidence above.
 These classifications do not claim that a source assertion ran on a kernel.
-This treatment was approved by the maintainer on 2026-10-30.
+The classifications preserve the maintainer-approved distinction between source and execution evidence.
 
 K13, K14, K33, K38 and K40 are not facts used by production functions in
 `kernel::linux`: the resolver operations are delegated to iphost and device

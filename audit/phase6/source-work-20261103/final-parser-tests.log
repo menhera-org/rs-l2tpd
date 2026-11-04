@@ -1,9 +1,0 @@
-
-running 4 tests
-test tests::counts_real_deltas_and_rejects_empty_or_decreasing_work ... ok
-test tests::rejects_changed_mappings_and_schema ... ok
-test tests::excludes_only_fake_host_regions_and_checks_total_overflow ... ok
-test tests::rejects_unsupported_or_malformed_region_inputs ... ok
-
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-

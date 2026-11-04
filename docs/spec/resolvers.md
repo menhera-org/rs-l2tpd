@@ -5,12 +5,11 @@
 How a host name in `remote_addr` becomes a peer address: through the
 system resolver by default, or through a resolver the configuration names,
 given by address or by a discovery method, with an optional bind interface.
-The mechanism is implemented in the `iphost` crate (version 0.4.0 adds the
-configured resolvers and the unified `ipv6` method); this page states the
-behaviour the daemon requires of it. The V10 protocol correction and the
-V14 opt-in fallback are in version 0.4.1 (2026-10-29), produced by
-[the upstream instruction](../upstream-iphost.md); 0.4.0 replaced the
-RDNSS list on every advertisement and had no fallback.
+The mechanism is implemented by released `iphost` 0.4.4. This page states
+the behavior the daemon requires of it. Incremental RDNSS, explicit
+per-family fallback, namespace-scoped discovery and anonymous Reply
+validation are supplied upstream; scheduling and retention remain in
+the daemon. See [resolver integration](../upstream-iphost.md).
 
 ## Model
 

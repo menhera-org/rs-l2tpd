@@ -1,9 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s)
-     Running tests/service.rs (target/debug/deps/service-2be296bb95ae8e05)
-
-running 1 test
-test a_name_taken_after_the_creation_check_stages_and_publishes_when_freed ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 34 filtered out; finished in 0.00s
-

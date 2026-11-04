@@ -1,7 +1,0 @@
-diff -r src/reconciler/events.rs /tmp/phase6-race-validation.lAMLiBxz/src/reconciler/events.rs
-1228c1228,1230
-<                             .filter(|op| { op.starts_with(&format!("connect {} ", socket.0)) })
----
->                             .filter(|op| {
->                                 op.starts_with(&format!("connect {} ", socket.0))
->                             })

@@ -1,7 +1,0 @@
-c[?7l[2J[    0.000000] Linux version 7.0.14 (phase6@builder) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Thu Jan 1 00:00:00 UTC 1970
-GUEST_KERNEL_RELEASE=7.0.14
-scope: ordinary CLI unit tests only
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.01s
-test result: ok. 65 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 7.32s
-BINARY_UNIT_RESULT=0
-MATRIX_GUEST_RESULT=0

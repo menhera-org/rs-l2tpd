@@ -30,23 +30,13 @@ tests/
 Every test names the rules it guards in its doc comment,
 `/// spec: T21, K22`, which the rule map reads.
 
-Phase 5's latest executed cases and limits are in repository file
-`audit/PHASE5_CONFORMANCE_FIXES_2026-10-30.md`: 27 ordinary binary cases,
-seven ordinary and 17 privileged process cases, three file/ownership
-fixtures, musl/glibc runs on Ubuntu 6.8.0-147, and fresh QEMU process runs
-on 6.12.114, 6.18.59 and 7.3. The initial verification record remains
-`audit/PHASE5_VERIFICATION_2026-10-29.md`.
-
-Repository file `tests/process/README.md` gives the container and native
-systemd transport commands. The manager test covers the address-family
-filter and descriptor protocol. The complete root system-unit mount
-sandbox, including the bindv6only write, subsequently passed in QEMU; see
-repository file `audit/phase6/P6_ROOT_SANDBOX_2026-10-30.md`. The November 1
-root-unit result is historical evidence. The final November 3 source passes
-its 27-scenario normal profile and separate clock profiles on all five
-required targets, three unprivileged Incus repetitions and the supplied root
-unit. Repository file `audit/PHASE6_VERIFICATION_2026-11-03.md` retains the
-complete Phase 6 evidence and its limits.
+Current production source `c599b1f` passes the common CI gates, strict maps
+and the separate merged-source coverage job. All thirteen required kernel
+profiles, three musl scenario/Incus pairs and the unmodified root-systemd
+guest pass. All optional profiles have run: Rocky 9/10 normal and clock
+checks pass; Debian 12 fails both. Repository file `audit/VERIFICATION.md`
+indexes the exact commands, source identities, counts and failure scope.
+Repository file `tests/process/README.md` gives actual-process commands.
 
 ## The four suites
 
@@ -73,17 +63,17 @@ Host-kernel scale workloads run serially, including coverage and musl
 variants. Network namespaces share the kernel's ARP neighbour budget;
 parallel H17 traffic can exhaust it despite container isolation. The host
 must provide capacity for the single 300-session fixture and its other
-workloads. Independent QEMU guests can run concurrently. The controlled
-reproduction and source evidence are in repository record
-`audit/phase6/neighbour-pressure-20261101/`.
+workloads. Use independent QEMU kernels to isolate shared-kernel interference. Run
+clock-sensitive matrix profiles serially. The controlled reproduction remains
+in the [archived evidence](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase6/neighbour-pressure-20261101).
 
 Live tests that reuse L2TP identifiers also run serially during request-count
 windows. On kernels with K41 all-namespace announcements, a matching session
 deletion in another container requires local identity queries. Namespace
 isolation alone cannot keep those queries out of an unrelated-link capture.
 Use an independent QEMU kernel when other live workloads cannot be isolated.
-Repository record `audit/phase6/vrf-inventory-state-20261101/` reproduces this
-interference with matching and different identifiers.
+The [archived control](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase6/vrf-inventory-state-20261101)
+reproduces this interference with matching and different identifiers.
 
 The signal-thread resource check runs the actual daemon in disposable
 networkless Docker containers with task limits of one and two. Both must
@@ -125,11 +115,10 @@ new mainline tag appears, the table MUST be updated and the matrix
 re-run on the new versions before the phase 6 gate is called green;
 a matrix run on a superseded version does not count.
 
-Resolved again on 2026-11-03 from the published Ubuntu updates/security
-`linux-image-generic` candidates and kernel.org releases and source
-indexes. The final full matrix passes on signed `9e6aae6`, with matching
-publication checks and empty source patches. Proposed packages do not replace
-the published targets:
+Resolved on 2026-11-04 from published Ubuntu updates/security candidates
+and kernel.org releases/source indexes. The current full matrix passes
+with matching initial/final selections and unchanged source. Proposed
+packages do not replace the published targets:
 
 | Kernel | Rule | How it runs |
 |---|---|---|
@@ -137,13 +126,13 @@ the published targets:
 | Ubuntu 26.04 `7.0.0-42-generic` (also 24.04's HWE kernel) | newer of the two latest LTS kernels | QEMU, the `vmlinuz` and modules unpacked from the `linux-image` package of the `ubuntu:26.04` image |
 | vanilla `6.8.12` (the last 6.8.y) | vanilla equivalent of the 24.04 kernel | QEMU, built from the kernel.org tarball with `x86_64_defconfig` plus L2TP |
 | vanilla `7.0.14` | vanilla equivalent of the 26.04 kernel | QEMU, built the same way |
-| mainline `v7.4-rc1` | newest mainline tag, retained by the November 3 recheck | Source compared; both builds and normal/clock/IPv6-absent profiles pass |
+| mainline `v7.4-rc1` | newest mainline tag in the current publication recheck | Source compared; both builds and normal/clock/IPv6-absent profiles pass |
 
 [Per-target behavior and limitations](kernel-behavior.md) records the
 observed errnos, notification scope, fragmentation, container/manager
 constraints, boot settings and exact execution scope for every target.
 
-Desired, not gating: every vanilla release between the oldest required
+Optional, not gating: every vanilla release between the oldest required
 one and mainline (the matrix below), Debian's stock kernels, and
 RHEL-ish stock kernels. The matrix driver resolves the required set before and after each run
 and rejects a changed target. It also boots mainline with IPv6 disabled
@@ -151,6 +140,13 @@ and builds it without IPv6 for H4/T4. Each run
 records `uname -r` next to its result, as the probes of
 `tests/kernel/README.md` do. The verified range of
 [kernel](spec/kernel.md) grows with what the matrix has run.
+
+The Debian 12, Rocky Linux 9 and Rocky Linux 10 optional profiles use
+checksum-verified stock images/configurations and matching modules. Their
+normal and separate clock results are listed in [kernel behavior](kernel-behavior.md).
+They do not replace required targets or qualify distribution userspace.
+The matrix fetches/parses kernel.org HTML in temporary storage and retains
+parsed selections, not HTML snapshots.
 
 ### The rules suites
 
@@ -227,65 +223,34 @@ root-systemd or complete clause-proof gates.
  Current review probes and exact commands are in repository file
 `tests/kernel/README.md`.
 
-The initial CI qualification (`audit/phase6/strict-gates-20261031/README.md`)
-passed all ten seeded fake/live repetitions on its first attempt. The
-qualification used one fresh QEMU guest per seed, with at most two jobs
-running at once. Regular CI now runs one full live guest per push or pull
-request. Each guest executes
-the same Rust scenario binary as the Docker runner, plus live kernel and
-process suites. QEMU keeps module loading and networking inside the guest;
-it does not test the Incus or root-systemd profiles. Each job has a
-40-minute limit, the live-suite step has 20 minutes, and QEMU itself has
-900 seconds. The ordinary build job has 60 minutes. Failed repetitions
-remain failures and retain their logs; the workflow does not retry them.
-The ten-run qualification preceded strict map enforcement. A later failure
-still requires investigation; the retained qualification does not establish
-that every test or kernel target is deterministic.
+The [strict-gate qualification](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase6/strict-gates-20261031)
+passed ten seeded fake/live repetitions before enforcement. Routine CI runs
+one full live guest per push/PR; it does not run Incus or root-systemd.
+Failures remain failures, without automatic retries. The ordinary build job
+has 60 minutes, live conformance 40 minutes with a 900-second guest, and
+production coverage 70 minutes with a 1,800-second instrumented guest.
 
-Coverage instrumentation excludes test-only `#[cfg(test)]` modules/helpers,
-as approved on 2026-10-31. Every required test still runs. Coverage uses
-pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1 with branch reporting;
-ordinary checks and shipped musl binaries stay on stable. The native badge
-report is separate from the merged live-profile P4 gate.
+Coverage uses pinned nightly-2026-10-28 and cargo-llvm-cov 0.9.1. Test-only
+modules/helpers are excluded from instrumentation, but all required tests
+still run. Shipped binaries stay on stable musl. The merged checker keeps
+exact source spans and repeated conditions; calibration rejects missing arms,
+repeated-guard misses, changed sources and malformed input. Repository file
+`tools/coverage/README.md` documents its limits and commands.
 
-The maintainer approved merged-source measurement on November 3.
-The checker (`tools/coverage/README.md`) preserves exact spans, repeated
-conditions and raw LLVM diagnostics. Its ten tests pass on GNU and musl.
-Compiler-generated calibration requires missing arms, repeated-guard misses
-and changed sources to fail; four additional controls test input validation.
+Current CI passes **8,582/8,582 merged production lines and 1,844/1,844
+condition outcomes**. The local raw LLVM report remains separate at 99.45%
+lines and 98.26% outcomes; no production exclusion is added. All thirteen
+required profiles, three musl scenario/Incus pairs and root-systemd pass.
+All six optional profiles ran: Rocky 9/10 pass normal and clock checks;
+Debian 12 fails both, with later normal suites not reached.
+Source-work cost curves and GNU/musl allocation repetitions pass in the build
+job. Historical clause assessments and failed attempts remain in Git history;
+current results never silently incorporate their profiles.
 
-Signed `9e6aae6` passes all three jobs in
-[CI run 41607623091](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623091)
-and CodeQL. The production job passes **8,486/8,486 merged source lines and
-1,852/1,852 condition outcomes**. CI retains raw LLVM **99.41% lines and
-98.22% outcomes**; no production exclusion is added. Its production job has
-a 70-minute limit, with 35 minutes for the instrumented guest and an internal
-1,800-second timeout.
-
-The same signed source passes all thirteen required matrix profiles:
-five full normal suites, five clock/pause cases, both IPv6-absent boots and
-missing-driver recovery. Source patches are empty and initial/final
-publication selections agree. Earlier parallel-QEMU clock failures remain
-recorded; serial passes do not establish their cause. Three fresh musl
-scenario/Incus pairs and the unmodified root-systemd profile also pass.
-Allocation peaks pass ten GNU and ten musl repetitions; the integrated
-source-work runner passes 240 cases locally. The clause assessment found an
-S8 creation-capture race; the fix and its failure-path coverage are included
-in this final CI, matrix and host qualification.
-
-Fork-based fixtures execute explicitly and serially after ordinary fake
-descriptor owners finish. Their earlier parallel failure remains retained.
-The library harness also compiles the public rule cases so public/private
-tests can exercise the same generic instantiation; both targets still run.
-Ignored declarations alone never count as execution.
-
-Repository records `audit/PHASE6_VERIFICATION_2026-11-03.md`,
-`audit/phase6/ci-coverage-9e6aae6-20261103/README.md`,
-`audit/phase6/matrix-20261103T090121Z-983779/README.md` and
-`audit/phase6/clause-assessment-20261103/README.md` retain the final commands,
-identities and results. Earlier collectors and failures retain
-their own source scope; their profiles are not silently mixed into the
-passing current measurement.
+Fork fixtures execute explicitly and serially after fake descriptor owners
+finish. Public rule cases also compile into the library harness so both can
+exercise the same generic instantiation; both targets still run. Ignored
+declarations alone never count as execution.
 
 ## Running
 
@@ -321,15 +286,12 @@ the VRF driver unloaded and disables guest module autoload, requires a real
 VRF creation refusal, then tests ordinary-device binding and frames over both
 families. It is a scoped profile, separate from the normal suite; it never
 changes the host's modules or autoload policy. See the
-host-requirement record (`audit/phase6/host-requirements-20261031/README.md`).
+[archived host-requirement record](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase6/host-requirements-20261031).
 
-These cases are required by the 2026-10-29 contract corrections.
-Phase 2–3 evidence (repository file `audit/PHASE23_VERIFICATION_2026-10-29.md`) identifies
-the implemented policy, adapter and live-boundary cases.
-Phase 4 evidence (repository file `audit/PHASE4_VERIFICATION_2026-10-29.md`) adds callback,
-queue, service-drop and library handshake cases. Phase 5 and its October 30
-follow-up add actual-process crash/re-exec acceptance; the remaining
-whole-daemon timing, resource and host-matrix portions belong to Phase 6.
+These acceptance cases remain mandatory. They cover policy, real kernel
+boundaries, service callbacks/queues and process crash/re-exec behavior.
+Whole-daemon timing/resource and kernel/host qualification remain separate
+gates; no one layer's test substitutes for another.
 
 | Rules | Deterministic policy case | Real boundary evidence |
 |---|---|---|
@@ -343,7 +305,7 @@ whole-daemon timing, resource and host-matrix portions belong to Phase 6.
 Use barriers, injected results and virtual clocks for delayed calls and
 deadlines; no fixed sleeps or uncontrolled Internet DNS in unit tests.
 Upstream and daemon tests have separate ownership:
-[upstream instructions](upstream-iphost.md).
+[resolver integration](upstream-iphost.md).
 
 ## Kernel test pitfalls
 

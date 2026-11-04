@@ -1,2 +1,0 @@
-ALL_SHIPPING_RUST_AND_TEST_SOURCES_IDENTICAL_EXCEPT_PRIVATE_INIT=1
-guest-fixture.patch records the sole private runner change.

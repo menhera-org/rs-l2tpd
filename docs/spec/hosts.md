@@ -110,7 +110,7 @@ advertisements on such an interface receives them from its own raw socket
 
 Known limitation of **staged** sessions ([S4](sessions.md#creation): a
 configured hardware address, or a configured name held by a foreign
-device), verified on 2026-10-30 against systemd 249, 252, 255 and 259:
+device). The manager behavior was checked against systemd 249, 252, 255 and 259:
 systemd-networkd before v253 does not re-match `.network` files when a
 device is renamed, so where udev is not running (a container whose
 `/sys` is read-only, as Docker mounts it; a stock Incus system container
@@ -203,7 +203,7 @@ on the kernel's L2TP code ([K44](kernel.md#facts), [K43](kernel.md#facts)),
 which is why this scenario runs on every required kernel. It sets no
 MTU on any device; the MTU is the operator's
 ([R29](requirements.md#the-operator)). 0.1.5
-installations run such setups (verified live on 2026-10-30, both
+installations run such setups (verified live with both
 daemons, both underlays), and a release is accepted only when this
 scenario passes on every required kernel
 ([G22](promises.md#conditional-promises)). Fragmented frames need the

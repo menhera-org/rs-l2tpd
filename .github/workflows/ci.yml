@@ -226,7 +226,7 @@ jobs:
             cat "$RECORD/image-build.log"
             exit 1
           }
-          docker build --network none -f audit/phase6/coverage-current-20261031/Dockerfile -t rs-l2tpd-coverage:phase6 . > "$RECORD/coverage-image.log" 2>&1 || {
+          docker build --network none -f tools/coverage/Dockerfile -t rs-l2tpd-coverage:phase6 . > "$RECORD/coverage-image.log" 2>&1 || {
             cat "$RECORD/coverage-image.log"
             exit 1
           }

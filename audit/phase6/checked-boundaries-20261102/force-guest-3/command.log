@@ -1,5 +1,0 @@
-scope: real netlink buffer force/fallback, receive and poll faults; GNU instrumented unit
-unit git-blob: 50e73e7407d7cf4718e6bd484c76fcaa720899c8
-kernel git-blob: 6b3b40ffa0d305661b58893c9650cdc312a6e88e
-fixture git-blob: b8c278eee1eee32fc04f00ecb7fd55b8a866733a
-command: timeout 900 qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 -nodefaults -nographic -serial stdio -no-reboot -kernel IMAGE -initrd INITRAMFS -append console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs -fsdev local,id=profiles,path=PROFILE_DIRECTORY,security_model=none -device virtio-9p-pci,fsdev=profiles,mount_tag=profiles

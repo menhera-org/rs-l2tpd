@@ -1,0 +1,10 @@
+revision=c599b1f9c2343a3ffe6be315a6d77c4b68106744
+CI_RUN=https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915522
+Build and check=success
+Live conformance=success
+Production coverage (100%)=success
+MERGED_SOURCE_LINES=8582/8582
+MERGED_SOURCE_OUTCOMES=1844/1844
+MERGED_SOURCE_GATE=PASS
+CODEQL_RUN=https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915465
+CodeQL=success

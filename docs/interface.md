@@ -2,11 +2,9 @@
 
 [Documentation index](README.md)
 
-What an operator or an embedding program sees after the rewrite. Every
-item is fixed by the specification; the rule numbers point at the
-normative text. The process layer is implemented in Phase 5;
-[known gaps](spec/README.md#known-gaps) describe the historical `741117b`
-implementation. 0.1.5 is the last release.
+The operator and library interfaces implemented for v0.2.0. Rule numbers
+refer to the normative specification. Version 0.2.0 is not released; 0.1.5
+is the last release. [Testing](testing.md) records the current qualification.
 
 ## Configuration files
 
@@ -137,9 +135,11 @@ tunnel exists and withdraws it at an explicit shutdown, so that the
 tunnels and interfaces survive a crash and the next instance adopts them
 (P14, S28). No systemd library is linked.
 
-The real-manager test verifies notification transport and the address-family
-filter. The complete root system-unit mount sandbox, including the tunable
-write exception, still needs live verification; see [testing](testing.md).
+The real-manager test verifies transport and the address-family filter.
+The unmodified root system-unit sandbox, including its tunable-write
+exception, passes in an Ubuntu 24.04 QEMU guest on kernel 6.8.0-147. Three
+unprivileged Incus runs also pass. These userspace results do not qualify
+other distributions; see [testing](testing.md) for the execution scope.
 
 ## Host requirements
 
@@ -159,6 +159,9 @@ or a name held by a foreign device); Ubuntu 24.04 and later are not
 affected.
 
 ## Library
+
+These dependency examples describe v0.2.0. Before publication, use a path
+dependency on this checkout.
 
 ```toml
 [dependencies]
@@ -184,7 +187,7 @@ rs-l2tpd = { version = "0.2", default-features = false }               # no TOML
 - The library does no standard or file I/O, reads no environment,
   installs no handler, writes no tunable (L1).
 
-The library surface above is implemented in Phase 4. Constructors take
+The library surface above is implemented. Constructors take
 `Vec<AdoptedSocket>`; startup failures return `(Error, Vec<AdoptedSocket>)`
 so the caller retains cleanup authority. Service reload callbacks take
 the accepted `Config` and return `Result<Config>`; restart callbacks take

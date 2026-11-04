@@ -1,8 +1,0 @@
-{
-  "repository": "rust-random/getrandom",
-  "ref": "v0.3.4",
-  "path": "src/backends/linux_android_with_fallback.rs",
-  "git_blob": "6c9dd0653ac96dcd221120fab912e97e079ad715",
-  "url": "https://github.com/rust-random/getrandom/blob/v0.3.4/src/backends/linux_android_with_fallback.rs#L45-L55",
-  "observation": "Initialization deliberately selects the file fallback for Linux EPERM or ENOSYS; EIO preserves the getrandom function and propagates its error."
-}

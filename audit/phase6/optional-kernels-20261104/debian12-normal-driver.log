@@ -1,0 +1,8 @@
+Probing EDD (edd=off to disable)... oc[?7l[2J[    0.000000] Linux version 6.1.0-54-amd64 (debian-kernel@lists.debian.org) (gcc-12 (Debian 12.2.0-14+deb12u1) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP PREEMPT_DYNAMIC Debian 6.1.190-1 (2026-10-16)
+GUEST_KERNEL_RELEASE=6.1.0-54-amd64
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 352 filtered out; finished in 6.13s
+test kernel::linux::request::buffer_tests::subscription_buffer_matches_force_or_capped_fallback ... FORCE_RESULT=allowed
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 352 filtered out; finished in 0.41s
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 322 filtered out; finished in 20.62s
+test result: FAILED. 21 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.24s
+MATRIX_GUEST_RESULT=1

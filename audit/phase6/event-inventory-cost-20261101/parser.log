@@ -1,6 +1,0 @@
-
-running 1 test
-test kernel::linux::rtnl::tests::ipv6_inventory_requires_the_devices_ipv6_family_attribute ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 147 filtered out; finished in 0.00s
-

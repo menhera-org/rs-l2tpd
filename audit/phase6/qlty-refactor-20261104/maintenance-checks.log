@@ -1,0 +1,15 @@
+Production source and Cargo manifests remain identical to c599b1f.
+Common gates after documentation/tool maintenance: PASS.
+Matrix parser self-test and POSIX ShellCheck: PASS.
+Fresh published selection check: 6.8.0-147.147, 6.8.12, 7.0.0-42.42, 7.0.14, 7.4-rc1.
+Publication resolver retained zero HTML files in its output record: PASS.
+Coverage Dockerfile bytes match the archived original: PASS.
+Original/relocated Dockerfiles produce identical runtime configuration and filesystem layers: PASS.
+OCI attestation manifests differ; no image-ID equality is claimed.
+All 23 maintained shell files begin with #!/bin/sh: PASS.
+Local Markdown links including evidence summaries: 809 checked, zero failures.
+Optional fetch invalid selector: exit 2, no output directory created.
+Optional runner arity check: exit 2.
+All gating scripts live outside audit; no kernel.org HTML is retained.
+Only matrix publication-index storage changed after qualification; guest arguments/assertions and production sources did not change.
+Cargo build durations and package-download progress are omitted from retained logs; measured test results remain.

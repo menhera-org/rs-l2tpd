@@ -1,8 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-     Running tests/service.rs (target/debug/deps/service-2be296bb95ae8e05)
-
-running 1 test
-test a_closed_host_receiver_preserves_fallback_and_reports_unconfirmed_cleanup ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 29 filtered out; finished in 0.00s
-

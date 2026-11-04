@@ -1,3 +1,0 @@
-Err(error) => log::warn!("capget: {error}"),
-===REPLACE===
-Err(error) => panic!("controlled capget failure: {error}"),

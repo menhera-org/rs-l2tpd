@@ -1,1 +1,0 @@
-[{"conclusion":"failure","databaseId":41381857995,"name":"CI","status":"completed"},{"conclusion":"success","databaseId":41381858005,"name":"CodeQL","status":"completed"},{"conclusion":"success","databaseId":41381857589,"name":"pages build and deployment","status":"completed"}]

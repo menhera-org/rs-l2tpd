@@ -1,3 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
-  Executable tests/process.rs (target/debug/deps/process-9dbb5629319da099)

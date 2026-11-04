@@ -1,2 +1,0 @@
-Original guest cases passed; the first host validator rejected a libtest-prefixed marker.
-CORRECTED_SAVED_GUEST_LOG_VALIDATION_RESULT=0

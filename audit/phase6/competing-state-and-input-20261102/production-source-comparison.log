@@ -1,6 +1,0 @@
-PRODUCTION_PREFIX_IDENTICAL=src/bin/rs-l2tpd/restart.rs lines=293
-PRODUCTION_PREFIX_IDENTICAL=src/bin/rs-l2tpd/signals.rs lines=224
-PRODUCTION_PREFIX_IDENTICAL=src/config/partial.rs lines=791
-PRODUCTION_PREFIX_IDENTICAL=src/kernel/fake.rs lines=1176
-PRODUCTION_PREFIX_IDENTICAL=src/service.rs lines=499
-PRODUCTION_PREFIX_IDENTICAL=src/bin/rs-l2tpd/setup.rs lines=382

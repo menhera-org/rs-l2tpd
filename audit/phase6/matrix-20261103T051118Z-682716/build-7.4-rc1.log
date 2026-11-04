@@ -1,5 +1,0 @@
-source: linux-7.4-rc1.tar.gz; git-blob: 01f6db24bf5c16fd5e45a6e910b57b315d6c4c06
-config git-blob: f32bee3372a6f7da736f1cfaf67f9c29e71bc20c
-image git-blob: 1a104ac98fd19f88b497c549e5068a5bb0481eea
-KERNEL_IMAGE=/home/dev/rs-l2tpd/target/phase6-kernels/linux-7.4-rc1-ipv6/arch/x86/boot/bzImage
-KERNEL_CONFIG=/home/dev/rs-l2tpd/target/phase6-kernels/linux-7.4-rc1-ipv6/.config

@@ -1,9 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-    Finished `test` profile [unoptimized + debuginfo] target(s)
-     Running tests/service.rs (target/debug/deps/service-2be296bb95ae8e05)
-
-running 1 test
-test absent_host_integration_refuses_tunable_writes_and_keeps_local_socket_ownership ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.00s
-

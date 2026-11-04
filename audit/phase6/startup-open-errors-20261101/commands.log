@@ -1,9 +1,0 @@
-features: all; native/coverage: x86_64-unknown-linux-gnu; musl: x86_64-unknown-linux-musl
-cargo test --locked --all-features --test startup startup_resource_failures_return_errors_and_preserve_adopted_fds -- --exact --nocapture
-cargo test --locked --all-features --test startup -- --nocapture  # ten repetitions
-cargo test --locked --all-features --target x86_64-unknown-linux-musl --test startup -- --nocapture  # three repetitions
-./test-ci-gates.sh
-CARGO_LLVM_COV_TARGET_DIR=<released-0.4.4 collector> cargo +nightly-2026-10-28 llvm-cov --target x86_64-unknown-linux-gnu --all-features --branch --no-report --lib -- --ignored --exact startup_tests::startup_resource_failures_return_errors_and_preserve_adopted_fds --test-threads=1 --nocapture  # ten repetitions
-CARGO_LLVM_COV_TARGET_DIR=<same collector> cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --json --output-path <report.json>
-CARGO_LLVM_COV_TARGET_DIR=<same collector> cargo +nightly-2026-10-28 llvm-cov report --target x86_64-unknown-linux-gnu --branch --show-missing-lines
-# Each isolated, uninstrumented control executes the single startup_resource_failures_return_errors_and_preserve_adopted_fds test with --exact --nocapture.

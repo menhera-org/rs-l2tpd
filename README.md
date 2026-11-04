@@ -30,33 +30,27 @@ The kernel carries Ethernet pseudowires over IPv4 or IPv6.
 
 ## Status
 
-The last release is 0.1.5. The rewrite will ship as 0.2.0 and implements
-the [specification](docs/spec/README.md). Phases 1–6 are complete, with the
-[Phase 6 verification record](audit/PHASE6_VERIFICATION_2026-11-03.md)
-retaining the commands, exact source identities and unsuccessful attempts.
+The last release is 0.1.5; v0.2.0 is not released. Its implementation and
+Phase 6 proof are complete. The [verification record](audit/VERIFICATION.md)
+indexes current commands, source identities, results and limitations.
 
-Signed `9e6aae6` passes [all three CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623091),
-including production coverage, and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623178). Its
-[required-kernel matrix](audit/phase6/matrix-20261103T090121Z-983779/README.md)
-passes all thirteen profiles: five normal suites including fragmentation
-and 300 tunnels, five clock/pause cases, both IPv6-absent boots and
-missing-driver recovery. Source and publication selections remain unchanged
-throughout the matrix. Earlier parallel clock failures remain recorded.
+Production source `c599b1f` passes [all three CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915522)
+and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915465).
+Merged production coverage is **8,582/8,582 lines and 1,844/1,844 condition
+outcomes**, with unchanged exclusions. Strict rule/source maps cover all
+333 active rules and 43 kernel facts; semantic clause cases remain a
+separate obligation.
 
-The approved checker passes **8,486/8,486 merged production source lines and
-1,852/1,852 condition outcomes** in the
-[final CI artifact](audit/phase6/ci-coverage-9e6aae6-20261103/README.md).
-The [clause assessment](audit/phase6/clause-assessment-20261103/README.md)
-checks semantic cases separately from lexical traceability. The S8 race it
-found is fixed and included in the final CI, matrix and host runs.
+All thirteen required kernel profiles pass: Ubuntu 6.8.0-147 and 7.0.0-42,
+vanilla 6.8.12 and 7.0.14, and mainline 7.4-rc1, with separate clock and
+special boot checks. Three fresh scenario/Incus pairs and the unmodified
+root-systemd guest pass. [Kernel qualification](docs/kernel-behavior.md)
+records exact scope and differences. All six optional profiles ran: Rocky
+9/10 passed normal and clock checks; Debian 12 failed older MAC/UP-device
+rename assumptions and is not qualified by this run.
 
-Strict rule/source maps cover all 333 active rules and all 43 kernel facts.
-Three consecutive unprivileged Incus runs and the unmodified root systemd
-sandbox pass on the final source.
-[Required-kernel behavior](docs/kernel-behavior.md) records every target's
-differences and limitations. The November 3 publication recheck retains Ubuntu
-6.8.0-147.147 and 7.0.0-42.42, vanilla 6.8.12 and 7.0.14, and mainline 7.4-rc1.
-The specification's known-gap tables describe historical commit `741117b`.
+Completed implementation diaries and superseded audits are preserved in
+[Git history](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit).
 
 ## Quick start
 
@@ -81,17 +75,17 @@ signals, the supplied systemd unit and the host requirements.
 
 Start with the [documentation index](docs/README.md):
 
-- [Plan](docs/plan.md): the rewrite in phases, with exit criteria
+- [Plan](docs/plan.md): completed milestones, verification requirements and pending release work
 - [Architecture](docs/architecture.md): modules, the kernel boundary, records, tasks
 - [Interface](docs/interface.md): configuration, command line, signals, unit, library
 - [Dependencies](docs/dependencies.md): the supply chain and upstream needs
 - [Testing](docs/testing.md): the suites, the gates, kernel test pitfalls
-- [Required-kernel behavior](docs/kernel-behavior.md): all five target profiles, behavior differences, test coverage and limitations
+- [Required-kernel behavior](docs/kernel-behavior.md): required and optional targets, behavior differences, test scope and limitations
 - [Packaging](docs/packaging.md): the implemented `--setup-systemd` installer and planned `musl-deb` packages
 - [Specification](docs/spec/README.md): requirements, promises, architecture, behaviour in every condition
 
-The audit reports and reviews behind the specification are in
-[audit/](audit/).
+Current evidence is indexed in [audit/VERIFICATION.md](audit/VERIFICATION.md);
+completed historical reports remain in Git history.
 
 ## License
 

@@ -1,3 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (/tmp/phase6-resolver-validation.TnD6EwZN)
-    Finished `test` profile [unoptimized + debuginfo] target(s)
-  Executable unittests src/bin/rs-l2tpd/main.rs (target/x86_64-unknown-linux-gnu/debug/deps/rs_l2tpd-787a086b0bfc8561)

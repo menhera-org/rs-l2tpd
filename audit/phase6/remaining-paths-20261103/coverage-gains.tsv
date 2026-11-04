@@ -1,8 +1,0 @@
-/home/dev/rs-l2tpd/src/bin/rs-l2tpd/caps.rs	1	0
-/home/dev/rs-l2tpd/src/bin/rs-l2tpd/main.rs	0	1
-/home/dev/rs-l2tpd/src/kernel/linux/l2tp.rs	1	1
-/home/dev/rs-l2tpd/src/kernel/linux/lifetime.rs	0	1
-/home/dev/rs-l2tpd/src/reconciler/events.rs	0	2
-/home/dev/rs-l2tpd/src/reconciler/ladder.rs	0	1
-/home/dev/rs-l2tpd/src/reconciler/tunnels.rs	0	1
-/home/dev/rs-l2tpd/src/runtime.rs	1	0

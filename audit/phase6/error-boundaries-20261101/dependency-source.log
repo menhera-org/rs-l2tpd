@@ -1,3 +1,0 @@
-dependency: pinned l2tp 0.5.0; source: src/error.rs; git-blob: 6f14df9880df66c72414a3bc3f3e2b05c0b9f779
-existing fault helper git-blob: 235b78f3e82f7957e2913402d09b551a499c9938
-helper uses SECCOMP_SET_MODE_FILTER with SECCOMP_FILTER_FLAG_TSYNC; control removes synchronization and must fail.

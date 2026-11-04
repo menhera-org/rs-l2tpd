@@ -1,3 +1,0 @@
-vrf_of_device == Some(b) && self.vrfs.contains_key(&b)
-===REPLACE===
-vrf_of_device == Some(b)

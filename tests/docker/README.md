@@ -25,8 +25,9 @@ networking disabled. The image includes iproute2, BusyBox and util-linux.
 The runner uses the prepared image; it does not give test containers
 external networking. The runner also builds the archived v0.1.5 tag with
 its own lockfile in an isolated cache, and records its commit and binary
-hash for the interoperability case. The historical `Dockerfile` and
-`Dockerfile.networkd` reference removed pre-rewrite scripts.
+hash for the interoperability case. Current gating code lives under `tests/`, `tools/` and the repository root.
+Keep current summaries and immutable archive links in `audit/VERIFICATION.md`;
+full execution records can be archived in Git or retained as CI artifacts.
 
 A libtest filter can select a case while debugging, for example:
 
@@ -46,13 +47,13 @@ capture loss. Guards kill daemons and delete namespaces on panic. Frame
 delivery and drop counters are asserted, along with interface identity,
 kernel objects, logs and bounded event waits.
 
-Phase 6 is complete on signed `9e6aae6`. All thirteen required profiles pass:
-27 normal scenarios on each of five kernels, five clock profiles, both
-IPv6-absent boots and missing-driver recovery. Three complete musl scenario
-and unprivileged-Incus pairs pass, as does the supplied root-systemd unit.
-The separate CI coverage gate reports 8,486/8,486 merged production lines
-and 1,852/1,852 condition outcomes. See the
-[verification record](../../audit/PHASE6_VERIFICATION_2026-11-03.md).
+Production source `c599b1f` passes all thirteen required profiles, three musl
+scenario/Incus pairs and the unmodified root-systemd unit. The separate CI
+coverage gate reaches 8,582/8,582 merged production lines and 1,844/1,844
+condition outcomes. Optional Rocky 9/10 normal and clock profiles pass.
+Debian 12 fails older MAC/UP-device rename assumptions; later normal suites
+are not reached. See the [current record](../../audit/VERIFICATION.md) for
+exact identities, commands and limits.
 
 Released iphost 0.4.4 supplies V12's corrected anonymous Reply validation.
 The approved checked-libc signal exception is applied; no nix contribution or
@@ -84,11 +85,18 @@ The range selects the newest patch release in each requested series.
 Provide QEMU, cpio, strip, curl, xz and the prepared review and kernel
 builder images from `tests/kernel/Dockerfile.review` and
 `tests/kernel/Dockerfile.builder`. Downloads occur outside test containers;
-all Docker invocations use `--network none`. Kernels and the archived
+all Docker invocations use `--network none`. HTML indexes are fetched and
+parsed in temporary storage; records retain parsed selections and digests. Kernels and the archived
 0.1.5 peer are cached under `target/`. Records include exact artifact
 hashes under `audit/phase6/matrix-<run>/`. Missing or changed publication
 formats fail closed. The tarball builder accepts and verifies mainline
 release candidates; the final matrix uses 7.4-rc1.
+
+Optional Debian/Rocky stock kernels use the maintained
+`tests/kernel/fetch-optional.sh` and `tests/kernel/run-optional.sh` helpers.
+The complete fresh-record recipe is in [kernel verification](../kernel/README.md#optional-stock-kernels).
+Optional kernels extend the record without replacing a required target or
+qualifying distribution userspace.
 
 ## Unprivileged system container
 
@@ -112,20 +120,13 @@ a kill, re-exec, clean re-creation and shutdown. Execution stops on the
 first failed assertion; later assertions are not counted as passed.
 Logs and cleanup evidence are under `audit/phase6/incus-<run>/`.
 
-The initial fixture exposed H11's concurrent MAC/activation race:
-networkd raised the direct session before udev applied its persistent
-MAC, whose write failed with `EBUSY`. The maintainer approved combined
-acceptance: the concurrent case allows either persistent assignment or
-that documented refusal and requires the active interface to be
-preserved; a separate case holds networkd inactive until udev assigns
-the persistent MAC while down, then checks activation and stable MAC
-across clean re-creation. The latter proves an ordering prerequisite,
-not unconditional success with concurrent managers. The daemon's
-configured-MAC case now gives both creation names an explicit
-`MACAddressPolicy=none` authority. A later udev assignment remains a manager
-override under S12/G4. See the precise limitations in
-[H11](../../docs/spec/hosts.md#other-network-managers) and the
-repository record `audit/phase6/maintainer-decisions-20261101/`.
+H11 checks concurrent persistent-MAC/activation outcomes while preserving
+the active interface. A separate case assigns the persistent MAC while down,
+then requires stable re-creation. That ordering does not promise persistent
+assignment always wins concurrent activation. Configured-MAC fixtures supply
+`MACAddressPolicy=none` for both creation names; later manager overrides
+remain authoritative. See [H11](../../docs/spec/hosts.md#other-network-managers)
+and the [current record](../../audit/VERIFICATION.md).
 
 For the existing live kernel and process suites, see
 [kernel verification](../kernel/README.md) and

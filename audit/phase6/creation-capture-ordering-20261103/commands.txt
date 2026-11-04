@@ -1,8 +1,0 @@
-cargo test --locked --all-features --target x86_64-unknown-linux-musl --lib --test kernel-linux --no-run
-unit=target/x86_64-unknown-linux-musl/debug/deps/rs_l2tpd-9083d5af9e6a9ce9
-linux=target/x86_64-unknown-linux-musl/debug/deps/kernel_linux-45b4f4ad998d7fb2
-docker run --rm --privileged --network none --mount type=bind,source=$PWD,target=/work,readonly --entrypoint /work/$unit rs-l2tpd-audit-vm:local --ignored --test-threads=1 --nocapture
-docker run --rm --privileged --network none --mount type=bind,source=$PWD,target=/work,readonly --entrypoint /work/$linux rs-l2tpd-audit-vm:local --ignored --test-threads=1 --nocapture
-docker run --rm --privileged --network none --mount type=bind,source=$PWD,target=/work,readonly --entrypoint /work/$unit rs-l2tpd-audit-vm:local --ignored --exact kernel::linux::lifetime::tests::a_foreign_registration_cannot_become_the_direct_session_proof --test-threads=1
-RULEMAP_STRICT=1 SRCLINK_STRICT=1 cargo test --locked --all-features --test srclink --test rulemap
-

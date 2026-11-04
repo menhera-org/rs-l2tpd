@@ -1,3 +1,0 @@
-command: timeout 60 docker create --network none --init=false --pids-limit 2 IMAGE DAEMON; timeout 20 docker start --attach NAME
-5f0bc56699bf08e62f45d10ddfda3f92d5480972b6e39758f648224b9f7a8912
-ERROR rs_l2tpd: Resource temporarily unavailable (os error 11)

@@ -1,3 +1,0 @@
-socket2::SockFilter::new(0x06, 0, 0, 0),
-===REPLACE===
-socket2::SockFilter::new(0x06, 0, 0, u32::MAX),

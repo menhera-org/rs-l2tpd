@@ -1,7 +1,0 @@
-6.8.0-147-generic
-
-running 1 test
-test public_service_constructors_converge_repeatedly_and_release_their_tunnels ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.01s
-

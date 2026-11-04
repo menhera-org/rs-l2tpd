@@ -1,8 +1,0 @@
-2026-10-31T23:08:10.2981546Z test sys::test_signal::test_signal_wait_and_mask_syscall_errors ... ok
-2026-10-31T23:08:10.3539735Z test sys::test_socket::test_recvmsg_rxq_ovfl ... FAILED
-2026-10-31T23:08:24.1278516Z ---- sys::test_socket::test_recvmsg_rxq_ovfl stdout ----
-2026-10-31T23:08:24.1279034Z thread 'sys::test_socket::test_recvmsg_rxq_ovfl' (7507) panicked at test/sys/test_socket.rs:2601:5:
-2026-10-31T23:08:24.1279758Z   left: 2
-2026-10-31T23:08:24.1279932Z  right: 1
-2026-10-31T23:08:24.1280316Z     sys::test_socket::test_recvmsg_rxq_ovfl
-2026-10-31T23:08:24.1280797Z test result: FAILED. 385 passed; 1 failed; 4 ignored; 0 measured; 0 filtered out; finished in 13.93s

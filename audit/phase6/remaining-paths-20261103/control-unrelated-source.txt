@@ -1,3 +1,0 @@
-(device == addr.index
-===REPLACE===
-(device != addr.index

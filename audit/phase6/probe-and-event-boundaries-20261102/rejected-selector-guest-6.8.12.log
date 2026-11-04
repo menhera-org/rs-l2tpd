@@ -1,7 +1,0 @@
-c[?7l[2J[    0.000000] Linux version 6.8.12 (phase6@builder) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC Thu Jan 1 00:00:00 UTC 1970
-GUEST_KERNEL_RELEASE=6.8.12
-scope: ordinary CLI units and selected filesystem-permission cases
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 76 filtered out; finished in 0.01s
-nonblock: Output { status: ExitStatus(unix_wait_status(25856)), stdout: "\nrunning 1 test\ntest restart::exec_tests::probe_and_pid_read_failures_return_errno_before_handover ... FAILED\n\nfailures:\n\nfailures:\n    restart::exec_tests::probe_and_pid_read_failures_return_errno_before_handover\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 76 filtered out; finished in 0.04s\n\n", stderr: "\nthread 'restart::exec_tests::probe_and_pid_read_failures_return_errno_before_handover' (323) panicked at src/bin/rs-l2tpd/restart.rs:390:28:\ncalled `Result::unwrap_err()` on an `Ok` value: ()\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n" }
-test result: FAILED. 71 passed; 1 failed; 5 ignored; 0 measured; 0 filtered out; finished in 7.86s
-MATRIX_GUEST_RESULT=1

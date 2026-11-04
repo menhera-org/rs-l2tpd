@@ -1,7 +1,0 @@
-c[?7l[2J[    0.000000] Linux version 6.8.0-147-generic (buildd@lcy02-amd64-081) (x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 (Ubuntu 6.8.0-147.147-generic 6.8.12)
-GUEST_KERNEL_RELEASE=6.8.0-147-generic
-scope: ordinary CLI units and selected filesystem-permission cases
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 76 filtered out; finished in 0.02s
-nonblock: Output { status: ExitStatus(unix_wait_status(25856)), stdout: "\nrunning 1 test\ntest restart::exec_tests::probe_and_pid_read_failures_return_errno_before_handover ... FAILED\n\nfailures:\n\nfailures:\n    restart::exec_tests::probe_and_pid_read_failures_return_errno_before_handover\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 76 filtered out; finished in 0.03s\n\n", stderr: "\nthread 'restart::exec_tests::probe_and_pid_read_failures_return_errno_before_handover' (349) panicked at src/bin/rs-l2tpd/restart.rs:390:28:\ncalled `Result::unwrap_err()` on an `Ok` value: ()\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n" }
-test result: FAILED. 71 passed; 1 failed; 5 ignored; 0 measured; 0 filtered out; finished in 9.33s
-MATRIX_GUEST_RESULT=1

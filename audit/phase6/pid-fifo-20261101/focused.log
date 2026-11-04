@@ -1,8 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-     Running unittests src/bin/rs-l2tpd/main.rs (target/debug/deps/rs_l2tpd-769fc9e0dcfd0c19)
-
-running 1 test
-test pidfile::edge_tests::sticky_warning_and_unwritable_directory_fallbacks ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 57 filtered out; finished in 2.61s
-

@@ -1,2 +1,0 @@
-COLLECTION_CANCELLED=1
-reason: collector artifact metadata was edited after this rehearsal had started; no guest profiles imported

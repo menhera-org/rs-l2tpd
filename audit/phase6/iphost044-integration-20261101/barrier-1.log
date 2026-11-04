@@ -1,9 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (<control-checkout>
-    Finished `test` profile [unoptimized + debuginfo] target(s) in <build duration>
-     Running unittests src/bin/rs-l2tpd/main.rs (/home/dev/rs-l2tpd/target/phase6-boundary-controls-final/debug/deps/rs_l2tpd-eb07ff35ac6b6c87)
-
-running 1 test
-test fdstore::tests::a_barrier_requires_eof_and_rejects_data_or_an_unreleased_descriptor ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 0.20s
-

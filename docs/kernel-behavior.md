@@ -1,706 +1,177 @@
-# Behavior of the required kernels
+# Kernel behavior and qualification
 
-[Documentation index](README.md) · [Required targets](testing.md#kernel-targets) · [Kernel specification](spec/kernel.md) · [Evidence map](kernel-evidence.md)
+[Documentation index](README.md) · [Testing](testing.md#kernel-targets) ·
+[Kernel evidence map](kernel-evidence.md)
 
-The latest complete matrix passes all thirteen profiles on signed
-`9e6aae6`, with identical initial/final publication selection and empty
-source patches. Each of the five normal profiles passes 27 scenarios and
-37 process cases; all five clock profiles, both IPv6-absent boots and
-missing-driver recovery pass. Every target rejects ACKs without family
-data with EPROTO and an empty cache. The wrong-tunnel query distinction
-below is reproduced on all five targets. Repository record
-`audit/phase6/matrix-20261103T090121Z-983779/README.md` identifies the run.
-The same source passes the separate 100% coverage CI gate. Earlier
-parallel clock failures remain unresolved evidence about execution
-sensitivity; the passing serial matrix does not establish their cause.
-
-The checked-boundary batch after signed 241bd51 passes all thirteen
-required profiles with fresh production qualification. This includes all
-27 scenarios and 35 process cases on each required kernel, both IPv6-absent
-boots, missing-driver recovery and all five clock/pause profiles. GNU Incus
-and the unmodified root systemd sandbox also pass on Ubuntu 6.8.0-147.
-Repository record `audit/phase6/checked-boundaries-20261102/README.md`
-retains its source changes and scope. The per-kernel distinctions below
-remain observed; ACK-only exchanges now explicitly reject unexpected data
-as an uncertain transport outcome.
-
-The subsequent event/lifetime batch retains passing normal/boot profiles
-on each required target. All five clock profiles pass a serial replay
-with the shipping runner unchanged. Its earlier parallel launch fails
-two clocks: Ubuntu 7.0 panics before userspace, and vanilla 6.8 exceeds
-the existing retry-interval assertion. Single-thread and one-CPU QEMU
-experiments fail scale and are rejected. No timing threshold changed.
-Repository record `audit/phase6/event-and-lifetime-ordering-20261102/README.md`
-retains all attempts; the replay does not establish determinism or resolve
-the suspected emulator fault. Final focused lifetime tests pass repeated
-GNU/musl runs; normal guests retain their earlier fixture revision.
-
-The subsequent scoped-inventory batch passes five focused required-kernel
-profiles. These directly distinguish a wrong-tunnel `SESSION_GET` query:
-
-| Required target | Raw kernel result | Adapter result |
-|---|---|---|
-| Ubuntu 6.8.0-147.147 | ENODEV, no record | absent |
-| Vanilla 6.8.12 | ENODEV, no record | absent |
-| Ubuntu 7.0.0-42.42 | existing session from the other tunnel | absent |
-| Vanilla 7.0.14 | existing session from the other tunnel | absent |
-| Mainline 7.4-rc1 | existing session from the other tunnel | absent |
-
-On 6.8, `l2tp_nl_session_get` calls the tunnel-local
-`l2tp_tunnel_get_session` (`l2tp_core.c:243-262`). On the newer
-targets, the v3 path reaches the namespace lookup in
-`l2tp_v3_session_get` (`v7.0 l2tp_core.c:258-283,315-322`).
-The adapter's existing ID-pair check rejects the mismatched reply. All
-five targets also pass filtered dumps, duplicate-ID refusal, creation-timeout
-capture release and the focused VRF/zone cases. Repository record
-`audit/phase6/scoped-inventory-events-20261102/README.md` retains every
-profile. These focused runs do not replace the full normal/clock matrix.
-
-The November 3 batch passes another focused profile on each required
-kernel: ordered reader faults, direct/member bindings, duplicate source
-removal, a literal-to-hostname reload and startup/capget failures.
-Three instrumented GNU repetitions on Ubuntu 7.0 cover the foreign-session
-reply guard; a faulty guard fails there. Repository record
-`audit/phase6/remaining-paths-20261103/README.md` retains these results.
-The November 3 publication recheck selects the same five kernels.
-
-The 2026-11-02 publication recheck still selects **mainline 7.4-rc1**.
-Its source comparison, both builds and all thirteen required profiles pass
-on frozen Rust/test source 455eef7. Initial/final publication selections
-agree and both tracked-source patches are empty. The
-four Ubuntu/vanilla targets remain unchanged; the 7.3 results below are
-historical evidence. Repository record
-`audit/phase6/matrix-20261102T011736Z-3377142/README.md` identifies the current result;
-`audit/phase6/mainline-rc-qualification-20261102/README.md` retains source/build evidence.
-
-This page records the behavior relevant to rs-l2tpd for **each required
-kernel**, resolved again on 2026-11-03. The specification defines the contract;
-this page distinguishes observations, source evidence and remaining tests.
-The completed 455eef7 matrix passes all five current normal and clock profiles,
-including H20 fragmentation and both 300-entry daemons. It also passes both
-IPv6-absent boots and the missing-Ethernet-driver profile. Initial and final
-publication checks select the same versions. Repository record
-`audit/phase6/matrix-20261102T011736Z-3377142/README.md` identifies the frozen
-implementation with kernel-selected inventories, complete VRF member tracking,
-checked libc signal calls, approved fixtures and the E27 correction.
-The matrix freezes signed source 455eef7, including the corrected netlink
-reply decoder, released iphost 0.4.4 and the standard-library boundaries. The positive resolver wire case and
-anonymous Reply validation pass on all five targets. Later test-only
-additions have separate qualification; no broader execution is inferred.
-With iphost 0.4.4 and the boundary changes, the approved H11 configured-MAC
-policy passes three musl Incus runs (10.71, 19.44 and 20.06 s), GNU Incus
-(17.79 s) and the root-systemd guest (30.97 s) on Ubuntu 6.8.0-147.
-Repository record `audit/phase6/iphost044-integration-20261101/` retains
-those results; their userspace scope is below.
-The later userspace-netlink peer/deadline tests run on Ubuntu 6.8.0-147
-with GNU and musl. Those ordinary library declarations are outside the matrix's serial
-ignored profile;
-`audit/phase6/netlink-peer-boundaries-20261101/` records their precise scope.
-The checked reply decoder also passes local GNU/musl, Incus and root-unit
-qualification on Ubuntu 6.8.0-147. Its malformed signed-status cases are
-synthetic decoder inputs, not live kernel observations. Repository record
-`audit/phase6/netlink-reply-state-20261101/README.md` gives that scope.
-Later test-only request I/O assertions pass three GNU buffer-force guests
-on Ubuntu 6.8.0-147; `audit/phase6/netlink-io-faults-20261101/README.md`
-records the actual force/fallback distinction and injected failures.
-
-The later signed code 1b3d876 passes GNU Incus in 17.19 s and three
-stable-musl Incus cases in 24.81, 17.88 and 16.02 s, again on Ubuntu
-24.04 / 6.8.0-147. Repository record
-`audit/phase6/current-head-qualification-20261101/README.md` identifies
-those runs and their unchanged production behavior. Signed 419c9b1 later
-passes the unmodified root-unit sandbox in 26.72 s on the same kernel and
-userspace, plus three GNU manager/task-limit repetitions; repository record
-`audit/phase6/final-sandbox-20261101/README.md` retains those results.
-
-An Ubuntu ABI/package version identifies a patched distribution kernel;
-its behavior cannot be inferred from the corresponding vanilla version.
-
-The later PID-file fixtures pass 65 ordinary CLI units on each of those
-five kernel versions, including controlled creation/inspection refusals.
-Five privileged cases remain ignored in that CLI-only profile. Repository
-record `audit/phase6/pidfile-inspection-errors-20261101/README.md` identifies
-the exact patch, results and corrected musl metadata-denial fixture. These
-additional boots retain their separate scope from the complete matrix.
-
-The later signal/tracer profile passes on every current target in the table
-below: 73 ordinary CLI cases, three filesystem cases and two runs of the
-signal-installation case. With two libtest threads already present,
-`pids.max=2` refuses the collector and `pids.max=3` refuses the forwarder;
-both return EAGAIN and leave exactly the original two threads. Each checks
-the matching peak count. The tracer calibration also preserves delivery to
-SIGUSR1 and SIGCHLD handlers on every target. Repository record
-`audit/phase6/signal-and-ownership-guards-20261102/README.md` identifies the
-frozen guest source and separates later model/IPC changes qualified locally.
+Repository file `audit/VERIFICATION.md` identifies the qualified production
+source, commands, publication selections and results. Normal QEMU profiles
+run kernel conformance, process tests and all 27 normal scenarios, including
+300 tunnels/sessions and fragmentation. Clock/pause tests use separate boots.
+A passing bare-kernel guest does not qualify that distribution's systemd,
+udev, networkd, SELinux policy, installer or system-container integration.
 
 ## Per-kernel differences
 
-| Required target | Empty IPv6 VRF, no usable source or route (K26/K34) | Foreign-namespace L2TP deletion notification (K41) | Test boot |
+| Required target | Empty IPv6 VRF, no usable source or route (K26/K34) | Foreign-namespace deletion notice (K41) | Test boot |
 |---|---|---|---|
-| Ubuntu 24.04, package `6.8.0-147.147`, release `6.8.0-147-generic` | `EADDRNOTAVAIL` (99) | Delivered despite being from another namespace; local objects remain intact | Stock image and matching modules; no KHO override |
-| Vanilla `6.8.12` | `ENETUNREACH` (101) | Delivered despite being from another namespace; local objects remain intact | Built-in L2TP/VRF; no KHO override |
-| Ubuntu 26.04, package `7.0.0-42.42`, release `7.0.0-42-generic` | `EADDRNOTAVAIL` (99) | Delivered despite being from another namespace; local objects remain intact | Stock image/modules, `kho=off` for the cold-boot test; explanation below |
-| Vanilla `7.0.14` | `EADDRNOTAVAIL` (99) | Delivered despite being from another namespace; local objects remain intact | Built-in L2TP/VRF; no KHO override |
-| Historical mainline `v7.3`, release `7.3.0` | `EADDRNOTAVAIL` (99) | Confined to the object's namespace; foreign deletion produces no matching local event | Built-in L2TP/VRF; extra IPv6-absent boots below |
-| Mainline `v7.4-rc1`, release `7.4.0-rc1` | `EADDRNOTAVAIL` (99) | No matching foreign deletion event in the five-second probe; local objects remain intact, consistent with namespace-scoped source | Built-in L2TP/VRF; normal, clock and both IPv6-absent profiles pass |
+| Ubuntu 24.04 `6.8.0-147-generic` | `EADDRNOTAVAIL` (99) | Delivered; local objects survive | Stock image and matching modules |
+| Vanilla `6.8.12` | `ENETUNREACH` (101) | Delivered; local objects survive | Built-in L2TP/VRF |
+| Ubuntu 26.04 `7.0.0-42-generic` | `EADDRNOTAVAIL` (99) | Delivered; local objects survive | Stock image/modules, cold-boot `kho=off` |
+| Vanilla `7.0.14` | `EADDRNOTAVAIL` (99) | Delivered; local objects survive | Built-in L2TP/VRF |
+| Mainline `7.4.0-rc1` | `EADDRNOTAVAIL` (99) | No foreign notice in the five-second probe; local objects survive | Built-in L2TP/VRF |
 
-The errno distinction was approved by the maintainer on 2026-10-31.
-Both precise refusals receive the existing transient policy: keep the
-tunnel disconnected and retry when its dependencies change. The exception
-is the tested empty-VRF/no-source/no-route case; it does not turn every
-source-selection failure into `ENETUNREACH`. No daemon change is needed.
-The shared test records the actual errno and rejects other errors.
-Repository file `audit/phase6/kernel-contract-20261031/README.md` records
-the source comparison and original failure.
+The empty-VRF distinction is limited to that exact no-source/no-route case.
+Both errnos receive the existing transient policy: leave the tunnel
+disconnected and retry when dependencies change. The shared test records
+the errno and rejects other errors. This does not reclassify all source
+selection failures as `ENETUNREACH`.
 
-For K41, every notification is only a reason to check local state.
-On older kernels an unrelated namespace can use the same identifiers;
-even on 7.3 the notification precedes deletion completion. The daemon
-checks local identity and absence before releasing an identifier or
-removing its own records. The live review probe creates colliding IDs
-in a second namespace and verifies that the local session survives.
-The upstream source boundary is
-[v7.2 `l2tp_netlink.c`](https://raw.githubusercontent.com/torvalds/linux/v7.2/net/l2tp/l2tp_netlink.c)
-and [v7.3 `l2tp_netlink.c`](https://raw.githubusercontent.com/torvalds/linux/v7.3/net/l2tp/l2tp_netlink.c);
-distribution backports require the live check.
+K41 notices are advisory. Older kernels announce commanded deletions across
+network namespaces; upstream confines them to the object's namespace from
+v7.3. The source boundary is
+[v7.2](https://raw.githubusercontent.com/torvalds/linux/v7.2/net/l2tp/l2tp_netlink.c)
+and [v7.3](https://raw.githubusercontent.com/torvalds/linux/v7.3/net/l2tp/l2tp_netlink.c).
+Distribution backports need actual observation. The daemon checks local
+identity and absence before releasing names/identifiers or removing records.
+Socket-close cleanup is not announced in the same way.
 
-On all-namespace K41 kernels, concurrent tests with matching identifiers can
-trigger legitimate local identity queries during an unrelated-link capture.
-A controlled daemon test on Ubuntu 6.8.0-147 records eight requests for two
-matching foreign session deletions and sixteen for four; different
-identifiers produce zero. Local sessions and frames survive. Request-count
-tests therefore serialize workloads sharing that kernel, or use independent
-QEMU kernels. The counts describe the tested daemon; the per-target K41
-probe establishes notification scope. Repository record
-`audit/phase6/vrf-inventory-state-20261101/` retains the controls and the
-original overlapping-run failure.
+Matching foreign IDs can cause legitimate local verification requests on
+all-namespace kernels. Request-count windows therefore run serially for
+workloads sharing a kernel, or in independent QEMU kernels. Namespace
+isolation alone does not isolate these notifications. A suspected deletion
+remains coalesced for verification while its local session exists; mere
+presence cannot distinguish queued deletion, a stale notice or a foreign
+namespace. Removing/replacing the record cancels that verification task.
 
-All five normal profiles enable IPv6 and network namespaces. The stock
-Ubuntu kernels supply L2TP/VRF as modules; the three vanilla builds
-include them in the image. Repository file
-`audit/phase6/kernel-behavior-20261031/config-features.log` lists the exact
-flags and digests; only the Ubuntu 26.04 profile enables KHO by default.
+## Executed profiles
 
-## What is established for each required kernel
-
-The following profiles summarize each target's behavior. Shared behavior
-is specified fact by fact in the table below; an omitted difference does
-not mean that every possible failure mode was exercised on that target.
-
-- **Ubuntu 24.04, `6.8.0-147.147`:** empty IPv6 VRF connection refuses with
-  `EADDRNOTAVAIL`; commanded L2TP deletion events can cross namespaces.
-  The exact distribution source unhashes/closes sessions inline and uses
-  positional session-dump traversal. The guest boots the stock image with
-  matching modules. This target also has the separately executed
-  denied-capability/netlink, low-port DHCPv6, 300-tunnel and unprivileged
-  system-container evidence. Its udev/networkd result includes the
-  concurrent MAC-assignment limitation described below.
-- **Vanilla `6.8.12`:** the same empty IPv6 VRF refuses with
-  `ENETUNREACH`, which receives the same transient retry policy.
-  Cross-namespace deletion events, inline session deletion and positional
-  dumps have the same documented limitations as the Ubuntu 6.8 target.
-  L2TP/VRF are built into the test image. There is no per-target
-  udev/networkd or unprivileged-container result. The current 300-tunnel
-  case passes.
-- **Ubuntu 26.04, `7.0.0-42.42`:** the empty VRF refuses with
-  `EADDRNOTAVAIL`; deletion events can still cross namespaces. Its exact
-  distribution source queues session deletion and traverses sessions by
-  identifier. The stock image and matching modules pass the normal
-  profile with the documented `kho=off` cold-boot setting. A separate
-  missing-Ethernet-driver case proves degradation and recovery. This does
-  not establish udev/networkd or unprivileged-container behavior on this
-  target.
-- **Vanilla `7.0.14`:** the empty VRF refuses with `EADDRNOTAVAIL`;
-  deletion events can cross namespaces. Session deletion is queued and
-  dump traversal is identifier-based. L2TP/VRF are built in. Its normal
-  profile passes all 27 scenarios with the H8 fixture correction, including
-  capability and scale cases. The separate current clock profile also passes.
-  No system-container profile has run on this target.
-- **Historical mainline `7.3.0`:** the empty VRF refuses with `EADDRNOTAVAIL`;
-  commanded deletion events stay within the object's namespace. Session
-  deletion is queued and dump traversal is identifier-based. L2TP/VRF are
-  built in. In addition to the normal and clock profiles, the expanded
-  27-scenario/300-tunnel profile, capability/netlink degradation
-  cases and both scoped IPv6-absent boots pass.
-  These bare-kernel guests provide no udev/networkd or unprivileged
-  system-container result.
-- **Mainline `7.4.0-rc1`:** the empty VRF refuses with `EADDRNOTAVAIL`;
-  commanded deletion notifications remain confined to the object's namespace.
-  Session deletion is queued and dumps traverse identifiers. The full normal
-  and clock profiles, H20 fragmentation, H17 scale and both IPv6-absent boots
-  pass. L2TP/VRF are built in. Source changes to sequence snapshots, dump
-  queue accounting and neighbor tables retain the documented contracts.
-  No new udev/networkd or system-container result is inferred.
-
-### Per-target execution coverage
-
-“Not run” is a missing test result, not a known kernel incompatibility.
-The normal profile proves the shared assertions it actually executes,
-including all eight H20 fragmentation combinations. The additional
-profiles below use the I/O source identified by the latest matrix record.
-This snapshot includes the later monitor/process/inheritance assertions.
-Socket application/cleanup fixes, approved MAC/timing fixtures and checked
-signal-mask/wait refusals pass on all five required targets.
-
-| Required kernel | Matrix normal profile / H20 | Capability/netlink degradation | H16 clock/pause | H17 300 tunnels | H11/unprivileged system container |
-|---|---|---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 27 pass / pass | Pass | Pass | Pass | Three fresh Incus passes with the approved explicit MAC policy (2026-11-01) |
-| Vanilla `6.8.12` | 27 pass / pass | Pass | Pass | Pass | Not run |
-| Ubuntu `7.0.0-42-generic` | 27 pass / pass; cold-boot KHO override | Pass; missing-driver recovery also passes | Pass | Pass | Not run |
-| Vanilla `7.0.14` | 27 pass / pass | Pass | Pass | Pass | Not run |
-| Mainline `7.4.0-rc1` | 27 pass / pass | Pass | Pass | Pass | Not run |
-
-Reproduction and transcripts are in the
-latest matrix (`audit/phase6/matrix-20261103T090121Z-983779/README.md`).
-The approved explicit-MAC-authority case passes three fresh unprivileged
-Incus runs and the unmodified root-systemd guest. Their source and logs are
-in `audit/phase6/maintainer-decisions-20261101/README.md`; the earlier failure
-and authority controls remain in `audit/phase6/staged-mac-override-20261031/`.
-The later cache-fix source also passes three musl Incus runs and an
-unmodified root-systemd guest, recorded in
-`audit/phase6/vrf-inventory-state-20261101/README.md`. These userspace results
-apply to Ubuntu 6.8.0-147 only. The dated packages below retain
-their original scope; the current table supersedes their per-target
-execution summaries.
-
-### Latest matrix counts and ownership observations
-
-The frozen `455eef7` guests run 22 serial library cases, 24 Linux cases,
-five review cases, 65 ordinary binary cases and three privileged binary
-cases. Eight daemon fault paths include signal-mask and signal-wait refusals.
-All 29 process cases and 27 normal scenarios pass on each target. Selected
-inventories, VRF-binding reload and the E27 live replay pass on all five.
-The client-ID/static-binding and anonymous Reply cases pass on all five
-with released iphost 0.4.4. The absent-family cache-recovery case also
-passes on all five. The host-adapter fixtures and corrected production
-reply decoder are included. Controlled request I/O and synthetic socket-error
-cases run in the 22 serial library cases. Later ordinary test additions
-retain their separate qualification. The real-manager and clock declarations
-are outside the normal scenario profile. The clock profile runs one case
-per target with controller-confirmed pause/resume.
-
-| Required target | Normal scenarios | H16 clock/pause | Closed and unregistered socket ownership |
+| Required kernel | Normal / H20 / H17 | Process cases | H16 clock/pause |
 |---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | 27 pass, 591.13 s | Pass, 64.73 s | Both families pass |
-| Vanilla `6.8.12` | 27 pass, 518.87 s | Pass, 64.51 s | Both families pass |
-| Ubuntu `7.0.0-42-generic` | 27 pass, 509.01 s | Pass, 64.58 s | Both families pass |
-| Vanilla `7.0.14` | 27 pass, 470.51 s | Pass, 64.68 s | Both families pass |
-| Mainline `7.4.0-rc1` | 27 pass, 447.91 s | Pass, 64.48 s | Both families pass |
+| Ubuntu `6.8.0-147-generic` | 27 pass / pass / pass | 37 pass | Pass |
+| Vanilla `6.8.12` | 27 pass / pass / pass | 37 pass | Pass |
+| Ubuntu `7.0.0-42-generic` | 27 pass / pass / pass | 37 pass | Pass |
+| Vanilla `7.0.14` | 27 pass / pass / pass | 37 pass | Pass |
+| Mainline `7.4.0-rc1` | 27 pass / pass / pass | 37 pass | Pass |
 
-After a local socket handle closes, its five socket operations return EBADF
-even while an external descriptor retains the tunnel. An unregistered
-socket cannot be adopted through the daemon's kernel adapter (ENODEV).
-An external descriptor of that unregistered socket still reserves its
-connection identifier until the last close. These are shared live
-observations in both families on every target; the fake backend now matches
-them. They do not imply immediate tunnel deletion after the last close.
+The normal profile includes the shared source/VRF/zone checks, forced
+netlink loss and recovery, lifetime-capture ordering, socket ownership,
+resolver wire identities, anonymous Reply rejection, signal/fork refusal
+paths, capability degradation, H20 and H17. Its 37 process cases are
+separate from its 27 scenarios. Each H16 profile runs one clock/pause case
+and requires the controller's successful QMP pause/resume marker.
+Mainline has additional `ipv6.disable=1` and `CONFIG_IPV6=n` boots; modular
+Ubuntu 7.0 has missing-Ethernet-driver degradation and recovery.
 
-Mainline also passes separate `ipv6.disable=1` and `CONFIG_IPV6=n` profiles,
-one boot case each. The modular Ubuntu 7.0 target passes missing-Ethernet-driver
-degradation and recovery in a separate boot. No new system-container result
-is inferred for any other kernel.
+### Optional distribution kernels
 
-### Filtered dependency inventories
+| Distribution | Exact stock kernel | Normal | Clock/pause |
+|---|---|---|---|
+| Debian 12 | `6.1.0-54-amd64` (6.1.190-1) | Fail: 21 Linux cases pass, three fail; later suites not reached | Fail: UP underlay rename returns `EBUSY`; QMP controller passes |
+| Rocky Linux 9 | `5.14.0-687.61.1.el9_8.x86_64` | Pass: 27 scenarios and 37 process cases | Pass |
+| Rocky Linux 10 | `6.12.0-211.72.1.el10_2.x86_64` | Pass: 27 scenarios and 37 process cases | Pass |
 
-Exact source for both Ubuntu targets and all three upstream releases
-supports strict interface-selected address dumps and master-selected link
-dumps. IPv6-absent fallback and foreign-family handlers need the precautions
-documented under [K7](spec/kernel.md#dependency-inventories-k7).
+Debian refuses writing an unchanged session MAC while UP and refuses UP-device
+renaming in these fixtures. The required range's assertions remain unchanged;
+this is not a Debian qualification pass. No production behavior was changed.
 
-The new implementation passes the shared selectors, disabled-device IPv6,
-mid-inventory disappearance and request-reopening checks on Ubuntu
-`6.8.0-147-generic`. Its two model witnesses deliver one dependency record
-with 1, 100 or 10,000 unrelated records. The earlier implementation reads
-all those records. The completed November 1 matrix above qualifies this
-filtering follow-up and the VRF inventory-completion correction.
-Repository record `audit/phase6/event-inventory-cost-20261101/` keeps the
-witnesses, source identities and deliberately broken controls.
+Upstream [v6.1.190 `dev.c`](https://github.com/gregkh/linux/blob/v6.1.190/net/core/dev.c#L1222)
+rejects UP renames before checking the target name and passes MAC writes to
+the driver without the newer unchanged-address shortcut. This explains the
+observed failures; it is not a complete audit of Debian's source patches.
 
-## Resolver client identities
+All six profiles executed; the aggregate optional result is a failure
+because of Debian. Both Rocky guests report empty-VRF errno 99 and
+foreign-namespace K41 announcements while preserving local objects. Rocky 9
+passes the MAC/UP-rename cases despite its nominal 5.14 base, illustrating
+why behavior cannot be inferred from version numbers alone.
 
-The released adapter's positive wire and anonymous Reply cases pass in
-all five required normal profiles with registry iphost 0.4.4. Anonymous,
-link-layer, random and raw identifiers have the expected bytes across two
-DHCPv6 transmissions; a matching Reply is accepted. Static DNS retains its
-bind device and exchanges both address families with the controlled server.
-An anonymous request rejects a Reply carrying another Client Identifier
-and accepts the valid anonymous Reply that follows.
+These use checksum-verified stock images, configurations and matching module
+packages. They run the unchanged guest suites and remain optional additions
+to the required matrix. The metadata, exact package digests and extractor
+identity are retained with the results. Kernel version numbers alone do not
+identify distribution backports. No per-distribution userspace or complete
+optional-kernel source audit is inferred from these guest results.
 
-The positive case also has three GNU and three musl runs on Ubuntu
-6.8.0-147. Repository record `audit/phase6/resolver-wire-identity-20261101/`
-retains three failing mapping controls; `audit/phase6/anonymous-reply-20261101/`
-retains the failing 0.4.3 witnesses and released correction. These cases
-do not establish every malformed-Reply refusal on every target.
+## Session deletion and dump traversal
 
-## Advisory session verification
-
-The current E27 correction keeps checking a suspected deletion while the
-original local session is present. Presence alone cannot establish whether
-the notice describes queued deletion, a late old notice or, before 7.3,
-another namespace. Removing/replacing the session record cancels its
-coalesced verification task. Configuration identity changes also cancel it
-when failed session cleanup leaves an obsolete record temporarily retained;
-late announcements cannot recreate that obsolete task.
-
-A matching-ID foreign notice can leave periodic verification active for the
-life of that configured local session. Repeated notices add no task state;
-a name-only configuration rename preserves the task. The four required
-kernels before 7.3 deliver such foreign notices. Mainline 7.3 confines them
-to the originating namespace, while stale local notices remain advisory.
-
-A model witness withholds queued deletion work for three daemon ticks;
-the preceding implementation drops verification after the first tick.
-The live fixture replays a genuine deletion notice after recreation and
-requires the active replacement's index, MAC and UP state to survive
-continued verification. The preceding implementation fails that live case
-on Ubuntu 6.8.0-147. The corrected replay now passes on all five required targets.
-This live replay does not force kernel deletion work to remain queued.
-
-Repository record `audit/phase6/event-verification-20261101/` retains the
-initial model/live failures and the correction's qualification as it runs.
-
-## Session deletion and dump traversal by target
-
-The exact Ubuntu tags were checked alongside the built upstream tarballs;
-these are **source observations**, separate from the live reuse probe:
+These are source observations, separate from live reuse timing:
 
 | Required target | Session deletion (K18) | Session dump traversal (K16) |
 |---|---|---|
-| Ubuntu `6.8.0-147.147` | Unhash/close inline in `l2tp_session_delete` | Positional `l2tp_session_get_nth`; concurrent deletion can skip the next entry |
-| Vanilla `6.8.12` | Unhash/close inline | Positional `l2tp_session_get_nth`; same limitation |
-| Ubuntu `7.0.0-42.42` | Queue `session->del_work`; worker unhashes/closes | Identifier-based `l2tp_session_get_next` |
-| Vanilla `7.0.14` | Queue `session->del_work`; worker unhashes/closes | Identifier-based `l2tp_session_get_next` |
-| Mainline `7.3` | Queue `session->del_work`; worker unhashes/closes | Identifier-based `l2tp_session_get_next` |
+| Ubuntu `6.8.0-147.147`, vanilla `6.8.12` | Unhash/close inline | Positional `l2tp_session_get_nth`; concurrent deletion can skip the next entry |
+| Ubuntu `7.0.0-42.42`, vanilla `7.0.14`, mainline `7.4-rc1` | Queued deletion work | Identifier-based `l2tp_session_get_next` |
 
-Versioned source URLs, hashes and excerpts (`audit/phase6/kernel-behavior-20261031/source-comparison.log`)
-record the actual distribution implementations rather than assuming a
-backport policy. A zero-retry delete/recreate run cannot establish this
-boundary: a queued worker can finish before the next request. The daemon
-waits for confirmed absence on every target and treats dumps as
-observations rather than an atomic identity proof. Tunnel-socket close
-still queues tunnel cleanup on all five targets (K17).
+Upstream changes the deletion model at v6.12; distribution backports must be
+checked rather than guessed from a release number. A zero-retry live
+delete/recreate run cannot prove synchronous deletion: a worker can finish
+before the next request. The daemon confirms absence on every target and
+treats dumps as observations, never atomic identity proofs. Tunnel-socket
+close queues tunnel cleanup on every required target (K17).
 
-## Shared behavior and the scope of the proof
+The exact distribution/upstream source comparisons remain available in the
+[archived source record](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase6/kernel-behavior-20261031)
+and the
+[mainline source qualification](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase6/mainline-rc-qualification-20261102).
+The current [kernel specification](spec/kernel.md) retains the relevant
+versioned file/line citations.
 
-The following table covers every active K fact. Detailed conditions and
-kernel source locations remain in [the kernel specification](spec/kernel.md).
-“Live” names what the suite actually exercises; a passing profile does
-not promote a source-only or delegated fact into an executed case.
-K12 was removed and carries no obligation.
+## Fragmentation
 
-| Facts | Behavior relevant to the daemon | Evidence and limits |
-|---|---|---|
-| K1–K4, K8, K9 | Generic-netlink L2TPv3, Ethernet sessions, IPv4/IPv6 sockets and VRFs work with namespace-local `CAP_NET_ADMIN` | Live positive socket/tunnel/session/VRF operations. H15 adds denied-capability/netlink cases on Ubuntu 6.8.0-147 and a missing-Ethernet-driver/recovery case on Ubuntu 7.0.0-42; the degraded profiles have not run separately on every target. |
-| K5 | An unconnected socket can own a tunnel; outbound session frames are dropped while disconnected | Shared conformance and live frame/drop-counter checks. |
-| K6, K24, K25 | Disconnect/reconnect reselects the source; bare reconnect can retain it; an IPv6 tunnel dump can retain its previous peer after disconnect | Shared and live socket/dump assertions; the daemon disconnects before reconnecting. |
-| K7, K10 | Link/address monitoring works without route subscriptions; the production classic BPF filter admits required events | Live monitor/filter tests. H8 also observes daemon requests with nlmon, including a positive capture control. |
-| K11, K23 | `bindv6only` affects fresh sockets; an existing L2TP/IPv6 socket cannot have V6ONLY changed; its value can be read | Live write/create/read-back and H18 opt-in/opt-out tests. An old socket is never assumed to change with the sysctl. |
-| K13, K14, K38–K40 | DHCPv6 needs port 546; RA raw reception needs `CAP_NET_RAW`; the netlink RA fallback depends on `accept_ra`; competing DHCPv6 listeners can lose unicast replies | Resolver implementation/source evidence is delegated to iphost. Live adapter cases provide positive port-546/raw-RA exchange evidence. The capability scenario also proves DHCPv6 refusal at unprivileged-port start 1024 and actual port-546 traffic without CAP_NET_BIND_SERVICE at start 0, on Ubuntu 6.8.0-147. Full denied-capability/netlink fallback behavior is not proved separately on every required kernel. |
-| K15 | IP-encapsulated data admission uses the namespace's session ID and cookie, independently of the receiving socket binding/source | Live matching, wrong/absent-cookie and foreign-source frame checks. Cookies are not peer authentication. |
-| K16 | Stored creation names survive rename and may become ambiguous; querying by name is not an atomic name-plus-ID identity proof | Shared name/rename and live duplicate-stored-name probes. Upstream pre-6.12 positional dumps can skip an entry on concurrent deletion; newer identifier-based traversal is source evidence, not a forced concurrent-dump result on every target. |
-| K17, K37 | Closing the last socket descriptor eventually deletes the tunnel and all its sessions; duplicate, transferred or exec-inherited descriptors keep them alive | Shared close, live duplicate/adoption and process tests. Real systemd descriptor-store ownership has separate manager/Incus evidence; the ordinary QEMU profile has no systemd manager. |
-| K18 | Session ID/name release may complete after the delete reply; creation must wait for confirmed absence | Live 32-cycle delete/recreate probe. Zero `EEXIST` retries does not prove synchronous deletion. Upstream source is synchronous through 6.11 and workqueue-based from 6.12; Ubuntu backports are not classified by version number alone. |
-| K19, K20 | Tunnel/session IDs are namespace-scoped; IP session IDs cannot collide across tunnels; a taken device name creates no partial session | Shared collision, lookup and reuse checks. The lifetime capture rejects two distinct registrations under one armed creation name after an ordered route-netlink barrier; this prevents a device that released the name before session creation from proving the new session's identity. |
-| K21 | Autoload call sites have no namespace capability gate, but the host may restrict module loading | Source/host evidence. Stock guests explicitly load matching modules; vanilla guests build them in. Neither demonstrates unprivileged host-module autoload. |
-| K22 | An initial binding and rebinding have different capability requirements; disconnect clears binding | Shared binding/VRF conformance. Live positive operations run with capabilities; denied rebinding policy is covered by the fake. |
-| K26–K28, K34 | Route/source and link-local-zone rules control connect; binding an ordinary IPv4 device can succeed without an explicit route; an IPv4 socket can report source `0.0.0.0` | Shared live source/VRF/zone cases. Empty-VRF errno differs as shown above. The full route-type errno table remains source plus fake-policy evidence. |
-| K29, K30 | Netlink loss can yield `ENOBUFS`; missing replies do not imply missing mutations; foreign unicast events require sender validation | Live production overflow, missing-reply/reopen and forged-removal checks; fake framing/deadline cases cover additional failures. |
-| K31, K32 | A new l2tpeth gets a random MAC; changing it while UP fails `EBUSY`, setting the existing value succeeds, and renaming while UP works; names have kernel restrictions | Shared/live MAC/name checks and configuration validation. Manager consequences are detailed below. |
-| K33 | Lowering a link can remove IPv6 addresses, routes and neighbors | Source-only classification; the daemon never lowers a working link. Policy/property tests preserve administrative state and child devices. |
-| K35 | Kernel cookie length acceptance is broader than the configuration contract (0–8 bytes) | Live production decoder tests every length; configuration still accepts only its documented lengths. |
-| K36 | `SO_RCVBUFFORCE` needs capability in the initial user namespace; otherwise use capped ordinary `SO_RCVBUF` | Production live buffer comparison. Root QEMU guests exercise FORCE success; the separately executed unprivileged Incus case proves `EPERM` and fallback. |
-| K41 | Commanded deletion notifications can cross namespaces before 7.3 and precede completed deletion on all targets | Live review probe and source distinction above. Socket-close cleanup is not announced the same way. |
-| K42 | A link index/name can be reused after replacement or a namespace move | Live namespace-move/index-reuse identity checks and policy lifetime-generation tests. |
-| K43, K44 | Full-size session frames can fragment over a smaller underlay; socket options explicitly allow fragmentation | H20 and live option read-back; the native IPv6 limitation below remains source-dependent. |
+H20 uses a 1500-byte veth underlay and session MTUs 1500 and 9000, over IPv4
+and IPv6 with ordinary and VRF binding: eight combinations per normal guest.
+It checks full-size delivery both ways, bulk frames, session receive counters,
+sender fragment counters and no transmit drops. A separate live test reads
+back `IP_PMTUDISC_DONT`, `IPV6_PMTUDISC_DONT` and `IPV6_DONTFRAG=0`.
 
-The [evidence map](kernel-evidence.md) names the test declarations and
-classifies production, delegated and source-only obligations. The
-[scenario list](phase6.md#p2-the-scenario-suite) defines H1–H20 and the
-remaining promises. Its incomplete cases remain incomplete on every
-kernel, even when all currently implemented guest tests pass.
+IPv4 has K44's explicit socket-option contract. The native IPv6 L2TP output
+path currently relies on `skb->ignore_df` (K43), rather than consulting those
+IPv6 options. They remain set, but delivery must be retested on new kernels.
+Netfilter can reassemble before the ordinary IPv6 counters; zero
+`Ip6ReasmReqds` does not refute delivery proved by session receive counters.
 
-## Fragmentation on each target
+## Managers and unprivileged containers
 
-H20 covers IPv4 and IPv6 underlays, ordinary and VRF binding, and session
-MTUs 1500 and 9000 over a 1500-byte veth: eight combinations per guest.
-It checks full-size delivery in both directions, bulk frames, receiving
-session counters, sender fragment counters and absence of transmit drops.
-The daemon's tunnel socket options are read back separately:
-`IP_PMTUDISC_DONT`, `IPV6_PMTUDISC_DONT`, `IPV6_DONTFRAG=0`.
-Per-target execution is recorded in the results table below.
+An UP l2tpeth device refuses a differing MAC with `EBUSY` (K31), including
+when udev is the caller. The daemon defers its change and preserves the
+index, UP state, addresses and children; it never lowers an active device
+to force the write. Direct configured-name creation improves name matching
+but does not order udev's MAC assignment against networkd's activation.
 
-IPv4 has the explicit socket-option contract described in K44. Native
-IPv6 L2TP currently uses the kernel's `skb->ignore_df` path, which does
-not consult the two IPv6 options in that transmit path. Those options
-are still set, but IPv6 delivery depends on K43's implementation and
-must be retested on each new kernel. This limitation applies to all
-required targets, including mainline. Reassembly may happen in netfilter;
-zero `Ip6ReasmReqds` is not evidence of failed delivery.
+H11 accepts either persistent assignment or the documented `EBUSY` result
+under concurrent managers, while requiring the active interface to survive.
+A separate ordered case assigns the persistent MAC while down, then checks
+activation and stability after clean re-creation. This proves the ordering
+prerequisite, not unconditional persistent assignment. A later manager MAC
+override remains authoritative under S12/G4. Operators requiring a configured
+MAC must coordinate policy, for example `MACAddressPolicy=none` matching both
+creation names. See [H11](spec/hosts.md#other-network-managers).
 
-## MAC policy and unprivileged containers
+Three fresh unprivileged Incus runs and the unmodified root-systemd guest
+pass on Ubuntu `6.8.0-147-generic` with Ubuntu 24.04 userspace. Incus proves
+`SO_RCVBUFFORCE=EPERM` and the ordinary-buffer fallback, namespace-local
+`bindv6only`, udev/networkd handling and real descriptor-store handover.
+Root QEMU covers successful FORCE; both paths validate the production buffer.
+These userspace results do not extend to the other kernel targets.
+Unprivileged containers cannot load host modules or obtain capability in
+the initial user namespace; the host must supply the required modules.
 
-K31 is a kernel restriction on **any** caller changing an UP l2tpeth MAC,
-including both the daemon and udev. The daemon can apply a configured MAC
-while the device is down. It defers a differing MAC on an already active
-device, preserving its UP state, index, addresses and children (S12/G4).
-It never lowers that device to make a change possible.
+## Ubuntu 26.04 cold-boot setting
 
-The kernel initially assigns a random locally administered unicast MAC.
-Udev's [MACAddressPolicy=persistent](https://www.freedesktop.org/software/systemd/man/latest/systemd.link.html#MACAddressPolicy=)
-may replace it with a generated,
-locally administered unicast MAC derived from stable machine/device
-identity; it is not a vendor-assigned hardware address. If networkd
-raises the device first, udev can receive `EBUSY` and leave the kernel's
-random address in place. Direct creation under the configured name helps
-name-based matching but does not order those two managers. Persistent
-generation also depends on udev obtaining stable device identity/naming
-data and on the selected `.link` policy.
+The stock `7.0.0-42.42` configuration enables kexec handover by default.
+Its scratch reservation can prevent this test's initramfs from unpacking
+in a 2 GiB guest. The helper adds `kho=off` only for configurations enabling
+that default; the stock kernel, modules and memory size are otherwise
+unchanged. This is a cold-boot test setting, not a daemon installation
+requirement. Daemon restart uses `execve`; the suite makes no kernel-handover
+preservation claim. The controlled failed/successful boots remain in the
+[archived boot record](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase6/boot-memory-20261031).
 
-The approved combined H11 contract tests both outcomes under concurrent
-activation, and separately orders persistent assignment while down and
-checks stability across re-creation. It does not promise persistent MAC
-assignment for every manager race or every staged temporary name.
-For a staged configured MAC, udev can apply a persistent value after the
-daemon's assignment; the daemon preserves that later manager override.
-An operator requiring the configured value must coordinate authority,
-for example with `MACAddressPolicy=none` matching both creation names.
-The corrected fixture retains the concurrent and ordered persistent cases.
-[Exact manager limitations](spec/hosts.md#other-network-managers) and
-executed Incus evidence (`audit/phase6/P5_VERIFICATION_2026-10-30.md`).
-Manager behavior depends on the userspace image and ordering as well as
-the kernel. The mainline/vanilla QEMU profile does not run udev/networkd,
-so a bare-kernel pass is not per-distribution proof of H11.
+## Limits of the evidence
 
-Unprivileged Incus/LXD also cannot supply initial-user-namespace
-capability for K36 or load host modules itself. Required modules must
-already be available from the host. All five kernel targets remain
-subject to those constraints. The full system-container scenario ran
-with kernel `6.8.0-147-generic` and an `images:ubuntu/24.04` userspace,
-including an observed FORCE `EPERM` fallback and real systemd FD store.
-It has not run separately on the other four required kernels.
-
-## Ubuntu 26.04 cold-boot memory limitation
-
-The stock `7.0.0-42.42` configuration enables kexec handover (KHO) by
-default. KHO reserves scratch memory for a future kernel transition.
-In a 2 GiB QEMU guest with this test initramfs, reservation can leave too
-little memory for unpacking: the guest panics before PID 1 and no daemon
-test executes. Other boots fail to reserve scratch, automatically disable
-KHO and boot successfully. A successful retry alone conceals this issue.
-
-Controlled boots with the same scratch sizes and layout reproduce the
-panic with KHO on and boot with it off; three further `kho=off` boots
-with address randomization enabled pass the memory probe. The matrix
-helper now adds `kho=off` only when the supplied config enables KHO by
-default. The stock kernel image, module tree, config and 2 GiB memory
-remain the same. This is a test cold-boot setting, not a required daemon
-installation setting. Daemon re-exec uses `execve`, not kernel kexec.
-The tests make no kernel-handover preservation claim.
-Repository file `audit/phase6/boot-memory-20261031/README.md` records the
-source, commands, failed boots and controls.
-
-## Earlier execution records
-
-The following dated records explain the earlier tests and fixes. The
-current per-target table above reports the latest refresh.
-
-The fresh required matrix after the approved errno correction and boot
-calibration returned **MATRIX_RESULT=0**, with unchanged published targets
-and test sources between its beginning/end. All five normal guests used
-identical test/daemon executable identities. Exact commands, configurations,
-image/module identities, features and guest releases are in
-repository file `audit/phase6/matrix-20261031T071523Z-3533819/README.md`.
-The transcript paths below are relative to repository directory
-`audit/phase6/matrix-20261031T071523Z-3533819/`.
-
-| Required kernel | Normal implemented profile | H20, all eight combinations | Transcript |
-|---|---|---|---|
-| Ubuntu `6.8.0-147-generic` | Pass | Pass | `noble/run.log` |
-| Vanilla `6.8.12` | Pass; empty-VRF errno 101 | Pass | `vanilla-6.8.12/run.log` |
-| Ubuntu `7.0.0-42-generic` | Pass; KHO disabled for cold boot | Pass | `resolute/run.log` |
-| Vanilla `7.0.14` | Pass | Pass | `vanilla-7.0.14/run.log` |
-| Mainline `7.3.0` | Pass | Pass | `vanilla-7.3/run.log` |
-
-Each normal guest passed 10 library live cases, 16 kernel cases, five
-review cases, 38 ordinary binary cases plus three explicit privileged
-binary cases, 26 process cases and 18 scenarios. This is the implemented
-profile; the missing scenarios and source/delegated limitations above
-remain open. A zero driver result does not close the complete Phase 6 gate.
-
-Earlier full implemented-profile passes exist for Ubuntu 24.04, vanilla
-7.0.14 and mainline 7.3 before the readiness/signal fix, and for Ubuntu
-26.04 after that fix. Vanilla 6.8.12 originally stopped at K26/K34 before
-process/scenario execution. The original driver failure, failed boot,
-userspace fixture corrections and retry remain in
-the P3 history (`audit/phase6/P3_MATRIX_DRIVER_2026-10-31.md`).
-
-Extra mainline boots with `ipv6.disable=1` and `CONFIG_IPV6=n` each run
-only the scoped H4/T4 case: IPv4 works on AF_INET sockets while IPv6 peers
-remain disconnected. Their zero markers do not mean the normal
-IPv6-dependent suite ran.
-
-A required-target run must resolve the published candidates again at
-start and end; superseded versions cannot pass the final Phase 6 gate.
-Ubuntu's mentioned `6.8.0-148.148` was not published in the inspected
-release/updates/security indexes; proposed packages and a planned
-`6.8.0-149.149` do not substitute for a fetchable required target.
-H15 degradation cases (`audit/phase6/H15-20261031/README.md`) now add four
-passing host scenarios and a passing scoped missing-driver guest, and fix
-host-defect severity/errno reporting. They postdate the five-target
-18-scenario matrix above; the latest expanded-suite refresh is recorded
-in the current table. The low-port-range DHCPv6 exception now
-has a passing positive case in the same Ubuntu 6.8 host profile.
-
-### Clock steps and pause/resume on each target
-
-The separate H16 clock profile passes on all five required targets.
-The record paths below are relative to repository directory `audit/phase6/`:
-
-| Required target | Forward/backward wall-clock steps and monitored VM pause | Record |
-|---|---|---|
-| Ubuntu 6.8.0-147-generic | Pass | `qemu-clock-noble-20261031/run.log` |
-| Vanilla 6.8.12 | Pass | `qemu-clock-vanilla6812-20261031/run.log` |
-| Ubuntu 7.0.0-42-generic | Pass | `qemu-clock-resolute-20261031/run.log` |
-| Vanilla 7.0.14 | Pass | `qemu-clock-vanilla7014-20261031/run.log` |
-| Mainline 7.3.0 | Pass, three repetitions | `H16-20261031/README.md` |
-
-On every target, one-second pending-peer retries and thirty-second wire
-DNS refreshes follow monotonic time across the steps and a QMP-confirmed
-three-second pause. An unchanged DNS answer preserves the connected
-tunnel. After resume, route-only recovery, address changes and temporary
-bind-name loss recover with real bidirectional frames and stable session
-indexes. Measurements and exact scope (`audit/phase6/H16-20261031/README.md`)
-include the independent host/guest pause observations. This is a separate
-one-case boot, not a rerun of the normal conformance/scenario profile.
-Physical S3 and subscription overflow during a stopped guest are not
-injected; live overflow/resync evidence remains separate.
-
-### Scale and resource observations
-
-The original H17 profiles on Ubuntu 6.8.0-147-generic and mainline 7.3.0 passed fresh 300-entry
-readiness, bidirectional traffic through every session, and three cycles
-from 300 owned tunnels down to one. Descriptors return from 314 to 15.
-An identical 300-entry reload issues 600 netlink requests; unrelated link
-creation/removal from the peer namespace produces zero requests, checked
-with a loss-accounted observer covering route and generic netlink.
-
-Direct allocation tests found and fixed retained socket/registration map
-capacity after shrink. RSS bounds alone did not detect those allocations.
-The lifetime subscriber now uses an ordered lookup by interface index
-and incarnation, preserving separate old/new proofs on index reuse. Its
-updated native and 32 live kernel cases plus all 23 host scenarios pass
-on Ubuntu 6.8.0-147-generic. Runtime deadline selection still scans tunnel
-timers after events in that source snapshot. The deadline-index package
-subsequently replaces those scans with ordered indexes, passing all
-23 host scenarios, 26 process cases and a fresh mainline H16 clock/pause
-case. Relevant-event cache maintenance still needs its complete CPU-cost
-proof; a zero-request assertion alone cannot establish it.
-The subsequent event-cache package (`audit/phase6/event-cache-20261031/README.md`)
-replaces global cache scans with updates for changed dependencies and
-fixes stale addresses after monitor resync and accumulated unbound VRF
-sibling records. Its five focused regressions and all 23 host scenarios
-pass on Ubuntu 6.8.0-147-generic. The current five-target refresh includes this policy change.
-The fresh mainline normal profile also passes 11 live library, 16 kernel,
-five review, 38 ordinary binary plus three privileged binary, 26 process
-and 23 scenario cases. Fresh readiness for both 300-entry daemons takes
-38.43 seconds under the recorded TCG profile. These results predate the indexed lifetime change except for its fresh
-Ubuntu 6.8 host checks. They are scoped to the executed profiles; H17 has
-now passed on every required target in the current refresh. Repository record
-`audit/phase6/H17-20261031/README.md` gives the scale commands and limits;
-`audit/phase6/lifetime-index-20261031/README.md` records indexed lifetime
-proofs; `audit/phase6/deadline-index-20261031/README.md` records indexed
-deadlines, conflict cancellation and fresh host/mainline-clock checks.
-
-Current merged production coverage remains below the required 100%; fresh
-E27 totals are in repository file
-`audit/PHASE6_VERIFICATION_2026-11-01.md`.
-The earlier 92.26% line report included inline
-test code. Both strict map flags are enabled after ten CI qualification
-passes, and the strict workflow and pinned-nightly coverage workflow pass.
-The final matrix,
-complete clause/event-cost/resource/history proof and remaining
-coverage/profile work keep Phase 6 incomplete.
-
-After fixing retained DNS and outgoing queue storage, fresh Ubuntu 6.8
-normal GNU, unmodified musl Incus and root-systemd profiles pass. Repository
-file `audit/phase6/resource-history-20261031/README.md` records exact source,
-workloads and limitations. These checks do not replace the final five-target
-matrix.
-
-The shared-discovery follow-up replaces an RA-only worker snapshot after
-DHCPv6 recovers and indexes resolver jobs, cancellation and answer delivery.
-Its full GNU profile, unmodified musl Incus and root-systemd checks pass
-on Ubuntu 6.8.0-147. Repository file
-`audit/phase6/resolver-cost-20261031/README.md` records the regression,
-cancellation measurements and remaining proof limits.
-Additional error-channel, worker-spawn and configuration cases improve
-coverage without changing production code; repository file
-`audit/phase6/coverage-errors-20261031/README.md` records that collection.
-The resolver commit's CI live guest exposes an upstream DHCPv6 cache that
-shares equally named interfaces across namespaces. Released `iphost` 0.4.2
-fixes that cache; the full Ubuntu 6.8 normal guest now passes, including all
-26 scenarios in 575.52 seconds. Fresh GNU, Incus and root-systemd profiles
-also pass. Repository record `audit/phase6/upstream-netns-20261031/README.md`
-gives source and scope. Released `iphost` 0.4.3 now removes closed subscribers
-and bounds pending datagrams. Fresh GNU, unprivileged Incus and root-systemd
-profiles pass; repository record
-`audit/phase6/upstream-dhcp-queues-20261031/README.md` records their source,
-limits and remaining G23/matrix work.
-
-### Refused monitor filters and descriptor exhaustion
-
-The R6/R9 package (`audit/phase6/R6-R9-20261031/README.md`) adds two
-host cases on Ubuntu `6.8.0-147-generic`. Denying `SO_ATTACH_FILTER` to
-the daemon child produces one warning; the unfiltered monitor still
-handles address removal/recovery, preserves the session index and carries
-bidirectional traffic after 100 unrelated device create/delete cycles.
-The warning includes the kernel's `EPERM` name.
-
-A second child is limited to 32 descriptors with 40 configured tunnels.
-Kernel `EMFILE` withholds readiness and produces one transient warning
-per missing tunnel; the already-created session keeps carrying frames.
-Raising that child's limit to 256, without a reload, permits all 40
-tunnels and readiness while preserving the session index. No host limit
-is changed. The package also distinguishes a real kernel `EAGAIN` from
-the internal tunable wait and checks both tunnel/session creation reports.
-
-That package extended the host suite to 25 scenarios. The current refresh
-executes these cases on all five targets, including vanilla 7.0.14's 25
-passing cases. No separate capability profile in Incus is established.
-
-### Library ownership and missing privileges
-
-The library requirement package (`audit/phase6/library-requirements-20261031/README.md`)
-adds three live cases on Ubuntu `6.8.0-147-generic`. Missing Tokio context
-returns constructor errors with adopted descriptors still owned by the caller;
-the blocking service works without a caller runtime. Dropping only the test
-thread's effective `CAP_NET_ADMIN` withholds readiness without preventing
-shutdown. Dropping a runtime closes active and retiring L2TP tunnel sockets
-while preserving a foreign tunnel, session and interface index.
-
-The expanded live kernel suite passes all 19 cases, the process suite all 26,
-and the full host suite all 25 on this target. A SIGKILL assertion also checks
-that both the tunnel and its session disappear without an external socket
-store. The current refresh passes these kernel/process cases on all five
-targets. Current Incus and root-manager profiles also pass on Ubuntu 6.8;
-those manager results do not extend to the other distributions.
-
-The operator requirement follow-up (`audit/phase6/operator-requirements-20261031/README.md`)
-strengthens wrong-session-ID and cookie rejection with separate negative
-windows before the positive frame, and hides both `/proc` and `/sys` from the
-daemon in the H9 container case. All 19 kernel, 26 process and 25 host cases
-pass in that package on `6.8.0-147-generic`. The current refresh executes
-the strengthened assertions on all five targets. Its real user-manager store case passes separately from the
-41-case container binary suite and does not replace the root P6 sandbox test.
-
-### Unavailable VRF driver
-
-The R45 guest profile (`audit/phase6/host-requirements-20261031/README.md`)
-passes on both modular Ubuntu targets, `6.8.0-147-generic` and
-`7.0.0-42-generic`. With `vrf` unloaded and guest autoload disabled, actual
-VRF creation is refused. Ordinary veth devices named `vrf0` still support
-binding, readiness and bidirectional frames for IPv4 and IPv6 peers. Losing
-and restoring the configured bind name disconnects/reconnects both tunnels
-without replacing sessions; the VRF driver remains absent. The name alone
-does not supply VRF semantics. This is one scoped case per stock kernel,
-separate from their normal profiles and from CONFIG_NET_VRF=n vanilla builds.
+Each normal pass establishes the assertions actually executed. Source-only
+facts and delegated resolver internals retain their
+[evidence classifications](kernel-evidence.md); a passing profile cannot
+promote them to per-target live proofs. The full route-type errno table,
+host autoload policy, forced concurrent dump traversal and all malformed
+resolver packet refusals are not independently exercised on every target.
+Historical attempts and superseded results remain in Git history.

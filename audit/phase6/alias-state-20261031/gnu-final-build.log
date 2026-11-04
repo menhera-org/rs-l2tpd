@@ -1,4 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-   Compiling iphost v0.4.3
-    Finished `test` profile [unoptimized + debuginfo] target(s)
-  Executable tests/kernel/linux.rs (target/x86_64-unknown-linux-gnu/debug/deps/kernel_linux-47a57be2a1356db2)

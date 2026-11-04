@@ -1,3 +1,0 @@
-master.is_some() && record.bind_index == master && record.connection.is_connected()
-===REPLACE===
-master.is_some() && record.bind_index == master && !record.connection.is_connected()

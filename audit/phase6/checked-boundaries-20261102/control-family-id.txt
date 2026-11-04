@@ -1,3 +1,0 @@
-id.ok_or_else(|| errno(libc::EPROTO))?
-===REPLACE===
-id.unwrap_or(42)

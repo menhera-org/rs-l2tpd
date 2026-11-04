@@ -1,8 +1,0 @@
-   Compiling rs-l2tpd v0.2.0 (/home/dev/rs-l2tpd)
-     Running unittests src/lib.rs (target/debug/deps/rs_l2tpd-2992259725ba1531)
-
-running 1 test
-test reconciler::sessions::wanted_tests::timed_out_creation_keeps_uncertainty_until_a_complete_fresh_scan ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 141 filtered out; finished in 0.00s
-

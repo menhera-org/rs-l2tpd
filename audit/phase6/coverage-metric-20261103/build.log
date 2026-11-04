@@ -1,7 +1,0 @@
-   Compiling itoa v1.0.18
-   Compiling memchr v2.8.3
-   Compiling zmij v1.0.23
-   Compiling serde_core v1.0.229
-   Compiling serde_json v1.0.154
-   Compiling phase6-coverage v0.1.0 (/home/dev/rs-l2tpd/tools/coverage)
-    Finished `dev` profile [unoptimized + debuginfo] target(s)

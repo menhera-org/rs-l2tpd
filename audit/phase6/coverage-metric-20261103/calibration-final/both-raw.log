@@ -1,8 +1,0 @@
-File '/tmp/rs-l2tpd-coverage-calibration.nuqEadIF/src/conditions.rs':
-Name                                          Regions    Miss   Cover     Lines    Miss   Cover  Branches    Miss   Cover
--------------------------------------------------------------------------------------------------------------------------
-_RINvCs4WozolX65fH_10conditions6choosehEB2_         6       0 100.00%         5       0 100.00%         2       0 100.00%
-_RINvCs4WozolX65fH_10conditions6choosetEB2_         6       0 100.00%         5       0 100.00%         2       0 100.00%
-_RNvCs4WozolX65fH_10conditions8repeated             6       0 100.00%         5       0 100.00%         4       0 100.00%
--------------------------------------------------------------------------------------------------------------------------
-TOTAL                                              18       0 100.00%        15       0 100.00%         8       0 100.00%

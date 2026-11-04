@@ -1,441 +1,213 @@
-# Phase 6 instructions: the proof
+# Phase 6: verification gates
 
 [Documentation index](README.md) · [Plan](plan.md#phase-6--proof) · [Testing](testing.md)
 
-Written for the coding agents and contributors who execute Phase 6. The
-[specification](spec/README.md) is normative; the [plan](plan.md) says
-what Phase 6 delivers; [testing](testing.md) defines the gates. This
-page turns those into ordered work packages with commands, deliverables
-and acceptance criteria. Where this page and the specification differ,
-the specification is right; where it and the plan differ, the plan is.
+Phase 6 is complete. These gates remain the acceptance criteria for further
+changes. The [specification](spec/README.md) defines behavior; a passing
+citation check alone does not prove an assertion or execute an ignored test.
+Repository file `audit/VERIFICATION.md` indexes the current source and results.
 
-## Entry state
+## Current status
 
-Phase 6 starts from the tree after the Phase 5 completion check and its
-fix commit (repository files `audit/PHASE5_COMPLETION_CONFORMANCE_2026-10-30.md`
-and `audit/phase5-completion/`). Everything in that report's fix list is
-done except E5, the strict traceability gates, which are this phase's
-first package, and the follow-up list F of the same report: F1 (an
-undecodable or foreign-family record fails a whole rtnetlink dump) and
-F2 (event-path re-creation always stages) are fixed, with verification in
-repository file `audit/PHASE6_ENTRY_FIXES_2026-10-30.md`. F3 to F7 are folded into the packages below (F3 into P2's H17
-scenario, F4 into P7's hosts page sentence, F5 into P1's E1 test, F6
-into P7's packaging page, F7 into P1's service tests). The live reconnection scenarios of that check
-(`audit/phase5-completion/reconnect/scenario.sh`) and its networkd and
-udev experiment (`audit/phase5-completion/networkd/`) are the seeds of
-the scenario suite below; read them before writing new scenarios.
+Production source `c599b1f` passes all three
+[CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915522)
+and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915465).
+Merged production coverage is **8,582/8,582 lines and 1,844/1,844 condition
+outcomes**, with unchanged exclusions. The local raw LLVM summary is
+99.45% lines and 98.26% outcomes; it remains a separate measurement.
+Strict maps cover all 333 active rules and all 43 kernel facts.
 
-## Execution status, 2026-11-03
+All thirteen required profiles pass on unchanged production/test source and
+stable publication selections: five full normal suites, five clock/pause
+cases, both IPv6-absent boots and missing-driver recovery. Each normal
+target passes 27 scenarios and 37 process cases. Three consecutive musl
+scenario/Incus pairs and the unmodified root-systemd guest also pass.
 
-Phase 6 is complete on signed commit `9e6aae6`. All three jobs in
-[CI run 41607623091](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623091)
-and [CodeQL run 41607623178](https://github.com/menhera-org/rs-l2tpd/actions/runs/41607623178)
-pass. P4 reports **8,486/8,486 merged production source lines and
-1,852/1,852 condition outcomes**. Raw LLVM reports 99.41% lines and 98.22%
-outcomes; the two metrics remain separate, and no production exclusion was
-added.
+All six Debian 12 and Rocky 9/10 optional profiles have run. Rocky 9/10
+pass normal and clock checks. Debian 12's normal and clock profiles fail
+existing MAC/UP-device rename assertions;
+its process and normal scenario suites were not reached. Results remain
+separate from the required Phase 6 gate.
 
-The complete required-kernel matrix passes all thirteen profiles: five normal
-suites, five clock/pause cases, both IPv6-absent boots and missing-driver
-recovery. Each normal profile passes all 27 scenarios and 37 process cases.
-Initial/final publication selections agree and both source patches are empty.
-Three consecutive musl scenario/Incus pairs and the unmodified root-systemd
-profile also pass with empty source patches.
 
-Strict maps cover all 333 active rules and all 43 kernel facts. The separate
-clause assessment checks the assertions and executed suites behind those
-citations. It found the S8 creation-name race; `f744335` fixes the ordering,
-and `9e6aae6` covers its remaining failure paths. Every final gate above uses
-that source. Allocation peaks pass ten GNU and ten musl repetitions, and the
-integrated source-work runner passes 240 cases with its mutation controls.
+## Rules for verification
 
-Repository records `audit/PHASE6_VERIFICATION_2026-11-03.md`,
-`audit/phase6/ci-coverage-9e6aae6-20261103/README.md`,
-`audit/phase6/matrix-20261103T090121Z-983779/README.md`,
-`audit/phase6/final-hosts-9e6aae6-20261103/README.md` and
-`audit/phase6/clause-assessment-20261103/README.md` retain the final evidence.
-Earlier failed collectors and parallel-QEMU clock experiments remain in their
-original records; the passing serial matrix does not assign those failures a
-cause.
-
-## Rules that hold for the whole phase
-
-- **Nothing is proved by reading.** A gate is green when the command in
-  this page ran and its log is in the verification record. A `/// spec:`
-  tag is traceability, not proof; a passing test that would also pass
-  without the behaviour it names is a defect of the test.
-- **Never weaken a rule to make a gate pass.** A rule that cannot be
-  tested as written is a question for the maintainer, asked with the
-  rule number, what the test would need, and the smallest change that
-  would make it testable. Stop that package until answered; continue
-  the others.
-- **Stop at the upstream boundary.** A need in `l2tp` or `iphost` is
-  written into [dependencies](dependencies.md#upstream-needs) and fixed
-  upstream first (`CONTRIBUTING.md`, step 5). The maintainer-approved `nix`
-  exception permits direct `libc` calls for broken wrappers, with documented
-  defects and GNU/musl tests ([dependencies](dependencies.md#upstream-needs)).
-- **No new dependency without a row in [dependencies](dependencies.md).**
-  Test tooling is pure Rust or POSIX `sh`; no Python, Node or Perl on
-  the host or in the images. `cargo-llvm-cov` is the one tool installed
-  for this phase (`cargo install cargo-llvm-cov --locked`, plus
-  `rustup component add llvm-tools-preview`).
-- **The host is not root, and host networking is never touched.**
-  Privileged work runs in disposable containers (`docker run --rm
-  --privileged --network none`), Incus containers or QEMU guests;
-  nothing changes the host's network, sysctls or units, and that
-  includes Incus: no `incus network create`, no managed bridge, no host
-  interface attached to a container, no `--network` other than `none`
-  for Docker. Every link, namespace, address and route a test needs is
-  created inside the container or guest and dies with it. The user
-  systemd manager may be used through `systemd-run --user`.
-- **Commits** go through `./commit.sh`, pushes through `./sync.sh`, one
-  package or one gate per commit, the gate's log committed with it under
-  `audit/phase6/`. Never `git add -A`.
-- **Records tell the truth.** Every run records `uname -r`, the exact
-  command, the feature set, the counts, and what was skipped and why. A
-  skipped scenario is reported as skipped, never as passed; a gate that
-  ran on a superseded kernel version does not count.
-- **Determinism before a gate is enabled.** A fake-kernel suite runs ten
-  times with different seeds, the container suite three times, with zero
-  flakes, before its strict flag goes into CI.
-  The plan additionally requires ten repetitions of each suite in CI;
-  these local counts do not substitute for that stronger requirement.
+- A gate passes only after its command executes successfully on identified
+  source and its results are retained. Record selected features, ignored/live
+  execution, exact kernel releases, artifact identities and skips/failures.
+- Keep semantic clause/table cases separate from declaration traceability.
+  A test that passes without its claimed behavior does not prove that behavior.
+- Never weaken a rule or add a coverage exclusion to make a run pass.
+  An untestable rule, missing upstream capability or unexplained behavior
+  discrepancy needs the maintainer's decision; continue independent work.
+- Fix required `l2tp`/`iphost` capabilities upstream first. The documented
+  checked-`libc` exception for broken `nix` wrappers requires GNU/musl tests.
+- Keep verification tooling pure Rust or POSIX `sh` and list its dependencies
+  in [dependencies](dependencies.md). Do not change host networking, sysctls
+  or units. Run privileged work inside disposable networkless Docker/Incus
+  containers or QEMU guests. No managed bridge or host interface attachment.
+- Commit with `./commit.sh` and push with `./sync.sh`; retain only your own
+  changes. Never `git add -A`. Machine-specific facts do not belong in records.
+- Report a skip as a skip. Missing Incus access does not pass its gate;
+  a superseded required kernel does not satisfy the moving target rule.
+- Qualify determinism before enabling a strict gate: ten seeded fake runs
+  and the required ten CI live repetitions, plus three local scenario runs.
+  Routine CI's one live guest does not substitute for that qualification.
 
 ## The six gates
 
-| Gate | Green when | Package |
+| Gate | Acceptance | Package |
 |---|---|---|
-| Rule map | `RULEMAP_STRICT=1 cargo test --test rulemap` passes: every active rule of every spec page is cited by a test declaration | P1 |
-| Source link | `SRCLINK_STRICT=1 cargo test --test srclink` passes: every `kernel::linux` function cites a K fact; linux-scoped facts need production citations, delegated/source-only facts need classified evidence and test citations | P1 |
-| Scenario suite | `tests/docker/run.sh scenarios` passes on the host kernel: one scenario per H rule and per conditional promise G15–G23, plus G11 interoperability with 0.1.5 | P2 |
-| Kernel matrix | `tests/docker/run.sh matrix required` passes on every kernel of the [kernel targets](testing.md#kernel-targets) table as resolved on the run's date | P3 |
-| Coverage | The checked merged-source report from `cargo llvm-cov` exports over unit, rules, properties, fake conformance and container profiles reaches 100 % of production lines and condition outcomes of `src/` (test-only `#[cfg(test)]` code excluded from instrumentation; tests still execute), with only the marked `kernel::linux` exclusions | P4 |
-| Incus/LXD | `tests/docker/run.sh incus` ran, not skipped, in an unprivileged system container | P5 |
+| Rule map | Every active numbered rule has a test-declaration citation; strict rule map passes | P1 |
+| Source link | Every `kernel::linux` function cites a K fact; every fact has its classified production/test evidence | P1 |
+| Scenarios | All normal host/manager scenarios execute successfully, including H20 fragmentation | P2 |
+| Required kernels | All thirteen required profiles pass with stable publication selections and source identities | P3 |
+| Coverage | Checked merged production source lines and executable condition outcomes both reach 100%, with only approved exclusions | P4 |
+| Incus/LXD | Unprivileged system-container scenario executes successfully | P5 |
 
-Exit of the phase: all six green on the running kernel and on every
-required kernel target, the fragmentation scenario of H20 (a session
-MTU equal to or larger than the underlay's) passing on every required
-kernel, the root system-unit sandbox check (P6) run, the verification
-record written (P7), and the strict flags on in CI.
+The root system-unit sandbox (P6), complete clause-case evidence and current
+documentation/records (P7) are additional phase-exit requirements.
 
-## P1. Traceability: close E5
+## P1. Traceability
 
-Current state (repository file `audit/phase5-completion/fixes/strict-rulemap.log`):
-340 rules, 330 active, 101 without a test citation; five K facts never
-cited by a `kernel::linux` function (K13, K14, K33, K38, K40).
+```sh
+RULEMAP_STRICT=1 cargo test --locked --test rulemap
+SRCLINK_STRICT=1 cargo test --locked --test srclink
+```
 
-1. Classify every uncited rule by the kind of test that proves it, and
-   write that test, not a placeholder:
-   - **H rules (H1–H19)**: each is a scenario of P2; the scenario's test
-     function carries the tag. Do P1's H part together with P2.
-   - **R rules (the host, the operator, the peers, other managers)**: a
-     requirement is tested by what the daemon does when it is not met.
-     `R49`/`R4`/`R46` (missing capability): run the binary in a container
-     with the capability dropped and assert the one-time report and the
-     fallback. `R1` (modules): a guest without `l2tp_eth` and the H15
-     report. Operator rules (R18–R30 and the like) are tested where the
-     daemon tolerates or refuses the operator's mistake; most already have
-     a configuration or reconciler test to extend with the tag rather than
-     a new test. Peer rules by frames the test injects.
-   - **G rules**: G1 (never exits on input) is a fuzz-style test over the
-     fake kernel's reply variations plus the process test with malformed
-     files; G2 and G4 by the property suite (`tests/properties/planner.rs`)
-     with assertions named; G8 by the readiness scenario; G9, G20 by the
-     shutdown scenario with `ip l2tp show`; G10 by `capget` in the live
-     test; G11 by the 0.1.5 interoperability scenario; G12, G13 by
-     counting kernel requests and log lines on the fake kernel; G14 by
-     the service tests; G15–G17, G19, G21 by scenarios with timing
-     asserted on the monotonic clock.
-   - **A rules**: architecture rules are tested where they are
-     observable. A5 (requests never on the monitor socket): a live test
-     that reads the monitor socket's port and asserts no request carries
-     it. A8–A12 (records, ownership): the planner properties. A15–A21
-     (concurrency, extension): the runtime and service tests. A1–A4 are
-     module-map statements; cite them from the existing boundary test of
-     L3 and from `tests/tools/rulemap.rs` itself where they describe the
-     test layout.
-   - **K facts never cited**: K13, K14, K38 and K40 are resolver-side
-     facts delegated to `iphost` ([kernel evidence](kernel-evidence.md)),
-     K33 (addresses dropped on down) is relied on by the reconciler's
-     S12 deferral, not by `kernel::linux`. The source-link gate as
-     written requires a `kernel::linux` citation for each. Do not add
-     fake citations. **Decision, 2026-10-30:** the maintainer selected
-     evidence-map classification. The gate reads the explicit scope in
-     `docs/kernel-evidence.md` and requires a test declaration citation
-     for each delegated/source-only fact. Linux-scoped facts continue to
-     require a production citation.
-   - **O2, O4, O9, E26**: log-level and message-content tests on the
-     report module and the process tests (E26 is the restart request
-     through the control handle and `SIGUSR2`).
-2. When the count reaches zero on the host, run the suites ten times
-   (see determinism), then set `RULEMAP_STRICT=1` and `SRCLINK_STRICT=1`
-   in `.github/workflows/ci.yml` and remove the "lenient until phase 6"
-   comments from `Cargo.toml` and `testing.md`.
+The common CI script enables both strict flags. Rule tags belong on test
+declarations, not helper functions. Keep a case for every distinct clause,
+table row and failure convention. Architecture/host requirements need tests
+of their observable consequences rather than placeholder citations.
 
-Acceptance: both strict commands pass locally and in CI; the record
-lists the rules that gained tests with their test locations.
-
-On 2026-10-31, [CI run 41205847108](https://github.com/menhera-org/rs-l2tpd/actions/runs/41205847108)
-passed all ten seeded fake/live repetitions on its first attempt. The
-retained qualification (`audit/phase6/strict-gates-20261031/README.md`)
-identifies the source and each result. Both strict flags are now set in
-the common CI script; regular CI retains one full guest per run. This
-establishes declaration traceability. The updated strict workflow also
-[passes in CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41211013318).
-Declaration traceability passes. P4 and the complete required matrix now
-also pass on signed `9e6aae6`, as recorded in the current execution status;
-the separate clause assessment passes on the same source.
+The source-link gate reads [kernel evidence](kernel-evidence.md). Linux-scoped
+facts need production citations. Delegated and source-only facts need explicit
+classification and test citations; do not manufacture Linux production links
+for resolver internals or device lowering that the daemon never performs.
 
 ## P2. The scenario suite
 
-Deliverable: `tests/scenarios/` as Rust integration tests (one file per
-spec page: `hosts.rs`, `promises.rs`, `managers.rs`), a single POSIX
-runner `tests/docker/run.sh` with the sub-commands of
-[testing](testing.md#running), and a review image built from
-`tests/kernel/Dockerfile.review` (iproute2 with L2TP, busybox, no
-Python). The runner builds the static daemon and the test executables
-for `x86_64-unknown-linux-musl`, mounts the checkout read-only at its
-absolute path, and runs the tests `--ignored --test-threads=1` in a
-privileged container with `--network none`.
+```sh
+tests/docker/run.sh scenarios
+```
 
-Design rules, learned in Phase 5 and the completion check:
+The runner builds static musl executables and uses the prepared review image
+in a disposable privileged container with `--network none`. It mounts the
+checkout read-only. Rust fixtures create all namespaces, links, routes and
+addresses inside the container and clean up on failure. The archived v0.1.5
+peer is built with its own lockfile in an isolated cache for interoperability.
 
-- A scenario is two network namespaces joined by a veth pair, one daemon
-  on each side (`--foreground --config … --config-dir …`), built with
-  `ip` from inside the test through `nsenter --net=/run/netns/<name>`
-  (`ip netns exec` fails in Docker). Connectivity is proved by frames:
-  bring the `l2tpeth` devices up with addresses and ping, or send a
-  frame and read the peer device's counters; `tx_dropped` growing on a
-  disconnected tunnel proves K5. Never infer from a log line alone.
-- Waits are event-driven with a hard timeout: poll a counter, a device
-  or a log line at 100 ms until it appears or the scenario fails; no
-  fixed sleep as a synchronisation step. Timing assertions (G15–G17, the
-  convergence bounds table) measure on `Instant` from the event the
-  test caused.
-- Every daemon is started with a cleanup guard that kills it and deletes
-  the namespaces on panic.
-- The 0.1.5 baseline binary is built once by the runner from
-  `git archive v0.1.5` with its own `Cargo.lock` into a cache directory
-  (it builds under the cooldown proxy), for the G11 scenario only.
+Scenarios cover H1–H20, G11 and the conditional timing/resource promises.
+Prove connectivity with actual frames and receive/drop counters, not logs
+alone. Event waits have hard deadlines; do not use fixed sleeps for ordering.
+Fake clocks assert exact retry deadlines, while live convergence includes the
+scheduling/kernel-operation delays stated by the contract.
 
-The scenarios, one test function each, tag in the doc comment:
+H20 is mandatory on every normal kernel target: session MTUs 1500 and 9000,
+underlay MTU 1500, IPv4/IPv6 and VRF/ordinary binding. Check bidirectional
+full-size frames, bulk traffic, sender fragments, session receive counters
+and no transmit drops. Socket options are read back separately. Netfilter
+can keep IPv6 reassembly statistics at zero; delivery counters remain required.
 
-| Tag | Host condition the test builds | Assertion |
-|---|---|---|
-| H1 | dual stack, IPv4 and IPv6 peers | both on `AF_INET6` sockets, frames both ways |
-| H2 | IPv6 stack present, no IPv6 address or route | IPv4 peer connects, IPv6 peer disconnected, ready before any route |
-| H3 | `disable_ipv6=1` on `all` and `default` | as H2, sockets still `AF_INET6` |
-| H4, T4 | a QEMU kernel booted with `ipv6.disable=1`, and one built without IPv6 (P3) | `AF_INET` sockets, every rule of T4 |
-| H5 | IPv6-only | the mirror of H2 |
-| H6, G21, P1 | no route at all at start | ready at once, tunnels created disconnected; exact one-second retry deadline checked with the fake; live connect within the existing 10 s fixture timeout, with monotonic delay recorded |
-| H7, E4, T27 | VRF with and without members, member join and `nomaster`, zoned link-local peer | source from the VRF domain, disconnect on `nomaster`, zone member rule |
-| H8 | a table of 100 000 routes, no default route | no request from the daemon touches routes (count `RTM_GETROUTE` through a second netlink socket), convergence time unchanged |
-| H9 | the daemon in a non-initial namespace with `/proc` unmounted | works; `SO_RCVBUFFORCE` refused handled (K36) |
-| H10 | a child VLAN of a session device moved to another namespace | shutdown removes it with the parent; the daemon never touches it |
-| H11 | the networkd/udev images of `audit/phase5-completion/networkd/` | direct creation matches the configured name's `.network`; concurrent activation preserves the active interface whether udev assigns a persistent MAC or receives `EBUSY`; a separately ordered case requires persistent MAC assignment while down and stability across re-creation; staged sessions retain H11's documented limits |
-| H12 | a foreign `ip l2tp` tunnel and session holding configured identifiers and a foreign device holding a configured name | conflicts counted, left out after ten, created when freed; foreign objects untouched |
-| H13 | bind device unplugged, replugged, replaced under the same name | the convergence bounds table rows |
-| H14 | address churn on the bind device, both families | one reconnect per same-family change, none otherwise |
-| H15, R1, R49 | stock-kernel QEMU guest with `l2tp_eth` absent and guest autoload disabled (a container shares the host's modules); capabilities dropped one at a time in disposable containers; child-only netlink refusal | one report each, readiness withheld only for the module/`CAP_NET_ADMIN` case, fallbacks for the other two |
-| H16 | a QEMU guest of P3, never a container: `CLOCK_REALTIME` is shared with the host and time namespaces offset only the monotonic and boot clocks, so the wall clock is stepped with `date -s` inside the guest, forwards and backwards, and the guest is paused and resumed through the QEMU monitor (`stop`, `cont`) to stand in for a suspend | no reconnect, retry or refresh fires or is delayed by the step; after the pause, timers resume from the monotonic clock and the host's own link and address events are handled as usual |
-| H17, M16, G12, G23 | 300 tunnels and 300 sessions | readiness time, memory and descriptor counts bounded as the rules say; an unrelated link event costs no kernel request |
-| H18, P25, T26 | `bindv6only=1` with the fix on and off | the handshake, the fallback, the read-back |
-| H19, P22 | started by a POSIX `sh` script acting as init: parent exit, PID file, signals | the process contract |
-| H20, K43, K44, T5, G22 | the veth underlay at MTU 1500, session devices at MTU 1500 and at 9000, over an IPv4 and over an IPv6 underlay, with and without a VRF binding; the seed is `audit/phase5-completion/fragmentation/frag.sh`, which passed with the current and the 0.1.5 daemon on 2026-10-30 | frames of the full session MTU delivered both ways (ping with payload MTU minus 28, plus a bulk transfer; BusyBox `ping` has no `-M do`), the session device's receive byte and packet counters growing by whole frames on the receiving side, the sender's `/proc/net/snmp` `Ip:` `FragCreates` or `/proc/net/snmp6` `Ip6FragCreates` growing, no `tx_dropped`, the daemon logging nothing, and `getsockopt` on each tunnel socket returning `IP_PMTUDISC_DONT`, `IPV6_PMTUDISC_DONT` and `IPV6_DONTFRAG = 0` as T5 requires. Do not assert on `ReasmReqds`/`Ip6ReasmReqds`: where `nf_defrag_ipv6` is loaded, netfilter reassembles in PREROUTING and those statistics stay at zero (seen on 6.8.0-147). This scenario is an acceptance condition of the phase and of 0.2.0 and runs on every kernel of P3 |
-| G11 | the new daemon on one side, 0.1.5 on the other | frames both ways with the 0.1.5 configuration format |
-| G15–G20 | the convergence bounds table, one row per assertion | each bound measured |
-
-Acceptance: `tests/docker/run.sh scenarios` passes on the host kernel
-three times in a row; every H rule and G15–G23 carry a citation.
-
-**Maintainer decision, 2026-11-01:** H6 checks the exact one-second retry
-deadline with the fake clock. The live case retains its ten-second event
-timeout and frame exchange, records monotonic route-to-connect time, and
-includes scheduling and kernel-operation delays as H6 now states. Earlier
-observed overshoots remain in the verification record.
+Run three consecutive local scenario/Incus pairs without flakes. Shared-kernel
+scale and request-count windows run serially; see [testing](testing.md) for
+neighbor-budget and cross-namespace notification interference.
 
 ## P3. The kernel matrix
 
-Deliverable: `tests/kernel/matrix.sh` (POSIX) driven by
-`tests/docker/run.sh matrix required|v6.8..v7.3`, which builds or
-fetches each kernel, boots it under TCG QEMU with an initramfs holding
-the static binary and the test executables, runs the conformance suite,
-the process suite and the scenario subset that needs no second
-container, and requires the result marker, not QEMU's exit code.
+```sh
+tests/docker/run.sh matrix required
+tests/docker/run.sh matrix v6.8..v7.3
+```
 
-- The **required set** is the table in [testing](testing.md#kernel-targets),
-  re-resolved on the run's date: the stock kernels of the two latest
-  Ubuntu LTS releases, their vanilla equivalents, and mainline. Ubuntu
-  kernels come from the `linux-image-*-generic` package of the
-  `ubuntu:24.04` and `ubuntu:26.04` images (unpack `vmlinuz` and the
-  modules; the init loads `l2tp_core`, `l2tp_netlink`, `l2tp_ip`,
-  `l2tp_ip6`, `l2tp_eth`, `vrf`, `dummy`, `veth`). Vanilla and mainline
-  kernels are built from kernel.org tarballs in a `debian:trixie-slim`
-  container, so that the host needs no kernel build tools:
-  `x86_64_defconfig` plus L2TP, VRF, dummy, veth, bridge and 802.1Q
-  built in. One extra build has IPv6 disabled for H4 and T4.
-- The **desired set** is every release from v6.8 to the newest; run it
-  when the required set is green and record which ones ran.
-- Memory `-m 2048`; strip only the test-binary copies that go into the
-  guest. When the supplied kernel config enables kexec handover by
-  default, the cold-boot helper adds `kho=off` to prevent its scratch
-  reservation from starving initramfs unpacking. This suite never uses
-  kernel kexec; daemon execve restart remains tested. See
-  the controlled boot evidence (`audit/phase6/boot-memory-20261031/README.md`)
-  and [per-target behavior](kernel-behavior.md).
-- Each required target also boots the separate H16 clock profile: guest
-  wall-clock steps and a controller-confirmed QMP pause/resume. Its one-case
-  result markers do not stand for the normal suite.
-- Update the table in `testing.md` whenever Ubuntu or kernel.org moves,
-  and re-run before calling the gate green.
+Resolve the [required targets](testing.md#kernel-targets) before and after the
+run: the latest two Ubuntu LTS kernels, their vanilla equivalents and mainline.
+Record parsed publication selections and package/source digests. Kernel.org
+HTML indexes are fetched and parsed in temporary storage, never committed.
+Reject changed targets or source patches.
 
-Acceptance: `CONFORMANCE_RESULT=0` and `SCENARIO_RESULT=0` for every
-required kernel, the `uname -r` of each in the record. The scenario
-subset run in the guests always includes H20 (fragmentation), which
-needs no second container: two namespaces in the guest suffice.
+Each normal boot runs conformance, binary/process checks and all 27 scenarios.
+Each required kernel also gets an H16 boot with guest wall-clock steps and a
+controller-confirmed QMP pause/resume. Run clock-sensitive profiles serially.
+Mainline additionally boots with `ipv6.disable=1` and with `CONFIG_IPV6=n`;
+modular Ubuntu gets missing-Ethernet-driver recovery.
+
+Require the expected guest release and all suite/result markers, including
+`H16_CONTROLLER_RESULT=0` for clock runs. A zero QEMU exit is insufficient.
+The helper's conditional `kho=off` is a cold-boot initramfs setting only;
+see [kernel behavior](kernel-behavior.md).
+
+Optional distribution kernels extend the evidence without replacing required
+targets. Reproduction helpers and exact package metadata are recorded with
+the optional results; kernel-only guests do not qualify distribution userspace.
 
 ## P4. Coverage
 
-- Build with `cargo llvm-cov` on the `x86_64-unknown-linux-gnu` target
-  (instrumentation and profile merging are simplest there); the musl
-  binary stays the shipped artefact and is still exercised by P2 and P3.
-- Profiles from container and QEMU runs are written to a directory the
-  test sets through `LLVM_PROFILE_FILE` and mounted back; the runner
-  merges them with the native profiles (`cargo llvm-cov report` after
-  `--no-report` runs).
-- Branch coverage needs a nightly toolchain for `-C instrument-coverage`
-  branch regions. Use nightly for the coverage job only, pinned in CI;
-  the shipped binary stays on stable. If the maintainer prefers a
-  stable-only job, report line and region coverage and say so in the
-  record; that is a decision to ask for, not to take.
-- Gate: 100 % of production lines and branches of `src/`. Test-only
-  `#[cfg(test)]` bodies/helpers are excluded from instrumentation; all required
-  tests still execute and must pass. The only allowed production exclusion
-  is a `kernel::linux` branch no kernel of the verified range reaches,
-  marked `// coverage: unreachable on <range>, <reason>` and listed in
-  the record. A branch that is reachable but untested is a missing test,
-  not an exclusion.
+Use pinned `nightly-2026-10-28`, cargo-llvm-cov 0.9.1 and LLVM tools for GNU
+branch instrumentation. Stable musl remains the shipped build and has its
+own live qualification. The separate CI job collects ten native seeds, a full
+instrumented guest and thread/fork-limit profiles from unchanged source.
+Repository file `tools/coverage/README.md` documents collection and checking.
 
-Coverage combines executions of the same production source across test
-executables and generic instantiations. A source line is covered when its
-merged LLVM line count is positive; each condition's true and false outcome
-must be observed at its exact source span. Different source spans remain
-separate. Folded outcomes follow LLVM's executable-outcome classification.
-The checker must fail on an unsupported export schema or inconsistent
-source mappings, and retain the raw LLVM summary and per-instantiation
-diagnostics alongside its result. No further production exclusion is added.
+The gate merges counts only for matching production source spans and condition
+occurrences across executable copies. Both outcomes of every executable
+condition must run. Folded outcomes follow LLVM's classification; raw
+per-instantiation totals remain separate and must be retained.
 
-Acceptance: merged production source lines and condition outcomes at 100 %
-with the permitted exclusion list; the command in CI as a separate job.
-
+Test-only `#[cfg(test)]` bodies/helpers are excluded from instrumentation,
+but every required test still executes. The only production exclusions are
+marked `kernel::linux` branches unreachable throughout the verified range.
+A reachable untested branch is missing evidence, not an exclusion.
+Retain source/mapping inventories, complete compressed exports, raw summary,
+diagnostics and the exclusion list. Reject changed sources, inconsistent
+mappings or unsupported export schemas. Calibration must reject missing arms,
+repeated-guard misses, changed source and invalid input before collecting P4.
 
 ## P5. The unprivileged system container
 
-What it checks is in [testing](testing.md#the-scenario-suite): a
-`security.privileged=false` container with the L2TP modules loaded by the
-host, `CAP_NET_ADMIN` only inside, `SO_RCVBUFFORCE` refused and the
-fallback taken (K36, R10), module autoload left to the host (K21, R1),
-the `bindv6only` write in the container's own namespace (P25), and the
-descriptor hand-over through the container's systemd (P14).
+```sh
+tests/docker/run.sh incus
+```
 
-The runner needs an Incus host where the user can create containers
-(the `incus-admin` group, or a project granted to them), the `images:`
-remote, and the L2TP, VRF, dummy and veth modules loaded on the host,
-because the unprivileged container cannot load them and that is what H9
-and K21 test. It needs no Incus network at all. A stock Incus container
-mounts `/sys` read-write and runs `systemd-udevd` and
-`systemd-networkd`, and inside it `CAP_NET_ADMIN` suffices to create
-dummy and veth devices, network namespaces, L2TP tunnels and sessions
-and to write `bindv6only` (verified on Incus 6.0); the "no udev"
-condition of H11 is Docker's read-only `/sys`, not Incus. The scenario
-sets `security.privileged=false` explicitly and does not depend on the
-host's default profile. Check with `incus list` before starting; where
-Incus is absent or unusable (CI, another host) the runner reports
-`skipped: no Incus access` with a non-zero exit distinct from failure. The gate is green only when it
-ran. The scenario: launch `images:ubuntu/24.04` with
-`security.privileged=false` and no network device (the container's own
-loopback, namespaces and veth pairs are all it uses; no Incus network is
-ever created, by the host-networking rule above), push the static daemon, a configuration and
-the unit, install with `--setup-systemd` inside, and assert the five
-checks above plus H11 with udev present, using the combined contract
-approved by the maintainer on 2026-10-30:
+Require usable Incus/LXD access and host-provided L2TP, VRF, dummy and veth
+modules. The driver explicitly sets `security.privileged=false`, attaches no
+host network device and deletes the container on success or failure. Missing
+access exits 77 with an explicit skip; it is not a pass.
 
-- With udev and networkd active concurrently, the configured-name
-  `.network` applies. Either udev's persistent MAC succeeds or its
-  MAC-while-up write is refused with `EBUSY`; the daemon must preserve
-  the interface's identity, UP state, addresses and current MAC.
-- Separately, hold networkd inactive until udev has completed persistent
-  MAC assignment on the down interface, then activate networkd. Repeat a
-  clean removal/re-creation and require the same MAC with unchanged
-  machine identity, configured name and policy.
-- Keep the staged configured-MAC case with an explicit `.link` MAC authority
-  matching both creation names, and the P14 hand-over across a `kill -9`
-  under the container's systemd.
-
-**Maintainer decision, 2026-11-01:** later udev MAC assignments remain
-manager overrides under S12/G4. The configured-MAC case uses
-`MACAddressPolicy=none`; H11 documents why matching the final name alone
-does not prevent the staged-creation race. The concurrent and ordered
-persistent-MAC cases stay in force.
-
-The ordered case proves the stated ordering prerequisite only. It must
-not be reported as a guarantee that persistent assignment always wins
-concurrent activation. Direct creation avoids temporary-name identity
-problems; it does not make udev's MAC write and networkd's activation
-atomic. The daemon must not lower an active device to repair this race
-(G4). Full operator-facing limitations are in [H11](spec/hosts.md#other-network-managers).
-Delete the container at the end, on failure too.
+Assert namespace-local `bindv6only`, actual `SO_RCVBUFFORCE=EPERM` and ordinary
+buffer fallback, real systemd storage/adoption, re-exec and cleanup. H11 checks
+both concurrent persistent-MAC/activation outcomes while preserving the active
+device, then separately orders persistent assignment while down and requires
+stability after re-creation. The staged configured-MAC fixture supplies explicit
+`MACAddressPolicy=none` authority for both creation names. Do not promise that
+persistent assignment always wins a concurrent manager race or lower an active
+device to force it. [H11](spec/hosts.md#other-network-managers) states the limits.
 
 ## P6. The root system-unit sandbox
 
-The one check the Phase 5 review left open (C6 of the 2026-10-29 review):
-the supplied unit under a real root systemd, with every mount and
-capability restriction active. Run it in a QEMU guest of P3 that boots a
-minimal systemd (an Ubuntu 24.04 root filesystem from the `ubuntu:24.04`
-image with `systemd` installed, the daemon installed by `--setup-systemd`
-inside the guest), and assert: the unit starts and `network-online.target`
-waits for it; the `bindv6only` write succeeds under
-`ProtectKernelTunables=yes` through `ReadWritePaths`; the PID file lands
-in `/run/rs-l2tpd/`; `capsh --print` of the main process shows exactly
-the three capabilities; `kill -9` of the daemon keeps the tunnels alive
-through the descriptor store and the restarted instance adopts them;
-`rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid` keeps the
-interface indices; `systemctl stop` removes everything and exits 0.
+Run `tests/kernel/run-guest.sh IMAGE MODULES CONFIG systemd RECORD` with the
+prepared `nd-test:u2404` image: Ubuntu 24.04 with systemd, udev, dbus,
+iproute2 and procps. The runner consumes this prebuilt image; provisioning
+must use an offline package source with Docker networking disabled. The
+previous preparation recipe remains in
+[Git history](https://github.com/menhera-org/rs-l2tpd/blob/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase5-completion/networkd/Dockerfile).
+Install with `--setup-systemd` inside the
+guest and leave the supplied unit unmodified. Assert startup ordering, the
+tunable write through `ReadWritePaths` under `ProtectKernelTunables=yes`, the
+dedicated PID directory and exact three capabilities. Verify crash/store
+survival, adoption, CLI restart preserving interface indexes and clean stop.
+Retain the guest journal and assertions. A transport-only user-manager check
+does not establish this mount-sandbox result.
 
-Acceptance: the guest's journal and the assertions in the record.
+## P7. Records and documentation
 
-## P7. The verification record and the documentation
+Update repository file `audit/VERIFICATION.md` after the runs. Include source
+identities, exact commands, kernel releases, selected features, suite counts,
+coverage distinctions, skips/failures and links to current records. Preserve
+superseded evidence in Git history before removing it from the main tree.
+Do not commit fetched kernel.org HTML.
 
-- `audit/PHASE6_VERIFICATION_<date>.md`: every gate, the exact command,
-  `uname -r` per run, counts, durations, the skipped list with reasons,
-  the coverage exclusion list, and links to the logs under
-  `audit/phase6/`.
-- `docs/plan.md` Phase 6 status, `docs/testing.md` (the gates table
-  loses "planned", the kernel table gets the run date), `docs/README.md`
-  and the top-level `README.md` status paragraphs, `tests/docker/README.md`
-  rewritten for the real runner, `.github/workflows/ci.yml` with the
-  strict flags, the coverage job and the determinism repeats.
-- Documentation stays standalone: name repository files outside `docs/`
-  in prose, never link them.
-
-## Order and parallelism
-
-P2 first, because P1's H rules and most G rules are its scenarios, and
-P3 and P5 reuse its tests. P1's non-scenario rules and P4's tooling can
-start in parallel with P2. P3 after P2 passes on the host kernel. P6
-needs P3's guest tooling. P5 needs usable unprivileged Incus access; the current passing scope is
-recorded above.
-P7 is written as the gates turn green, not at the end.
-
-## Stop and ask when
-
-- a rule cannot be tested as written (name the rule, the obstacle, the
-  smallest change);
-- `l2tp` or `iphost` lacks something the test needs;
-- a new fact has no source-link classification (P1's five existing
-  delegated/source-only facts were decided on 2026-10-30);
-- the pinned coverage toolchain (P4) cannot collect or merge branch profiles;
-- Incus/LXD access (P5) is missing;
-- a scenario shows the daemon doing something the specification does
-  not say, even when the suite is green: that is either a defect or a
-  spec gap, and both are the maintainer's call.
+Keep the plan, testing guide, kernel behavior/evidence, interface, dependency
+inventory and runner instructions consistent. Documentation under `docs/`
+stays standalone: name repository paths outside it in prose. Keep normative
+rules intact unless the maintainer has authorized a contract change.

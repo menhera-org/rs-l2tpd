@@ -1,4 +1,0 @@
-features: all
-target: x86_64-unknown-linux-gnu
-command: cargo test --locked --all-features --lib reconciler::address_bound_witness:: -- --test-threads=1 --nocapture
-scope: isolated fake-only collection counts; no live networking

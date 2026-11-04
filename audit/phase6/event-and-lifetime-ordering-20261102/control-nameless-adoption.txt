@@ -1,5 +1,0 @@
-        for s in found {
-
-===REPLACE===
-        for s in found {
-            if s.ifname.is_none() { continue; }

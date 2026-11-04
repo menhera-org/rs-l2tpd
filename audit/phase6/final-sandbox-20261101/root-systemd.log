@@ -1,5 +1,0 @@
-c[?7l[2J[    0.000000] Linux version 6.8.0-147-generic (buildd@lcy02-amd64-081) (x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 (Ubuntu 6.8.0-147.147-generic 6.8.12)
-GUEST_KERNEL_RELEASE=6.8.0-147-generic
-[   74.347751] phase6-probe[483]: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 26.72s
-[   74.652533] phase6-finish[487]: Nov 01 21:57:16 phase6 phase6-probe[483]: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 26.72s
-ROOT_SYSTEMD_RESULT=0

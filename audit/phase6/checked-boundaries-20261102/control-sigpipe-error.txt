@@ -1,3 +1,0 @@
-if unsafe { libc::signal(libc::SIGPIPE, libc::SIG_IGN) } == libc::SIG_ERR {
-===REPLACE===
-if { let _ = unsafe { libc::signal(libc::SIGPIPE, libc::SIG_IGN) }; false } {

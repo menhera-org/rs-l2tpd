@@ -1,3 +1,0 @@
-if let Some(name) = before {
-===REPLACE===
-if let Some(name) = Some(before.expect("controlled missing cached name")) {

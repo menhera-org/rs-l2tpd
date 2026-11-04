@@ -1,7 +1,0 @@
-set -eu
-record=$PWD/audit/phase6/event-and-lifetime-ordering-20261102
-export CARGO_LLVM_COV_TARGET_DIR=$PWD/target/phase6-coverage-event-ordering-20261102
-for seed in 1 2 3 4 5 6 7 8 9 10; do
- TEST_SEED=$seed cargo +nightly-2026-10-28 llvm-cov --locked --all-features --target x86_64-unknown-linux-gnu --branch --no-report > "$record/instrumented-$seed.log" 2>&1
-done
-printf 'ORDERING_TEN_FRESH_INSTRUMENTED_SUITES_RESULT=0\n'

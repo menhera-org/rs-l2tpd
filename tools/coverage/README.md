@@ -58,11 +58,16 @@ requires missing artifact logs and relative guest paths to fail before Docker.
 
 The separate production-coverage workflow job collects ten ordinary suites,
 a full GNU instrumented guest and thread/fork refusal profiles, then requires
-both merged totals to reach 100%. A fresh local rehearsal passes 8,444/8,444
-source lines and 1,838/1,838 condition outcomes. GitHub run 41582370103
-passes the separate job on signed e29c6f3, with identical source fingerprints
-and the same complete source totals. Its raw summary remains 99.40% lines
-and 98.20% outcomes. This is one CI execution of this revision.
+both merged totals to reach 100%. Production source `c599b1f` passes
+8,582/8,582 source lines and 1,844/1,844 condition outcomes, locally and in
+[CI run 41755915522](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915522).
+The local raw LLVM report remains separate at 99.45% lines and 98.26% outcomes.
+Current records and source identities are indexed in
+[audit/VERIFICATION.md](../../audit/VERIFICATION.md).
+
+`tools/coverage/Dockerfile` supplies the GNU runtime in the review image;
+CI builds it with `docker build --network none`. Gating scripts live in
+`tools/coverage/` and `tests/`; audit directories contain their evidence.
 
 
 `sh tools/coverage/run-guest.sh NATIVE_LOG KERNEL_ROOT RECORD PROFILES` requires
@@ -97,5 +102,6 @@ scan fails its curve check while the older functional witness still passes.
 The ordinary resource-alloc integration target separately measures startup
 and resync allocation peaks on GNU and musl. The build workflow has a
 20-minute work step and a 60-minute job bound, and uploads failure records.
-Its new revision still needs an actual GitHub result; the earlier successful
-P4 run does not qualify this added step.
+The current build job passes the source-work and allocation checks as well
+as the ordinary gates. Historical calibration and mutation evidence remain
+available in Git history; these measurements remain separate from P4.

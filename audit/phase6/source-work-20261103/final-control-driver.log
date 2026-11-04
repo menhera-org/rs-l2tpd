@@ -1,5 +1,0 @@
-repeat=1 kind=calibration bindings=1 region_executions=1500
-repeat=1 kind=calibration bindings=100 region_executions=150000
-repeat=1 kind=calibration bindings=300 region_executions=450000
-repeat=1 kind=unrelated bindings=1 region_executions=28500
-work curve differs: repeat=1 kind=unrelated bindings=100 observed=78000 expected=28500

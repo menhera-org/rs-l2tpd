@@ -1,8 +1,0 @@
-kernel-unit git-blob: a8cbd3a8126bea41491b02d94ba4aefe2d313e36
-binary-unit git-blob: 6d5668a740076574f59ffff67237d1bcf1e3d348
-kernel-linux git-blob: e571ed2a07196a14d5cd26fb7d6985cca5f635f2
-review-kernel git-blob: ada4ec8eb738d22bca6767f589c86032990b4296
-process-test git-blob: 5eb61f26886b204d25d11466369cef8382c448c7
-scenarios git-blob: a29f35b213e1f871cf9cc96a7b9aab6b377d664f
-boot-scenarios git-blob: 42276d9b08522de747a23f775a762c282562aeac
-daemon git-blob: dfb635027d5f23b9762e9745af4c4502051bdd1c
