@@ -1,9 +1,0 @@
-File '/tmp/rs-l2tpd-coverage-calibration.5A6oZhOD/src/conditions.rs':
-Name                                            Regions    Miss   Cover     Lines    Miss   Cover  Branches    Miss   Cover
----------------------------------------------------------------------------------------------------------------------------
-_RINvCs4WozolX65fH_10conditions6choosehEB2_           6       1  83.33%         5       1  80.00%         2       1  50.00%
-_RINvCs4WozolX65fH_10conditions6choosetEB2_           6       1  83.33%         5       1  80.00%         2       1  50.00%
-_RINvCs4WozolX65fH_10conditions8repeatedhEB2_         7       0 100.00%         5       0 100.00%         4       2  50.00%
-_RINvCs4WozolX65fH_10conditions8repeatedtEB2_         7       0 100.00%         5       0 100.00%         4       2  50.00%
----------------------------------------------------------------------------------------------------------------------------
-TOTAL                                                26       2  92.31%        20       2  90.00%        12       6  50.00%

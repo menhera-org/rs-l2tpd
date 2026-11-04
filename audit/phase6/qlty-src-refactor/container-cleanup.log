@@ -1,5 +1,0 @@
-command: incus list --format csv -c n
-rs-l2tpd-phase6-1472006 absent
-rs-l2tpd-phase6-1478360 absent
-rs-l2tpd-phase6-1484938 absent
-INCUS_CLEANUP_RESULT=0

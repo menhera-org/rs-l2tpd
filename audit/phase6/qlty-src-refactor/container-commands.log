@@ -1,6 +1,0 @@
-iteration=1 command=sh tests/docker/run.sh scenarios
-iteration=1 command=sh tests/docker/run.sh incus
-iteration=2 command=sh tests/docker/run.sh scenarios
-iteration=2 command=sh tests/docker/run.sh incus
-iteration=3 command=sh tests/docker/run.sh scenarios
-iteration=3 command=sh tests/docker/run.sh incus

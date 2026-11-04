@@ -1,5 +1,0 @@
-scope: GNU instrumented normal matrix profile, buffer-force and real CLI restart
-
-kernel git-blob: 812729084e78b0c3f817eec4997668a631a9561c
-helper git-blob: 5470f2ed04461acad32237e0016c530435eb19a8
-command: timeout 1800 qemu-system-x86_64 -accel tcg -machine q35 -cpu max -m 2048 -smp 2 -nodefaults -nographic -serial stdio -no-reboot -kernel IMAGE -initrd INITRAMFS -append console=ttyS0 rdinit=/init panic=1 rootfstype=ramfs kho=off -fsdev local,id=profiles,path=PROFILES,security_model=none -device virtio-9p-pci,fsdev=profiles,mount_tag=profiles

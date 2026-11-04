@@ -1,7 +1,7 @@
 # Verification checkpoint
 
 Signed source [`2ce54d2`](https://github.com/menhera-org/rs-l2tpd/commit/2ce54d281e0edbf2fb32d811f5cd027abbc9d954)
-preserves behavior and public APIs. [Execution records](phase6/qlty-src-refactor/README.md)
+preserves behavior and public APIs. [Execution records](https://github.com/menhera-org/rs-l2tpd/blob/3130f0fb24ebce016824224d04ca622743777210/audit/phase6/qlty-src-refactor/README.md)
 retain the commands and full results. Further complexity, inlining and package
 work is in progress; full qualification of the final source is deferred to
 goal step 6. This checkpoint does not qualify those pending changes.
