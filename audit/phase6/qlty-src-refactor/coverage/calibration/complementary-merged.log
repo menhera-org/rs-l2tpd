@@ -1,0 +1,4 @@
+/tmp/rs-l2tpd-coverage-calibration.5A6oZhOD/src/conditions.rs: lines 10/10; outcomes 6/6; raw LLVM lines 9/10; raw outcomes 5/6
+MERGED_SOURCE_LINES=10/10
+MERGED_SOURCE_OUTCOMES=6/6
+MERGED_SOURCE_GATE=PASS

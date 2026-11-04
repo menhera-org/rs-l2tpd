@@ -1,0 +1,120 @@
+<package type="rpm">
+  <name>kernel-modules-extra</name>
+  <arch>x86_64</arch>
+  <version epoch="0" ver="5.14.0" rel="687.61.1.el9_8"/>
+  <checksum type="sha256" pkgid="YES">b6395ab706aa332036ff8687997cd1a3a436429798cd0f586ab8266079fb9e6c</checksum>
+  <summary>Extra kernel modules to match the kernel</summary>
+  <description>This package provides less commonly used kernel modules for the kernel package.</description>
+  <packager>Release Engineering &lt;releng@rockylinux.org&gt;</packager>
+  <url>https://www.kernel.org/</url>
+  <time file="1793119215" build="1793108296"/>
+  <size package="1557189" installed="440415" archive="446756"/>
+  <location href="Packages/k/kernel-modules-extra-5.14.0-687.61.1.el9_8.x86_64.rpm"/>
+  <format>
+    <rpm:license>((GPL-2.0-only WITH Linux-syscall-note) OR BSD-2-Clause) AND ((GPL-2.0-only WITH Linux-syscall-note) OR BSD-3-Clause) AND ((GPL-2.0-only WITH Linux-syscall-note) OR CDDL-1.0) AND ((GPL-2.0-only WITH Linux-syscall-note) OR Linux-OpenIB) AND ((GPL-2.0-only WITH Linux-syscall-note) OR MIT) AND ((GPL-2.0-or-later WITH Linux-syscall-note) OR BSD-3-Clause) AND ((GPL-2.0-or-later WITH Linux-syscall-note) OR MIT) AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND BSD-3-Clause-Clear AND GFDL-1.1-no-invariants-or-later AND GPL-1.0-or-later AND (GPL-1.0-or-later OR BSD-3-Clause) AND (GPL-1.0-or-later WITH Linux-syscall-note) AND GPL-2.0-only AND (GPL-2.0-only OR Apache-2.0) AND (GPL-2.0-only OR BSD-2-Clause) AND (GPL-2.0-only OR BSD-3-Clause) AND (GPL-2.0-only OR CDDL-1.0) AND (GPL-2.0-only OR GFDL-1.1-no-invariants-or-later) AND (GPL-2.0-only OR GFDL-1.2-no-invariants-only) AND (GPL-2.0-only WITH Linux-syscall-note) AND GPL-2.0-or-later AND (GPL-2.0-or-later OR BSD-2-Clause) AND (GPL-2.0-or-later OR BSD-3-Clause) AND (GPL-2.0-or-later OR CC-BY-4.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH Linux-syscall-note) AND ISC AND LGPL-2.0-or-later AND (LGPL-2.0-or-later OR BSD-2-Clause) AND (LGPL-2.0-or-later WITH Linux-syscall-note) AND LGPL-2.1-only AND (LGPL-2.1-only OR BSD-2-Clause) AND (LGPL-2.1-only WITH Linux-syscall-note) AND LGPL-2.1-or-later AND (LGPL-2.1-or-later WITH Linux-syscall-note) AND (Linux-OpenIB OR GPL-2.0-only) AND (Linux-OpenIB OR GPL-2.0-only OR BSD-2-Clause) AND Linux-man-pages-copyleft AND MIT AND (MIT OR GPL-2.0-only) AND (MIT OR GPL-2.0-or-later) AND (MIT OR LGPL-2.1-only) AND (MPL-1.1 OR GPL-2.0-only) AND (X11 OR GPL-2.0-only) AND (X11 OR GPL-2.0-or-later) AND Zlib AND (copyleft-next-0.3.1 OR GPL-2.0-or-later)</rpm:license>
+    <rpm:vendor>Rocky Enterprise Software Foundation</rpm:vendor>
+    <rpm:group>Unspecified</rpm:group>
+    <rpm:buildhost>hou1-build-x86-01.releng.rockylinux.org</rpm:buildhost>
+    <rpm:sourcerpm>kernel-5.14.0-687.61.1.el9_8.src.rpm</rpm:sourcerpm>
+    <rpm:header-range start="4504" end="1116029"/>
+    <rpm:provides>
+      <rpm:entry name="config(kernel-modules-extra)" flags="EQ" epoch="0" ver="5.14.0" rel="687.61.1.el9_8"/>
+      <rpm:entry name="installonlypkg(kernel-module)"/>
+      <rpm:entry name="kernel(__fou_build_header)" flags="EQ" epoch="0" ver="0x780cbcb3"/>
+      <rpm:entry name="kernel(__gue_build_header)" flags="EQ" epoch="0" ver="0x3c505b77"/>
+      <rpm:entry name="kernel(fou_encap_hlen)" flags="EQ" epoch="0" ver="0x1757d1a4"/>
+      <rpm:entry name="kernel(gue_encap_hlen)" flags="EQ" epoch="0" ver="0xf13914b3"/>
+      <rpm:entry name="kernel(l2tp_ioctl)" flags="EQ" epoch="0" ver="0xc4e81ac8"/>
+      <rpm:entry name="kernel(l2tp_nl_register_ops)" flags="EQ" epoch="0" ver="0x6ac9b256"/>
+      <rpm:entry name="kernel(l2tp_nl_unregister_ops)" flags="EQ" epoch="0" ver="0x337f2432"/>
+      <rpm:entry name="kernel(l2tp_recv_common)" flags="EQ" epoch="0" ver="0xb8880cdd"/>
+      <rpm:entry name="kernel(l2tp_session_create)" flags="EQ" epoch="0" ver="0xdf4f77ec"/>
+      <rpm:entry name="kernel(l2tp_session_dec_refcount)" flags="EQ" epoch="0" ver="0x9d701ba7"/>
+      <rpm:entry name="kernel(l2tp_session_delete)" flags="EQ" epoch="0" ver="0xb86ef1fb"/>
+      <rpm:entry name="kernel(l2tp_session_get)" flags="EQ" epoch="0" ver="0xdeb65791"/>
+      <rpm:entry name="kernel(l2tp_session_get_by_ifname)" flags="EQ" epoch="0" ver="0xe94a985d"/>
+      <rpm:entry name="kernel(l2tp_session_get_nth)" flags="EQ" epoch="0" ver="0x095e5fb8"/>
+      <rpm:entry name="kernel(l2tp_session_inc_refcount)" flags="EQ" epoch="0" ver="0x163669cd"/>
+      <rpm:entry name="kernel(l2tp_session_register)" flags="EQ" epoch="0" ver="0xcc3a3654"/>
+      <rpm:entry name="kernel(l2tp_session_set_header_len)" flags="EQ" epoch="0" ver="0x2ee859e9"/>
+      <rpm:entry name="kernel(l2tp_sk_to_tunnel)" flags="EQ" epoch="0" ver="0xdb03284f"/>
+      <rpm:entry name="kernel(l2tp_tunnel_create)" flags="EQ" epoch="0" ver="0xe7d63fe6"/>
+      <rpm:entry name="kernel(l2tp_tunnel_dec_refcount)" flags="EQ" epoch="0" ver="0xc4efa627"/>
+      <rpm:entry name="kernel(l2tp_tunnel_delete)" flags="EQ" epoch="0" ver="0x2b3c2e34"/>
+      <rpm:entry name="kernel(l2tp_tunnel_get)" flags="EQ" epoch="0" ver="0x98339c8b"/>
+      <rpm:entry name="kernel(l2tp_tunnel_get_nth)" flags="EQ" epoch="0" ver="0x32bcad53"/>
+      <rpm:entry name="kernel(l2tp_tunnel_get_session)" flags="EQ" epoch="0" ver="0x0fbfb568"/>
+      <rpm:entry name="kernel(l2tp_tunnel_inc_refcount)" flags="EQ" epoch="0" ver="0x8c890376"/>
+      <rpm:entry name="kernel(l2tp_tunnel_register)" flags="EQ" epoch="0" ver="0xc09e1ba7"/>
+      <rpm:entry name="kernel(l2tp_udp_encap_recv)" flags="EQ" epoch="0" ver="0xdea45509"/>
+      <rpm:entry name="kernel(l2tp_xmit_skb)" flags="EQ" epoch="0" ver="0xd097d3c2"/>
+      <rpm:entry name="kernel(sctp_do_peeloff)" flags="EQ" epoch="0" ver="0x9af87cc7"/>
+      <rpm:entry name="kernel(sctp_for_each_endpoint)" flags="EQ" epoch="0" ver="0x2aab0a03"/>
+      <rpm:entry name="kernel(sctp_get_sctp_info)" flags="EQ" epoch="0" ver="0xafc00c83"/>
+      <rpm:entry name="kernel(sctp_transport_lookup_process)" flags="EQ" epoch="0" ver="0x3f4d7747"/>
+      <rpm:entry name="kernel(sctp_transport_traverse_process)" flags="EQ" epoch="0" ver="0xee57f523"/>
+      <rpm:entry name="kernel-modules-extra" flags="EQ" epoch="0" ver="5.14.0" rel="687.61.1.el9_8"/>
+      <rpm:entry name="kernel-modules-extra(x86-64)" flags="EQ" epoch="0" ver="5.14.0" rel="687.61.1.el9_8"/>
+      <rpm:entry name="kernel-modules-extra-uname-r" flags="EQ" epoch="0" ver="5.14.0" rel="687.61.1.el9_8.x86_64"/>
+      <rpm:entry name="kernel-modules-extra-x86_64" flags="EQ" epoch="0" ver="5.14.0" rel="687.61.1.el9_8"/>
+      <rpm:entry name="kmod(aer_inject.ko)"/>
+      <rpm:entry name="kmod(br2684.ko)"/>
+      <rpm:entry name="kmod(clip.ko)"/>
+      <rpm:entry name="kmod(cuse.ko)"/>
+      <rpm:entry name="kmod(ems_usb.ko)"/>
+      <rpm:entry name="kmod(fou.ko)"/>
+      <rpm:entry name="kmod(fou6.ko)"/>
+      <rpm:entry name="kmod(l2tp_core.ko)"/>
+      <rpm:entry name="kmod(l2tp_debugfs.ko)"/>
+      <rpm:entry name="kmod(l2tp_eth.ko)"/>
+      <rpm:entry name="kmod(l2tp_ip.ko)"/>
+      <rpm:entry name="kmod(l2tp_ip6.ko)"/>
+      <rpm:entry name="kmod(l2tp_netlink.ko)"/>
+      <rpm:entry name="kmod(l2tp_ppp.ko)"/>
+      <rpm:entry name="kmod(lec.ko)"/>
+      <rpm:entry name="kmod(pppoatm.ko)"/>
+      <rpm:entry name="kmod(sctp.ko)"/>
+      <rpm:entry name="kmod(sctp_diag.ko)"/>
+      <rpm:entry name="kmod(slcan.ko)"/>
+      <rpm:entry name="kmod(slip.ko)"/>
+      <rpm:entry name="kmod(tcp_bic.ko)"/>
+      <rpm:entry name="kmod(tcp_htcp.ko)"/>
+      <rpm:entry name="kmod(tcp_illinois.ko)"/>
+      <rpm:entry name="kmod(tcp_westwood.ko)"/>
+      <rpm:entry name="kmod(test_lockup.ko)"/>
+      <rpm:entry name="kmod(vcan.ko)"/>
+      <rpm:entry name="modalias(char-major-10-203)"/>
+      <rpm:entry name="modalias(devname:cuse)"/>
+      <rpm:entry name="modalias(net-l2tp-type-5)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-l2tp-type-7)" flags="EQ" epoch="0" ver="V2.0"/>
+      <rpm:entry name="modalias(net-pf-10-proto-115)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-pf-10-proto-115-type-2)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-pf-10-proto-132)"/>
+      <rpm:entry name="modalias(net-pf-16-proto-16-family-l2tp)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-pf-16-proto-4-type-2-132)"/>
+      <rpm:entry name="modalias(net-pf-2-proto-115)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-pf-2-proto-115-type-2)" flags="EQ" epoch="0" ver="1.0"/>
+      <rpm:entry name="modalias(net-pf-2-proto-132)"/>
+      <rpm:entry name="modalias(net-pf-24-proto-1)" flags="EQ" epoch="0" ver="V2.0"/>
+      <rpm:entry name="modalias(rtnl-link-vcan)"/>
+      <rpm:entry name="modalias(tty-ldisc-1)"/>
+      <rpm:entry name="modalias(tty-ldisc-17)"/>
+      <rpm:entry name="modalias(usb:v12D6p0444d*dc*dsc*dp*ic*isc*ip*in*)"/>
+    </rpm:provides>
+    <rpm:requires>
+      <rpm:entry name="/bin/sh" pre="1"/>
+      <rpm:entry name="/bin/sh"/>
+      <rpm:entry name="kernel-modules-core-uname-r" flags="EQ" epoch="0" ver="5.14.0" rel="687.61.1.el9_8.x86_64"/>
+      <rpm:entry name="kernel-modules-uname-r" flags="EQ" epoch="0" ver="5.14.0" rel="687.61.1.el9_8.x86_64"/>
+      <rpm:entry name="kernel-uname-r" flags="EQ" epoch="0" ver="5.14.0" rel="687.61.1.el9_8.x86_64"/>
+    </rpm:requires>
+    <file>/etc/modprobe.d/atm-blacklist.conf</file>
+    <file>/etc/modprobe.d/l2tp_eth-blacklist.conf</file>
+    <file>/etc/modprobe.d/l2tp_ip-blacklist.conf</file>
+    <file>/etc/modprobe.d/l2tp_ip6-blacklist.conf</file>
+    <file>/etc/modprobe.d/l2tp_netlink-blacklist.conf</file>
+    <file>/etc/modprobe.d/l2tp_ppp-blacklist.conf</file>
+    <file>/etc/modprobe.d/sctp-blacklist.conf</file>
+    <file>/etc/modprobe.d/sctp_diag-blacklist.conf</file>
+  </format>
+</package>

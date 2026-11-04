@@ -46,7 +46,7 @@ uses `std`, `nix` and the documented direct `libc` calls.
 | Tool | For |
 |---|---|
 | `github/codeql-action` v4, pinned by commit in the workflow (`.github/workflows/codeql.yml`) | Rust and Actions security analysis; the configuration (`.github/codeql-config.yml`) retains the extended suite and excludes `rust/cleartext-logging`, which mistakes public tunnel/session identifiers for credentials |
-| `actions/upload-artifact` v4, pinned by commit in CI (`.github/workflows/ci.yml`) | Retains each determinism repetition's fake-suite, kernel-package and guest logs for 14 days, including failed runs |
+| `actions/upload-artifact` v4, pinned by commit in CI (`.github/workflows/ci.yml`) | Retains live-suite, coverage and source-work records for 14 days, including failed runs |
 
 ## Upstream needs
 

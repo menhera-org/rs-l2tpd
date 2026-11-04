@@ -70,8 +70,8 @@ Reconciliation performs deletions before name release and cycle staging,
 then creations and final in-place changes (M6). Children are removed before
 parents. Name and identifier reservations survive asynchronous deletion.
 Session rename chains release acyclic dependencies before staging cycles.
-Unrelated entries continue after a failure. There is no separate `plan.rs`;
-the ordered passes live in `reconciler` and its operation modules.
+Unrelated entries continue after a failure. The ordered passes live in
+`reconciler` and its operation modules.
 
 The degradation ladder determines the best state currently possible.
 Promotion reuses the same objects when their identities permit it. Event

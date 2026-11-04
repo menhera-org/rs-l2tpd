@@ -81,29 +81,18 @@ patches. Production executables and existing assertions are unchanged; the
 scenario executable adds the capture regression. The required profiles above
 retain their earlier 27-scenario results.
 
-The Debian 13 failure exposed a race in the test fixture, not the daemon.
-Opening an `AF_PACKET` socket with `ETH_P_ALL` immediately captures every
-interface. Ethernet frames queued before binding to nlmon survive that bind;
-the strict nlmon parser then rejects their headers. Linux documents this in
-[packet(7)](https://man7.org/linux/man-pages/man7/packet.7.html); the relevant
-[6.12.115 source](https://github.com/gregkh/linux/blob/v6.12.115/net/packet/af_packet.c)
-is `packet_create`, `packet_do_bind` and `packet_recvmsg`.
-
-Fixture fix `69a0b42` opens with protocol zero and activates capture by binding
-to nlmon with the original nonzero protocol. Capture windows, positive controls,
-request thresholds, parsing and loss checks are unchanged. The new live
-regression deliberately sends Ethernet before binding: the old opening queues
-it, the fixed opening excludes it, and a subsequent route request is captured.
-GNU and musl executions pass; restoring the old opening makes this test fail.
-The same controlled probe passes on the stock Debian 13 kernel.
-
-The daemon uses `AF_NETLINK`, not `AF_PACKET`; its behavior is unchanged.
-The original failed run did not retain packet bytes, so its precise packet
-cannot be identified retrospectively. The documented race deterministically
-recreates the same rejection. Earlier failure and diagnostic records remain
-in [Git history](https://github.com/menhera-org/rs-l2tpd/tree/8766a43c2099a9ff71ae7ee1e30866c61777fbb4/audit/optional-kernels).
-All six complete optional profiles pass on the committed fix, including
-the new regression in each normal guest.
+The earlier Debian 13 failure was a test-fixture capture race: opening an
+AF_PACKET socket with ETH_P_ALL admitted foreign Ethernet before nlmon bind.
+Signed fixture fix [69a0b42](https://github.com/menhera-org/rs-l2tpd/commit/69a0b42d46cf71f938a4da51503265730aab4a17)
+opens with protocol zero and activates capture on bind. Parsing, request
+thresholds and loss checks remain strict. The daemon uses AF_NETLINK and
+needed no behavior change. The regression passes on GNU, musl and the stock
+Debian kernel; restoring the old opening fails deterministically. The original
+packet bytes were not retained. The
+[archived investigation](https://github.com/menhera-org/rs-l2tpd/blob/9817a0d19ac89d5cc0844180022ec8b0dfa07ce5/audit/nlmon-bind-fix/README.md)
+retains kernel-source references, controls and full results; the
+[earlier failure](https://github.com/menhera-org/rs-l2tpd/tree/8766a43c2099a9ff71ae7ee1e30866c61777fbb4/audit/optional-kernels)
+also remains in history.
 
 These use checksum-verified stock images, configurations and matching module
 packages. They run the unchanged guest suites and remain optional additions

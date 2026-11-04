@@ -1,0 +1,28 @@
+diff --git a/tests/kernel/Dockerfile.builder b/tests/kernel/Dockerfile.builder
+index f8cfe32..2fcaf39 100644
+--- a/tests/kernel/Dockerfile.builder
++++ b/tests/kernel/Dockerfile.builder
+@@ -1,2 +1,10 @@
+ FROM debian:trixie-slim
+-RUN apt-get update && apt-get install -y --no-install-recommends build-essential flex bison bc libelf-dev libssl-dev && rm -rf /var/lib/apt/lists/*
++RUN apt-get update \
++    && apt-get install -y --no-install-recommends \
++        bc \
++        bison \
++        build-essential \
++        flex \
++        libelf-dev \
++        libssl-dev \
++    && rm -rf /var/lib/apt/lists/*
+diff --git a/tests/kernel/Dockerfile.review b/tests/kernel/Dockerfile.review
+index f238bca..da1496d 100644
+--- a/tests/kernel/Dockerfile.review
++++ b/tests/kernel/Dockerfile.review
+@@ -1,5 +1,7 @@
+ FROM alpine:3.22
+ COPY . /packages
++# build-review-image.sh resolves exact package URLs from signed indexes for this networkless build.
++# hadolint ignore=DL3018
+ RUN apk --no-network --repositories-file /dev/null \
+         --repository /packages/main --repository /packages/community \
+         add --no-cache linux-virt iproute2 util-linux kmod \

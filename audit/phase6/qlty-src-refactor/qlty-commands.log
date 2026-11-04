@@ -1,0 +1,4 @@
+before: qlty smells src at 90b6a5b
+after: qlty smells src at 2ce54d2
+metrics: qlty metrics src --functions --sort complexity --limit 35 --quiet
+No Qlty configuration, thresholds or exclusions changed.

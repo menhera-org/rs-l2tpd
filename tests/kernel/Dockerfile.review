@@ -1,5 +1,7 @@
 FROM alpine:3.22
 COPY . /packages
+# build-review-image.sh resolves exact package URLs from signed indexes for this networkless build.
+# hadolint ignore=DL3018
 RUN apk --no-network --repositories-file /dev/null \
         --repository /packages/main --repository /packages/community \
         add --no-cache linux-virt iproute2 util-linux kmod \

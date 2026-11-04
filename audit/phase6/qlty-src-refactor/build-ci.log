@@ -1,0 +1,65 @@
+Source: 2ce54d281e0edbf2fb32d811f5cd027abbc9d954
+CI: https://github.com/menhera-org/rs-l2tpd/actions/runs/41783315134
+Scope: selected actual result lines from completed successful Build and check job.
+2026-11-04T06:06:46.3045715Z test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+2026-11-04T06:06:46.3049735Z      Running unittests src/work.rs (tools/coverage/target/debug/deps/phase6_source_work-ecf8ea298f52c8c4)
+2026-11-04T06:06:46.3068184Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:06:50.2377675Z test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+2026-11-04T06:06:50.2380433Z      Running unittests src/work.rs (tools/coverage/target/x86_64-unknown-linux-musl/debug/deps/phase6_source_work-2b54aeed81cc89d0)
+2026-11-04T06:06:50.2403131Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:08:18.4768843Z test result: ok. 322 passed; 0 failed; 31 ignored; 0 measured; 0 filtered out; finished in 5.02s
+2026-11-04T06:08:18.4869346Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.00s
+2026-11-04T06:08:21.7930546Z test result: ok. 82 passed; 0 failed; 8 ignored; 0 measured; 0 filtered out; finished in 3.31s
+2026-11-04T06:08:21.7974472Z test result: ok. 0 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:08:21.8014349Z test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:08:21.8074982Z test result: ok. 0 passed; 0 failed; 24 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:08:22.3104212Z test result: ok. 13 passed; 0 failed; 24 ignored; 0 measured; 0 filtered out; finished in 0.51s
+2026-11-04T06:08:25.2482652Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.94s
+2026-11-04T06:08:25.2511775Z test result: ok. 0 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:08:25.2893399Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+2026-11-04T06:08:26.1358954Z test result: ok. 95 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+2026-11-04T06:08:26.1431076Z test result: ok. 1 passed; 0 failed; 29 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:08:27.1443590Z test result: ok. 36 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.00s
+2026-11-04T06:08:27.1449419Z      Running tests/source_work.rs (target/debug/deps/source_work-5bcc8813774839be)
+2026-11-04T06:08:27.1461838Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:08:27.1865693Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+2026-11-04T06:08:27.2049490Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+2026-11-04T06:08:27.2064077Z test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:08:27.2088945Z test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:08:28.2912237Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:08:28.4437016Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+2026-11-04T06:08:28.5170445Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.01s
+2026-11-04T06:08:58.2779451Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.01s
+2026-11-04T06:08:58.3995934Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 88 filtered out; finished in 0.08s
+2026-11-04T06:09:04.4033126Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.00s
+2026-11-04T06:09:07.7159797Z test result: ok. 82 passed; 0 failed; 8 ignored; 0 measured; 0 filtered out; finished in 3.32s
+2026-11-04T06:09:08.1305043Z test result: ok. 13 passed; 0 failed; 24 ignored; 0 measured; 0 filtered out; finished in 0.41s
+2026-11-04T06:09:11.1694249Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.04s
+2026-11-04T06:09:11.1881156Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+2026-11-04T06:09:11.3174366Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 88 filtered out; finished in 0.08s
+2026-11-04T06:09:11.4470364Z G12: /home/runner/work/rs-l2tpd/rs-l2tpd/tests/source_work.rs:30 (measured_dispatch_work)
+2026-11-04T06:09:11.5030536Z M16: /home/runner/work/rs-l2tpd/rs-l2tpd/tests/source_work.rs:30 (measured_dispatch_work)
+2026-11-04T06:09:11.5378185Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+2026-11-04T06:09:11.5387060Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+2026-11-04T06:14:45.7941563Z TEN_SOURCE_WORK_CURVE_REPETITIONS_RESULT=0
+2026-11-04T06:14:46.8651671Z LLVM_COMPLEMENTARY_COPIES_REPEATED_CONDITIONS_MISSING_ARMS_AND_SOURCE_CHANGE_CALIBRATION_RESULT=0
+2026-11-04T06:14:46.8652647Z COVERAGE_GUEST_PREFLIGHT_NEGATIVE_CONTROLS_RESULT=0
+2026-11-04T06:15:36.2988739Z test result: ok. 358 passed; 0 failed; 60 ignored; 0 measured; 0 filtered out; finished in 5.02s
+2026-11-04T06:15:36.3079083Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.00s
+2026-11-04T06:15:39.6219991Z test result: ok. 82 passed; 0 failed; 8 ignored; 0 measured; 0 filtered out; finished in 3.32s
+2026-11-04T06:15:39.6264434Z test result: ok. 0 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:15:39.6308427Z test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:15:39.6355463Z test result: ok. 0 passed; 0 failed; 24 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:15:40.1357241Z test result: ok. 13 passed; 0 failed; 24 ignored; 0 measured; 0 filtered out; finished in 0.50s
+2026-11-04T06:15:43.1707447Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.03s
+2026-11-04T06:15:43.1734341Z test result: ok. 0 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:15:43.2124309Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+2026-11-04T06:15:43.9496179Z test result: ok. 95 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+2026-11-04T06:15:43.9563820Z test result: ok. 1 passed; 0 failed; 29 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:15:45.9872539Z test result: ok. 36 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 2.03s
+2026-11-04T06:15:45.9883382Z      Running tests/source_work.rs (target/llvm-cov-target/debug/build/rs-l2tpd/ce34d4e8d06fe1e0/out/source_work-ce34d4e8d06fe1e0)
+2026-11-04T06:15:45.9897533Z test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:15:46.0296390Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+2026-11-04T06:15:46.0321243Z test result: ok. 0 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:15:46.0332053Z test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-11-04T06:15:46.0346621Z test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s

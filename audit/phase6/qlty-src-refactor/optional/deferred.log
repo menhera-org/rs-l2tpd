@@ -1,0 +1,4 @@
+OPTIONAL_MATRIX_STATUS=DEFERRED
+The user deferred broad and optional-kernel qualification until goal step 6.
+The Debian 13 normal guest was stopped deliberately; its partial output is not a passing profile or a regression finding.
+No remaining optional profiles were started. All six profiles must run on the final source at step 6.

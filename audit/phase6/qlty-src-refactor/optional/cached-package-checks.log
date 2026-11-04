@@ -1,0 +1,9 @@
+target/optional-kernels/debian13/linux-image-6.12.115+deb13.1-amd64_6.12.115-2_amd64.deb: OK
+target/optional-kernels/rocky9/kernel-core-5.14.0-687.61.1.el9_8.x86_64.rpm: OK
+target/optional-kernels/rocky9/kernel-modules-core-5.14.0-687.61.1.el9_8.x86_64.rpm: OK
+target/optional-kernels/rocky9/kernel-modules-extra-5.14.0-687.61.1.el9_8.x86_64.rpm: OK
+target/optional-kernels/rocky9/kernel-modules-5.14.0-687.61.1.el9_8.x86_64.rpm: OK
+target/optional-kernels/rocky10/kernel-core-6.12.0-211.72.1.el10_2.x86_64.rpm: OK
+target/optional-kernels/rocky10/kernel-modules-core-6.12.0-211.72.1.el10_2.x86_64.rpm: OK
+target/optional-kernels/rocky10/kernel-modules-extra-6.12.0-211.72.1.el10_2.x86_64.rpm: OK
+target/optional-kernels/rocky10/kernel-modules-6.12.0-211.72.1.el10_2.x86_64.rpm: OK

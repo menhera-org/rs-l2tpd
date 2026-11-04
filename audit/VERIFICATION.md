@@ -1,77 +1,44 @@
-# Verification status
+# Verification checkpoint
 
-Production source is signed [`c599b1f`](https://github.com/menhera-org/rs-l2tpd/commit/c599b1f9c2343a3ffe6be315a6d77c4b68106744).
-The refactor preserves behavior and public APIs. The full execution evidence
-is archived in signed [`129a4e1`](https://github.com/menhera-org/rs-l2tpd/tree/129a4e1fb02da9fab01ef61730853c2129ee9e5a/audit/phase6).
-Current gating code lives in `tests/`, `tools/` and the repository root;
-this directory keeps summaries and immutable pointers.
+Signed source [`2ce54d2`](https://github.com/menhera-org/rs-l2tpd/commit/2ce54d281e0edbf2fb32d811f5cd027abbc9d954)
+preserves behavior and public APIs. [Execution records](phase6/qlty-src-refactor/README.md)
+retain the commands and full results. Further complexity, inlining and package
+work is in progress; full qualification of the final source is deferred to
+goal step 6. This checkpoint does not qualify those pending changes.
 
-| Gate | Result | Evidence |
-|---|---|---|
-| Common CI gates, GNU/musl, formatting, Clippy and docs | Pass | [CI](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583123), [maintenance checks](https://github.com/menhera-org/rs-l2tpd/blob/129a4e1fb02da9fab01ef61730853c2129ee9e5a/audit/phase6/qlty-refactor-20261104/maintenance-checks.log) |
-| Strict maps | 333 active rules, 43 kernel facts, no uncited Linux functions | Same common gates |
-| Production coverage | 8,582/8,582 merged lines; 1,844/1,844 condition outcomes | [Coverage record](https://github.com/menhera-org/rs-l2tpd/blob/129a4e1fb02da9fab01ef61730853c2129ee9e5a/audit/phase6/qlty-refactor-20261104/merged-source-coverage.log) |
-| Required kernel matrix | All 13 profiles pass; unchanged source and publication selections | [Matrix summary and logs](https://github.com/menhera-org/rs-l2tpd/tree/129a4e1fb02da9fab01ef61730853c2129ee9e5a/audit/phase6/matrix-20261104T013533Z-1275329) |
-| Scenario/Incus qualification | Three consecutive musl pairs pass; containers deleted | [Commands and results](https://github.com/menhera-org/rs-l2tpd/blob/129a4e1fb02da9fab01ef61730853c2129ee9e5a/audit/phase6/qlty-refactor-20261104/verification.log) |
-| Unmodified root-systemd unit | Pass on Ubuntu 6.8.0-147 with Ubuntu 24.04 userspace | Same execution record |
-| Security analysis | Pass | [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583117) |
+| Check on `2ce54d2` | Result |
+|---|---|
+| Common gates and all three CI jobs | [Pass](https://github.com/menhera-org/rs-l2tpd/actions/runs/41783315134) |
+| Strict maps | 333 active rules; 43 kernel facts; no uncited Linux functions |
+| Merged production coverage | 8,602/8,602 lines; 1,838/1,838 condition outcomes; no production exclusions |
+| Required kernel matrix | All 13 profiles pass; stable publications and empty source patches |
+| Musl scenarios / Incus | Three consecutive pairs pass; containers deleted |
+| Unmodified root-systemd unit | Pass on Ubuntu 6.8 with Ubuntu 24.04 userspace |
+| Source-work curves and GNU/musl allocations | Pass in the build job |
+| CodeQL | [Pass](https://github.com/menhera-org/rs-l2tpd/actions/runs/41783315117) |
 
-The required set is Ubuntu `6.8.0-147-generic`/`7.0.0-42-generic`,
-vanilla `6.8.12`/`7.0.14` and mainline `7.4.0-rc1`. Each normal guest
-passes 27 scenarios and 37 process cases. Five clock/pause profiles,
-both IPv6-absent boots and missing-driver recovery pass separately.
+Required kernels are Ubuntu `6.8.0-147-generic`/`7.0.0-42-generic`, vanilla
+`6.8.12`/`7.0.14` and mainline `7.4.0-rc1`. Each normal guest passes all
+28 scenarios and 37 process cases, plus 31 private live, 24 Linux and five
+review cases. Separate clock/pause, IPv6-absent and missing-driver boots pass.
+Raw LLVM metrics remain separate: 99.47% lines and 98.26% condition outcomes.
 
-| Optional stock kernel | Normal | Clock/pause |
-|---|---|---|
-| Debian 13 `6.12.115+deb13.1-amd64` (6.12.115-2) | Pass: 28 scenarios, 37 process cases | Pass |
-| Rocky 9 `5.14.0-687.61.1.el9_8.x86_64` | Pass: 28 scenarios, 37 process cases | Pass |
-| Rocky 10 `6.12.0-211.72.1.el10_2.x86_64` | Pass: 28 scenarios, 37 process cases | Pass |
+The optional matrix on this checkpoint was stopped at the user's request;
+its partial Debian 13 guest is neither a pass nor a regression finding.
+All six optional profiles must run on the final source at step 6. The earlier
+Debian 13 and Rocky 9/10 passes and the test-only nlmon race investigation
+remain in [signed history](https://github.com/menhera-org/rs-l2tpd/blob/9817a0d19ac89d5cc0844180022ec8b0dfa07ce5/audit/nlmon-bind-fix/README.md).
+Debian 12 receives best-effort degradation outside the support target.
 
-All six optional profiles pass after signed fixture fix
-[`69a0b42`](https://github.com/menhera-org/rs-l2tpd/commit/69a0b42d46cf71f938a4da51503265730aab4a17)
-was synced, with empty initial/final source patches. Each normal guest also
-passes 31 private live cases, 24 Linux cases and five review cases. Production
-source and every non-scenario executable match the earlier qualification.
-The required matrix above retains its earlier 27-scenario scope. Fresh CI on
-`69a0b42` passes all three jobs, including a full 28-scenario Ubuntu 6.8 normal
-guest and unchanged 100% production coverage; CodeQL also passes.
+Ten targeted production functions fall from cognitive scores 25–29 to 6–16;
+new helpers score at most 20. Further real complexity work toward an A rating
+is pending. Smell thresholds and coverage exclusions are unchanged.
+Cosmetic Dockerfile findings are resolved; the review image documents its
+local apk-pinning exception for the existing signed-index, networkless
+resolution policy. `qlty check .` succeeds with only the packager NOTE.
 
-The Debian failure exposed test capture starting on all interfaces before
-nlmon bind. Protocol-zero opening prevents foreign Ethernet from entering the
-queue; strict parsing, request thresholds and loss checks are unchanged.
-The new regression passes ten consecutive GNU and ten musl executions on
-Ubuntu 6.8, plus all optional normal guests. Restoring only the old opening
-fails deterministically. A separate stock-Debian probe confirms the race.
-The original packet bytes were not retained, so its exact frame is unknown.
-The daemon uses AF_NETLINK and needs no behavior change. See
-[kernel behavior](../docs/kernel-behavior.md#optional-distribution-kernels).
-
-[Commands, package identities, full results and diagnostic scope](https://github.com/menhera-org/rs-l2tpd/blob/9817a0d19ac89d5cc0844180022ec8b0dfa07ce5/audit/nlmon-bind-fix/README.md)
-retain the new evidence. The earlier failure remains in
-[signed `8766a43` history](https://github.com/menhera-org/rs-l2tpd/tree/8766a43c2099a9ff71ae7ee1e30866c61777fbb4/audit/optional-kernels).
-Debian 12 is outside the support target, with
-[best-effort degradation](../docs/kernel-behavior.md#best-effort-behavior-on-debian-12).
-Its older failed qualification remains in the
-[archived optional record](https://github.com/menhera-org/rs-l2tpd/tree/129a4e1fb02da9fab01ef61730853c2129ee9e5a/audit/phase6/optional-kernels-20261104).
-
-Raw local LLVM metrics remain separate: 99.45% lines and 98.26% outcomes.
-Production exclusions: **none**. Test-only instrumentation exclusions are
-unchanged; required tests still execute. Ten native seeds, coverage
-calibration/negative controls and thread/fork refusal profiles pass.
-
-Qlty's service-worker complexity falls from 80 to 24; the former startup
-(68), swap planner (44) and probe (39) no longer trigger high function
-complexity. Lower-complexity routines and explicit test matrices remain.
-The maintenance checks verify temporary HTML parsing, unchanged coverage
-runtime layers/configuration, all 23 `#!/bin/sh` headers and documentation links.
-The current tree passes `./test-ci-gates.sh` and local Markdown link checks.
-The production refactor also has a fresh `qlty smells .` record.
-
-Kernel-only guests do not qualify distribution userspace, SELinux or packages.
-Source-only and delegated assertions retain their
-[evidence classifications](../docs/kernel-evidence.md);
-[kernel behavior](../docs/kernel-behavior.md) states the limits.
-Earlier clause assessments, determinism qualification, source comparisons
-and failed attempts remain in [`c599b1f` history](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit).
-Every removed historical/evidence file was verified in Git before removal.
-Fetched kernel.org HTML is not committed.
+Current gating code lives in `tests/`, `tools/` and the repository root.
+Historical records are retained in Git before removal from the main tree.
+Fetched kernel.org HTML is never committed. Kernel-only optional guests do
+not qualify distribution userspace, SELinux or packaging; source-only and
+delegated assertions keep their [evidence classifications](../docs/kernel-evidence.md).
