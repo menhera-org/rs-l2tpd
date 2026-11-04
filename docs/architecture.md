@@ -17,7 +17,8 @@ All reconciler operations on the host pass through `kernel::Kernel`.
 | `kernel::linux::{socket,l2tp,rtnl,request}` | Tunnel sockets and bounded netlink requests |
 | `kernel::linux::{monitor,lifetime,bpf}` | Filtered notifications, ordered registration proofs and persistent loss detection |
 | `reconciler::{records,tunnels,sessions,ladder}` | Accepted configuration, object identities, ordered mutations and degraded states |
-| `reconciler::{events,timers,deadlines}` | Dependency indexes, selective inventories, event handling and bounded retries |
+| `reconciler::events::{device,inventory,recovery}` | Device/address notices, authoritative inventories, local ownership verification and loss recovery |
+| `reconciler::{events,timers,deadlines}` | Dependency indexes, event dispatch and bounded retries |
 | `reconciler::{resolvers,workers}` | Released `iphost` adapters, answer retention and bounded lookup admission |
 | `reconciler::{store,report}` | Descriptor-store handshakes and condition episodes |
 | `runtime` | Program-driven reconciliation, bounded event admission and host requests |
