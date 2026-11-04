@@ -40,6 +40,40 @@ fn requests(protocol: u16, bytes: &[u8]) -> io::Result<(usize, usize)> {
     }
     Ok((requests, routes))
 }
+// Kernel: net/packet/af_packet.c packet_create registers nonzero protocols
+// immediately; packet_do_bind activates protocol zero on the chosen device.
+fn capture_socket() -> io::Result<socket2::Socket> {
+    // Stay inactive until bind so Ethernet cannot enter the nlmon queue.
+    let socket = socket2::Socket::new(socket2::Domain::PACKET, socket2::Type::RAW, None)?;
+    socket.set_recv_buffer_size(8 << 20)?;
+    socket.set_read_timeout(Some(Duration::from_millis(100)))?;
+    Ok(socket)
+}
+
+fn bind_capture(socket: &socket2::Socket, index: u32) -> io::Result<()> {
+    // Kernel UAPI sockaddr_ll is initialized POD; bind reads exactly its size.
+    let address = libc::sockaddr_ll {
+        sll_family: libc::AF_PACKET as u16,
+        sll_protocol: 3u16.to_be(),
+        sll_ifindex: index as i32,
+        sll_hatype: 0,
+        sll_pkttype: 0,
+        sll_halen: 0,
+        sll_addr: [0; 8],
+    };
+    let result = unsafe {
+        libc::bind(
+            socket.as_raw_fd(),
+            (&address as *const libc::sockaddr_ll).cast(),
+            std::mem::size_of_val(&address) as libc::socklen_t,
+        )
+    };
+    if result < 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
+}
+
 impl RouteTrace {
     pub fn start(pair: &Pair, side: usize) -> Self {
         assert!(
@@ -54,34 +88,8 @@ impl RouteTrace {
         let target = std::fs::File::open(format!("/run/netns/{}", pair.names[side])).unwrap();
         nix::sched::setns(target, nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
         let opened = (|| -> io::Result<socket2::Socket> {
-            let socket = socket2::Socket::new(
-                socket2::Domain::PACKET,
-                socket2::Type::RAW,
-                Some(socket2::Protocol::from(i32::from(3u16.to_be()))),
-            )?;
-            socket.set_recv_buffer_size(8 << 20)?;
-            socket.set_read_timeout(Some(Duration::from_millis(100)))?;
-            // Kernel UAPI sockaddr_ll is an initialized POD address; bind reads
-            // exactly its size and the packet socket is owned by this scope.
-            let address = libc::sockaddr_ll {
-                sll_family: libc::AF_PACKET as u16,
-                sll_protocol: 3u16.to_be(),
-                sll_ifindex: index as i32,
-                sll_hatype: 0,
-                sll_pkttype: 0,
-                sll_halen: 0,
-                sll_addr: [0; 8],
-            };
-            let result = unsafe {
-                libc::bind(
-                    socket.as_raw_fd(),
-                    (&address as *const libc::sockaddr_ll).cast(),
-                    std::mem::size_of_val(&address) as libc::socklen_t,
-                )
-            };
-            if result < 0 {
-                return Err(io::Error::last_os_error());
-            }
+            let socket = capture_socket()?;
+            bind_capture(&socket, index)?;
             Ok(socket)
         })();
         nix::sched::setns(original, nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
@@ -196,6 +204,88 @@ impl Drop for RouteTrace {
             let _ = reader.join();
         }
     }
+}
+
+/// Kernel: net/packet/af_packet.c packet_create, packet_do_bind and
+/// packet_recvmsg: binding does not purge packets queued before the bind.
+/// spec: H17, M16, G12
+#[test]
+#[ignore = "disposable container or QEMU guest with nlmon and CAP_NET_RAW"]
+fn capture_stays_inactive_until_bound_despite_foreign_ethernet() {
+    fn receive(socket: &socket2::Socket) -> io::Result<(libc::sockaddr_ll, Vec<u8>)> {
+        let mut address = libc::sockaddr_ll {
+            sll_family: 0,
+            sll_protocol: 0,
+            sll_ifindex: 0,
+            sll_hatype: 0,
+            sll_pkttype: 0,
+            sll_halen: 0,
+            sll_addr: [0; 8],
+        };
+        let mut length = std::mem::size_of_val(&address) as libc::socklen_t;
+        let mut bytes = vec![0; 65536];
+        // Output storage is initialized; check errno and bounds before reading.
+        let size = unsafe {
+            libc::recvfrom(
+                socket.as_raw_fd(),
+                bytes.as_mut_ptr().cast(),
+                bytes.len(),
+                libc::MSG_DONTWAIT | libc::MSG_TRUNC,
+                (&mut address as *mut libc::sockaddr_ll).cast(),
+                &mut length,
+            )
+        };
+        if size < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        assert!(
+            size as usize <= bytes.len(),
+            "capture probe truncated a packet"
+        );
+        assert_eq!(length as usize, std::mem::size_of_val(&address));
+        bytes.truncate(size as usize);
+        Ok((address, bytes))
+    }
+    let pair = Pair::new();
+    pair.underlay(true, false);
+    let trace = RouteTrace::start(&pair, 0);
+    let index = pair.index(0, "nltrace");
+    let underlay = pair.index(0, "underlay");
+    let original = std::fs::File::open("/proc/self/ns/net").unwrap();
+    let target = std::fs::File::open(format!("/run/netns/{}", pair.names[0])).unwrap();
+    nix::sched::setns(target, nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+    let socket = capture_socket().unwrap();
+    // The old eager opening is a positive control for the pre-bind traffic.
+    let eager = socket2::Socket::new(
+        socket2::Domain::PACKET,
+        socket2::Type::RAW,
+        Some(socket2::Protocol::from(i32::from(3u16.to_be()))),
+    )
+    .unwrap();
+    nix::sched::setns(original, nix::sched::CloneFlags::CLONE_NEWNET).unwrap();
+    assert!(
+        pair.output(0, "ping", &["-c", "1", "-W", "1", "192.0.2.2"])
+            .status
+            .success()
+    );
+    bind_capture(&eager, index).unwrap();
+    bind_capture(&socket, index).unwrap();
+    let (address, bytes) = receive(&eager).unwrap();
+    assert_eq!(address.sll_ifindex, underlay as i32);
+    assert_eq!(address.sll_hatype, libc::ARPHRD_ETHER);
+    assert!(requests(u16::from_be(address.sll_protocol), &bytes).is_err());
+    assert!(
+        matches!(receive(&socket), Err(error) if error.kind() == io::ErrorKind::WouldBlock),
+        "foreign Ethernet was queued before binding to nlmon"
+    );
+    pair.ip(0, &["route", "get", "192.0.2.2"]);
+    let (address, bytes) = receive(&socket).unwrap();
+    assert_eq!(address.sll_ifindex, index as i32);
+    assert_eq!(address.sll_hatype, 824); // include/uapi/linux/if_arp.h: ARPHRD_NETLINK.
+    assert_eq!(u16::from_be(address.sll_protocol), 0);
+    assert_eq!(requests(0, &bytes).unwrap(), (1, 1));
+    assert_eq!(trace.finish().route_queries, 1);
+    println!("NLMON_PRE_BIND_ETHERNET_EXCLUDED=1; eager_control=foreign; bound_control=netlink");
 }
 
 #[test]
