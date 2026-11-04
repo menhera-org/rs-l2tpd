@@ -1,8 +1,0 @@
-Primary reference: https://man7.org/linux/man-pages/man7/packet.7.html
-Exact upstream stable source: https://github.com/gregkh/linux/blob/v6.12.115/net/packet/af_packet.c
-packet_create registers nonzero protocols immediately; protocol zero waits for bind.
-packet_do_bind changes the registered device/protocol without purging the receive queue.
-packet_recvmsg dequeues the stored skb and returns its original link-layer metadata.
-Fetched upstream file SHA256:
-f1450343f80cd3d07889b0a4057f611ebba4e0312a88977db6cb7239ae38ec72  af_packet-v6.12.115.c
-The stock Debian kernel behavior is verified by the independent guest counterfactual and maintained regression.

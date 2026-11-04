@@ -46,7 +46,7 @@ The original packet bytes were not retained, so its exact frame is unknown.
 The daemon uses AF_NETLINK and needs no behavior change. See
 [kernel behavior](../docs/kernel-behavior.md#optional-distribution-kernels).
 
-[Commands, package identities, full results and diagnostic scope](nlmon-bind-fix/README.md)
+[Commands, package identities, full results and diagnostic scope](https://github.com/menhera-org/rs-l2tpd/blob/9817a0d19ac89d5cc0844180022ec8b0dfa07ce5/audit/nlmon-bind-fix/README.md)
 retain the new evidence. The earlier failure remains in
 [signed `8766a43` history](https://github.com/menhera-org/rs-l2tpd/tree/8766a43c2099a9ff71ae7ee1e30866c61777fbb4/audit/optional-kernels).
 Debian 12 is outside the support target, with
