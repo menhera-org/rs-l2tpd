@@ -1,7 +1,7 @@
 //! The behavioural rules over the fake kernel (docs/testing.md), one
 //! module per specification page. No test sleeps: time is the fake's.
-//! Phase 3 policy cases and seeded reload properties; service/process
-//! acceptance remains in the later phases of docs/plan.md.
+//! Policy cases and seeded reload properties; service/process acceptance
+//! runs separately as described in docs/testing.md.
 
 mod completion;
 mod events;

@@ -1,6 +1,6 @@
 //! The one boundary to the host: the [`Kernel`] trait every reconciler
 //! operation goes through, its real implementation and its fake
-//! (`docs/architecture.md`, "The kernel boundary").
+//! (`docs/spec/architecture.md`, "The kernel boundary").
 //!
 //! Every method returns the kernel's errno in an [`io::Error`]; `ETIMEDOUT`
 //! from a mutating request means its outcome is unknown (A14): the caller

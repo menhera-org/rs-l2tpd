@@ -1,5 +1,5 @@
 //! The bounded netlink request adapter of generic netlink and rtnetlink,
-//! and the socket helpers the subscriptions share (`docs/architecture.md`,
+//! and the socket helpers the subscriptions share (`docs/spec/architecture.md`,
 //! "Decisions recorded here"; spec A14, E21, E22, R10).
 //!
 //! One request is in flight per socket. Its deadline is absolute and

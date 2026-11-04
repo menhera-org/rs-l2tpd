@@ -379,22 +379,19 @@ impl Lifetime {
                 break Err(errno(libc::ETIMEDOUT));
             }
             if !barrier_closed {
-                match state.lookups.get(&seq).copied() {
-                    Some(Answer::Pending) => {}
-                    Some(_) => match state.captures.get(name) {
-                        Some(&Capture::Seen(index, incarnation)) => {
-                            break Ok(Registration {
-                                index,
-                                generation,
-                                incarnation,
-                            });
-                        }
-                        Some(Capture::Ambiguous) => {
-                            break Err(errno(libc::ETIMEDOUT));
-                        }
-                        _ => barrier_closed = true,
-                    },
-                    None => break Err(errno(libc::ETIMEDOUT)),
+                match (state.lookups.get(&seq), state.captures.get(name)) {
+                    (Some(Answer::Pending), _) => {}
+                    (None, _) | (_, Some(Capture::Ambiguous)) => {
+                        break Err(errno(libc::ETIMEDOUT));
+                    }
+                    (_, Some(&Capture::Seen(index, incarnation))) => {
+                        break Ok(Registration {
+                            index,
+                            generation,
+                            incarnation,
+                        });
+                    }
+                    _ => barrier_closed = true,
                 }
             }
             let (next, waited) = self.shared.wait_until(state, deadline);
