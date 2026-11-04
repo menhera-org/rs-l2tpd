@@ -75,7 +75,8 @@ signals, the supplied systemd unit and the host requirements.
 
 ## Documentation
 
-Start with the [documentation index](docs/README.md):
+Read the [published book](https://menhera-org.github.io/rs-l2tpd/) or the
+[documentation index](docs/README.md):
 
 - [Plan](docs/plan.md): completed milestones, verification requirements and pending release work
 - [Architecture](docs/architecture.md): modules, the kernel boundary, records, tasks

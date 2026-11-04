@@ -43,6 +43,18 @@ Completed diaries and superseded audits remain in
 Current gating scripts live under `tests/`, `tools/` or the repository root;
 `audit/` holds the verification summary. Fetched kernel.org HTML is not retained in commits.
 
-Relative links work in a checkout and on GitHub. This directory is the
-GitHub Pages source; `_config.yml` enables README-index and relative-link
-handling.
+The [published book](https://menhera-org.github.io/rs-l2tpd/) is built with
+mdBook 0.5.4. Markdown paths also work in a checkout and on GitHub.
+
+```sh
+cargo install mdbook --version 0.5.4 --locked --registry crates-io
+mdbook build docs
+mdbook serve docs
+```
+
+The build writes to ignored `target/mdbook/`. `SUMMARY.md` lists every chapter;
+missing chapters fail the build. Repository workflow
+`.github/workflows/pages.yml` builds pull requests and deploys `main` through
+GitHub Pages artifacts. It verifies the official mdBook musl archive's SHA-256;
+generated HTML stays out of Git. Pages uses the Actions deployment backend,
+and the artifact includes `.nojekyll`.

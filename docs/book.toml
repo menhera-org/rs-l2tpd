@@ -1,0 +1,16 @@
+[book]
+title = "rs-l2tpd"
+language = "en"
+src = "."
+
+[build]
+build-dir = "../target/mdbook"
+create-missing = false
+
+[output.html]
+no-section-label = true
+
+# Preserve Markdown README links after mdBook renders those chapters as index.html.
+[output.html.redirect]
+"/README.html" = "index.html"
+"/spec/README.html" = "index.html"

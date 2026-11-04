@@ -111,6 +111,7 @@ default to `bin`, without the optional installer. Publishing uses
 
 | Tool | For |
 |---|---|
+| mdBook 0.5.4 | Builds these Markdown chapters for GitHub Pages; the Pages workflow verifies the official musl release archive's SHA-256; no daemon dependency |
 | `cargo-llvm-cov` 0.9.1 | Phase 6 combined line/branch coverage; no daemon dependency |
 | `serde_json` 1.0.154, isolated in `tools/coverage` | Decode LLVM exports for the merged-source gate without a handwritten JSON parser; no daemon dependency or change to its lockfile |
 | Rust `nightly-2026-10-28`, `llvm-tools-preview` | Branch instrumentation for coverage only; shipped builds remain on stable |
