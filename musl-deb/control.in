@@ -1,0 +1,11 @@
+Package: rs-l2tpd
+Version: @VERSION@-1
+Architecture: @ARCH@
+Section: net
+Priority: optional
+Maintainer: metastable-void <mori@menhera.ad.jp>
+Recommends: systemd
+Homepage: https://github.com/menhera-org/rs-l2tpd
+Description: Resilient Linux L2TPv3 Ethernet pseudowire daemon
+ Maintains tunnels across link, address and resolver changes.
+ Statically linked with musl; includes a systemd unit.

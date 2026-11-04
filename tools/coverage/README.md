@@ -58,12 +58,9 @@ requires missing artifact logs and relative guest paths to fail before Docker.
 
 The separate production-coverage workflow job collects ten ordinary suites,
 a full GNU instrumented guest and thread/fork refusal profiles, then requires
-both merged totals to reach 100%. Production source `c599b1f` passes
-8,582/8,582 source lines and 1,844/1,844 condition outcomes, locally and in
-[CI run 41755915522](https://github.com/menhera-org/rs-l2tpd/actions/runs/41755915522).
-The local raw LLVM report remains separate at 99.45% lines and 98.26% outcomes.
-Current records and source identities are indexed in
-[audit/VERIFICATION.md](../../audit/VERIFICATION.md).
+both merged totals to reach 100%. Keep raw LLVM per-instantiation metrics
+separate from merged source totals. The [current verification record](../../audit/VERIFICATION.md)
+identifies qualified source and exact results.
 
 `tools/coverage/Dockerfile` supplies the GNU runtime in the review image;
 CI builds it with `docker build --network none`. Gating scripts live in

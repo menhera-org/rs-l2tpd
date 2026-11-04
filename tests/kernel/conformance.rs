@@ -1,4 +1,4 @@
-//! The conformance suite (docs/testing.md): operation cases shared by the
+//! The conformance suite (docs/developer.md): operation cases shared by the
 //! fake kernel and the real one. Each case drives the fixture's `Kernel`
 //! and changes the host only through the fixture's controls, which the
 //! daemon itself never has. A fact the fake gets wrong fails its live run.

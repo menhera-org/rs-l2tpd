@@ -1,5 +1,5 @@
 //! The conformance suite and the method-level live tests on the real
-//! kernel (docs/testing.md). Ignored: run them in an isolated network
+//! kernel (docs/developer.md). Ignored: run them in an isolated network
 //! namespace with CAP_NET_ADMIN, CAP_NET_RAW and the L2TP modules, as
 //! tests/kernel/README.md shows.
 

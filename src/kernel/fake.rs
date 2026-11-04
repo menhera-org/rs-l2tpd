@@ -1,7 +1,7 @@
 //! The in-memory kernel of the behavioural tests: a model of the kernel
 //! facts the reconciler relies on, each rule marked with its K number, and
 //! itself proved against the kernel by the conformance suite
-//! (`docs/testing.md`). It is a namespace in memory, not a mock: tests
+//! (`docs/developer.md`). It is a namespace in memory, not a mock: tests
 //! change the host through its controls and observe the operations the
 //! daemon issued in [`FakeKernel::ops`].
 

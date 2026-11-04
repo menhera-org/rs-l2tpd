@@ -14,3 +14,12 @@ no-section-label = true
 [output.html.redirect]
 "/README.html" = "index.html"
 "/spec/README.html" = "index.html"
+"/architecture.html" = "developer.html"
+"/phase6.html" = "developer.html#gates"
+"/plan.html" = "developer.html"
+"/testing.html" = "developer.html"
+"/packaging.html" = "installation.html"
+"/interface.html" = "operation.html"
+"/kernel-behavior.html" = "kernel-support.html"
+"/upstream-iphost.html" = "peer-discovery.html"
+"/kernel-evidence.html" = "developer.html#kernel-evidence"

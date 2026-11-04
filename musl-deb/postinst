@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+[ "$1" = configure ] || exit 0
+if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload
+    if [ -z "${2:-}" ]; then
+        systemctl enable --now rs-l2tpd.service
+    else
+        echo 'rs-l2tpd: upgrade installed; restart with rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid'
+    fi
+else
+    echo 'rs-l2tpd: systemd is not running; start the daemon through your service manager'
+fi

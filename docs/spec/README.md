@@ -63,8 +63,8 @@ not create.
 The v0.2.0 implementation and Phase 6 proof are complete. Strict maps cover
 all 333 active rules and 43 kernel facts. Semantic clause cases, executed
 live suites and coverage remain separate obligations; citations alone do
-not prove them. [Testing](../testing.md) records current results and the
-[mandatory acceptance cases](../testing.md#contract-correction-acceptance-cases).
+not prove them. [Developer guide](../developer.md) records current results and the
+[mandatory acceptance cases](../developer.md#acceptance-cases).
 
 Completed review diaries and comparisons with the removed implementation
 are preserved in Git history. Repository file `audit/VERIFICATION.md` indexes

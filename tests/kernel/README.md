@@ -1,8 +1,8 @@
 # Kernel verification
 
 The [current verification record](../../audit/VERIFICATION.md) identifies
-executed kernels and results. The [evidence map](../../docs/kernel-evidence.md)
-classifies each K fact; the [qualification page](../../docs/kernel-behavior.md)
+executed kernels and results. The [evidence map](../../docs/developer.md#kernel-evidence)
+classifies each K fact; the [qualification page](../../docs/kernel-support.md)
 keeps source-only/delegated claims separate from actual guest results.
 
 ## Maintained runners
@@ -61,17 +61,11 @@ sh tests/kernel/run-optional.sh "$record"
 
 These are fixed qualification versions, not an automatic moving-target
 resolver. Refresh the selections and rerun when qualifying newer packages.
-All six Debian 13 and Rocky 9/10 normal and clock profiles pass on fixture
-fix `69a0b42`. Each normal guest passes 28 scenarios and 37 process cases.
-The added live regression injects Ethernet before binding, proves the old
-opening queues it, and checks that protocol-zero opening excludes it while
-still capturing the intended route request. Existing strict parsing, request
-thresholds and drop checks are unchanged; production source is unchanged.
-See [kernel behavior](../../docs/kernel-behavior.md#optional-distribution-kernels).
-Debian 12 is outside the support target; existing error handling leaves running
-devices intact and retries refused operations. Its older kernel cannot rename
-UP devices. No assertion is relaxed. Kernel-only results do not qualify a
-distribution's systemd, networkd, SELinux or packaging.
+Each normal guest must pass 28 scenarios and 37 process cases. The
+capture-startup regression proves capture remains inactive before nlmon
+binding. Debian 12 is outside support. Kernel-only results do not qualify
+distribution userspace, SELinux or packaging; see
+[kernel support](../../docs/kernel-support.md#optional-distribution-kernels).
 
 ## Direct live conformance
 
@@ -149,4 +143,4 @@ LC_ALL=C sh tests/kernel/notify.sh
 It requires `systemd-notify --fd` with its processing barrier and checks
 AF_UNIX admission/refusal. Full process and root-unit commands are in
 [binary verification](../process/README.md) and
-[Phase 6](../../docs/phase6.md#p6-the-root-system-unit-sandbox).
+[Developer guide](../../docs/developer.md#root-systemd-unit).

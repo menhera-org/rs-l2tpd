@@ -10,7 +10,7 @@ establishes it. Line references are to the Ubuntu `6.8.0-147` tree (Linux
 6.8.12 plus Ubuntu backports); the facts were also checked in v7.0 and in
 v7.4-rc1, and K5 in every release tag from v6.8 to v7.3 and in v7.4-rc1.
 Those versions define the source-audited range. Optional older distribution
-kernel executions are recorded separately in [kernel behavior](../kernel-behavior.md);
+kernel executions are recorded separately in [kernel support](../kernel-support.md);
 they do not imply a complete source audit of their backports.
 
 ## Requirements
@@ -64,7 +64,7 @@ Sources: `net/netlink/af_netlink.c` (`NETLINK_GET_STRICT_CHK`);
 `inet6_valid_dump_ifaddr_req`, `inet6_dump_addr`).
 Exact required-target source identities remain in the
 [archived source record](https://github.com/menhera-org/rs-l2tpd/blob/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit/phase6/event-inventory-cost-20261101/source-links.log).
-Current execution scope is recorded in [kernel evidence](../kernel-evidence.md).
+Current execution scope is recorded in [kernel evidence](../developer.md#kernel-evidence).
 
 ## Facts
 
@@ -105,10 +105,10 @@ depends on a fact that is not here is wrong.
 
 ## Verified behaviour
 
-[Per-required-kernel behavior](../kernel-behavior.md) records each required
+[Kernel support](../kernel-support.md) records each required
 target's observed differences, source-only limits and executed suite scope.
 
-The [kernel evidence map](../kernel-evidence.md) classifies every active fact
+The [kernel evidence](../developer.md#kernel-evidence) classifies every active fact
 and names its shared/live/delegated/source-only evidence. Current commands,
 source identities and results are indexed by repository file
 `audit/VERIFICATION.md`. A passing guest does not turn a source-only

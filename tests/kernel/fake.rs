@@ -1,4 +1,4 @@
-//! The conformance suite against the fake kernel (docs/testing.md); the
+//! The conformance suite against the fake kernel (docs/developer.md); the
 //! same cases run against the real kernel in `linux.rs`.
 
 #[path = "conformance.rs"]

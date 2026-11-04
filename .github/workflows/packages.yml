@@ -1,0 +1,56 @@
+name: Packages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: sh
+
+jobs:
+  build:
+    name: Static Debian packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
+      - name: Install cross
+        run: cargo install cross --locked --version 0.2.5 --registry crates-io
+      - name: Check package builder
+        run: |
+          cargo fmt --manifest-path musl-deb/Cargo.toml --check
+          cargo clippy --locked --manifest-path musl-deb/Cargo.toml --all-targets -- -D warnings
+          cargo test --locked --manifest-path musl-deb/Cargo.toml
+      - name: Build both architectures without the installer
+        run: |
+          cargo run --locked --manifest-path musl-deb/Cargo.toml
+          for package in rs-l2tpd_*.deb; do
+            cargo run --locked --manifest-path musl-deb/Cargo.toml -- --list "$package"
+          done
+          sha256sum rs-l2tpd_*.deb
+      - name: Test Debian installation and upgrade
+        run: |
+          docker pull debian:trixie-slim
+          package=$(find . -maxdepth 1 -name 'rs-l2tpd_*_amd64.deb')
+          test -n "$package"
+          docker run --rm --network none \
+            --mount "type=bind,source=$PWD,target=/repo,readonly" \
+            --env MUSL_DEB_TEST_CONTAINER=1 --entrypoint sh debian:trixie-slim \
+            /repo/musl-deb/test-package.sh "/repo/$package"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: static-debian-packages
+          path: rs-l2tpd_*.deb
+          if-no-files-found: error
+          retention-days: 14

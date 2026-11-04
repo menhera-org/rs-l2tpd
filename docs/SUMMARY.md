@@ -1,17 +1,13 @@
 # Summary
 
-[Documentation](README.md)
+[rs-l2tpd](README.md)
 
-- [Plan](plan.md)
-- [Architecture](architecture.md)
-- [Interface](interface.md)
+- [Installation](installation.md)
+- [Operation](operation.md)
+- [Kernel support](kernel-support.md)
+- [Peer discovery](peer-discovery.md)
 - [Dependencies](dependencies.md)
-- [Phase 6](phase6.md)
-- [Testing](testing.md)
-- [Kernel behavior](kernel-behavior.md)
-- [Kernel evidence](kernel-evidence.md)
-- [Packaging](packaging.md)
-- [Resolver integration](upstream-iphost.md)
+- [Developer guide](developer.md)
 - [Specification](spec/README.md)
   - [Requirements](spec/requirements.md)
   - [Promises](spec/promises.md)

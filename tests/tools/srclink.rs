@@ -1,4 +1,4 @@
-//! The source-link check (docs/testing.md, "Gates"): every function of
+//! The source-link check (docs/developer.md, "Gates"): every function of
 //! `src/kernel/linux/` carries a `// kernel:` comment naming a K fact, and
 //! every K fact has the citation its explicit evidence-map scope requires.
 //! Delegated/source-only facts need test citations; linux facts need production
@@ -108,8 +108,12 @@ fn kernel_code_cites_the_facts() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let facts = k_facts(&root.join("docs/spec/kernel.md"));
     let (uncited, cited) = scan(&root.join("src/kernel/linux"));
-    let classifications =
-        scopes(&fs::read_to_string(root.join("docs/kernel-evidence.md")).unwrap());
+    let guide = fs::read_to_string(root.join("docs/developer.md")).unwrap();
+    let evidence = guide
+        .split_once("\n## Kernel evidence\n")
+        .expect("developer guide must contain the kernel evidence section")
+        .1;
+    let classifications = scopes(evidence.split("\n## ").next().unwrap());
     let mut tests = BTreeMap::new();
     citations::cited(&root.join("src"), &mut tests);
     citations::cited(&root.join("tests"), &mut tests);

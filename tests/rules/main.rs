@@ -1,7 +1,7 @@
-//! The behavioural rules over the fake kernel (docs/testing.md), one
+//! The behavioural rules over the fake kernel (docs/developer.md), one
 //! module per specification page. No test sleeps: time is the fake's.
 //! Policy cases and seeded reload properties; service/process acceptance
-//! runs separately as described in docs/testing.md.
+//! runs separately as described in docs/developer.md.
 
 mod completion;
 mod events;

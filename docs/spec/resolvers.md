@@ -9,7 +9,7 @@ The mechanism is implemented by released `iphost` 0.4.4. This page states
 the behavior the daemon requires of it. Incremental RDNSS, explicit
 per-family fallback, namespace-scoped discovery and anonymous Reply
 validation are supplied upstream; scheduling and retention remain in
-the daemon. See [resolver integration](../upstream-iphost.md).
+the daemon. See [peer discovery](../peer-discovery.md).
 
 ## Model
 

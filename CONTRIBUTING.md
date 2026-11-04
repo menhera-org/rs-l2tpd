@@ -20,7 +20,7 @@ including audit helpers, then runs formatting, warning-denied Clippy, library an
 daemon builds, native/musl tests, the rule/source maps, and warning-denied
 documentation. Fix ShellCheck findings where possible; every necessary
 exception must have a local `# shellcheck disable=SCnnnn` directive and
-an adjacent comment explaining why it is safe. See [testing](docs/testing.md)
+an adjacent comment explaining why it is safe. See [testing](docs/developer.md)
 for the separate live-kernel gates and the current limits of CI.
 
 ## Committing and pushing

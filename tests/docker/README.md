@@ -47,17 +47,10 @@ capture loss. Guards kill daemons and delete namespaces on panic. Frame
 delivery and drop counters are asserted, along with interface identity,
 kernel objects, logs and bounded event waits.
 
-Production source `c599b1f` passes all thirteen required profiles, three musl
-scenario/Incus pairs and the unmodified root-systemd unit. The separate CI
-coverage gate reaches 8,582/8,582 merged production lines and 1,844/1,844
-condition outcomes. All six optional Debian 13 and Rocky 9/10 profiles pass
-on fixture fix `69a0b42`: 28 scenarios and 37 process cases per normal guest,
-plus separate clock/pause checks. The new regression proves that capture
-starts only when bound to nlmon, avoiding queued foreign Ethernet. Strict
-parsing, request thresholds, loss checks and production source are unchanged.
-Debian 12 receives best-effort degradation outside the support target.
-See the [current record](../../audit/VERIFICATION.md) for exact identities,
-commands and limits.
+See the [current verification record](../../audit/VERIFICATION.md) for
+qualified source, results and limits. Normal guests run 28 scenarios and
+37 process cases. The capture-startup regression keeps foreign Ethernet
+out of nlmon before bind; parsing, request and loss checks remain strict.
 
 Released iphost 0.4.4 supplies V12's corrected anonymous Reply validation.
 The approved checked-libc signal exception is applied; no nix contribution or
@@ -110,7 +103,7 @@ tests/docker/run.sh incus
 
 The host needs Incus access, the `images:` remote, a storage pool for the
 default profile's root disk, and the kernel modules required by
-[Phase 6](../../docs/phase6.md#p5-the-unprivileged-system-container).
+[Developer guide](../../docs/developer.md#system-containers).
 The driver inherits no profiles or devices, sets
 `security.privileged=false` explicitly, and never attaches a host network
 interface. It pushes static executables into a disposable container and

@@ -30,29 +30,13 @@ The kernel carries Ethernet pseudowires over IPv4 or IPv6.
 
 ## Status
 
-The last release is 0.1.5; v0.2.0 is not released. Its implementation and
-Phase 6 proof are complete. The [verification record](audit/VERIFICATION.md)
-indexes current commands, source identities, results and limitations.
+Version 0.2.0 has not been published. The [verification record](audit/VERIFICATION.md)
+identifies qualified source, commands, results and remaining checks.
+[Kernel support](docs/kernel-support.md) describes supported targets and
+operating limits. Debian 12 receives best-effort degradation outside support.
 
-Production source `c599b1f` passes [all three CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583123)
-and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583117).
-Merged production coverage is **8,582/8,582 lines and 1,844/1,844 condition
-outcomes**, with unchanged exclusions. Strict rule/source maps cover all
-333 active rules and 43 kernel facts; semantic clause cases remain a
-separate obligation.
-
-All thirteen required kernel profiles pass: Ubuntu 6.8.0-147 and 7.0.0-42,
-vanilla 6.8.12 and 7.0.14, and mainline 7.4-rc1, with separate clock and
-special boot checks. Three fresh scenario/Incus pairs and the unmodified
-root-systemd guest pass. [Kernel qualification](docs/kernel-behavior.md)
-records exact scope and differences. All six optional Debian 13 and Rocky
-9/10 profiles pass after a test-only capture fix: each normal guest passes
-28 scenarios and 37 process cases, with a separate clock/pause pass.
-The daemon is unchanged. Debian 12 receives best-effort degradation outside
-the support target.
-
-Completed implementation diaries and superseded audits are preserved in
-[Git history](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit).
+Completed implementation diaries and superseded audits remain in
+[Git history](https://github.com/menhera-org/rs-l2tpd/tree/f5a2e7b/audit).
 
 ## Quick start
 
@@ -63,14 +47,14 @@ cargo build --release --locked --target x86_64-unknown-linux-musl
 ```
 
 Write `/etc/rs-l2tpd.toml` using the
-[configuration example](docs/interface.md#configuration-files), then
+[configuration example](docs/operation.md#configuration-files), then
 validate it:
 
 ```sh
 target/x86_64-unknown-linux-musl/release/rs-l2tpd --check
 ```
 
-See the [interface page](docs/interface.md) for the command line,
+See the [interface page](docs/operation.md) for the command line,
 signals, the supplied systemd unit and the host requirements.
 
 ## Documentation
@@ -78,14 +62,13 @@ signals, the supplied systemd unit and the host requirements.
 Read the [published book](https://menhera-org.github.io/rs-l2tpd/) or the
 [documentation index](docs/README.md):
 
-- [Plan](docs/plan.md): completed milestones, verification requirements and pending release work
-- [Architecture](docs/architecture.md): modules, the kernel boundary, records, tasks
-- [Interface](docs/interface.md): configuration, command line, signals, unit, library
-- [Dependencies](docs/dependencies.md): the supply chain and upstream needs
-- [Testing](docs/testing.md): the suites, the gates, kernel test pitfalls
-- [Required-kernel behavior](docs/kernel-behavior.md): required and optional targets, behavior differences, test scope and limitations
-- [Packaging](docs/packaging.md): the implemented `--setup-systemd` installer and planned `musl-deb` packages
-- [Specification](docs/spec/README.md): requirements, promises, architecture, behaviour in every condition
+- [Installation](docs/installation.md): static binaries, Debian packages and systemd
+- [Configuration and operation](docs/operation.md): files, command line, signals and host requirements
+- [Kernel support](docs/kernel-support.md): qualified targets and operating limits
+- [Peer discovery](docs/peer-discovery.md): DNS, RA and DHCPv6 choices
+- [Dependencies](docs/dependencies.md): shipped software and build tools
+- [Developer guide](docs/developer.md): library integration and contribution gates
+- [Specification](docs/spec/README.md): normative behavior
 
 Current evidence is indexed in [audit/VERIFICATION.md](audit/VERIFICATION.md);
 completed historical reports remain in Git history.

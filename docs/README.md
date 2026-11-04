@@ -1,60 +1,21 @@
-# rs-l2tpd documentation
+# rs-l2tpd
 
-[![crates.io](https://img.shields.io/crates/v/rs-l2tpd.svg)](https://crates.io/crates/rs-l2tpd)
+rs-l2tpd maintains Linux L2TPv3 tunnels and Ethernet pseudowires. It keeps
+working while links, routes, addresses and DNS become available, and
+preserves tunnel identities across configuration reloads.
 
-rs-l2tpd creates and maintains Linux L2TPv3 tunnels and Ethernet pseudowire
-sessions. The [specification](spec/README.md) defines behavior; these pages
-describe the implemented tree, its interfaces and verification.
-Version 0.2.0 is not released. Implementation phases 1–6 are complete;
-[release packaging and publication](plan.md#phase-7--release) remain pending.
+Start with [installation](installation.md), then [configuration and operation](operation.md).
+The [kernel support guide](kernel-support.md) describes qualified targets,
+container requirements and degradation on older hosts.
+[Peer discovery](peer-discovery.md) explains resolver choices.
 
-| Page | Contents |
-|---|---|
-| [Plan](plan.md) | Completed milestones, maintenance requirements and pending release work |
-| [Architecture](architecture.md) | Actual modules, kernel boundary, identities, reconciliation and worker lifecycle |
-| [Interface](interface.md) | Configuration, CLI, signals, logging, unit and library API |
-| [Dependencies](dependencies.md) | Current crates/tools, upstream boundaries and checked-libc exceptions |
-| [Phase 6](phase6.md) | Current status and the six gates, Incus/root-systemd checks and record requirements |
-| [Testing](testing.md) | Commands, exact suite scope, determinism, coverage and moving kernel targets |
-| [Kernel behavior](kernel-behavior.md) | Required/optional results, observed differences, source limits and userspace scope |
-| [Kernel evidence](kernel-evidence.md) | All 43 active K facts classified by shared/live/delegated/source evidence |
-| [Packaging](packaging.md) | Implemented systemd installer and the pending `musl-deb` design |
-| [Resolver integration](upstream-iphost.md) | Released iphost contracts, daemon-owned policy and future upstream work |
-| [Specification](spec/README.md) | Normative requirements, promises and behavior |
+Version 0.2.0 is prepared for release; it has not been published.
+[Verification scope](developer.md#kernel-evidence) distinguishes tested behavior
+from source and upstream evidence. Repository file `audit/VERIFICATION.md`
+identifies the source and qualification results.
 
-Production source `c599b1f` passes all three
-[CI jobs](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583123)
-and [CodeQL](https://github.com/menhera-org/rs-l2tpd/actions/runs/41777583117).
-Merged production coverage reaches 8,582/8,582 lines and 1,844/1,844 condition
-outcomes. Strict maps cover all 333 active rules and 43 kernel facts;
-semantic clause cases and actual live execution remain separate obligations.
+[Development and verification](developer.md) covers the library, contribution checks and
+test execution. The [specification](spec/README.md) defines the behavioral
+contract.
 
-All thirteen required kernel profiles pass, as do three fresh musl
-scenario/Incus pairs and the unmodified root-systemd guest. All six optional
-Debian 13 and Rocky 9/10 profiles pass after a test-only capture fix: each
-normal guest passes 28 scenarios and 37 process cases, with a separate
-clock/pause pass. Production behavior is unchanged. Debian 12 receives
-best-effort degradation outside the support target. The
-[qualification page](kernel-behavior.md) states the exact results and limits.
-Repository file `audit/VERIFICATION.md` indexes current evidence.
-
-Completed diaries and superseded audits remain in
-[Git history](https://github.com/menhera-org/rs-l2tpd/tree/c599b1f9c2343a3ffe6be315a6d77c4b68106744/audit).
-Current gating scripts live under `tests/`, `tools/` or the repository root;
-`audit/` holds the verification summary. Fetched kernel.org HTML is not retained in commits.
-
-The [published book](https://menhera-org.github.io/rs-l2tpd/) is built with
-mdBook 0.5.4. Markdown paths also work in a checkout and on GitHub.
-
-```sh
-cargo install mdbook --version 0.5.4 --locked --registry crates-io
-mdbook build docs
-mdbook serve docs
-```
-
-The build writes to ignored `target/mdbook/`. `SUMMARY.md` lists every chapter;
-missing chapters fail the build. Repository workflow
-`.github/workflows/pages.yml` builds pull requests and deploys `main` through
-GitHub Pages artifacts. It verifies the official mdBook musl archive's SHA-256;
-generated HTML stays out of Git. Pages uses the Actions deployment backend,
-and the artifact includes `.nojekyll`.
+These pages are published as an [mdBook](https://menhera-org.github.io/rs-l2tpd/).
