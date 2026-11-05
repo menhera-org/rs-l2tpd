@@ -386,10 +386,12 @@ lowering is absent. Their classified test evidence satisfies the source-link
 gate without manufacturing production citations or equating source assertions
 with live execution.
 
-## Build Debian packages
+## Build DEB and RPM packages
 
-The isolated dependency-free Rust crate in `musl-deb/` writes uncompressed
-ar/ustar packages. It reads the root crate version and invokes
+The isolated Rust crate in `musl-deb/` writes uncompressed DEB ar/ustar
+packages and RPM v4 cpio packages. The pinned pure-Rust `rpm` dependency
+handles RPM headers and digests; compression and signing backends are disabled.
+Neither distribution's build tools are required. It reads the root crate version and invokes
 `build-release.sh` with `--no-default-features --features bin` in separate
 target directories. Docker builds run with networking disabled; Cargo fetches
 the locked sources beforehand. The builder rejects wrong-architecture or
@@ -400,9 +402,11 @@ an existing installer-enabled artifact.
 cargo run --locked --manifest-path musl-deb/Cargo.toml
 cargo run --locked --manifest-path musl-deb/Cargo.toml -- --target x86_64-unknown-linux-musl
 cargo run --locked --manifest-path musl-deb/Cargo.toml -- --list rs-l2tpd_0.2.0-1_amd64.deb
+cargo run --locked --manifest-path musl-deb/Cargo.toml -- --list rs-l2tpd-0.2.0-1.x86_64.rpm
 ```
 
-The default builds amd64 and arm64 and requires `cross`. Packages have
+The default builds both formats for x86_64 (DEB amd64) and aarch64 (DEB arm64)
+and requires `cross`. `--target` limits both outputs to one target. Packages have
 root ownership, fixed modes and zero archive timestamps. Unit tests check
 deterministic writers, malformed/truncated archives, ELF validation and
 version-field injection. The Packages workflow builds both architectures
@@ -413,6 +417,20 @@ startup, plus administrator-disabled and masked units. Upgrade preserves
 configuration and leaves the running daemon in place. The helper package
 is a declared Debian dependency; the daemon needs no shared-library package.
 This consumer test does not qualify Debian's real service manager.
+
+The Rocky Linux 9 and 10 consumers use real RPM transactions and a systemctl
+stub. They check presets, first-install startup, disabled/masked units, upgrades
+without daemon interruption, stop/disable on erase, reinstall presets,
+`.rpmnew`/`.rpmsave`, fragment retention and scriptlet failures. All notice
+files remain installed with `--excludedocs`. The consumers do not qualify a
+real Rocky service manager or SELinux policy. RPM has no purge phase; its
+approved configuration and uninstall differences are described in
+[installation](installation.md#rpm-packages).
+
+Both formats package the same stripped daemon and notices. RPM version fields
+replace SemVer prerelease hyphens with `~`; RPM files use
+`rs-l2tpd-VERSION-1.ARCH.rpm`. `--list` validates RPM digests or the tool's
+uncompressed DEB format, lists paths and never extracts or executes scripts.
 
 The package layout is described in [installation](installation.md).
 
@@ -443,10 +461,11 @@ the requested build; custom flags and configured paths are build inputs.
 The shared Rust tar writer sets ownership, modes and timestamps explicitly.
 Gzip runs with `-n` inside the pinned build image, so host tar/gzip versions,
 source mtimes and archive creation times cannot affect the release bytes.
-Debian packages use the same fixed metadata in their uncompressed ar/ustar
-members. No unstripped binary is packaged.
+DEB packages use the same fixed metadata in their uncompressed ar/ustar
+members. RPM v4 uses fixed build/file timestamps, no build-host identity and
+an uncompressed cpio payload. No unstripped binary is packaged.
 
-Both formats carry `musl-deb/README.binary.md` as README.md; its guide URLs
+All three formats carry `musl-deb/README.binary.md` as README.md; its guide URLs
 point to the published book. `musl-deb/prepare-notices.sh` obtains the union
 of both musl targets' all-feature normal/build dependency graphs from Cargo.
 It copies license, copyright and notice texts from the checksum-verified
@@ -469,7 +488,7 @@ musl-deb/test-reproducible.sh target/verification/reproducibility
 Run from a clean committed tree. The check exports the same Git revision to
 different paths, varies source mtimes and umasks, and builds each copy with
 separate clean target directories. It compares both feature variants'
-binaries and tarballs and both Debian packages byte for byte. It also
+binaries and tarballs, plus DEBs and RPMs for both architectures, byte for byte. It also
 extracts the tarballs and checks their executable bytes, and uses readelf to
 reject debug sections and a symbol table. Embedded registry-cache paths also
 fail the check. The Packages workflow requires

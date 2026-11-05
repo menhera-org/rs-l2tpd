@@ -19,13 +19,18 @@ rather than a host Rust installation or a matching glibc version.
 | `serde` and `toml` | Configuration parsing; serialization is optional for library users |
 
 The optional `setup-systemd` installer embeds the unit and invokes
-`systemctl`; it adds no Rust dependency. Debian packages exclude that
+`systemctl`; it adds no Rust dependency. DEB and RPM packages exclude that
 feature because package installation supplies the unit and configuration.
 
-Both artifact formats include project licenses, notices and source URLs for
+Tarballs, DEBs and RPMs include project licenses, notices and source URLs for
 the locked Rust dependencies, the pinned Rust toolchain's copyright/license
 inventory, and musl's copyright notice. The package README links directly
 to the published operator guides.
+
+The separate package builder uses the pinned pure-Rust `rpm` crate with
+payload support only; compression and signing backends are disabled. Its
+lockfile is separate from the daemon's. The package builder is not shipped
+in the release artifacts.
 
 The [developer guide](developer.md#build-tools) lists build and verification
 tools. Those tools are not daemon runtime dependencies.

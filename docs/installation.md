@@ -41,6 +41,36 @@ prevents startup. Administrator masks and enable/disable state are preserved
 on reinstall and upgrade. Without systemd, manage the service through your
 chosen service manager; see the [process interface](operation.md#command-line).
 
+## RPM packages
+
+The same builder also produces stripped static RPMs for `x86_64` and `aarch64`.
+Install the matching architecture as root, for example:
+
+```sh
+dnf install ./rs-l2tpd-0.2.0-1.x86_64.rpm
+rs-l2tpd --check
+systemctl status rs-l2tpd.service --no-pager
+```
+
+The RPM contains the same daemon, configuration, fragments directory and
+notice files as DEB. Its unit is at
+`/usr/lib/systemd/system/rs-l2tpd.service`. It requires `/bin/sh`, recommends
+systemd and has no shared-library dependency. The packaged daemon excludes
+`setup-systemd`. These are project artifacts, not distribution archive packages.
+
+On first install, RPM applies the local systemd preset policy, preserving
+administrator masks. If systemd is running, it reloads unit definitions and
+starts the service only when enabled. There is no Debian `policy-rc.d`
+integration. Without systemd running, it applies presets without starting a
+daemon; without `systemctl`, it prints a service-manager reminder.
+
+An upgrade preserves enable/disable state and masks, reloads unit definitions
+when systemd is running and leaves the running daemon untouched. The main
+configuration uses RPM's `%config(noreplace)`: edited content stays in place;
+when packaged defaults change, the new defaults are written as `.rpmnew`.
+Review that file before incorporating new settings. Configuration fragments
+and administrator-owned systemd overrides remain untouched.
+
 ## Upgrading
 
 An upgrade installs the new binary and reloads systemd's unit definitions.
@@ -54,11 +84,14 @@ rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid
 ```
 
 A regular `systemctl restart rs-l2tpd` tears down and re-creates owned objects.
-Dpkg preserves edited configuration through its conffile handling.
+Both formats preserve edited configuration: dpkg uses conffiles and RPM uses
+`%config(noreplace)`.
 Keep service customizations in `/etc/systemd/system/rs-l2tpd.service.d/`
 or an administrator-owned unit.
 
 ## Removing a package
+
+### Debian
 
 ```sh
 dpkg --remove rs-l2tpd
@@ -70,6 +103,23 @@ conffile. A helper-owned mask prevents activation while the unit is absent;
 reinstallation removes that mask. Administrator masks remain untouched.
 Purge lets dpkg remove the main conffile and removes the fragment directory
 only if it is empty. Operator-created fragments are preserved.
+
+### RPM
+
+```sh
+dnf remove rs-l2tpd
+```
+
+RPM uninstall stops the service when systemd is running and disables it.
+It removes an unchanged main configuration; an edited main configuration is
+saved as `/etc/rs-l2tpd.toml.rpmsave`. There is no separate RPM purge operation.
+Operator-created fragments are preserved; an empty fragment directory is
+removed. Administrator masks remain untouched. A later reinstall applies
+local systemd presets again rather than remembering prior enablement.
+
+Failed service commands are reported as scriptlet failures. RPM can report a
+post-install or post-uninstall failure after it has already changed package
+state; inspect the transaction output and service state before retrying.
 
 ## Standalone binary and systemd installer
 
@@ -92,7 +142,7 @@ daemon in place and prints the restart command. A service still running
 0.1.5 needs a regular systemd restart for its first upgrade.
 
 The installer unit in `/usr/local/lib` takes precedence over a package unit
-in `/lib`; an administrator unit in `/etc` takes precedence over both.
+in `/lib` or `/usr/lib`; an administrator unit in `/etc` takes precedence over both.
 Installing a package does not silently switch an existing installer service.
 
 Remove a standalone installation by disabling/stopping its service and

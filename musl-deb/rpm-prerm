@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+if [ "$1" -eq 0 ] && command -v systemctl >/dev/null 2>&1; then
+    if [ -d /run/systemd/system ]; then
+        systemctl --system stop rs-l2tpd.service
+    fi
+    systemctl --system disable rs-l2tpd.service
+fi

@@ -9,7 +9,8 @@ trap 'exit 1' HUP INT TERM
 
 git --no-pager ls-files -z --cached --others --exclude-standard '*.sh' > "$files"
 xargs -0 shellcheck --shell=sh < "$files"
-shellcheck --shell=sh musl-deb/postinst musl-deb/prerm musl-deb/postrm
+shellcheck --shell=sh musl-deb/postinst musl-deb/prerm musl-deb/postrm \
+    musl-deb/rpm-postinst musl-deb/rpm-prerm musl-deb/rpm-postrm
 sh tests/kernel/matrix.sh self-test
 cargo fmt --all --check
 cargo fmt --manifest-path musl-deb/Cargo.toml --check

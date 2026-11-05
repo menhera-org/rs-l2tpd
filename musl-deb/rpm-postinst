@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+if command -v systemctl >/dev/null 2>&1; then
+    if [ "$1" -eq 1 ]; then
+        # A preset must not undo an administrator's mask.
+        state=$(systemctl --system is-enabled rs-l2tpd.service 2>/dev/null || :)
+        case $state in
+            masked|masked-runtime) ;;
+            *) systemctl --system preset rs-l2tpd.service ;;
+        esac
+    fi
+    if [ -d /run/systemd/system ]; then
+        systemctl --system daemon-reload
+        if [ "$1" -eq 1 ]; then
+            if systemctl --system --quiet is-enabled rs-l2tpd.service; then
+                systemctl --system start rs-l2tpd.service
+            fi
+        else
+            echo 'rs-l2tpd: upgrade installed; restart with rs-l2tpd --restart --pid-file /run/rs-l2tpd/rs-l2tpd.pid'
+        fi
+    else
+        echo 'rs-l2tpd: systemd is not running; start the daemon through your service manager'
+    fi
+else
+    echo 'rs-l2tpd: systemctl is absent; start the daemon through your service manager'
+fi

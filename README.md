@@ -63,7 +63,7 @@ signals, the supplied systemd unit and the host requirements.
 Read the [published book](https://menhera-org.github.io/rs-l2tpd/) or the
 [documentation index](docs/README.md):
 
-- [Installation](docs/installation.md): static binaries, Debian packages and systemd
+- [Installation](docs/installation.md): static binaries, DEB/RPM packages and systemd
 - [Configuration and operation](docs/operation.md): files, command line, signals and host requirements
 - [Kernel support](docs/kernel-support.md): qualified targets and operating limits
 - [Peer discovery](docs/peer-discovery.md): DNS, RA and DHCPv6 choices

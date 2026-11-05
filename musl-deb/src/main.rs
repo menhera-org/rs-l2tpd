@@ -1,6 +1,7 @@
-//! Build static daemon packages without Debian build tools or Rust dependencies.
+//! Build static DEB and RPM daemon packages without distribution build tools.
 mod archive;
 mod elf;
+mod rpm_package;
 
 use archive::Entry;
 use std::ffi::OsString;
@@ -222,7 +223,12 @@ fn run(args: Vec<OsString>) -> io::Result<()> {
         && flag == "--list"
     {
         let bytes = fs::read(path)?;
-        print!("{}", archive::list(&bytes)?);
+        let listing = if bytes.starts_with(b"!<arch>\n") {
+            archive::list(&bytes)?
+        } else {
+            rpm_package::list(&bytes).map_err(io::Error::other)?
+        };
+        print!("{listing}");
         return Ok(());
     }
     let targets = match args.as_slice() {
@@ -245,8 +251,16 @@ fn run(args: Vec<OsString>) -> io::Result<()> {
     for &(target, arch, machine) in targets {
         let binary = fs::read(build(root, target)?)?;
         elf::check(&binary, machine)?;
-        let bytes = package(root, version, arch, &binary, &documentation(root)?)?;
+        let docs = documentation(root)?;
+        let bytes = package(root, version, arch, &binary, &docs)?;
         let output = root.join(format!("rs-l2tpd_{version}-1_{arch}.deb"));
+        write_atomic(&output, &bytes)?;
+        println!("built {}", output.display());
+        let rpm_arch = if arch == "amd64" { "x86_64" } else { "aarch64" };
+        let bytes = rpm_package::build(root, version, rpm_arch, &binary, &docs)
+            .map_err(io::Error::other)?;
+        let rpm_version = rpm_package::version(version);
+        let output = root.join(format!("rs-l2tpd-{rpm_version}-1.{rpm_arch}.rpm"));
         write_atomic(&output, &bytes)?;
         println!("built {}", output.display());
     }

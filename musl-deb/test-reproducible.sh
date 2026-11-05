@@ -16,6 +16,7 @@ trap 'exit 1' HUP INT TERM
 git --no-pager archive HEAD > "$work/source.tar"
 ver=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' Cargo.toml | head -n1)
 test -n "$ver"
+rpm_version=$(printf '%s\n' "$ver" | sed 's/-/~/g')
 
 prepare() {
     destination=$1
@@ -98,6 +99,10 @@ done
 for arch in amd64 arm64; do
     cmp "$first/rs-l2tpd_$ver-1_$arch.deb" "$second/rs-l2tpd_$ver-1_$arch.deb"
     printf 'architecture=%s deb=identical\n' "$arch" >> "$record/comparisons.log"
+done
+for arch in x86_64 aarch64; do
+    cmp "$first/rs-l2tpd-$rpm_version-1.$arch.rpm" "$second/rs-l2tpd-$rpm_version-1.$arch.rpm"
+    printf 'architecture=%s rpm=identical\n' "$arch" >> "$record/comparisons.log"
 done
 git --no-pager diff --quiet HEAD
 printf '%s\n' 'REPRODUCIBLE_RESULT=0' > "$record/result.log"

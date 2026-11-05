@@ -15,7 +15,7 @@ defaults:
 
 jobs:
   build:
-    name: Static Debian packages
+    name: Static DEB and RPM packages
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -42,10 +42,10 @@ jobs:
       - name: Build both architectures without the installer
         run: |
           cargo run --locked --manifest-path musl-deb/Cargo.toml
-          for package in rs-l2tpd_*.deb; do
+          for package in rs-l2tpd_*.deb rs-l2tpd-*.rpm; do
             cargo run --locked --manifest-path musl-deb/Cargo.toml -- --list "$package"
           done
-          sha256sum rs-l2tpd_*.deb
+          sha256sum rs-l2tpd_*.deb rs-l2tpd-*.rpm
       - name: Require identical clean builds and stripped binaries
         run: musl-deb/test-reproducible.sh target/reproducibility
       - name: Test Debian installation and upgrade
@@ -57,10 +57,25 @@ jobs:
             --mount "type=bind,source=$PWD,target=/repo,readonly" \
             --env MUSL_DEB_TEST_CONTAINER=1 --entrypoint sh debian:trixie-slim \
             /repo/musl-deb/test-package.sh "/repo/$package"
+      - name: Test Rocky Linux 9 and 10 installation and upgrade
+        run: |
+          package=$(find . -maxdepth 1 -name 'rs-l2tpd-*.x86_64.rpm')
+          test -n "$package"
+          cargo run --locked --manifest-path musl-deb/Cargo.toml --example rpm-upgrade -- \
+            "$package" target/rpm-upgrade.rpm
+          for image in rockylinux/rockylinux:9 rockylinux/rockylinux:10; do
+            docker pull "$image"
+            docker run --rm --network none \
+              --mount "type=bind,source=$PWD,target=/repo,readonly" \
+              --env MUSL_DEB_TEST_CONTAINER=1 --entrypoint sh "$image" \
+              /repo/musl-deb/test-rpm.sh "/repo/$package" /repo/target/rpm-upgrade.rpm
+          done
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: static-debian-packages
-          path: rs-l2tpd_*.deb
+          name: static-linux-packages
+          path: |
+            rs-l2tpd_*.deb
+            rs-l2tpd-*.rpm
           if-no-files-found: error
           retention-days: 14
 

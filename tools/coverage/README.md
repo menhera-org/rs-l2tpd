@@ -59,7 +59,13 @@ requires missing artifact logs and relative guest paths to fail before Docker.
 The separate production-coverage workflow job collects ten ordinary suites,
 a full GNU instrumented guest and thread/fork refusal profiles, then requires
 both merged totals to reach 100%. Keep raw LLVM per-instantiation metrics
-separate from merged source totals. The [current verification record](../../audit/VERIFICATION.md)
+separate from merged source totals. Lazy diagnostic closures must be exercised
+on the capture logger's owning thread. The unmatched-adoption retry case is
+also called by the logging test, which asserts one error across repeated
+refusals and a success report after recovery. Its coverage must not depend on
+which parallel test enables the global logger first.
+
+The [current verification record](../../audit/VERIFICATION.md)
 identifies qualified source and exact results.
 
 `tools/coverage/Dockerfile` supplies the GNU runtime in the review image;

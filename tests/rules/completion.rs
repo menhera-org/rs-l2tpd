@@ -244,6 +244,10 @@ fn an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling() {
     assert_eq!(r.kernel().open_sockets(), 1);
     assert_eq!(r.kernel().session_index(10, 100), Some(matched));
     assert!(r.kernel().session_index(10, 101).is_some());
+    r.kernel_mut().fail_next("delete", Errno::EPERM);
+    assert!(!r.reconcile(config(&session(""))));
+    assert_eq!(r.kernel().session_index(10, 100), Some(matched));
+    assert!(r.kernel().session_index(10, 101).is_some());
     run_for(&mut r, 2);
     assert!(r.ready());
     assert_eq!(r.kernel().session_index(10, 100), Some(matched));
@@ -331,6 +335,23 @@ fn completion_report_counts() {
             .filter(|(l, message)| *l == level && message.contains(text))
             .count()
     };
+    // Exercise lazy reports on the logger's owning thread, independent of test order.
+    an_unmatched_adopted_session_does_not_reject_its_tunnel_or_sibling();
+    assert_eq!(
+        count(
+            log::Level::Error,
+            "unmatched adopted session deletion failed:"
+        ),
+        1
+    );
+    assert_eq!(
+        count(log::Level::Error, "session  (tunnel_id=10, session_id=101)"),
+        1
+    );
+    assert_eq!(
+        count(log::Level::Info, "unmatched adopted session deleted (S28)"),
+        1
+    );
     for errno in [Errno::EAFNOSUPPORT, Errno::EPROTONOSUPPORT] {
         capture.messages.lock().unwrap().clear();
         let (mut r, _) = reconciler();

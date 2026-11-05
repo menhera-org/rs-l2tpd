@@ -7,9 +7,20 @@ https://menhera-org.github.io/rs-l2tpd/operation.html
 Supported kernels:
 https://menhera-org.github.io/rs-l2tpd/kernel-support.html
 
-The Debian package installs /usr/sbin/rs-l2tpd, its systemd unit and example
-configuration. Package upgrades preserve configuration and leave a running
-daemon in place. Follow the installation guide for an explicit restart.
+DEB and RPM packages install /usr/sbin/rs-l2tpd, a systemd unit, example
+configuration and these notices. Upgrades preserve edited configuration and
+leave the running daemon in place. Restart explicitly as described in the guide.
+
+DEB uses Debian service-policy helpers and /lib/systemd/system. RPM uses
+/usr/lib/systemd/system, applies local systemd presets on first install and
+starts an enabled service if systemd is running. Neither format restarts the
+daemon on upgrade; administrator masks remain untouched.
+
+DEB removal retains the main configuration; purge removes it. RPM uninstall
+stops/disables the service, removes an unchanged main configuration and saves
+an edited one as /etc/rs-l2tpd.toml.rpmsave. RPM upgrades keep local edits;
+changed packaged defaults are supplied as .rpmnew. A later RPM reinstall
+applies presets again. Both formats preserve operator configuration fragments.
 
 A tarball contains the executable and the same license and notice files.
 Place the executable on PATH and follow the installation guide.
