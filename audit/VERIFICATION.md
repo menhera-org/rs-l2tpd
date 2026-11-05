@@ -1,7 +1,7 @@
 # Verification
 
 The [release readiness findings](RELEASE_READINESS.md) are closed. Version
-0.2.0 remains unpublished.
+0.2.0 was released on 2026-11-05.
 
 Release inputs are qualified at `f12798ec54c17b45be8777d802ce8bf6dc7e9aaf`.
 The production source, root Cargo files and live-kernel assertions remain

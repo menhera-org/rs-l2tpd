@@ -1,10 +1,11 @@
 # Installation
 
-Version 0.2.0 has not been published. Build artifacts from this checkout
-until a release is available. See [kernel support](kernel-support.md)
-before deploying to a host or system container. The
-[current review](https://github.com/menhera-org/rs-l2tpd/blob/main/audit/RELEASE_READINESS.md)
-tracks qualification of the packaging and build inputs.
+Packages and tarballs for each version are on the
+[releases page](https://github.com/menhera-org/rs-l2tpd/releases).
+See [kernel support](kernel-support.md) before deploying to a host or
+system container. The
+[release readiness review](https://github.com/menhera-org/rs-l2tpd/blob/main/audit/RELEASE_READINESS.md)
+records the qualification of the packaging and build inputs.
 
 ## Debian packages
 

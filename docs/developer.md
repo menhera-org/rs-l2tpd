@@ -213,8 +213,7 @@ Upstream and daemon tests have separate ownership:
 
 ## Library
 
-These dependency examples describe v0.2.0. Before publication, use a path
-dependency on this checkout.
+These dependency examples describe v0.2.0, published on crates.io.
 
 ```toml
 [dependencies]

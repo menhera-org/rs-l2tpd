@@ -30,9 +30,12 @@ The kernel carries Ethernet pseudowires over IPv4 or IPv6.
 
 ## Status
 
-Version 0.2.0 has not been published. The [verification record](audit/VERIFICATION.md)
-identifies qualified source, commands and results. The [release readiness review](audit/RELEASE_READINESS.md)
-records the packaging fixes required before binary distribution.
+Version 0.2.0 was released on 2026-11-05; see the [changelog](CHANGELOG.md).
+Packages and tarballs are on the [releases page](https://github.com/menhera-org/rs-l2tpd/releases),
+the crate on [crates.io](https://crates.io/crates/rs-l2tpd).
+The [verification record](audit/VERIFICATION.md)
+identifies qualified source, commands and results, and the
+[release readiness review](audit/RELEASE_READINESS.md) the packaging qualification.
 [Kernel support](docs/kernel-support.md) describes supported targets and
 operating limits. Debian 12 receives best-effort degradation outside support.
 

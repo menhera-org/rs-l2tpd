@@ -2,7 +2,7 @@
 
 The five findings in the [prior audit](https://github.com/menhera-org/rs-l2tpd/blob/1f261be0dbff7584a14cc39a3bfe91b38919fd4e/audit/phase6/release-candidate/release-readiness-audit.md)
 are closed. No binary-distribution blocker remains from that review.
-Version 0.2.0 is still unpublished.
+Version 0.2.0 was released on 2026-11-05.
 
 Release inputs are qualified at `f12798ec54c17b45be8777d802ce8bf6dc7e9aaf`.
 The production source, root Cargo files and live-kernel assertions
